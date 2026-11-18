@@ -6,6 +6,7 @@ package codespace
 import (
 	"context"
 	"math"
+	"strconv"
 	"testing"
 	"time"
 
@@ -23,9 +24,9 @@ func TestFinalizeOperationResumeFailedTransaction(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
-	codespaceUUID := "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+	codespaceID := int64(1033)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusStopped,
 		OperationRVersion:     3,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -33,11 +34,10 @@ func TestFinalizeOperationResumeFailedTransaction(t *testing.T) {
 		OperationStartedUnix:  11,
 		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	})
-	insertServiceCredentials(t, codespaceUUID)
+	insertServiceCredentials(t, codespaceID)
 
 	outcome, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
-		CodespaceID:       codespaceIDByUUID(t, codespaceUUID),
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 3,
 		OperationType:     codespacev1.OperationType_OPERATION_TYPE_RESUME,
 		FinalStatus:       codespacev1.FinalStatus_FINAL_STATUS_FAILED,
@@ -45,15 +45,15 @@ func TestFinalizeOperationResumeFailedTransaction(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, outcome.GetResourceAbsent())
 
-	codespace := loadServiceCodespace(t, codespaceUUID)
+	codespace := loadServiceCodespace(t, codespaceID)
 	assert.Equal(t, codespace_model.StatusStopped, codespace.Status)
 	assert.False(t, hasActiveOperation(codespace))
 	assert.Positive(t, codespace.UpdatedUnix)
-	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
-	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = ?", codespaceID)
+	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = ?", codespaceID)
 }
 
-func TestFinalizeOperationUnboundCreateFailure(t *testing.T) {
+func TestFinalizeOperationCreateFailureWaitsForCleanupInventory(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
@@ -76,20 +76,22 @@ func TestFinalizeOperationUnboundCreateFailure(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, outcome.GetResourceAbsent())
 
-	current := loadServiceCodespaceByID(t, codespace.ID)
+	current := loadServiceCodespace(t, codespace.ID)
 	assert.Equal(t, codespace_model.StatusFailed, current.Status)
-	assert.Zero(t, current.ManagerID)
-	assert.Empty(t, current.UUID)
+	assert.Equal(t, manager.ID, current.ManagerID)
 	assert.False(t, hasActiveOperation(current))
+	_, err = ReportInstances(t.Context(), manager, ReportInstancesOptions{InventoryGeneration: 1})
+	require.NoError(t, err)
+	assert.Zero(t, loadServiceCodespace(t, codespace.ID).ManagerID)
 }
 
 func TestFinalizeOperationCreateUsesDurablePrerequisites(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
-	codespaceUUID := "abababab-abab-4bab-8bab-abababababab"
+	codespaceID := int64(1126)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     3,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -97,27 +99,21 @@ func TestFinalizeOperationCreateUsesDurablePrerequisites(t *testing.T) {
 		OperationStartedUnix:  11,
 		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	})
-	insertServiceCredentials(t, codespaceUUID)
+	insertServiceCredentials(t, codespaceID)
 
 	_, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
-		CodespaceID:       codespaceIDByUUID(t, codespaceUUID),
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 3,
 		OperationType:     codespacev1.OperationType_OPERATION_TYPE_CREATE,
 		FinalStatus:       codespacev1.FinalStatus_FINAL_STATUS_DONE,
 	})
 	require.NoError(t, err)
-	row := loadServiceCodespace(t, codespaceUUID)
+	row := loadServiceCodespace(t, codespaceID)
 	assert.Equal(t, codespace_model.StatusRunning, row.Status)
 	assert.EqualValues(t, 3, row.RuntimeOperationRVersion)
-	_, hasMetadata, err := getRuntimeMetadataEntry(codespaceUUID)
+	_, hasMetadata, err := getRuntimeMetadataEntry(codespaceID)
 	require.NoError(t, err)
 	assert.False(t, hasMetadata)
-}
-
-func codespaceIDByUUID(t *testing.T, codespaceUUID string) int64 {
-	t.Helper()
-	return loadServiceCodespace(t, codespaceUUID).ID
 }
 
 func TestFinalizeOperationRejectsWrongManagerAsStale(t *testing.T) {
@@ -125,9 +121,9 @@ func TestFinalizeOperationRejectsWrongManagerAsStale(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	otherManager := insertServiceManager(t)
-	codespaceUUID := "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+	codespaceID := int64(1127)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     4,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -137,23 +133,22 @@ func TestFinalizeOperationRejectsWrongManagerAsStale(t *testing.T) {
 	})
 
 	_, err := FinalizeOperation(t.Context(), otherManager, FinalizeOperationOptions{
-		CodespaceID:       codespaceIDByUUID(t, codespaceUUID),
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 4,
 		OperationType:     codespacev1.OperationType_OPERATION_TYPE_STOP,
 		FinalStatus:       codespacev1.FinalStatus_FINAL_STATUS_DONE,
 	})
 	require.NoError(t, err)
-	assert.True(t, codespace_model.IsOperationRunning(loadServiceCodespace(t, codespaceUUID)))
+	assert.True(t, codespace_model.IsOperationRunning(loadServiceCodespace(t, codespaceID)))
 }
 
 func TestFinalizeOperationAcceptsConvergentCompletionAfterDeadline(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
-	codespaceUUID := "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbc"
+	codespaceID := int64(1128)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     41,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -161,41 +156,39 @@ func TestFinalizeOperationAcceptsConvergentCompletionAfterDeadline(t *testing.T)
 		OperationStartedUnix:  11,
 		OperationDeadlineUnix: time.Now().Add(-time.Minute).Unix(),
 	})
-	insertServiceCredentials(t, codespaceUUID)
+	insertServiceCredentials(t, codespaceID)
 
 	_, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
-		CodespaceID:       codespaceIDByUUID(t, codespaceUUID),
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 41,
 		OperationType:     codespacev1.OperationType_OPERATION_TYPE_STOP,
 		FinalStatus:       codespacev1.FinalStatus_FINAL_STATUS_DONE,
 	})
 	require.NoError(t, err)
-	codespace := loadServiceCodespace(t, codespaceUUID)
+	codespace := loadServiceCodespace(t, codespaceID)
 	assert.Equal(t, codespace_model.StatusStopped, codespace.Status)
 	assert.False(t, hasActiveOperation(codespace))
-	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
-	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = ?", codespaceID)
+	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = ?", codespaceID)
 }
 
 func TestFinalizeOperationRejectsConvergentFailure(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	manager := insertServiceManager(t)
-	codespaceUUID := "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbd"
+	codespaceID := int64(1129)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID: codespaceUUID, Status: codespace_model.StatusDeleting, OperationRVersion: 42,
+		ID: codespaceID, Status: codespace_model.StatusDeleting, OperationRVersion: 42,
 		OperationTrigger: codespace_model.OperationTriggerUser, OperationCreatedUnix: 10,
 		OperationStartedUnix: 11, OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	})
 
 	_, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
-		CodespaceID:   codespaceIDByUUID(t, codespaceUUID),
-		CodespaceUUID: codespaceUUID, OperationRVersion: 42,
+		CodespaceID: codespaceID, OperationRVersion: 42,
 		OperationType: codespacev1.OperationType_OPERATION_TYPE_DELETE,
 		FinalStatus:   codespacev1.FinalStatus_FINAL_STATUS_FAILED,
 	})
 	require.Error(t, err)
-	row := loadServiceCodespace(t, codespaceUUID)
+	row := loadServiceCodespace(t, codespaceID)
 	assert.Equal(t, codespace_model.StatusDeleting, row.Status)
 	assert.True(t, codespace_model.IsOperationRunning(row))
 }
@@ -205,9 +198,9 @@ func TestReportRuntimeMetadataRejectsStageRegression(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
+	codespaceID := int64(1130)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     5,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -217,19 +210,19 @@ func TestReportRuntimeMetadataRejectsStageRegression(t *testing.T) {
 	})
 
 	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, ReportRuntimeMetadataOptions{
-		CodespaceUUID:      codespaceUUID,
+		CodespaceID:        codespaceID,
 		Metadata:           serviceRuntimeMetadataProto(5, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, nil),
 		MetadataGeneration: 1,
 	}))
 
 	err := ReportRuntimeMetadata(t.Context(), manager, ReportRuntimeMetadataOptions{
-		CodespaceUUID:      codespaceUUID,
+		CodespaceID:        codespaceID,
 		Metadata:           serviceRuntimeMetadataProto(5, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_PUBLISH_READY, nil),
 		MetadataGeneration: 2,
 	})
 	require.Error(t, err)
 	assert.ErrorIs(t, err, ErrRuntimeMetadataStaleOperation)
-	hasReady, err := hasReadyRuntimeMetadataForTest(codespaceUUID, 5)
+	hasReady, err := hasReadyRuntimeMetadataForTest(codespaceID, 5)
 	require.NoError(t, err)
 	assert.True(t, hasReady)
 }
@@ -238,17 +231,17 @@ func TestReportRuntimeMetadataResourceUsageRefresh(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "dededede-dede-4ded-8ded-dededededede"
+	codespaceID := int64(1131)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID: codespaceUUID, Status: codespace_model.StatusCreating,
+		ID: codespaceID, Status: codespace_model.StatusCreating,
 		OperationRVersion: 5, OperationTrigger: codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: 10, OperationStartedUnix: 11, OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	})
 	metadata := serviceRuntimeMetadataProto(5, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, nil)
 	metadata.ResourceUsage = nil
-	options := ReportRuntimeMetadataOptions{CodespaceUUID: codespaceUUID, Metadata: metadata, MetadataGeneration: 1}
+	options := ReportRuntimeMetadataOptions{CodespaceID: codespaceID, Metadata: metadata, MetadataGeneration: 1}
 	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, options))
-	ready, err := hasReadyRuntimeMetadataForTest(codespaceUUID, 5)
+	ready, err := hasReadyRuntimeMetadataForTest(codespaceID, 5)
 	require.NoError(t, err)
 	assert.True(t, ready)
 
@@ -261,7 +254,7 @@ func TestReportRuntimeMetadataResourceUsageRefresh(t *testing.T) {
 	metadata.ResourceUsage.ObservedUnix--
 	metadata.ResourceUsage.Cpu.UsedMillicores = 100
 	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, options))
-	entry, exists, err := getRuntimeMetadataEntry(codespaceUUID)
+	entry, exists, err := getRuntimeMetadataEntry(codespaceID)
 	require.NoError(t, err)
 	require.True(t, exists)
 	assert.EqualValues(t, 1, entry.Generation)
@@ -269,16 +262,43 @@ func TestReportRuntimeMetadataResourceUsageRefresh(t *testing.T) {
 	assert.NotNil(t, creatorResourceUsageView(entry.Metadata.ResourceUsage))
 
 	entry.Metadata.ResourceUsage.ObservedUnix = time.Now().Add(-setting.Codespace.ManagerOfflineTimeout*2 - time.Second).Unix()
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, entry))
+	require.NoError(t, putRuntimeMetadataEntry(codespaceID, entry))
 	metadata.ResourceUsage = nil
 	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, options))
-	entry, exists, err = getRuntimeMetadataEntry(codespaceUUID)
+	entry, exists, err = getRuntimeMetadataEntry(codespaceID)
 	require.NoError(t, err)
 	require.True(t, exists)
 	assert.Nil(t, creatorResourceUsageView(entry.Metadata.ResourceUsage))
-	ready, err = hasReadyRuntimeMetadataForTest(codespaceUUID, 5)
+	ready, err = hasReadyRuntimeMetadataForTest(codespaceID, 5)
 	require.NoError(t, err)
 	assert.True(t, ready)
+}
+
+func TestReportRuntimeMetadataAddresses(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	manager := insertServiceManager(t)
+	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
+	cs := &codespace_model.Codespace{Status: codespace_model.StatusRunning, OperationRVersion: 5}
+	insertServiceCodespace(t, manager.ID, cs)
+	metadata := serviceRuntimeMetadataProto(5, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, nil)
+	opts := ReportRuntimeMetadataOptions{CodespaceID: cs.ID, Metadata: metadata, MetadataGeneration: 1}
+	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, opts))
+
+	metadata.Endpoints[0].Url = "https://new.gateway.example.com/"
+	metadata.Endpoints[0].OpenUrl = "https://new.gateway.example.com/.gitea-codespace/open"
+	require.ErrorIs(t, ReportRuntimeMetadata(t.Context(), manager, opts), ErrRuntimeMetadataGenerationConflict)
+	opts.MetadataGeneration++
+	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, opts))
+	entry, exists, err := getRuntimeMetadataEntry(cs.ID)
+	require.NoError(t, err)
+	require.True(t, exists)
+	assert.Equal(t, metadata.Endpoints[0].Url, entry.Metadata.Endpoints[0].URL)
+
+	opts.MetadataGeneration++
+	for _, address := range []string{"https://other.gateway.example.com/open", "https://outside.example.com/open"} {
+		metadata.Endpoints[0].OpenUrl = address
+		require.Error(t, ReportRuntimeMetadata(t.Context(), manager, opts))
+	}
 }
 
 func TestReportRuntimeMetadataRejectsGenerationExhaustion(t *testing.T) {
@@ -286,9 +306,9 @@ func TestReportRuntimeMetadataRejectsGenerationExhaustion(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "cfcfcfcf-cfcf-4cfc-8cfc-cfcfcfcfcfcf"
+	codespaceID := int64(1132)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     7,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -298,10 +318,10 @@ func TestReportRuntimeMetadataRejectsGenerationExhaustion(t *testing.T) {
 	})
 	entry := serviceRuntimeMetadataEntry(t, 7, nil)
 	entry.Generation = math.MaxInt64
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, entry))
+	require.NoError(t, putRuntimeMetadataEntry(codespaceID, entry))
 
 	err := ReportRuntimeMetadata(t.Context(), manager, ReportRuntimeMetadataOptions{
-		CodespaceUUID:      codespaceUUID,
+		CodespaceID:        codespaceID,
 		Metadata:           serviceRuntimeMetadataProto(7, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, nil),
 		MetadataGeneration: math.MaxInt64 - 1,
 	})
@@ -314,9 +334,9 @@ func TestReportRuntimeMetadataUsesCurrentManagerAvailability(t *testing.T) {
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	staleManager := *manager
-	codespaceUUID := "cececece-cece-4cec-8cec-cececececece"
+	codespaceID := int64(1133)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     6,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -331,12 +351,12 @@ func TestReportRuntimeMetadataUsesCurrentManagerAvailability(t *testing.T) {
 	require.NoError(t, err)
 
 	err = ReportRuntimeMetadata(t.Context(), &staleManager, ReportRuntimeMetadataOptions{
-		CodespaceUUID:      codespaceUUID,
+		CodespaceID:        codespaceID,
 		Metadata:           serviceRuntimeMetadataProto(6, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, nil),
 		MetadataGeneration: 1,
 	})
 	require.ErrorIs(t, err, ErrRuntimeMetadataManagerOffline)
-	hasReady, err := hasReadyRuntimeMetadataForTest(codespaceUUID, 6)
+	hasReady, err := hasReadyRuntimeMetadataForTest(codespaceID, 6)
 	require.NoError(t, err)
 	assert.False(t, hasReady)
 
@@ -349,7 +369,7 @@ func TestReportRuntimeMetadataUsesCurrentManagerAvailability(t *testing.T) {
 		})
 	require.NoError(t, err)
 	err = ReportRuntimeMetadata(t.Context(), &staleManager, ReportRuntimeMetadataOptions{
-		CodespaceUUID:      codespaceUUID,
+		CodespaceID:        codespaceID,
 		Metadata:           serviceRuntimeMetadataProto(6, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, nil),
 		MetadataGeneration: 1,
 	})
@@ -361,9 +381,9 @@ func TestFinalizeOperationCreateDoneRejectsDamagedGiteaToken(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "11111111-1111-4111-8111-111111111111"
+	codespaceID := int64(1134)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     6,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -372,28 +392,27 @@ func TestFinalizeOperationCreateDoneRejectsDamagedGiteaToken(t *testing.T) {
 		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	})
 	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, ReportRuntimeMetadataOptions{
-		CodespaceUUID:      codespaceUUID,
+		CodespaceID:        codespaceID,
 		Metadata:           serviceRuntimeMetadataProto(6, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, nil),
 		MetadataGeneration: 1,
 	}))
 	require.NoError(t, db.Insert(t.Context(), &codespace_model.GiteaToken{
-		CodespaceID:    loadServiceCodespace(t, codespaceUUID).ID,
-		TokenHash:      "hash-" + codespaceUUID,
+		CodespaceID:    loadServiceCodespace(t, codespaceID).ID,
+		TokenHash:      "hash-" + strconv.FormatInt(codespaceID, 10),
 		TokenSalt:      "salt-1",
 		TokenLastEight: "last0001",
 		TokenEncrypted: "encrypted",
 	}))
 
 	outcome, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
-		CodespaceID:       codespaceIDByUUID(t, codespaceUUID),
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 6,
 		OperationType:     codespacev1.OperationType_OPERATION_TYPE_CREATE,
 		FinalStatus:       codespacev1.FinalStatus_FINAL_STATUS_DONE,
 	})
 	require.ErrorIs(t, err, ErrFinalizeGiteaTokenRequired)
 	assert.Empty(t, outcome)
-	assert.True(t, codespace_model.IsOperationRunning(loadServiceCodespace(t, codespaceUUID)))
+	assert.True(t, codespace_model.IsOperationRunning(loadServiceCodespace(t, codespaceID)))
 }
 
 func TestFinalizeStopClearsRuntimeMetadata(t *testing.T) {
@@ -401,9 +420,9 @@ func TestFinalizeStopClearsRuntimeMetadata(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "dddddddd-dddd-4ddd-8ddd-dddddddddddd"
+	codespaceID := int64(1135)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     6,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -411,27 +430,26 @@ func TestFinalizeStopClearsRuntimeMetadata(t *testing.T) {
 		OperationStartedUnix:  11,
 		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	})
-	insertServiceCredentials(t, codespaceUUID)
+	insertServiceCredentials(t, codespaceID)
 
 	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, ReportRuntimeMetadataOptions{
-		CodespaceUUID:      codespaceUUID,
+		CodespaceID:        codespaceID,
 		Metadata:           serviceRuntimeMetadataProto(6, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, nil),
 		MetadataGeneration: 1,
 	}))
-	hasReady, err := hasReadyRuntimeMetadataForTest(codespaceUUID, 6)
+	hasReady, err := hasReadyRuntimeMetadataForTest(codespaceID, 6)
 	require.NoError(t, err)
 	require.True(t, hasReady)
 
 	outcome, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
-		CodespaceID:       codespaceIDByUUID(t, codespaceUUID),
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 6,
 		OperationType:     codespacev1.OperationType_OPERATION_TYPE_STOP,
 		FinalStatus:       codespacev1.FinalStatus_FINAL_STATUS_DONE,
 	})
 	require.NoError(t, err)
 	assert.False(t, outcome.GetResourceAbsent())
-	hasReady, err = hasReadyRuntimeMetadataForTest(codespaceUUID, 6)
+	hasReady, err = hasReadyRuntimeMetadataForTest(codespaceID, 6)
 	require.NoError(t, err)
 	assert.False(t, hasReady)
 }
@@ -440,9 +458,9 @@ func TestLifecycleTransitionDoesNotConflictWithUserActivity(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
-	codespaceUUID := "dededede-dede-4ded-8ded-dededededede"
+	codespaceID := int64(1131)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     7,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -451,7 +469,7 @@ func TestLifecycleTransitionDoesNotConflictWithUserActivity(t *testing.T) {
 		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 		InteractionGeneration: 2,
 	})
-	staleInteraction := loadServiceCodespace(t, codespaceUUID)
+	staleInteraction := loadServiceCodespace(t, codespaceID)
 	updated, err := db.GetEngine(t.Context()).ID(staleInteraction.ID).
 		Cols("interaction_generation").
 		Update(&codespace_model.Codespace{InteractionGeneration: 3})
@@ -461,7 +479,7 @@ func TestLifecycleTransitionDoesNotConflictWithUserActivity(t *testing.T) {
 	require.NoError(t, db.WithTx(t.Context(), func(ctx context.Context) error {
 		return applyFinalState(ctx, staleInteraction, codespace_model.StatusStopped, time.Now().Unix())
 	}))
-	current := loadServiceCodespace(t, codespaceUUID)
+	current := loadServiceCodespace(t, codespaceID)
 	assert.Equal(t, codespace_model.StatusStopped, current.Status)
 	assert.EqualValues(t, 3, current.InteractionGeneration)
 }
@@ -470,6 +488,8 @@ func insertServiceManager(t *testing.T) *codespace_model.Manager {
 	t.Helper()
 	manager := &codespace_model.Manager{
 		Name:           "manager",
+		GatewayURL:     "https://gateway.example.com",
+		GatewaySSHAddr: "ssh.example.com:2222",
 		UserID:         0,
 		RuntimeState:   codespace_model.ManagerRuntimeStateOnline,
 		TagsJSON:       "[]",
@@ -505,26 +525,20 @@ func insertServiceCodespace(t *testing.T, managerID int64, codespace *codespace_
 	}
 	codespace.CreatedUnix = 1
 	codespace.UpdatedUnix = 1
-	var err error
-	if codespace.UUID == "" {
-		_, err = db.GetEngine(t.Context()).Table(codespace).Omit("uuid").Insert(codespace)
-	} else {
-		err = db.Insert(t.Context(), codespace)
-	}
+	err := db.Insert(t.Context(), codespace)
 	require.NoError(t, err)
 }
 
-func hasReadyRuntimeMetadataForTest(codespaceUUID string, operationRVersion int64) (bool, error) {
-	entry, has, err := getRuntimeMetadataEntry(codespaceUUID)
+func hasReadyRuntimeMetadataForTest(codespaceID, operationRVersion int64) (bool, error) {
+	entry, has, err := getRuntimeMetadataEntry(codespaceID)
 	if err != nil || !has {
 		return false, err
 	}
 	return entry.Metadata.Boot.Stage == bootStageReady && entry.Metadata.Boot.OperationRVersion == operationRVersion, nil
 }
 
-func insertServiceCredentials(t *testing.T, codespaceUUID string) {
+func insertServiceCredentials(t *testing.T, codespaceID int64) {
 	t.Helper()
-	codespaceID := loadServiceCodespace(t, codespaceUUID).ID
 	_, err := insertNewGiteaToken(t.Context(), codespaceID)
 	require.NoError(t, err)
 	require.NoError(t, db.Insert(t.Context(), &codespace_model.SSHKey{
@@ -533,19 +547,10 @@ func insertServiceCredentials(t *testing.T, codespaceUUID string) {
 	}))
 }
 
-func loadServiceCodespace(t *testing.T, codespaceUUID string) *codespace_model.Codespace {
+func loadServiceCodespace(t *testing.T, codespaceID int64) *codespace_model.Codespace {
 	t.Helper()
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Get(codespace)
-	require.NoError(t, err)
-	require.True(t, has)
-	return codespace
-}
-
-func loadServiceCodespaceByID(t *testing.T, codespaceID int64) *codespace_model.Codespace {
-	t.Helper()
-	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(t.Context()).ID(codespaceID).Get(codespace)
+	has, err := db.GetEngine(t.Context()).Where("id = ?", codespaceID).Get(codespace)
 	require.NoError(t, err)
 	require.True(t, has)
 	return codespace

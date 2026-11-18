@@ -256,6 +256,11 @@ func serviceRuntimeMetadataProto(operationRVersion int64, stage codespacev1.Runt
 			Label:      workspaceEndpointLabel,
 		})
 		metadata.WorkspaceFolder = "/workspaces/project"
+		metadata.Ssh = &codespacev1.RuntimeSSH{Host: "ssh.example.com", Port: 2222, User: "reported-runtime", VscodeUrl: "vscode://vscode-remote/ssh-remote+reported-runtime@ssh.example.com:2222/workspaces/project", ZedUrl: "zed://ssh/reported-runtime@ssh.example.com:2222/workspaces/project"}
+	}
+	for _, endpoint := range metadata.Endpoints {
+		endpoint.Url = "https://" + endpoint.EndpointId + ".gateway.example.com/"
+		endpoint.OpenUrl = endpoint.Url + ".gitea-codespace/open"
 	}
 	return metadata
 }

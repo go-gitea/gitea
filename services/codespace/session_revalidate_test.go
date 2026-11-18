@@ -20,22 +20,22 @@ func TestRevalidateGatewaySessionAllowsPrivateEndpointAndSSH(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "81818181-8181-4818-8818-818181818181"
+	codespaceID := int64(1114)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     61,
 		InteractionGeneration: 7,
 		LastActiveUnix:        12,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 61, []*codespacev1.RuntimeEndpoint{
+	require.NoError(t, putRuntimeMetadataEntry(codespaceID, serviceRuntimeMetadataEntry(t, 61, []*codespacev1.RuntimeEndpoint{
 		{EndpointId: "app-3000", Label: "App", Public: false},
 		{EndpointId: "public-api", Label: "API", Public: true},
 	})))
 
 	endpoint, err := RevalidateGatewaySession(t.Context(), manager, &codespacev1.RevalidateGatewaySessionRequest{
 		Session: &codespacev1.RevalidateGatewaySessionRequest_Endpoint{Endpoint: &codespacev1.EndpointSessionBinding{
-			UserId: 1, RuntimeUuid: codespaceUUID, EndpointId: "app-3000",
+			UserId: 1, CodespaceId: codespaceID, EndpointId: "app-3000",
 		}},
 	})
 	require.NoError(t, err)
@@ -43,7 +43,7 @@ func TestRevalidateGatewaySessionAllowsPrivateEndpointAndSSH(t *testing.T) {
 
 	workspace, err := RevalidateGatewaySession(t.Context(), manager, &codespacev1.RevalidateGatewaySessionRequest{
 		Session: &codespacev1.RevalidateGatewaySessionRequest_Endpoint{Endpoint: &codespacev1.EndpointSessionBinding{
-			UserId: 1, RuntimeUuid: codespaceUUID, EndpointId: "workspace",
+			UserId: 1, CodespaceId: codespaceID, EndpointId: "workspace",
 		}},
 	})
 	require.NoError(t, err)
@@ -51,13 +51,13 @@ func TestRevalidateGatewaySessionAllowsPrivateEndpointAndSSH(t *testing.T) {
 
 	sshSession, err := RevalidateGatewaySession(t.Context(), manager, &codespacev1.RevalidateGatewaySessionRequest{
 		Session: &codespacev1.RevalidateGatewaySessionRequest_Ssh{Ssh: &codespacev1.SSHSessionBinding{
-			UserId: 1, RuntimeUuid: codespaceUUID,
+			UserId: 1, CodespaceId: codespaceID,
 		}},
 	})
 	require.NoError(t, err)
 	assert.NotNil(t, sshSession.GetAllowed())
 
-	row := loadServiceCodespace(t, codespaceUUID)
+	row := loadServiceCodespace(t, codespaceID)
 	assert.EqualValues(t, 7, row.InteractionGeneration)
 	assert.EqualValues(t, 12, row.LastActiveUnix)
 }
@@ -67,19 +67,19 @@ func TestRevalidateGatewaySessionDeniesChangedEndpointAndState(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "82828282-8282-4828-8828-828282828282"
+	codespaceID := int64(1115)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:              codespaceUUID,
+		ID:                codespaceID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 62,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 62, []*codespacev1.RuntimeEndpoint{
+	require.NoError(t, putRuntimeMetadataEntry(codespaceID, serviceRuntimeMetadataEntry(t, 62, []*codespacev1.RuntimeEndpoint{
 		{EndpointId: "public-api", Label: "API", Public: true},
 	})))
 
 	publicEndpoint, err := RevalidateGatewaySession(t.Context(), manager, &codespacev1.RevalidateGatewaySessionRequest{
 		Session: &codespacev1.RevalidateGatewaySessionRequest_Endpoint{Endpoint: &codespacev1.EndpointSessionBinding{
-			UserId: 1, RuntimeUuid: codespaceUUID, EndpointId: "public-api",
+			UserId: 1, CodespaceId: codespaceID, EndpointId: "public-api",
 		}},
 	})
 	require.NoError(t, err)
@@ -87,24 +87,24 @@ func TestRevalidateGatewaySessionDeniesChangedEndpointAndState(t *testing.T) {
 
 	wrongUser, err := RevalidateGatewaySession(t.Context(), manager, &codespacev1.RevalidateGatewaySessionRequest{
 		Session: &codespacev1.RevalidateGatewaySessionRequest_Ssh{Ssh: &codespacev1.SSHSessionBinding{
-			UserId: 2, RuntimeUuid: codespaceUUID,
+			UserId: 2, CodespaceId: codespaceID,
 		}},
 	})
 	require.NoError(t, err)
 	assert.Equal(t, SessionDeniedPermissionDenied, wrongUser.GetDenied().GetCategory())
 
-	activeUUID := "83838383-8383-4838-8838-838383838383"
+	activeID := int64(1116)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                 activeUUID,
+		ID:                   activeID,
 		Status:               codespace_model.StatusRunning,
 		OperationRVersion:    63,
 		OperationTrigger:     codespace_model.OperationTriggerIdle,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
-	require.NoError(t, putRuntimeMetadataEntry(activeUUID, serviceRuntimeMetadataEntry(t, 63, nil)))
+	require.NoError(t, putRuntimeMetadataEntry(activeID, serviceRuntimeMetadataEntry(t, 63, nil)))
 	active, err := RevalidateGatewaySession(t.Context(), manager, &codespacev1.RevalidateGatewaySessionRequest{
 		Session: &codespacev1.RevalidateGatewaySessionRequest_Ssh{Ssh: &codespacev1.SSHSessionBinding{
-			UserId: 1, RuntimeUuid: activeUUID,
+			UserId: 1, CodespaceId: activeID,
 		}},
 	})
 	require.NoError(t, err)

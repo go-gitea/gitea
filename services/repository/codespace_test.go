@@ -5,7 +5,6 @@ package repository
 
 import (
 	"testing"
-	"uuid"
 
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
@@ -46,9 +45,7 @@ func TestDeleteRepositoryDirectlyUnbindsCodespaces(t *testing.T) {
 	secret := &codespace_model.UserSecret{UserID: user.ID, Name: "DATABASE_PASSWORD", DataEncrypted: "encrypted"}
 	require.NoError(t, db.Insert(t.Context(), secret))
 
-	codespaceUUID := uuid.NewV4().String()
 	codespace := &codespace_model.Codespace{
-		UUID:                      codespaceUUID,
 		UserID:                    user.ID,
 		RepoID:                    repo.ID,
 		PermissionAuthorizationID: authorization.ID,
@@ -85,7 +82,7 @@ func TestDeleteRepositoryDirectlyUnbindsCodespaces(t *testing.T) {
 
 	unittest.AssertNotExistsBean(t, &repo_model.Repository{ID: repo.ID})
 	persistedCodespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Get(persistedCodespace)
+	has, err := db.GetEngine(t.Context()).ID(codespace.ID).Get(persistedCodespace)
 	require.NoError(t, err)
 	require.True(t, has)
 	assert.Zero(t, persistedCodespace.RepoID)

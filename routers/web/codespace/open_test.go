@@ -26,10 +26,10 @@ func TestOpenEndpointRedirectsWithOneTimeCode(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertWebOpenManager(t, "https://gateway.example.com")
-	codespaceUUID := "96969696-9696-4969-8969-969696969696"
-	insertWebOpenCodespace(t, manager.ID, codespaceUUID, 91)
+	codespaceID := int64(1011)
+	insertWebOpenCodespace(t, manager.ID, codespaceID, 91)
 	require.NoError(t, codespace_service.ReportRuntimeMetadata(t.Context(), manager, codespace_service.ReportRuntimeMetadataOptions{
-		CodespaceUUID: codespaceUUID,
+		CodespaceID: codespaceID,
 		Metadata: webOpenRuntimeMetadata(t, 91, []*codespacev1.RuntimeEndpoint{{
 			EndpointId: "app-3000",
 			Label:      "App",
@@ -37,9 +37,9 @@ func TestOpenEndpointRedirectsWithOneTimeCode(t *testing.T) {
 		MetadataGeneration: 1,
 	}))
 
-	ctx, resp := contexttest.MockContext(t, "POST /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/open/app-3000")
+	ctx, resp := contexttest.MockContext(t, "POST /-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"/open/app-3000")
 	contexttest.LoadUser(t, ctx, 1)
-	ctx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
 	ctx.SetPathParam("endpoint_id", "app-3000")
 	OpenEndpoint(ctx)
 
@@ -50,7 +50,7 @@ func TestOpenEndpointRedirectsWithOneTimeCode(t *testing.T) {
 	parsed, err := url.Parse(location)
 	require.NoError(t, err)
 	assert.Equal(t, "https", parsed.Scheme)
-	assert.Equal(t, "app-3000-96969696969649698969969696969696.gateway.example.com", parsed.Host)
+	assert.Equal(t, "app-3000.gateway.example.com", parsed.Host)
 	assert.Equal(t, "/.gitea-codespace/open", parsed.Path)
 	code := parsed.Query().Get("code")
 	require.Regexp(t, `^[0-9a-f]{64}$`, code)
@@ -60,10 +60,10 @@ func TestOpenEndpointPublicRedirectsWithoutCode(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertWebOpenManager(t, "https://gateway.example.com")
-	codespaceUUID := "98989898-9898-4989-8989-989898989898"
-	insertWebOpenCodespace(t, manager.ID, codespaceUUID, 92)
+	codespaceID := int64(1012)
+	insertWebOpenCodespace(t, manager.ID, codespaceID, 92)
 	require.NoError(t, codespace_service.ReportRuntimeMetadata(t.Context(), manager, codespace_service.ReportRuntimeMetadataOptions{
-		CodespaceUUID: codespaceUUID,
+		CodespaceID: codespaceID,
 		Metadata: webOpenRuntimeMetadata(t, 92, []*codespacev1.RuntimeEndpoint{{
 			EndpointId: "app-3000",
 			Label:      "App",
@@ -72,9 +72,9 @@ func TestOpenEndpointPublicRedirectsWithoutCode(t *testing.T) {
 		MetadataGeneration: 1,
 	}))
 
-	ctx, resp := contexttest.MockContext(t, "POST /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/open/app-3000")
+	ctx, resp := contexttest.MockContext(t, "POST /-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"/open/app-3000")
 	contexttest.LoadUser(t, ctx, 1)
-	ctx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
 	ctx.SetPathParam("endpoint_id", "app-3000")
 	OpenEndpoint(ctx)
 
@@ -85,7 +85,7 @@ func TestOpenEndpointPublicRedirectsWithoutCode(t *testing.T) {
 	parsed, err := url.Parse(location)
 	require.NoError(t, err)
 	assert.Equal(t, "https", parsed.Scheme)
-	assert.Equal(t, "app-3000-98989898989849898989989898989898.gateway.example.com", parsed.Host)
+	assert.Equal(t, "app-3000.gateway.example.com", parsed.Host)
 	assert.Equal(t, "/", parsed.Path)
 	assert.Empty(t, parsed.RawQuery)
 }
@@ -94,12 +94,12 @@ func TestOpenEndpointHidesOtherCreatorCodespace(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertWebOpenManager(t, "https://gateway.example.com")
-	codespaceUUID := "99999999-9999-4999-8999-999999999999"
-	insertWebOpenCodespace(t, manager.ID, codespaceUUID, 93)
+	codespaceID := int64(1013)
+	insertWebOpenCodespace(t, manager.ID, codespaceID, 93)
 
-	ctx, resp := contexttest.MockContext(t, "POST /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/open")
+	ctx, resp := contexttest.MockContext(t, "POST /-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"/open")
 	contexttest.LoadUser(t, ctx, 2)
-	ctx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
 	Open(ctx)
 
 	require.Equal(t, http.StatusNotFound, resp.Code)
@@ -121,10 +121,10 @@ func insertWebOpenManager(t *testing.T, gatewayURL string) *codespace_model.Mana
 	return manager
 }
 
-func insertWebOpenCodespace(t *testing.T, managerID int64, codespaceUUID string, operationRVersion int64) {
+func insertWebOpenCodespace(t *testing.T, managerID, codespaceID, operationRVersion int64) {
 	t.Helper()
 	require.NoError(t, db.Insert(t.Context(), &codespace_model.Codespace{
-		UUID:                     codespaceUUID,
+		ID:                       codespaceID,
 		UserID:                   1,
 		RepoID:                   2,
 		RefType:                  "branch",
@@ -145,6 +145,10 @@ func webOpenRuntimeMetadata(t *testing.T, operationRVersion int64, endpoints []*
 	t.Helper()
 	metadataEndpoints := slices.Clone(endpoints)
 	metadataEndpoints = append(metadataEndpoints, &codespacev1.RuntimeEndpoint{EndpointId: "workspace", Label: "Workspace"})
+	for _, endpoint := range metadataEndpoints {
+		endpoint.Url = "https://" + endpoint.EndpointId + ".gateway.example.com/"
+		endpoint.OpenUrl = endpoint.Url + ".gitea-codespace/open"
+	}
 	return &codespacev1.RuntimeMetadata{
 		Endpoints:       metadataEndpoints,
 		WorkspaceFolder: "/workspaces/project",

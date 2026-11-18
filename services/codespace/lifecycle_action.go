@@ -50,7 +50,7 @@ func ResumeCodespace(ctx context.Context, opts LifecycleActionOptions) (*Lifecyc
 	return applyCreatorLifecycleAction(ctx, opts, codespace_model.OperationResume)
 }
 
-// DeleteCodespace deletes an unbound Codespace or queues a bound delete operation.
+// DeleteCodespace deletes an unassigned Codespace or queues deletion through its Manager.
 func DeleteCodespace(ctx context.Context, opts LifecycleActionOptions) (*LifecycleActionResult, error) {
 	return applyCreatorLifecycleAction(ctx, opts, codespace_model.OperationDelete)
 }
@@ -182,7 +182,7 @@ func applyDeleteAction(ctx context.Context, codespace *codespace_model.Codespace
 	if err := queueLifecycleOperation(ctx, codespace, codespace_model.StatusDeleting, now, false); err != nil {
 		return nil, err
 	}
-	deleteRuntimeMetadata(codespace.UUID)
+	deleteRuntimeMetadata(codespace.ID)
 	return lifecycleActionResult(codespace), nil
 }
 

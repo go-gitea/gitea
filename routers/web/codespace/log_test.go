@@ -28,10 +28,10 @@ func TestLogsReturnsJSONPage(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertWebOpenManager(t, "https://gateway.example.com")
-	codespaceUUID := "92909090-9090-4090-8090-909090909090"
-	insertWebLogCodespace(t, manager.ID, codespaceUUID, 94)
+	codespaceID := int64(1006)
+	insertWebLogCodespace(t, manager.ID, codespaceID, 94)
 	_, err := codespace_service.UpdateLog(t.Context(), manager, codespace_service.UpdateLogOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 94,
 		Offset:            0,
 		Lines: []*codespacev1.LogLine{
@@ -41,9 +41,9 @@ func TestLogsReturnsJSONPage(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/logs?offset=0&limit=40")
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"/logs?offset=0&limit=40")
 	contexttest.LoadUser(t, ctx, 1)
-	ctx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
 	Logs(ctx)
 
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -77,19 +77,19 @@ func TestLogsHideOtherCreatorCodespace(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertWebOpenManager(t, "https://gateway.example.com")
-	codespaceUUID := "97909090-9090-4090-8090-909090909090"
-	insertWebLogCodespace(t, manager.ID, codespaceUUID, 98)
+	codespaceID := int64(1007)
+	insertWebLogCodespace(t, manager.ID, codespaceID, 98)
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/logs")
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"/logs")
 	contexttest.LoadUser(t, ctx, 2)
-	ctx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
 	Logs(ctx)
 	require.Equal(t, http.StatusNotFound, resp.Code)
 	assert.Equal(t, "codespace_not_found", decodeLogError(t, resp.Body.Bytes()).Category)
 
-	ctx, resp = contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/logs/download")
+	ctx, resp = contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"/logs/download")
 	contexttest.LoadUser(t, ctx, 2)
-	ctx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
 	DownloadLogs(ctx)
 	require.Equal(t, http.StatusNotFound, resp.Code)
 }
@@ -98,10 +98,10 @@ func TestLogsReportsOffsetConflict(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertWebOpenManager(t, "https://gateway.example.com")
-	codespaceUUID := "94909090-9090-4090-8090-909090909090"
-	insertWebLogCodespace(t, manager.ID, codespaceUUID, 95)
+	codespaceID := int64(1008)
+	insertWebLogCodespace(t, manager.ID, codespaceID, 95)
 	result, err := codespace_service.UpdateLog(t.Context(), manager, codespace_service.UpdateLogOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 95,
 		Offset:            0,
 		Lines: []*codespacev1.LogLine{{
@@ -111,9 +111,9 @@ func TestLogsReportsOffsetConflict(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/logs?offset="+strconv.FormatInt(result.NextOffset+1, 10))
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"/logs?offset="+strconv.FormatInt(result.NextOffset+1, 10))
 	contexttest.LoadUser(t, ctx, 1)
-	ctx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
 	Logs(ctx)
 
 	require.Equal(t, http.StatusConflict, resp.Code)
@@ -126,10 +126,10 @@ func TestLogPageAndDownloadUseStoredContent(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertWebOpenManager(t, "https://gateway.example.com")
-	codespaceUUID := "95909090-9090-4090-8090-909090909090"
-	insertWebLogCodespace(t, manager.ID, codespaceUUID, 96)
+	codespaceID := int64(1009)
+	insertWebLogCodespace(t, manager.ID, codespaceID, 96)
 	result, err := codespace_service.UpdateLog(t.Context(), manager, codespace_service.UpdateLogOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 96,
 		Offset:            0,
 		Lines: []*codespacev1.LogLine{{
@@ -139,22 +139,22 @@ func TestLogPageAndDownloadUseStoredContent(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	detailCtx, detailResp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10), contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-log")})
+	detailCtx, detailResp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10), contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-log")})
 	contexttest.LoadUser(t, detailCtx, 1)
-	detailCtx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
+	detailCtx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
 	Detail(detailCtx)
 	require.Equal(t, http.StatusOK, detailResp.Code)
 	assert.Contains(t, detailResp.Body.String(), "data-log-next-offset=\"0\"")
 	assert.Contains(t, detailResp.Body.String(), "data-log-revision=\"96:"+strconv.FormatInt(result.NextOffset, 10)+"\"")
-	assert.Contains(t, detailResp.Body.String(), "/-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/logs/download")
+	assert.Contains(t, detailResp.Body.String(), "/-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"/logs/download")
 
-	downloadCtx, downloadResp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/logs/download")
+	downloadCtx, downloadResp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"/logs/download")
 	contexttest.LoadUser(t, downloadCtx, 1)
-	downloadCtx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
+	downloadCtx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
 	DownloadLogs(downloadCtx)
 	require.Equal(t, http.StatusOK, downloadResp.Code)
 	assert.Equal(t, "no-store", downloadResp.Header().Get("Cache-Control"))
-	assert.Contains(t, downloadResp.Header().Get("Content-Disposition"), "codespace-"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+".log")
+	assert.Contains(t, downloadResp.Header().Get("Content-Disposition"), "codespace-"+strconv.FormatInt(codespaceID, 10)+".log")
 	assert.Contains(t, downloadResp.Body.String(), "download same\n")
 }
 
@@ -162,8 +162,8 @@ func TestDownloadLogsReadsAllPages(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertWebOpenManager(t, "https://gateway.example.com")
-	codespaceUUID := "96909090-9090-4090-8090-909090909090"
-	insertWebLogCodespace(t, manager.ID, codespaceUUID, 97)
+	codespaceID := int64(1010)
+	insertWebLogCodespace(t, manager.ID, codespaceID, 97)
 	lines := make([]*codespacev1.LogLine, 9)
 	for i := range lines {
 		lines[i] = &codespacev1.LogLine{
@@ -172,16 +172,16 @@ func TestDownloadLogsReadsAllPages(t *testing.T) {
 		}
 	}
 	_, err := codespace_service.UpdateLog(t.Context(), manager, codespace_service.UpdateLogOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 97,
 		Offset:            0,
 		Lines:             lines,
 	})
 	require.NoError(t, err)
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/logs/download")
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"/logs/download")
 	contexttest.LoadUser(t, ctx, 1)
-	ctx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
 	DownloadLogs(ctx)
 
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -192,10 +192,10 @@ func TestDownloadLogsReadsAllPages(t *testing.T) {
 	}
 }
 
-func insertWebLogCodespace(t *testing.T, managerID int64, codespaceUUID string, operationRVersion int64) {
+func insertWebLogCodespace(t *testing.T, managerID, codespaceID, operationRVersion int64) {
 	t.Helper()
 	require.NoError(t, db.Insert(t.Context(), &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		UserID:                1,
 		RepoID:                2,
 		RefType:               "branch",

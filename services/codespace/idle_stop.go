@@ -27,7 +27,7 @@ var (
 
 // RequestIdleStopOptions contains one Manager idle-stop authorization request.
 type RequestIdleStopOptions struct {
-	CodespaceUUID                 string
+	CodespaceID                   int64
 	ObservedAutoStopEnabled       bool
 	ObservedIdleTimeoutSeconds    int64
 	ObservedInteractionGeneration int64
@@ -38,8 +38,8 @@ func RequestIdleStop(ctx context.Context, manager *codespace_model.Manager, opts
 	if manager == nil || manager.ID <= 0 {
 		return nil, errors.New("manager is required")
 	}
-	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
-		return nil, util.NewInvalidArgumentErrorf("%v", err)
+	if opts.CodespaceID <= 0 {
+		return nil, util.NewInvalidArgumentErrorf("codespace_id must be positive")
 	}
 	if err := validateObservedRuntimeSettings(opts); err != nil {
 		return nil, util.NewInvalidArgumentErrorf("%v", err)
@@ -55,7 +55,7 @@ func RequestIdleStop(ctx context.Context, manager *codespace_model.Manager, opts
 			return ErrRequestIdleStopManagerUnavailable
 		}
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Omit("secrets_encrypted").Get(codespace)
+		has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Omit("secrets_encrypted").Get(codespace)
 		if err != nil {
 			return err
 		}

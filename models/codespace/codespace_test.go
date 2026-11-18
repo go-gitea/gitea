@@ -6,24 +6,10 @@ package codespace
 import (
 	"math"
 	"testing"
-	"uuid"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestUUIDValidation(t *testing.T) {
-	generated := uuid.NewV4().String()
-	require.NoError(t, ValidateUUID(generated))
-
-	uuid32, err := UUID32(generated)
-	require.NoError(t, err)
-	assert.Len(t, uuid32, 32)
-
-	assert.Error(t, ValidateUUID("11111111-1111-1111-8111-111111111111"))
-	assert.Error(t, ValidateUUID("11111111111141118111111111111111"))
-	assert.Error(t, ValidateUUID("A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11"))
-}
 
 func TestNextVersion(t *testing.T) {
 	next, err := NextVersion(0)
@@ -57,7 +43,7 @@ func TestManagerSecretVerifier(t *testing.T) {
 func TestValidateCodespace(t *testing.T) {
 	for _, status := range []string{StatusRunning, StatusStopped, StatusFailed} {
 		t.Run("status/"+status, func(t *testing.T) {
-			row := validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+			row := validCodespace(int64(1033))
 			row.Status = status
 			if status == StatusRunning {
 				row.RuntimeOperationRVersion = row.OperationRVersion
@@ -73,7 +59,7 @@ func TestValidateCodespace(t *testing.T) {
 		StatusDeleting: OperationDelete,
 	} {
 		t.Run("operation type/"+operationType, func(t *testing.T) {
-			row := validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+			row := validCodespace(int64(1033))
 			row.OperationTrigger = OperationTriggerUser
 			row.OperationCreatedUnix = 1
 			row.Status = status
@@ -90,7 +76,7 @@ func TestValidateCodespace(t *testing.T) {
 
 	for _, trigger := range []string{OperationTriggerUser, OperationTriggerIdle} {
 		t.Run("operation trigger/"+trigger, func(t *testing.T) {
-			row := validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+			row := validCodespace(int64(1033))
 			row.OperationTrigger = trigger
 			row.OperationCreatedUnix = 1
 			row.Status = StatusRunning
@@ -101,25 +87,25 @@ func TestValidateCodespace(t *testing.T) {
 
 	for _, mode := range []string{AutoStopModeDefault, AutoStopModeCustom, AutoStopModeNever} {
 		t.Run("auto stop mode/"+mode, func(t *testing.T) {
-			row := validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+			row := validCodespace(int64(1033))
 			row.AutoStopMode = mode
 			require.NoError(t, ValidateCodespace(row))
 		})
 	}
 
-	row := validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+	row := validCodespace(int64(1033))
 	row.Status = "invalid"
 	assert.Error(t, ValidateCodespace(row))
 
-	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+	row = validCodespace(int64(1033))
 	row.Status = StatusRunning
 	assert.Error(t, ValidateCodespace(row))
 
-	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+	row = validCodespace(int64(1033))
 	row.RuntimeOperationRVersion = row.OperationRVersion
 	assert.Error(t, ValidateCodespace(row))
 
-	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+	row = validCodespace(int64(1033))
 	row.OperationTrigger = OperationTriggerUser
 	row.OperationCreatedUnix = 1
 	row.Status = StatusCreating
@@ -128,32 +114,32 @@ func TestValidateCodespace(t *testing.T) {
 	row.OperationStartedUnix = 2
 	assert.Error(t, ValidateCodespace(row))
 
-	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+	row = validCodespace(int64(1033))
 	row.OperationTrigger = OperationTriggerUser
 	row.OperationCreatedUnix = 1
 	row.Status = StatusFailed
 	assert.Error(t, ValidateCodespace(row))
 
-	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+	row = validCodespace(int64(1033))
 	row.OperationTrigger = "timer"
 	row.OperationCreatedUnix = 1
 	row.Status = StatusCreating
 	assert.Error(t, ValidateCodespace(row))
 
-	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+	row = validCodespace(int64(1033))
 	row.AutoStopMode = "disabled"
 	assert.Error(t, ValidateCodespace(row))
 
-	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+	row = validCodespace(int64(1033))
 	row.DevContainerPath = ".devcontainer/devcontainer.json"
 	assert.Error(t, ValidateCodespace(row))
 
-	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+	row = validCodespace(int64(1033))
 	row.DevContainerPath = ".devcontainer/devcontainer.json"
 	row.DevContainerContent = ""
 	require.NoError(t, ValidateCodespace(row))
 
-	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+	row = validCodespace(int64(1033))
 	row.DevContainerPath = ""
 	row.DevContainerContent = `{"image":"debian:12"}`
 	require.NoError(t, ValidateCodespace(row))
@@ -171,9 +157,9 @@ func TestValidateManager(t *testing.T) {
 	assert.Error(t, ValidateManager(&Manager{RuntimeState: "offline"}))
 }
 
-func validCodespace(codespaceUUID string) *Codespace {
+func validCodespace(codespaceID int64) *Codespace {
 	return &Codespace{
-		UUID:                codespaceUUID,
+		ID:                  codespaceID,
 		UserID:              1,
 		RepoID:              2,
 		RefType:             "branch",

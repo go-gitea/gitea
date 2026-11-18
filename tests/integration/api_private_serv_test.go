@@ -192,10 +192,10 @@ func insertIntegrationCodespaceKey(ctx context.Context, t *testing.T, userID, re
 	fingerprint, err := asymkey_model.CalcFingerprint(publicKeyContent)
 	require.NoError(t, err)
 
-	codespaceUUID := uuid.NewV4().String()
+	keyID := uuid.NewV4().String()
 	key := &asymkey_model.PublicKey{
 		OwnerID:     userID,
-		Name:        "codespace-" + codespaceUUID,
+		Name:        "codespace-" + keyID,
 		Fingerprint: fingerprint,
 		Content:     publicKeyContent,
 		Mode:        perm.AccessModeWrite,
@@ -204,7 +204,6 @@ func insertIntegrationCodespaceKey(ctx context.Context, t *testing.T, userID, re
 	}
 	require.NoError(t, db.Insert(ctx, key))
 	codespace := &codespace_model.Codespace{
-		UUID:           codespaceUUID,
 		UserID:         userID,
 		RepoID:         repoID,
 		RefType:        "branch",

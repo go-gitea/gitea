@@ -49,31 +49,31 @@ func TestRuntimeGitSSHKeyCreateReturnsStableKnownHosts(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "12121212-1212-4212-8212-121212121212"
-	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceUUID, 15)
+	codespaceID := int64(1019)
+	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceID, 15)
 
 	result, err := requestRuntimeGitSSHKey(t.Context(), manager, RequestRuntimeAccessOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 15,
 		GitSSHPublicKey:   servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
 	require.NoError(t, err)
 	require.Len(t, result, 1)
 	assert.True(t, strings.HasPrefix(result[0], "[gitea.example.com]:2222 ssh-ed25519 "))
-	relation := loadServiceSSHKeyRelation(t, codespaceUUID)
+	relation := loadServiceSSHKeyRelation(t, codespaceID)
 	publicKey := loadServicePublicKey(t, relation.KeyID)
 	assert.EqualValues(t, asymkey_model.KeyTypeCodespace, publicKey.Type)
 	assert.False(t, publicKey.Verified)
 	assert.Equal(t, serviceCanonicalPublicKey(t, testGitSSHPublicKey), publicKey.Content)
 
 	again, err := requestRuntimeGitSSHKey(t.Context(), manager, RequestRuntimeAccessOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 15,
 		GitSSHPublicKey:   servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, result, again)
-	assert.Equal(t, relation.KeyID, loadServiceSSHKeyRelation(t, codespaceUUID).KeyID)
+	assert.Equal(t, relation.KeyID, loadServiceSSHKeyRelation(t, codespaceID).KeyID)
 }
 
 func TestNormalizeGitSSHPublicKeyAcceptsRSA4096(t *testing.T) {
@@ -103,15 +103,15 @@ func TestResolveGitSSHKeyUserUsesCodespaceBinding(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "13131313-1313-4313-8313-131313131313"
-	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceUUID, 20)
+	codespaceID := int64(1069)
+	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceID, 20)
 	_, err := requestRuntimeGitSSHKey(t.Context(), manager, RequestRuntimeAccessOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 20,
 		GitSSHPublicKey:   servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
 	require.NoError(t, err)
-	_, err = db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols(
+	_, err = db.GetEngine(t.Context()).Where("id = ?", codespaceID).Cols(
 		"status",
 		"operation_trigger",
 		"operation_created_unix",
@@ -119,7 +119,7 @@ func TestResolveGitSSHKeyUserUsesCodespaceBinding(t *testing.T) {
 		"operation_deadline_unix",
 	).Update(&codespace_model.Codespace{Status: codespace_model.StatusRunning})
 	require.NoError(t, err)
-	publicKey := loadServicePublicKey(t, loadServiceSSHKeyRelation(t, codespaceUUID).KeyID)
+	publicKey := loadServicePublicKey(t, loadServiceSSHKeyRelation(t, codespaceID).KeyID)
 
 	user, err := ResolveGitSSHKeyUser(t.Context(), publicKey, 2, unit.TypeCode, perm.AccessModeRead)
 	require.NoError(t, err)
@@ -139,7 +139,7 @@ func TestResolveGitSSHKeyUserUsesCodespaceBinding(t *testing.T) {
 		RequestedMode: perm.AccessModeWrite, GrantedMode: perm.AccessModeRead,
 	}
 	require.NoError(t, db.Insert(t.Context(), rule))
-	updated, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols("permission_authorization_id").Update(&codespace_model.Codespace{PermissionAuthorizationID: authorization.ID})
+	updated, err := db.GetEngine(t.Context()).Where("id = ?", codespaceID).Cols("permission_authorization_id").Update(&codespace_model.Codespace{PermissionAuthorizationID: authorization.ID})
 	require.NoError(t, err)
 	require.EqualValues(t, 1, updated)
 
@@ -168,23 +168,23 @@ func TestRuntimeGitSSHKeyRejectsDifferentExistingKey(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "23232323-2323-4232-8232-232323232323"
-	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceUUID, 16)
+	codespaceID := int64(1070)
+	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceID, 16)
 	_, err := requestRuntimeGitSSHKey(t.Context(), manager, RequestRuntimeAccessOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 16,
 		GitSSHPublicKey:   servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
 	require.NoError(t, err)
-	original := loadServiceSSHKeyRelation(t, codespaceUUID)
+	original := loadServiceSSHKeyRelation(t, codespaceID)
 
 	_, err = requestRuntimeGitSSHKey(t.Context(), manager, RequestRuntimeAccessOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 16,
 		GitSSHPublicKey:   servicePublicKeyWire(t, testOtherGitSSHPublicKey),
 	})
 	require.ErrorIs(t, err, ErrRuntimeGitSSHKeyConflict)
-	assert.Equal(t, original.KeyID, loadServiceSSHKeyRelation(t, codespaceUUID).KeyID)
+	assert.Equal(t, original.KeyID, loadServiceSSHKeyRelation(t, codespaceID).KeyID)
 }
 
 func TestRuntimeGitSSHKeyRepairsOrphanedSameCodespaceKey(t *testing.T) {
@@ -193,13 +193,13 @@ func TestRuntimeGitSSHKeyRepairsOrphanedSameCodespaceKey(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "24242424-2424-4242-8242-242424242424"
-	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceUUID, 16)
+	codespaceID := int64(1071)
+	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceID, 16)
 	key, err := normalizeGitSSHPublicKey(servicePublicKeyWire(t, testGitSSHPublicKey))
 	require.NoError(t, err)
 	publicKey := &asymkey_model.PublicKey{
 		OwnerID:     1,
-		Name:        codespaceGitSSHKeyName(codespaceUUID),
+		Name:        codespaceGitSSHKeyName(codespaceID),
 		Fingerprint: key.Fingerprint,
 		Content:     key.Content,
 		Mode:        perm.AccessModeWrite,
@@ -208,12 +208,12 @@ func TestRuntimeGitSSHKeyRepairsOrphanedSameCodespaceKey(t *testing.T) {
 	require.NoError(t, db.Insert(t.Context(), publicKey))
 
 	_, err = requestRuntimeGitSSHKey(t.Context(), manager, RequestRuntimeAccessOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 16,
 		GitSSHPublicKey:   servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
 	require.NoError(t, err)
-	assert.Equal(t, publicKey.ID, loadServiceSSHKeyRelation(t, codespaceUUID).KeyID)
+	assert.Equal(t, publicKey.ID, loadServiceSSHKeyRelation(t, codespaceID).KeyID)
 }
 
 func TestRuntimeGitSSHKeyAllowsStableRunningRecovery(t *testing.T) {
@@ -222,20 +222,20 @@ func TestRuntimeGitSSHKeyAllowsStableRunningRecovery(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "34343434-3434-4343-8343-343434343434"
+	codespaceID := int64(1072)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:              codespaceUUID,
+		ID:                codespaceID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 17,
 	})
 
 	_, err := requestRuntimeGitSSHKey(t.Context(), manager, RequestRuntimeAccessOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 17,
 		GitSSHPublicKey:   servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
 	require.NoError(t, err)
-	assert.NotZero(t, loadServiceSSHKeyRelation(t, codespaceUUID).KeyID)
+	assert.NotZero(t, loadServiceSSHKeyRelation(t, codespaceID).KeyID)
 }
 
 func TestRuntimeGitSSHKeyUsesCurrentManagerAvailability(t *testing.T) {
@@ -245,8 +245,8 @@ func TestRuntimeGitSSHKeyUsesCurrentManagerAvailability(t *testing.T) {
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	staleManager := *manager
-	codespaceUUID := "45454545-4545-4454-8454-454545454546"
-	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceUUID, 18)
+	codespaceID := int64(1073)
+	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceID, 18)
 	_, err := db.GetEngine(t.Context()).
 		ID(manager.ID).
 		Cols("last_online_unix").
@@ -254,12 +254,12 @@ func TestRuntimeGitSSHKeyUsesCurrentManagerAvailability(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = requestRuntimeGitSSHKey(t.Context(), &staleManager, RequestRuntimeAccessOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 18,
 		GitSSHPublicKey:   servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
 	require.ErrorIs(t, err, ErrRequestRuntimeAccessManagerOffline)
-	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = ?", codespaceID)
 }
 
 func TestRuntimeGitSSHKeyRejectsLoginRestrictedUser(t *testing.T) {
@@ -268,8 +268,8 @@ func TestRuntimeGitSSHKeyRejectsLoginRestrictedUser(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "46464646-4646-4464-8464-464646464646"
-	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceUUID, 19)
+	codespaceID := int64(1074)
+	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceID, 19)
 	_, err := db.GetEngine(t.Context()).
 		ID(1).
 		Cols("must_change_password").
@@ -277,12 +277,12 @@ func TestRuntimeGitSSHKeyRejectsLoginRestrictedUser(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = requestRuntimeGitSSHKey(t.Context(), manager, RequestRuntimeAccessOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 19,
 		GitSSHPublicKey:   servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
 	require.ErrorIs(t, err, ErrRuntimeGitSSHKeyLoginRestricted)
-	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = ?", codespaceID)
 }
 
 func TestRuntimeGitSSHKeyRejectsInvalidPublicKey(t *testing.T) {
@@ -291,10 +291,10 @@ func TestRuntimeGitSSHKeyRejectsInvalidPublicKey(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "45454545-4545-4454-8454-454545454545"
-	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceUUID, 1)
+	codespaceID := int64(1075)
+	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceID, 1)
 	_, err := requestRuntimeGitSSHKey(t.Context(), manager, RequestRuntimeAccessOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 1,
 		GitSSHPublicKey:   []byte("not-ssh-wire"),
 	})
@@ -307,17 +307,17 @@ func TestRuntimeGitSSHKeyAllowsHTTPCloneWithoutKnownHosts(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "13131313-1313-4313-8313-131313131313"
-	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceUUID, 1)
+	codespaceID := int64(1069)
+	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceID, 1)
 
 	result, err := requestRuntimeGitSSHKey(t.Context(), manager, RequestRuntimeAccessOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 1,
 		GitSSHPublicKey:   servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
 	require.NoError(t, err)
 	assert.Empty(t, result)
-	assert.NotZero(t, loadServiceSSHKeyRelation(t, codespaceUUID).KeyID)
+	assert.NotZero(t, loadServiceSSHKeyRelation(t, codespaceID).KeyID)
 }
 
 func TestRuntimeGitSSHKeyReturnsConfiguredSSHKnownHostsForHTTPClone(t *testing.T) {
@@ -328,11 +328,11 @@ func TestRuntimeGitSSHKeyReturnsConfiguredSSHKnownHostsForHTTPClone(t *testing.T
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "14141414-1414-4414-8414-141414141414"
-	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceUUID, 1)
+	codespaceID := int64(1076)
+	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceID, 1)
 
 	result, err := requestRuntimeGitSSHKey(t.Context(), manager, RequestRuntimeAccessOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 1,
 		GitSSHPublicKey:   servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
@@ -346,11 +346,11 @@ func TestRuntimeGitSSHKeyRejectsSSHCloneWithoutKnownHosts(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "23232323-2323-4323-8323-232323232323"
-	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceUUID, 1)
+	codespaceID := int64(1077)
+	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceID, 1)
 
 	_, err := requestRuntimeGitSSHKey(t.Context(), manager, RequestRuntimeAccessOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 1,
 		GitSSHPublicKey:   servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
@@ -364,26 +364,25 @@ func TestFinalizeFailedDeletesCodespaceGitPublicKey(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "56565656-5656-4565-8565-565656565656"
-	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceUUID, 18)
+	codespaceID := int64(1034)
+	insertActiveCreateCodespaceForGitSSHKey(t, manager.ID, codespaceID, 18)
 	_, err := requestRuntimeGitSSHKey(t.Context(), manager, RequestRuntimeAccessOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 18,
 		GitSSHPublicKey:   servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
 	require.NoError(t, err)
-	keyID := loadServiceSSHKeyRelation(t, codespaceUUID).KeyID
+	keyID := loadServiceSSHKeyRelation(t, codespaceID).KeyID
 
 	outcome, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
-		CodespaceID:       codespaceIDByUUID(t, codespaceUUID),
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 18,
 		OperationType:     codespacev1.OperationType_OPERATION_TYPE_CREATE,
 		FinalStatus:       codespacev1.FinalStatus_FINAL_STATUS_FAILED,
 	})
 	require.NoError(t, err)
 	assert.False(t, outcome.GetResourceAbsent())
-	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = ?", codespaceID)
 	assertServiceNotExists(t, new(asymkey_model.PublicKey), "id = ?", keyID)
 }
 
@@ -467,10 +466,10 @@ func configureServiceGitSSHHostKey(t *testing.T) {
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.GitProtocol, codespace_model.GitProtocolSSH))
 }
 
-func insertActiveCreateCodespaceForGitSSHKey(t *testing.T, managerID int64, codespaceUUID string, operationRVersion int64) {
+func insertActiveCreateCodespaceForGitSSHKey(t *testing.T, managerID, codespaceID, operationRVersion int64) {
 	t.Helper()
 	insertServiceCodespace(t, managerID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     operationRVersion,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -494,10 +493,10 @@ func serviceCanonicalPublicKey(t *testing.T, content string) string {
 	return strings.TrimSpace(string(ssh.MarshalAuthorizedKey(publicKey)))
 }
 
-func loadServiceSSHKeyRelation(t *testing.T, codespaceUUID string) *codespace_model.SSHKey {
+func loadServiceSSHKeyRelation(t *testing.T, codespaceID int64) *codespace_model.SSHKey {
 	t.Helper()
 	row := new(codespace_model.SSHKey)
-	has, err := db.GetEngine(t.Context()).ID(loadServiceCodespace(t, codespaceUUID).ID).Get(row)
+	has, err := db.GetEngine(t.Context()).ID(loadServiceCodespace(t, codespaceID).ID).Get(row)
 	require.NoError(t, err)
 	require.True(t, has)
 	return row

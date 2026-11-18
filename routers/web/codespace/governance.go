@@ -57,8 +57,8 @@ func governanceTarget(ctx *context.Context) (codespace_service.GovernanceActionO
 	base := setting.AppSubURL + "/-/admin/codespaces/managers"
 	if managerID > 0 {
 		return codespace_service.GovernanceActionOptions{
-			CodespaceUUID: ctx.PathParam("uuid"),
-			ManagerID:     managerID,
+			CodespaceID: ctx.PathParamInt64("id"),
+			ManagerID:   managerID,
 		}, base + "/" + strconv.FormatInt(managerID, 10)
 	}
 	return codespace_service.GovernanceActionOptions{

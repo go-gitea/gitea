@@ -128,21 +128,21 @@ func TestListManagerSettingsScopesAndDeleteManager(t *testing.T) {
 	).Update(userManager)
 	require.NoError(t, err)
 
-	codespaceUUID := "51515151-5151-4151-8151-515151515151"
+	codespaceID := int64(1144)
 	insertServiceCodespace(t, userManager.ID, &codespace_model.Codespace{
-		UUID:              codespaceUUID,
+		ID:                codespaceID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 51,
 	})
 	require.NoError(t, db.Insert(t.Context(), &codespace_model.GiteaToken{
-		CodespaceID:    loadServiceCodespace(t, codespaceUUID).ID,
+		CodespaceID:    loadServiceCodespace(t, codespaceID).ID,
 		TokenHash:      "manager-delete-hash",
 		TokenSalt:      "salt",
 		TokenLastEight: "last0001",
 		TokenEncrypted: "encrypted",
 	}))
 	require.NoError(t, db.Insert(t.Context(), &codespace_model.SSHKey{
-		CodespaceID: loadServiceCodespace(t, codespaceUUID).ID,
+		CodespaceID: loadServiceCodespace(t, codespaceID).ID,
 		KeyID:       5151,
 	}))
 
@@ -173,7 +173,7 @@ func TestListManagerSettingsScopesAndDeleteManager(t *testing.T) {
 	assert.Equal(t, []ManagerEnvironmentDeclaration{{Tag: "default", Description: "Personal environment"}, {Tag: "gpu"}}, detail.Manager.Environments)
 	assert.Equal(t, []string{"default"}, detail.Manager.EnvironmentDescriptionConflicts)
 	require.Len(t, detail.Codespaces, 1)
-	assert.Equal(t, codespaceUUID, detail.Codespaces[0].UUID)
+	assert.Equal(t, codespaceID, detail.Codespaces[0].ID)
 	assert.EqualValues(t, 1, detail.Total)
 	_, err = GetManagerDetail(t.Context(), ManagerDetailOptions{
 		ManagerSettingsOptions: ManagerSettingsOptions{Scope: ManagerSettingsScopeUser, UserID: 2},
@@ -197,8 +197,8 @@ func TestListManagerSettingsScopesAndDeleteManager(t *testing.T) {
 	})
 	require.ErrorIs(t, err, ErrManagerSettingsConfirmRequired)
 
-	unbound := &codespace_model.Codespace{ManagerID: userManager.ID, UserID: 1, Status: codespace_model.StatusCreating}
-	_, err = db.GetEngine(t.Context()).Table(unbound).Omit("uuid").Insert(unbound)
+	creating := &codespace_model.Codespace{ManagerID: userManager.ID, UserID: 1, Status: codespace_model.StatusCreating}
+	_, err = db.GetEngine(t.Context()).Table(creating).Insert(creating)
 	require.NoError(t, err)
 	require.NoError(t, DeleteManager(t.Context(), DeleteManagerOptions{
 		Scope:     ManagerSettingsScopeUser,
@@ -207,10 +207,10 @@ func TestListManagerSettingsScopesAndDeleteManager(t *testing.T) {
 		Confirm:   true,
 	}))
 	assertServiceNotExists(t, new(codespace_model.Manager), "id = ?", userManager.ID)
-	assertServiceNotExists(t, new(codespace_model.Codespace), "id = ?", unbound.ID)
-	assertServiceNotExists(t, new(codespace_model.Codespace), "uuid = ?", codespaceUUID)
-	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
-	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.Codespace), "id = ?", creating.ID)
+	assertServiceNotExists(t, new(codespace_model.Codespace), "id = ?", codespaceID)
+	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = ?", codespaceID)
+	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = ?", codespaceID)
 }
 
 func TestPersonalManagerDeleteRejectsForeignBindingBeforeCleanup(t *testing.T) {
@@ -220,9 +220,9 @@ func TestPersonalManagerDeleteRejectsForeignBindingBeforeCleanup(t *testing.T) {
 	manager.UserID = 1
 	_, err := db.GetEngine(t.Context()).ID(manager.ID).Cols("user_id").Update(manager)
 	require.NoError(t, err)
-	codespaceUUID := "52525252-5252-4252-8252-525252525252"
-	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{UUID: codespaceUUID, Status: codespace_model.StatusStopped})
-	_, err = db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols("user_id").Update(&codespace_model.Codespace{UserID: 2})
+	codespaceID := int64(1145)
+	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{ID: codespaceID, Status: codespace_model.StatusStopped})
+	_, err = db.GetEngine(t.Context()).Where("id = ?", codespaceID).Cols("user_id").Update(&codespace_model.Codespace{UserID: 2})
 	require.NoError(t, err)
 
 	err = DeleteManager(t.Context(), DeleteManagerOptions{
@@ -230,7 +230,7 @@ func TestPersonalManagerDeleteRejectsForeignBindingBeforeCleanup(t *testing.T) {
 	})
 	require.ErrorIs(t, err, ErrManagerSettingsOwnershipConflict)
 	assertServiceExists(t, new(codespace_model.Manager), "id = ?", manager.ID)
-	assertServiceExists(t, new(codespace_model.Codespace), "uuid = ?", codespaceUUID)
+	assertServiceExists(t, new(codespace_model.Codespace), "id = ?", codespaceID)
 }
 
 func TestManagerSettingsRequireIndividualUser(t *testing.T) {

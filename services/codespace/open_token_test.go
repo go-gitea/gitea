@@ -23,32 +23,32 @@ func TestOpenEndpointTokenAllowsAndConsumes(t *testing.T) {
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	setServiceManagerGatewayURL(t, manager, "https://gateway.example.com")
-	codespaceUUID := "91919191-9191-4919-8919-919191919191"
+	codespaceID := int64(1119)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     81,
 		OperationTrigger:      codespace_model.OperationTriggerIdle,
 		OperationCreatedUnix:  time.Now().Unix(),
 		InteractionGeneration: 5,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 81, []*codespacev1.RuntimeEndpoint{
+	require.NoError(t, putRuntimeMetadataEntry(codespaceID, serviceRuntimeMetadataEntry(t, 81, []*codespacev1.RuntimeEndpoint{
 		{EndpointId: "app-3000", Label: "App", Public: false},
 	})))
 
 	issued, err := openEndpoint(t.Context(), OpenEndpointOptions{
+		CodespaceID: codespaceID,
 		UserID:      1,
-		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
 		EndpointID:  "app-3000",
 	})
 	require.NoError(t, err)
 	require.Len(t, issued.code, 64)
 	assert.Equal(t, manager.ID, issued.managerID)
 	assert.EqualValues(t, 6, issued.interactionGeneration)
-	assert.Regexp(t, `^https://app-3000-91919191919149198919919191919191\.gateway\.example\.com/\.gitea-codespace/open\?code=[0-9a-f]{64}$`, issued.redirectURL)
+	assert.Regexp(t, `^https://app-3000\.gateway\.example\.com/\.gitea-codespace/open\?code=[0-9a-f]{64}$`, issued.redirectURL)
 	assertOpenTokenExists(t, issued.code, true)
 
-	row := loadServiceCodespace(t, codespaceUUID)
+	row := loadServiceCodespace(t, codespaceID)
 	assert.EqualValues(t, 6, row.InteractionGeneration)
 	assert.False(t, hasActiveOperation(row))
 
@@ -56,7 +56,7 @@ func TestOpenEndpointTokenAllowsAndConsumes(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, validated.GetAllowed())
 	assert.EqualValues(t, 1, validated.GetAllowed().GetUserId())
-	assert.Equal(t, codespaceUUID, validated.GetAllowed().GetRuntimeUuid())
+	assert.Equal(t, codespaceID, validated.GetAllowed().GetCodespaceId())
 	assert.Equal(t, "app-3000", validated.GetAllowed().GetEndpointId())
 	assert.EqualValues(t, 7, validated.GetAllowed().GetInteractionGeneration())
 	assertOpenTokenExists(t, issued.code, false)
@@ -72,16 +72,16 @@ func TestOpenEndpointHidesOtherCreatorCodespace(t *testing.T) {
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	setServiceManagerGatewayURL(t, manager, "https://gateway.example.com")
-	codespaceUUID := "98979797-9797-4979-8979-979797979797"
+	codespaceID := int64(1120)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:              codespaceUUID,
+		ID:                codespaceID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 87,
 	})
 
 	_, err := OpenEndpoint(t.Context(), OpenEndpointOptions{
+		CodespaceID: codespaceID,
 		UserID:      2,
-		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
 		EndpointID:  "workspace",
 	})
 	require.ErrorIs(t, err, ErrOpenEndpointNotFound)
@@ -95,22 +95,22 @@ func TestOpenEndpointDuringInitialization(t *testing.T) {
 			markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 			setServiceManagerGatewayURL(t, manager, "https://gateway.example.com")
 			cs := &codespace_model.Codespace{
-				UUID: "91919191-9191-4919-8919-919191919191", Status: status, OperationRVersion: 81,
+				ID: int64(1119), Status: status, OperationRVersion: 81,
 				OperationTrigger: codespace_model.OperationTriggerUser, OperationCreatedUnix: time.Now().Unix(),
 				OperationStartedUnix: time.Now().Unix(), OperationDeadlineUnix: time.Now().Add(time.Minute).Unix(),
 			}
 			insertServiceCodespace(t, manager.ID, cs)
 			opts := OpenEndpointOptions{UserID: cs.UserID, CodespaceID: cs.ID, EndpointID: workspaceEndpointID}
-			require.NoError(t, putRuntimeMetadataEntry(cs.UUID, serviceRuntimeMetadataEntry(t, 80, nil)))
+			require.NoError(t, putRuntimeMetadataEntry(cs.ID, serviceRuntimeMetadataEntry(t, 80, nil)))
 			_, err := openEndpoint(t.Context(), opts)
 			require.ErrorIs(t, err, ErrOpenEndpointUnavailable)
-			require.NoError(t, putRuntimeMetadataEntry(cs.UUID, serviceRuntimeMetadataEntry(t, 81, nil)))
+			require.NoError(t, putRuntimeMetadataEntry(cs.ID, serviceRuntimeMetadataEntry(t, 81, nil)))
 			issued, err := openEndpoint(t.Context(), opts)
 			require.NoError(t, err)
 			validated, err := ValidateOpenToken(t.Context(), manager, ValidateOpenTokenOptions{Code: issued.code})
 			require.NoError(t, err)
 			require.NotNil(t, validated.GetAllowed())
-			_, failure, err := loadGatewayRuntimeAccess(t.Context(), manager.ID, cs.UUID, false)
+			_, failure, err := loadGatewayRuntimeAccess(t.Context(), manager.ID, cs.ID, false)
 			require.NoError(t, err)
 			require.Empty(t, failure)
 			view := &CreatorCodespaceView{}
@@ -132,21 +132,21 @@ func TestValidateOpenTokenDeniesAndPreservesTemporarilyInvalidCode(t *testing.T)
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	setServiceManagerGatewayURL(t, manager, "https://gateway.example.com")
-	codespaceUUID := "92929292-9292-4929-8929-929292929292"
+	codespaceID := int64(1121)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:              codespaceUUID,
+		ID:                codespaceID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 82,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 82, nil)))
+	require.NoError(t, putRuntimeMetadataEntry(codespaceID, serviceRuntimeMetadataEntry(t, 82, nil)))
 	issued, err := openEndpoint(t.Context(), OpenEndpointOptions{
+		CodespaceID: codespaceID,
 		UserID:      1,
-		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
 		EndpointID:  "workspace",
 	})
 	require.NoError(t, err)
 
-	_, err = db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols("status").Update(&codespace_model.Codespace{
+	_, err = db.GetEngine(t.Context()).Where("id = ?", codespaceID).Cols("status").Update(&codespace_model.Codespace{
 		Status: codespace_model.StatusStopped,
 	})
 	require.NoError(t, err)
@@ -162,16 +162,16 @@ func TestValidateOpenTokenDeletesExpiredCode(t *testing.T) {
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	setServiceManagerGatewayURL(t, manager, "https://gateway.example.com")
-	codespaceUUID := "93939393-9393-4939-8939-939393939393"
+	codespaceID := int64(1122)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:              codespaceUUID,
+		ID:                codespaceID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 83,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 83, nil)))
+	require.NoError(t, putRuntimeMetadataEntry(codespaceID, serviceRuntimeMetadataEntry(t, 83, nil)))
 
 	expiredCode := generateOpenTokenCode()
-	insertOpenToken(t, expiredCode, codespaceUUID, "workspace", manager.ID, time.Now().Unix()-1)
+	insertOpenToken(t, expiredCode, codespaceID, "workspace", manager.ID, time.Now().Unix()-1)
 	expired, err := ValidateOpenToken(t.Context(), manager, ValidateOpenTokenOptions{Code: expiredCode})
 	require.NoError(t, err)
 	assert.Equal(t, OpenTokenDeniedInvalidCredentials, expired.GetDenied().GetCategory())
@@ -184,22 +184,22 @@ func TestValidateOpenTokenEndpointMustRemainPrivate(t *testing.T) {
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	setServiceManagerGatewayURL(t, manager, "https://gateway.example.com")
-	codespaceUUID := "94949494-9494-4949-8949-949494949494"
+	codespaceID := int64(1123)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:              codespaceUUID,
+		ID:                codespaceID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 84,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 84, []*codespacev1.RuntimeEndpoint{
+	require.NoError(t, putRuntimeMetadataEntry(codespaceID, serviceRuntimeMetadataEntry(t, 84, []*codespacev1.RuntimeEndpoint{
 		{EndpointId: "app-3000", Label: "App", Public: false},
 	})))
 	issued, err := openEndpoint(t.Context(), OpenEndpointOptions{
+		CodespaceID: codespaceID,
 		UserID:      1,
-		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
 		EndpointID:  "app-3000",
 	})
 	require.NoError(t, err)
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 84, []*codespacev1.RuntimeEndpoint{
+	require.NoError(t, putRuntimeMetadataEntry(codespaceID, serviceRuntimeMetadataEntry(t, 84, []*codespacev1.RuntimeEndpoint{
 		{EndpointId: "app-3000", Label: "App", Public: true},
 	})))
 
@@ -215,18 +215,18 @@ func TestValidateOpenTokenVersionExhaustedConsumesCode(t *testing.T) {
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	setServiceManagerGatewayURL(t, manager, "https://gateway.example.com")
-	codespaceUUID := "95959595-9595-4959-8959-959595959595"
+	codespaceID := int64(1124)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     85,
 		InteractionGeneration: math.MaxInt64,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 85, nil)))
+	require.NoError(t, putRuntimeMetadataEntry(codespaceID, serviceRuntimeMetadataEntry(t, 85, nil)))
 
 	code := generateOpenTokenCode()
 	now := time.Now().Unix()
-	insertOpenToken(t, code, codespaceUUID, "workspace", manager.ID, now+int64(openTokenExpire/time.Second))
+	insertOpenToken(t, code, codespaceID, "workspace", manager.ID, now+int64(openTokenExpire/time.Second))
 	result, err := ValidateOpenToken(t.Context(), manager, ValidateOpenTokenOptions{Code: code})
 	require.NoError(t, err)
 	assert.Equal(t, OpenTokenDeniedVersionExhausted, result.GetDenied().GetCategory())
@@ -239,26 +239,26 @@ func TestOpenEndpointPublicRedirectDoesNotIssueCodeOrAdvance(t *testing.T) {
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	setServiceManagerGatewayURL(t, manager, "https://gateway.example.com")
-	codespaceUUID := "97979797-9797-4979-8979-979797979797"
+	codespaceID := int64(1125)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     86,
 		InteractionGeneration: 11,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 86, []*codespacev1.RuntimeEndpoint{
+	require.NoError(t, putRuntimeMetadataEntry(codespaceID, serviceRuntimeMetadataEntry(t, 86, []*codespacev1.RuntimeEndpoint{
 		{EndpointId: "app-3000", Label: "App", Public: true},
 	})))
 
 	result, err := OpenEndpoint(t.Context(), OpenEndpointOptions{
+		CodespaceID: codespaceID,
 		UserID:      1,
-		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
 		EndpointID:  "app-3000",
 	})
 	require.NoError(t, err)
 	require.True(t, result.Public)
-	assert.Equal(t, "https://app-3000-97979797979749798979979797979797.gateway.example.com/", result.RedirectURL)
-	row := loadServiceCodespace(t, codespaceUUID)
+	assert.Equal(t, "https://app-3000.gateway.example.com/", result.RedirectURL)
+	row := loadServiceCodespace(t, codespaceID)
 	assert.EqualValues(t, 11, row.InteractionGeneration)
 	assert.Zero(t, row.LastActiveUnix)
 }
@@ -270,11 +270,11 @@ func setServiceManagerGatewayURL(t *testing.T, manager *codespace_model.Manager,
 	require.NoError(t, err)
 }
 
-func insertOpenToken(t *testing.T, code, codespaceUUID, endpointID string, managerID, expiresUnix int64) {
+func insertOpenToken(t *testing.T, code string, codespaceID int64, endpointID string, managerID, expiresUnix int64) {
 	t.Helper()
 	require.NoError(t, db.Insert(t.Context(), &codespace_model.OpenToken{
+		CodespaceID: codespaceID,
 		CodeHash:    openTokenCodeHash(code),
-		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
 		UserID:      1,
 		ManagerID:   managerID,
 		EndpointID:  endpointID,

@@ -57,7 +57,7 @@ func TestReduceAndRevokePermissionAuthorization(t *testing.T) {
 		RequestedMode: perm.AccessModeRead, GrantedMode: perm.AccessModeRead,
 	}))
 	require.NoError(t, db.Insert(t.Context(), &codespace_model.Codespace{
-		UUID: "85858585-8585-4858-8858-858585858585", UserID: 2, RepoID: 1,
+		ID: int64(1068), UserID: 2, RepoID: 1,
 		PermissionAuthorizationID: authorization.ID, Status: codespace_model.StatusRunning,
 	}))
 

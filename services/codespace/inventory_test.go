@@ -5,7 +5,6 @@ package codespace
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -29,55 +28,55 @@ func TestReportInstancesReturnsSettingsAndActions(t *testing.T) {
 	otherManager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	markServiceManagerOnline(t, otherManager, `[{"tag":"default"}]`)
-	runningUUID := "a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1"
+	runningID := int64(1053)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  runningUUID,
+		ID:                    runningID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     81,
 		InteractionGeneration: 6,
 	})
-	activeUUID := "a2a2a2a2-a2a2-4a2a-8a2a-a2a2a2a2a2a2"
+	activeID := int64(1054)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                 activeUUID,
+		ID:                   activeID,
 		Status:               codespace_model.StatusRunning,
 		OperationRVersion:    82,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
-	stoppedUUID := "a3a3a3a3-a3a3-4a3a-8a3a-a3a3a3a3a3a3"
+	stoppedID := int64(1055)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:              stoppedUUID,
+		ID:                stoppedID,
 		Status:            codespace_model.StatusStopped,
 		OperationRVersion: 83,
 	})
-	failedUUID := "a4a4a4a4-a4a4-4a4a-8a4a-a4a4a4a4a4a4"
+	failedID := int64(1056)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:              failedUUID,
+		ID:                failedID,
 		Status:            codespace_model.StatusFailed,
 		OperationRVersion: 84,
 	})
-	otherUUID := "a5a5a5a5-a5a5-4a5a-8a5a-a5a5a5a5a5a5"
+	otherID := int64(1057)
 	insertServiceCodespace(t, otherManager.ID, &codespace_model.Codespace{
-		UUID:              otherUUID,
+		ID:                otherID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 85,
 	})
-	unboundUUID := "a6a6a6a6-a6a6-4a6a-8a6a-a6a6a6a6a6a6"
+	unassignedID := int64(1058)
 	insertServiceCodespace(t, 0, &codespace_model.Codespace{
-		UUID:                 unboundUUID,
+		ID:                   unassignedID,
 		Status:               codespace_model.StatusCreating,
 		OperationRVersion:    86,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
-	absentUUID := "a7a7a7a7-a7a7-4a7a-8a7a-a7a7a7a7a7a7"
+	absentID := int64(1059)
 
 	_, err := ReportInstances(t.Context(), manager, ReportInstancesOptions{
 		InventoryGeneration: 1,
 		Instances: []*codespacev1.RuntimeInstanceRef{
-			{RuntimeUuid: runningUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
-			{RuntimeUuid: activeUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING, ObservedOperationRversion: 81},
-			{RuntimeUuid: runningUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_STOPPED},
+			{CodespaceId: runningID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
+			{CodespaceId: activeID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING, ObservedOperationRversion: 81},
+			{CodespaceId: runningID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_STOPPED},
 		},
 	})
 	require.Error(t, err)
@@ -86,13 +85,13 @@ func TestReportInstancesReturnsSettingsAndActions(t *testing.T) {
 	result, err := ReportInstances(t.Context(), manager, ReportInstancesOptions{
 		InventoryGeneration: 1,
 		Instances: []*codespacev1.RuntimeInstanceRef{
-			{RuntimeUuid: runningUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
-			{RuntimeUuid: activeUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING, ObservedOperationRversion: 81},
-			{RuntimeUuid: stoppedUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
-			{RuntimeUuid: failedUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_STOPPED},
-			{RuntimeUuid: otherUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
-			{RuntimeUuid: unboundUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_CREATING},
-			{RuntimeUuid: absentUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_STOPPED},
+			{CodespaceId: runningID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
+			{CodespaceId: activeID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING, ObservedOperationRversion: 81},
+			{CodespaceId: stoppedID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
+			{CodespaceId: failedID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_STOPPED},
+			{CodespaceId: otherID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
+			{CodespaceId: unassignedID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_CREATING},
+			{CodespaceId: absentID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_STOPPED},
 		},
 	})
 	require.NoError(t, err)
@@ -106,7 +105,7 @@ func TestReportInstancesReturnsSettingsAndActions(t *testing.T) {
 	assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEANUP_LOCAL_RUNTIME, result.Results[3].GetAction())
 	assert.Nil(t, result.Results[3].RuntimeSettings)
 	assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEANUP_LOCAL_RUNTIME, result.Results[4].GetAction())
-	assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_UNSPECIFIED, result.Results[5].GetAction())
+	assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEANUP_LOCAL_RUNTIME, result.Results[5].GetAction())
 	assert.Nil(t, result.Results[5].RuntimeSettings)
 	assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEANUP_LOCAL_RUNTIME, result.Results[6].GetAction())
 	assert.EqualValues(t, 1, loadServiceManager(t, manager.ID).InventoryGeneration)
@@ -118,9 +117,9 @@ func TestReportInstancesReturnsDisabledRuntimeSettings(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "a8a8a8a8-a8a8-4a8a-8a8a-a8a8a8a8a8a8"
+	codespaceID := int64(1060)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     87,
 		InteractionGeneration: 9,
@@ -129,7 +128,7 @@ func TestReportInstancesReturnsDisabledRuntimeSettings(t *testing.T) {
 	result, err := ReportInstances(t.Context(), manager, ReportInstancesOptions{
 		InventoryGeneration: 11,
 		Instances: []*codespacev1.RuntimeInstanceRef{{
-			RuntimeUuid:  codespaceUUID,
+			CodespaceId:  codespaceID,
 			RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING,
 		}},
 	})
@@ -147,15 +146,15 @@ func TestReportInstancesAppliesStoppedFactAndClearsOperationContext(t *testing.T
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	stoppedRuntimeUUID := "b1b1b1b1-b1b1-4b1b-8b1b-b1b1b1b1b1b1"
+	stoppedCodespaceID := int64(1061)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:              stoppedRuntimeUUID,
+		ID:                stoppedCodespaceID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 91,
 	})
-	clearUUID := "b3b3b3b3-b3b3-4b3b-8b3b-b3b3b3b3b3b3"
+	clearID := int64(1062)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:              clearUUID,
+		ID:                clearID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 93,
 	})
@@ -163,14 +162,14 @@ func TestReportInstancesAppliesStoppedFactAndClearsOperationContext(t *testing.T
 	result, err := ReportInstances(t.Context(), manager, ReportInstancesOptions{
 		InventoryGeneration: 2,
 		Instances: []*codespacev1.RuntimeInstanceRef{
-			{RuntimeUuid: stoppedRuntimeUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_STOPPED},
-			{RuntimeUuid: clearUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING, ObservedOperationRversion: 93},
+			{CodespaceId: stoppedCodespaceID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_STOPPED},
+			{CodespaceId: clearID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING, ObservedOperationRversion: 93},
 		},
 	})
 	require.NoError(t, err)
 	require.Len(t, result.Results, 2)
 	assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_UNSPECIFIED, result.Results[0].GetAction())
-	assert.Equal(t, codespace_model.StatusStopped, loadServiceCodespace(t, stoppedRuntimeUUID).Status)
+	assert.Equal(t, codespace_model.StatusStopped, loadServiceCodespace(t, stoppedCodespaceID).Status)
 	assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEAR_OPERATION_CONTEXT, result.Results[1].GetAction())
 	assert.EqualValues(t, 93, result.Results[1].GetCurrentOperationRversion())
 }
@@ -180,15 +179,15 @@ func TestReportInstancesGenerationAndMissingState(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	missingRunningUUID := "c1c1c1c1-c1c1-4c1c-8c1c-c1c1c1c1c1c1"
+	missingRunningID := int64(1063)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:              missingRunningUUID,
+		ID:                missingRunningID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 101,
 	})
-	missingCreateUUID := "c2c2c2c2-c2c2-4c2c-8c2c-c2c2c2c2c2c2"
+	missingCreateID := int64(1064)
 	missingCreate := &codespace_model.Codespace{
-		UUID:                  missingCreateUUID,
+		ID:                    missingCreateID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     102,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -197,22 +196,18 @@ func TestReportInstancesGenerationAndMissingState(t *testing.T) {
 		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	}
 	insertServiceCodespace(t, manager.ID, missingCreate)
-	unboundCreate := *missingCreate
-	unboundCreate.ID, unboundCreate.UUID = 0, ""
-	insertServiceCodespace(t, manager.ID, &unboundCreate)
 
 	result, err := ReportInstances(t.Context(), manager, ReportInstancesOptions{
 		InventoryGeneration: 3,
 	})
 	require.NoError(t, err)
 	assert.Empty(t, result.Results)
-	missingRunning := loadServiceCodespace(t, missingRunningUUID)
+	missingRunning := loadServiceCodespace(t, missingRunningID)
 	assert.Equal(t, codespace_model.StatusFailed, missingRunning.Status)
 	assert.Zero(t, missingRunning.RuntimeOperationRVersion)
 	require.NoError(t, codespace_model.ValidateCodespace(missingRunning))
-	assert.Contains(t, readServiceLog(t, codespaceLogFilename(missingRunning.UUID)), "Gitea recorded missing runtime as failed.")
-	assert.Equal(t, codespace_model.StatusCreating, loadServiceCodespace(t, missingCreateUUID).Status)
-	assert.Equal(t, codespace_model.StatusCreating, loadServiceCodespaceByID(t, unboundCreate.ID).Status)
+	assert.Contains(t, readServiceLog(t, codespaceLogFilename(missingRunning.ID)), "Gitea recorded missing runtime as failed.")
+	assert.Equal(t, codespace_model.StatusCreating, loadServiceCodespace(t, missingCreateID).Status)
 
 	result, err = ReportInstances(t.Context(), manager, ReportInstancesOptions{
 		InventoryGeneration: 3,
@@ -245,12 +240,12 @@ func TestReportInstancesBatchesUnchangedInventory(t *testing.T) {
 	manager := insertServiceManager(t)
 	instances := make([]*codespacev1.RuntimeInstanceRef, 0, db.DefaultMaxInSize+1)
 	for i := range db.DefaultMaxInSize + 1 {
-		uuid := fmt.Sprintf("d1d1d1d1-d1d1-41d1-81d1-%012d", i)
+		id := int64(2000 + i)
 		insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-			UUID: uuid, Status: codespace_model.StatusRunning, OperationRVersion: 1,
+			ID: id, Status: codespace_model.StatusRunning, OperationRVersion: 1,
 		})
 		instances = append(instances, &codespacev1.RuntimeInstanceRef{
-			RuntimeUuid: uuid, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING, ObservedOperationRversion: 1,
+			CodespaceId: id, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING, ObservedOperationRversion: 1,
 		})
 	}
 	counter := new(inventoryQueryCounter)
@@ -260,7 +255,7 @@ func TestReportInstancesBatchesUnchangedInventory(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, result.Results, len(instances))
 	for i, row := range result.Results {
-		assert.Equal(t, instances[i].RuntimeUuid, row.RuntimeUuid)
+		assert.Equal(t, instances[i].CodespaceId, row.CodespaceId)
 		assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEAR_OPERATION_CONTEXT, row.Action)
 	}
 	batches := (len(instances) + db.DefaultMaxInSize - 1) / db.DefaultMaxInSize
@@ -275,9 +270,9 @@ func TestProcessMissingRuntimeInstanceRechecksGenerationAndBinding(t *testing.T)
 	otherManager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	markServiceManagerOnline(t, otherManager, `[{"tag":"default"}]`)
-	staleUUID := "c3c3c3c3-c3c3-4c3c-8c3c-c3c3c3c3c3c3"
+	staleID := int64(1065)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:              staleUUID,
+		ID:                staleID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 103,
 	})
@@ -286,22 +281,22 @@ func TestProcessMissingRuntimeInstanceRechecksGenerationAndBinding(t *testing.T)
 	_, err := db.GetEngine(t.Context()).ID(manager.ID).Cols("inventory_generation").Update(currentManager)
 	require.NoError(t, err)
 
-	err = processMissingRuntimeInstance(t.Context(), manager.ID, 8, staleUUID, time.Now().Unix())
+	err = processMissingRuntimeInstance(t.Context(), manager.ID, 8, staleID, time.Now().Unix())
 	var stale *StaleGenerationError
 	require.ErrorAs(t, err, &stale)
 	assert.EqualValues(t, 9, stale.CurrentGeneration)
-	assert.Equal(t, codespace_model.StatusRunning, loadServiceCodespace(t, staleUUID).Status)
+	assert.Equal(t, codespace_model.StatusRunning, loadServiceCodespace(t, staleID).Status)
 
-	movedUUID := "c4c4c4c4-c4c4-4c4c-8c4c-c4c4c4c4c4c4"
+	movedID := int64(1066)
 	insertServiceCodespace(t, otherManager.ID, &codespace_model.Codespace{
-		UUID:              movedUUID,
+		ID:                movedID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 104,
 	})
 
-	require.NoError(t, processMissingRuntimeInstance(t.Context(), manager.ID, 9, movedUUID, time.Now().Unix()))
-	assert.Equal(t, codespace_model.StatusRunning, loadServiceCodespace(t, movedUUID).Status)
-	assert.Equal(t, otherManager.ID, loadServiceCodespace(t, movedUUID).ManagerID)
+	require.NoError(t, processMissingRuntimeInstance(t.Context(), manager.ID, 9, movedID, time.Now().Unix()))
+	assert.Equal(t, codespace_model.StatusRunning, loadServiceCodespace(t, movedID).Status)
+	assert.Equal(t, otherManager.ID, loadServiceCodespace(t, movedID).ManagerID)
 }
 
 func TestReportInstancesRejectsStateHistoryConflict(t *testing.T) {
@@ -309,9 +304,9 @@ func TestReportInstancesRejectsStateHistoryConflict(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "d1d1d1d1-d1d1-4d1d-8d1d-d1d1d1d1d1d1"
+	codespaceID := int64(1067)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:              codespaceUUID,
+		ID:                codespaceID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 111,
 	})
@@ -319,7 +314,7 @@ func TestReportInstancesRejectsStateHistoryConflict(t *testing.T) {
 	_, err := ReportInstances(t.Context(), manager, ReportInstancesOptions{
 		InventoryGeneration: 4,
 		Instances: []*codespacev1.RuntimeInstanceRef{{
-			RuntimeUuid:               codespaceUUID,
+			CodespaceId:               codespaceID,
 			RuntimeState:              codespacev1.RuntimeState_RUNTIME_STATE_RUNNING,
 			ObservedOperationRversion: 112,
 		}},

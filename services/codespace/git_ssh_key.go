@@ -167,7 +167,7 @@ func ensureGitSSHKeyBinding(ctx context.Context, codespace *codespace_model.Code
 func newCodespaceGitPublicKey(codespace *codespace_model.Codespace, key normalizedGitSSHKey) *asymkey_model.PublicKey {
 	return &asymkey_model.PublicKey{
 		OwnerID:     codespace.UserID,
-		Name:        codespaceGitSSHKeyName(codespace.UUID),
+		Name:        codespaceGitSSHKeyName(codespace.ID),
 		Fingerprint: key.Fingerprint,
 		Content:     key.Content,
 		Mode:        perm.AccessModeWrite,
@@ -206,8 +206,8 @@ func insertCodespaceGitSSHKeyBinding(ctx context.Context, codespaceID, keyID int
 	return err
 }
 
-func codespaceGitSSHKeyName(codespaceUUID string) string {
-	return "codespace-" + codespaceUUID
+func codespaceGitSSHKeyName(codespaceID int64) string {
+	return fmt.Sprintf("codespace-%d", codespaceID)
 }
 
 func ensureExistingGitSSHKey(ctx context.Context, relation *codespace_model.SSHKey, key normalizedGitSSHKey) error {

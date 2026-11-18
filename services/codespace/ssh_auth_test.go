@@ -26,28 +26,28 @@ func TestVerifySSHPublicKeyAllowsAndCancelsQueuedIdleStop(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "71717171-7171-4717-8717-717171717171"
+	codespaceID := int64(1084)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     51,
 		OperationTrigger:      codespace_model.OperationTriggerIdle,
 		OperationCreatedUnix:  time.Now().Unix(),
 		InteractionGeneration: 9,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 51, nil)))
+	require.NoError(t, putRuntimeMetadataEntry(codespaceID, serviceRuntimeMetadataEntry(t, 51, nil)))
 	insertServiceUserSSHKey(t, 1, testGitSSHPublicKey)
 
 	result, err := VerifySSHPublicKey(t.Context(), manager, VerifySSHPublicKeyOptions{
-		CodespaceUUID: codespaceUUID,
-		PublicKey:     servicePublicKeyWire(t, testGitSSHPublicKey),
+		CodespaceID: codespaceID,
+		PublicKey:   servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, result.GetAllowed())
 	assert.EqualValues(t, 1, result.GetAllowed().GetUserId())
 	assert.EqualValues(t, 10, result.GetAllowed().GetInteractionGeneration())
 
-	row := loadServiceCodespace(t, codespaceUUID)
+	row := loadServiceCodespace(t, codespaceID)
 	assert.EqualValues(t, 10, row.InteractionGeneration)
 	assert.False(t, hasActiveOperation(row))
 	assert.Empty(t, row.OperationTrigger)
@@ -59,26 +59,26 @@ func TestVerifySSHPublicKeyKeepsLifecycleUpdatedUnixWithoutIdleStop(t *testing.T
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "71717171-7171-4717-8717-717171717172"
+	codespaceID := int64(1111)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     51,
 		InteractionGeneration: 9,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 51, nil)))
+	require.NoError(t, putRuntimeMetadataEntry(codespaceID, serviceRuntimeMetadataEntry(t, 51, nil)))
 	insertServiceUserSSHKey(t, 1, testGitSSHPublicKey)
-	updatedUnix := loadServiceCodespace(t, codespaceUUID).UpdatedUnix
+	updatedUnix := loadServiceCodespace(t, codespaceID).UpdatedUnix
 
 	result, err := VerifySSHPublicKey(t.Context(), manager, VerifySSHPublicKeyOptions{
-		CodespaceUUID: codespaceUUID,
-		PublicKey:     servicePublicKeyWire(t, testGitSSHPublicKey),
+		CodespaceID: codespaceID,
+		PublicKey:   servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, result.GetAllowed())
 	assert.EqualValues(t, 10, result.GetAllowed().GetInteractionGeneration())
 
-	row := loadServiceCodespace(t, codespaceUUID)
+	row := loadServiceCodespace(t, codespaceID)
 	assert.EqualValues(t, 10, row.InteractionGeneration)
 	assert.Equal(t, updatedUnix, row.UpdatedUnix)
 	assert.Positive(t, row.LastActiveUnix)
@@ -89,27 +89,27 @@ func TestVerifySSHPublicKeyDeniesInvalidCredentials(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "72727272-7272-4727-8727-727272727272"
+	codespaceID := int64(1087)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     52,
 		InteractionGeneration: 3,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 52, nil)))
+	require.NoError(t, putRuntimeMetadataEntry(codespaceID, serviceRuntimeMetadataEntry(t, 52, nil)))
 	insertServiceUserSSHKey(t, 1, testGitSSHPublicKey)
 
 	result, err := VerifySSHPublicKey(t.Context(), manager, VerifySSHPublicKeyOptions{
-		CodespaceUUID: codespaceUUID,
-		PublicKey:     servicePublicKeyWire(t, testOtherGitSSHPublicKey),
+		CodespaceID: codespaceID,
+		PublicKey:   servicePublicKeyWire(t, testOtherGitSSHPublicKey),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, SSHAuthDeniedInvalidCredentials, result.GetDenied().GetCategory())
-	assert.EqualValues(t, 3, loadServiceCodespace(t, codespaceUUID).InteractionGeneration)
+	assert.EqualValues(t, 3, loadServiceCodespace(t, codespaceID).InteractionGeneration)
 
 	result, err = VerifySSHPublicKey(t.Context(), manager, VerifySSHPublicKeyOptions{
-		CodespaceUUID: codespaceUUID,
-		PublicKey:     []byte("not-ssh-wire"),
+		CodespaceID: codespaceID,
+		PublicKey:   []byte("not-ssh-wire"),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, SSHAuthDeniedInvalidCredentials, result.GetDenied().GetCategory())
@@ -122,31 +122,31 @@ func TestVerifySSHPublicKeyDeniesStateAndMetadata(t *testing.T) {
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	insertServiceUserSSHKey(t, 1, testGitSSHPublicKey)
 
-	activeUUID := "73737373-7373-4737-8737-737373737373"
+	activeID := int64(1089)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                 activeUUID,
+		ID:                   activeID,
 		Status:               codespace_model.StatusRunning,
 		OperationRVersion:    53,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
-	require.NoError(t, putRuntimeMetadataEntry(activeUUID, serviceRuntimeMetadataEntry(t, 53, nil)))
+	require.NoError(t, putRuntimeMetadataEntry(activeID, serviceRuntimeMetadataEntry(t, 53, nil)))
 	result, err := VerifySSHPublicKey(t.Context(), manager, VerifySSHPublicKeyOptions{
-		CodespaceUUID: activeUUID,
-		PublicKey:     servicePublicKeyWire(t, testGitSSHPublicKey),
+		CodespaceID: activeID,
+		PublicKey:   servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, SSHAuthDeniedStateUnavailable, result.GetDenied().GetCategory())
 
-	missingMetadataUUID := "74747474-7474-4747-8747-747474747474"
+	missingMetadataID := int64(1090)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:              missingMetadataUUID,
+		ID:                missingMetadataID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 54,
 	})
 	result, err = VerifySSHPublicKey(t.Context(), manager, VerifySSHPublicKeyOptions{
-		CodespaceUUID: missingMetadataUUID,
-		PublicKey:     servicePublicKeyWire(t, testGitSSHPublicKey),
+		CodespaceID: missingMetadataID,
+		PublicKey:   servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, SSHAuthDeniedMetadataRebuilding, result.GetDenied().GetCategory())
@@ -159,14 +159,14 @@ func TestVerifySSHPublicKeyUsesUnifiedLoginRestrictions(t *testing.T) {
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	insertServiceUserSSHKey(t, 1, testGitSSHPublicKey)
-	restrictedUUID := "75757575-7575-4757-8757-757575757575"
+	restrictedID := int64(1112)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  restrictedUUID,
+		ID:                    restrictedID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     55,
 		InteractionGeneration: 4,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(restrictedUUID, serviceRuntimeMetadataEntry(t, 55, nil)))
+	require.NoError(t, putRuntimeMetadataEntry(restrictedID, serviceRuntimeMetadataEntry(t, 55, nil)))
 	_, err := db.GetEngine(t.Context()).
 		ID(1).
 		Cols("must_change_password").
@@ -174,31 +174,31 @@ func TestVerifySSHPublicKeyUsesUnifiedLoginRestrictions(t *testing.T) {
 	require.NoError(t, err)
 
 	result, err := VerifySSHPublicKey(t.Context(), manager, VerifySSHPublicKeyOptions{
-		CodespaceUUID: restrictedUUID,
-		PublicKey:     servicePublicKeyWire(t, testGitSSHPublicKey),
+		CodespaceID: restrictedID,
+		PublicKey:   servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, SSHAuthDeniedLoginRestricted, result.GetDenied().GetCategory())
-	assert.EqualValues(t, 4, loadServiceCodespace(t, restrictedUUID).InteractionGeneration)
+	assert.EqualValues(t, 4, loadServiceCodespace(t, restrictedID).InteractionGeneration)
 
 	insertServiceUserSSHKey(t, 32, testOtherGitSSHPublicKey)
-	webauthnUUID := "76767676-7676-4767-8767-767676767676"
+	webauthnID := int64(1113)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  webauthnUUID,
+		ID:                    webauthnID,
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     56,
 		InteractionGeneration: 7,
 	})
 	_, err = db.GetEngine(t.Context()).
-		Where("uuid = ?", webauthnUUID).
+		Where("id = ?", webauthnID).
 		Cols("user_id").
 		Update(&codespace_model.Codespace{UserID: 32})
 	require.NoError(t, err)
-	require.NoError(t, putRuntimeMetadataEntry(webauthnUUID, serviceRuntimeMetadataEntry(t, 56, nil)))
+	require.NoError(t, putRuntimeMetadataEntry(webauthnID, serviceRuntimeMetadataEntry(t, 56, nil)))
 
 	result, err = VerifySSHPublicKey(t.Context(), manager, VerifySSHPublicKeyOptions{
-		CodespaceUUID: webauthnUUID,
-		PublicKey:     servicePublicKeyWire(t, testOtherGitSSHPublicKey),
+		CodespaceID: webauthnID,
+		PublicKey:   servicePublicKeyWire(t, testOtherGitSSHPublicKey),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, result.GetAllowed())

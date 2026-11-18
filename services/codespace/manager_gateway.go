@@ -58,9 +58,6 @@ func normalizeGatewayURL(rawURL string) (string, error) {
 	if err := validateDNSHost(host); err != nil {
 		return "", fmt.Errorf("invalid gateway url host: %w", err)
 	}
-	if len(strings.Repeat("a", 30)+"-"+strings.Repeat("0", 32)+"."+host) > 253 {
-		return "", errors.New("derived gateway endpoint host is too long")
-	}
 	if parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
 		return "", errors.New("gateway url must not contain userinfo, query, or fragment")
 	}

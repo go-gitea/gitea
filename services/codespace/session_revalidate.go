@@ -42,26 +42,27 @@ func RevalidateGatewaySession(ctx context.Context, manager *codespace_model.Mana
 		return denyGatewaySession(SessionDeniedStateUnavailable), nil
 	}
 	var userID int64
-	var codespaceUUID, endpointID string
+	var codespaceID int64
+	var endpointID string
 	sshSession := false
 	if endpoint := request.GetEndpoint(); endpoint != nil {
-		userID, codespaceUUID, endpointID = endpoint.UserId, endpoint.RuntimeUuid, endpoint.EndpointId
+		userID, codespaceID, endpointID = endpoint.UserId, endpoint.CodespaceId, endpoint.EndpointId
 		if endpointID != workspaceEndpointID && !endpointIDPattern.MatchString(endpointID) {
 			return nil, util.NewInvalidArgumentErrorf("invalid endpoint_id")
 		}
 	} else if ssh := request.GetSsh(); ssh != nil {
-		userID, codespaceUUID, sshSession = ssh.UserId, ssh.RuntimeUuid, true
+		userID, codespaceID, sshSession = ssh.UserId, ssh.CodespaceId, true
 	} else {
 		return nil, util.NewInvalidArgumentErrorf("session is required")
 	}
 	if userID <= 0 {
 		return nil, util.NewInvalidArgumentErrorf("user_id must be positive")
 	}
-	if err := codespace_model.ValidateUUID(codespaceUUID); err != nil {
-		return nil, util.NewInvalidArgumentErrorf("%v", err)
+	if codespaceID <= 0 {
+		return nil, util.NewInvalidArgumentErrorf("codespace_id must be positive")
 	}
 
-	access, failure, err := loadGatewayRuntimeAccess(ctx, manager.ID, codespaceUUID, false)
+	access, failure, err := loadGatewayRuntimeAccess(ctx, manager.ID, codespaceID, false)
 	if err != nil {
 		return nil, err
 	}

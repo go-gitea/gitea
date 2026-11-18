@@ -34,12 +34,6 @@ var (
 	ErrManagerUnauthenticated = errors.New("manager unauthenticated")
 	// ErrManagerRegistrationTokenInvalid is returned when a token cannot register a Manager.
 	ErrManagerRegistrationTokenInvalid = errors.New("manager registration token is invalid")
-	// ErrBindRuntimeIdentityNotFound is returned when the create operation cannot be found.
-	ErrBindRuntimeIdentityNotFound = errors.New("runtime identity target not found")
-	// ErrBindRuntimeIdentityStateConflict is returned when the create operation cannot accept a runtime UUID.
-	ErrBindRuntimeIdentityStateConflict = errors.New("runtime identity state conflict")
-	// ErrBindRuntimeIdentityConflict is returned when the runtime UUID is already bound elsewhere.
-	ErrBindRuntimeIdentityConflict = errors.New("runtime identity conflict")
 )
 
 // DeclareManagerOptions contains the full Manager declaration accepted by Gitea.
@@ -51,13 +45,6 @@ type DeclareManagerOptions struct {
 	RuntimeState                       codespacev1.ManagerRuntimeState
 	GatewaySSHHostKeyAlgorithm         string
 	GatewaySSHHostKeyFingerprintSHA256 string
-}
-
-// BindRuntimeIdentityOptions contains the manager-created runtime identity for one create operation.
-type BindRuntimeIdentityOptions struct {
-	CodespaceID       int64
-	OperationRVersion int64
-	RuntimeUUID       string
 }
 
 // ManagerEnvironmentDeclaration is one environment in a Manager declaration snapshot.
@@ -122,65 +109,6 @@ func RegisterManager(ctx context.Context, token, name string) (*codespace_model.
 		return nil, "", err
 	}
 	return manager, secret, nil
-}
-
-// BindRuntimeIdentity stores the runtime UUID allocated by the Manager for an active create.
-func BindRuntimeIdentity(ctx context.Context, manager *codespace_model.Manager, opts BindRuntimeIdentityOptions) (string, error) {
-	if manager == nil || manager.ID <= 0 || opts.CodespaceID <= 0 || opts.OperationRVersion <= 0 {
-		return "", ErrBindRuntimeIdentityNotFound
-	}
-	if err := codespace_model.ValidateUUID(opts.RuntimeUUID); err != nil {
-		return "", util.NewInvalidArgumentErrorf("%v", err)
-	}
-	var updateErr error
-	err := db.WithTx(ctx, func(ctx context.Context) error {
-		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Omit("secrets_encrypted").Get(codespace)
-		if err != nil {
-			return err
-		}
-		if !has || codespace.ManagerID != manager.ID || codespace.OperationRVersion != opts.OperationRVersion ||
-			codespace_model.ActiveOperationType(codespace) != codespace_model.OperationCreate || !codespace_model.IsOperationRunning(codespace) {
-			return ErrBindRuntimeIdentityNotFound
-		}
-		if codespace.UUID == opts.RuntimeUUID {
-			return nil
-		}
-		if codespace.UUID != "" {
-			return ErrBindRuntimeIdentityStateConflict
-		}
-		used, err := db.GetEngine(ctx).Where("uuid = ?", opts.RuntimeUUID).Exist(new(codespace_model.Codespace))
-		if err != nil {
-			return err
-		}
-		if used {
-			return ErrBindRuntimeIdentityConflict
-		}
-		affected, err := db.GetEngine(ctx).Where(
-			"id = ? AND uuid IS NULL AND manager_id = ? AND status = ? AND operation_r_version = ? AND operation_started_unix > 0",
-			codespace.ID, manager.ID, codespace_model.StatusCreating, opts.OperationRVersion,
-		).Cols("uuid", "updated_unix").Update(&codespace_model.Codespace{
-			UUID:        opts.RuntimeUUID,
-			UpdatedUnix: time.Now().Unix(),
-		})
-		if err != nil {
-			updateErr = err
-			return err
-		}
-		if affected == 0 {
-			return ErrBindRuntimeIdentityStateConflict
-		}
-		return nil
-	})
-	if updateErr != nil {
-		// A unique-constraint error aborts the transaction on PostgreSQL, so
-		// identify the conflicting runtime only after WithTx has rolled it back.
-		used, queryErr := db.GetEngine(ctx).Where("uuid = ?", opts.RuntimeUUID).Exist(new(codespace_model.Codespace))
-		if queryErr == nil && used {
-			return "", ErrBindRuntimeIdentityConflict
-		}
-	}
-	return opts.RuntimeUUID, err
 }
 
 // AuthenticateManager verifies a Manager id and plaintext secret.

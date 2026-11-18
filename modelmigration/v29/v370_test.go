@@ -19,7 +19,7 @@ func TestAddCodespaceTables(t *testing.T) {
 		return
 	}
 	require.NoError(t, AddCodespaceTables(t.Context(), x))
-	instance := &codespace{UserID: 1, UUID: "test-codespace", SecretsEncrypted: "instance-ciphertext"}
+	instance := &codespace{UserID: 1, SecretsEncrypted: "instance-ciphertext"}
 	_, err := x.Insert(instance)
 	require.NoError(t, err)
 	var loaded codespace

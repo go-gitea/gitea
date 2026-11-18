@@ -27,9 +27,9 @@ func TestUpdateLogAppendsAndReplaysIdempotently(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
-	codespaceUUID := "67676767-6767-4676-8676-676767676767"
+	codespaceID := int64(1078)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     22,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -43,47 +43,47 @@ func TestUpdateLogAppendsAndReplaysIdempotently(t *testing.T) {
 	}
 
 	result, err := UpdateLog(t.Context(), manager, UpdateLogOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 22,
 		Offset:            0,
 		Lines:             lines,
 	})
 	require.NoError(t, err)
 	require.Positive(t, result.NextOffset)
-	row := loadServiceCodespace(t, codespaceUUID)
+	row := loadServiceCodespace(t, codespaceID)
 	assert.Equal(t, result.NextOffset, row.LogSize)
-	content := readServiceLog(t, codespaceLogFilename(row.UUID))
+	content := readServiceLog(t, codespaceLogFilename(row.ID))
 	assert.Contains(t, content, "prepare workspace\n")
 	assert.Contains(t, content, "ready\n")
 
-	beforeReplay := readServiceLog(t, codespaceLogFilename(row.UUID))
+	beforeReplay := readServiceLog(t, codespaceLogFilename(row.ID))
 	replay, err := UpdateLog(t.Context(), manager, UpdateLogOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 22,
 		Offset:            0,
 		Lines:             lines,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, result.NextOffset, replay.NextOffset)
-	assert.Equal(t, beforeReplay, readServiceLog(t, codespaceLogFilename(row.UUID)))
+	assert.Equal(t, beforeReplay, readServiceLog(t, codespaceLogFilename(row.ID)))
 	_, err = db.GetEngine(t.Context()).ID(row.ID).Cols("status", "runtime_operation_r_version", "operation_trigger", "operation_created_unix", "operation_started_unix", "operation_deadline_unix").Update(&codespace_model.Codespace{Status: codespace_model.StatusRunning, RuntimeOperationRVersion: 22})
 	require.NoError(t, err)
 	result, err = UpdateLog(t.Context(), manager, UpdateLogOptions{
-		CodespaceUUID: codespaceUUID, OperationRVersion: 22, Offset: replay.NextOffset,
+		CodespaceID: codespaceID, OperationRVersion: 22, Offset: replay.NextOffset,
 		Lines: []*codespacev1.LogLine{{TimestampUnixNano: time.Now().UnixNano(), Message: "tail after completion"}},
 	})
 	require.NoError(t, err)
 	assert.Greater(t, result.NextOffset, replay.NextOffset)
-	assert.Contains(t, readServiceLog(t, codespaceLogFilename(row.UUID)), "tail after completion")
+	assert.Contains(t, readServiceLog(t, codespaceLogFilename(row.ID)), "tail after completion")
 }
 
 func TestUpdateLogRedactsCommonCredentials(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
-	codespaceUUID := "68686868-6868-4686-8686-686868686868"
+	codespaceID := int64(1079)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     28,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -98,12 +98,12 @@ func TestUpdateLogRedactsCommonCredentials(t *testing.T) {
 	}}
 
 	result, err := UpdateLog(t.Context(), manager, UpdateLogOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 28,
 		Lines:             lines,
 	})
 	require.NoError(t, err)
-	content := readServiceLog(t, codespaceLogFilename(codespaceUUID))
+	content := readServiceLog(t, codespaceLogFilename(codespaceID))
 	assert.NotContains(t, content, token)
 	assert.NotContains(t, content, "header-secret")
 	assert.NotContains(t, content, "user:password")
@@ -114,22 +114,22 @@ func TestUpdateLogRedactsCommonCredentials(t *testing.T) {
 	assert.True(t, strings.HasSuffix(content, " link\n"))
 
 	replay, err := UpdateLog(t.Context(), manager, UpdateLogOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 28,
 		Lines:             lines,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, result.NextOffset, replay.NextOffset)
-	assert.Equal(t, content, readServiceLog(t, codespaceLogFilename(codespaceUUID)))
+	assert.Equal(t, content, readServiceLog(t, codespaceLogFilename(codespaceID)))
 }
 
 func TestUpdateLogRejectsOffsetGapAndConflict(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
-	codespaceUUID := "78787878-7878-4787-8787-787878787878"
+	codespaceID := int64(1091)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     23,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -138,7 +138,7 @@ func TestUpdateLogRejectsOffsetGapAndConflict(t *testing.T) {
 		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	})
 	first, err := UpdateLog(t.Context(), manager, UpdateLogOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 23,
 		Offset:            0,
 		Lines: []*codespacev1.LogLine{{
@@ -149,7 +149,7 @@ func TestUpdateLogRejectsOffsetGapAndConflict(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = UpdateLog(t.Context(), manager, UpdateLogOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 23,
 		Offset:            first.NextOffset + 1,
 		Lines: []*codespacev1.LogLine{{
@@ -163,7 +163,7 @@ func TestUpdateLogRejectsOffsetGapAndConflict(t *testing.T) {
 	assert.Equal(t, first.NextOffset, offsetErr.CurrentOffset)
 
 	_, err = UpdateLog(t.Context(), manager, UpdateLogOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 23,
 		Offset:            0,
 		Lines: []*codespacev1.LogLine{{
@@ -181,9 +181,9 @@ func TestUpdateLogRejectsStaleOperation(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	otherManager := insertServiceManager(t)
-	codespaceUUID := "89898989-8989-4898-8989-898989898989"
+	codespaceID := int64(1092)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     24,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -193,7 +193,7 @@ func TestUpdateLogRejectsStaleOperation(t *testing.T) {
 	})
 
 	_, err := UpdateLog(t.Context(), otherManager, UpdateLogOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 24,
 		Offset:            0,
 		Lines: []*codespacev1.LogLine{{
@@ -202,16 +202,16 @@ func TestUpdateLogRejectsStaleOperation(t *testing.T) {
 		}},
 	})
 	require.ErrorIs(t, err, ErrUpdateLogStaleOperation)
-	assert.Zero(t, loadServiceCodespace(t, codespaceUUID).LogSize)
+	assert.Zero(t, loadServiceCodespace(t, codespaceID).LogSize)
 }
 
 func TestOperationLogAppendRollsBackWhenLifecycleChanges(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
-	codespaceUUID := "89898989-8989-4898-8989-898989898990"
+	codespaceID := int64(1093)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     25,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -219,7 +219,7 @@ func TestOperationLogAppendRollsBackWhenLifecycleChanges(t *testing.T) {
 		OperationStartedUnix:  11,
 		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	})
-	stale := loadServiceCodespace(t, codespaceUUID)
+	stale := loadServiceCodespace(t, codespaceID)
 	_, err := db.GetEngine(t.Context()).ID(stale.ID).Cols("operation_started_unix", "operation_deadline_unix").Update(&codespace_model.Codespace{})
 	require.NoError(t, err)
 	encoded, err := encodeLogLines([]*codespacev1.LogLine{{TimestampUnixNano: time.Now().UnixNano(), Message: "late"}})
@@ -229,8 +229,8 @@ func TestOperationLogAppendRollsBackWhenLifecycleChanges(t *testing.T) {
 		return appendEncodedLogLines(ctx, stale, manager.ID, 25, encoded)
 	})
 	require.ErrorIs(t, err, ErrUpdateLogStaleOperation)
-	assert.Zero(t, loadServiceCodespace(t, codespaceUUID).LogSize)
-	_, err = dbfs.Open(t.Context(), codespaceLogDBFSPrefix+codespaceLogFilename(codespaceUUID))
+	assert.Zero(t, loadServiceCodespace(t, codespaceID).LogSize)
+	_, err = dbfs.Open(t.Context(), codespaceLogDBFSPrefix+codespaceLogFilename(codespaceID))
 	require.Error(t, err)
 	assert.ErrorIs(t, err, os.ErrNotExist)
 }
@@ -240,9 +240,9 @@ func TestUpdateLogAppendsTruncationSummaryOnce(t *testing.T) {
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.LogMaxSize, codespaceLogInternalSummaryReserve+260))
 
 	manager := insertServiceManager(t)
-	codespaceUUID := "93909090-9090-4090-8090-909090909090"
+	codespaceID := int64(1094)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     27,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -251,7 +251,7 @@ func TestUpdateLogAppendsTruncationSummaryOnce(t *testing.T) {
 		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	})
 	first, err := UpdateLog(t.Context(), manager, UpdateLogOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 27,
 		Offset:            0,
 		Lines: []*codespacev1.LogLine{{
@@ -263,7 +263,7 @@ func TestUpdateLogAppendsTruncationSummaryOnce(t *testing.T) {
 	assert.Less(t, first.NextOffset, codespaceLogOrdinaryLimit())
 
 	_, err = UpdateLog(t.Context(), manager, UpdateLogOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 27,
 		Offset:            first.NextOffset,
 		Lines: []*codespacev1.LogLine{
@@ -278,16 +278,16 @@ func TestUpdateLogAppendsTruncationSummaryOnce(t *testing.T) {
 		},
 	})
 	require.ErrorIs(t, err, ErrUpdateLogSizeExceeded)
-	row := loadServiceCodespace(t, codespaceUUID)
+	row := loadServiceCodespace(t, codespaceID)
 	require.LessOrEqual(t, row.LogSize, setting.Codespace.LogMaxSize)
-	content := readServiceLog(t, codespaceLogFilename(row.UUID))
+	content := readServiceLog(t, codespaceLogFilename(row.ID))
 	assert.NotContains(t, content, strings.Repeat("b", 100))
 	assert.NotContains(t, content, strings.Repeat("c", 100))
 	assert.Equal(t, 1, strings.Count(content, codespaceLogTruncationMessage))
 
 	sizeAfterSummary := row.LogSize
 	_, err = UpdateLog(t.Context(), manager, UpdateLogOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 27,
 		Offset:            row.LogSize,
 		Lines: []*codespacev1.LogLine{{
@@ -296,18 +296,18 @@ func TestUpdateLogAppendsTruncationSummaryOnce(t *testing.T) {
 		}},
 	})
 	require.ErrorIs(t, err, ErrUpdateLogSizeExceeded)
-	row = loadServiceCodespace(t, codespaceUUID)
+	row = loadServiceCodespace(t, codespaceID)
 	assert.Equal(t, sizeAfterSummary, row.LogSize)
-	assert.Equal(t, content, readServiceLog(t, codespaceLogFilename(row.UUID)))
+	assert.Equal(t, content, readServiceLog(t, codespaceLogFilename(row.ID)))
 }
 
 func TestReadLogPagesByReturnedOffset(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
-	codespaceUUID := "90909090-9090-4090-8090-909090909090"
+	codespaceID := int64(1095)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     25,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -316,7 +316,7 @@ func TestReadLogPagesByReturnedOffset(t *testing.T) {
 		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	})
 	result, err := UpdateLog(t.Context(), manager, UpdateLogOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 25,
 		Offset:            0,
 		Lines: []*codespacev1.LogLine{
@@ -328,8 +328,8 @@ func TestReadLogPagesByReturnedOffset(t *testing.T) {
 	require.NoError(t, err)
 
 	firstPage, err := ReadLog(t.Context(), ReadLogOptions{
+		CodespaceID: codespaceID,
 		UserID:      1,
-		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
 		Offset:      0,
 		Limit:       1,
 	})
@@ -342,8 +342,8 @@ func TestReadLogPagesByReturnedOffset(t *testing.T) {
 	assert.Equal(t, "first", firstPage.Lines[0].Message)
 
 	secondPage, err := ReadLog(t.Context(), ReadLogOptions{
+		CodespaceID: codespaceID,
 		UserID:      1,
-		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
 		Offset:      firstPage.NextOffset,
 		Limit:       1,
 	})
@@ -354,8 +354,8 @@ func TestReadLogPagesByReturnedOffset(t *testing.T) {
 	assert.Equal(t, "second", secondPage.Lines[0].Message)
 
 	eofPage, err := ReadLog(t.Context(), ReadLogOptions{
+		CodespaceID: codespaceID,
 		UserID:      1,
-		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
 		Offset:      result.NextOffset,
 		Limit:       LogReadMaxBytes,
 	})
@@ -369,15 +369,15 @@ func TestReadLogReportsOperationActivity(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
-	codespaceUUID := "68686868-6868-4686-8686-686868686868"
+	codespaceID := int64(1079)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:   codespaceUUID,
+		ID:     codespaceID,
 		Status: codespace_model.StatusStopped,
 	})
 
 	result, err := ReadLog(t.Context(), ReadLogOptions{
+		CodespaceID: codespaceID,
 		UserID:      1,
-		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
 		Limit:       LogReadMaxBytes,
 	})
 	require.NoError(t, err)
@@ -389,15 +389,15 @@ func TestReadLogRequiresCreator(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
-	codespaceUUID := "69696969-6969-4696-8696-696969696968"
+	codespaceID := int64(1096)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:   codespaceUUID,
+		ID:     codespaceID,
 		Status: codespace_model.StatusRunning,
 	})
 
 	_, err := ReadLog(t.Context(), ReadLogOptions{
+		CodespaceID: codespaceID,
 		UserID:      2,
-		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
 		Limit:       LogReadMaxBytes,
 	})
 	require.ErrorIs(t, err, ErrReadLogNotFound)
@@ -407,9 +407,9 @@ func TestReadLogRejectsOffsetPastEOF(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
-	codespaceUUID := "91909090-9090-4090-8090-909090909090"
+	codespaceID := int64(1097)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     26,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -418,7 +418,7 @@ func TestReadLogRejectsOffsetPastEOF(t *testing.T) {
 		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	})
 	result, err := UpdateLog(t.Context(), manager, UpdateLogOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 26,
 		Offset:            0,
 		Lines: []*codespacev1.LogLine{{
@@ -429,8 +429,8 @@ func TestReadLogRejectsOffsetPastEOF(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = ReadLog(t.Context(), ReadLogOptions{
+		CodespaceID: codespaceID,
 		UserID:      1,
-		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
 		Offset:      result.NextOffset + 1,
 		Limit:       LogReadMaxBytes,
 	})

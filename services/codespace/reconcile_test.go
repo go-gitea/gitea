@@ -22,13 +22,13 @@ func TestReconcileCodespacesAppliesRunningTimeoutsAndRetention(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	now := time.Now().Unix()
-	queuedUUID := "12121212-1212-4212-8212-121212121212"
-	runningUUID := "13131313-1313-4313-8313-131313131313"
-	runningStopUUID := "13131313-1313-4313-8313-131313131314"
-	failedUUID := "14141414-1414-4414-8414-141414141414"
+	queuedID := int64(1019)
+	runningID := int64(1069)
+	runningStopID := int64(1098)
+	failedID := int64(1076)
 
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                 queuedUUID,
+		ID:                   queuedID,
 		Status:               codespace_model.StatusRunning,
 		OperationRVersion:    3,
 		OperationTrigger:     codespace_model.OperationTriggerUser,
@@ -36,13 +36,13 @@ func TestReconcileCodespacesAppliesRunningTimeoutsAndRetention(t *testing.T) {
 	})
 	stopCreatedUnix := now - 120
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID: runningStopUUID, Status: codespace_model.StatusRunning, OperationRVersion: 6,
+		ID: runningStopID, Status: codespace_model.StatusRunning, OperationRVersion: 6,
 		OperationTrigger: codespace_model.OperationTriggerUser, OperationCreatedUnix: stopCreatedUnix,
 		OperationStartedUnix: now - 60, OperationDeadlineUnix: now - 1,
 	})
-	insertServiceCredentials(t, queuedUUID)
+	insertServiceCredentials(t, queuedID)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  runningUUID,
+		ID:                    runningID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     4,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -51,39 +51,39 @@ func TestReconcileCodespacesAppliesRunningTimeoutsAndRetention(t *testing.T) {
 		OperationDeadlineUnix: now - 1,
 	})
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:        failedUUID,
+		ID:          failedID,
 		Status:      codespace_model.StatusFailed,
 		UpdatedUnix: now - int64((2*time.Hour)/time.Second),
 	})
-	_, err := db.GetEngine(t.Context()).Where("uuid = ?", failedUUID).Cols("updated_unix").Update(&codespace_model.Codespace{
+	_, err := db.GetEngine(t.Context()).Where("id = ?", failedID).Cols("updated_unix").Update(&codespace_model.Codespace{
 		UpdatedUnix: now - int64((2*time.Hour)/time.Second),
 	})
 	require.NoError(t, err)
-	insertServiceCredentials(t, failedUUID)
-	unboundFailed := &codespace_model.Codespace{
+	insertServiceCredentials(t, failedID)
+	unassignedFailed := &codespace_model.Codespace{
 		UserID: 1, RepoID: 2, RefType: "branch", RefName: "main", EnvironmentTag: "default",
 		CommitSHA:           "0123456789abcdef0123456789abcdef01234567",
 		DevContainerContent: `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`, Status: codespace_model.StatusFailed,
 		OperationRVersion: 5, AutoStopMode: codespace_model.AutoStopModeDefault, CreatedUnix: 1,
 		UpdatedUnix: now - int64((2*time.Hour)/time.Second),
 	}
-	_, err = db.GetEngine(t.Context()).Table(unboundFailed).Omit("uuid").Insert(unboundFailed)
+	_, err = db.GetEngine(t.Context()).Table(unassignedFailed).Insert(unassignedFailed)
 	require.NoError(t, err)
-	_, err = db.GetEngine(t.Context()).ID(unboundFailed.ID).Cols("updated_unix").Update(&codespace_model.Codespace{UpdatedUnix: unboundFailed.UpdatedUnix})
+	_, err = db.GetEngine(t.Context()).ID(unassignedFailed.ID).Cols("updated_unix").Update(&codespace_model.Codespace{UpdatedUnix: unassignedFailed.UpdatedUnix})
 	require.NoError(t, err)
-	unboundQueued := *unboundFailed
-	unboundQueued.ID = 0
-	unboundQueued.Status = codespace_model.StatusCreating
-	unboundQueued.OperationCreatedUnix = now - 3600
-	unboundQueued.OperationTrigger = codespace_model.OperationTriggerUser
-	_, err = db.GetEngine(t.Context()).Table(&unboundQueued).Omit("uuid").Insert(&unboundQueued)
+	unassignedQueued := *unassignedFailed
+	unassignedQueued.ID = 0
+	unassignedQueued.Status = codespace_model.StatusCreating
+	unassignedQueued.OperationCreatedUnix = now - 3600
+	unassignedQueued.OperationTrigger = codespace_model.OperationTriggerUser
+	_, err = db.GetEngine(t.Context()).Table(&unassignedQueued).Insert(&unassignedQueued)
 	require.NoError(t, err)
-	unboundRunning := unboundQueued
-	unboundRunning.ID = 0
-	unboundRunning.ManagerID = manager.ID
-	unboundRunning.OperationStartedUnix = now - 60
-	unboundRunning.OperationDeadlineUnix = now - 1
-	_, err = db.GetEngine(t.Context()).Table(&unboundRunning).Omit("uuid").Insert(&unboundRunning)
+	claimedCreate := unassignedQueued
+	claimedCreate.ID = 0
+	claimedCreate.ManagerID = manager.ID
+	claimedCreate.OperationStartedUnix = now - 60
+	claimedCreate.OperationDeadlineUnix = now - 1
+	_, err = db.GetEngine(t.Context()).Table(&claimedCreate).Insert(&claimedCreate)
 	require.NoError(t, err)
 
 	result, err := ReconcileCodespaces(t.Context(), ReconcileCodespacesOptions{FailedOlderThan: time.Hour})
@@ -91,28 +91,28 @@ func TestReconcileCodespacesAppliesRunningTimeoutsAndRetention(t *testing.T) {
 	assert.Equal(t, 3, result.RunningTimedOut)
 	assert.Equal(t, 1, result.FailedDeleted)
 	var waiting codespace_model.Codespace
-	has, err := db.GetEngine(t.Context()).ID(unboundQueued.ID).Get(&waiting)
+	has, err := db.GetEngine(t.Context()).ID(unassignedQueued.ID).Get(&waiting)
 	require.NoError(t, err)
 	require.True(t, has)
 	assert.Equal(t, codespace_model.StatusCreating, waiting.Status)
 	assert.True(t, codespace_model.IsOperationQueued(&waiting))
 	var timedOut codespace_model.Codespace
-	has, err = db.GetEngine(t.Context()).ID(unboundRunning.ID).Get(&timedOut)
+	has, err = db.GetEngine(t.Context()).ID(claimedCreate.ID).Get(&timedOut)
 	require.NoError(t, err)
 	require.True(t, has)
 	assert.Equal(t, codespace_model.StatusFailed, timedOut.Status)
 	assert.False(t, hasActiveOperation(&timedOut))
 
-	queued := loadServiceCodespace(t, queuedUUID)
+	queued := loadServiceCodespace(t, queuedID)
 	assert.Equal(t, codespace_model.StatusRunning, queued.Status)
 	assert.True(t, codespace_model.IsOperationQueued(queued))
-	assertServiceExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", queuedUUID)
-	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", queuedUUID)
+	assertServiceExists(t, new(codespace_model.GiteaToken), "codespace_id = ?", queuedID)
+	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = ?", queuedID)
 
-	running := loadServiceCodespace(t, runningUUID)
+	running := loadServiceCodespace(t, runningID)
 	assert.Equal(t, codespace_model.StatusFailed, running.Status)
 	assert.False(t, hasActiveOperation(running))
-	retriedStop := loadServiceCodespace(t, runningStopUUID)
+	retriedStop := loadServiceCodespace(t, runningStopID)
 	assert.Equal(t, codespace_model.StatusRunning, retriedStop.Status)
 	assert.EqualValues(t, 7, retriedStop.OperationRVersion)
 	assert.True(t, codespace_model.IsOperationQueued(retriedStop))
@@ -120,10 +120,10 @@ func TestReconcileCodespacesAppliesRunningTimeoutsAndRetention(t *testing.T) {
 	assert.Zero(t, retriedStop.OperationStartedUnix)
 	assert.Zero(t, retriedStop.OperationDeadlineUnix)
 
-	assertServiceExists(t, new(codespace_model.Codespace), "uuid = ?", failedUUID)
-	assertServiceExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", failedUUID)
-	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", failedUUID)
-	assertServiceNotExists(t, new(codespace_model.Codespace), "id = ?", unboundFailed.ID)
+	assertServiceExists(t, new(codespace_model.Codespace), "id = ?", failedID)
+	assertServiceExists(t, new(codespace_model.GiteaToken), "codespace_id = ?", failedID)
+	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = ?", failedID)
+	assertServiceNotExists(t, new(codespace_model.Codespace), "id = ?", unassignedFailed.ID)
 }
 
 func TestReconcileCodespacesRequiresPositiveRetention(t *testing.T) {
@@ -138,9 +138,9 @@ func TestReconcileCodespacesCleansExpiredTokensAndKeepsStableRows(t *testing.T) 
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
-	codespaceUUID := "16161616-1616-4616-8616-161616161616"
+	codespaceID := int64(1099)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:        codespaceUUID,
+		ID:          codespaceID,
 		Status:      codespace_model.StatusRunning,
 		UpdatedUnix: 1,
 	})
@@ -161,7 +161,7 @@ func TestReconcileCodespacesCleansExpiredTokensAndKeepsStableRows(t *testing.T) 
 	assert.Equal(t, &ReconcileCodespacesResult{OpenTokensDeleted: 1}, result)
 	assertServiceExists(t, new(codespace_model.OpenToken), "code_hash = ?", validHash)
 	var count int64
-	count, err = db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Count(new(codespace_model.Codespace))
+	count, err = db.GetEngine(t.Context()).Where("id = ?", codespaceID).Count(new(codespace_model.Codespace))
 	require.NoError(t, err)
 	assert.EqualValues(t, 1, count)
 }

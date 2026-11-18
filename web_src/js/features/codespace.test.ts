@@ -170,9 +170,9 @@ test('gateway recovery opens the modal and closes it after opening a new tab', a
 
 test('initCodespaceLiveState refreshes state and preserves expanded host verification', async () => {
   vi.useFakeTimers();
-  document.body.innerHTML = '<div id="codespace-live-state" data-state-url="/-/codespaces/uuid/state" data-refresh-after-ms="10" data-log-revision="1:0"><span>old</span><details id="verification" open><summary>SSH</summary>fingerprint</details></div>';
+  document.body.innerHTML = '<div id="codespace-live-state" data-state-url="/-/codespaces/1/state" data-refresh-after-ms="10" data-log-revision="1:0"><span>old</span><details id="verification" open><summary>SSH</summary>fingerprint</details></div>';
   const fetchMock = vi.fn().mockResolvedValue(new Response(
-    '<div id="codespace-live-state" data-state-url="/-/codespaces/uuid/state" data-refresh-after-ms="0" data-log-revision="2:20"><span>new</span><details id="verification"><summary>SSH</summary>fingerprint</details></div>',
+    '<div id="codespace-live-state" data-state-url="/-/codespaces/1/state" data-refresh-after-ms="0" data-log-revision="2:20"><span>new</span><details id="verification"><summary>SSH</summary>fingerprint</details></div>',
     {status: 200},
   ));
   vi.stubGlobal('fetch', fetchMock);
@@ -186,7 +186,7 @@ test('initCodespaceLiveState refreshes state and preserves expanded host verific
   await vi.advanceTimersByTimeAsync(10);
   await vi.waitFor(() => expect(document.querySelector('#codespace-live-state')!.textContent).toContain('new'));
 
-  expect(fetchMock).toHaveBeenCalledWith('/-/codespaces/uuid/state', expect.objectContaining({method: 'GET'}));
+  expect(fetchMock).toHaveBeenCalledWith('/-/codespaces/1/state', expect.objectContaining({method: 'GET'}));
   expect(document.querySelector<HTMLDetailsElement>('#verification')!.open).toBe(true);
   expect(wakeLog).toHaveBeenCalledTimes(1);
 });
@@ -194,7 +194,7 @@ test('initCodespaceLiveState refreshes state and preserves expanded host verific
 test('codespace refresh disables open settings when the runtime stops accepting changes', async () => {
   vi.useFakeTimers();
   document.body.innerHTML = `
-    <div id="codespace-live-state" data-state-url="/-/codespaces/uuid/state" data-refresh-after-ms="10"></div>
+    <div id="codespace-live-state" data-state-url="/-/codespaces/1/state" data-refresh-after-ms="10"></div>
     <dialog id="codespace-settings-modal" open><form>
       <div data-auto-stop-unavailable class="tw-hidden"></div>
       <fieldset data-auto-stop-fields>
@@ -240,7 +240,7 @@ test('codespace list refresh recovers from body failures and stops when access i
 test('codespace settings button fills and opens the shared auto-stop modal', () => {
   document.body.innerHTML = `
     <button class="codespace-settings-button"
-      data-settings-url="/-/codespaces/uuid/auto-stop" data-return-to="/-/codespaces/uuid"
+      data-settings-url="/-/codespaces/1/auto-stop" data-return-to="/-/codespaces/1"
       data-auto-stop-mode="custom" data-auto-stop-timeout-value="2" data-auto-stop-timeout-unit="hours"
       data-auto-stop-configurable="true" data-auto-stop-out-of-range="false"
       data-auto-stop-effective="Stop after two hours" data-auto-stop-default-description="Site default" data-auto-stop-range="One minute to one day"></button>
@@ -268,9 +268,9 @@ test('codespace settings button fills and opens the shared auto-stop modal', () 
   document.querySelector<HTMLButtonElement>('.codespace-settings-button')!.click();
 
   const form = document.querySelector<HTMLFormElement>('#codespace-settings-modal form')!;
-  expect(form.action).toMatch(/\/-\/codespaces\/uuid\/auto-stop$/);
+  expect(form.action).toMatch(/\/-\/codespaces\/1\/auto-stop$/);
   expect(Object.fromEntries(new FormData(form))).toEqual({
-    return_to: '/-/codespaces/uuid', mode: 'custom', timeout_value: '2', timeout_unit: 'hours',
+    return_to: '/-/codespaces/1', mode: 'custom', timeout_value: '2', timeout_unit: 'hours',
   });
   expect(form.querySelector<HTMLElement>('[data-auto-stop-custom-fields]')!.classList.contains('tw-hidden')).toBe(false);
   expect(showModal).toHaveBeenCalledWith(form.closest('dialog'));

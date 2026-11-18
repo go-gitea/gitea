@@ -4,7 +4,6 @@
 package codespace
 
 import (
-	"context"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
@@ -12,7 +11,6 @@ import (
 	"fmt"
 	"math"
 	"strings"
-	"uuid"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/util"
@@ -65,7 +63,6 @@ const (
 // Codespace stores Gitea-owned lifecycle state for one remote development environment.
 type Codespace struct {
 	ID                        int64
-	UUID                      string `xorm:"VARCHAR(36)"`
 	UserID                    int64  `xorm:"NOT NULL DEFAULT 0"`
 	RepoID                    int64  `xorm:"NOT NULL DEFAULT 0"`
 	RefType                   string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
@@ -198,67 +195,12 @@ func (*DevContainerTemplate) TableName() string {
 }
 
 func init() {
-	db.RegisterModel(new(Codespace), ensureRuntimeUUIDIndex)
+	db.RegisterModel(new(Codespace))
 	db.RegisterModel(new(Manager))
 	db.RegisterModel(new(GiteaToken))
 	db.RegisterModel(new(SSHKey))
 	db.RegisterModel(new(OpenToken))
 	db.RegisterModel(new(DevContainerTemplate))
-}
-
-func ensureRuntimeUUIDIndex(ctx context.Context, x db.EngineMigration) error {
-	index := schemas.NewIndex("uuid", schemas.UniqueType)
-	index.AddColumn("uuid")
-	indexName := index.XName("codespace")
-	hasIndex := false
-	createSQL := x.Dialect().CreateIndexSQL("codespace", index)
-	if x.Dialect().URI().DBType == schemas.MSSQL {
-		var state struct {
-			IsUnique         bool   `xorm:"is_unique"`
-			HasFilter        bool   `xorm:"has_filter"`
-			FilterDefinition string `xorm:"filter_definition"`
-		}
-		has, err := x.Context(ctx).SQL(`SELECT is_unique, has_filter, COALESCE(filter_definition, '') AS filter_definition
-			FROM sys.indexes WHERE object_id = OBJECT_ID('codespace') AND name = ?`, indexName).Get(&state)
-		if err != nil {
-			return fmt.Errorf("ensureRuntimeUUIDIndex: inspect index: %w", err)
-		}
-		filter := strings.ToLower(state.FilterDefinition)
-		if has && state.IsUnique && state.HasFilter && strings.Contains(filter, "uuid") && strings.Contains(filter, "is not null") {
-			return nil
-		}
-		hasIndex = has
-		createSQL += " WHERE [uuid] IS NOT NULL"
-	} else {
-		tables, err := x.DBMetas()
-		if err != nil {
-			return fmt.Errorf("ensureRuntimeUUIDIndex: inspect indexes: %w", err)
-		}
-		for _, table := range tables {
-			if table.Name != "codespace" {
-				continue
-			}
-			for _, current := range table.Indexes {
-				if strings.EqualFold(current.Name, indexName) {
-					if current.Type == schemas.UniqueType && len(current.Cols) == 1 && strings.EqualFold(current.Cols[0], "uuid") {
-						return nil
-					}
-					hasIndex = true
-					break
-				}
-			}
-			break
-		}
-	}
-	if hasIndex {
-		if _, err := x.Context(ctx).Exec(x.Dialect().DropIndexSQL("codespace", index)); err != nil {
-			return fmt.Errorf("ensureRuntimeUUIDIndex: drop index: %w", err)
-		}
-	}
-	if _, err := x.Context(ctx).Exec(createSQL); err != nil {
-		return fmt.Errorf("ensureRuntimeUUIDIndex: create index: %w", err)
-	}
-	return nil
 }
 
 // GenerateManagerSecret fills the salted Manager secret verifier and returns the plaintext secret.
@@ -276,29 +218,6 @@ func (m *Manager) VerifyManagerSecret(secret string) bool {
 	}
 	hash := managerSecretHash(secret, m.SecretSalt)
 	return subtle.ConstantTimeCompare([]byte(hash), []byte(m.SecretHash)) == 1
-}
-
-// ValidateUUID checks that the input is the canonical lower-case UUID form used by Codespace.
-func ValidateUUID(codespaceUUID string) error {
-	parsed, err := uuid.Parse(codespaceUUID)
-	if err != nil {
-		return fmt.Errorf("invalid codespace uuid: %w", err)
-	}
-	if parsed[6]>>4 != 4 {
-		return errors.New("codespace uuid must be version 4")
-	}
-	if parsed.String() != codespaceUUID {
-		return errors.New("codespace uuid must be canonical lower-case form")
-	}
-	return nil
-}
-
-// UUID32 returns the 32-character host-safe form derived from a canonical Codespace UUID.
-func UUID32(codespaceUUID string) (string, error) {
-	if err := ValidateUUID(codespaceUUID); err != nil {
-		return "", err
-	}
-	return strings.ReplaceAll(codespaceUUID, "-", ""), nil
 }
 
 // NextVersion returns the next positive version or fails without wrapping.
@@ -330,11 +249,6 @@ func ValidateCodespaceLifecycle(codespace *Codespace) error {
 	if codespace == nil {
 		return errors.New("codespace is nil")
 	}
-	if codespace.UUID != "" {
-		if err := ValidateUUID(codespace.UUID); err != nil {
-			return err
-		}
-	}
 	if !validStatus(codespace.Status) {
 		return fmt.Errorf("invalid codespace status %q", codespace.Status)
 	}
@@ -354,8 +268,8 @@ func ValidateCodespaceLifecycle(codespace *Codespace) error {
 	} else if codespace.RuntimeOperationRVersion != 0 {
 		return errors.New("non-running codespace cannot retain a runtime operation version")
 	}
-	if codespace.UUID != "" && codespace.ManagerID <= 0 {
-		return errors.New("bound codespace requires a manager")
+	if (codespace.Status == StatusRunning || codespace.Status == StatusStopped) && codespace.ManagerID <= 0 {
+		return errors.New("running or stopped codespace requires a manager")
 	}
 	hasOperation := codespace.OperationCreatedUnix > 0
 	if !hasOperation {
@@ -381,16 +295,11 @@ func ValidateCodespaceLifecycle(codespace *Codespace) error {
 		if codespace.OperationDeadlineUnix != 0 {
 			return errors.New("queued operation has running timestamps")
 		}
-		if operationType != OperationCreate && (codespace.ManagerID <= 0 || codespace.UUID == "") {
-			return errors.New("queued lifecycle operation requires a bound runtime")
+		if operationType != OperationCreate && codespace.ManagerID <= 0 {
+			return errors.New("queued lifecycle operation requires a manager")
 		}
-	} else {
-		if codespace.ManagerID <= 0 || codespace.OperationStartedUnix <= 0 || codespace.OperationDeadlineUnix < codespace.OperationStartedUnix {
-			return errors.New("running operation has invalid ownership or deadline")
-		}
-		if operationType != OperationCreate && codespace.UUID == "" {
-			return errors.New("running lifecycle operation requires a bound runtime")
-		}
+	} else if codespace.ManagerID <= 0 || codespace.OperationStartedUnix <= 0 || codespace.OperationDeadlineUnix < codespace.OperationStartedUnix {
+		return errors.New("running operation has invalid ownership or deadline")
 	}
 	return nil
 }

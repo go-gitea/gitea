@@ -47,15 +47,15 @@ func ReportInstances(ctx context.Context, manager *codespace_model.Manager, opts
 		return nil, err
 	}
 
-	reported := make(map[string]struct{}, len(opts.Instances))
+	reported := make(map[int64]struct{}, len(opts.Instances))
 	response := &codespacev1.ReportInstancesResponse{Results: make([]*codespacev1.RuntimeInstanceResult, 0, len(opts.Instances))}
 	for batch := range slices.Chunk(opts.Instances, db.DefaultMaxInSize) {
 		if err := ensureInventoryGenerationCurrent(ctx, manager.ID, opts.InventoryGeneration); err != nil {
 			return nil, err
 		}
 		for _, instance := range batch {
-			reported[instance.GetRuntimeUuid()] = struct{}{}
-			result, err := processReportedRuntimeInstance(ctx, manager.ID, opts.InventoryGeneration, instance, stored[instance.GetRuntimeUuid()])
+			reported[instance.GetCodespaceId()] = struct{}{}
+			result, err := processReportedRuntimeInstance(ctx, manager.ID, opts.InventoryGeneration, instance, stored[instance.GetCodespaceId()])
 			if err != nil {
 				return nil, err
 			}
@@ -78,18 +78,18 @@ func validateReportInstancesOptions(opts ReportInstancesOptions) error {
 	if len(opts.Instances) > maxRuntimeInstancesPerInventory {
 		return fmt.Errorf("instances exceeds maximum %d", maxRuntimeInstancesPerInventory)
 	}
-	seen := make(map[string]struct{}, len(opts.Instances))
+	seen := make(map[int64]struct{}, len(opts.Instances))
 	for _, instance := range opts.Instances {
 		if instance == nil {
 			return errors.New("runtime instance is required")
 		}
-		if err := codespace_model.ValidateUUID(instance.GetRuntimeUuid()); err != nil {
-			return err
+		if instance.GetCodespaceId() <= 0 {
+			return errors.New("codespace_id must be positive")
 		}
-		if _, ok := seen[instance.GetRuntimeUuid()]; ok {
-			return fmt.Errorf("duplicate codespace_uuid %q", instance.GetRuntimeUuid())
+		if _, ok := seen[instance.GetCodespaceId()]; ok {
+			return fmt.Errorf("duplicate codespace_id %d", instance.GetCodespaceId())
 		}
-		seen[instance.GetRuntimeUuid()] = struct{}{}
+		seen[instance.GetCodespaceId()] = struct{}{}
 		switch instance.GetRuntimeState() {
 		case codespacev1.RuntimeState_RUNTIME_STATE_CREATING,
 			codespacev1.RuntimeState_RUNTIME_STATE_RUNNING,
@@ -104,22 +104,22 @@ func validateReportInstancesOptions(opts ReportInstancesOptions) error {
 	return nil
 }
 
-func loadInventoryCodespaces(ctx context.Context, managerID int64, instances []*codespacev1.RuntimeInstanceRef) (map[string]*codespace_model.Codespace, error) {
-	stored := make(map[string]*codespace_model.Codespace, len(instances))
+func loadInventoryCodespaces(ctx context.Context, managerID int64, instances []*codespacev1.RuntimeInstanceRef) (map[int64]*codespace_model.Codespace, error) {
+	stored := make(map[int64]*codespace_model.Codespace, len(instances))
 	for batch := range slices.Chunk(instances, db.DefaultMaxInSize) {
-		uuids := make([]string, 0, len(batch))
+		ids := make([]int64, 0, len(batch))
 		for _, instance := range batch {
-			uuids = append(uuids, instance.GetRuntimeUuid())
+			ids = append(ids, instance.GetCodespaceId())
 		}
 		var rows []*codespace_model.Codespace
-		if err := db.GetEngine(ctx).In("uuid", uuids).Select(codespaceStateColumns).Find(&rows); err != nil {
+		if err := db.GetEngine(ctx).In("id", ids).Select(codespaceStateColumns).Find(&rows); err != nil {
 			return nil, err
 		}
 		for _, row := range rows {
-			stored[row.UUID] = row
+			stored[row.ID] = row
 		}
 		for _, instance := range batch {
-			codespace := stored[instance.GetRuntimeUuid()]
+			codespace := stored[instance.GetCodespaceId()]
 			if codespace != nil && codespace.ManagerID == managerID && instance.GetObservedOperationRversion() > codespace.OperationRVersion {
 				return nil, ErrReportInstancesStateHistoryConflict
 			}
@@ -172,15 +172,12 @@ func ensureInventoryGenerationCurrent(ctx context.Context, managerID, inventoryG
 }
 
 func processReportedRuntimeInstance(ctx context.Context, managerID, inventoryGeneration int64, instance *codespacev1.RuntimeInstanceRef, codespace *codespace_model.Codespace) (*codespacev1.RuntimeInstanceResult, error) {
-	result := &codespacev1.RuntimeInstanceResult{RuntimeUuid: instance.GetRuntimeUuid()}
+	result := &codespacev1.RuntimeInstanceResult{CodespaceId: instance.GetCodespaceId()}
 	if codespace == nil {
 		result.Action = codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEANUP_LOCAL_RUNTIME
 		return result, nil
 	}
 	if codespace.ManagerID != managerID {
-		if codespace.ManagerID == 0 && codespace.Status == codespace_model.StatusCreating {
-			return result, nil
-		}
 		result.Action = codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEANUP_LOCAL_RUNTIME
 		return result, nil
 	}
@@ -214,7 +211,7 @@ func processReportedRuntimeInstance(ctx context.Context, managerID, inventoryGen
 				return err
 			}
 			current := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).Where("uuid = ?", codespace.UUID).Select(codespaceStateColumns).Get(current)
+			has, err := db.GetEngine(ctx).ID(codespace.ID).Select(codespaceStateColumns).Get(current)
 			if err != nil || !has {
 				return err
 			}
@@ -225,8 +222,8 @@ func processReportedRuntimeInstance(ctx context.Context, managerID, inventoryGen
 				return fmt.Errorf("invalid persisted Codespace: %w", err)
 			}
 			summary = &internalStateSummary{
-				CodespaceUUID: current.UUID,
-				Message:       "Gitea recorded the reported runtime as stopped.",
+				CodespaceID: current.ID,
+				Message:     "Gitea recorded the reported runtime as stopped.",
 			}
 			return applyFinalState(ctx, current, codespace_model.StatusStopped, time.Now().Unix())
 		})
@@ -245,34 +242,34 @@ func processReportedRuntimeInstance(ctx context.Context, managerID, inventoryGen
 	return result, nil
 }
 
-func processMissingRuntimeInstances(ctx context.Context, managerID, inventoryGeneration int64, reported map[string]struct{}) error {
-	var expected []string
+func processMissingRuntimeInstances(ctx context.Context, managerID, inventoryGeneration int64, reported map[int64]struct{}) error {
+	var expected []int64
 	if err := db.GetEngine(ctx).Table(new(codespace_model.Codespace)).
-		Where("manager_id = ? AND uuid IS NOT NULL", managerID).
-		In("status", codespace_model.StatusCreating, codespace_model.StatusRunning, codespace_model.StatusStopped, codespace_model.StatusDeleting).
-		Cols("uuid").Find(&expected); err != nil {
+		Where("manager_id = ?", managerID).
+		In("status", codespace_model.StatusCreating, codespace_model.StatusRunning, codespace_model.StatusStopped, codespace_model.StatusDeleting, codespace_model.StatusFailed).
+		Cols("id").Find(&expected); err != nil {
 		return err
 	}
 	now := time.Now().Unix()
-	for _, uuid := range expected {
-		if _, ok := reported[uuid]; ok {
+	for _, id := range expected {
+		if _, ok := reported[id]; ok {
 			continue
 		}
-		if err := processMissingRuntimeInstance(ctx, managerID, inventoryGeneration, uuid, now); err != nil {
+		if err := processMissingRuntimeInstance(ctx, managerID, inventoryGeneration, id, now); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func processMissingRuntimeInstance(ctx context.Context, managerID, inventoryGeneration int64, codespaceUUID string, now int64) error {
+func processMissingRuntimeInstance(ctx context.Context, managerID, inventoryGeneration, codespaceID, now int64) error {
 	var summary *internalStateSummary
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := ensureInventoryGenerationCurrent(ctx, managerID, inventoryGeneration); err != nil {
 			return err
 		}
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Select(codespaceStateColumns).Get(codespace)
+		has, err := db.GetEngine(ctx).ID(codespaceID).Select(codespaceStateColumns).Get(codespace)
 		if err != nil || !has {
 			return err
 		}
@@ -292,6 +289,10 @@ func processMissingRuntimeInstance(ctx context.Context, managerID, inventoryGene
 			return applyFinalState(ctx, codespace, codespace_model.StatusFailed, now)
 		case codespace_model.StatusDeleting:
 			return deleteCodespaceRowForFinal(ctx, codespace)
+		case codespace_model.StatusFailed:
+			expected := snapshotCodespaceState(codespace)
+			codespace.ManagerID = 0
+			return updateCodespaceIfCurrent(ctx, expected, codespace, "manager_id")
 		default:
 			return nil
 		}

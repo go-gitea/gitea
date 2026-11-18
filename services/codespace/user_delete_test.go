@@ -25,28 +25,28 @@ func TestDeleteUserResourcesOnlyCleansPersonalResources(t *testing.T) {
 	_, err := db.GetEngine(t.Context()).ID(userManager.ID).Cols("user_id", "gateway_url").Update(userManager)
 	require.NoError(t, err)
 
-	ownedUUID := "67676767-6767-4767-8767-676767676767"
+	ownedID := int64(1138)
 	insertServiceCodespace(t, userManager.ID, &codespace_model.Codespace{
-		UUID:              ownedUUID,
+		ID:                ownedID,
 		UserID:            userID,
 		RepoID:            2,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 67,
 	})
-	repositoryOwnedUUID := "68686868-6868-4868-8868-686868686868"
+	repositoryOwnedID := int64(1139)
 	insertServiceCodespace(t, 0, &codespace_model.Codespace{
-		UUID:              repositoryOwnedUUID,
+		ID:                repositoryOwnedID,
 		UserID:            1,
 		RepoID:            1,
 		Status:            codespace_model.StatusStopped,
 		OperationRVersion: 68,
 	})
-	unbound := &codespace_model.Codespace{
+	unassigned := &codespace_model.Codespace{
 		UserID: userID,
 		RepoID: 2,
 		Status: codespace_model.StatusFailed,
 	}
-	insertServiceCodespace(t, 0, unbound)
+	insertServiceCodespace(t, 0, unassigned)
 	authorization := &codespace_model.PermissionAuthorization{
 		UserID: userID, SourceRepoID: 1, RequestHash: "user-delete",
 		CreatedUnix: 1, UpdatedUnix: 1,
@@ -65,9 +65,9 @@ func TestDeleteUserResourcesOnlyCleansPersonalResources(t *testing.T) {
 	require.NoError(t, DeleteUserResources(t.Context(), userID))
 
 	assertServiceNotExists(t, new(codespace_model.Manager), "id = ?", userManager.ID)
-	assertServiceNotExists(t, new(codespace_model.Codespace), "uuid = ?", ownedUUID)
-	assertServiceNotExists(t, new(codespace_model.Codespace), "id = ?", unbound.ID)
-	assertServiceExists(t, new(codespace_model.Codespace), "uuid = ?", repositoryOwnedUUID)
+	assertServiceNotExists(t, new(codespace_model.Codespace), "id = ?", ownedID)
+	assertServiceNotExists(t, new(codespace_model.Codespace), "id = ?", unassigned.ID)
+	assertServiceExists(t, new(codespace_model.Codespace), "id = ?", repositoryOwnedID)
 	assertServiceNotExists(t, new(codespace_model.PermissionAuthorization), "id = ?", authorization.ID)
 	assertServiceNotExists(t, new(codespace_model.PermissionRepository), "authorization_id = ? AND target_repo_id = ? AND unit_type = ?", rule.AuthorizationID, rule.TargetRepoID, rule.UnitType)
 	assertServiceNotExists(t, new(codespace_model.UserSecret), "id = ?", secret.ID)

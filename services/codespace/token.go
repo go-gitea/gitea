@@ -51,7 +51,7 @@ var (
 
 // RequestRuntimeAccessOptions identifies the Codespace operation preparing runtime access.
 type RequestRuntimeAccessOptions struct {
-	CodespaceUUID     string
+	CodespaceID       int64
 	OperationRVersion int64
 	GitSSHPublicKey   []byte
 }
@@ -65,7 +65,7 @@ type RequestRuntimeAccessResult struct {
 }
 
 type requestRuntimeCredentialsOptions struct {
-	CodespaceUUID     string
+	CodespaceID       int64
 	OperationRVersion int64
 }
 
@@ -84,7 +84,7 @@ type runtimeAccessPreparation struct {
 // GiteaTokenAuthSnapshot contains the current Codespace Token authentication result for one request.
 type GiteaTokenAuthSnapshot struct {
 	User                  *user_model.User
-	CodespaceUUID         string
+	CodespaceID           int64
 	RepoID                int64
 	Scope                 auth_model.AccessTokenScope
 	RepositoryPermissions map[int64]map[unit_model.Type]perm_model.AccessMode
@@ -125,7 +125,7 @@ func (s *GiteaTokenAuthSnapshot) CodespaceTokenRepoID() int64 {
 
 // RequestRuntimeAccess returns the current token, instance secrets, and Git SSH trust material.
 func RequestRuntimeAccess(ctx context.Context, manager *codespace_model.Manager, opts RequestRuntimeAccessOptions) (*RequestRuntimeAccessResult, error) {
-	if err := validateRuntimeAccessRequest(manager, opts.CodespaceUUID, opts.OperationRVersion); err != nil {
+	if err := validateRuntimeAccessRequest(manager, opts.CodespaceID, opts.OperationRVersion); err != nil {
 		return nil, err
 	}
 
@@ -133,10 +133,10 @@ func RequestRuntimeAccess(ctx context.Context, manager *codespace_model.Manager,
 		prepared   *runtimeAccessPreparation
 		knownHosts []string
 	)
-	err := globallock.LockAndDo(ctx, runtimeAccessLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
+	err := globallock.LockAndDo(ctx, runtimeAccessLockKey(opts.CodespaceID), func(ctx context.Context) error {
 		var err error
 		prepared, err = prepareRuntimeAccessLocked(ctx, manager, requestRuntimeCredentialsOptions{
-			CodespaceUUID:     opts.CodespaceUUID,
+			CodespaceID:       opts.CodespaceID,
 			OperationRVersion: opts.OperationRVersion,
 		})
 		if err != nil {
@@ -188,7 +188,7 @@ func prepareRuntimeAccessLocked(ctx context.Context, manager *codespace_model.Ma
 		if !allowed {
 			return ErrRequestRuntimeAccessManagerOffline
 		}
-		codespace, err = loadRuntimeAccessCodespace(ctx, manager.ID, opts.CodespaceUUID, opts.OperationRVersion)
+		codespace, err = loadRuntimeAccessCodespace(ctx, manager.ID, opts.CodespaceID, opts.OperationRVersion)
 		if err != nil {
 			return err
 		}
@@ -234,15 +234,15 @@ func prepareRuntimeAccessLocked(ctx context.Context, manager *codespace_model.Ma
 	}, nil
 }
 
-func validateRuntimeAccessRequest(manager *codespace_model.Manager, codespaceUUID string, operationRVersion int64) error {
+func validateRuntimeAccessRequest(manager *codespace_model.Manager, codespaceID, operationRVersion int64) error {
 	if !setting.Codespace.Enabled {
 		return ErrRequestRuntimeAccessStateUnavailable
 	}
 	if manager == nil || manager.ID <= 0 {
 		return errors.New("manager is required")
 	}
-	if err := codespace_model.ValidateUUID(codespaceUUID); err != nil {
-		return util.NewInvalidArgumentErrorf("%v", err)
+	if codespaceID <= 0 {
+		return util.NewInvalidArgumentErrorf("codespace_id must be positive")
 	}
 	if operationRVersion <= 0 {
 		return util.NewInvalidArgumentErrorf("operation_rversion must be positive")
@@ -260,9 +260,9 @@ func runtimeAccessLifecycleAllows(codespace *codespace_model.Codespace, operatio
 	return createOrResumeOperationActive(codespace, now)
 }
 
-func loadRuntimeAccessCodespace(ctx context.Context, managerID int64, codespaceUUID string, operationRVersion int64) (*codespace_model.Codespace, error) {
+func loadRuntimeAccessCodespace(ctx context.Context, managerID, codespaceID, operationRVersion int64) (*codespace_model.Codespace, error) {
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
+	has, err := db.GetEngine(ctx).ID(codespaceID).Get(codespace)
 	if err != nil {
 		return nil, err
 	}
@@ -299,7 +299,7 @@ func ResolveGiteaToken(ctx context.Context, token string) (*GiteaTokenAuthSnapsh
 			continue
 		}
 		codespace := candidate.Codespace
-		if codespace == nil || codespace.UUID == "" {
+		if codespace == nil {
 			return nil, ErrResolveGiteaTokenRejected
 		}
 		if !giteaTokenLifecycleAllows(codespace, time.Now().Unix()) {
@@ -327,7 +327,7 @@ func ResolveGiteaToken(ctx context.Context, token string) (*GiteaTokenAuthSnapsh
 		user.ExtDoerData = user_model.NewTokenExtDoerData("codespace", codespace.ID, scope)
 		return &GiteaTokenAuthSnapshot{
 			User:                  user,
-			CodespaceUUID:         codespace.UUID,
+			CodespaceID:           codespace.ID,
 			RepoID:                codespace.RepoID,
 			Scope:                 scope,
 			RepositoryPermissions: permissions,
@@ -482,6 +482,6 @@ func IsGiteaTokenCandidate(token string) bool {
 	return strings.HasPrefix(token, codespaceTokenPrefix)
 }
 
-func runtimeAccessLockKey(codespaceUUID string) string {
-	return "codespace_runtime_access_" + codespaceUUID
+func runtimeAccessLockKey(codespaceID int64) string {
+	return fmt.Sprintf("codespace_runtime_access_%d", codespaceID)
 }

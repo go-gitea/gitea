@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"strings"
 	"time"
 
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
@@ -75,13 +74,6 @@ type openEndpointResult struct {
 	managerID             int64
 }
 
-type openEndpointTarget struct {
-	redirectURL         string
-	public              bool
-	available           bool
-	unavailableCategory string
-}
-
 // OpenEndpoint redirects public Endpoints directly and private targets through Open Token.
 func OpenEndpoint(ctx context.Context, opts OpenEndpointOptions) (*OpenEndpointResult, error) {
 	opened, err := openEndpoint(ctx, opts)
@@ -119,10 +111,6 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 		if !has {
 			return ErrOpenEndpointNotFound
 		}
-		if codespace.UUID == "" {
-			unavailableCategory = OpenTokenDeniedMetadataRebuilding
-			return nil
-		}
 		if codespace.Status != codespace_model.StatusRunning && !hasActiveStartup(codespace) {
 			unavailableCategory = OpenTokenDeniedCodespaceNotRunning
 			return nil
@@ -135,14 +123,10 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 			unavailableCategory = OpenTokenDeniedStateUnavailable
 			return nil
 		}
-		gatewayURL, err := loadManagerGatewayURL(ctx, codespace.ManagerID)
-		if err != nil {
-			return err
-		}
 		if err := checkCodespaceCreatorForOpen(ctx, codespace, opts.UserID); err != nil {
 			return err
 		}
-		entry, hasEntry, err := getRuntimeMetadataEntry(codespace.UUID)
+		entry, hasEntry, err := getRuntimeMetadataEntry(codespace.ID)
 		if err != nil {
 			return err
 		}
@@ -150,16 +134,21 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 			unavailableCategory = OpenTokenDeniedMetadataRebuilding
 			return nil
 		}
-		target, err := openEndpointInfo(codespace, entry.Metadata, gatewayURL, opts)
-		if err != nil {
-			return err
-		}
-		if !target.available {
-			unavailableCategory = target.unavailableCategory
+		if err := validateRuntimeAddresses(entry.Metadata, manager); err != nil {
+			unavailableCategory = OpenTokenDeniedMetadataRebuilding
 			return nil
 		}
-		if target.public {
-			result = &openEndpointResult{redirectURL: target.redirectURL, public: true}
+		endpoint, found := entry.Metadata.endpointByID(opts.EndpointID)
+		if !found {
+			unavailableCategory = OpenTokenDeniedEndpointNotFound
+			return nil
+		}
+		if hasActiveOperation(codespace) && !hasActiveStartup(codespace) && (endpoint.Public || !isQueuedIdleStop(codespace)) {
+			unavailableCategory = OpenTokenDeniedStateUnavailable
+			return nil
+		}
+		if endpoint.Public {
+			result = &openEndpointResult{redirectURL: endpoint.URL, public: true}
 			return nil
 		}
 
@@ -175,16 +164,19 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 		}); err != nil {
 			return err
 		}
-		redirectURL, err := gatewayOpenURL(gatewayURL, codespace.UUID, opts.EndpointID, code)
+		redirectURL, err := url.Parse(endpoint.OpenURL)
 		if err != nil {
 			return err
 		}
+		query := redirectURL.Query()
+		query.Set("code", code)
+		redirectURL.RawQuery = query.Encode()
 		nextGeneration, err := advanceCodespaceInteraction(ctx, codespace, now)
 		if err != nil {
 			return err
 		}
 		result = &openEndpointResult{
-			redirectURL:           redirectURL,
+			redirectURL:           redirectURL.String(),
 			interactionGeneration: nextGeneration,
 			code:                  code,
 			managerID:             codespace.ManagerID,
@@ -281,7 +273,7 @@ func ValidateOpenToken(ctx context.Context, manager *codespace_model.Manager, op
 			}
 			return err
 		}
-		entry, hasEntry, err := getRuntimeMetadataEntry(codespace.UUID)
+		entry, hasEntry, err := getRuntimeMetadataEntry(codespace.ID)
 		if err != nil {
 			return err
 		}
@@ -315,7 +307,7 @@ func ValidateOpenToken(ctx context.Context, manager *codespace_model.Manager, op
 			Outcome: &codespacev1.ValidateOpenTokenResponse_Allowed{
 				Allowed: &codespacev1.OpenTokenBinding{
 					UserId:                openToken.UserID,
-					RuntimeUuid:           codespace.UUID,
+					CodespaceId:           codespace.ID,
 					EndpointId:            openToken.EndpointID,
 					InteractionGeneration: nextGeneration,
 				},
@@ -379,90 +371,11 @@ func advanceCodespaceInteraction(ctx context.Context, codespace *codespace_model
 	return nextGeneration, nil
 }
 
-func openEndpointInfo(codespace *codespace_model.Codespace, metadata runtimeMetadata, gatewayURL string, opts OpenEndpointOptions) (*openEndpointTarget, error) {
-	endpoint, found := metadata.endpointByID(opts.EndpointID)
-	if !found {
-		return &openEndpointTarget{unavailableCategory: OpenTokenDeniedEndpointNotFound}, nil
-	}
-	targetURL, err := gatewayEndpointURL(gatewayURL, codespace.UUID, opts.EndpointID)
-	if err != nil {
-		return nil, err
-	}
-	target := &openEndpointTarget{
-		redirectURL: targetURL,
-		public:      endpoint.Public,
-		available:   true,
-	}
-	if hasActiveOperation(codespace) && !hasActiveStartup(codespace) && (endpoint.Public || !isQueuedIdleStop(codespace)) {
-		target.available = false
-		target.unavailableCategory = OpenTokenDeniedStateUnavailable
-	}
-	return target, nil
-}
-
 func validateOpenEndpointID(endpointID string) error {
 	if endpointID == workspaceEndpointID || endpointIDPattern.MatchString(endpointID) {
 		return nil
 	}
 	return errors.New("invalid endpoint_id")
-}
-
-func loadManagerGatewayURL(ctx context.Context, managerID int64) (string, error) {
-	manager := new(codespace_model.Manager)
-	has, err := db.GetEngine(ctx).ID(managerID).Cols("gateway_url").Get(manager)
-	if err != nil {
-		return "", err
-	}
-	if !has || manager.GatewayURL == "" {
-		return "", errors.New("manager gateway address not found")
-	}
-	return manager.GatewayURL, nil
-}
-
-func gatewayOpenURL(rawGatewayURL, codespaceUUID, endpointID, code string) (string, error) {
-	target, err := gatewayEndpointURL(rawGatewayURL, codespaceUUID, endpointID)
-	if err != nil {
-		return "", err
-	}
-	parsed, err := url.Parse(target)
-	if err != nil {
-		return "", err
-	}
-	parsed.Path = "/.gitea-codespace/open"
-	values := parsed.Query()
-	values.Set("code", code)
-	parsed.RawQuery = values.Encode()
-	return parsed.String(), nil
-}
-
-func gatewayEndpointURL(rawGatewayURL, codespaceUUID, endpointID string) (string, error) {
-	parsed, err := url.Parse(strings.TrimSpace(rawGatewayURL))
-	if err != nil {
-		return "", fmt.Errorf("parse gateway url: %w", err)
-	}
-	if parsed.Scheme != "http" && parsed.Scheme != "https" {
-		return "", errors.New("gateway url must use http or https")
-	}
-	if parsed.Host == "" {
-		return "", errors.New("gateway url host is required")
-	}
-	uuid32, err := codespace_model.UUID32(codespaceUUID)
-	if err != nil {
-		return "", err
-	}
-	host := uuid32 + "." + parsed.Host
-	if endpointID != workspaceEndpointID {
-		if !endpointIDPattern.MatchString(endpointID) {
-			return "", errors.New("invalid endpoint_id")
-		}
-		host = endpointID + "-" + host
-	}
-	target := &url.URL{
-		Scheme: parsed.Scheme,
-		Host:   host,
-		Path:   "/",
-	}
-	return target.String(), nil
 }
 
 func generateOpenTokenCode() string {

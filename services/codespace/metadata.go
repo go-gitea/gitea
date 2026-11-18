@@ -10,9 +10,12 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net"
+	"net/url"
 	"path"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -41,7 +44,10 @@ const (
 	bootStageReady            = "ready"
 )
 
-var endpointIDPattern = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,28}[a-z0-9])?$`)
+var (
+	endpointIDPattern     = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,28}[a-z0-9])?$`)
+	runtimeSSHUserPattern = regexp.MustCompile(`^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$`)
+)
 
 var (
 	// ErrRuntimeMetadataManagerMismatch is returned when the Codespace is bound to another Manager.
@@ -69,7 +75,7 @@ func (e *StaleGenerationError) Error() string {
 
 // ReportRuntimeMetadataOptions contains a Manager metadata report after RPC validation.
 type ReportRuntimeMetadataOptions struct {
-	CodespaceUUID      string
+	CodespaceID        int64
 	Metadata           *codespacev1.RuntimeMetadata
 	MetadataGeneration int64
 }
@@ -85,6 +91,15 @@ type runtimeMetadata struct {
 	Boot            runtimeMetadataBoot          `json:"boot"`
 	ResourceUsage   runtimeMetadataResourceUsage `json:"resource_usage"`
 	WorkspaceFolder string                       `json:"workspace_folder"`
+	SSH             runtimeMetadataSSH           `json:"ssh"`
+}
+
+type runtimeMetadataSSH struct {
+	Host      string `json:"host"`
+	Port      uint32 `json:"port"`
+	User      string `json:"user"`
+	VSCodeURL string `json:"vscode_url"`
+	ZedURL    string `json:"zed_url"`
 }
 
 type runtimeMetadataEndpoint struct {
@@ -92,6 +107,8 @@ type runtimeMetadataEndpoint struct {
 	Label      string `json:"label"`
 	Public     bool   `json:"public"`
 	Port       uint32 `json:"port,omitempty"`
+	URL        string `json:"url"`
+	OpenURL    string `json:"open_url"`
 }
 
 func (m runtimeMetadata) endpointByID(endpointID string) (runtimeMetadataEndpoint, bool) {
@@ -155,8 +172,8 @@ func ReportRuntimeMetadata(ctx context.Context, manager *codespace_model.Manager
 	if manager == nil || manager.ID <= 0 {
 		return errors.New("manager is required")
 	}
-	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
-		return util.NewInvalidArgumentErrorf("%v", err)
+	if opts.CodespaceID <= 0 {
+		return util.NewInvalidArgumentErrorf("codespace_id must be positive")
 	}
 	if opts.MetadataGeneration <= 0 {
 		return util.NewInvalidArgumentErrorf("metadata_generation must be positive")
@@ -172,8 +189,11 @@ func ReportRuntimeMetadata(ctx context.Context, manager *codespace_model.Manager
 	if err != nil {
 		return util.NewInvalidArgumentErrorf("%v", err)
 	}
+	if err := validateRuntimeAddresses(metadata, manager); err != nil {
+		return util.NewInvalidArgumentErrorf("%v", err)
+	}
 
-	return globallock.LockAndDo(ctx, runtimeMetadataLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
+	return globallock.LockAndDo(ctx, runtimeMetadataLockKey(opts.CodespaceID), func(ctx context.Context) error {
 		allowed, err = currentManagerAllowsOnlineOrRecovering(ctx, manager.ID)
 		if err != nil {
 			return err
@@ -182,7 +202,7 @@ func ReportRuntimeMetadata(ctx context.Context, manager *codespace_model.Manager
 			return ErrRuntimeMetadataManagerOffline
 		}
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Select(codespaceStateColumns).Get(codespace)
+		has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Select(codespaceStateColumns).Get(codespace)
 		if err != nil {
 			return err
 		}
@@ -196,7 +216,7 @@ func ReportRuntimeMetadata(ctx context.Context, manager *codespace_model.Manager
 			return err
 		}
 
-		current, hasCurrent, err := getRuntimeMetadataEntry(opts.CodespaceUUID)
+		current, hasCurrent, err := getRuntimeMetadataEntry(opts.CodespaceID)
 		if err != nil {
 			return err
 		}
@@ -218,7 +238,7 @@ func ReportRuntimeMetadata(ctx context.Context, manager *codespace_model.Manager
 			}
 		}
 
-		return putRuntimeMetadataEntry(opts.CodespaceUUID, runtimeMetadataCacheEntry{
+		return putRuntimeMetadataEntry(opts.CodespaceID, runtimeMetadataCacheEntry{
 			Metadata:    metadata,
 			Generation:  opts.MetadataGeneration,
 			ContentHash: contentHash,
@@ -226,11 +246,11 @@ func ReportRuntimeMetadata(ctx context.Context, manager *codespace_model.Manager
 	})
 }
 
-func deleteRuntimeMetadata(codespaceUUID string) {
+func deleteRuntimeMetadata(codespaceID int64) {
 	if cache.GetCache() == nil {
 		return
 	}
-	_ = cache.GetCache().Delete(runtimeMetadataCacheKey(codespaceUUID))
+	_ = cache.GetCache().Delete(runtimeMetadataCacheKey(codespaceID))
 }
 
 func normalizeRuntimeMetadata(input *codespacev1.RuntimeMetadata) (runtimeMetadata, string, error) {
@@ -271,6 +291,10 @@ func normalizeRuntimeMetadata(input *codespacev1.RuntimeMetadata) (runtimeMetada
 		},
 		ResourceUsage:   resourceUsage,
 		WorkspaceFolder: workspaceFolder,
+		SSH: runtimeMetadataSSH{
+			Host: input.GetSsh().GetHost(), Port: input.GetSsh().GetPort(), User: input.GetSsh().GetUser(),
+			VSCodeURL: input.GetSsh().GetVscodeUrl(), ZedURL: input.GetSsh().GetZedUrl(),
+		},
 	}
 	if err := validateRuntimeMetadataBoot(metadata.Boot); err != nil {
 		return runtimeMetadata{}, "", err
@@ -324,6 +348,8 @@ func normalizeRuntimeMetadataEndpoint(endpoint *codespacev1.RuntimeEndpoint) (ru
 		Label:      label,
 		Public:     endpoint.GetPublic(),
 		Port:       endpoint.GetPort(),
+		URL:        endpoint.GetUrl(),
+		OpenURL:    endpoint.GetOpenUrl(),
 	}
 	if normalized.Port > 65535 {
 		return runtimeMetadataEndpoint{}, fmt.Errorf("invalid endpoint port %d", normalized.Port)
@@ -497,30 +523,72 @@ func bootStageRank(stage string) int {
 	}
 }
 
-func getRuntimeMetadataEntry(codespaceUUID string) (runtimeMetadataCacheEntry, bool, error) {
+func getRuntimeMetadataEntry(codespaceID int64) (runtimeMetadataCacheEntry, bool, error) {
 	if cache.GetCache() == nil {
 		return runtimeMetadataCacheEntry{}, false, errors.New("cache is not initialized")
 	}
 	entry := runtimeMetadataCacheEntry{}
-	exists, getErr := cache.GetCache().GetJSON(runtimeMetadataCacheKey(codespaceUUID), &entry)
+	exists, getErr := cache.GetCache().GetJSON(runtimeMetadataCacheKey(codespaceID), &entry)
 	if getErr != nil {
 		return runtimeMetadataCacheEntry{}, false, getErr.ToError()
 	}
 	return entry, exists, nil
 }
 
-func putRuntimeMetadataEntry(codespaceUUID string, entry runtimeMetadataCacheEntry) error {
+func putRuntimeMetadataEntry(codespaceID int64, entry runtimeMetadataCacheEntry) error {
 	if cache.GetCache() == nil {
 		return errors.New("cache is not initialized")
 	}
 	// Retain metadata beyond one offline window so transient missed reports do not immediately remove usable endpoint state.
-	return cache.GetCache().PutJSON(runtimeMetadataCacheKey(codespaceUUID), entry, int64((setting.Codespace.ManagerOfflineTimeout*2)/time.Second))
+	return cache.GetCache().PutJSON(runtimeMetadataCacheKey(codespaceID), entry, int64((setting.Codespace.ManagerOfflineTimeout*2)/time.Second))
 }
 
-func runtimeMetadataCacheKey(codespaceUUID string) string {
-	return "codespace:runtime-meta:" + codespaceUUID
+func runtimeMetadataCacheKey(codespaceID int64) string {
+	return "codespace:runtime-meta:" + strconv.FormatInt(codespaceID, 10)
 }
 
-func runtimeMetadataLockKey(codespaceUUID string) string {
-	return "codespace_runtime_metadata_" + codespaceUUID
+func runtimeMetadataLockKey(codespaceID int64) string {
+	return "codespace_runtime_metadata_" + strconv.FormatInt(codespaceID, 10)
+}
+
+func validateRuntimeAddresses(metadata runtimeMetadata, manager *codespace_model.Manager) error {
+	gateway, err := url.Parse(manager.GatewayURL)
+	if err != nil {
+		return err
+	}
+	for _, endpoint := range metadata.Endpoints {
+		var origin string
+		for _, raw := range []string{endpoint.URL, endpoint.OpenURL} {
+			address, err := url.Parse(raw)
+			if err != nil || (address.Scheme != "http" && address.Scheme != "https") || address.User != nil || address.Fragment != "" ||
+				validateDNSHost(address.Hostname()) != nil ||
+				address.Scheme != gateway.Scheme || address.Port() != gateway.Port() ||
+				!strings.HasSuffix(strings.ToLower(address.Hostname()), "."+strings.ToLower(gateway.Hostname())) {
+				return errors.New("runtime endpoint address must belong to the declared gateway")
+			}
+			if origin != "" && address.Host != origin {
+				return errors.New("runtime authorization address must use the endpoint origin")
+			}
+			origin = address.Host
+		}
+	}
+	ssh := metadata.SSH
+	if ssh == (runtimeMetadataSSH{}) {
+		return nil
+	}
+	if ssh.Port == 0 || ssh.Port > 65535 || net.JoinHostPort(ssh.Host, strconv.Itoa(int(ssh.Port))) != manager.GatewaySSHAddr ||
+		!runtimeSSHUserPattern.MatchString(ssh.User) {
+		return errors.New("runtime SSH address must belong to the declared gateway")
+	}
+	for scheme, raw := range map[string]string{"vscode": ssh.VSCodeURL, "zed": ssh.ZedURL} {
+		address, err := url.Parse(raw)
+		host := "ssh"
+		if scheme == "vscode" {
+			host = "vscode-remote"
+		}
+		if err != nil || address.Scheme != scheme || address.Host != host || address.User != nil || address.RawQuery != "" || address.Fragment != "" {
+			return errors.New("invalid runtime editor address")
+		}
+	}
+	return nil
 }

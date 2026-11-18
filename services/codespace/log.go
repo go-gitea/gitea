@@ -66,7 +66,7 @@ var (
 
 // UpdateLogOptions identifies one log append request.
 type UpdateLogOptions struct {
-	CodespaceUUID     string
+	CodespaceID       int64
 	OperationRVersion int64
 	Offset            int64
 	Lines             []*codespacev1.LogLine
@@ -103,8 +103,8 @@ type ReadLogResult struct {
 }
 
 type internalStateSummary struct {
-	CodespaceUUID string
-	Message       string
+	CodespaceID int64
+	Message     string
 }
 
 // LogOffsetError carries the current server-authoritative log offset.
@@ -126,8 +126,8 @@ func UpdateLog(ctx context.Context, manager *codespace_model.Manager, opts Updat
 	if manager == nil || manager.ID <= 0 {
 		return nil, errors.New("manager is required")
 	}
-	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
-		return nil, util.NewInvalidArgumentErrorf("%v", err)
+	if opts.CodespaceID <= 0 {
+		return nil, util.NewInvalidArgumentErrorf("codespace_id must be positive")
 	}
 	if opts.OperationRVersion <= 0 {
 		return nil, util.NewInvalidArgumentErrorf("operation_rversion must be positive")
@@ -142,11 +142,11 @@ func UpdateLog(ctx context.Context, manager *codespace_model.Manager, opts Updat
 
 	var nextOffset int64
 	var sizeExceeded bool
-	err = globallock.LockAndDo(ctx, updateLogLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
+	err = globallock.LockAndDo(ctx, updateLogLockKey(opts.CodespaceID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).
-				Cols("id", "uuid", "manager_id", "operation_r_version", "operation_created_unix", "operation_started_unix", "log_size").Get(codespace)
+			has, err := db.GetEngine(ctx).ID(opts.CodespaceID).
+				Cols("id", "manager_id", "operation_r_version", "operation_created_unix", "operation_started_unix", "log_size").Get(codespace)
 			if err != nil {
 				return err
 			}
@@ -156,7 +156,7 @@ func UpdateLog(ctx context.Context, manager *codespace_model.Manager, opts Updat
 			if codespace.ManagerID != manager.ID || codespace.OperationRVersion != opts.OperationRVersion || (codespace.OperationCreatedUnix > 0 && codespace.OperationStartedUnix == 0) {
 				return ErrUpdateLogStaleOperation
 			}
-			logFilename := codespaceLogFilename(codespace.UUID)
+			logFilename := codespaceLogFilename(codespace.ID)
 			if opts.Offset > codespace.LogSize {
 				return &LogOffsetError{Err: ErrUpdateLogOffsetGap, CurrentOffset: codespace.LogSize}
 			}
@@ -246,10 +246,7 @@ func ReadLog(ctx context.Context, opts ReadLogOptions) (*ReadLogResult, error) {
 	if opts.Offset == codespace.LogSize {
 		return &ReadLogResult{Offset: opts.Offset, NextOffset: opts.Offset, EOF: true, OperationActive: hasActiveOperation(codespace), Lines: []ReadLogLine{}}, nil
 	}
-	if codespace.UUID == "" {
-		return &ReadLogResult{Offset: opts.Offset, NextOffset: opts.Offset, EOF: true, OperationActive: hasActiveOperation(codespace), Lines: []ReadLogLine{}}, nil
-	}
-	lines, nextOffset, eof, truncated, err := readLogLines(ctx, codespaceLogFilename(codespace.UUID), opts.Offset, codespace.LogSize, opts.Limit)
+	lines, nextOffset, eof, truncated, err := readLogLines(ctx, codespaceLogFilename(codespace.ID), opts.Offset, codespace.LogSize, opts.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -314,7 +311,7 @@ func appendEncodedLogLines(ctx context.Context, codespace *codespace_model.Codes
 		return nil
 	}
 	previousSize := codespace.LogSize
-	if err := appendLogBytes(ctx, codespaceLogFilename(codespace.UUID), previousSize, encoded); err != nil {
+	if err := appendLogBytes(ctx, codespaceLogFilename(codespace.ID), previousSize, encoded); err != nil {
 		return err
 	}
 	codespace.LogSize = previousSize + int64(len(encoded))
@@ -341,10 +338,10 @@ func appendInternalStateSummary(ctx context.Context, summary *internalStateSumma
 	if summary == nil || summary.Message == "" {
 		return
 	}
-	err := globallock.LockAndDo(ctx, updateLogLockKey(summary.CodespaceUUID), func(ctx context.Context) error {
+	err := globallock.LockAndDo(ctx, updateLogLockKey(summary.CodespaceID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).Where("uuid = ?", summary.CodespaceUUID).Cols("id", "uuid", "log_size").Get(codespace)
+			has, err := db.GetEngine(ctx).ID(summary.CodespaceID).Cols("id", "log_size").Get(codespace)
 			if err != nil || !has {
 				return err
 			}
@@ -362,13 +359,13 @@ func appendInternalStateSummary(ctx context.Context, summary *internalStateSumma
 		})
 	})
 	if err != nil {
-		log.Warn("failed to write codespace internal state summary for %s: %v", summary.CodespaceUUID, err)
+		log.Warn("failed to write codespace internal state summary for %d: %v", summary.CodespaceID, err)
 	}
 }
 
 func operationTimeoutSummary(codespace *codespace_model.Codespace, resultStatus string) *internalStateSummary {
 	return &internalStateSummary{
-		CodespaceUUID: codespace.UUID,
+		CodespaceID: codespace.ID,
 		Message: fmt.Sprintf("Gitea recorded operation %s#%d timeout as %s.",
 			codespace_model.ActiveOperationType(codespace), codespace.OperationRVersion, resultStatus),
 	}
@@ -376,7 +373,7 @@ func operationTimeoutSummary(codespace *codespace_model.Codespace, resultStatus 
 
 func operationRetrySummary(codespace *codespace_model.Codespace) *internalStateSummary {
 	return &internalStateSummary{
-		CodespaceUUID: codespace.UUID,
+		CodespaceID: codespace.ID,
 		Message: fmt.Sprintf("Gitea requeued operation %s#%d after its execution deadline expired.",
 			codespace_model.ActiveOperationType(codespace), codespace.OperationRVersion),
 	}
@@ -384,8 +381,8 @@ func operationRetrySummary(codespace *codespace_model.Codespace) *internalStateS
 
 func runtimeMissingSummary(codespace *codespace_model.Codespace) *internalStateSummary {
 	return &internalStateSummary{
-		CodespaceUUID: codespace.UUID,
-		Message:       "Gitea recorded missing runtime as failed.",
+		CodespaceID: codespace.ID,
+		Message:     "Gitea recorded missing runtime as failed.",
 	}
 }
 
@@ -538,16 +535,16 @@ func codespaceLogOrdinaryLimit() int64 {
 	return setting.Codespace.LogMaxSize - codespaceLogInternalSummaryReserve
 }
 
-func updateLogLockKey(codespaceUUID string) string {
-	return "codespace_log_" + codespaceUUID
+func updateLogLockKey(codespaceID int64) string {
+	return fmt.Sprintf("codespace_log_%d", codespaceID)
 }
 
-func codespaceLogFilename(codespaceUUID string) string {
-	return codespaceUUID + ".log"
+func codespaceLogFilename(codespaceID int64) string {
+	return fmt.Sprintf("%d.log", codespaceID)
 }
 
-func deleteCodespaceLog(ctx context.Context, codespaceUUID string) error {
-	if err := dbfs.Remove(ctx, codespaceLogDBFSPrefix+codespaceLogFilename(codespaceUUID)); err != nil && !errors.Is(err, os.ErrNotExist) {
+func deleteCodespaceLog(ctx context.Context, codespaceID int64) error {
+	if err := dbfs.Remove(ctx, codespaceLogDBFSPrefix+codespaceLogFilename(codespaceID)); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
 	return nil

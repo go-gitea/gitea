@@ -21,20 +21,20 @@ func TestValidatePublicEndpointAllowsPublicReadyEndpoint(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "61616161-6161-4616-8616-616161616161"
+	codespaceID := int64(1041)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:              codespaceUUID,
+		ID:                codespaceID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 12,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 12, []*codespacev1.RuntimeEndpoint{
+	require.NoError(t, putRuntimeMetadataEntry(codespaceID, serviceRuntimeMetadataEntry(t, 12, []*codespacev1.RuntimeEndpoint{
 		{EndpointId: "app-3000", Label: "App", Public: true},
 		{EndpointId: "private-api", Label: "API", Public: false},
 	})))
 
 	result, err := ValidatePublicEndpoint(t.Context(), manager, ValidatePublicEndpointOptions{
-		CodespaceUUID: codespaceUUID,
-		EndpointID:    "app-3000",
+		CodespaceID: codespaceID,
+		EndpointID:  "app-3000",
 	})
 	require.NoError(t, err)
 	assert.NotNil(t, result.GetAllowed())
@@ -45,13 +45,13 @@ func TestValidatePublicEndpointDeniesPrivateMissingAndWorkspace(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "62626262-6262-4626-8626-626262626262"
+	codespaceID := int64(1042)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:              codespaceUUID,
+		ID:                codespaceID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 13,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 13, []*codespacev1.RuntimeEndpoint{
+	require.NoError(t, putRuntimeMetadataEntry(codespaceID, serviceRuntimeMetadataEntry(t, 13, []*codespacev1.RuntimeEndpoint{
 		{EndpointId: "private-api", Label: "API", Public: false},
 	})))
 
@@ -64,8 +64,8 @@ func TestValidatePublicEndpointDeniesPrivateMissingAndWorkspace(t *testing.T) {
 		{"workspace", PublicEndpointDeniedInvalidEndpoint},
 	} {
 		result, err := ValidatePublicEndpoint(t.Context(), manager, ValidatePublicEndpointOptions{
-			CodespaceUUID: codespaceUUID,
-			EndpointID:    tc.endpointID,
+			CodespaceID: codespaceID,
+			EndpointID:  tc.endpointID,
 		})
 		require.NoError(t, err)
 		assert.Equal(t, tc.category, result.GetDenied().GetCategory())
@@ -79,41 +79,41 @@ func TestValidatePublicEndpointDeniesStateAndMetadata(t *testing.T) {
 	otherManager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	markServiceManagerOnline(t, otherManager, `[{"tag":"default"}]`)
-	activeUUID := "63636363-6363-4636-8636-636363636363"
+	activeID := int64(1117)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                 activeUUID,
+		ID:                   activeID,
 		Status:               codespace_model.StatusRunning,
 		OperationRVersion:    14,
 		OperationTrigger:     codespace_model.OperationTriggerIdle,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
-	require.NoError(t, putRuntimeMetadataEntry(activeUUID, serviceRuntimeMetadataEntry(t, 14, []*codespacev1.RuntimeEndpoint{
+	require.NoError(t, putRuntimeMetadataEntry(activeID, serviceRuntimeMetadataEntry(t, 14, []*codespacev1.RuntimeEndpoint{
 		{EndpointId: "app-3000", Label: "App", Public: true},
 	})))
 
 	result, err := ValidatePublicEndpoint(t.Context(), manager, ValidatePublicEndpointOptions{
-		CodespaceUUID: activeUUID,
-		EndpointID:    "app-3000",
+		CodespaceID: activeID,
+		EndpointID:  "app-3000",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, PublicEndpointDeniedActiveOperation, result.GetDenied().GetCategory())
 
-	missingMetadataUUID := "64646464-6464-4646-8646-646464646464"
+	missingMetadataID := int64(1118)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:              missingMetadataUUID,
+		ID:                missingMetadataID,
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 15,
 	})
 	result, err = ValidatePublicEndpoint(t.Context(), manager, ValidatePublicEndpointOptions{
-		CodespaceUUID: missingMetadataUUID,
-		EndpointID:    "app-3000",
+		CodespaceID: missingMetadataID,
+		EndpointID:  "app-3000",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, PublicEndpointDeniedMetadataRebuilding, result.GetDenied().GetCategory())
 
 	result, err = ValidatePublicEndpoint(t.Context(), otherManager, ValidatePublicEndpointOptions{
-		CodespaceUUID: missingMetadataUUID,
-		EndpointID:    "app-3000",
+		CodespaceID: missingMetadataID,
+		EndpointID:  "app-3000",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, PublicEndpointDeniedManagerMismatch, result.GetDenied().GetCategory())
@@ -122,8 +122,8 @@ func TestValidatePublicEndpointDeniesStateAndMetadata(t *testing.T) {
 	_, err = db.GetEngine(t.Context()).ID(manager.ID).Cols("runtime_state").Update(manager)
 	require.NoError(t, err)
 	result, err = ValidatePublicEndpoint(t.Context(), manager, ValidatePublicEndpointOptions{
-		CodespaceUUID: missingMetadataUUID,
-		EndpointID:    "app-3000",
+		CodespaceID: missingMetadataID,
+		EndpointID:  "app-3000",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, PublicEndpointDeniedManagerOffline, result.GetDenied().GetCategory())

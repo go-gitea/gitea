@@ -99,7 +99,7 @@ func reconcileFailedCodespaces(ctx context.Context, now int64, olderThan time.Du
 	cutoff := now - int64(olderThan/time.Second)
 	var ids []int64
 	if err := db.GetEngine(ctx).Table(new(codespace_model.Codespace)).
-		Where("status = ? AND manager_id = ? AND uuid IS NULL AND operation_trigger = ? AND operation_created_unix = 0 AND operation_started_unix = 0 AND operation_deadline_unix = 0 AND updated_unix > 0 AND updated_unix <= ?",
+		Where("status = ? AND manager_id = ? AND operation_trigger = ? AND operation_created_unix = 0 AND operation_started_unix = 0 AND operation_deadline_unix = 0 AND updated_unix > 0 AND updated_unix <= ?",
 			codespace_model.StatusFailed, 0, "", cutoff).
 		Asc("updated_unix", "id").
 		Limit(reconcileCodespacesBatchSize).
@@ -124,7 +124,7 @@ func reconcileFailedCodespace(ctx context.Context, codespaceID, cutoff int64, re
 		if err != nil || !has {
 			return err
 		}
-		if codespace.Status != codespace_model.StatusFailed || codespace.ManagerID != 0 || codespace.UUID != "" || hasActiveOperation(codespace) ||
+		if codespace.Status != codespace_model.StatusFailed || codespace.ManagerID != 0 || hasActiveOperation(codespace) ||
 			codespace.UpdatedUnix <= 0 || codespace.UpdatedUnix > cutoff {
 			return nil
 		}

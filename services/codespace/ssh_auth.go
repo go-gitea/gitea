@@ -42,8 +42,8 @@ const (
 
 // VerifySSHPublicKeyOptions contains one Gateway SSH public key authentication request.
 type VerifySSHPublicKeyOptions struct {
-	CodespaceUUID string
-	PublicKey     []byte
+	CodespaceID int64
+	PublicKey   []byte
 }
 
 // VerifySSHPublicKey authorizes one new Gateway SSH transport using a Gitea user SSH key.
@@ -54,8 +54,8 @@ func VerifySSHPublicKey(ctx context.Context, manager *codespace_model.Manager, o
 	if !setting.Codespace.Enabled {
 		return denySSHAuth(SSHAuthDeniedStateUnavailable), nil
 	}
-	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
-		return nil, util.NewInvalidArgumentErrorf("%v", err)
+	if opts.CodespaceID <= 0 {
+		return nil, util.NewInvalidArgumentErrorf("codespace_id must be positive")
 	}
 	key, err := ssh.ParsePublicKey(opts.PublicKey)
 	if err != nil {
@@ -64,7 +64,7 @@ func VerifySSHPublicKey(ctx context.Context, manager *codespace_model.Manager, o
 
 	var result *codespacev1.VerifySSHPublicKeyResponse
 	err = db.WithTx(ctx, func(ctx context.Context) error {
-		access, failure, err := loadGatewayRuntimeAccess(ctx, manager.ID, opts.CodespaceUUID, true)
+		access, failure, err := loadGatewayRuntimeAccess(ctx, manager.ID, opts.CodespaceID, true)
 		if err != nil {
 			return err
 		}

@@ -34,8 +34,8 @@ const (
 
 // ValidatePublicEndpointOptions identifies one public Endpoint authorization request.
 type ValidatePublicEndpointOptions struct {
-	CodespaceUUID string
-	EndpointID    string
+	CodespaceID int64
+	EndpointID  string
 }
 
 // ValidatePublicEndpoint authorizes unauthenticated traffic to a public Runtime Endpoint.
@@ -46,13 +46,13 @@ func ValidatePublicEndpoint(ctx context.Context, manager *codespace_model.Manage
 	if !setting.Codespace.Enabled {
 		return denyPublicEndpoint(PublicEndpointDeniedStateUnavailable), nil
 	}
-	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
-		return nil, util.NewInvalidArgumentErrorf("%v", err)
+	if opts.CodespaceID <= 0 {
+		return nil, util.NewInvalidArgumentErrorf("codespace_id must be positive")
 	}
 	if opts.EndpointID == workspaceEndpointID || !endpointIDPattern.MatchString(opts.EndpointID) {
 		return denyPublicEndpoint(PublicEndpointDeniedInvalidEndpoint), nil
 	}
-	access, failure, err := loadGatewayRuntimeAccess(ctx, manager.ID, opts.CodespaceUUID, false)
+	access, failure, err := loadGatewayRuntimeAccess(ctx, manager.ID, opts.CodespaceID, false)
 	if err != nil {
 		return nil, err
 	}

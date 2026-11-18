@@ -183,9 +183,9 @@ func TestManagerServiceFetchPayloadAndLease(t *testing.T) {
 	client, cleanup := newManagerTestClient(t)
 	defer cleanup()
 
-	codespaceUUID := "11111111-2222-4111-8111-111111111111"
+	codespaceID := int64(1146)
 	insertManagerTestCodespace(t, 0, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     41,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -204,7 +204,7 @@ func TestManagerServiceFetchPayloadAndLease(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, fetched.GetOperations(), 1)
 	operation := fetched.GetOperations()[0]
-	assert.Equal(t, codespaceUUID, operation.GetRuntimeUuid())
+	assert.Equal(t, codespaceID, operation.GetCodespaceId())
 	assert.EqualValues(t, 41, operation.GetOperationRversion())
 	assert.Positive(t, operation.GetLeaseValidForMilliseconds())
 	require.NotNil(t, operation.GetCreate())
@@ -217,14 +217,14 @@ func TestManagerServiceFetchPayloadAndLease(t *testing.T) {
 	renewed, err := client.FetchOperations(managerContext(t.Context(), manager.ID, secret), &codespacev1.FetchOperationsRequest{
 		ProtocolVersion: 1,
 		ObservedOperations: []*codespacev1.ObservedOperation{{
-			RuntimeUuid:       codespaceUUID,
+			CodespaceId:       codespaceID,
 			OperationRversion: 41,
 		}},
 	})
 	require.NoError(t, err)
 	assert.Empty(t, renewed.GetOperations())
 	require.Len(t, renewed.GetRenewedLeases(), 1)
-	assert.Equal(t, codespaceUUID, renewed.GetRenewedLeases()[0].GetRuntimeUuid())
+	assert.Equal(t, codespaceID, renewed.GetRenewedLeases()[0].GetCodespaceId())
 }
 
 func TestManagerServiceStructuredErrorDetails(t *testing.T) {
@@ -241,9 +241,9 @@ func TestManagerServiceStructuredErrorDetails(t *testing.T) {
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	assert.Equal(t, "stale_generation", failureCategory(t, err))
 
-	codespaceUUID := "90909090-9090-4909-8909-909090909090"
+	codespaceID := int64(1147)
 	insertManagerTestCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     25,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -253,7 +253,7 @@ func TestManagerServiceStructuredErrorDetails(t *testing.T) {
 	})
 	written, err := client.UpdateLog(managerContext(t.Context(), manager.ID, secret), &codespacev1.UpdateLogRequest{
 		ProtocolVersion:   1,
-		RuntimeUuid:       codespaceUUID,
+		CodespaceId:       codespaceID,
 		OperationRversion: 25,
 		Lines: []*codespacev1.LogLine{{
 			TimestampUnixNano: time.Now().UnixNano(),
@@ -265,7 +265,7 @@ func TestManagerServiceStructuredErrorDetails(t *testing.T) {
 
 	_, err = client.UpdateLog(managerContext(t.Context(), manager.ID, secret), &codespacev1.UpdateLogRequest{
 		ProtocolVersion:   1,
-		RuntimeUuid:       codespaceUUID,
+		CodespaceId:       codespaceID,
 		OperationRversion: 25,
 		Offset:            written.GetNextOffset() + 1,
 		Lines: []*codespacev1.LogLine{{
@@ -295,7 +295,7 @@ func TestManagerServiceManagerAvailability(t *testing.T) {
 
 	_, err = client.RequestIdleStop(managerContext(t.Context(), manager.ID, secret), &codespacev1.RequestIdleStopRequest{
 		ProtocolVersion: 1,
-		RuntimeUuid:     "93939393-9393-4939-8939-939393939393",
+		CodespaceId:     int64(1122),
 		ObservedSettings: &codespacev1.EffectiveCodespaceRuntimeSettings{
 			AutoStopEnabled:    true,
 			IdleTimeoutSeconds: 1800,
@@ -319,7 +319,7 @@ func TestManagerServiceManagerAvailability(t *testing.T) {
 
 	_, err = client.ReportRuntimeMetadata(managerContext(t.Context(), offlineManager.ID, offlineSecret), &codespacev1.ReportRuntimeMetadataRequest{
 		ProtocolVersion:    1,
-		RuntimeUuid:        "93939393-9393-4939-8939-939393939393",
+		CodespaceId:        int64(1122),
 		MetadataGeneration: 1,
 		Metadata:           managerTestRuntimeMetadata(1),
 	})
@@ -329,7 +329,7 @@ func TestManagerServiceManagerAvailability(t *testing.T) {
 
 	_, err = client.RequestRuntimeAccess(managerContext(t.Context(), offlineManager.ID, offlineSecret), &codespacev1.RequestRuntimeAccessRequest{
 		ProtocolVersion:   1,
-		RuntimeUuid:       "93939393-9393-4939-8939-939393939393",
+		CodespaceId:       int64(1122),
 		OperationRversion: 1,
 		GitSshKey:         &codespacev1.RuntimeGitSSHKey{PublicKey: []byte("not-a-key")},
 	})
@@ -344,9 +344,9 @@ func TestManagerServiceReportRuntimeMetadataVersionExhausted(t *testing.T) {
 	client, cleanup := newManagerTestClient(t)
 	defer cleanup()
 
-	codespaceUUID := "94949494-9494-4949-8949-949494949494"
+	codespaceID := int64(1123)
 	insertManagerTestCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
+		ID:                    codespaceID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     31,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
@@ -357,7 +357,7 @@ func TestManagerServiceReportRuntimeMetadataVersionExhausted(t *testing.T) {
 
 	_, err := client.ReportRuntimeMetadata(managerContext(t.Context(), manager.ID, secret), &codespacev1.ReportRuntimeMetadataRequest{
 		ProtocolVersion:    1,
-		RuntimeUuid:        codespaceUUID,
+		CodespaceId:        codespaceID,
 		MetadataGeneration: math.MaxInt64,
 		Metadata:           managerTestRuntimeMetadata(31),
 	})
@@ -365,7 +365,7 @@ func TestManagerServiceReportRuntimeMetadataVersionExhausted(t *testing.T) {
 
 	_, err = client.ReportRuntimeMetadata(managerContext(t.Context(), manager.ID, secret), &codespacev1.ReportRuntimeMetadataRequest{
 		ProtocolVersion:    1,
-		RuntimeUuid:        codespaceUUID,
+		CodespaceId:        codespaceID,
 		MetadataGeneration: math.MaxInt64 - 1,
 		Metadata:           managerTestRuntimeMetadata(31),
 	})
@@ -384,7 +384,7 @@ func TestManagerServiceReportRuntimeMetadataDisabled(t *testing.T) {
 
 	_, err := client.ReportRuntimeMetadata(managerContext(t.Context(), manager.ID, secret), &codespacev1.ReportRuntimeMetadataRequest{
 		ProtocolVersion:    1,
-		RuntimeUuid:        "93939393-9393-4939-8939-939393939393",
+		CodespaceId:        int64(1122),
 		MetadataGeneration: 1,
 		Metadata:           managerTestRuntimeMetadata(1),
 	})
@@ -429,6 +429,7 @@ func insertManagerTestIdentity(t *testing.T, inventoryGeneration int64) (*codesp
 	t.Helper()
 	manager := &codespace_model.Manager{
 		Name:                "manager",
+		GatewayURL:          "https://workspace.example.com",
 		RuntimeState:        codespace_model.ManagerRuntimeStateOnline,
 		TagsJSON:            `[{"tag":"default"}]`,
 		LastOnlineUnix:      time.Now().Unix(),
@@ -453,12 +454,7 @@ func insertManagerTestCodespace(t *testing.T, managerID int64, codespace *codesp
 	codespace.AutoStopMode = codespace_model.AutoStopModeDefault
 	codespace.CreatedUnix = 1
 	codespace.UpdatedUnix = 1
-	var err error
-	if codespace.UUID == "" {
-		_, err = db.GetEngine(t.Context()).Table(codespace).Omit("uuid").Insert(codespace)
-	} else {
-		err = db.Insert(t.Context(), codespace)
-	}
+	err := db.Insert(t.Context(), codespace)
 	require.NoError(t, err)
 }
 
@@ -479,7 +475,7 @@ func failureCategory(t *testing.T, err error) string {
 
 func managerTestRuntimeMetadata(operationRVersion int64) *codespacev1.RuntimeMetadata {
 	return &codespacev1.RuntimeMetadata{
-		Endpoints:       []*codespacev1.RuntimeEndpoint{{EndpointId: "workspace", Label: "Workspace"}},
+		Endpoints:       []*codespacev1.RuntimeEndpoint{{EndpointId: "workspace", Label: "Workspace", Url: "https://reported.workspace.example.com/", OpenUrl: "https://reported.workspace.example.com/.gitea-codespace/open"}},
 		WorkspaceFolder: "/workspaces/project",
 		Boot: &codespacev1.RuntimeBoot{
 			OperationRversion: operationRVersion,

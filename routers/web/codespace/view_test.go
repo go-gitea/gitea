@@ -27,17 +27,17 @@ import (
 func TestListFiltersCurrentCreatorByRepositoryOwner(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	otherCreatorUUID := "39393939-3939-4939-8939-393939393939"
-	insertWebViewCodespace(t, &codespace_model.Codespace{UUID: otherCreatorUUID, Status: codespace_model.StatusStopped})
+	otherCreatorID := int64(1000)
+	insertWebViewCodespace(t, &codespace_model.Codespace{ID: otherCreatorID, Status: codespace_model.StatusStopped})
 
-	personalRepositoryUUID := "42424242-4242-4242-8242-424242424242"
-	insertWebViewCodespace(t, &codespace_model.Codespace{UUID: personalRepositoryUUID, Status: codespace_model.StatusStopped})
-	_, err := db.GetEngine(t.Context()).Where("uuid = ?", personalRepositoryUUID).Cols("user_id").Update(&codespace_model.Codespace{UserID: 2})
+	personalRepositoryID := int64(1001)
+	insertWebViewCodespace(t, &codespace_model.Codespace{ID: personalRepositoryID, Status: codespace_model.StatusStopped})
+	_, err := db.GetEngine(t.Context()).Where("id = ?", personalRepositoryID).Cols("user_id").Update(&codespace_model.Codespace{UserID: 2})
 	require.NoError(t, err)
 
-	organizationRepositoryUUID := "43434343-4343-4343-8343-434343434343"
-	insertWebViewCodespace(t, &codespace_model.Codespace{UUID: organizationRepositoryUUID, Status: codespace_model.StatusStopped})
-	_, err = db.GetEngine(t.Context()).Where("uuid = ?", organizationRepositoryUUID).Cols("user_id", "repo_id").Update(&codespace_model.Codespace{UserID: 2, RepoID: 3})
+	organizationRepositoryID := int64(1002)
+	insertWebViewCodespace(t, &codespace_model.Codespace{ID: organizationRepositoryID, Status: codespace_model.StatusStopped})
+	_, err = db.GetEngine(t.Context()).Where("id = ?", organizationRepositoryID).Cols("user_id", "repo_id").Update(&codespace_model.Codespace{UserID: 2, RepoID: 3})
 	require.NoError(t, err)
 
 	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces", contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-all-repositories")})
@@ -48,7 +48,7 @@ func TestListFiltersCurrentCreatorByRepositoryOwner(t *testing.T) {
 	rows, ok := ctx.Data["Codespaces"].([]*codespace_service.CreatorCodespaceView)
 	require.True(t, ok)
 	require.Len(t, rows, 2)
-	assert.ElementsMatch(t, []string{personalRepositoryUUID, organizationRepositoryUUID}, []string{rows[0].UUID, rows[1].UUID})
+	assert.ElementsMatch(t, []int64{personalRepositoryID, organizationRepositoryID}, []int64{rows[0].ID, rows[1].ID})
 	assert.Nil(t, ctx.Data["CodespaceRepositoryOwner"])
 	assert.NotNil(t, ctx.Data["Page"])
 
@@ -60,7 +60,7 @@ func TestListFiltersCurrentCreatorByRepositoryOwner(t *testing.T) {
 	rows, ok = ctx.Data["Codespaces"].([]*codespace_service.CreatorCodespaceView)
 	require.True(t, ok)
 	require.Len(t, rows, 1)
-	assert.Equal(t, personalRepositoryUUID, rows[0].UUID)
+	assert.Equal(t, personalRepositoryID, rows[0].ID)
 	repositoryOwner, ok := ctx.Data["CodespaceRepositoryOwner"].(*user_model.User)
 	require.True(t, ok)
 	assert.EqualValues(t, 2, repositoryOwner.ID)
@@ -74,7 +74,7 @@ func TestListFiltersCurrentCreatorByRepositoryOwner(t *testing.T) {
 	rows, ok = ctx.Data["Codespaces"].([]*codespace_service.CreatorCodespaceView)
 	require.True(t, ok)
 	require.Len(t, rows, 1)
-	assert.Equal(t, organizationRepositoryUUID, rows[0].UUID)
+	assert.Equal(t, organizationRepositoryID, rows[0].ID)
 	repositoryOwner, ok = ctx.Data["CodespaceRepositoryOwner"].(*user_model.User)
 	require.True(t, ok)
 	assert.EqualValues(t, 3, repositoryOwner.ID)
@@ -103,12 +103,11 @@ func TestListFiltersCurrentCreatorByRepositoryOwner(t *testing.T) {
 func TestDetailRendersCreatorCodespaceNoStore(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	codespaceUUID := "24242424-2424-4424-8424-242424242424"
+	codespaceID := int64(1003)
 	insertWebViewCodespace(t, &codespace_model.Codespace{
-		UUID:   codespaceUUID,
+		ID:     codespaceID,
 		Status: codespace_model.StatusCreating,
 	})
-	codespaceID := webCodespaceIDByUUID(t, codespaceUUID)
 
 	for _, tc := range []struct {
 		name     string
@@ -129,7 +128,7 @@ func TestDetailRendersCreatorCodespaceNoStore(t *testing.T) {
 			assert.Equal(t, "no-store", resp.Header().Get("Cache-Control"))
 			view, ok := ctx.Data["Codespace"].(*codespace_service.CreatorCodespaceView)
 			require.True(t, ok)
-			assert.Equal(t, codespaceUUID, view.UUID)
+			assert.Equal(t, codespaceID, view.ID)
 			assert.Equal(t, tc.tab, ctx.Data["CodespaceTab"])
 			assert.Equal(t, tc.explicit, ctx.Data["CodespaceTabExplicit"])
 		})
@@ -146,15 +145,14 @@ func TestDetailOpensGatewayRecoveryModal(t *testing.T) {
 		GatewaySSHHostKeyFingerprintSHA256: "SHA256:view",
 	})
 	require.NoError(t, err)
-	codespaceUUID := "27272727-2727-4727-8727-272727272727"
-	insertWebOpenCodespace(t, manager.ID, codespaceUUID, 94)
-	codespaceID := webCodespaceIDByUUID(t, codespaceUUID)
+	codespaceID := int64(1004)
+	insertWebOpenCodespace(t, manager.ID, codespaceID, 94)
+	manager.GatewaySSHAddr = "ssh.example.com:2222"
+	metadata := webOpenRuntimeMetadata(t, 94, []*codespacev1.RuntimeEndpoint{{EndpointId: "app-3000", Label: "App"}})
+	metadata.Ssh = &codespacev1.RuntimeSSH{Host: "ssh.example.com", Port: 2222, User: "reported-runtime", VscodeUrl: "vscode://vscode-remote/ssh-remote+reported-runtime@ssh.example.com:2222/workspaces/project", ZedUrl: "zed://ssh/reported-runtime@ssh.example.com:2222/workspaces/project"}
 	require.NoError(t, codespace_service.ReportRuntimeMetadata(t.Context(), manager, codespace_service.ReportRuntimeMetadataOptions{
-		CodespaceUUID: codespaceUUID,
-		Metadata: webOpenRuntimeMetadata(t, 94, []*codespacev1.RuntimeEndpoint{{
-			EndpointId: "app-3000",
-			Label:      "App",
-		}}),
+		CodespaceID:        codespaceID,
+		Metadata:           metadata,
 		MetadataGeneration: 1,
 	}))
 
@@ -169,20 +167,19 @@ func TestDetailOpensGatewayRecoveryModal(t *testing.T) {
 	assert.Equal(t, "App", modal.Label)
 	assert.Equal(t, "codespace.authenticated_endpoint", modal.Access)
 	assert.Equal(t, "/-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"/open/app-3000", modal.OpenPath)
-	assert.Contains(t, resp.Body.String(), "vscode://vscode-remote/ssh-remote&#43;cs-"+codespaceUUID+"@ssh.example.com:2222/workspaces/project")
-	assert.Contains(t, resp.Body.String(), "zed://ssh/cs-"+codespaceUUID+"@ssh.example.com:2222/workspaces/project")
+	assert.Contains(t, resp.Body.String(), "vscode://vscode-remote/ssh-remote&#43;reported-runtime@ssh.example.com:2222/workspaces/project")
+	assert.Contains(t, resp.Body.String(), "zed://ssh/reported-runtime@ssh.example.com:2222/workspaces/project")
 	assert.NotContains(t, resp.Body.String(), "#ZgotmplZ")
 }
 
 func TestDetailRejectsOtherCreator(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	codespaceUUID := "26262626-2626-4626-8626-262626262626"
+	codespaceID := int64(1005)
 	insertWebViewCodespace(t, &codespace_model.Codespace{
-		UUID:   codespaceUUID,
+		ID:     codespaceID,
 		Status: codespace_model.StatusStopped,
 	})
-	codespaceID := webCodespaceIDByUUID(t, codespaceUUID)
 
 	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10))
 	contexttest.LoadUser(t, ctx, 2)
@@ -203,20 +200,6 @@ func insertWebViewCodespace(t *testing.T, codespace *codespace_model.Codespace) 
 	codespace.AutoStopMode = codespace_model.AutoStopModeDefault
 	codespace.CreatedUnix = 1
 	codespace.UpdatedUnix = 1
-	var err error
-	if codespace.UUID == "" {
-		_, err = db.GetEngine(t.Context()).Table(codespace).Omit("uuid").Insert(codespace)
-	} else {
-		err = db.Insert(t.Context(), codespace)
-	}
+	err := db.Insert(t.Context(), codespace)
 	require.NoError(t, err)
-}
-
-func webCodespaceIDByUUID(t *testing.T, codespaceUUID string) int64 {
-	t.Helper()
-	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Get(codespace)
-	require.NoError(t, err)
-	require.True(t, has)
-	return codespace.ID
 }

@@ -42,7 +42,7 @@ func TestCreateCodespaceQueuesCreateWhenManagerMatches(t *testing.T) {
 	assert.Equal(t, codespace_model.StatusCreating, result.Status)
 	assert.Equal(t, "default", result.EnvironmentTag)
 
-	row := loadServiceCodespaceByID(t, result.CodespaceID)
+	row := loadServiceCodespace(t, result.CodespaceID)
 	assert.Equal(t, user.ID, row.UserID)
 	assert.Equal(t, repo.ID, row.RepoID)
 	assert.Equal(t, "branch", row.RefType)
@@ -73,7 +73,7 @@ func TestCreateCodespaceUsesCreatorManagerForOrganizationRepository(t *testing.T
 	require.NoError(t, err)
 	assert.Equal(t, codespace_model.StatusCreating, result.Status)
 
-	row := loadServiceCodespaceByID(t, result.CodespaceID)
+	row := loadServiceCodespace(t, result.CodespaceID)
 	assert.Equal(t, user.ID, row.UserID)
 	assert.Equal(t, repo.ID, row.RepoID)
 }
@@ -183,7 +183,7 @@ func TestCreateCodespacePersistsPullRefAndValidatesGitProtocol(t *testing.T) {
 	assert.Equal(t, "user2/repo1", plan.PullRequest.HeadRepoFullName)
 	assert.Equal(t, "branch2", plan.PullRequest.HeadBranch)
 
-	row := loadServiceCodespaceByID(t, result.CodespaceID)
+	row := loadServiceCodespace(t, result.CodespaceID)
 	assert.Equal(t, "pull", row.RefType)
 	assert.Equal(t, "refs/pull/3/head", row.RefName)
 	assert.NotEmpty(t, row.CommitSHA)
@@ -236,7 +236,7 @@ CONFIG
 		Secrets:        []CreateSecretInput{{Name: "FORK_SECRET", Source: SecretSourceCustom, Value: "submitted-value"}},
 	})
 	require.NoError(t, err)
-	secrets, err := decryptCodespaceSecrets(loadServiceCodespaceByID(t, result.CodespaceID))
+	secrets, err := decryptCodespaceSecrets(loadServiceCodespace(t, result.CodespaceID))
 	require.NoError(t, err)
 	assert.Equal(t, []RuntimeSecret{{Name: "FORK_SECRET", Value: "submitted-value"}}, secrets)
 }
@@ -294,7 +294,7 @@ INVALID
 	secretOptions.RequestHash = rootPlan.RequestHash
 	result, err := CreateCodespace(t.Context(), secretOptions)
 	require.NoError(t, err)
-	row := loadServiceCodespaceByID(t, result.CodespaceID)
+	row := loadServiceCodespace(t, result.CodespaceID)
 	assert.NotContains(t, row.SecretsEncrypted, "secret-value")
 	resolvedSecrets, err := decryptCodespaceSecrets(row)
 	require.NoError(t, err)
@@ -305,7 +305,7 @@ INVALID
 	saved := unittest.AssertExistsAndLoadBean(t, &codespace_model.UserSecret{UserID: user.ID, Name: "RUNTIME_TOKEN"})
 	require.NoError(t, UpdateUserSecretValue(t.Context(), user.ID, saved.ID, "changed"))
 	require.NoError(t, DeleteUserSecret(t.Context(), user.ID, saved.ID))
-	retained, err := decryptCodespaceSecrets(loadServiceCodespaceByID(t, result.CodespaceID))
+	retained, err := decryptCodespaceSecrets(loadServiceCodespace(t, result.CodespaceID))
 	require.NoError(t, err)
 	assert.Equal(t, resolvedSecrets, retained)
 	_, err = CreateCodespace(t.Context(), secretOptions)
@@ -410,7 +410,7 @@ CONFIG
 	}
 	first, err := CreateCodespace(t.Context(), opts)
 	require.NoError(t, err)
-	firstCodespace := loadServiceCodespaceByID(t, first.CodespaceID)
+	firstCodespace := loadServiceCodespace(t, first.CodespaceID)
 	assert.Equal(t, devContainerPrimaryPath, firstCodespace.DevContainerPath)
 	assert.Empty(t, firstCodespace.DevContainerContent)
 	require.Positive(t, firstCodespace.PermissionAuthorizationID)
@@ -438,17 +438,17 @@ CONFIG
 
 	second, err := CreateCodespace(t.Context(), opts)
 	require.NoError(t, err)
-	assert.Equal(t, authorization.ID, loadServiceCodespaceByID(t, second.CodespaceID).PermissionAuthorizationID)
+	assert.Equal(t, authorization.ID, loadServiceCodespace(t, second.CodespaceID).PermissionAuthorizationID)
 
 	require.NotNil(t, codeRule)
 	require.NoError(t, ReducePermissionRepository(t.Context(), user.ID, authorization.ID, codeRule.TargetRepoID, codeRule.UnitType, perm.AccessModeNone))
 	third, err := CreateCodespace(t.Context(), opts)
 	require.NoError(t, err)
-	thirdAuthorizationID := loadServiceCodespaceByID(t, third.CodespaceID).PermissionAuthorizationID
+	thirdAuthorizationID := loadServiceCodespace(t, third.CodespaceID).PermissionAuthorizationID
 	assert.NotEqual(t, authorization.ID, thirdAuthorizationID)
 	fourth, err := CreateCodespace(t.Context(), opts)
 	require.NoError(t, err)
-	assert.Equal(t, thirdAuthorizationID, loadServiceCodespaceByID(t, fourth.CodespaceID).PermissionAuthorizationID)
+	assert.Equal(t, thirdAuthorizationID, loadServiceCodespace(t, fourth.CodespaceID).PermissionAuthorizationID)
 }
 
 func createConfirmedCodespace(t *testing.T, opts CreateCodespaceOptions) (*CreateCodespaceResult, error) {

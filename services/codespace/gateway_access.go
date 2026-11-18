@@ -26,7 +26,7 @@ type gatewayRuntimeAccess struct {
 	metadata  runtimeMetadata
 }
 
-func loadGatewayRuntimeAccess(ctx context.Context, managerID int64, codespaceUUID string, allowQueuedIdleStop bool) (*gatewayRuntimeAccess, gatewayAccessFailure, error) {
+func loadGatewayRuntimeAccess(ctx context.Context, managerID, codespaceID int64, allowQueuedIdleStop bool) (*gatewayRuntimeAccess, gatewayAccessFailure, error) {
 	manager, err := loadCodespaceManager(ctx, managerID)
 	if err != nil {
 		return nil, "", err
@@ -36,7 +36,7 @@ func loadGatewayRuntimeAccess(ctx context.Context, managerID int64, codespaceUUI
 	}
 
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Omit("secrets_encrypted").Get(codespace)
+	has, err := db.GetEngine(ctx).ID(codespaceID).Omit("secrets_encrypted").Get(codespace)
 	if err != nil {
 		return nil, "", err
 	}
@@ -54,7 +54,7 @@ func loadGatewayRuntimeAccess(ctx context.Context, managerID int64, codespaceUUI
 		return nil, gatewayAccessActiveOperation, nil
 	}
 
-	entry, hasEntry, err := getRuntimeMetadataEntry(codespaceUUID)
+	entry, hasEntry, err := getRuntimeMetadataEntry(codespaceID)
 	if err != nil {
 		return nil, "", err
 	}

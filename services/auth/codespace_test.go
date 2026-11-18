@@ -29,7 +29,7 @@ import (
 func TestCodespaceTokenBasicAuth(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	token, codespaceUUID := createAuthCodespaceToken(t)
+	token, codespaceID := createAuthCodespaceToken(t)
 	req, err := http.NewRequest(http.MethodGet, "https://example.test/api/v1/user", nil)
 	require.NoError(t, err)
 	req.SetBasicAuth(token, "x-oauth-basic")
@@ -48,7 +48,7 @@ func TestCodespaceTokenBasicAuth(t *testing.T) {
 	assertContainsCodespaceScopes(t, scope)
 	snapshot, ok := store.GetData()[module_auth.CodespaceTokenAuthDataKey].(*codespace_service.GiteaTokenAuthSnapshot)
 	require.True(t, ok)
-	assert.Equal(t, codespaceUUID, snapshot.CodespaceUUID)
+	assert.Equal(t, codespaceID, snapshot.CodespaceID)
 	assert.EqualValues(t, 2, snapshot.RepoID)
 }
 
@@ -131,9 +131,9 @@ func TestCodespaceTokenRejectValidStopsFallback(t *testing.T) {
 func TestCodespaceTokenUnavailableStateIsForbidden(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	token, codespaceUUID := createAuthCodespaceToken(t)
+	token, codespaceID := createAuthCodespaceToken(t)
 	_, err := db.GetEngine(t.Context()).
-		Where("uuid = ?", codespaceUUID).
+		ID(codespaceID).
 		Cols("status").
 		Update(&codespace_model.Codespace{Status: codespace_model.StatusStopped})
 	require.NoError(t, err)
@@ -160,7 +160,7 @@ func (m *fallbackAuthMethod) Name() string {
 	return "fallback"
 }
 
-func createAuthCodespaceToken(t *testing.T) (string, string) {
+func createAuthCodespaceToken(t *testing.T) (string, int64) {
 	t.Helper()
 	original := setting.Codespace.Enabled
 	setting.Codespace.Enabled = true
@@ -176,9 +176,9 @@ func createAuthCodespaceToken(t *testing.T) (string, string) {
 	manager.GenerateManagerSecret()
 	require.NoError(t, db.Insert(t.Context(), manager))
 
-	codespaceUUID := "12121212-1212-4212-8212-121212121212"
+	codespaceID := int64(1212)
 	require.NoError(t, db.Insert(t.Context(), &codespace_model.Codespace{
-		UUID:              codespaceUUID,
+		ID:                codespaceID,
 		UserID:            1,
 		RepoID:            2,
 		RefType:           "branch",
@@ -197,12 +197,12 @@ func createAuthCodespaceToken(t *testing.T) (string, string) {
 	publicKey, err := ssh.NewPublicKey(privateKey.Public())
 	require.NoError(t, err)
 	result, err := codespace_service.RequestRuntimeAccess(t.Context(), manager, codespace_service.RequestRuntimeAccessOptions{
-		CodespaceUUID:     codespaceUUID,
+		CodespaceID:       codespaceID,
 		OperationRVersion: 1,
 		GitSSHPublicKey:   publicKey.Marshal(),
 	})
 	require.NoError(t, err)
-	return result.Token, codespaceUUID
+	return result.Token, codespaceID
 }
 
 func assertContainsCodespaceScopes(t *testing.T, scope auth_model.AccessTokenScope) {

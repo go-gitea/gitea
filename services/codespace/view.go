@@ -8,8 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"net"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -87,8 +85,6 @@ type CreatorCodespaceList struct {
 // CreatorCodespaceView contains the server-authoritative presentation state.
 type CreatorCodespaceView struct {
 	ID                   int64
-	UUID                 string
-	ShortUUID            string
 	RepoID               int64
 	RepoFullName         string
 	RepoLink             string
@@ -296,8 +292,6 @@ func creatorCodespaceView(codespace *codespace_model.Codespace, cache *codespace
 	}
 	view := &CreatorCodespaceView{
 		ID:                codespace.ID,
-		UUID:              codespace.UUID,
-		ShortUUID:         shortCodespaceUUID(codespace.UUID),
 		RepoID:            codespace.RepoID,
 		RefType:           codespace.RefType,
 		RefName:           codespace.RefName,
@@ -328,7 +322,7 @@ func creatorCodespaceView(codespace *codespace_model.Codespace, cache *codespace
 		view.DetailMode = DetailModeLogs
 	}
 	if includeDetailData && (view.DisplayStatus == DisplayBooting || view.DisplayStatus == DisplayResuming) {
-		entry, hasEntry, err := getRuntimeMetadataEntry(codespace.UUID)
+		entry, hasEntry, err := getRuntimeMetadataEntry(codespace.ID)
 		if err == nil && hasEntry && entry.Metadata.Boot.OperationRVersion == codespace.OperationRVersion {
 			switch entry.Metadata.Boot.Stage {
 			case bootStagePrepareRuntime, bootStageInitializeSystem, bootStagePrepareWorkspace, bootStageStartEnvironment, bootStagePublishReady, bootStageReady:
@@ -462,7 +456,7 @@ func applyCreatorDisplayState(codespace *codespace_model.Codespace, view *Creato
 }
 
 func applyRuntimeAccessView(codespace *codespace_model.Codespace, view *CreatorCodespaceView, manager *codespace_model.Manager, includeDetailData bool) bool {
-	entry, hasEntry, err := getRuntimeMetadataEntry(codespace.UUID)
+	entry, hasEntry, err := getRuntimeMetadataEntry(codespace.ID)
 	if err != nil || !hasEntry || !runtimeMetadataReadyForAccess(codespace, entry.Metadata) {
 		return false
 	}
@@ -478,49 +472,40 @@ func applyRuntimeAccessView(codespace *codespace_model.Codespace, view *CreatorC
 		if !includeDetailData {
 			continue
 		}
-		endpointURL, _ := gatewayEndpointURL(manager.GatewayURL, codespace.UUID, endpoint.EndpointID)
 		view.Endpoints = append(view.Endpoints, CreatorEndpointView{
 			EndpointID: endpoint.EndpointID,
 			Label:      endpoint.Label,
 			Port:       uint16(endpoint.Port),
 			Public:     endpoint.Public,
-			URL:        endpointURL,
+			URL:        endpoint.URL,
 			OpenPath:   codespaceDetailPath(codespace.ID) + "/open/" + endpoint.EndpointID,
 		})
 	}
 	if includeDetailData {
 		view.ResourceUsage = creatorResourceUsageView(entry.Metadata.ResourceUsage)
-		view.SSH = creatorSSHView(codespace, manager, entry.Metadata.WorkspaceFolder)
+		view.SSH = creatorSSHView(manager, entry.Metadata)
 	}
 	return true
 }
 
-func creatorSSHView(codespace *codespace_model.Codespace, manager *codespace_model.Manager, workspaceFolder string) *CreatorSSHView {
-	if manager.GatewaySSHAddr == "" {
+func creatorSSHView(manager *codespace_model.Manager, metadata runtimeMetadata) *CreatorSSHView {
+	ssh := metadata.SSH
+	if ssh.Host == "" {
 		return nil
 	}
-	host, port, err := net.SplitHostPort(manager.GatewaySSHAddr)
-	if err != nil {
-		return nil
+	remoteHost := ssh.Host
+	if strings.Contains(remoteHost, ":") {
+		remoteHost = "[" + remoteHost + "]"
 	}
-	remoteHost := host
-	if strings.Contains(host, ":") {
-		remoteHost = "[" + host + "]"
+	command := "ssh " + ssh.User + "@" + remoteHost
+	if ssh.Port != 22 {
+		command = fmt.Sprintf("ssh -p %d %s@%s", ssh.Port, ssh.User, remoteHost)
 	}
-	remote := "cs-" + codespace.UUID + "@" + remoteHost
-	command := "ssh cs-" + codespace.UUID + "@" + remoteHost
-	if port != "" && port != "22" {
-		remote = "cs-" + codespace.UUID + "@" + net.JoinHostPort(host, port)
-		command = "ssh -p " + port + " cs-" + codespace.UUID + "@" + remoteHost
-	}
-	workspacePath := strings.TrimPrefix(workspaceFolder, "/")
-	vsCodeURL := (&url.URL{Scheme: "vscode", Host: "vscode-remote", Path: "/ssh-remote+" + remote + "/" + workspacePath}).String()
-	zedURL := (&url.URL{Scheme: "zed", Host: "ssh", Path: "/" + remote + "/" + workspacePath}).String()
 	return &CreatorSSHView{
 		Command:            command,
-		WorkspaceFolder:    workspaceFolder,
-		VSCodeURL:          template.URL(vsCodeURL),
-		ZedURL:             template.URL(zedURL),
+		WorkspaceFolder:    metadata.WorkspaceFolder,
+		VSCodeURL:          template.URL(ssh.VSCodeURL),
+		ZedURL:             template.URL(ssh.ZedURL),
 		HostKeyAlgorithm:   strings.TrimSpace(manager.GatewaySSHHostKeyAlgorithm),
 		HostKeyFingerprint: strings.TrimSpace(manager.GatewaySSHHostKeyFingerprintSHA256),
 	}

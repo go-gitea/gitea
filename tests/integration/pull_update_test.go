@@ -74,7 +74,7 @@ func TestAPIPullUpdateCodespaceTokenAllowsForkHead(t *testing.T) {
 		require.NoError(t, pr.LoadIssue(t.Context()))
 		require.NotEqual(t, pr.BaseRepoID, pr.HeadRepoID)
 
-		token, codespaceUUID := createRunningCodespaceTokenForRepo(t, pr.BaseRepo)
+		token, codespaceID := createRunningCodespaceTokenForRepo(t, pr.BaseRepo)
 		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusForbidden)
@@ -92,7 +92,7 @@ func TestAPIPullUpdateCodespaceTokenAllowsForkHead(t *testing.T) {
 			RequestedMode:   perm.AccessModeWrite,
 			GrantedMode:     perm.AccessModeWrite,
 		}))
-		_, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols("permission_authorization_id").Update(&codespace_model.Codespace{PermissionAuthorizationID: authorization.ID})
+		_, err := db.GetEngine(t.Context()).ID(codespaceID).Cols("permission_authorization_id").Update(&codespace_model.Codespace{PermissionAuthorizationID: authorization.ID})
 		require.NoError(t, err)
 		originalForkID := pr.HeadRepo.ForkID
 		updated, err := db.GetEngine(t.Context()).ID(pr.HeadRepoID).Cols("is_fork", "fork_id").Update(&repo_model.Repository{})
