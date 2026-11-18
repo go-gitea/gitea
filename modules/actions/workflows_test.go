@@ -275,6 +275,34 @@ func TestDetectMatched(t *testing.T) {
 			yamlOn:   "on:\n  push:\n    branches: [main]",
 			expected: detectFilteredOut,
 		},
+		{
+			desc:         "merge_group checks_requested matches by default",
+			triggedEvent: webhook_module.HookEventMergeGroup,
+			payload:      &api.MergeGroupPayload{Action: api.HookMergeGroupChecksRequested, MergeGroup: &api.MergeGroup{BaseRef: "refs/heads/main"}},
+			yamlOn:       "on: merge_group",
+			expected:     detectMatched,
+		},
+		{
+			desc:         "merge_group destroyed doesn't match by default",
+			triggedEvent: webhook_module.HookEventMergeGroup,
+			payload:      &api.MergeGroupPayload{Action: api.HookMergeGroupDestroyed, MergeGroup: &api.MergeGroup{BaseRef: "refs/heads/main"}},
+			yamlOn:       "on: merge_group",
+			expected:     detectNotApplicable,
+		},
+		{
+			desc:         "merge_group base branch filter matches",
+			triggedEvent: webhook_module.HookEventMergeGroup,
+			payload:      &api.MergeGroupPayload{Action: api.HookMergeGroupChecksRequested, MergeGroup: &api.MergeGroup{BaseRef: "refs/heads/main"}},
+			yamlOn:       "on:\n  merge_group:\n    types: [checks_requested]\n    branches: [main]",
+			expected:     detectMatched,
+		},
+		{
+			desc:         "merge_group base branch ignored -> filtered out",
+			triggedEvent: webhook_module.HookEventMergeGroup,
+			payload:      &api.MergeGroupPayload{Action: api.HookMergeGroupChecksRequested, MergeGroup: &api.MergeGroup{BaseRef: "refs/heads/main"}},
+			yamlOn:       "on:\n  merge_group:\n    branches-ignore: [main]",
+			expected:     detectFilteredOut,
+		},
 	}
 
 	for _, tc := range testCases {

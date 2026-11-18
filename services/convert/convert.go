@@ -218,6 +218,8 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		ProtectedFilePatterns:         bp.ProtectedFilePatterns,
 		UnprotectedFilePatterns:       bp.UnprotectedFilePatterns,
 		BlockAdminMergeOverride:       bp.BlockAdminMergeOverride,
+		RequireMergeQueue:             bp.RequireMergeQueue,
+		MergeQueue:                    ToBranchProtectionMergeQueue(bp.MergeQueue),
 		Created:                       bp.CreatedUnix.AsTime(),
 		Updated:                       bp.UpdatedUnix.AsTime(),
 	}

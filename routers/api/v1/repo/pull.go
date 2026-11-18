@@ -37,6 +37,7 @@ import (
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
 	issue_service "gitea.dev/services/issue"
+	"gitea.dev/services/mergequeue"
 	"gitea.dev/services/notifications"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
@@ -819,6 +820,28 @@ func IsPullRequestMerged(ctx *context.APIContext) {
 	ctx.APIErrorNotFound()
 }
 
+func writeCheckPullMergeableError(ctx *context.APIContext, err error) {
+	if errors.Is(err, pull_service.ErrIsClosed) {
+		ctx.APIErrorNotFound()
+	} else if errors.Is(err, pull_service.ErrNoPermissionToMerge) {
+		ctx.APIError(http.StatusMethodNotAllowed, "User not allowed to merge PR")
+	} else if errors.Is(err, pull_service.ErrHasMerged) {
+		ctx.APIError(http.StatusMethodNotAllowed, "The PR is already merged")
+	} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
+		ctx.APIError(http.StatusMethodNotAllowed, "Work in progress PRs cannot be merged")
+	} else if errors.Is(err, pull_service.ErrNotMergeableState) {
+		ctx.APIError(http.StatusMethodNotAllowed, "Please try again later")
+	} else if errors.Is(err, pull_service.ErrNotReadyToMerge) {
+		ctx.APIError(http.StatusMethodNotAllowed, err.Error())
+	} else if asymkey_service.IsErrWontSign(err) {
+		ctx.APIError(http.StatusMethodNotAllowed, err.Error())
+	} else if errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified) {
+		ctx.APIError(http.StatusMethodNotAllowed, err.Error())
+	} else {
+		ctx.APIErrorInternal(err)
+	}
+}
+
 // MergePullRequest merges a PR given an index
 func MergePullRequest(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/merge repository repoMergePullRequest
@@ -850,6 +873,8 @@ func MergePullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
+	//   "201":
+	//     description: the merge is scheduled or the pull request was added to the merge queue
 	//   default:
 	//     "$ref": "#/responses/error"
 
@@ -892,25 +917,7 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	// start with merging by checking
 	if err := pull_service.CheckPullMergeable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, repo_model.MergeStyle(form.Do), form.ForceMerge); err != nil {
-		if errors.Is(err, pull_service.ErrIsClosed) {
-			ctx.APIErrorNotFound()
-		} else if errors.Is(err, pull_service.ErrNoPermissionToMerge) {
-			ctx.APIError(http.StatusMethodNotAllowed, "User not allowed to merge PR")
-		} else if errors.Is(err, pull_service.ErrHasMerged) {
-			ctx.APIError(http.StatusMethodNotAllowed, "The PR is already merged")
-		} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
-			ctx.APIError(http.StatusMethodNotAllowed, "Work in progress PRs cannot be merged")
-		} else if errors.Is(err, pull_service.ErrNotMergeableState) {
-			ctx.APIError(http.StatusMethodNotAllowed, "Please try again later")
-		} else if errors.Is(err, pull_service.ErrNotReadyToMerge) {
-			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
-		} else if asymkey_service.IsErrWontSign(err) {
-			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
-		} else if errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified) {
-			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		writeCheckPullMergeableError(ctx, err)
 		return
 	}
 
@@ -971,6 +978,18 @@ func MergePullRequest(ctx *context.APIContext) {
 			ctx.Status(http.StatusCreated)
 			return
 		}
+	}
+
+	// the queue merges with the method of its branch protection, form.Do is ignored
+	if queued, err := mergequeue.EnqueueIfRequired(ctx, ctx.Doer, pr, form.HeadCommitID, form.ForceMerge); pull_service.IsErrSHADoesNotMatch(err) {
+		ctx.APIError(http.StatusConflict, "head out of date")
+		return
+	} else if err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	} else if queued {
+		ctx.Status(http.StatusCreated)
+		return
 	}
 
 	if err := pull_service.Merge(ctx, pr.ID, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {

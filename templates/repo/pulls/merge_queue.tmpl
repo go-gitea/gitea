@@ -1,0 +1,38 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository merge-queue">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		<h4 class="ui top attached header flex-text-block">
+			{{svg "octicon-git-merge-queue"}} {{.Title}}
+		</h4>
+		<div class="ui attached segment">
+			{{if not .MergeQueueEntries}}
+				<p>{{ctx.Locale.Tr "repo.pulls.merge_queue.empty"}}</p>
+			{{else}}
+				<table class="ui very basic table">
+					<thead>
+						<tr>
+							<th>{{ctx.Locale.Tr "repo.pulls.merge_queue.position"}}</th>
+							<th>{{ctx.Locale.Tr "repo.pulls.merge_queue.pull_request"}}</th>
+							<th>{{ctx.Locale.Tr "repo.pulls.merge_queue.status"}}</th>
+							<th>{{ctx.Locale.Tr "repo.pulls.merge_queue.added_at"}}</th>
+						</tr>
+					</thead>
+					<tbody>
+						{{range $entry := .MergeQueueEntries}}
+							<tr>
+								<td>{{$entry.Position}}</td>
+								<td><a href="{{$entry.PullRequest.Issue.Link}}">{{$entry.PullRequest.Issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}} #{{$entry.PullRequest.Index}}</a></td>
+								<td>
+									<a class="ui label" {{if $entry.GroupHeadSHA}}href="{{$.RepoLink}}/commit/{{PathEscape $entry.GroupHeadSHA}}"{{end}}>{{ctx.Locale.Tr (printf "repo.pulls.merge_queue.state.%s" $entry.State)}}</a>
+								</td>
+								<td>{{DateUtils.TimeSince $entry.CreatedUnix}}</td>
+							</tr>
+						{{end}}
+					</tbody>
+				</table>
+			{{end}}
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

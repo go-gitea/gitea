@@ -63,6 +63,23 @@
 				</div>
 			{{end}}
 
+			{{if $data.MergeQueue}}
+				<div class="item flex-left-right">
+					<div class="flex-text-block">
+						{{svg "octicon-git-merge-queue"}}
+						{{if $data.MergeQueue.Entry}}
+							{{ctx.Locale.Tr "repo.pulls.merge_queue.queued" $data.MergeQueue.Position $data.MergeQueue.QueueLink $data.MergeQueue.BaseBranch}}
+							<span class="ui label">{{ctx.Locale.Tr (printf "repo.pulls.merge_queue.state.%s" $data.MergeQueue.Entry.State)}}</span>
+						{{else}}
+							{{ctx.Locale.Tr "repo.pulls.merge_queue.required" $data.MergeQueue.QueueLink $data.MergeQueue.BaseBranch}}
+						{{end}}
+					</div>
+					{{if $data.MergeQueue.CanDequeue}}
+						<button type="button" class="ui button link-action" data-url="{{$.Issue.Link}}/merge_queue/remove">{{ctx.Locale.Tr "repo.pulls.merge_queue.remove"}}</button>
+					{{end}}
+				</div>
+			{{end}}
+
 			{{if $data.MergeFormProps}}
 				{{/* The merge form is a Vue component. After mounted, it has a button for choosing merge style, so make it have min-height to avoid layout shifting */}}
 				<div class="item">

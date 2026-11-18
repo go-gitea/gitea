@@ -77,6 +77,89 @@ type ProtectedBranchConfig struct {
 	ProtectedFilePatterns         string   `json:"protected_file_patterns,omitzero"`
 	UnprotectedFilePatterns       string   `json:"unprotected_file_patterns,omitzero"`
 	BlockAdminMergeOverride       bool     `json:"block_admin_merge_override,omitzero"`
+
+	RequireMergeQueue bool             `json:"require_merge_queue,omitzero"`
+	MergeQueue        MergeQueueConfig `json:"merge_queue,omitzero"`
+}
+
+// MergeQueueGroupingStrategy decides which queue entries must pass their checks to be merged
+type MergeQueueGroupingStrategy string
+
+const (
+	MergeQueueGroupingAllGreen  MergeQueueGroupingStrategy = "ALLGREEN"  // every entry must pass its own checks
+	MergeQueueGroupingHeadGreen MergeQueueGroupingStrategy = "HEADGREEN" // a passing entry also merges the entries before it
+)
+
+// MergeQueueConfig mirrors the settings of GitHub's "Require merge queue" rule
+type MergeQueueConfig struct {
+	MergeMethod                  repo_model.MergeStyle      `json:"merge_method,omitzero"`
+	MaxEntriesToBuild            int                        `json:"max_entries_to_build,omitzero"`
+	MinEntriesToMerge            int                        `json:"min_entries_to_merge,omitzero"`
+	MaxEntriesToMerge            int                        `json:"max_entries_to_merge,omitzero"`
+	MinEntriesToMergeWaitMinutes int                        `json:"min_entries_to_merge_wait_minutes,omitzero"`
+	GroupingStrategy             MergeQueueGroupingStrategy `json:"grouping_strategy,omitzero"`
+	CheckResponseTimeoutMinutes  int                        `json:"check_response_timeout_minutes,omitzero"`
+}
+
+// DefaultMergeQueueConfig returns GitHub's defaults
+func DefaultMergeQueueConfig() MergeQueueConfig {
+	return MergeQueueConfig{
+		MergeMethod:                  repo_model.MergeStyleMerge,
+		MaxEntriesToBuild:            5,
+		MinEntriesToMerge:            1,
+		MaxEntriesToMerge:            5,
+		MinEntriesToMergeWaitMinutes: 5,
+		GroupingStrategy:             MergeQueueGroupingAllGreen,
+		CheckResponseTimeoutMinutes:  60,
+	}
+}
+
+// WithDefaults fills unset values with defaults, in a set config a zero wait time is a valid setting and stays
+func (c MergeQueueConfig) WithDefaults() MergeQueueConfig {
+	def := DefaultMergeQueueConfig()
+	if c == (MergeQueueConfig{}) {
+		return def
+	}
+	c.MergeMethod = util.IfZero(c.MergeMethod, def.MergeMethod)
+	c.MaxEntriesToBuild = util.IfZero(c.MaxEntriesToBuild, def.MaxEntriesToBuild)
+	c.MinEntriesToMerge = util.IfZero(c.MinEntriesToMerge, def.MinEntriesToMerge)
+	c.MaxEntriesToMerge = util.IfZero(c.MaxEntriesToMerge, def.MaxEntriesToMerge)
+	c.GroupingStrategy = util.IfZero(c.GroupingStrategy, def.GroupingStrategy)
+	c.CheckResponseTimeoutMinutes = util.IfZero(c.CheckResponseTimeoutMinutes, def.CheckResponseTimeoutMinutes)
+	return c
+}
+
+// Validate checks the ranges GitHub allows
+func (c MergeQueueConfig) Validate() error {
+	inRange := func(v, low, high int) bool { return v >= low && v <= high }
+	switch {
+	// fast-forward-only can't build a queue commit on top of another one
+	case !slices.Contains([]repo_model.MergeStyle{repo_model.MergeStyleMerge, repo_model.MergeStyleRebase, repo_model.MergeStyleRebaseMerge, repo_model.MergeStyleSquash}, c.MergeMethod):
+		return util.NewInvalidArgumentErrorf("merge queue merge method %q is not supported", c.MergeMethod)
+	case !inRange(c.MaxEntriesToBuild, 1, 100), !inRange(c.MinEntriesToMerge, 1, 100), !inRange(c.MaxEntriesToMerge, 1, 100):
+		return util.NewInvalidArgumentErrorf("merge queue group sizes must be between 1 and 100")
+	case c.MinEntriesToMerge > c.MaxEntriesToMerge:
+		return util.NewInvalidArgumentErrorf("merge queue minimum group size must not exceed the maximum")
+	case !inRange(c.MinEntriesToMergeWaitMinutes, 0, 360), !inRange(c.CheckResponseTimeoutMinutes, 1, 360):
+		return util.NewInvalidArgumentErrorf("merge queue wait time and check timeout must be at most 360 minutes")
+	case c.GroupingStrategy != MergeQueueGroupingAllGreen && c.GroupingStrategy != MergeQueueGroupingHeadGreen:
+		return util.NewInvalidArgumentErrorf("merge queue grouping strategy %q is not supported", c.GroupingStrategy)
+	}
+	return nil
+}
+
+var ErrMergeQueueRequiresStatusCheck = util.NewInvalidArgumentErrorf("a merge queue requires status checks to be enabled")
+
+// SetMergeQueue sets the merge queue settings, a queue needs required status checks to know when to merge
+func (protectBranch *ProtectedBranch) SetMergeQueue(require bool, cfg MergeQueueConfig) error {
+	protectBranch.RequireMergeQueue, protectBranch.MergeQueue = require, cfg.WithDefaults()
+	if err := protectBranch.MergeQueue.Validate(); err != nil {
+		return err
+	}
+	if require && !protectBranch.EnableStatusCheck {
+		return ErrMergeQueueRequiresStatusCheck
+	}
+	return nil
 }
 
 func init() {

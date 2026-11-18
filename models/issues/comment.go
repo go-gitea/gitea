@@ -121,6 +121,9 @@ const (
 	CommentTypeUnpin // 37 unpin Issue/PullRequest
 
 	CommentTypeChangeTimeEstimate // 38 Change time estimate
+
+	CommentTypePRAddedToMergeQueue     // 39 pr was added to the merge queue
+	CommentTypePRRemovedFromMergeQueue // 40 pr was removed from the merge queue, the content holds the reason
 )
 
 var commentStrings = []string{
@@ -163,6 +166,8 @@ var commentStrings = []string{
 	"pin",
 	"unpin",
 	"change_time_estimate",
+	"added_to_merge_queue",
+	"removed_from_merge_queue",
 }
 
 func (t CommentType) String() string {
@@ -1288,6 +1293,38 @@ func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullReques
 		Issue: pr.Issue,
 	})
 	return comment, err
+}
+
+// MergeQueueRemovalReason is stored as the content of CommentTypePRRemovedFromMergeQueue
+type MergeQueueRemovalReason string
+
+const (
+	MergeQueueRemovedByUser        MergeQueueRemovalReason = "dequeued"
+	MergeQueueRemovedChecksFailed  MergeQueueRemovalReason = "checks_failed"
+	MergeQueueRemovedChecksTimeout MergeQueueRemovalReason = "checks_timeout"
+	MergeQueueRemovedConflict      MergeQueueRemovalReason = "conflict"
+	MergeQueueRemovedHeadChanged   MergeQueueRemovalReason = "head_changed"
+	MergeQueueRemovedNotMergeable  MergeQueueRemovalReason = "not_mergeable"
+	MergeQueueRemovedClosed        MergeQueueRemovalReason = "closed" // closed or merged outside the queue, no comment is added
+	MergeQueueRemovedBaseChanged   MergeQueueRemovalReason = "base_changed"
+)
+
+// CreateMergeQueueComment records that a pull request entered the merge queue, or left it when a reason is given
+func CreateMergeQueueComment(ctx context.Context, pr *PullRequest, doer *user_model.User, reason MergeQueueRemovalReason) error {
+	if err := pr.LoadIssue(ctx); err != nil {
+		return err
+	}
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return err
+	}
+	_, err := CreateComment(ctx, &CreateCommentOptions{
+		Type:    util.Iif(reason == "", CommentTypePRAddedToMergeQueue, CommentTypePRRemovedFromMergeQueue),
+		Doer:    doer,
+		Repo:    pr.BaseRepo,
+		Issue:   pr.Issue,
+		Content: string(reason),
+	})
+	return err
 }
 
 // RemapExternalUser ExternalUserRemappable interface

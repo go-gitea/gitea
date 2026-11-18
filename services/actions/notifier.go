@@ -13,6 +13,7 @@ import (
 	packages_model "gitea.dev/models/packages"
 	perm_model "gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -674,6 +675,55 @@ func (n *actionsNotifier) PullRequestSynchronized(ctx context.Context, doer *use
 		}).
 		WithPullRequest(pr).
 		Notify(ctx)
+}
+
+func (n *actionsNotifier) PullRequestMergeQueueChanged(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, enqueued bool, reason string) {
+	ctx = withMethod(ctx, "PullRequestMergeQueueChanged")
+
+	if err := pr.LoadIssue(ctx); err != nil {
+		log.Error("pr.LoadIssue: %v", err)
+		return
+	}
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
+		log.Error("pr.Issue.LoadRepo: %v", err)
+		return
+	}
+
+	newNotifyInput(pr.Issue.Repo, doer, webhook_module.HookEventPullRequest).
+		WithPayload(&api.PullRequestPayload{
+			Action:      util.Iif(enqueued, api.HookIssueEnqueued, api.HookIssueDequeued),
+			Reason:      reason,
+			Index:       pr.Issue.Index,
+			PullRequest: convert.ToPayloadPullRequest(ctx, pr, nil),
+			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
+			Sender:      convert.ToUser(ctx, doer, nil),
+		}).
+		WithPullRequest(pr).
+		Notify(ctx)
+}
+
+// MergeGroupChanged runs the merge_group workflows of the queue commit, like GitHub only for checks_requested
+func (n *actionsNotifier) MergeGroupChanged(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, entry *pull_model.MergeQueueEntry, action api.HookMergeGroupAction, reason string) {
+	if action == api.HookMergeGroupDestroyed {
+		n.DeleteRef(ctx, doer, repo, git.RefName(entry.GroupRef)) // the queue branch is removed without hooks
+		return
+	}
+	ctx = withMethod(ctx, "MergeGroupChanged")
+
+	payload, commit, err := convert.ToMergeGroupPayload(ctx, doer, repo, entry, action, reason)
+	if err != nil || commit == nil {
+		log.Error("ToMergeGroupPayload %s: %v", entry.GroupRef, err)
+		return
+	}
+	newNotifyInput(repo, doer, webhook_module.HookEventMergeGroup).
+		WithRef(entry.GroupRef).
+		WithPayload(payload).
+		Notify(ctx)
+
+	// the queue branch is written without hooks, so trigger the workflows a push of it would
+	opts, commits := convert.ToMergeGroupPush(doer, repo, entry, commit)
+	n.PushCommits(ctx, doer, repo, opts, commits)
+	n.CreateRef(ctx, doer, repo, opts.RefFullName, opts.NewCommitID)
 }
 
 func (n *actionsNotifier) PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch, oldSHA string) {

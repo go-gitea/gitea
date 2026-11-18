@@ -22,6 +22,7 @@ import (
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/repo"
 	"gitea.dev/services/audit"
@@ -121,6 +122,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 
 	c.Data["Rule"] = rule
+	c.Data["MergeQueue"] = rule.MergeQueue.WithDefaults()
 	c.HTML(http.StatusOK, tplProtectedBranch)
 }
 
@@ -303,6 +305,20 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	protectBranch.UnprotectedFilePatterns = f.UnprotectedFilePatterns
 	protectBranch.BlockOnOutdatedBranch = f.BlockOnOutdatedBranch
 	protectBranch.BlockAdminMergeOverride = f.BlockAdminMergeOverride
+	// the fields are always submitted, the grouping checkbox is unchecked for HEADGREEN
+	if err := protectBranch.SetMergeQueue(f.RequireMergeQueue, git_model.MergeQueueConfig{
+		MergeMethod:                  repo_model.MergeStyle(f.MergeQueueMergeMethod),
+		MaxEntriesToBuild:            f.MergeQueueMaxEntriesToBuild,
+		MinEntriesToMerge:            f.MergeQueueMinEntriesToMerge,
+		MaxEntriesToMerge:            f.MergeQueueMaxEntriesToMerge,
+		MinEntriesToMergeWaitMinutes: f.MergeQueueMinEntriesToMergeWaitMinutes,
+		GroupingStrategy:             util.Iif(f.MergeQueueGroupingStrategy == string(git_model.MergeQueueGroupingAllGreen), git_model.MergeQueueGroupingAllGreen, git_model.MergeQueueGroupingHeadGreen),
+		CheckResponseTimeoutMinutes:  f.MergeQueueCheckResponseTimeoutMinutes,
+	}); err != nil {
+		errKey := util.Iif(errors.Is(err, git_model.ErrMergeQueueRequiresStatusCheck), "repo.settings.merge_queue.requires_status_check", "repo.settings.merge_queue.invalid_settings")
+		ctx.JSONErrorWithField(ctx.Tr(errKey), "require_merge_queue")
+		return
+	}
 
 	if err = pull_service.CreateOrUpdateProtectedBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,

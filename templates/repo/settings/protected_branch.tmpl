@@ -302,6 +302,58 @@
 						<p class="help">{{ctx.Locale.Tr "repo.settings.block_admin_merge_override_desc"}}</p>
 					</div>
 				</div>
+				<div class="grouped fields">
+					<div class="field">
+						<div class="ui checkbox">
+							<input name="require_merge_queue" type="checkbox" class="toggle-target-enabled" data-target="#merge_queue_box" {{if .Rule.RequireMergeQueue}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.settings.merge_queue.require"}}</label>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.merge_queue.require_desc"}}</p>
+						</div>
+					</div>
+					<div id="merge_queue_box" class="checkbox-sub-item {{if not .Rule.RequireMergeQueue}}disabled{{end}}">
+						<div class="field">
+							<label>{{ctx.Locale.Tr "repo.settings.merge_queue.merge_method"}}</label>
+							<select class="ui selection dropdown" name="merge_queue_merge_method">
+								<option value="merge" {{if eq .MergeQueue.MergeMethod "merge"}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.merge_pull_request"}}</option>
+								<option value="rebase" {{if eq .MergeQueue.MergeMethod "rebase"}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.rebase_merge_pull_request"}}</option>
+								<option value="rebase-merge" {{if eq .MergeQueue.MergeMethod "rebase-merge"}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</option>
+								<option value="squash" {{if eq .MergeQueue.MergeMethod "squash"}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.squash_merge_pull_request"}}</option>
+							</select>
+						</div>
+						<div class="field">
+							<label>{{ctx.Locale.Tr "repo.settings.merge_queue.max_entries_to_build"}}</label>
+							<input name="merge_queue_max_entries_to_build" type="number" min="1" max="100" required value="{{.MergeQueue.MaxEntriesToBuild}}">
+							<p class="help">{{ctx.Locale.Tr "repo.settings.merge_queue.max_entries_to_build_desc"}}</p>
+						</div>
+						<div class="two fields">
+							<div class="field">
+								<label>{{ctx.Locale.Tr "repo.settings.merge_queue.min_entries_to_merge"}}</label>
+								<input name="merge_queue_min_entries_to_merge" type="number" min="1" max="100" required value="{{.MergeQueue.MinEntriesToMerge}}">
+							</div>
+							<div class="field">
+								<label>{{ctx.Locale.Tr "repo.settings.merge_queue.max_entries_to_merge"}}</label>
+								<input name="merge_queue_max_entries_to_merge" type="number" min="1" max="100" required value="{{.MergeQueue.MaxEntriesToMerge}}">
+							</div>
+						</div>
+						<div class="field">
+							<label>{{ctx.Locale.Tr "repo.settings.merge_queue.min_entries_to_merge_wait_minutes"}}</label>
+							<input name="merge_queue_min_entries_to_merge_wait_minutes" type="number" min="0" max="360" required value="{{.MergeQueue.MinEntriesToMergeWaitMinutes}}">
+							<p class="help">{{ctx.Locale.Tr "repo.settings.merge_queue.min_entries_to_merge_wait_minutes_desc"}}</p>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="merge_queue_grouping_strategy" type="checkbox" value="ALLGREEN" {{if eq .MergeQueue.GroupingStrategy "ALLGREEN"}}checked{{end}}>
+								<label>{{ctx.Locale.Tr "repo.settings.merge_queue.all_green"}}</label>
+								<p class="help">{{ctx.Locale.Tr "repo.settings.merge_queue.all_green_desc"}}</p>
+							</div>
+						</div>
+						<div class="field">
+							<label>{{ctx.Locale.Tr "repo.settings.merge_queue.check_response_timeout_minutes"}}</label>
+							<input name="merge_queue_check_response_timeout_minutes" type="number" min="1" max="360" required value="{{.MergeQueue.CheckResponseTimeoutMinutes}}">
+							<p class="help">{{ctx.Locale.Tr "repo.settings.merge_queue.check_response_timeout_minutes_desc"}}</p>
+						</div>
+					</div>
+				</div>
 				<div class="divider"></div>
 
 				<div class="field">

@@ -200,6 +200,7 @@ var (
 	_ Payloader = &RepositoryPayload{}
 	_ Payloader = &ReleasePayload{}
 	_ Payloader = &PackagePayload{}
+	_ Payloader = &MergeGroupPayload{}
 )
 
 // CreatePayload represents a payload information of create event.
@@ -430,6 +431,10 @@ const (
 	HookIssueReviewRequested HookIssueAction = "review_requested"
 	// HookIssueReviewRequestRemoved is an issue action for removing a review request to someone on a pull request.
 	HookIssueReviewRequestRemoved HookIssueAction = "review_request_removed"
+	// HookIssueEnqueued is a pull request action for when it is added to the merge queue
+	HookIssueEnqueued HookIssueAction = "enqueued"
+	// HookIssueDequeued is a pull request action for when it is removed from the merge queue
+	HookIssueDequeued HookIssueAction = "dequeued"
 )
 
 // IssuePayload represents the payload information that is sent along with an issue event.
@@ -507,6 +512,8 @@ type PullRequestPayload struct {
 	After string `json:"after,omitempty"`
 	// The index number of the pull request
 	Index int64 `json:"number"`
+	// Why the pull request was removed from the merge queue, only for the dequeued action
+	Reason string `json:"reason,omitempty"`
 	// Changes made to the pull request
 	Changes *ChangesPayload `json:"changes,omitempty"`
 	// The pull request that was acted upon
@@ -737,5 +744,48 @@ type WorkflowJobPayload struct {
 
 // JSONPayload implements Payload
 func (p *WorkflowJobPayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}
+
+// HookMergeGroupAction is the action of a merge_group event
+type HookMergeGroupAction string
+
+const (
+	// HookMergeGroupChecksRequested a queue commit needs its checks to run
+	HookMergeGroupChecksRequested HookMergeGroupAction = "checks_requested"
+	// HookMergeGroupDestroyed a queue commit was merged, invalidated or dequeued
+	HookMergeGroupDestroyed HookMergeGroupAction = "destroyed"
+)
+
+// MergeGroup is a commit of the merge queue that combines the base branch with the queued pull requests
+type MergeGroup struct {
+	// SHA of the queue commit
+	HeadSHA string `json:"head_sha"`
+	// Full ref of the temporary queue branch
+	HeadRef string `json:"head_ref"`
+	// SHA the queue commit was built on
+	BaseSHA string `json:"base_sha"`
+	// Full ref of the branch the pull requests merge into
+	BaseRef string `json:"base_ref"`
+	// The queue commit
+	HeadCommit *PayloadCommit `json:"head_commit"`
+}
+
+// MergeGroupPayload represents a payload information of merge_group event.
+type MergeGroupPayload struct {
+	// checks_requested or destroyed
+	Action HookMergeGroupAction `json:"action"`
+	// Why the merge group was destroyed: merged, invalidated or dequeued
+	Reason string `json:"reason,omitempty"`
+	// The merge group
+	MergeGroup *MergeGroup `json:"merge_group"`
+	// The repository of the merge queue
+	Repo *Repository `json:"repository"`
+	// The user who triggered the event
+	Sender *User `json:"sender"`
+}
+
+// JSONPayload implements Payload
+func (p *MergeGroupPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }

@@ -14,6 +14,7 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/auth"
+	"gitea.dev/services/mergequeue"
 	"gitea.dev/services/migrations"
 	mirror_service "gitea.dev/services/mirror"
 	packages_cleanup_service "gitea.dev/services/packages/cleanup"
@@ -176,4 +177,15 @@ func initBasicTasks() {
 		registerCleanupPackages()
 	}
 	registerSyncRepoLicenses()
+	registerCheckMergeQueues()
+}
+
+func registerCheckMergeQueues() {
+	RegisterTaskFatal("check_merge_queues", &BaseConfig{
+		Enabled:    true,
+		RunAtStart: false,
+		Schedule:   "@every 1m",
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
+		return mergequeue.CheckAllQueues(ctx)
+	})
 }

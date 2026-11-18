@@ -190,6 +190,12 @@ func (wc wechatworkConvertor) WorkflowRun(p *api.WorkflowRunPayload) (Wechatwork
 	return newWechatworkMarkdownPayload(text), nil
 }
 
+func (wc wechatworkConvertor) MergeGroup(p *api.MergeGroupPayload) (WechatworkPayload, error) {
+	text, _ := getMergeGroupPayloadInfo(p, noneLinkFormatter, true)
+
+	return newWechatworkMarkdownPayload(text), nil
+}
+
 func (wc wechatworkConvertor) WorkflowJob(p *api.WorkflowJobPayload) (WechatworkPayload, error) {
 	text, _ := getWorkflowJobPayloadInfo(p, noneLinkFormatter, true)
 

@@ -27,6 +27,10 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	if !prInfo.MergeBoxData.hasPermToMerge {
 		return
 	}
+	queue := prInfo.MergeBoxData.MergeQueue
+	if queue != nil && queue.Entry != nil {
+		return
+	}
 
 	prConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
 
@@ -64,10 +68,14 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		hasPendingPullRequestMergeTip = ctx.Locale.Tr("repo.pulls.auto_merge_has_pending_schedule", pendingPullRequestMerge.Doer.Name, createdPRMergeStr)
 	}
 
+	allOverridableChecksOk := !prInfo.MergeBoxData.hasOverridableBlockers
+	// the form submits a forced merge when blockers are bypassed, which merges directly instead of entering the queue
+	useQueue := queue != nil && (allOverridableChecksOk || !prInfo.MergeBoxData.canMergeNow)
+
 	var defaultMergeTitle, defaultMergeBody string
 	var defaultSquashMergeTitle, defaultSquashMergeBody string
 	var defaultSquashMergeCommitMessages string
-	if !prInfo.IsPullRequestBroken {
+	if !prInfo.IsPullRequestBroken && !useQueue {
 		var err error
 		defaultMergeTitle, defaultMergeBody, err = pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, mergeStyle)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
@@ -83,7 +91,6 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		}
 	}
 
-	allOverridableChecksOk := !prInfo.MergeBoxData.hasOverridableBlockers
 	mergeFormProps := map[string]any{
 		"baseLink":                       prInfo.issue.Link(),
 		"textCancel":                     ctx.Locale.Tr("cancel"),
@@ -112,7 +119,19 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	// if this pr can be merged now, then hide the auto merge
 	generalHideAutoMerge := prInfo.MergeBoxData.canMergeNow && allOverridableChecksOk
 	var mergeStyles []any
-	if pull.IsStatusMergeable() || pull.IsEmpty() {
+	if useQueue && (pull.IsStatusMergeable() || pull.IsEmpty()) {
+		// the queue merges with the method of the branch protection, using the default message and branch deletion setting
+		mergeStyles = []any{map[string]any{
+			"name":                  prInfo.ProtectedBranchRule.MergeQueue.MergeMethod,
+			"allowed":               true,
+			"textDoMerge":           ctx.Locale.Tr("repo.pulls.merge_queue.add"),
+			"hideMergeMessageTexts": true,
+			"hideAutoMerge":         generalHideAutoMerge,
+		}}
+		mergeFormProps["isPullBranchDeletable"] = false
+		mergeFormProps["textAutoMergeButtonWhenSucceed"] = ctx.Locale.Tr("repo.pulls.merge_queue.when_ready")
+		mergeFormProps["textAutoMergeWhenSucceed"] = ctx.Locale.Tr("repo.pulls.merge_queue.add_when_ready")
+	} else if pull.IsStatusMergeable() || pull.IsEmpty() {
 		mergeStyles = []any{
 			map[string]any{
 				"name":                  "merge",

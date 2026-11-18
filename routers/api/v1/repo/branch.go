@@ -790,6 +790,11 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		Priority: form.Priority,
 	}
 
+	if err := applyMergeQueueOption(protectBranch, &form.RequireMergeQueue, form.MergeQueue); err != nil {
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
 	if err := pull_service.CreateOrUpdateProtectedBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
@@ -968,6 +973,11 @@ func EditBranchProtection(ctx *context.APIContext) {
 
 	if form.BlockAdminMergeOverride != nil {
 		protectBranch.BlockAdminMergeOverride = *form.BlockAdminMergeOverride
+	}
+
+	if err := applyMergeQueueOption(protectBranch, form.RequireMergeQueue, form.MergeQueue); err != nil {
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+		return
 	}
 
 	whitelistUsers := loadBranchProtectionUserIDs(ctx, form.PushWhitelistUsernames, protectBranch.WhitelistUserIDs)
@@ -1290,4 +1300,19 @@ func MergeUpstream(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusOK, &api.MergeUpstreamResponse{MergeStyle: mergeStyle})
+}
+
+// applyMergeQueueOption sets the merge queue settings, keeping the current ones for unset options
+func applyMergeQueueOption(pb *git_model.ProtectedBranch, require *bool, opt *api.BranchProtectionMergeQueueOption) error {
+	cfg := pb.MergeQueue.WithDefaults()
+	if opt != nil {
+		cfg.MergeMethod = repo_model.MergeStyle(optional.FromPtr(opt.MergeMethod).ValueOrDefault(string(cfg.MergeMethod)))
+		cfg.MaxEntriesToBuild = optional.FromPtr(opt.MaxEntriesToBuild).ValueOrDefault(cfg.MaxEntriesToBuild)
+		cfg.MinEntriesToMerge = optional.FromPtr(opt.MinEntriesToMerge).ValueOrDefault(cfg.MinEntriesToMerge)
+		cfg.MaxEntriesToMerge = optional.FromPtr(opt.MaxEntriesToMerge).ValueOrDefault(cfg.MaxEntriesToMerge)
+		cfg.MinEntriesToMergeWaitMinutes = optional.FromPtr(opt.MinEntriesToMergeWaitMinutes).ValueOrDefault(cfg.MinEntriesToMergeWaitMinutes)
+		cfg.GroupingStrategy = git_model.MergeQueueGroupingStrategy(optional.FromPtr(opt.GroupingStrategy).ValueOrDefault(string(cfg.GroupingStrategy)))
+		cfg.CheckResponseTimeoutMinutes = optional.FromPtr(opt.CheckResponseTimeoutMinutes).ValueOrDefault(cfg.CheckResponseTimeoutMinutes)
+	}
+	return pb.SetMergeQueue(optional.FromPtr(require).ValueOrDefault(pb.RequireMergeQueue), cfg)
 }

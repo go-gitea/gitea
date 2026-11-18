@@ -121,7 +121,7 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 		webhook_module.HookEventPullRequestReviewComment:
 		event = run.TriggerEvent
 		commitID = run.CommitSHA
-	case webhook_module.HookEventRelease, webhook_module.HookEventWorkflowDispatch:
+	case webhook_module.HookEventRelease, webhook_module.HookEventWorkflowDispatch, webhook_module.HookEventMergeGroup:
 		event = string(run.Event)
 		commitID = run.CommitSHA
 	default: // do nothing, return empty
@@ -184,6 +184,7 @@ func requiredStatusContextGlobs(ctx context.Context, repo *repo_model.Repository
 	if err != nil {
 		return nil, fmt.Errorf("EffectiveRequiredContexts: %w", err)
 	}
+	required = append(required, pull_service.MergeQueueRequiredContexts(required)...)
 	globs := make([]glob.Glob, 0, len(required))
 	for _, c := range required {
 		if gp, err := glob.Compile(c); err != nil {
@@ -229,6 +230,10 @@ func CreateSkippedCommitStatusForFilteredWorkflow(ctx context.Context, repo *rep
 			if triggerEvent == actions_module.GithubEventPullRequestTarget {
 				statusEvent = "pull_request_target"
 			}
+		}
+	case webhook_module.HookEventMergeGroup:
+		if p, ok := payload.(*api.MergeGroupPayload); ok && p.MergeGroup != nil {
+			statusEvent, commitID = "merge_group", p.MergeGroup.HeadSHA
 		}
 	}
 	if statusEvent == "" || commitID == "" {

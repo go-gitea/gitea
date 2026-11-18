@@ -13,6 +13,7 @@ import (
 	user_model "gitea.dev/models/user"
 	webhook_model "gitea.dev/models/webhook"
 	"gitea.dev/modules/base"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -229,6 +230,10 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 		text = fmt.Sprintf("[%s] Pull request review requested: %s", repoLink, titleLink)
 	case api.HookIssueReviewRequestRemoved:
 		text = fmt.Sprintf("[%s] Pull request review request removed: %s", repoLink, titleLink)
+	case api.HookIssueEnqueued:
+		text = fmt.Sprintf("[%s] Pull request added to merge queue: %s", repoLink, titleLink)
+	case api.HookIssueDequeued:
+		text = fmt.Sprintf("[%s] Pull request removed from merge queue: %s", repoLink, titleLink)
 	}
 	if withSender {
 		text += " by " + linkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
@@ -372,6 +377,23 @@ func getStatusPayloadInfo(p *api.CommitStatusPayload, linkFormatter linkFormatte
 		}
 	}
 
+	return text, color
+}
+
+func getMergeGroupPayloadInfo(p *api.MergeGroupPayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {
+	repoLink := linkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
+	commitLink := linkFormatter(p.Repo.HTMLURL+"/commit/"+p.MergeGroup.HeadSHA, base.ShortSha(p.MergeGroup.HeadSHA))
+	branch := git.RefName(p.MergeGroup.BaseRef).ShortName()
+	if p.Action == api.HookMergeGroupChecksRequested {
+		text = fmt.Sprintf("[%s:%s] Merge group checks requested: %s", repoLink, branch, commitLink)
+		color = orangeColor
+	} else {
+		text = fmt.Sprintf("[%s:%s] Merge group %s: %s", repoLink, branch, p.Reason, commitLink)
+		color = util.Iif(p.Reason == "merged", greenColor, greyColor)
+	}
+	if withSender {
+		text += " by " + linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
+	}
 	return text, color
 }
 

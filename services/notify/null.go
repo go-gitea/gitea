@@ -11,10 +11,12 @@ import (
 	issues_model "gitea.dev/models/issues"
 	packages_model "gitea.dev/models/packages"
 	project_model "gitea.dev/models/project"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/repository"
+	api "gitea.dev/modules/structs"
 )
 
 // NullNotifier implements a blank notifier
@@ -61,6 +63,14 @@ func (*NullNotifier) MergePullRequest(ctx context.Context, doer *user_model.User
 
 // AutoMergePullRequest places a place holder function
 func (*NullNotifier) AutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+}
+
+// PullRequestMergeQueueChanged places a place holder function
+func (*NullNotifier) PullRequestMergeQueueChanged(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, enqueued bool, reason string) {
+}
+
+// MergeGroupChanged places a place holder function
+func (*NullNotifier) MergeGroupChanged(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, entry *pull_model.MergeQueueEntry, action api.HookMergeGroupAction, reason string) {
 }
 
 // PullRequestSynchronized places a place holder function

@@ -13,7 +13,7 @@
 		29 = PULL_PUSH_EVENT, 30 = PROJECT_CHANGED, 31 = PROJECT_BOARD_CHANGED
 		32 = DISMISSED_REVIEW, 33 = COMMENT_TYPE_CHANGE_ISSUE_REF, 34 = PR_SCHEDULE_TO_AUTO_MERGE,
 		35 = CANCEL_SCHEDULED_AUTO_MERGE_PR, 36 = PIN_ISSUE, 37 = UNPIN_ISSUE,
-		38 = COMMENT_TYPE_CHANGE_TIME_ESTIMATE -->
+		38 = COMMENT_TYPE_CHANGE_TIME_ESTIMATE, 39 = PR_ADDED_TO_MERGE_QUEUE, 40 = PR_REMOVED_FROM_MERGE_QUEUE -->
 		{{if eq .Type 0}}
 			<div class="timeline-item comment" id="{{.HashTag}}">
 			{{if .OriginalAuthor}}
@@ -660,6 +660,15 @@
 					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
 					{{if eq .Type 34}}{{ctx.Locale.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr}}
 					{{else}}{{ctx.Locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr}}{{end}}
+				</span>
+			</div>
+		{{else if or (eq .Type 39) (eq .Type 40)}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-git-merge-queue" 16}}</span>
+				<span class="comment-text-line">
+					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
+					{{if eq .Type 39}}{{ctx.Locale.Tr "repo.pulls.merge_queue.added_comment" $createdStr}}
+					{{else}}{{ctx.Locale.Tr (printf "repo.pulls.merge_queue.removed_comment.%s" .Content) $createdStr}}{{end}}
 				</span>
 			</div>
 		{{else if or (eq .Type 36) (eq .Type 37)}}

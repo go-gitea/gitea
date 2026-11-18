@@ -938,6 +938,11 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	needRefreshMergeBox = needRefreshMergeBox || (data.StatusCheckData != nil && data.StatusCheckData.pullCommitStatusState.IsPending())
 	data.ReloadingInterval = util.Iif(needRefreshMergeBox, 5000, 0)
 
+	prInfo.prepareMergeBoxMergeQueue(ctx)
+	if ctx.Written() {
+		return
+	}
+
 	// Only show the merge box if the PR is not merged, or the branch is deletable.
 	// Otherwise, there is nothing to do, because the PR view page already contains enough information.
 	data.ShowMergeBox = !pull.HasMerged || data.IsPullBranchDeletable

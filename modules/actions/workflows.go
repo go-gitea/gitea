@@ -172,7 +172,7 @@ func ScopedWorkflowStatusContextName(prefix, displayName, jobName, event string)
 // They are kept in sync by hand and can drift, unify them into a single source so adding a status-producing event in one place automatically updates the others.
 func IsPullRequestCheckEvent(event string) bool {
 	switch event {
-	case "push", "pull_request", "pull_request_target", "pull_request_review", "pull_request_review_comment", "release":
+	case "push", "pull_request", "pull_request_target", "pull_request_review", "pull_request_review_comment", "release", "merge_group":
 		return true
 	}
 	return false
@@ -382,10 +382,45 @@ func detectWorkflowMatch(ctx context.Context, gitRepo *git.Repository, commit *g
 		}
 		return detectNotApplicable
 
+	case // merge_group
+		webhook_module.HookEventMergeGroup:
+		return matchMergeGroupEvent(payloadAs[*api.MergeGroupPayload](payload, inputEvent), evt)
+
 	default:
 		log.Warn("unsupported event %q", inputEvent)
 		return detectNotApplicable
 	}
+}
+
+// matchMergeGroupEvent matches the activity types, by default only checks_requested like GitHub, and the base branch filters
+func matchMergeGroupEvent(payload *api.MergeGroupPayload, evt *jobparser.Event) detectResult {
+	acts := evt.Acts()
+	types, ok := acts["types"]
+	if !ok {
+		types = []string{string(api.HookMergeGroupChecksRequested)}
+	}
+	if !slices.ContainsFunc(types, func(val string) bool { return matchActivityType(val, string(payload.Action)) }) {
+		return detectNotApplicable
+	}
+
+	branch := git.RefName(payload.MergeGroup.BaseRef).ShortName()
+	for cond, vals := range acts {
+		patterns, err := workflowpattern.CompilePatterns(vals...)
+		switch cond {
+		case "types":
+		case "branches":
+			if err != nil || workflowpattern.Skip(patterns, []string{branch}) {
+				return detectFilteredOut
+			}
+		case "branches-ignore":
+			if err != nil || workflowpattern.Filter(patterns, []string{branch}) {
+				return detectFilteredOut
+			}
+		default:
+			log.Warn("merge group event unsupported condition %q", cond)
+		}
+	}
+	return detectMatched
 }
 
 func matchPushEvent(ctx context.Context, gitRepo *git.Repository, commit *git.Commit, pushPayload *api.PushPayload, evt *jobparser.Event) detectResult {
@@ -544,7 +579,7 @@ func matchPullRequestEvent(ctx context.Context, gitRepo *git.Repository, commit 
 		// opened, edited, closed, reopened, assigned, unassigned, review_requested, review_request_removed, milestoned, demilestoned
 		// Actions need to be converted: see toActivityTypes
 		// Unsupported activity types:
-		// converted_to_draft, ready_for_review, locked, unlocked, auto_merge_enabled, auto_merge_disabled, enqueued, dequeued
+		// converted_to_draft, ready_for_review, locked, unlocked, auto_merge_enabled, auto_merge_disabled
 
 		actions := toActivityTypes(prPayload.Action, prPayload.Changes)
 		log.Trace("matching pull_request %v with %v", actions, vals)

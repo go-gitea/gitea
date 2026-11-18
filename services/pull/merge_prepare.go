@@ -58,12 +58,21 @@ func (err ErrSHADoesNotMatch) Error() string {
 	return fmt.Sprintf("sha does not match [given: %s, expected: %s]", err.GivenSHA, err.CurrentSHA)
 }
 
-func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, expectedHeadCommitID string) (mergeCtx *mergeContext, cancel context.CancelFunc, err error) {
+func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, expectedHeadCommitID, baseCommitID string) (mergeCtx *mergeContext, cancel context.CancelFunc, err error) {
 	// Clone base repo.
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
 	if err != nil {
 		log.Error("createTemporaryRepoForPR: %v", err)
 		return nil, cancel, err
+	}
+	if baseCommitID != "" {
+		// merge onto this commit of the base repo instead of the base branch, its objects are reachable through the alternates
+		for _, branch := range []string{tmpRepoBaseBranch, "original_" + tmpRepoBaseBranch} {
+			if err := git.UpdateRef(ctx, prCtx.tmpRepo, git.BranchPrefix+branch, baseCommitID); err != nil {
+				cancel()
+				return nil, nil, fmt.Errorf("unable to set %s to %s in tmpBasePath: %w", branch, baseCommitID, err)
+			}
+		}
 	}
 
 	mergeCtx = &mergeContext{

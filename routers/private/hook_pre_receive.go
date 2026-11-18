@@ -10,6 +10,7 @@ import (
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	pull_model "gitea.dev/models/pull"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
@@ -279,6 +280,19 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 
 		// If we can bypass branch protection we can ignore status checks, reviews and protected files
 		if git_model.CanBypassBranchProtection(ctx, protectBranch, ctx.Doer, ctx.Repo.Permission.IsAdmin()) {
+			return
+		}
+
+		if protectBranch.RequireMergeQueue {
+			entry, err := pull_model.GetMergeQueueEntryByPullID(ctx, pr.ID)
+			if err != nil {
+				ctx.PrivateInternalErrorf("Unable to get merge queue entry of pull request %d: %v", pr.ID, err)
+				return
+			}
+			// the merge queue only fast-forwards the branch to a queue commit whose required checks passed
+			if entry == nil || entry.BaseBranch != branchName || entry.GroupHeadSHA != newCommitID || entry.State != pull_model.MergeQueueStateMergeable {
+				ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s requires pull requests to be merged through the merge queue", branchName)
+			}
 			return
 		}
 
