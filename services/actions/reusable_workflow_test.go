@@ -405,18 +405,18 @@ func TestQualifyRef(t *testing.T) {
 
 func TestChildCacheMode(t *testing.T) {
 	for _, tc := range []struct {
-		caller, child, want string
-		denied              bool
+		caller, workflow, job, want string
+		denied                      bool
 	}{
-		{"", "", "", false},
-		{"", "write", "write", false},
-		{"read", "", "read", false},
-		{"write", "read", "read", false},
-		{"none", "none", "none", false},
-		{"read", "write", "", true},
-		{"write-only", "read", "", true},
+		{"", "read", "write", "write", false},
+		{"", "read", "", "read", false},
+		{"write", "read", "", "read", false},
+		{"read", "read", "none", "none", false},
+		{"none", "", "read", "", true},
+		{"read", "", "write", "", true},
+		{"write-only", "", "read", "", true},
 	} {
-		got, err := childCacheMode(tc.caller, tc.child)
+		got, err := childCacheMode(tc.caller, tc.workflow, "build", tc.job)
 		assert.Equal(t, tc.want, got, tc)
 		assert.Equal(t, tc.denied, err != nil, tc)
 	}
