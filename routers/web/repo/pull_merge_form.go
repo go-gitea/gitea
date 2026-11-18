@@ -170,7 +170,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		"textMergeCommitId":    ctx.Locale.Tr("repo.pulls.merge_commit_id"),
 		"textSelectMergeStyle": ctx.Locale.Tr("repo.pulls.select_merge_style"),
 		"textMergeTitle":       ctx.Locale.Tr("form.CommitMessage"),
-		"textMergeBlocked":     ctx.Locale.Tr("repo.pulls.merge_blocked_by_requirements"),
+		"textMergeBlocked":     ctx.Locale.Tr("repo.pulls.merging_is_blocked"),
 
 		"isMergeStateClean":            data.IsMergeStateClean,
 		"canMergeNow":                  canMergeNow,

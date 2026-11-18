@@ -877,7 +877,6 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		addToQueuePullChan := make(chan automergequeue.AutoMergeItem, 1)
 		resetAutoMergeQueueMock := test.MockVariableValue(&automergequeue.AddToQueue, func(item automergequeue.AutoMergeItem) { addToQueuePullChan <- item })
 
-		// first time insert automerge record, return true
 		assert.NoError(t, automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false))
 		// and the pr should be added to automergequeue, in case it is already "mergeable"
 		select {
@@ -887,7 +886,6 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		}
 		resetAutoMergeQueueMock()
 
-		// second time insert automerge record, return false because it does exist
 		assert.Error(t, automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false))
 
 		// reload pr again
@@ -955,10 +953,8 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, baseSession.MakeRequest(t, NewRequestf(t, "GET", "/user2/repo1/pulls/%d", pr.Index), http.StatusOK).Body)
 		assert.Equal(t, 1, htmlDoc.Find(`.pull-merge-box .merge-box-detail:contains("At least 1 approving review is required by reviewers with write access.")`).Length())
 
-		// first time insert automerge record, return true
 		assert.NoError(t, automerge.ScheduleAutoMerge(t.Context(), baseUser, pr, repo_model.MergeStyleMerge, "auto merge test", false))
 
-		// second time insert automerge record, return false because it does exist
 		assert.Error(t, automerge.ScheduleAutoMerge(t.Context(), baseUser, pr, repo_model.MergeStyleMerge, "auto merge test", false))
 
 		// reload pr again
@@ -1064,10 +1060,8 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		session.MakeRequest(t, req, http.StatusOK)
 
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-		// first time insert automerge record, return true
 		assert.NoError(t, automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false))
 
-		// second time insert automerge record, return false because it does exist
 		assert.Error(t, automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false))
 
 		// reload pr again

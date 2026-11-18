@@ -1819,7 +1819,6 @@
   "repo.pulls.approvals_granted_allowlist_1": "%d approving review by users or teams on the allowlist.",
   "repo.pulls.approvals_granted_allowlist_n": "%d approving reviews by users or teams on the allowlist.",
   "repo.pulls.merge_bypass_rules": "Merge without waiting for requirements to be met (bypass rules)",
-  "repo.pulls.merge_blocked_by_requirements": "Merging is blocked due to failing merge requirements",
   "repo.pulls.approvals_required_1": "At least %d approving review is required by reviewers with write access.",
   "repo.pulls.approvals_required_n": "At least %d approving reviews are required by reviewers with write access.",
   "repo.pulls.approvals_required_allowlist_1": "At least %d approving review is required by users or teams on the allowlist.",
