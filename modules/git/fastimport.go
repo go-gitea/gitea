@@ -28,6 +28,7 @@ type FastImportFile struct {
 type FastImportCommit struct {
 	Ref     string
 	Parent  string
+	Merge   string
 	Message string
 	Files   []FastImportFile
 
@@ -75,6 +76,9 @@ func ForceFastImport(ctx context.Context, repo RepositoryFacade, commits []FastI
 		_, _ = fmt.Fprintf(buf, "data %d\n%s\n", len(msg), msg)
 		if c.Parent != "" {
 			_, _ = fmt.Fprintf(buf, "from %s\n", c.Parent)
+		}
+		if c.Merge != "" {
+			_, _ = fmt.Fprintf(buf, "merge %s\n", c.Merge)
 		}
 
 		for _, f := range c.Files {

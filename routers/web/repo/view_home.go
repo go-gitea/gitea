@@ -200,6 +200,19 @@ func prepareHomeSidebarLanguageStats(ctx *context.Context) {
 	ctx.Data["LanguageStats"] = langs
 }
 
+func prepareHomeSidebarContributors(ctx *context.Context) {
+	// doesn't queue generating the stats, otherwise crawlers would trigger that for every repository
+	contributors, total, err := repo_service.FindRepoContributors(ctx, ctx.Repo.Repository, repo_model.FindRepoContributorsOptions{
+		ListOptions: db.ListOptions{Page: 1, PageSize: 14},
+	})
+	if err != nil {
+		log.Error("FindRepoContributors: %v", err)
+		return
+	}
+	ctx.Data["TopContributors"] = contributors
+	ctx.Data["NumContributors"] = total
+}
+
 func prepareHomeSidebarLatestRelease(ctx *context.Context) {
 	if !ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypeReleases) {
 		return
@@ -488,6 +501,7 @@ func Home(ctx *context.Context) {
 			prepareHomeSidebarLicenses,
 			prepareHomeSidebarCitationFile,
 			prepareHomeSidebarLanguageStats,
+			prepareHomeSidebarContributors,
 			prepareHomeSidebarLatestRelease,
 		)
 	}

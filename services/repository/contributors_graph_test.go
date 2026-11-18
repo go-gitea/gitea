@@ -4,38 +4,26 @@
 package repository
 
 import (
-	"fmt"
+	"maps"
 	"slices"
 	"testing"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRepository_ContributorsGraph(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+	require.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	assert.NoError(t, repo.LoadOwner(t.Context()))
-	mockCache, err := cache.NewStringCache(setting.Cache{})
-	assert.NoError(t, err)
+	require.NoError(t, UpdateRepoContributors(t.Context(), repo.ID))
 
-	_, err = GetContributorStats(t.Context(), mockCache, repo, "404ref")
-	assert.ErrorContains(t, err, "object does not exist")
-	_, locked := generateLock.Load(fmt.Sprintf(contributorStatsCacheKey, repo.FullName(), "404ref"))
-	assert.False(t, locked)
-
-	data, err := GetContributorStats(t.Context(), mockCache, repo, "master")
-	assert.NoError(t, err)
-	var keys []string
-	for k := range data {
-		keys = append(keys, k)
-	}
-	slices.Sort(keys)
+	data, err := GetContributorStats(t.Context(), repo)
+	require.NoError(t, err)
+	keys := slices.Sorted(maps.Keys(data))
 	assert.Equal(t, []string{
 		"ethantkoenig@gmail.com",
 		"jimmy.praet@telenet.be",
@@ -44,9 +32,8 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 	}, keys)
 
 	assert.Equal(t, &ContributorData{
-		Name:         "Ethan Koenig",
-		AvatarLink:   "/assets/img/avatar_default.png",
-		TotalCommits: 1,
+		Name:       "Ethan Koenig",
+		AvatarLink: "/assets/img/avatar_default.png",
 		Weeks: map[int64]*WeekData{
 			1511654400000: {
 				Week:      1511654400000, // sunday 2017-11-26
@@ -57,9 +44,8 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 		},
 	}, data["ethantkoenig@gmail.com"])
 	assert.Equal(t, &ContributorData{
-		Name:         "Total",
-		AvatarLink:   "",
-		TotalCommits: 3,
+		Name:       "Total",
+		AvatarLink: "",
 		Weeks: map[int64]*WeekData{
 			1511654400000: {
 				Week:      1511654400000, // sunday 2017-11-26 (2017-11-26 20:31:18 -0800)
