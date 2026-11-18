@@ -1,0 +1,50 @@
+{{$root := ctx.RootData -}}
+{{$repoLink := $root.RepoLink -}}
+{{$signedUserID := or $root.SignedUserID NIL -}}
+{{range $comment := $.comments}}
+{{$createdStr := DateUtils.TimeSince $comment.CreatedUnix}}
+{{$canEdit := and $root.IsSigned (not $root.Repository.IsArchived) (or $root.Permission.IsAdmin (eq $signedUserID $comment.PosterID))}}
+<div class="comment" id="{{$comment.HashTag}}">
+	<div class="tw-mt-2 tw-mr-4">
+		{{template "shared/user/avatarlink" dict "user" $comment.Poster}}
+	</div>
+	<div class="content comment-container">
+		<div class="comment-header avatar-content-left-arrow">
+			<div class="comment-header-left">
+				<span class="tw-text-text-light muted-links">
+					{{template "shared/user/namelink" $comment.Poster}}
+					{{ctx.Locale.Tr "repo.issues.commented_at" $comment.HashTag $createdStr}}
+				</span>
+			</div>
+			<div class="comment-header-right">
+				<div class="item action ui dropdown jump pointing top right">
+					{{svg "octicon-kebab-horizontal"}}
+					<div class="menu">
+						<div class="item js-aria-clickable" data-clipboard-text="{{$repoLink}}/commit/{{$root.CommitCommentSHA}}#{{$comment.HashTag}}">{{ctx.Locale.Tr "copy_link"}}</div>
+						<div class="item js-aria-clickable" data-clipboard-target="#{{$comment.HashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.copy_source"}}</div>
+						{{if $canEdit}}
+							<div class="divider"></div>
+							<div class="item js-aria-clickable" data-global-click="onConvContentEdit">{{ctx.Locale.Tr "repo.issues.context.edit"}}</div>
+							<div class="item js-aria-clickable" data-global-click="onConvContentDelete" data-comment-hash-tag="{{$comment.HashTag}}" data-url="{{$repoLink}}/commit_comments/{{$comment.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</div>
+						{{end}}
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="ui attached segment comment-body">
+			<div class="render-content markup" {{if $canEdit}}data-can-edit="true"{{end}}>
+			{{if $comment.RenderedContent}}
+				{{$comment.RenderedContent}}
+			{{else}}
+				<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
+			{{end}}
+			</div>
+			<div id="{{$comment.HashTag}}-raw" class="raw-content tw-hidden">{{$comment.Content}}</div>
+			<div class="edit-content-zone tw-hidden" data-update-url="{{$repoLink}}/commit_comments/{{$comment.ID}}/edit" data-content-version="{{$comment.ContentVersion}}" data-context="{{$repoLink}}" data-attachment-url="{{$repoLink}}/commit_comments/{{$comment.ID}}/attachments"></div>
+			{{if $comment.Attachments}}
+				{{template "repo/issue/view_content/attachments" dict "Attachments" $comment.Attachments "RenderedContent" $comment.RenderedContent}}
+			{{end}}
+		</div>
+	</div>
+</div>
+{{end}}

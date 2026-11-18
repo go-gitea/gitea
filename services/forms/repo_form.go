@@ -480,6 +480,16 @@ type CodeCommentForm struct {
 	Files          []string
 }
 
+// CommitCommentForm for creating a code comment on a commit
+type CommitCommentForm struct {
+	middleware.FormDefaultValidator
+	Content  string `binding:"Required"`
+	Side     string `binding:"Required;In(previous,proposed)"`
+	Line     int64  `binding:"Required"`
+	TreePath string `form:"path" binding:"Required"`
+	Files    []string
+}
+
 // SubmitReviewForm for submitting a finished code review
 type SubmitReviewForm struct {
 	middleware.FormDefaultValidator

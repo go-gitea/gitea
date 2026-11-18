@@ -12,6 +12,7 @@ import (
 	activities_model "gitea.dev/models/activities"
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
@@ -230,6 +231,14 @@ func GetAttachmentLinkedTypeAndRepoID(ctx context.Context, a *repo_model.Attachm
 			return unit.TypeReleases, 0, err
 		}
 		return unit.TypeReleases, rel.RepoID, nil
+	}
+
+	if a.CommitCommentID != 0 {
+		comment, err := git_model.GetCommitCommentByID(ctx, a.CommitCommentID)
+		if err != nil {
+			return unit.TypeCode, 0, err
+		}
+		return unit.TypeCode, comment.RepoID, nil
 	}
 	return unit.TypeInvalid, 0, nil
 }

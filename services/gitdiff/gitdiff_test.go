@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	pull_model "gitea.dev/models/pull"
 	"gitea.dev/models/unittest"
@@ -468,6 +469,21 @@ func TestDiff_LoadComments(t *testing.T) {
 			assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, test.comments)
 		})
 	}
+}
+
+func TestDiff_LoadCommitComments(t *testing.T) {
+	diff := setupDefaultDiff()
+	diff.LoadCommitComments([]*git_model.CommitComment{
+		{ID: 1, TreePath: "README.md", Line: 4},
+		{ID: 2, TreePath: "README.md", Line: -4},
+		{ID: 3, TreePath: "README.md", Line: 5},
+		{ID: 4, TreePath: "other.md", Line: 4},
+	})
+	line := diff.Files[0].Sections[0].Lines[0]
+	require.Len(t, line.CommitComments, 2)
+	assert.False(t, line.CanComment())
+	assert.Equal(t, int64(1), line.CommitCommentsBySide("proposed")[0].ID)
+	assert.Equal(t, int64(2), line.CommitCommentsBySide("previous")[0].ID)
 }
 
 func TestDiffLine_CanComment(t *testing.T) {

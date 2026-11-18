@@ -1,0 +1,30 @@
+{{$root := ctx.RootData -}}
+{{$reply := $.Reply -}}{{/* nil when starting a new conversation */ -}}
+{{if $root.CanCommentOnCommit}}
+	<form class="ui form {{if $reply}}tw-hidden comment-form{{end}}" action="{{$root.RepoLink}}/commit_comments/create/{{$root.CommitCommentSHA}}" method="post">
+		<input type="hidden" name="side" value="{{if $reply}}{{$reply.DiffSide}}{{end}}">
+		<input type="hidden" name="line" value="{{if $reply}}{{$reply.UnsignedLine}}{{end}}">
+		<input type="hidden" name="path" value="{{if $reply}}{{$reply.TreePath}}{{end}}">
+		<div class="field">
+		{{template "shared/combomarkdowneditor" (dict
+			"CustomInit" true
+			"MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorComment $root.Repository)
+			"TextareaName" "content"
+			"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
+			"DropzoneParentContainer" "form"
+			"DisableAutosize" "true"
+		)}}
+		</div>
+		{{if $root.IsAttachmentEnabled}}
+			<div class="field">
+				{{template "repo/upload" dict "UploadOptions" $root.UploadOptions}}
+			</div>
+		{{end}}
+		<div class="field footer">
+			<div class="flex-text-block tw-justify-end">
+				<button class="ui submit primary tiny button" type="submit">{{if $reply}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}{{else}}{{ctx.Locale.Tr "repo.diff.comment.add_review_comment"}}{{end}}</button>
+				<button type="button" class="ui submit tiny basic button" data-global-click="onCancelCodeComment">{{ctx.Locale.Tr "cancel"}}</button>
+			</div>
+		</div>
+	</form>
+{{end}}

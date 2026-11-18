@@ -1,6 +1,6 @@
 {{$file := $.file -}}
 {{$diffBlobExcerptData := ctx.RootData.DiffBlobExcerptData -}}
-{{$canAddComment := and ctx.RootData.SignedUserID $diffBlobExcerptData.PullIssueIndex -}}
+{{$canAddComment := and ctx.RootData.SignedUserID (or $diffBlobExcerptData.PullIssueIndex ctx.RootData.CanCommentOnCommit) -}}
 <colgroup>
 	<col width="50">
 	<col width="10">
@@ -129,6 +129,23 @@
 					<td class="add-comment-right" colspan="4">
 						{{if eq $line.GetCommentSide "proposed"}}
 							{{template "repo/diff/conversation" dict "comments" $line.Comments}}
+						{{end}}
+					</td>
+				</tr>
+			{{end}}
+			{{$commitMatch := ""}}{{if and $line.IsDiffLineDel $hasMatch}}{{$commitMatch = index $section.Lines $line.Match}}{{end}}
+			{{if or $line.CommitComments (and $line.IsDiffLineDel $hasMatch $commitMatch.CommitComments)}}
+				<tr class="add-comment" data-line-type="{{$line.GetHTMLDiffLineType}}">
+					<td class="add-comment-left" colspan="4">
+						{{template "repo/diff/commit_conversation" dict "comments" ($line.CommitCommentsBySide "previous")}}
+						{{if and $line.IsDiffLineDel $hasMatch}}
+							{{template "repo/diff/commit_conversation" dict "comments" ($commitMatch.CommitCommentsBySide "previous")}}
+						{{end}}
+					</td>
+					<td class="add-comment-right" colspan="4">
+						{{template "repo/diff/commit_conversation" dict "comments" ($line.CommitCommentsBySide "proposed")}}
+						{{if and $line.IsDiffLineDel $hasMatch}}
+							{{template "repo/diff/commit_conversation" dict "comments" ($commitMatch.CommitCommentsBySide "proposed")}}
 						{{end}}
 					</td>
 				</tr>

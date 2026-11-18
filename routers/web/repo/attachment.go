@@ -25,7 +25,7 @@ func attachmentReadScope(unitType unit.Type) (auth_model.AccessTokenScope, bool)
 	switch unitType {
 	case unit.TypeIssues, unit.TypePullRequests:
 		return auth_model.AccessTokenScopeReadIssue, true
-	case unit.TypeReleases:
+	case unit.TypeReleases, unit.TypeCode:
 		return auth_model.AccessTokenScopeReadRepository, true
 	default:
 		return "", false

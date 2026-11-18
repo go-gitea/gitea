@@ -335,6 +335,16 @@ func Diff(ctx *context.Context) {
 	}
 	ctx.Data["DiffShortStat"] = diffShortStat
 
+	if ctx.Data["PageIsWiki"] == nil {
+		commitComments, err := LoadCommitCommentsForDiff(ctx, commitID)
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+		diff.LoadCommitComments(commitComments)
+		SetCommitCommentContext(ctx, commitID)
+	}
+
 	parents := make([]string, commit.ParentCount())
 	for i := 0; i < commit.ParentCount(); i++ {
 		sha, err := commit.ParentID(i)

@@ -82,6 +82,8 @@ type DiffLine struct {
 	SectionInfo *DiffLineSectionInfo
 	IsTruncated bool
 
+	CommitComments []*git_model.CommitComment // code comments of a single commit diff
+
 	cachedDiffInline *DiffInlineComputed
 }
 
@@ -164,7 +166,18 @@ func (d *DiffLine) GetHTMLDiffLineType() string {
 
 // CanComment returns whether a line can get commented
 func (d *DiffLine) CanComment() bool {
-	return len(d.Comments) == 0 && d.Type != DiffLineSection
+	return len(d.Comments) == 0 && len(d.CommitComments) == 0 && d.Type != DiffLineSection
+}
+
+// CommitCommentsBySide returns the commit comments of the given side ("previous" or "proposed")
+func (d *DiffLine) CommitCommentsBySide(side string) []*git_model.CommitComment {
+	var ret []*git_model.CommitComment
+	for _, c := range d.CommitComments {
+		if c.DiffSide() == side {
+			ret = append(ret, c)
+		}
+	}
+	return ret
 }
 
 // GetCommentSide returns the comment side of the first comment, if not set returns empty string
@@ -694,6 +707,35 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 		}
 	}
 	return nil
+}
+
+// LoadCommitComments attaches the comments of a single commit to the matching diff lines
+func (diff *Diff) LoadCommitComments(comments []*git_model.CommitComment) {
+	if len(comments) == 0 {
+		return
+	}
+	byPath := make(map[string][]*git_model.CommitComment)
+	for _, c := range comments {
+		byPath[c.TreePath] = append(byPath[c.TreePath], c)
+	}
+	for _, file := range diff.Files {
+		fileComments := byPath[file.Name]
+		if len(fileComments) == 0 {
+			continue
+		}
+		for _, section := range file.Sections {
+			for _, line := range section.Lines {
+				if line.Type == DiffLineSection {
+					continue
+				}
+				for _, c := range fileComments {
+					if (line.RightIdx > 0 && c.Line == int64(line.RightIdx)) || (line.LeftIdx > 0 && c.Line == -int64(line.LeftIdx)) {
+						line.CommitComments = append(line.CommitComments, c)
+					}
+				}
+			}
+		}
+	}
 }
 
 const cmdDiffHead = "diff --git "

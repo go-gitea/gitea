@@ -1,0 +1,21 @@
+{{if .comments}}
+	{{$root := ctx.RootData}}
+	{{$firstComment := index .comments 0}}
+	<div class="conversation-holder" data-path="{{$firstComment.TreePath}}" data-side="{{if lt $firstComment.Line 0}}left{{else}}right{{end}}" data-idx="{{$firstComment.UnsignedLine}}">
+		<div class="field comment-code-cloud">
+			<div class="comment-list">
+				<div class="ui comments">
+					{{template "repo/diff/commit_comments" dict "comments" .comments}}
+				</div>
+			</div>
+			{{if $root.CanCommentOnCommit}}
+				<div class="flex-text-block tw-mt-2 tw-flex-wrap tw-justify-end">
+					<button type="button" class="comment-form-reply ui primary icon tiny button">
+						{{svg "octicon-reply" 12}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
+					</button>
+				</div>
+				{{template "repo/diff/commit_comment_form" dict "Reply" $firstComment}}
+			{{end}}
+		</div>
+	</div>
+{{end}}

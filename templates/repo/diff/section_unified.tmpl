@@ -1,7 +1,7 @@
 {{$file := $.file}}
 {{/* this tmpl is also used by the PR Conversation page, so "DiffBlobExcerptData" may not exist */}}
 {{$diffBlobExcerptData := ctx.RootData.DiffBlobExcerptData}}
-{{$canAddComment := and ctx.RootData.SignedUserID $diffBlobExcerptData.PullIssueIndex}}
+{{$canAddComment := and ctx.RootData.SignedUserID (or $diffBlobExcerptData.PullIssueIndex ctx.RootData.CanCommentOnCommit)}}
 <colgroup>
 	<col width="50">
 	<col width="50">
@@ -45,6 +45,14 @@
 			<tr class="add-comment" data-line-type="{{$line.GetHTMLDiffLineType}}">
 				<td class="add-comment-left add-comment-right" colspan="5">
 					{{template "repo/diff/conversation" dict "comments" $line.Comments}}
+				</td>
+			</tr>
+		{{end}}
+		{{if $line.CommitComments}}
+			<tr class="add-comment" data-line-type="{{$line.GetHTMLDiffLineType}}">
+				<td class="add-comment-left add-comment-right" colspan="5">
+					{{template "repo/diff/commit_conversation" dict "comments" ($line.CommitCommentsBySide "previous")}}
+					{{template "repo/diff/commit_conversation" dict "comments" ($line.CommitCommentsBySide "proposed")}}
 				</td>
 			</tr>
 		{{end}}

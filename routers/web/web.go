@@ -1304,6 +1304,19 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Group("/{username}/{reponame}/{type:issues}", addIssuesPullsViewRoutes, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests))
 	m.Group("/{username}/{reponame}/{type:pulls}", addIssuesPullsViewRoutes, optSignIn, context.RepoAssignment, reqUnitPullsReader)
 
+	m.Group("/{username}/{reponame}/commit_comments", func() {
+		m.Get("/{id}/attachments", repo.GetCommitCommentAttachments)
+		m.Get("/attachments/{uuid}", repo.GetAttachment)
+	}, optSignIn, context.RepoAssignment, reqUnitCodeReader)
+	m.Group("/{username}/{reponame}/commit_comments", func() {
+		m.Get("/new/{sha:[a-f0-9]{7,64}}", repo.NewCommitCommentForm)
+		m.Post("/create/{sha:[a-f0-9]{7,64}}", web.Bind[*forms.CommitCommentForm](), repo.CreateCommitComment)
+		m.Post("/{id}/edit", repo.UpdateCommitComment)
+		m.Post("/{id}/delete", repo.DeleteCommitComment)
+		m.Post("/attachments", repo.UploadIssueAttachment)
+		m.Post("/attachments/remove", repo.DeletePendingAttachment)
+	}, reqSignIn, context.RepoAssignment, reqUnitCodeReader, context.RepoMustNotBeArchived())
+
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/comments/{id}/attachments", repo.GetCommentAttachments)
 		m.Get("/labels", repo.RetrieveLabelsForList, repo.Labels)

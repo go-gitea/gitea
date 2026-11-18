@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
@@ -109,12 +110,15 @@ func TestDeleteOrphanedAttachments(t *testing.T) {
 	issue := &issues_model.Issue{}
 	release := &repo_model.Release{}
 	comment := &issues_model.Comment{}
-	require.NoError(t, db.Insert(t.Context(), issue, release, comment))
+	commitComment := &git_model.CommitComment{}
+	require.NoError(t, db.Insert(t.Context(), issue, release, comment, commitComment))
 	require.NoError(t, db.Insert(t.Context(), []*repo_model.Attachment{
 		{UUID: "valid-issue", IssueID: issue.ID},
 		{UUID: "valid-release", ReleaseID: release.ID},
 		{UUID: "valid-comment", CommentID: comment.ID},
+		{UUID: "valid-commit-comment", CommitCommentID: commitComment.ID},
 		{UUID: "unlinked"},
+		{UUID: "orphaned-commit-comment", CommitCommentID: unittest.NonexistentID},
 		{UUID: "orphaned-issue", IssueID: unittest.NonexistentID},
 		{UUID: "orphaned-release", ReleaseID: unittest.NonexistentID},
 		{UUID: "orphaned-comment", IssueID: issue.ID, CommentID: unittest.NonexistentID},
@@ -125,7 +129,9 @@ func TestDeleteOrphanedAttachments(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{UUID: "valid-issue"})
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{UUID: "valid-release"})
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{UUID: "valid-comment"})
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{UUID: "valid-commit-comment"})
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{UUID: "unlinked"})
+	unittest.AssertNotExistsBean(t, &repo_model.Attachment{UUID: "orphaned-commit-comment"})
 	unittest.AssertNotExistsBean(t, &repo_model.Attachment{UUID: "orphaned-issue"})
 	unittest.AssertNotExistsBean(t, &repo_model.Attachment{UUID: "orphaned-release"})
 	unittest.AssertNotExistsBean(t, &repo_model.Attachment{UUID: "orphaned-comment"})

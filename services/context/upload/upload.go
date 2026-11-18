@@ -134,6 +134,16 @@ func AddUploadContext(ctx *context.Context, uploadType string) {
 			UploadMaxSize:   setting.Attachment.MaxSize,
 			NeedUuidLink:    true,
 		}
+	case "commit_comment":
+		ctx.Data["UploadOptions"] = uploadOptions{
+			UploadUrl:       ctx.Repo.RepoLink + "/commit_comments/attachments",
+			UploadRemoveUrl: ctx.Repo.RepoLink + "/commit_comments/attachments/remove",
+			UploadLinkUrl:   ctx.Repo.RepoLink + "/commit_comments/attachments",
+			UploadAccepts:   strings.ReplaceAll(setting.Attachment.AllowedTypes, "|", ","),
+			UploadMaxFiles:  setting.Attachment.MaxFiles,
+			UploadMaxSize:   setting.Attachment.MaxSize,
+			NeedUuidLink:    true,
+		}
 	default:
 		setting.PanicInDevOrTesting("Invalid upload type: %s", uploadType)
 	}
