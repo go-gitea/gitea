@@ -79,35 +79,21 @@ func newMigrationPolicy(selectProxy func(*http.Request) (*url.URL, error)) *poli
 	return policy.NewPolicy("migrations", policyMode(setting.Migrations.EgressMode),
 		policy.WithAllow(setting.Migrations.AllowedHostList, "migrations.ALLOWED_HOST_LIST"),
 		policy.WithBlock(setting.Migrations.BlockedHostList, "migrations.BLOCKED_HOST_LIST"),
-		policy.WithLocalNeedsIPAllow(),
+		policy.WithInternalRanges(setting.Migrations.AllowedInternalRanges, "migrations.ALLOWED_INTERNAL_RANGES"),
 		policy.WithProxy(selectProxy))
 }
 
 func NewWebhookPolicy() *policy.Policy {
-	var p *policy.Policy
-	selectProxy := proxy.WebHookProxy()
-	if webhookProxy := setting.Webhook.ProxyURLFixed; webhookProxy != nil {
-		next := selectProxy
-		selectProxy = func(req *http.Request) (*url.URL, error) {
-			u, err := next(req)
-			if err == nil && u == webhookProxy {
-				err = p.CheckHost(req.URL) // the webhook proxy resolves the target, so only its name can be checked
-			}
-			return u, err
-		}
-	}
-	p = policy.NewPolicy("webhook", policyMode(setting.Security.EgressMode),
+	return policy.NewPolicy("webhook", policyMode(setting.Security.EgressMode),
 		policy.WithAllow(setting.Webhook.AllowedHostList, "security.ALLOWED_HOST_LIST"),
-		policy.WithLocalNeedsIPAllow(),
-		policy.WithProxy(selectProxy))
-
-	return p
+		policy.WithInternalRanges(setting.Security.AllowedInternalRanges, "security.ALLOWED_INTERNAL_RANGES"),
+		policy.WithProxy(proxy.WebHookProxy()))
 }
 
 func NewSecurityPolicy(usage string) *policy.Policy {
 	return policy.NewPolicy(usage, policyMode(setting.Security.EgressMode),
 		policy.WithAllow(setting.Security.AllowedHostList, "security.ALLOWED_HOST_LIST"),
-		policy.WithLocalNeedsIPAllow(),
+		policy.WithInternalRanges(setting.Security.AllowedInternalRanges, "security.ALLOWED_INTERNAL_RANGES"),
 		policy.WithProxy(proxy.Proxy()))
 }
 

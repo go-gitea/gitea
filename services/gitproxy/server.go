@@ -39,8 +39,15 @@ const (
 	directHeader = "X-Gitea-Direct"  // asks for a CONNECT tunnel that skips the operator's proxy, as git:// remotes never used one
 )
 
-// proxyDialer reaches the operator's proxies, which are configuration rather than user input
-var proxyDialer = &net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}
+// directIdle bounds how long a git:// tunnel may stay silent once git has half-closed its side.
+// Protocol v2 closes the write side before receiving the pack (fetch-pack.c close(fd[1])), so a
+// live clone may be silent for a long pack build. The bound must exceed every [git.timeout], so
+// the reap can only fire after git itself was killed — a remote that ignores the half-close then
+// cannot hold the tunnel's sockets, splice pipe and goroutine open forever.
+func directIdle() time.Duration {
+	t := max(setting.Git.Timeout.Migrate, setting.Git.Timeout.Mirror, setting.Git.Timeout.GC)
+	return time.Duration(t)*time.Second + 30*time.Second
+}
 
 // copyBuffers beats the reverse proxy's 32 KiB default as it flushes every write, the transport's ReadBufferSize lets a read span chunks
 type copyBuffers struct{}
@@ -60,13 +67,14 @@ type server struct {
 
 func newServer(p *policy.Policy, auth string, proxyTLS *tls.Config) *server {
 	s := &server{auth: auth, policy: p, dial: p.NewDialContext(), proxyTLS: cmp.Or(proxyTLS, &tls.Config{})}
-	transport := p.NewHTTPTransport()
-	transport.Proxy = s.upstreamProxy
-	transport.TLSClientConfig = s.proxyTLS.Clone() // the transport adds its ALPN protocols to the config it gets
-	transport.ReadBufferSize = 64 * 1024
+	base := &http.Transport{
+		Proxy:           s.upstreamProxy,
+		TLSClientConfig: s.proxyTLS.Clone(), // the transport adds its ALPN protocols to the config it gets
+		ReadBufferSize:  64 * 1024,
+	}
 	s.reverseProxy = &httputil.ReverseProxy{
 		Rewrite:       func(*httputil.ProxyRequest) {},
-		Transport:     transport,
+		Transport:     p.NewHTTPTransport(base),
 		FlushInterval: -1,
 		BufferPool:    copyBuffers{},
 		ErrorHandler:  func(w http.ResponseWriter, _ *http.Request, err error) { writeUpstreamError(w, err) },
@@ -201,9 +209,12 @@ func (s *server) handleConnect(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
+	direct := r.Header.Get(directHeader) != ""
 	dial := s.dialUpstream
-	if r.Header.Get(directHeader) != "" {
+	idle := time.Duration(0) // curl never half-closes, it is done with a tunnel it closes
+	if direct {
 		dial = func(ctx context.Context, target string) (net.Conn, error) { return s.dial(ctx, "tcp", target) }
+		idle = directIdle() // the git:// helper half-closes and waits for the remote's pack
 	}
 	upstream, err := dial(ctx, r.URL.Host)
 	if err != nil {
@@ -221,7 +232,7 @@ func (s *server) handleConnect(w http.ResponseWriter, r *http.Request) {
 		_ = upstream.Close()
 		return
 	}
-	relay(withBuffered(client, buffered.Reader), upstream)
+	relay(withBuffered(client, buffered.Reader), upstream, idle)
 }
 
 // upstreamProxy selects the operator's proxy for req, local targets are dialed directly as they would name the proxy's own host
@@ -249,7 +260,7 @@ func (s *server) dialUpstream(ctx context.Context, target string) (net.Conn, err
 	case proxyURL == nil:
 		return s.dial(ctx, "tcp", target)
 	case proxyURL.Scheme == "socks5" || proxyURL.Scheme == "socks5h":
-		dialer, err := proxy.FromURL(proxyURL, proxyDialer)
+		dialer, err := proxy.FromURL(proxyURL, policy.ProxyDialer())
 		if err != nil {
 			return nil, err
 		}
@@ -264,7 +275,7 @@ func (s *server) dialUpstream(ctx context.Context, target string) (net.Conn, err
 }
 
 func (s *server) connectVia(ctx context.Context, proxyURL *url.URL, target string) (net.Conn, error) {
-	conn, err := proxyDialer.DialContext(ctx, "tcp", policy.ProxyDialAddr(proxyURL))
+	conn, err := policy.ProxyDialer().DialContext(ctx, "tcp", policy.ProxyDialAddr(proxyURL))
 	if err != nil {
 		return nil, err
 	}
@@ -373,15 +384,25 @@ func withBuffered(conn net.Conn, r *bufio.Reader) net.Conn {
 	return &bufferedConn{Conn: conn, r: r}
 }
 
-// relay copies both ways and passes each end of stream on, the git:// protocol needs the half-close
-func relay(client, upstream net.Conn) {
+// relay copies both ways and passes each end of stream on, the git:// protocol needs the half-close.
+// Once the client has finished, the tunnel lives only while the upstream keeps sending: a window
+// of silence ends it, so a remote that ignores the half-close cannot hold the tunnel's sockets,
+// splice pipe and goroutine open forever.
+func relay(client, upstream net.Conn, idle time.Duration) {
 	done := make(chan struct{})
 	go func() {
 		_, _ = io.Copy(upstream, client)
 		closeWrite(upstream)
+		_ = upstream.SetReadDeadline(time.Now()) // wakes the copy below, which goes on under idle deadlines
 		close(done)
 	}()
-	_, _ = io.Copy(client, upstream)
+	for halfClosed := false; ; halfClosed = true {
+		n, err := io.Copy(client, upstream)
+		if !errors.Is(err, os.ErrDeadlineExceeded) || halfClosed && n == 0 {
+			break
+		}
+		_ = upstream.SetReadDeadline(time.Now().Add(idle)) // data in a window means the remote is alive
+	}
 	closeWrite(client)
 	<-done
 	_ = client.Close()
