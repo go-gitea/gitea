@@ -225,23 +225,18 @@ func TestCodespaceInitRequiresSSHForSSHPreferred(t *testing.T) {
 	assert.ErrorContains(t, err, "[server] DISABLE_SSH=true")
 }
 
-func TestValidateCodespaceConfigAndTimings(t *testing.T) {
-	t.Cleanup(test.MockVariableValue(&setting.Codespace.ControlPlaneTimeout, 10*time.Second))
-	t.Cleanup(test.MockVariableValue(&setting.Codespace.ManagerOfflineTimeout, 80*time.Second))
-	t.Cleanup(test.MockVariableValue(&setting.Codespace.OperationLeaseTimeout, 1500*time.Millisecond))
-	t.Cleanup(test.MockVariableValue(&setting.Codespace.OperationMaxDuration, 3*time.Hour))
+func TestValidateCodespaceConfig(t *testing.T) {
+	t.Cleanup(test.MockVariableValue(&setting.Codespace.OperationMaxDuration, time.Minute))
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.LogMaxSize, int64(32*1024*1024)))
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.AutoStopDefaultTimeout, 25*time.Minute))
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.AutoStopMinTimeout, 3*time.Minute))
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.AutoStopMaxTimeout, 24*time.Hour))
 
 	require.NoError(t, ValidateCodespaceConfig())
-	heartbeatMillis, metadataRefreshMillis, _ := ManagerServiceTimings()
-	assert.EqualValues(t, 20_000, heartbeatMillis)
-	assert.EqualValues(t, 40_000, metadataRefreshMillis)
-
-	t.Cleanup(test.MockVariableValue(&setting.Codespace.ControlPlaneTimeout, 21*time.Second))
-	require.ErrorContains(t, ValidateCodespaceConfig(), "CONTROL_PLANE_TIMEOUT")
+	for _, duration := range []time.Duration{0, -time.Second, 1500 * time.Millisecond} {
+		setting.Codespace.OperationMaxDuration = duration
+		require.ErrorContains(t, ValidateCodespaceConfig(), "OPERATION_MAX_DURATION")
+	}
 }
 
 func TestDeclareManagerRejectsDeletedManager(t *testing.T) {

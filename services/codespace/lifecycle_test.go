@@ -14,7 +14,6 @@ import (
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
-	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -255,7 +254,7 @@ func TestReportRuntimeMetadataResourceUsageRefresh(t *testing.T) {
 	assert.EqualValues(t, 250, entry.Metadata.ResourceUsage.CPU.UsedMillicores)
 	assert.NotNil(t, creatorResourceUsageView(entry.Metadata.ResourceUsage))
 
-	entry.Metadata.ResourceUsage.ObservedUnix = time.Now().Add(-setting.Codespace.ManagerOfflineTimeout*2 - time.Second).Unix()
+	entry.Metadata.ResourceUsage.ObservedUnix = time.Now().Add(-runtimeMetadataMaxAge - time.Second).Unix()
 	require.NoError(t, putRuntimeMetadataEntry(codespaceID, entry))
 	metadata.ResourceUsage = nil
 	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, options))

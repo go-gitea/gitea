@@ -69,7 +69,7 @@ func TestFetchOperationsClaimsCreate(t *testing.T) {
 			operation := result.Operations[0]
 			assert.Equal(t, codespaceID, operation.GetCodespaceId())
 			assert.EqualValues(t, 31, operation.GetOperationRversion())
-			assert.EqualValues(t, setting.Codespace.OperationLeaseTimeout/time.Millisecond, operation.GetLeaseValidForMilliseconds())
+			assert.EqualValues(t, operationLeaseDuration/time.Millisecond, operation.GetLeaseValidForMilliseconds())
 			create := operation.GetCreate()
 			require.NotNil(t, create)
 			assert.Equal(t, source.path, create.GetDevContainer().GetRepositoryPath())
@@ -363,7 +363,7 @@ func TestFetchOperationsRenewsObservedOperation(t *testing.T) {
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	codespaceID := int64(1025)
 	now := time.Now()
-	originalDeadline := now.Add(setting.Codespace.OperationLeaseTimeout / 4).Unix()
+	originalDeadline := now.Add(operationLeaseDuration / 4).Unix()
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
 		ID:                    codespaceID,
 		Status:                codespace_model.StatusCreating,
@@ -385,7 +385,7 @@ func TestFetchOperationsRenewsObservedOperation(t *testing.T) {
 	require.Len(t, result.RenewedLeases, 1)
 	assert.Equal(t, codespaceID, result.RenewedLeases[0].GetCodespaceId())
 	assert.EqualValues(t, 32, result.RenewedLeases[0].GetOperationRversion())
-	assert.EqualValues(t, setting.Codespace.OperationLeaseTimeout/time.Millisecond, result.RenewedLeases[0].GetLeaseValidForMilliseconds())
+	assert.EqualValues(t, operationLeaseDuration/time.Millisecond, result.RenewedLeases[0].GetLeaseValidForMilliseconds())
 	deadline := loadServiceCodespace(t, codespaceID).OperationDeadlineUnix
 	assert.Greater(t, deadline, originalDeadline)
 
@@ -477,6 +477,33 @@ func TestFetchOperationsRedeliversUnobservedRunningOperation(t *testing.T) {
 	assert.Positive(t, result.Operations[0].GetLeaseValidForMilliseconds())
 	assert.LessOrEqual(t, result.Operations[0].GetLeaseValidForMilliseconds(), int64(time.Minute/time.Millisecond))
 	assert.Equal(t, originalDeadline, loadServiceCodespace(t, codespaceID).OperationDeadlineUnix)
+}
+
+func TestGrantLease(t *testing.T) {
+	now := time.Unix(1_800_000_000, 0)
+	for _, tc := range []struct {
+		name     string
+		maximum  time.Duration
+		started  int64
+		expected time.Duration
+	}{
+		{name: "initial lease", maximum: 2 * time.Hour, expected: 5 * time.Minute},
+		{name: "short operation", maximum: time.Minute, expected: time.Minute},
+		{name: "renewal near deadline", maximum: 2 * time.Hour, started: now.Add(-2*time.Hour + 20*time.Second).Unix(), expected: 20 * time.Second},
+		{name: "expired operation", maximum: 2 * time.Hour, started: now.Add(-2 * time.Hour).Unix()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Cleanup(test.MockVariableValue(&setting.Codespace.OperationMaxDuration, tc.maximum))
+			milliseconds, deadline, ok := grantLease(tc.started, now)
+			assert.Equal(t, tc.expected > 0, ok)
+			assert.Equal(t, tc.expected.Milliseconds(), milliseconds)
+			if ok {
+				assert.Equal(t, now.Add(tc.expected).Unix(), deadline)
+			} else {
+				assert.Zero(t, deadline)
+			}
+		})
+	}
 }
 
 func TestFetchOperationsExpiresRunningOperation(t *testing.T) {

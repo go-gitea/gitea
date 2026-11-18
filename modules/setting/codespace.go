@@ -11,15 +11,12 @@ import (
 	"github.com/dustin/go-humanize"
 )
 
-// Codespace contains site-wide defaults for Codespace creation.
+// Codespace contains administrator policies for Codespace integration.
 var Codespace = struct {
 	Enabled                bool
 	GitProtocol            string
 	GitSSHKnownHosts       []string
 	GatewayRequireHTTPS    bool
-	ControlPlaneTimeout    time.Duration
-	ManagerOfflineTimeout  time.Duration
-	OperationLeaseTimeout  time.Duration
 	OperationMaxDuration   time.Duration
 	LogMaxSize             int64
 	AutoStopDefaultTimeout time.Duration
@@ -30,9 +27,6 @@ var Codespace = struct {
 	GitProtocol:            "http",
 	GitSSHKnownHosts:       nil,
 	GatewayRequireHTTPS:    false,
-	ControlPlaneTimeout:    30 * time.Second,
-	ManagerOfflineTimeout:  120 * time.Second,
-	OperationLeaseTimeout:  300 * time.Second,
 	OperationMaxDuration:   2 * time.Hour,
 	LogMaxSize:             64 * 1024 * 1024,
 	AutoStopDefaultTimeout: 30 * time.Minute,
@@ -45,9 +39,6 @@ func loadCodespaceFrom(rootCfg ConfigProvider) {
 	Codespace.Enabled = sec.Key("ENABLED").MustBool(true)
 	Codespace.GitSSHKnownHosts = sec.Key("GIT_SSH_KNOWN_HOSTS").Strings(",")
 	Codespace.GatewayRequireHTTPS = sec.Key("GATEWAY_REQUIRE_HTTPS").MustBool(false)
-	Codespace.ControlPlaneTimeout = sec.Key("CONTROL_PLANE_TIMEOUT").MustDuration(30 * time.Second)
-	Codespace.ManagerOfflineTimeout = sec.Key("MANAGER_OFFLINE_TIMEOUT").MustDuration(120 * time.Second)
-	Codespace.OperationLeaseTimeout = sec.Key("OPERATION_LEASE_TIMEOUT").MustDuration(300 * time.Second)
 	Codespace.OperationMaxDuration = sec.Key("OPERATION_MAX_DURATION").MustDuration(2 * time.Hour)
 	Codespace.LogMaxSize = mustCodespaceBytes(sec, "LOG_MAX_SIZE", "64MiB")
 	Codespace.AutoStopDefaultTimeout = sec.Key("AUTO_STOP_DEFAULT_TIMEOUT").MustDuration(30 * time.Minute)

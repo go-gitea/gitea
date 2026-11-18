@@ -520,7 +520,7 @@ func creatorSSHView(manager *codespace_model.Manager, metadata runtimeMetadata) 
 }
 
 func creatorResourceUsageView(usage runtimeMetadataResourceUsage) *CreatorResourceUsageView {
-	if usage.ObservedUnix <= 0 || time.Now().Unix()-usage.ObservedUnix >= int64(setting.Codespace.ManagerOfflineTimeout*2/time.Second) {
+	if usage.ObservedUnix <= 0 || time.Now().Unix()-usage.ObservedUnix >= int64(runtimeMetadataMaxAge/time.Second) {
 		return nil
 	}
 	return &CreatorResourceUsageView{

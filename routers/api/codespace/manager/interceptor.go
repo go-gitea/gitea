@@ -7,11 +7,11 @@ import (
 	"context"
 	"errors"
 	"strconv"
+	"time"
 
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	"gitea.dev/codespace-proto-go/codespace/v1/codespacev1connect"
 	codespace_model "gitea.dev/models/codespace"
-	"gitea.dev/modules/setting"
 	codespace_service "gitea.dev/services/codespace"
 
 	"connectrpc.com/connect/v2"
@@ -19,15 +19,16 @@ import (
 )
 
 const (
-	managerIDHeader     = "x-codespace-manager-id"
-	managerSecretHeader = "x-codespace-manager-secret"
+	managerIDHeader       = "x-codespace-manager-id"
+	managerSecretHeader   = "x-codespace-manager-secret"
+	managerRequestTimeout = 30 * time.Second
 )
 
 type managerCtxKey struct{}
 
 func withManager(next connect.ServerFunc) connect.ServerFunc {
 	return func(ctx context.Context, spec connect.Spec, stream connect.ServerStream) error {
-		ctx, cancel := context.WithTimeout(ctx, setting.Codespace.ControlPlaneTimeout)
+		ctx, cancel := context.WithTimeout(ctx, managerRequestTimeout)
 		defer cancel()
 		if spec.Procedure == codespacev1connect.ManagerServiceRegisterManagerProcedure {
 			return next(ctx, spec, stream)

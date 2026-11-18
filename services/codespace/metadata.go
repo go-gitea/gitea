@@ -441,7 +441,7 @@ func putRuntimeMetadataEntry(codespaceID int64, entry runtimeMetadataCacheEntry)
 		return errors.New("cache is not initialized")
 	}
 	// Retain metadata beyond one offline window so transient missed reports do not immediately remove usable endpoint state.
-	return cache.GetCache().PutJSON(runtimeMetadataCacheKey(codespaceID), entry, int64((setting.Codespace.ManagerOfflineTimeout*2)/time.Second))
+	return cache.GetCache().PutJSON(runtimeMetadataCacheKey(codespaceID), entry, int64(runtimeMetadataMaxAge/time.Second))
 }
 
 func runtimeMetadataCacheKey(codespaceID int64) string {

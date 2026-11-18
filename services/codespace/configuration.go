@@ -16,9 +16,13 @@ import (
 )
 
 const (
-	openTokenExpire           = 60 * time.Second
-	runtimeMetadataMaxSize    = 256 * 1024
-	devContainerConfigMaxSize = 64 * 1024
+	managerOfflineTimeout          = 2 * time.Minute
+	managerHeartbeatInterval       = 30 * time.Second
+	runtimeMetadataRefreshInterval = 30 * time.Second
+	runtimeMetadataMaxAge          = 4 * time.Minute
+	openTokenExpire                = 60 * time.Second
+	runtimeMetadataMaxSize         = 256 * 1024
+	devContainerConfigMaxSize      = 64 * 1024
 )
 
 // Init validates Codespace runtime entrypoint configuration during web startup.
@@ -42,29 +46,11 @@ func Init(ctx context.Context) error {
 
 // ValidateCodespaceConfig verifies cross-field Codespace settings before runtime entrypoints start.
 func ValidateCodespaceConfig() error {
-	if setting.Codespace.ControlPlaneTimeout <= 0 {
-		return errors.New("[codespace] CONTROL_PLANE_TIMEOUT must be positive")
-	}
-	if setting.Codespace.ManagerOfflineTimeout <= 0 {
-		return errors.New("[codespace] MANAGER_OFFLINE_TIMEOUT must be positive")
-	}
-	if setting.Codespace.OperationLeaseTimeout <= 0 {
-		return errors.New("[codespace] OPERATION_LEASE_TIMEOUT must be positive")
-	}
-	if setting.Codespace.OperationLeaseTimeout%time.Millisecond != 0 {
-		return errors.New("[codespace] OPERATION_LEASE_TIMEOUT must be a positive whole number of milliseconds")
-	}
-	if setting.Codespace.OperationMaxDuration <= setting.Codespace.OperationLeaseTimeout {
-		return errors.New("[codespace] OPERATION_MAX_DURATION must be greater than OPERATION_LEASE_TIMEOUT")
+	if setting.Codespace.OperationMaxDuration <= 0 {
+		return errors.New("[codespace] OPERATION_MAX_DURATION must be positive")
 	}
 	if setting.Codespace.OperationMaxDuration%time.Second != 0 {
 		return errors.New("[codespace] OPERATION_MAX_DURATION must be a positive whole number of seconds")
-	}
-	if setting.Codespace.ManagerOfflineTimeout%time.Second != 0 {
-		return errors.New("[codespace] MANAGER_OFFLINE_TIMEOUT must be a positive whole number of seconds")
-	}
-	if setting.Codespace.ControlPlaneTimeout > setting.Codespace.ManagerOfflineTimeout/4 {
-		return errors.New("[codespace] CONTROL_PLANE_TIMEOUT must be no greater than MANAGER_OFFLINE_TIMEOUT/4")
 	}
 	if setting.Codespace.AutoStopMinTimeout <= 0 ||
 		setting.Codespace.AutoStopDefaultTimeout <= 0 ||
@@ -144,7 +130,7 @@ func resolveGitTransportCapabilities(protocol string) (*gitTransportCapabilities
 
 // ManagerServiceTimings returns server-selected ManagerService control values.
 func ManagerServiceTimings() (heartbeatMillis, metadataRefreshMillis int64, giteaWebURL string) {
-	return int64((setting.Codespace.ManagerOfflineTimeout / 4) / time.Millisecond),
-		int64((setting.Codespace.ManagerOfflineTimeout / 2) / time.Millisecond),
+	return managerHeartbeatInterval.Milliseconds(),
+		runtimeMetadataRefreshInterval.Milliseconds(),
 		setting.AppURL
 }

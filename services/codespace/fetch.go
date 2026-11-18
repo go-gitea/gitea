@@ -29,6 +29,7 @@ import (
 )
 
 const (
+	operationLeaseDuration     = 5 * time.Minute
 	fetchMaxOperations         = 256
 	fetchMaxObservedOperations = 10000
 	fetchMaxQueuedCandidates   = 1024
@@ -228,7 +229,7 @@ func normalizeAcceptedCreateTags(tags []string, declared []ManagerEnvironmentDec
 }
 
 func isManagerOffline(manager *codespace_model.Manager) bool {
-	return manager.LastOnlineUnix <= 0 || time.Now().Unix()-manager.LastOnlineUnix > int64(setting.Codespace.ManagerOfflineTimeout/time.Second)
+	return manager.LastOnlineUnix <= 0 || time.Now().Unix()-manager.LastOnlineUnix > int64(managerOfflineTimeout/time.Second)
 }
 
 func loadRunningAndObservedOperations(ctx context.Context, managerID int64, observed []*codespacev1.ObservedOperation) ([]*codespace_model.Codespace, map[int64]int64, error) {
@@ -297,7 +298,7 @@ func appendRunningOperations(ctx context.Context, rows []*codespace_model.Codesp
 		}
 		if hasObserved && observedVersion == codespace.OperationRVersion {
 			leaseMillis := remainingLease.Milliseconds()
-			if remainingLease <= setting.Codespace.OperationLeaseTimeout/2 {
+			if remainingLease <= operationLeaseDuration/2 {
 				granted, deadlineUnix, ok := grantLease(codespace.OperationStartedUnix, grantTime)
 				if !ok {
 					summary, err := db.WithTx2(ctx, func(ctx context.Context) (*internalStateSummary, error) {
@@ -461,7 +462,7 @@ func grantLease(operationStartedUnix int64, grantTime time.Time) (int64, int64, 
 	if remaining < time.Millisecond {
 		return 0, 0, false
 	}
-	lease := min(remaining, setting.Codespace.OperationLeaseTimeout)
+	lease := min(remaining, operationLeaseDuration)
 	leaseMillis := lease.Milliseconds()
 	leaseDeadlineUnix := ceilUnix(grantTime.Add(lease))
 	totalDeadlineUnix := totalDeadline.Unix()

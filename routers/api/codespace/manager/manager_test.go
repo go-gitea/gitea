@@ -88,8 +88,8 @@ func TestManagerServiceAuthenticationAndDeclaration(t *testing.T) {
 
 	declared, err := client.DeclareManager(managerContext(t.Context(), managerID, secret), declaration)
 	require.NoError(t, err)
-	assert.Positive(t, declared.GetHeartbeatIntervalMilliseconds())
-	assert.Positive(t, declared.GetRuntimeMetadataRefreshIntervalMilliseconds())
+	assert.EqualValues(t, 30_000, declared.GetHeartbeatIntervalMilliseconds())
+	assert.EqualValues(t, 30_000, declared.GetRuntimeMetadataRefreshIntervalMilliseconds())
 	assert.NotEmpty(t, declared.GetGiteaWebUrl())
 
 	manager := new(codespace_model.Manager)
