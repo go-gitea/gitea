@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -288,10 +289,7 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 		return
 	}
 	if ctx.HasError() {
-		if loadWebhookHistory(ctx, orCtx, w) {
-			orCtx.setWebhookEditData(ctx, w)
-			ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		}
+		renderWebhookEdit(ctx, orCtx, w)
 		return
 	}
 
@@ -642,20 +640,15 @@ func loadWebhookHistory(ctx *context.Context, orCtx *ownerRepoCtx, w *webhook.We
 		return false
 	}
 
-	pending := false
-	for _, task := range tasks {
-		pending = pending || (!task.IsSucceed && (!task.IsDelivered || task.IsDeliveryInProgress()))
-	}
 	ctx.Data["Webhook"] = w
 	ctx.Data["WebhookLink"] = fmt.Sprintf("%s/%d", orCtx.Link, w.ID)
-	ctx.Data["WebhookHistoryPending"] = pending
+	ctx.Data["WebhookHistoryPending"] = slices.ContainsFunc(tasks, (*webhook.HookTask).IsDeliveryPending)
 	ctx.Data["History"] = tasks
 	return true
 }
 
 func renderWebhookHistory(ctx *context.Context, orCtx *ownerRepoCtx, w *webhook.Webhook) {
 	if loadWebhookHistory(ctx, orCtx, w) {
-		ctx.Resp.Header().Set("Cache-Control", "no-store")
 		ctx.HTML(http.StatusOK, tplHookHistory)
 	}
 }
@@ -673,14 +666,15 @@ func WebHooksEdit(ctx *context.Context) {
 	ctx.Data["PageIsSettingsHooksEdit"] = true
 
 	orCtx, w := checkWebhook(ctx)
-	if ctx.Written() || !loadWebhookHistory(ctx, orCtx, w) {
-		return
+	if !ctx.Written() {
+		renderWebhookEdit(ctx, orCtx, w)
 	}
-	orCtx.setWebhookEditData(ctx, w)
-	ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 }
 
-func (orCtx *ownerRepoCtx) setWebhookEditData(ctx *context.Context, w *webhook.Webhook) {
+func renderWebhookEdit(ctx *context.Context, orCtx *ownerRepoCtx, w *webhook.Webhook) {
+	if !loadWebhookHistory(ctx, orCtx, w) {
+		return
+	}
 	orCtx.setFormPageData(ctx, false, w.IsSystemWebhook)
 	ctx.Data["HookType"] = w.Type
 	switch w.Type {
@@ -695,6 +689,7 @@ func (orCtx *ownerRepoCtx) setWebhookEditData(ctx *context.Context, w *webhook.W
 	case webhook_module.PACKAGIST:
 		ctx.Data["PackagistHook"] = webhook_service.GetPackagistHook(w)
 	}
+	ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 }
 
 // TestWebhook test if web hook is work fine

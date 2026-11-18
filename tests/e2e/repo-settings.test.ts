@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {expect, test} from '@playwright/test';
-import {apiCreateBranchProtection, apiCreateRepo, login, randomString} from './utils.ts';
+import {apiCreateBranchProtection, apiCreateRepo, apiCreateWebhookWithDelivery, login, randomString} from './utils.ts';
 
 test('branch protection rule keeps its push allowlist and dragged priority', async ({page, request}) => {
   const owner = env.GITEA_TEST_E2E_USER;
@@ -42,4 +42,29 @@ test('branch protection rule keeps its push allowlist and dragged priority', asy
   await expect(ruleNameInput).toHaveValue('release/**');
   await expect(allowlistRadio).toBeChecked();
   await expect(page.locator('#whitelist_box .dropdown > .label')).toHaveText(owner);
+});
+
+test('webhook delivery dialog switches tabs after the history refreshes', async ({page, request}) => {
+  const owner = env.GITEA_TEST_E2E_USER;
+  const repo = `e2e-webhook-${randomString(8)}`;
+  const [hookId] = await Promise.all([
+    (async () => {
+      await apiCreateRepo(request, {name: repo});
+      return apiCreateWebhookWithDelivery(request, owner, repo);
+    })(),
+    login(page),
+  ]);
+  await page.goto(`/${owner}/${repo}/settings/hooks/${hookId}`);
+  const deliveries = page.getByRole('button', {name: /^[\da-f-]{36}$/});
+  const dialog = page.getByRole('dialog');
+  await deliveries.first().click();
+  await dialog.getByRole('button', {name: 'Close'}).click();
+  await expect(dialog).toBeHidden();
+
+  await page.getByRole('button', {name: 'Test this webhook with a fake push event.'}).click();
+  await expect(deliveries).toHaveCount(2);
+  await deliveries.last().click();
+  await dialog.getByText('Response', {exact: true}).click();
+  await expect(dialog.getByRole('heading', {name: 'Body'})).toBeVisible();
+  await expect(dialog.getByRole('heading', {name: 'Payload'})).toBeHidden();
 });

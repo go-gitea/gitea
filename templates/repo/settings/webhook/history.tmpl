@@ -11,7 +11,7 @@
 					<div class="flex-text-inline tw-flex-wrap">
 						{{if $history.IsSucceed}}
 							<span class="tw-text-green">{{svg "octicon-check"}}</span>
-						{{else if or (not $history.IsDelivered) ($history.IsDeliveryInProgress)}}
+						{{else if $history.IsDeliveryPending}}
 							<span class="tw-text-text-light">{{svg "octicon-stopwatch"}}</span>
 						{{else}}
 							<span class="tw-text-red">{{svg "octicon-alert"}}</span>
@@ -24,16 +24,7 @@
 							<span class="ui {{if $history.IsSucceed}}green{{else}}red{{end}} label">{{$respInfo.Status}}</span>
 						{{end}}
 					</div>
-					<span class="tw-text-text-light">
-						{{if $history.Delivered}}
-							{{$delivered := $history.Delivered.AsTime}}
-							<relative-time datetime="{{$delivered.Format "2006-01-02T15:04:05Z07:00"}}" format="datetime"
-								weekday="" year="numeric" month="short" day="numeric" hour="numeric" minute="numeric" second="numeric"
-								data-tooltip-content data-tooltip-interactive="true">
-								{{$delivered.Format "2006-01-02 15:04:05 -07:00"}}
-							</relative-time>
-						{{else}}-{{end}}
-					</span>
+					<span class="tw-text-text-light">{{DateUtils.FullTime $history.Delivered}}</span>
 				</div>
 
 				<dialog class="modal-dialog" id="webhook-delivery-details-{{$history.ID}}">

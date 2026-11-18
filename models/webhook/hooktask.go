@@ -55,7 +55,6 @@ const (
 	HookDeliveryErrorTimeout    HookDeliveryError = "timeout"
 	HookDeliveryErrorConnection HookDeliveryError = "connection"
 	HookDeliveryErrorBlocked    HookDeliveryError = "blocked"
-	HookDeliveryErrorOther      HookDeliveryError = "other"
 )
 
 // HookResponse represents hook task response information.
@@ -90,12 +89,16 @@ type HookTask struct {
 }
 
 func (t *HookTask) IsDeliveryInProgress() bool {
-	if !t.IsDelivered || t.IsSucceed || t.ResponseContent != "" || t.Delivered == 0 {
+	if !t.IsDelivered || t.ResponseContent != "" {
 		return false
 	}
 	// Legacy claims only recorded the time the delivery was queued.
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
 	return timeout <= 0 || time.Since(t.Delivered.AsTime()) < timeout+10*time.Second
+}
+
+func (t *HookTask) IsDeliveryPending() bool {
+	return !t.IsDelivered || t.IsDeliveryInProgress()
 }
 
 func (t *HookTask) DeliveryStatusTr(locale translation.Locale) template.HTML {

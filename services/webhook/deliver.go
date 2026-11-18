@@ -282,7 +282,7 @@ func deliveryErrorType(err error) webhook_model.HookDeliveryError {
 	if _, ok := errors.AsType[*net.OpError](err); ok {
 		return webhook_model.HookDeliveryErrorConnection
 	}
-	return webhook_model.HookDeliveryErrorOther
+	return ""
 }
 
 var webhookHTTPClient *http.Client
