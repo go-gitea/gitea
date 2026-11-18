@@ -1040,8 +1040,7 @@ func TestPullAutoMergeAfterReviewRequestRemoved(t *testing.T) {
 			require.NoError(t, pr.Issue.LoadRepo(t.Context()))
 
 			tc.block(pr)
-			_, err := automerge.ScheduleAutoMerge(t.Context(), user2, pr, repo_model.MergeStyleMerge, "auto merge test", false)
-			require.NoError(t, err)
+			require.NoError(t, automerge.ScheduleAutoMerge(t.Context(), user2, pr, repo_model.MergeStyleMerge, "auto merge test", false))
 			require.NoError(t, automergequeue.AutoMergeQueue.FlushWithContext(t.Context(), 5*time.Second))
 			assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID}).HasMerged, tc.branch)
 
