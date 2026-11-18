@@ -4,45 +4,49 @@
 package v29
 
 import (
-	"math/big"
 	"strings"
 	"testing"
 
 	"gitea.dev/modelmigration/migrationtest"
+	"gitea.dev/modules/setting"
 
-	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestRepairPackageSigningKeys(t *testing.T) {
-	type UserSetting struct {
-		ID           int64 `xorm:"pk autoincr"`
-		UserID       int64
-		SettingKey   string
-		SettingValue string `xorm:"TEXT"`
+func TestChangeActionsRawConcurrencyToText(t *testing.T) {
+	if !setting.Database.Type.IsMSSQL() {
+		t.Skip("Only MSSQL needs a migration to widen raw_concurrency")
 	}
-	x, deferrable := migrationtest.PrepareTestEnv(t, 0, new(UserSetting))
+
+	type ActionRun struct {
+		ID             int64 `xorm:"pk autoincr"`
+		RawConcurrency string
+	}
+	type ActionRunJob struct {
+		ID             int64 `xorm:"pk autoincr"`
+		RawConcurrency string
+	}
+
+	x, deferrable := migrationtest.PrepareTestEnv(t, 0, new(ActionRun), new(ActionRunJob))
 	defer deferrable()
 	if x == nil || t.Failed() {
 		return
 	}
 
-	require.NoError(t, RepairPackageSigningKeys(t.Context(), x))
+	require.NoError(t, ChangeActionsRawConcurrencyToText(t.Context(), x))
 
-	settings := map[int64]*UserSetting{}
-	require.NoError(t, x.Find(&settings))
-	assert.Equal(t, "valid", settings[4].SettingValue)
+	long := strings.Repeat("界", 1000)
+	run := &ActionRun{RawConcurrency: long}
+	job := &ActionRunJob{RawConcurrency: long}
+	_, err := x.Insert(run, job)
+	require.NoError(t, err)
 
-	readIdentity := func(armored string) (*openpgp.Entity, *openpgp.Identity) {
-		entities, err := openpgp.ReadArmoredKeyRing(strings.NewReader(armored))
-		require.NoError(t, err)
-		return entities[0], entities[0].PrimaryIdentity()
-	}
-	privateKey, originalIdentity := readIdentity(settings[1].SettingValue)
-	publicKey, identity := readIdentity(settings[2].SettingValue)
-	assert.Equal(t, privateKey.PrimaryKey.Fingerprint, publicKey.PrimaryKey.Fingerprint)
-	assert.Equal(t, originalIdentity.SelfSignature.CreationTime, identity.SelfSignature.CreationTime)
-	signature := identity.SelfSignature.RSASignature
-	assert.Equal(t, new(big.Int).SetBytes(signature.Bytes()).BitLen(), int(signature.BitLength()))
+	gotRun, gotJob := &ActionRun{ID: run.ID}, &ActionRunJob{ID: job.ID}
+	_, err = x.Get(gotRun)
+	require.NoError(t, err)
+	_, err = x.Get(gotJob)
+	require.NoError(t, err)
+	assert.Equal(t, long, gotRun.RawConcurrency)
+	assert.Equal(t, long, gotJob.RawConcurrency)
 }
