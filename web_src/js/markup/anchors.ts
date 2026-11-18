@@ -50,6 +50,7 @@ export function initMarkupAnchors(): void {
       const a = document.createElement('a');
       a.classList.add('anchor');
       a.setAttribute('href', `#${encodeURIComponent(removePrefix(heading.id))}`);
+      a.setAttribute('aria-label', heading.textContent.trim());
       a.innerHTML = svg('octicon-link');
       heading.prepend(a);
     }

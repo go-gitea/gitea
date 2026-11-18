@@ -5,7 +5,7 @@ gitea-theme-meta-info {
 
 :root {
   --is-dark-theme: false;
-  --color-primary: #4183c4;
+  --color-primary: #336fb0;
   --color-primary-contrast: #ffffff;
   --color-primary-dark-1: color-mix(in srgb, var(--color-primary) 90%, black);
   --color-primary-dark-2: color-mix(in srgb, var(--color-primary) 80%, black);
@@ -72,7 +72,7 @@ gitea-theme-meta-info {
   --color-orange: #e36501;
   --color-yellow: #fbbd08;
   --color-olive: #a9bf04;
-  --color-green: #01ad39;
+  --color-green: #04862f;
   --color-teal: #01a7a0;
   --color-blue: #167ec9;
   --color-violet: #6f43d7;
@@ -212,7 +212,7 @@ gitea-theme-meta-info {
   --color-text-light: color-mix(in srgb, var(--color-text-dark) 77%, var(--color-secondary));
   --color-text-light-1: color-mix(in srgb, var(--color-text-dark) 69%, var(--color-secondary));
   --color-text-light-2: color-mix(in srgb, var(--color-text-dark) 56%, var(--color-secondary));
-  --color-text-light-3: color-mix(in srgb, var(--color-text-dark) 44%, var(--color-secondary));
+  --color-text-light-3: color-mix(in srgb, var(--color-text-dark) 52%, var(--color-secondary));
   --color-footer: var(--color-nav-bg);
   --color-timeline: #d0d7de;
   --color-input-text: var(--color-text-dark);

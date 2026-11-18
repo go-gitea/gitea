@@ -21,7 +21,7 @@
 					{{ctx.AvatarUtils.Avatar nil 40}}
 				</span>
 			{{else}}
-				<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
+				<a class="timeline-avatar" aria-label="{{.Poster.Name}}"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
 					{{ctx.AvatarUtils.Avatar .Poster 40}}
 				</a>
 			{{end}}
@@ -361,7 +361,7 @@
 					{{/* Some timeline avatars need a offset to correctly align with their speech bubble.
 						The condition depends on whether the comment has contents/attachments,
 						review's comment is also controlled/rendered by issue comment's Content field */}}
-					<a class="timeline-avatar{{if or .Content .Attachments}} timeline-avatar-offset{{end}}"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
+					<a class="timeline-avatar{{if or .Content .Attachments}} timeline-avatar-offset{{end}}" aria-label="{{.Poster.Name}}"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
 						{{ctx.AvatarUtils.Avatar .Poster 40}}
 					</a>
 					{{end}}
@@ -595,7 +595,7 @@
 		{{else if eq .Type 32}}
 			<div class="timeline-item-group">
 				<div class="timeline-item event" id="{{.HashTag}}">
-					<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
+					<a class="timeline-avatar" aria-label="{{.Poster.Name}}"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
 						{{ctx.AvatarUtils.Avatar .Poster 40}}
 					</a>
 					<span class="badge grey">{{svg "octicon-x" 16}}</span>

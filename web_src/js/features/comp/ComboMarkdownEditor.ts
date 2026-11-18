@@ -154,7 +154,7 @@ export class ComboMarkdownEditor {
     this.textareaMarkdownToolbar.setAttribute('for', this.textarea.id);
     for (const el of this.textareaMarkdownToolbar.querySelectorAll('.markdown-toolbar-button')) {
       // upstream bug: The role code is never executed in base MarkdownButtonElement https://github.com/github/markdown-toolbar-element/issues/70
-      el.setAttribute('role', 'button');
+      el.setAttribute('role', el.getAttribute('role') ?? 'button');
       // the editor usually is in a form, so the buttons should have "type=button", avoiding conflicting with the form's submit.
       if (el.nodeName === 'BUTTON' && !el.getAttribute('type')) el.setAttribute('type', 'button');
     }
@@ -447,6 +447,7 @@ export class ComboMarkdownEditor {
     const text = this.buttonMonospace.getAttribute(enabled ? 'data-disable-text' : 'data-enable-text')!;
     this.textarea.classList.toggle('tw-font-mono', enabled);
     this.buttonMonospace.setAttribute('data-tooltip-content', text);
+    this.buttonMonospace.setAttribute('aria-label', text);
     this.buttonMonospace.setAttribute('aria-checked', String(enabled));
   }
 }

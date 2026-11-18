@@ -235,7 +235,7 @@ function commitClickedShift(commit: Commit) {
       aria-haspopup="true"
       :aria-label="locale.filter_changes_by_commit"
       :aria-controls="uniqueIdMenu"
-      :aria-activedescendant="uniqueIdShowAll"
+      :aria-expanded="menuVisible ? 'true' : 'false'"
     >
       <svg-icon name="octicon-git-commit"/>
     </button>

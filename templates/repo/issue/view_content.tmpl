@@ -8,7 +8,7 @@
 					{{ctx.AvatarUtils.Avatar nil 40}}
 				</span>
 				{{else}}
-				<a class="timeline-avatar" {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>
+				<a class="timeline-avatar" aria-label="{{.Issue.Poster.Name}}" {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>
 					{{ctx.AvatarUtils.Avatar .Issue.Poster 40}}
 				</a>
 				{{end}}
@@ -73,7 +73,7 @@
 			{{if .IsSigned}}
 				{{if and (or .IsRepoAdmin .HasIssuesOrPullsWritePermission (not .Issue.IsLocked)) (not .Repository.IsArchived)}}
 				<div class="timeline-item comment form">
-					<a class="timeline-avatar" href="{{.SignedUser.HomeLink}}">
+					<a class="timeline-avatar" aria-label="{{.SignedUser.Name}}" href="{{.SignedUser.HomeLink}}">
 						{{ctx.AvatarUtils.Avatar .SignedUser 40}}
 					</a>
 					<div class="content">

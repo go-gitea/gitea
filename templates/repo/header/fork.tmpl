@@ -9,7 +9,7 @@
 {{else if $canNotForkOwn}}
 	{{$forkHref = "#"}}
 {{end}}
-<a role="button" class="ui compact small basic button {{if $.ShowForkModal}}show-modal{{end}}" href="{{$forkHref}}"
+<a role="button" class="ui compact small basic button {{if $.ShowForkModal}}show-modal{{end}}" href="{{$forkHref}}" aria-label="{{ctx.Locale.Tr "repo.fork"}} {{CountFmt $.Repository.NumForks}}"
 	{{if and $.IsSigned $.ShowForkModal}}data-modal="#fork-repo-modal"{{end}}
 	{{if not $.IsSigned}}
 		data-tooltip-content="{{ctx.Locale.Tr "repo.fork_guest_user"}}"
