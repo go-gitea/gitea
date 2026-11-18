@@ -8,21 +8,15 @@ import (
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
-
-	"xorm.io/xorm/schemas"
+	"gitea.dev/modules/setting"
 )
 
-func ChangeActionsRawConcurrencyToText(ctx context.Context, x base.EngineMigration) error {
-	if x.Dialect().URI().DBType == schemas.SQLITE { // SQLite stores VARCHAR as TEXT already
+func ChangeActionsRawConcurrencyToText(_ context.Context, x base.EngineMigration) error {
+	if !setting.Database.Type.IsMSSQL() { // startup sync widens VARCHAR to TEXT on MySQL and PostgreSQL
 		return nil
 	}
 	for _, table := range []string{"action_run", "action_run_job"} {
-		if err := base.ModifyColumn(ctx, x, table, &schemas.Column{
-			Name:           "raw_concurrency",
-			SQLType:        schemas.SQLType{Name: schemas.Text},
-			Nullable:       true,
-			DefaultIsEmpty: true,
-		}); err != nil {
+		if _, err := x.Exec("ALTER TABLE " + table + " ALTER COLUMN raw_concurrency NVARCHAR(MAX) NULL"); err != nil {
 			return fmt.Errorf("ChangeActionsRawConcurrencyToText: %s: %w", table, err)
 		}
 	}

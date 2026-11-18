@@ -8,12 +8,17 @@ import (
 	"testing"
 
 	"gitea.dev/modelmigration/migrationtest"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestChangeActionsRawConcurrencyToText(t *testing.T) {
+	if !setting.Database.Type.IsMSSQL() {
+		t.Skip("Only MSSQL needs a migration to widen raw_concurrency")
+	}
+
 	type ActionRun struct {
 		ID             int64 `xorm:"pk autoincr"`
 		RawConcurrency string
@@ -31,7 +36,7 @@ func TestChangeActionsRawConcurrencyToText(t *testing.T) {
 
 	require.NoError(t, ChangeActionsRawConcurrencyToText(t.Context(), x))
 
-	long := strings.Repeat("a", 1000)
+	long := strings.Repeat("界", 1000)
 	run := &ActionRun{RawConcurrency: long}
 	job := &ActionRunJob{RawConcurrency: long}
 	_, err := x.Insert(run, job)
