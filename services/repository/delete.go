@@ -29,11 +29,13 @@ import (
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
+	pages_content "gitea.dev/modules/pages"
 	"gitea.dev/modules/storage"
 	actions_service "gitea.dev/services/actions"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/audit"
 	issue_service "gitea.dev/services/issue"
+	pages_service "gitea.dev/services/pages"
 
 	"xorm.io/builder"
 )
@@ -56,6 +58,16 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 	if db.InTransaction(ctx) {
 		return errors.New("DeleteRepositoryDirectly must not be called within a transaction, it deletes storage once its own transaction commits")
 	}
+	pagesUpdated, releasePagesState, err := pages_service.LockLifecycleState(ctx)
+	if err != nil {
+		return err
+	}
+	pagesStateLocked := true
+	defer func() {
+		if pagesStateLocked {
+			releasePagesState()
+		}
+	}()
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -102,6 +114,14 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		return err
 	}
 	needRewriteKeysFile := deleted > 0
+
+	// Keep the Pages row as a tombstone before removing the repository row.
+	// Both changes are part of this transaction, so a rollback leaves the
+	// repository and its published-site state consistent.
+	pagesDigests, err := pages_service.MarkRepositoryDeletedInTransaction(ctx, repoID, pagesUpdated)
+	if err != nil {
+		return err
+	}
 
 	if err := deleteDBRepository(ctx, repoID); err != nil {
 		return err
@@ -316,6 +336,8 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 	}
 
 	committer.Close()
+	releasePagesState()
+	pagesStateLocked = false
 
 	if needRewriteKeysFile {
 		if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
@@ -392,6 +414,14 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		}
 	}
 
+	for _, digest := range pagesDigests {
+		if err := pages_content.NewContentStore().Delete(repoID, digest); err != nil {
+			log.Error("remove Pages content %s for repo %d: %v", digest, repoID, err)
+		}
+	}
+	if err := pages_service.ReleaseConfirmedDomains(ctx, repoID); err != nil {
+		log.Error("release Pages domains for deleted repo %d: %v", repoID, err)
+	}
 	return nil
 }
 

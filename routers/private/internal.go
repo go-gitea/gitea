@@ -70,6 +70,7 @@ func setRealIP(next http.Handler) http.Handler {
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
 func Routes() *web.Router {
 	r := web.NewRouter()
+	r.Mount("/pages", pagesRoutes())
 	r.AfterRouting(context.PrivateContexter())
 	r.AfterRouting(authInternal)
 	// Log the real ip address of the request from SSH is really helpful for diagnosing sometimes.

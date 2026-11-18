@@ -10,6 +10,7 @@ import (
 	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/organization"
+	pages_model "gitea.dev/models/pages"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
@@ -43,6 +44,8 @@ func TestTransferOwnership(t *testing.T) {
 	sourceRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	sourceRepoBak := new(*sourceRepo)
 	assert.NoError(t, sourceRepo.LoadOwner(t.Context()))
+	pagesSite := &pages_model.Site{RepoID: sourceRepo.ID, Enabled: true, PagesUpdatedUnixNano: 1}
+	require.NoError(t, pages_model.InsertSite(t.Context(), pagesSite))
 	repoTransfer := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoTransfer{ID: 1})
 	assert.NoError(t, repoTransfer.LoadAttributes(t.Context()))
 	for _, ownerID := range []int64{0, sourceRepo.OwnerID, 1} {
@@ -53,6 +56,10 @@ func TestTransferOwnership(t *testing.T) {
 	transferredRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	assert.EqualValues(t, 1, transferredRepo.OwnerID) // repo_transfer.yml id=1
 	unittest.AssertNotExistsBean(t, &repo_model.RepoTransfer{ID: 1})
+	transferredSite, has, err := pages_model.GetSiteByRepoID(t.Context(), transferredRepo.ID)
+	require.NoError(t, err)
+	require.True(t, has)
+	assert.Greater(t, transferredSite.PagesUpdatedUnixNano, pagesSite.PagesUpdatedUnixNano)
 	unittest.AssertCount(t, &actions_model.ActionScopedWorkflowSource{SourceRepoID: 3}, 1)
 	unittest.AssertCountByCond(t, "action_scoped_workflow_source", builder.Eq{"owner_id": 0, "source_repo_id": 3}, 1)
 
