@@ -5,7 +5,6 @@ package gitdiff
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"html/template"
 	"io"
@@ -28,7 +27,7 @@ type BlobExcerptOptions struct {
 	Language      string
 }
 
-func (diffSection *DiffSection) fillExcerptLines(ctx context.Context, reader io.Reader, leftStart, rightStart, chunkSize int) error {
+func (diffSection *DiffSection) fillExcerptLines(reader io.Reader, leftStart, rightStart, chunkSize int) error {
 	buf := &bytes.Buffer{}
 	scanner := git.NewGitDiffScanner(reader)
 	var diffLines []*DiffLine
@@ -57,11 +56,11 @@ func (diffSection *DiffSection) fillExcerptLines(ctx context.Context, reader io.
 	}
 	diffSection.Lines = diffLines
 	// DiffLinePlain always uses right lines
-	diffSection.highlightedRightLines.value = highlightCodeLines(ctx, diffSection.FileName, diffSection.language.value, []*DiffSection{diffSection}, false /* right */, buf.Bytes())
+	diffSection.highlightedRightLines.value = highlightCodeLines(diffSection.FileName, diffSection.language.value, []*DiffSection{diffSection}, false /* right */, buf.Bytes())
 	return nil
 }
 
-func BuildBlobExcerptDiffSection(ctx context.Context, filePath string, reader io.Reader, opts BlobExcerptOptions) (*DiffSection, error) {
+func BuildBlobExcerptDiffSection(filePath string, reader io.Reader, opts BlobExcerptOptions) (*DiffSection, error) {
 	lastLeft, lastRight, idxLeft, idxRight := opts.LastLeft, opts.LastRight, opts.LeftIndex, opts.RightIndex
 	leftHunkSize, rightHunkSize, direction := opts.LeftHunkSize, opts.RightHunkSize, opts.Direction
 
@@ -80,9 +79,9 @@ func BuildBlobExcerptDiffSection(ctx context.Context, filePath string, reader io
 		idxRight -= expandLimit
 		leftHunkSize += expandLimit
 		rightHunkSize += expandLimit
-		err = section.fillExcerptLines(ctx, reader, idxLeft, idxRight, expandLimit)
+		err = section.fillExcerptLines(reader, idxLeft, idxRight, expandLimit)
 	} else if direction == "down" && remainingLines > expandLimit {
-		err = section.fillExcerptLines(ctx, reader, lastLeft+1, lastRight+1, expandLimit)
+		err = section.fillExcerptLines(reader, lastLeft+1, lastRight+1, expandLimit)
 		lastLeft += expandLimit
 		lastRight += expandLimit
 	} else /* "single" or [ ("up" or "down") and (remainingLines <= expandLimit) ] */ {
@@ -98,7 +97,7 @@ func BuildBlobExcerptDiffSection(ctx context.Context, filePath string, reader io
 			// * "last" line is already rendered, so just render the remaining lines from the next line
 			expandLimit = remainingLines
 		}
-		err = section.fillExcerptLines(ctx, reader, lastLeft+1, lastRight+1, expandLimit)
+		err = section.fillExcerptLines(reader, lastLeft+1, lastRight+1, expandLimit)
 		// now, the hidden lines are fewer than "expand limit", after expand, no hidden lines anymore,
 		// no need to show new "expand buttons" (setting them to 0 will make GetExpandDirection returns "no direction")
 		leftHunkSize, rightHunkSize, idxLeft, idxRight = 0, 0, 0, 0

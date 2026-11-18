@@ -22,7 +22,7 @@ func TestBuildBlobExcerptDiffSection(t *testing.T) {
 
 	locale := translation.MockLocale{}
 	lineMiddle := 50
-	diffSection, err := BuildBlobExcerptDiffSection(t.Context(), "a.py", bytes.NewReader(data.Bytes()), BlobExcerptOptions{
+	diffSection, err := BuildBlobExcerptDiffSection("a.py", bytes.NewReader(data.Bytes()), BlobExcerptOptions{
 		LeftIndex:     lineMiddle,
 		RightIndex:    lineMiddle,
 		LeftHunkSize:  10,

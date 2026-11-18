@@ -4,7 +4,6 @@
 package setting
 
 import (
-	"math"
 	"strings"
 	"sync"
 
@@ -55,18 +54,6 @@ func openWithEditorAppsDefaultValue() OpenWithEditorAppsType {
 type RepositoryStruct struct {
 	OpenWithEditorApps *config.Option[OpenWithEditorAppsType]
 	GitGuideRemoteName *config.Option[string]
-	DiffHighlightCache *config.Option[DiffHighlightCacheSettings]
-}
-
-const DefaultDiffHighlightCacheSizeMiB = 64
-
-type DiffHighlightCacheSettings struct {
-	Enabled bool
-	SizeMiB int
-}
-
-func (settings DiffHighlightCacheSettings) Valid() bool {
-	return settings.SizeMiB >= 1 && settings.SizeMiB <= math.MaxInt/(1024*1024)
 }
 
 type ConfigStruct struct {
@@ -90,7 +77,6 @@ func initDefaultConfig() {
 		Repository: &RepositoryStruct{
 			OpenWithEditorApps: config.NewOption[OpenWithEditorAppsType]("repository.open-with.editor-apps").WithEmptyAsDefault().WithDefaultFunc(openWithEditorAppsDefaultValue),
 			GitGuideRemoteName: config.NewOption[string]("repository.git-guide-remote-name").WithEmptyAsDefault().WithDefaultSimple("origin"),
-			DiffHighlightCache: config.NewOption[DiffHighlightCacheSettings]("repository.diff-highlight-cache").WithDefaultSimple(DiffHighlightCacheSettings{Enabled: true, SizeMiB: DefaultDiffHighlightCacheSizeMiB}),
 		},
 		Instance: &InstanceStruct{
 			WebBanner:       config.NewOption[WebBannerType]("instance.web_banner"),

@@ -991,7 +991,7 @@ func TestDiffSection_GetComputedInlineDiffFor(t *testing.T) {
 
 func TestHighlightCodeLines(t *testing.T) {
 	highlightLines := func(name string, lines []*DiffLine, content string) map[int]template.HTML {
-		return highlightCodeLinesForDiffFile(t.Context(), &DiffFile{
+		return highlightCodeLinesForDiffFile(&DiffFile{
 			Name:     name,
 			Sections: []*DiffSection{{Lines: lines}},
 		}, true, []byte(content))
@@ -1020,11 +1020,8 @@ func TestHighlightCodeLines(t *testing.T) {
 		assert.Empty(t, ret)
 	})
 	t.Run("MultilineContextBothSides", func(t *testing.T) {
-		file := &DiffFile{Name: "a.c", Sections: []*DiffSection{{Lines: []*DiffLine{
-			{LeftIdx: 2, RightIdx: 3},
-			{LeftIdx: 4, RightIdx: 5, IsTruncated: true},
-		}}}}
-		FillDiffFileHighlightLinesByContent(t.Context(), file, []byte("/*\nleft\n*/\nend\n"), []byte("// intro\n/*\nright\n*/\nend\n"))
+		file := &DiffFile{Name: "a.c", Sections: []*DiffSection{{Lines: []*DiffLine{{LeftIdx: 2, RightIdx: 3}}}}}
+		FillDiffFileHighlightLinesByContent(file, []byte("/*\nleft\n*/\n"), []byte("//\n/*\nright\n*/\n"))
 		assert.Equal(t, map[int]template.HTML{1: "<span class=\"cm\">left\n</span>"}, file.highlightedLeftLines.value)
 		assert.Equal(t, map[int]template.HTML{2: "<span class=\"cm\">right\n</span>"}, file.highlightedRightLines.value)
 	})

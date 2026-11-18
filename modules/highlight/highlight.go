@@ -110,36 +110,23 @@ func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML,
 
 // RenderCodeByLexer returns an HTML version of code string with chroma syntax highlighting classes
 func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
-	return renderCodeByLexer(lexer, code, nil)
-}
-
-func renderCodeByLexer(lexer chroma.Lexer, code string, filter func(chroma.Iterator) chroma.Iterator) template.HTML {
-	if lexer == lexers.Fallback && filter == nil {
+	if lexer == lexers.Fallback {
 		return htmlEscape(code) // chroma is 3x slower for plain text
 	}
-	var iterator chroma.Iterator
-	if lexer == lexers.Fallback {
-		iterator = chroma.Literator(chroma.Token{Type: chroma.Text, Value: code})
-	} else {
-		var err error
-		iterator, err = lexer.Tokenise(nil, code)
-		if err != nil {
-			log.Error("Can't tokenize code: %v", err)
-			lexer = lexers.Fallback
-			iterator = chroma.Literator(chroma.Token{Type: chroma.Text, Value: code})
-		}
+	iterator, err := lexer.Tokenise(nil, code)
+	if err != nil {
+		log.Error("Can't tokenize code: %v", err)
+		return htmlEscape(code)
 	}
-	if filter != nil {
-		iterator = filter(iterator)
+	html, err := formatTokens(iterator)
+	if err != nil {
+		log.Error("Can't format code: %v", err)
+		return htmlEscape(code)
 	}
-	if lexer == lexers.Fallback {
-		var output strings.Builder
-		for token := iterator(); token != chroma.EOF; token = iterator() {
-			output.WriteString(string(htmlEscape(token.Value)))
-		}
-		return template.HTML(output.String())
-	}
+	return html
+}
 
+func formatTokens(iterator chroma.Iterator) (template.HTML, error) {
 	formatter := chromahtml.New(chromahtml.WithClasses(true),
 		chromahtml.WithLineNumbers(false),
 		chromahtml.PreventSurroundingPre(true),
@@ -147,11 +134,7 @@ func renderCodeByLexer(lexer chroma.Lexer, code string, filter func(chroma.Itera
 	htmlBuf := &bytes.Buffer{}
 	// style not used for live site but need to pass something
 	err := formatter.Format(htmlBuf, globalVars().githubStyles, iterator)
-	if err != nil {
-		log.Error("Can't format code: %v", err)
-		return renderCodeByLexer(lexers.Fallback, code, filter)
-	}
-	return template.HTML(util.UnsafeBytesToString(htmlBuf.Bytes()))
+	return template.HTML(util.UnsafeBytesToString(htmlBuf.Bytes())), err
 }
 
 // RenderFullFile returns a slice of chroma syntax highlighted HTML lines of code and the matched lexer name

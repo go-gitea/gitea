@@ -376,7 +376,7 @@ func (t *TemporaryUploadRepository) DiffIndex(ctx context.Context, oldContent, n
 	}
 
 	if len(diff.Files) > 0 {
-		gitdiff.FillDiffFileHighlightLinesByContent(ctx, diff.Files[0], util.UnsafeStringToBytes(oldContent), util.UnsafeStringToBytes(newContent))
+		gitdiff.FillDiffFileHighlightLinesByContent(diff.Files[0], util.UnsafeStringToBytes(oldContent), util.UnsafeStringToBytes(newContent))
 	}
 	return diff, nil
 }
