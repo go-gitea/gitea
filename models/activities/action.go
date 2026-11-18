@@ -477,16 +477,15 @@ var actionUnits = []struct {
 
 // readableActionCond matches the actions whose repository unit the actor can read, other actions only need access to the repository
 func readableActionCond(actor *user_model.User) builder.Cond {
-	readableRepoIDs := func(unitType unit.Type) builder.Cond {
-		return builder.In("repo_id", builder.Select("id").From("repository").Where(repo_model.AccessibleRepositoryCondition(actor, unitType)))
-	}
 	cond := builder.NewCond()
 	var unitOpTypes []ActionType
 	for _, u := range actionUnits {
-		cond = cond.Or(builder.In("op_type", u.opTypes).And(readableRepoIDs(u.unitType)))
+		cond = cond.Or(builder.In("`action`.op_type", u.opTypes).And(repo_model.AccessibleRepositoryCondition(actor, u.unitType)))
 		unitOpTypes = append(unitOpTypes, u.opTypes...)
 	}
-	return cond.Or(builder.NotIn("op_type", unitOpTypes).And(readableRepoIDs(unit.TypeInvalid)))
+	cond = cond.Or(builder.NotIn("`action`.op_type", unitOpTypes).And(repo_model.AccessibleRepositoryCondition(actor, unit.TypeInvalid)))
+	return builder.Exists(builder.Select("1").From("repository").
+		Where(builder.Expr("`repository`.id = `action`.repo_id").And(cond)))
 }
 
 func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.Cond, error) {
@@ -507,7 +506,7 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 				builder.Eq{"keep_activity_private": false, "visibility": structs.VisibleTypePublic},
 			).From("`user`"),
 		))
-	} else if !user_model.DoerIsSiteAdminFullAccess(opts.Actor) {
+	} else if !user_model.DoerIsSiteAdminFullAccess(opts.Actor) && (opts.RequestedUser == nil || opts.Actor.ID != opts.RequestedUser.ID) {
 		uidCond := builder.Select("`user`.id").From("`user`").Where(
 			builder.Eq{"keep_activity_private": false}.
 				And(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))).

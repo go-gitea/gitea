@@ -14,6 +14,7 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	repository_service "gitea.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -59,6 +60,29 @@ func TestGetFeeds(t *testing.T) {
 			assert.Equal(t, int64(0), count)
 		})
 	}
+
+	t.Run("removed collaborator cannot read their own feed's repository actions", func(t *testing.T) {
+		collaborator := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 22})
+		action := &activities_model.Action{
+			UserID: collaborator.ID, ActUserID: collaborator.ID, RepoID: repo.ID,
+			OpType: activities_model.ActionRenameRepo, IsPrivate: true,
+		}
+		require.NoError(t, db.Insert(t.Context(), action))
+		opts := activities_model.GetFeedsOptions{RequestedUser: collaborator, Actor: collaborator, IncludePrivate: true}
+		actions, count, err := GetFeeds(t.Context(), opts)
+		require.NoError(t, err)
+		require.Len(t, actions, 1)
+		assert.Equal(t, action.ID, actions[0].ID)
+		assert.EqualValues(t, 1, count)
+
+		require.NoError(t, repository_service.DeleteCollaboration(t.Context(), repo, collaborator))
+		actions, count, err = GetFeeds(t.Context(), opts)
+		require.NoError(t, err)
+		assert.Empty(t, actions)
+		assert.Zero(t, count)
+		unittest.AssertExistsAndLoadBean(t, &activities_model.Action{ID: action.ID})
+	})
 }
 
 func TestGetFeedsChecksUnitAccess(t *testing.T) {
@@ -78,11 +102,13 @@ func TestGetFeedsChecksUnitAccess(t *testing.T) {
 		activities_model.ActionCreatePullRequest,
 		activities_model.ActionPublishRelease,
 	} {
-		require.NoError(t, db.Insert(t.Context(), &activities_model.Action{UserID: org3.ID, ActUserID: 2, RepoID: 3, OpType: opType, IsPrivate: true}))
+		for _, userID := range []int64{org3.ID, user4.ID} {
+			require.NoError(t, db.Insert(t.Context(), &activities_model.Action{UserID: userID, ActUserID: 2, RepoID: 3, OpType: opType, IsPrivate: true}))
+		}
 	}
 
-	feedOpTypes := func(actor *user_model.User) []activities_model.ActionType {
-		actions, _, err := GetFeeds(t.Context(), activities_model.GetFeedsOptions{RequestedUser: org3, Actor: actor, IncludePrivate: true})
+	feedOpTypes := func(requestedUser, actor *user_model.User) []activities_model.ActionType {
+		actions, _, err := GetFeeds(t.Context(), activities_model.GetFeedsOptions{RequestedUser: requestedUser, Actor: actor, IncludePrivate: true})
 		require.NoError(t, err)
 		var opTypes []activities_model.ActionType
 		for _, action := range actions {
@@ -90,11 +116,14 @@ func TestGetFeedsChecksUnitAccess(t *testing.T) {
 		}
 		return opTypes
 	}
-	assert.ElementsMatch(t, []activities_model.ActionType{activities_model.ActionRenameRepo, activities_model.ActionCreateIssue}, feedOpTypes(user4))
+	assert.ElementsMatch(t, []activities_model.ActionType{activities_model.ActionRenameRepo, activities_model.ActionCreateIssue}, feedOpTypes(org3, user4))
 	assert.ElementsMatch(t, []activities_model.ActionType{
 		activities_model.ActionRenameRepo, activities_model.ActionCommitRepo, activities_model.ActionCreateIssue,
 		activities_model.ActionCreatePullRequest, activities_model.ActionPublishRelease,
-	}, feedOpTypes(user2))
+	}, feedOpTypes(org3, user2))
+	_, err = db.GetEngine(t.Context()).ID(user2.ID).Cols("keep_activity_private").Update(&user_model.User{KeepActivityPrivate: true})
+	require.NoError(t, err)
+	assert.Equal(t, []activities_model.ActionType{activities_model.ActionCreateIssue}, feedOpTypes(user4, user4))
 }
 
 func TestGetFeedsForRepos(t *testing.T) {
