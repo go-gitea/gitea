@@ -396,7 +396,7 @@ func handleWorkflows(
 	for _, dwf := range detectedWorkflows {
 		// repo-level run: the workflow content is this repo at dwf.SourceCommitSHA
 		if err := buildApproveAndInsertRun(ctx, input, ref, commit, payload, isForkPullRequest, dwf, input.Repo.ID, false); err != nil {
-			log.Error("repo %s: %v", input.Repo.FullName(), err)
+			log.Error("repo %s workflow %s ref %s: %v", input.Repo.FullName(), dwf.EntryName, ref, err)
 			continue
 		}
 	}
@@ -816,7 +816,7 @@ func detectAndHandleScopedWorkflows(
 			}
 
 			if err := buildApproveAndInsertRun(ctx, input, ref, consumerCommit, payload, isForkPullRequest, dwf, sourceRepo.ID, true); err != nil {
-				log.Error("scoped workflows: source %s workflow %s: %v", sourceRepo.FullName(), dwf.EntryName, err)
+				log.Error("scoped workflows: source %s workflow %s for consumer %s ref %s: %v", sourceRepo.FullName(), dwf.EntryName, input.Repo.FullName(), ref, err)
 				continue
 			}
 		}
