@@ -112,21 +112,6 @@ export async function apiCreateBranchProtection(requestContext: APIRequestContex
   }), 'apiCreateBranchProtection');
 }
 
-export async function apiCreateWebhookWithDelivery(requestContext: APIRequestContext, owner: string, repo: string): Promise<number> {
-  const hooksUrl = `${baseUrl()}/api/v1/repos/${owner}/${repo}/hooks`;
-  const response = await apiRetry(() => requestContext.post(hooksUrl, {
-    headers: apiHeaders(),
-    data: {type: 'gitea', active: false, config: {url: 'http://127.0.0.1/webhook', content_type: 'json'}},
-  }), 'apiCreateWebhook');
-  const {id} = await response.json();
-  await apiRetry(() => requestContext.post(`${hooksUrl}/${id}/tests`, {headers: apiHeaders()}), 'apiTestWebhook');
-  await expect.poll(async () => {
-    const deliveries = await (await requestContext.get(`${hooksUrl}/${id}/deliveries`, {headers: apiHeaders()})).json();
-    return deliveries[0].response;
-  }).toBeTruthy();
-  return id;
-}
-
 /** Create a PR via API. Returns the PR index for subsequent operations. */
 export async function apiCreatePR(requestContext: APIRequestContext, owner: string, repo: string, head: string, base: string, title: string, {headers}: {headers?: Record<string, string>} = {}): Promise<number> {
   const response = await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls`, {
