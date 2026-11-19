@@ -160,3 +160,26 @@ func TestProcessQueueBuildFailuresAndDisabledPulls(t *testing.T) {
 	}
 	unittest.AssertNotExistsBean(t, &pull_model.MergeQueueEntry{BaseBranch: branch})
 }
+
+func TestProcessQueueRestoresInterruptedMerge(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	require.NoError(t, db.Insert(ctx, &git_model.ProtectedBranch{
+		RepoID: repo.ID, RuleName: pr.BaseBranch,
+		ProtectedBranchConfig: git_model.ProtectedBranchConfig{RequireMergeQueue: true, MergeQueue: git_model.DefaultMergeQueueConfig()},
+	}))
+	_, err := Enqueue(ctx, repo.MustOwner(ctx), pr, false, "")
+	require.NoError(t, err)
+
+	// the queue commit reached the base branch, but the process stopped before the pull request was marked merged
+	pr.MergedCommitID, err = git.GetBranchCommitID(ctx, repo, pr.BaseBranch)
+	require.NoError(t, err)
+	pr.MergedUnix, pr.MergerID = timeutil.TimeStampNow(), repo.OwnerID
+	require.NoError(t, pr.UpdateCols(ctx, "merged_commit_id", "merged_unix", "merger_id"))
+
+	require.NoError(t, processQueue(ctx, repo.ID, pr.BaseBranch))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID, HasMerged: true})
+	unittest.AssertNotExistsBean(t, &pull_model.MergeQueueEntry{PullID: pr.ID})
+}

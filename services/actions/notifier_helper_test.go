@@ -144,6 +144,19 @@ func TestDetectAndHandleSchedulesDropsRemovedWorkflows(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &actions_model.ActionSchedule{RepoID: repo.ID})
 }
 
+func TestNotifyPullRequestWithDeletedBaseBranch(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	require.NoError(t, pr.LoadIssue(t.Context()))
+	require.NoError(t, pr.Issue.LoadRepo(t.Context()))
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: pr.Issue.Repo.OwnerID})
+	pr.BaseBranch = "deleted"
+	input := newNotifyInput(pr.Issue.Repo, doer, webhook_module.HookEventPullRequest).
+		WithPayload(&api.PullRequestPayload{Action: api.HookIssueDequeued}).
+		WithPullRequest(pr)
+	require.NoError(t, notify(t.Context(), input))
+}
+
 func TestMergeGroupDestroyedAfterRefDeletion(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})

@@ -203,7 +203,9 @@ func notify(ctx context.Context, input *notifyInput) error {
 	var baseCommit *git.Commit
 	if input.PullRequest != nil {
 		baseCommit, err = gitRepo.GetCommit(ctx, git.BranchPrefix+input.PullRequest.BaseBranch)
-		if err != nil {
+		if git.IsErrNotExist(err) {
+			return nil // nothing to run against, e.g. the dequeued event of a deleted base branch
+		} else if err != nil {
 			return fmt.Errorf("gitRepo.GetCommit: %w", err)
 		}
 		workflowCommit, err = preparePullRequestMerge(ctx, input, gitRepo, commit, baseCommit)

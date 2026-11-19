@@ -46,9 +46,8 @@ func ToMergeGroupPayload(ctx context.Context, doer *user_model.User, repo *repo_
 
 // ToMergeGroupPush describes a built queue commit as a push creating its branch, like GitHub's gh-readonly-queue pushes some CI builds on
 func ToMergeGroupPush(doer *user_model.User, repo *repo_model.Repository, entry *pull_model.MergeQueueEntry, commit *git.Commit) (*repo_module.PushUpdateOptions, *repo_module.PushCommits) {
-	commits := repo_module.NewPushCommits()
-	commits.HeadCommit = repo_module.CommitToPushCommit(commit)
-	commits.Commits = []*repo_module.PushCommit{commits.HeadCommit}
+	commits := repo_module.GitToPushCommits([]*git.Commit{commit})
+	commits.HeadCommit = commits.Commits[0]
 	commits.CompareURL = repo.ComposeCompareURL(entry.BaseSHA, entry.GroupHeadSHA)
 	return &repo_module.PushUpdateOptions{
 		PusherID:     doer.ID,

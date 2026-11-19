@@ -458,6 +458,20 @@ func restoreInterruptedMerge(ctx context.Context, pr *issues_model.PullRequest) 
 	return MarkAsMerged(ctx, pr, pr.MergedCommitID, pr.MergedUnix, pr.Merger, pr.Status)
 }
 
+// RestoreInterruptedMerge reports whether the pull request is merged, finishing a merge that was interrupted after its push
+func RestoreInterruptedMerge(ctx context.Context, prID int64) (merged bool, err error) {
+	err = globallock.LockAndDo(ctx, getPullWorkingLockKey(prID), func(ctx context.Context) error {
+		pr, err := issues_model.GetPullRequestByID(ctx, prID)
+		if err != nil || pr.HasMerged {
+			merged = err == nil
+			return err
+		}
+		merged, err = restoreInterruptedMerge(ctx, pr)
+		return err
+	})
+	return merged, err
+}
+
 func checkPullRequestMergeable(prID int64) {
 	ctx := graceful.GetManager().HammerContext()
 

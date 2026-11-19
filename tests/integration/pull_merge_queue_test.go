@@ -108,7 +108,9 @@ func TestPullMergeQueue(t *testing.T) {
 		nextPush := watchQueueWebhook[api.PushPayload](t, "push", nil, "gh-readonly-queue/**")
 		assertRemoved := watchQueueRemovals(t)
 		MakeRequest(t, NewRequestWithJSON(t, "POST", pullURL+"/merge-queue", &api.AddToMergeQueueOption{}).AddBasicAuth(user.Name), http.StatusCreated)
-		groupSHA := nextPush().After
+		push := nextPush()
+		assert.Equal(t, 1, push.TotalCommits)
+		groupSHA := push.After
 		_, err = repo_service.RenameBranch(ctx, repo, user, pr.BaseBranch, "renamed")
 		require.NoError(t, err)
 		setMergeQueueStatus(t, groupSHA, commitstatus.CommitStatusSuccess)

@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -71,19 +72,25 @@ func addToQueue(repoID int64, branch string) {
 }
 
 func handleBranches(items ...string) []string {
+	var wg sync.WaitGroup
 	for _, item := range items {
-		idStr, branch, _ := strings.Cut(item, ":")
-		repoID, _ := strconv.ParseInt(idStr, 10, 64)
-		ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), "merge queue "+item)
-		err := globallock.LockAndDo(ctx, lockKey(repoID, branch), func(ctx context.Context) error {
-			return processQueue(ctx, repoID, branch)
-		})
-		if err != nil {
-			log.Error("Merge queue of repo %d branch %s: %v", repoID, branch, err)
-		}
-		finished()
+		wg.Go(func() { handleBranch(item) }) // a slow build must not delay the other queues of the batch
 	}
+	wg.Wait()
 	return nil
+}
+
+func handleBranch(item string) {
+	idStr, branch, _ := strings.Cut(item, ":")
+	repoID, _ := strconv.ParseInt(idStr, 10, 64)
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), "merge queue "+item)
+	defer finished()
+	err := globallock.LockAndDo(ctx, lockKey(repoID, branch), func(ctx context.Context) error {
+		return processQueue(ctx, repoID, branch)
+	})
+	if err != nil {
+		log.Error("Merge queue of repo %d branch %s: %v", repoID, branch, err)
+	}
 }
 
 func lockKey(repoID int64, branch string) string {
@@ -149,7 +156,18 @@ func (s *queueState) dropStaleEntries(ctx context.Context) error {
 	live := s.entries[:0]
 	for _, entry := range s.entries {
 		var reason issues_model.MergeQueueRemovalReason
-		switch pr := entry.PullRequest; {
+		pr := entry.PullRequest
+		if pr != nil && !pr.HasMerged && pr.MergedCommitID != "" {
+			// a merge interrupted after its push must not be built and merged again
+			merged, err := pull_service.RestoreInterruptedMerge(ctx, pr.ID)
+			if err != nil {
+				return err
+			} else if merged {
+				reason = issues_model.MergeQueueRemovedMerged
+			}
+		}
+		switch {
+		case reason != "":
 		case pr == nil:
 			reason = issues_model.MergeQueueRemovedClosed
 		case pr.HasMerged:
@@ -429,7 +447,7 @@ func removeEntry(ctx context.Context, repo *repo_model.Repository, entry *pull_m
 	if err != nil || !deleted {
 		return err
 	}
-	destroyGroup(ctx, repo, doer, entry, "dequeued")
+	destroyGroup(ctx, repo, doer, entry, util.Iif(reason == issues_model.MergeQueueRemovedMerged, "merged", "dequeued"))
 	if pr != nil {
 		notify_service.PullRequestMergeQueueChanged(ctx, doer, pr, reason)
 	}
