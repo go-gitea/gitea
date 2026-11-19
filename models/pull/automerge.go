@@ -12,6 +12,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 // AutoMerge represents a pull request scheduled for merging when checks succeed
@@ -43,6 +44,10 @@ type ErrAlreadyScheduledToAutoMerge struct {
 
 func (err ErrAlreadyScheduledToAutoMerge) Error() string {
 	return fmt.Sprintf("pull request is already scheduled to auto merge when checks succeed [pull_id: %d]", err.PullID)
+}
+
+func (err ErrAlreadyScheduledToAutoMerge) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // IsErrAlreadyScheduledToAutoMerge checks if an error is a ErrAlreadyScheduledToAutoMerge.

@@ -865,7 +865,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 				if commentID := lastCommentIDOfType(issue.Comments, issues_model.CommentTypeDeleteBranch); commentID != 0 && !pull.HeadRepo.IsArchived {
 					if branches, err := git_model.GetBranches(ctx, pull.HeadRepo.ID, []string{pull.HeadBranch}, true); err != nil {
 						log.Error("GetBranches: %v", err)
-					} else if len(branches) == 1 && branches[0].IsDeleted {
+					} else if len(branches) == 1 && branches[0].IsDeleted && branches[0].CommitID == prInfo.CompareInfo.HeadCommitID {
 						ctx.Data["RestoreBranchLink"] = fmt.Sprintf("%s/branches/restore?branch_id=%d", pull.HeadRepo.Link(), branches[0].ID)
 						ctx.Data["RestoreBranchCommentID"] = commentID
 					}

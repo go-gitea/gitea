@@ -29,7 +29,8 @@ func TestMain(m *testing.M) {
 
 func TestAutoMergeDisabledOrCanceled(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	defer test.MockVariableValue(&automergequeue.AddToQueue, func(_item automergequeue.AutoMergeItem) {})()
+	var queuedCount int
+	defer test.MockVariableValue(&automergequeue.AddToQueue, func(_item automergequeue.AutoMergeItem) { queuedCount++ })()
 	var checkedPullID int64
 	defer test.MockVariableValue(&pull_service.AddPullRequestToCheckQueue, func(pullID int64) { checkedPullID = pullID })()
 	writer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -44,6 +45,7 @@ func TestAutoMergeDisabledOrCanceled(t *testing.T) {
 
 	require.NoError(t, pr.Issue.LoadRepo(t.Context()))
 	require.NoError(t, pull_service.ChangeTargetBranch(t.Context(), pr, writer, "feature/1"))
+	assert.Equal(t, 2, queuedCount)
 	assert.Equal(t, "feature/1", unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID}).BaseBranch)
 	unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: pr.ID})
 	require.NoError(t, pull_service.ChangeTargetBranch(t.Context(), pr, nonWriter, "master"))

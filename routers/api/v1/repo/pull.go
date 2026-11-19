@@ -14,7 +14,6 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
-	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -904,8 +903,11 @@ func MergePullRequest(ctx *context.APIContext) {
 			ctx.APIError(http.StatusMethodNotAllowed, "Work in progress PRs cannot be merged")
 		} else if errors.Is(err, pull_service.ErrNotMergeableState) {
 			ctx.APIError(http.StatusMethodNotAllowed, "Please try again later")
-		} else if errors.Is(err, pull_service.ErrNotReadyToMerge) || asymkey_service.IsErrWontSign(err) ||
-			errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified) || errors.Is(err, pull_service.ErrDependenciesLeft) {
+		} else if errors.Is(err, pull_service.ErrNotReadyToMerge) {
+			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
+		} else if asymkey_service.IsErrWontSign(err) {
+			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
+		} else if errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified) {
 			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
@@ -957,17 +959,12 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	if form.MergeWhenChecksSucceed {
-		if err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge); pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
-			ctx.APIError(http.StatusConflict, err.Error())
-			return
-		} else if err != nil {
-			ctx.APIErrorInternal(err)
-			return
+		if err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge); err != nil {
+			ctx.APIErrorAuto(err)
 		} else {
-			// nothing more to do ...
 			ctx.Status(http.StatusCreated)
-			return
 		}
+		return
 	}
 
 	if err := pull_service.Merge(ctx, pr.ID, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {

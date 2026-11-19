@@ -13,10 +13,7 @@ async function apiCreateMergeablePR(request: APIRequestContext, prepareRepo?: (r
     apiCreateFiles(request, owner, repo, [{path: 'feat.txt', content: 'feature\n'}], {branch: 'main', newBranch: 'feat'}),
     prepareRepo?.(repo),
   ]);
-  const index = await apiCreatePR(request, owner, repo, 'feat', base, 'merge box test');
-  const prLink = `/${owner}/${repo}/pulls/${index}`;
-  await expect.poll(async () => (await (await request.get(`/api/v1/repos${prLink}`, {headers: apiHeaders()})).json()).mergeable).toBe(true);
-  return prLink;
+  return `/${owner}/${repo}/pulls/${await apiCreatePR(request, owner, repo, 'feat', base, 'merge box test')}`;
 }
 
 test('auto-merge can be canceled before a squash bypass merge', async ({page, request}) => {
@@ -56,7 +53,11 @@ test('outdated branch can be rebased from the update style menu', async ({page, 
   await page.goto(prLink);
   await page.getByRole('button', {name: 'Update branch options'}).click();
   await page.getByRole('menuitemradio', {name: /^Update with rebase/}).click();
-  await page.getByRole('button', {name: 'Rebase branch'}).click();
+  const [updateRequest] = await Promise.all([
+    page.waitForRequest((req) => req.method() === 'POST' && new URL(req.url()).pathname === `${prLink}/update`),
+    page.getByRole('button', {name: 'Rebase branch'}).click(),
+  ]);
+  expect(new URL(updateRequest.url()).searchParams.get('style')).toBe('rebase');
   await expect(page.getByText('Branch update was successful')).toBeVisible();
   await assertNoJsError(page);
 });

@@ -42,8 +42,8 @@ func DevtestPullMergeBox(ctx *context.Context) {
 		data.hasOverridableBlockers = data.hasOverridableBlockers || blocking
 	}
 	add := func(title string, setup func(prInfo *pullRequestViewInfo)) {
-		pull := &issues_model.PullRequest{Index: 1, Status: issues_model.PullRequestStatusMergeable, HeadRepo: repo, BaseRepo: repo, HeadBranch: "feature", BaseBranch: "main"}
-		issue := &issues_model.Issue{Index: 1, IsPull: true, Title: "Add feature", Repo: repo, PullRequest: pull}
+		pull := &issues_model.PullRequest{Status: issues_model.PullRequestStatusMergeable, HeadRepo: repo, BaseRepo: repo, HeadBranch: "feature", BaseBranch: "main"}
+		issue := &issues_model.Issue{IsPull: true, Title: "Add feature", Repo: repo, PullRequest: pull}
 		pull.Issue = issue
 		data := &pullMergeBoxData{hasPermToMerge: true, canBypassProtection: true}
 		prInfo := &pullRequestViewInfo{issue: issue, MergeBoxData: data, headTarget: "user2:feature"}

@@ -69,9 +69,9 @@ class PullMergeBox {
   }
 
   private isBusy() {
-    // keep focused controls, open menus and dialogs, forms, bypass choices and pending requests
-    return this.el.contains(document.activeElement) || Boolean(document.querySelector('dialog[open]') ||
-      this.el.querySelector('[aria-expanded="true"], [data-fetch-is-loading], [data-pull-merge-busy]'));
+    // keep focused controls except disclosures, open menus and dialogs, forms, bypass choices and pending requests
+    return Boolean(document.querySelector('dialog[open]') || this.el.querySelector(
+      ':focus:not([data-kind] > summary), [aria-expanded="true"], [data-fetch-is-loading], [data-pull-merge-busy]'));
   }
 
   private async refresh() {
@@ -88,11 +88,13 @@ class PullMergeBox {
       if (open !== undefined) details.open = open;
     }
     const scrollTop = this.el.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTop;
+    const focusedKind = this.el.querySelector('[data-kind] > summary:focus')?.parentElement!.getAttribute('data-kind');
     const oldElements = this.el.querySelectorAll('*');
     this.mergeFormApp?.unmount();
     this.mergeFormApp = undefined;
     for (const oldElement of oldElements) getAttachedTippyInstance(oldElement)?.destroy();
     this.el.replaceChildren(...newEl.childNodes); // don't morph, so data-global-init and Vue components are re-initialized
+    if (focusedKind) this.el.querySelector<HTMLElement>(`[data-kind="${CSS.escape(focusedKind)}"] > summary`)?.focus({preventScroll: true});
     this.el.setAttribute(reloadingIntervalAttr, newEl.getAttribute(reloadingIntervalAttr) ?? '0');
     await this.initContent();
     if (scrollTop) this.el.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTo({top: scrollTop, behavior: 'instant'});

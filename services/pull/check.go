@@ -43,7 +43,7 @@ var (
 	ErrHasMerged                 = errors.New("has already been merged")
 	ErrIsWorkInProgress          = errors.New("work in progress PRs cannot be merged")
 	ErrNotMergeableState         = errors.New("not in mergeable state")
-	ErrDependenciesLeft          = errors.New("is blocked by an open dependency")
+	ErrDependenciesLeft          = util.ErrorWrap(util.ErrUnprocessableContent, "is blocked by an open dependency")
 	ErrHeadCommitsNotAllVerified = errors.New("the branch requires signed commits but not all head commits are verified")
 )
 

@@ -73,7 +73,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxSections(ctx *context.Context)
 	if prInfo.workInProgressPrefix != "" {
 		data.WorkInProgressSection = &pullMergeBoxSection{
 			StatusIcon: "octicon-git-pull-request-draft", StatusIconClass: "tw-bg-grey-light", SectionTitle: ctx.Locale.Tr("repo.pulls.cannot_merge_work_in_progress"),
-			SectionDetails: []template.HTML{ctx.Locale.Tr("repo.pulls.work_in_progress_desc")},
+			SectionDetails: []template.HTML{ctx.Locale.Tr("repo.pulls.no_merge_wip")},
 		}
 	}
 	if len(data.mergeBlockers) > 0 {
