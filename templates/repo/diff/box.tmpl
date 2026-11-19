@@ -23,12 +23,12 @@
 				</div>
 			{{end}}
 		</div>
+		{{if .DiffRefreshHead}}
+			<button type="button" class="ui compact mini red button diff-refresh-button tw-hidden" data-global-init="initDiffRefresh" data-head="{{.DiffRefreshHead}}" data-pull-id="{{.Issue.PullRequest.ID}}" aria-label="{{ctx.Locale.Tr "repo.pulls.refresh_diff"}}" data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.new_commits_available"}}">
+				{{ctx.Locale.Tr "repo.pulls.refresh_diff"}}
+			</button>
+		{{end}}
 		<div class="diff-detail-actions">
-			{{if .DiffRefreshHead}}
-				<button type="button" class="ui tiny primary button tw-hidden" data-global-init="initDiffRefresh" data-head="{{.DiffRefreshHead}}" data-ws-path="{{.Issue.Link}}/files/ws" aria-label="{{ctx.Locale.Tr "repo.pulls.refresh_diff"}}" data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.new_commits_available"}}">
-					{{svg "octicon-sync"}} {{ctx.Locale.Tr "repo.pulls.refresh_diff"}}
-				</button>
-			{{end}}
 			{{if and .PageIsPullFiles $.SignedUserID (not .DiffNotAvailable)}}
 				<div class="not-mobile tw-flex tw-items-center tw-flex-col tw-whitespace-nowrap tw-mr-1">
 					<label for="viewed-files-summary" id="viewed-files-summary-label" data-text-changed-template="{{ctx.Locale.Tr "repo.pulls.viewed_files_label"}}">

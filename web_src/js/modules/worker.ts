@@ -128,3 +128,11 @@ export function onUserEvent<T extends UserEventType>(type: T, cb: Subscriber<T>)
   set.add(wrapped);
   return () => { set.delete(wrapped) };
 }
+
+export function watchPullHead(pullId: number, onHead: (head: string) => void) {
+  onUserEvent('pull-head', ({eventData}) => {
+    if (eventData.pullId === pullId) onHead(eventData.head);
+  });
+  const message: SharedWorkerControlMessage = {type: 'watch-pull-head', pullId};
+  sharedWorker?.port.postMessage(message);
+}

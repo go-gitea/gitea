@@ -814,6 +814,19 @@
   height: 30px;
 }
 
+.repository .diff-detail-box .diff-refresh-button {
+  padding: 0 8px;
+  height: 26px;
+}
+
+@media (min-width: 1024px) {
+  .repository .diff-detail-box .diff-refresh-button {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
 .repository .diff-file-box .header {
   background-color: var(--color-box-header);
 }

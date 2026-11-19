@@ -4,7 +4,7 @@ import {initRepoIssueContentHistory} from './repo-issue-content.ts';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
 import {initExpandAndCollapseFilesButton, initDiffFileViewedForm} from './pull-view-file.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
+import {queryElemSiblings, hideElem, showElem, toggleElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
@@ -16,6 +16,7 @@ import {applyFiltersToFileBoxes, type DiffFileTreeLocale, diffTreeStore} from '.
 import {initImageDiff} from './imagediff.ts';
 import DiffCommitSelector from '../components/DiffCommitSelector.vue';
 import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
+import {watchPullHead} from '../modules/worker.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -249,35 +250,9 @@ async function onLocationHashChange() {
 }
 
 function initDiffRefresh(button: HTMLElement) {
-  if (!window.WebSocket) return;
-
   const head = button.getAttribute('data-head');
-  const url = new URL(button.getAttribute('data-ws-path')!, window.location.href);
-  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-  let retryDelay = 1000;
-
+  watchPullHead(Number(button.getAttribute('data-pull-id')), (latestHead) => toggleElem(button, latestHead !== head));
   button.addEventListener('click', () => window.location.reload());
-
-  function connect() {
-    if (!button.isConnected) return;
-    const socket = new WebSocket(url);
-    socket.addEventListener('message', (event) => {
-      const message = JSON.parse(event.data);
-      if (message.eventType !== 'pull-head') return;
-      retryDelay = 1000;
-      if (message.eventData !== head) {
-        showElem(button);
-        socket.close();
-      }
-    });
-    socket.addEventListener('close', (event) => {
-      if (event.code === 1000 || !button.classList.contains('tw-hidden')) return;
-      setTimeout(connect, retryDelay);
-      retryDelay = Math.min(retryDelay * 2, 30_000);
-    });
-  }
-
-  connect();
 }
 
 function initDiffFileTree(el: HTMLElement) {

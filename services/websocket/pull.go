@@ -5,13 +5,16 @@ package websocket
 
 import "gitea.dev/services/pubsub"
 
-func PullHeadEvent(headCommitID string) []byte {
-	return makeEventMessage("pull-head", "", headCommitID)
+func PullHeadEvent(prID int64, headCommitID string) []byte {
+	return makeEventMessage("pull-head", "", struct {
+		PullID int64  `json:"pullId"`
+		Head   string `json:"head"`
+	}{prID, headCommitID})
 }
 
 func PublishPullHead(prID int64, headCommitID string) {
 	topic := pubsub.PullHeadTopic(prID)
 	if pubsub.DefaultBroker.HasTopicSubscribers(topic) {
-		pubsub.DefaultBroker.Publish(topic, PullHeadEvent(headCommitID))
+		pubsub.DefaultBroker.Publish(topic, PullHeadEvent(prID, headCommitID))
 	}
 }

@@ -1,5 +1,6 @@
 import {
   serverUserEventTypes,
+  type PullHeadCommand,
   type SharedWorkerControlMessage,
   type UserEventMessage,
   type WorkerEventMessage,
@@ -76,6 +77,7 @@ class WsSource {
   failuresWithoutConnect: number;
   fallbackSignalled: boolean;
   closed: boolean;
+  pullHeadWatches = new Map<MessagePort, number>();
 
   constructor(wsUrl: string, source: Source) {
     this.wsUrl = wsUrl;
@@ -96,6 +98,9 @@ class WsSource {
     this.ws.addEventListener('open', () => {
       this.reconnectDelay = 1000;
       this.failuresWithoutConnect = 0;
+      for (const pullId of new Set(this.pullHeadWatches.values())) {
+        this.sendPullHeadCommand('watch-pull-head', pullId);
+      }
       this.source.notifyClientsUserEvent({eventType: 'worker-connected'});
     });
 
@@ -132,6 +137,25 @@ class WsSource {
       this.maybeSignalFallback();
       this.scheduleReconnect();
     });
+  }
+
+  sendPullHeadCommand(type: PullHeadCommand['type'], pullId: number) {
+    if (this.ws?.readyState !== WebSocket.OPEN) return;
+    const command: PullHeadCommand = {type, pullId};
+    this.ws.send(JSON.stringify(command));
+  }
+
+  setPullHeadWatch(port: MessagePort, pullId?: number) {
+    const previous = this.pullHeadWatches.get(port);
+    if (previous === pullId) return;
+    this.pullHeadWatches.delete(port);
+    if (previous !== undefined && !Array.from(this.pullHeadWatches.values()).includes(previous)) {
+      this.sendPullHeadCommand('unwatch-pull-head', previous);
+    }
+    if (pullId !== undefined) {
+      this.pullHeadWatches.set(port, pullId);
+      this.sendPullHeadCommand('watch-pull-head', pullId); // A new tab needs the latest head even if another tab is already watching.
+    }
   }
 
   maybeSignalFallback() {
@@ -198,6 +222,7 @@ const wsSourcesByUrl = new Map<string, WsSource>();
 
           // How this has happened I don't understand...
           // deregister from that source
+          wsSourcesByUrl.get(source.url)?.setPullHeadWatch(port);
           const count = source.deregister(port);
           // Clean-up
           if (count === 0) {
@@ -215,11 +240,15 @@ const wsSourcesByUrl = new Map<string, WsSource>();
         sourcesByUrl.set(url, source);
         sourcesByPort.set(port, source);
         wsSourcesByUrl.set(url, new WsSource(url, source));
+      } else if (event.data.type === 'watch-pull-head') {
+        const source = sourcesByPort.get(port);
+        if (source) wsSourcesByUrl.get(source.url)!.setPullHeadWatch(port, event.data.pullId);
       } else if (event.data.type === 'close') {
         logDebug('received control message close', event.data);
         const source = sourcesByPort.get(port);
         if (!source) return;
 
+        wsSourcesByUrl.get(source.url)?.setPullHeadWatch(port);
         const count = source.deregister(port);
         sourcesByPort.delete(port);
         if (count === 0) {
