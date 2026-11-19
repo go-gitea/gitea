@@ -65,11 +65,9 @@ func addToQueue(repoID int64, branch string) {
 	if worker == nil {
 		return
 	}
-	go func() { // An immediate queue must let push hooks return before acquiring the branch lock.
-		if err := worker.Push(fmt.Sprintf("%d:%s", repoID, branch)); err != nil && !errors.Is(err, queue.ErrAlreadyInQueue) {
-			log.Error("Unable to push merge queue of repo %d branch %s: %v", repoID, branch, err)
-		}
-	}()
+	if err := worker.Push(fmt.Sprintf("%d:%s", repoID, branch)); err != nil && !errors.Is(err, queue.ErrAlreadyInQueue) {
+		log.Error("Unable to push merge queue of repo %d branch %s: %v", repoID, branch, err)
+	}
 }
 
 func handleBranches(items ...string) []string {

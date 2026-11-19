@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"testing/synctest"
 	"time"
 
 	"gitea.dev/models/db"
@@ -55,20 +54,16 @@ func TestMergeQueueCheckRerunsAndHeadGreen(t *testing.T) {
 	s := queueState{repo: repo, branch: branch, entries: entries, rule: &git_model.ProtectedBranch{}}
 	s.rule.MergeQueue = git_model.MergeQueueConfig{GroupingStrategy: git_model.MergeQueueGroupingHeadGreen, MaxEntriesToMerge: 2, CheckResponseTimeoutMinutes: 180}
 
-	synctest.Test(t, func(t *testing.T) {
-		addToQueue(repo.ID, branch)
-		synctest.Wait()
-		worker, err := queue.NewWorkerPoolQueueWithContext(t.Context(), t.Name(), setting.QueueSettings{Type: "channel", Length: 1}, handleBranches, true)
-		require.NoError(t, err)
-		defer worker.Cancel()
-		branchQueue.Store(worker)
-		defer branchQueue.Store(nil)
-		new(notifier).CreateCommitStatus(ctx, repo, &repository.PushCommit{Sha1: first.GroupHeadSHA}, nil, &git_model.CommitStatus{State: commitstatus.CommitStatusPending})
-		synctest.Wait()
-		queued, err := worker.Has("1:master")
-		require.NoError(t, err)
-		assert.True(t, queued)
-	})
+	addToQueue(repo.ID, branch)
+	worker, err := queue.NewWorkerPoolQueueWithContext(t.Context(), t.Name(), setting.QueueSettings{Type: "channel", Length: 1}, handleBranches, true)
+	require.NoError(t, err)
+	defer worker.Cancel()
+	branchQueue.Store(worker)
+	defer branchQueue.Store(nil)
+	new(notifier).CreateCommitStatus(ctx, repo, &repository.PushCommit{Sha1: first.GroupHeadSHA}, nil, &git_model.CommitStatus{State: commitstatus.CommitStatusPending})
+	queued, err := worker.Has("1:master")
+	require.NoError(t, err)
+	assert.True(t, queued)
 
 	for _, tc := range []struct {
 		status commitstatus.CommitStatusState
