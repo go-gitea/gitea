@@ -354,8 +354,11 @@ export class ActivePageTimer {
 
   private async handler() {
     this.clear();
-    await this.opts.callback();
-    if (!this.opts.once) this.start();
+    try {
+      await this.opts.callback();
+    } finally {
+      if (!this.opts.once) this.start(); // a failed callback like a network error must not stop the refreshing
+    }
   }
 
   start() {
