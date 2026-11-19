@@ -1,12 +1,12 @@
 {{/* This is a user list for filter, the data is provided by a remote "fetch" request
 * QueryParamKey: eg: "poster", "assignee"
 * QueryLink
-* UserSearchUrl
+* UserSearchUrl: if not set, no remote search, the inputed username will be used as navigation link's query param value
 * SelectedUsername
 * TextFilterTitle
 */}}
 {{$queryLink := .QueryLink}}
-<div class="item ui dropdown custom" data-tooltip-content="{{ctx.Locale.Tr "repo.user_search_tooltip"}}" data-global-init="initDropdownUserRemoteSearch"
+<div class="item ui dropdown custom" {{if $.UserSearchUrl}}data-tooltip-content="{{ctx.Locale.Tr "repo.user_search_tooltip"}}"{{end}} data-global-init="initDropdownUserRemoteSearch"
 		data-search-url="{{$.UserSearchUrl}}"
 		data-selected-username="{{$.SelectedUsername}}"
 		data-action-jump-url="{{QueryBuild $queryLink $.QueryParamKey NIL}}&{{$.QueryParamKey}}={username}"
@@ -15,7 +15,7 @@
 	<div class="menu">
 		<div class="ui icon search input">
 			<i class="icon">{{svg "octicon-search" 16}}</i>
-			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_user_placeholder"}}">
+			<input type="text" placeholder="{{ctx.Locale.Tr (Iif $.UserSearchUrl "repo.issues.filter_user_placeholder" "repo.issues.filter_by_username_placeholder")}}">
 		</div>
 		<a class="item" data-value="">{{ctx.Locale.Tr "repo.issues.filter_user_no_select"}}</a>
 		<a class="item item-from-input tw-hidden"></a>

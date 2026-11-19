@@ -174,6 +174,8 @@ func TestEntries_GetCommitsInfo_ContextErr(t *testing.T) {
 	require.NoError(t, err)
 	defer repo.Close()
 
+	repo.LastCommitCache.ttlFn = func() int64 { return -1 }
+
 	commit, err := repo.GetCommit(t.Context(), "feaf4ba6bc635fec442f46ddd4512416ec43c2c2")
 	require.NoError(t, err)
 	entries, err := commit.Tree().ListEntries(t.Context(), repo)

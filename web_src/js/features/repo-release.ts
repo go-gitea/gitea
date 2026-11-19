@@ -132,10 +132,7 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
     const $dropdown = fomanticQuery(elModal.querySelector('[name=previous_tag]')!);
     if (!inited) {
       inited = true;
-      const values = [];
-      for (const tagName of existingTags) {
-        values.push({name: htmlEscape(tagName), value: tagName}); // ATTENTION: dropdown takes the "name" input as raw HTML
-      }
+      const values = existingTags.map((tagName) => ({name: htmlEscape(tagName), value: tagName})); // ATTENTION: dropdown takes the "name" input as raw HTML
       $dropdown.dropdown('change values', values);
     }
     $dropdown.dropdown('set selected', guessPreviousReleaseTag(tagName, existingTags));

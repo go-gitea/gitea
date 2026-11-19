@@ -40,135 +40,80 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 		return job
 	}
 
-	t.Run("TopLevelJob_ReturnsBaseUnchanged", func(t *testing.T) {
-		const runID = 9001
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: 0}
-
-		got, err := getScopedSecretsForJob(ctx, leaf, base)
-		require.NoError(t, err)
-		assert.Equal(t, base, got, "top-level jobs should see the full base scope")
-	})
-
-	t.Run("CallerInherit_PassesParentScopeThrough", func(t *testing.T) {
-		const runID = 9002
-		caller := insertCaller(t, runID, 0, "inherit")
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: caller.ID}
-
-		got, err := getScopedSecretsForJob(ctx, leaf, base)
-		require.NoError(t, err)
-		assert.Equal(t, base, got, "secrets: inherit forwards everything from parent scope")
-	})
-
-	t.Run("CallerEmptySecrets_ExposesOnlyAutoTokens", func(t *testing.T) {
-		const runID = 9003
-		caller := insertCaller(t, runID, 0, "")
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: caller.ID}
-
-		got, err := getScopedSecretsForJob(ctx, leaf, base)
-		require.NoError(t, err)
-		assert.Equal(t, map[string]string{
-			"GITHUB_TOKEN": "tok",
-			"GITEA_TOKEN":  "tok",
-		}, got)
-	})
-
-	t.Run("CallerMapping_OnlyMappedAliasesPlusTokens", func(t *testing.T) {
-		const runID = 9004
+	for _, testCase := range []struct {
+		name        string
+		runID       int64
+		callSecrets []string
+		check       func(*testing.T, map[string]string)
+	}{
+		{"TopLevelJob_ReturnsBaseUnchanged", 9001, nil, func(t *testing.T, got map[string]string) {
+			assert.Equal(t, base, got, "top-level jobs should see the full base scope")
+		}},
+		{"CallerInherit_PassesParentScopeThrough", 9002, []string{"inherit"}, func(t *testing.T, got map[string]string) {
+			assert.Equal(t, base, got, "secrets: inherit forwards everything from parent scope")
+		}},
+		{"CallerEmptySecrets_ExposesOnlyAutoTokens", 9003, []string{""}, func(t *testing.T, got map[string]string) {
+			assert.Equal(t, map[string]string{
+				"GITHUB_TOKEN": "tok",
+				"GITEA_TOKEN":  "tok",
+			}, got)
+		}},
 		// {alias: source} - the called workflow sees `secrets.MY_KEY` resolved to PROD_API_KEY's value.
-		caller := insertCaller(t, runID, 0, `{"MY_KEY":"PROD_API_KEY"}`)
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: caller.ID}
-
-		got, err := getScopedSecretsForJob(ctx, leaf, base)
-		require.NoError(t, err)
-		assert.Equal(t, map[string]string{
-			"GITHUB_TOKEN": "tok",
-			"GITEA_TOKEN":  "tok",
-			"MY_KEY":       "prod-secret",
-			// no "dev-secret"
-		}, got)
-	})
-
-	t.Run("CallerMapping_CaseInsensitiveSource", func(t *testing.T) {
-		const runID = 9005
-		caller := insertCaller(t, runID, 0, `{"alias":"prod_api_key"}`)
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: caller.ID}
-
-		got, err := getScopedSecretsForJob(ctx, leaf, base)
-		require.NoError(t, err)
-		assert.Equal(t, "prod-secret", got["alias"])
-	})
-
-	t.Run("CallerMapping_UnknownSourceDropsAlias", func(t *testing.T) {
-		const runID = 9006
+		{"CallerMapping_OnlyMappedAliasesPlusTokens", 9004, []string{`{"MY_KEY":"PROD_API_KEY"}`}, func(t *testing.T, got map[string]string) {
+			assert.Equal(t, map[string]string{
+				"GITHUB_TOKEN": "tok",
+				"GITEA_TOKEN":  "tok",
+				"MY_KEY":       "prod-secret",
+				// no "dev-secret"
+			}, got)
+		}},
+		{"CallerMapping_CaseInsensitiveSource", 9005, []string{`{"alias":"prod_api_key"}`}, func(t *testing.T, got map[string]string) {
+			assert.Equal(t, "prod-secret", got["alias"])
+		}},
 		// alias points at a non-existent secret name, so it must be dropped.
-		caller := insertCaller(t, runID, 0, `{"MAPPED_ALIAS":"DOES_NOT_EXIST"}`)
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: caller.ID}
-
-		got, err := getScopedSecretsForJob(ctx, leaf, base)
-		require.NoError(t, err)
-		_, present := got["MAPPED_ALIAS"]
-		assert.False(t, present)
-	})
-
-	t.Run("Nested_InheritThenInherit_FullScope", func(t *testing.T) {
-		const runID = 9007
-		outer := insertCaller(t, runID, 0, "inherit")
-		inner := insertCaller(t, runID, outer.ID, "inherit")
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: inner.ID}
-
-		got, err := getScopedSecretsForJob(ctx, leaf, base)
-		require.NoError(t, err)
-		assert.Equal(t, base, got, "inherit-then-inherit should pass the full base scope through")
-	})
-
-	t.Run("Nested_InheritThenMapping_InnerNarrows", func(t *testing.T) {
-		const runID = 9008
+		{"CallerMapping_UnknownSourceDropsAlias", 9006, []string{`{"MAPPED_ALIAS":"DOES_NOT_EXIST"}`}, func(t *testing.T, got map[string]string) {
+			_, present := got["MAPPED_ALIAS"]
+			assert.False(t, present)
+		}},
+		{"Nested_InheritThenInherit_FullScope", 9007, []string{"inherit", "inherit"}, func(t *testing.T, got map[string]string) {
+			assert.Equal(t, base, got, "inherit-then-inherit should pass the full base scope through")
+		}},
 		// inner mapping narrows the full scope it inherited from outer.
-		outer := insertCaller(t, runID, 0, "inherit")
-		inner := insertCaller(t, runID, outer.ID, `{"ALIAS_OUT":"PROD_API_KEY"}`)
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: inner.ID}
-
-		got, err := getScopedSecretsForJob(ctx, leaf, base)
-		require.NoError(t, err)
-		assert.Equal(t, map[string]string{
-			"GITHUB_TOKEN": "tok",
-			"GITEA_TOKEN":  "tok",
-			"ALIAS_OUT":    "prod-secret",
-			// no "dev-secret"
-		}, got)
-	})
-
-	t.Run("Nested_MappingThenInherit_OuterNarrows", func(t *testing.T) {
-		const runID = 9009
+		{"Nested_InheritThenMapping_InnerNarrows", 9008, []string{"inherit", `{"ALIAS_OUT":"PROD_API_KEY"}`}, func(t *testing.T, got map[string]string) {
+			assert.Equal(t, map[string]string{
+				"GITHUB_TOKEN": "tok",
+				"GITEA_TOKEN":  "tok",
+				"ALIAS_OUT":    "prod-secret",
+				// no "dev-secret"
+			}, got)
+		}},
 		// inner inherits outer's already-narrowed scope, so leaf sees only auto-tokens + OUTER_ALIAS.
-		outer := insertCaller(t, runID, 0, `{"OUTER_ALIAS":"PROD_API_KEY"}`)
-		inner := insertCaller(t, runID, outer.ID, "inherit")
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: inner.ID}
-
-		got, err := getScopedSecretsForJob(ctx, leaf, base)
-		require.NoError(t, err)
-		assert.Equal(t, map[string]string{
-			"GITHUB_TOKEN": "tok",
-			"GITEA_TOKEN":  "tok",
-			"OUTER_ALIAS":  "prod-secret",
-			// no "dev-secret"
-		}, got)
-	})
-
-	t.Run("Nested_MappingThenMapping_InnerSourceMustExistInOuterScope", func(t *testing.T) {
-		const runID = 9010
+		{"Nested_MappingThenInherit_OuterNarrows", 9009, []string{`{"OUTER_ALIAS":"PROD_API_KEY"}`, "inherit"}, func(t *testing.T, got map[string]string) {
+			assert.Equal(t, map[string]string{
+				"GITHUB_TOKEN": "tok",
+				"GITEA_TOKEN":  "tok",
+				"OUTER_ALIAS":  "prod-secret",
+				// no "dev-secret"
+			}, got)
+		}},
 		// inner can rename ALIAS_A (in outer's scope) to ALIAS_C, but cannot forward DEV_API_KEY, which outer dropped.
-		outer := insertCaller(t, runID, 0, `{"ALIAS_A":"PROD_API_KEY"}`)
-		inner := insertCaller(t, runID, outer.ID, `{"ALIAS_B":"DEV_API_KEY","ALIAS_C":"ALIAS_A"}`)
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: inner.ID}
-
-		got, err := getScopedSecretsForJob(ctx, leaf, base)
-		require.NoError(t, err)
-		assert.Equal(t, map[string]string{
-			"GITHUB_TOKEN": "tok",
-			"GITEA_TOKEN":  "tok",
-			"ALIAS_C":      "prod-secret",
-			// no "dev-secret"
-		}, got)
-	})
+		{"Nested_MappingThenMapping_InnerSourceMustExistInOuterScope", 9010, []string{`{"ALIAS_A":"PROD_API_KEY"}`, `{"ALIAS_B":"DEV_API_KEY","ALIAS_C":"ALIAS_A"}`}, func(t *testing.T, got map[string]string) {
+			assert.Equal(t, map[string]string{
+				"GITHUB_TOKEN": "tok",
+				"GITEA_TOKEN":  "tok",
+				"ALIAS_C":      "prod-secret",
+				// no "dev-secret"
+			}, got)
+		}},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			leaf := &actions_model.ActionRunJob{RunID: testCase.runID, ParentJobID: 0}
+			for _, callSecrets := range testCase.callSecrets {
+				leaf.ParentJobID = insertCaller(t, testCase.runID, leaf.ParentJobID, callSecrets).ID
+			}
+			got, err := getScopedSecretsForJob(ctx, leaf, base)
+			require.NoError(t, err)
+			testCase.check(t, got)
+		})
+	}
 }

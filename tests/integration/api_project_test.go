@@ -11,8 +11,12 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	project_model "gitea.dev/models/project"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/tests"
@@ -88,6 +92,14 @@ func TestAPIProjects(t *testing.T) {
 	t.Run("Permissions", func(t *testing.T) { testAPIProjectPermissions(t, token, outsider) })
 	t.Run("Visibility", func(t *testing.T) { testAPIProjectVisibility(t, outsider) })
 	t.Run("RepoProjectsModeOwner", func(t *testing.T) { testAPIRepoProjectsModeOwner(t, token) })
+	t.Run("RepoBoardNeedsIssueRead", func(t *testing.T) {
+		_, err := db.Exec(t.Context(), "UPDATE team SET authorize = ? WHERE id = ?", perm.AccessModeNone, 2)
+		require.NoError(t, err)
+		_, err = db.DeleteByBean(t.Context(), &organization.TeamUnit{TeamID: 2, Type: unit.TypeIssues})
+		require.NoError(t, err)
+		projectsWriter := getUserToken(t, "user4", auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteRepository)
+		MakeRequest(t, NewRequest(t, "POST", "/api/v1/repos/org3/repo3/projects/2/columns/5/issues/6").AddTokenAuth(projectsWriter), http.StatusNotFound)
+	})
 }
 
 func testProjectLifecycle(t *testing.T, scope projectScope, token string) {

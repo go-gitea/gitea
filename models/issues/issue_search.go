@@ -31,7 +31,7 @@ type IssuesOptions struct { //nolint:revive // export stutter
 	AllPublic          bool    // include also all public repositories
 	RepoCond           builder.Cond
 	AssigneeID         string // "(none)" or "(any)" or a user ID
-	PosterID           string // "(none)" or "(any)" or a user ID
+	PosterID           string // a user ID
 	MentionedID        int64
 	ReviewRequestedID  int64
 	ReviewedID         int64
@@ -75,11 +75,11 @@ func applySorts(sess db.Session, sortType string, priorityRepoID int64) {
 	// Since this sortType is dynamically created, it has to be treated specially.
 	if after, ok := strings.CutPrefix(sortType, ScopeSortPrefix); ok {
 		scope := after
-		sess.Join("LEFT", "issue_label", "issue.id = issue_label.issue_id")
-		// "exclusive_order=0" means "no order is set", so exclude it from the JOIN criteria and then "LEFT JOIN" result is also null
-		sess.Join("LEFT", "label", "label.id = issue_label.label_id AND label.exclusive_order <> 0 AND label.name LIKE ?", scope+"/%")
-		// Use COALESCE to make sure we sort NULL last regardless of backend DB (2147483647 == max int)
-		sess.OrderBy("COALESCE(label.exclusive_order, 2147483647) ASC").Desc("issue.id")
+		// a subquery instead of a JOIN keeps one row per issue, "exclusive_order=0" means unset and COALESCE sorts it last on every DB
+		sess.OrderBy("COALESCE((SELECT MIN(label.exclusive_order) FROM issue_label"+
+			" INNER JOIN label ON label.id = issue_label.label_id"+
+			" WHERE issue_label.issue_id = issue.id AND label.exclusive_order <> 0 AND label.name LIKE ?), 2147483647) ASC", scope+"/%").
+			Desc("issue.id")
 		return
 	}
 
@@ -218,10 +218,7 @@ func applyRepoConditions(sess db.Session, opts *IssuesOptions) {
 		opts.RepoCond = builder.In("issue.repo_id", opts.RepoIDs)
 	}
 	if opts.AllPublic {
-		if opts.RepoCond == nil {
-			opts.RepoCond = builder.NewCond()
-		}
-		opts.RepoCond = opts.RepoCond.Or(builder.In("issue.repo_id", builder.Select("id").From("repository").Where(repo_model.PublicRepoUnderPublicOwnerCond())))
+		opts.RepoCond = builder.Or(opts.RepoCond, repo_model.PublicRepoUnderPublicOwnerCond())
 	}
 	if opts.RepoCond != nil {
 		sess.And(opts.RepoCond)
@@ -376,18 +373,14 @@ func applyAssigneeCondition(sess db.Session, assigneeID string) {
 		sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_assignees)")
 	} else if assigneeID == "(any)" {
 		sess.Where("issue.id IN (SELECT issue_id FROM issue_assignees)")
-	} else if assigneeIDInt64, _ := strconv.ParseInt(assigneeID, 10, 64); assigneeIDInt64 > 0 {
+	} else if assigneeIDInt64, _ := strconv.ParseInt(assigneeID, 10, 64); assigneeIDInt64 != 0 {
 		sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
 			And("issue_assignees.assignee_id = ?", assigneeIDInt64)
 	}
 }
 
 func applyPosterCondition(sess db.Session, posterID string) {
-	// Actually every issue has a poster.
-	// The "(none)" is for internal usage only: when doer tries to search non-existing user as poster, use "(none)" to return empty result.
-	if posterID == "(none)" {
-		sess.And("issue.poster_id=0")
-	} else if posterIDInt64, _ := strconv.ParseInt(posterID, 10, 64); posterIDInt64 > 0 {
+	if posterIDInt64, _ := strconv.ParseInt(posterID, 10, 64); posterIDInt64 != 0 {
 		sess.And("issue.poster_id=?", posterIDInt64)
 	}
 }
@@ -403,22 +396,17 @@ func applyReviewRequestedCondition(sess db.Session, reviewRequestedID int64) {
 		From("team_user").
 		Where(builder.Eq{"team_user.uid": reviewRequestedID})
 
-	// if the review is approved or rejected, it should not be shown in the review requested list
-	maxReview := builder.Select("MAX(r.id)").
-		From("review as r").
-		Where(builder.In("r.type", []ReviewType{ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest})).
-		GroupBy("r.issue_id, r.reviewer_id, r.reviewer_team_id")
-
 	subQuery := builder.Select("review.issue_id").
 		From("review").
-		Where(builder.And(
-			builder.Eq{"review.type": ReviewTypeRequest},
-			builder.Or(
-				builder.Eq{"review.reviewer_id": reviewRequestedID},
-				builder.In("review.reviewer_team_id", existInTeamQuery),
-			),
-			builder.In("review.id", maxReview),
-		))
+		Where(builder.Eq{"review.type": ReviewTypeRequest}).
+		And(builder.Or(
+			builder.Eq{"review.reviewer_id": reviewRequestedID},
+			builder.In("review.reviewer_team_id", existInTeamQuery),
+		)).
+		// if the review is approved or rejected, it should not be shown in the review requested list
+		And(builder.NotExists(builder.Select("1").From("review as r").
+			Where(builder.Expr("r.issue_id = review.issue_id AND r.reviewer_id = review.reviewer_id AND r.reviewer_team_id = review.reviewer_team_id AND r.id > review.id").
+				And(builder.In("r.type", []ReviewType{ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest})))))
 	sess.Where("issue.poster_id <> ?", reviewRequestedID).
 		And(builder.In("issue.id", subQuery))
 }

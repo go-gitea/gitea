@@ -108,7 +108,7 @@ var OAuth2 = struct {
 	JWTSigningAlgorithm:        "RS256",
 	JWTSigningPrivateKeyFile:   "jwt/private.pem",
 	MaxTokenLength:             math.MaxInt16,
-	DefaultApplications:        []string{"git-credential-oauth", "git-credential-manager", "tea", "gitea-app", "gitea-vscode"},
+	DefaultApplications:        []string{"git-credential-oauth", "git-credential-manager", "gitea-cli", "gitea-app", "gitea-vscode"},
 }
 
 func loadOAuth2From(rootCfg ConfigProvider) {
@@ -120,6 +120,11 @@ func loadOAuth2From(rootCfg ConfigProvider) {
 
 	if sec.HasKey("DEFAULT_APPLICATIONS") && sec.Key("DEFAULT_APPLICATIONS").String() == "" {
 		OAuth2.DefaultApplications = nil
+	}
+	for i, name := range OAuth2.DefaultApplications {
+		if name == "tea" { // tea was renamed to gitea-cli, which kept its OAuth2 client ID
+			OAuth2.DefaultApplications[i] = "gitea-cli"
+		}
 	}
 
 	if !filepath.IsAbs(OAuth2.JWTSigningPrivateKeyFile) {

@@ -169,9 +169,20 @@ func LoadFixtures() error {
 		return err
 	}
 	// Now if we're running postgres we need to tell it to update the sequences
-	if GetXORMEngine().Dialect().URI().DBType == schemas.POSTGRES {
+	switch GetXORMEngine().Dialect().URI().DBType {
+	case schemas.POSTGRES:
 		if err := loadFixtureResetSeqPgsql(GetXORMEngine()); err != nil {
 			return err
+		}
+	case schemas.SQLITE:
+		hasSequence, err := GetXORMEngine().IsTableExist("sqlite_sequence") // only exists once an AUTOINCREMENT table was created
+		if err != nil {
+			return fmt.Errorf("LoadFixtures: %w", err)
+		}
+		if hasSequence {
+			if _, err := GetXORMEngine().DB().DB.Exec("DELETE FROM sqlite_sequence"); err != nil {
+				return fmt.Errorf("LoadFixtures: %w", err)
+			}
 		}
 	}
 	return nil

@@ -52,71 +52,38 @@ func TestParsePackage(t *testing.T) {
 		assert.ErrorIs(t, err, ErrInvalidPackage)
 	})
 
-	t.Run("InvalidPackageName", func(t *testing.T) {
-		test := func(t *testing.T, name string) {
-			p, err := parseUploadPackage(&packageUpload{
-				PackageMetadata: PackageMetadata{
-					ID:   name,
-					Name: name,
-					Versions: map[string]*PackageMetadataVersion{
-						packageVersion: {
-							Name: name,
+	for _, testCase := range []struct {
+		name          string
+		names         []string
+		expectedError error
+	}{
+		{"InvalidPackageName", []string{
+			" test ", " test", "test ", "te st", "Test", "_test", ".test", "^test", "te^st",
+			"te|st", "te)(st", "te'st", "te!st", "te*st", "te~st", "invalid/scope", "@invalid/_name", "@invalid/.name",
+		}, ErrInvalidPackageName},
+		{"ValidPackageName", []string{
+			"test", "@scope/name", "@scope/q", "q", "@scope/package-name", "@scope/package.name", "@scope/package_name",
+			"123name", "----", packageFullName,
+		}, ErrInvalidPackageVersion},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			for _, name := range testCase.names {
+				p, err := parseUploadPackage(&packageUpload{
+					PackageMetadata: PackageMetadata{
+						ID:   name,
+						Name: name,
+						Versions: map[string]*PackageMetadataVersion{
+							packageVersion: {
+								Name: name,
+							},
 						},
 					},
-				},
-			})
-			assert.Nil(t, p)
-			assert.ErrorIs(t, err, ErrInvalidPackageName)
-		}
-
-		test(t, " test ")
-		test(t, " test")
-		test(t, "test ")
-		test(t, "te st")
-		test(t, "Test")
-		test(t, "_test")
-		test(t, ".test")
-		test(t, "^test")
-		test(t, "te^st")
-		test(t, "te|st")
-		test(t, "te)(st")
-		test(t, "te'st")
-		test(t, "te!st")
-		test(t, "te*st")
-		test(t, "te~st")
-		test(t, "invalid/scope")
-		test(t, "@invalid/_name")
-		test(t, "@invalid/.name")
-	})
-
-	t.Run("ValidPackageName", func(t *testing.T) {
-		test := func(t *testing.T, name string) {
-			p, err := parseUploadPackage(&packageUpload{
-				PackageMetadata: PackageMetadata{
-					ID:   name,
-					Name: name,
-					Versions: map[string]*PackageMetadataVersion{
-						packageVersion: {
-							Name: name,
-						},
-					},
-				},
-			})
-			assert.Nil(t, p)
-			assert.ErrorIs(t, err, ErrInvalidPackageVersion)
-		}
-
-		test(t, "test")
-		test(t, "@scope/name")
-		test(t, "@scope/q")
-		test(t, "q")
-		test(t, "@scope/package-name")
-		test(t, "@scope/package.name")
-		test(t, "@scope/package_name")
-		test(t, "123name")
-		test(t, "----")
-		test(t, packageFullName)
-	})
+				})
+				assert.Nil(t, p)
+				assert.ErrorIs(t, err, testCase.expectedError)
+			}
+		})
+	}
 
 	t.Run("InvalidPackageVersion", func(t *testing.T) {
 		version := "first-version"
@@ -136,108 +103,42 @@ func TestParsePackage(t *testing.T) {
 		assert.ErrorIs(t, err, ErrInvalidPackageVersion)
 	})
 
-	t.Run("InvalidAttachment", func(t *testing.T) {
-		b, _ := json.Marshal(packageUpload{
-			PackageMetadata: PackageMetadata{
-				ID:   packageFullName,
-				Name: packageFullName,
-				Versions: map[string]*PackageMetadataVersion{
-					packageVersion: {
-						Name:    packageFullName,
-						Version: packageVersion,
-					},
-				},
-			},
-			Attachments: map[string]*PackageAttachment{
-				"dummy.tgz": {},
-			},
-		})
-
-		p, _, err := ParseUpload(bytes.NewReader(b))
-		assert.Nil(t, p)
-		assert.ErrorIs(t, err, ErrInvalidAttachment)
-	})
-
-	t.Run("InvalidData", func(t *testing.T) {
-		filename := fmt.Sprintf("%s-%s.tgz", packageFullName, packageVersion)
-		b, _ := json.Marshal(packageUpload{
-			PackageMetadata: PackageMetadata{
-				ID:   packageFullName,
-				Name: packageFullName,
-				Versions: map[string]*PackageMetadataVersion{
-					packageVersion: {
-						Name:    packageFullName,
-						Version: packageVersion,
-					},
-				},
-			},
-			Attachments: map[string]*PackageAttachment{
-				filename: {
-					Data: "/",
-				},
-			},
-		})
-
-		p, _, err := ParseUpload(bytes.NewReader(b))
-		assert.Nil(t, p)
-		assert.ErrorIs(t, err, ErrInvalidAttachment)
-	})
-
-	t.Run("InvalidIntegrity", func(t *testing.T) {
-		filename := fmt.Sprintf("%s-%s.tgz", packageFullName, packageVersion)
-		b, _ := json.Marshal(packageUpload{
-			PackageMetadata: PackageMetadata{
-				ID:   packageFullName,
-				Name: packageFullName,
-				Versions: map[string]*PackageMetadataVersion{
-					packageVersion: {
-						Name:    packageFullName,
-						Version: packageVersion,
-						Dist: PackageDistribution{
-							Integrity: "sha512-test==",
+	for _, testCase := range []struct {
+		name, filename, data, integrity string
+		expectedError                   error
+	}{
+		{"InvalidAttachment", "dummy.tgz", "", "", ErrInvalidAttachment},
+		{"InvalidData", fmt.Sprintf("%s-%s.tgz", packageFullName, packageVersion), "/", "", ErrInvalidAttachment},
+		{"InvalidIntegrity", fmt.Sprintf("%s-%s.tgz", packageFullName, packageVersion), data, "sha512-test==", ErrInvalidIntegrity},
+		{"InvalidIntegrity2", fmt.Sprintf("%s-%s.tgz", packageFullName, packageVersion), base64.StdEncoding.EncodeToString([]byte("data")), integrity, ErrInvalidIntegrity},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			b, _ := json.Marshal(packageUpload{
+				PackageMetadata: PackageMetadata{
+					ID:   packageFullName,
+					Name: packageFullName,
+					Versions: map[string]*PackageMetadataVersion{
+						packageVersion: {
+							Name:    packageFullName,
+							Version: packageVersion,
+							Dist: PackageDistribution{
+								Integrity: testCase.integrity,
+							},
 						},
 					},
 				},
-			},
-			Attachments: map[string]*PackageAttachment{
-				filename: {
-					Data: data,
-				},
-			},
-		})
-
-		p, _, err := ParseUpload(bytes.NewReader(b))
-		assert.Nil(t, p)
-		assert.ErrorIs(t, err, ErrInvalidIntegrity)
-	})
-
-	t.Run("InvalidIntegrity2", func(t *testing.T) {
-		filename := fmt.Sprintf("%s-%s.tgz", packageFullName, packageVersion)
-		b, _ := json.Marshal(packageUpload{
-			PackageMetadata: PackageMetadata{
-				ID:   packageFullName,
-				Name: packageFullName,
-				Versions: map[string]*PackageMetadataVersion{
-					packageVersion: {
-						Name:    packageFullName,
-						Version: packageVersion,
-						Dist: PackageDistribution{
-							Integrity: integrity,
-						},
+				Attachments: map[string]*PackageAttachment{
+					testCase.filename: {
+						Data: testCase.data,
 					},
 				},
-			},
-			Attachments: map[string]*PackageAttachment{
-				filename: {
-					Data: base64.StdEncoding.EncodeToString([]byte("data")),
-				},
-			},
-		})
+			})
 
-		p, _, err := ParseUpload(bytes.NewReader(b))
-		assert.Nil(t, p)
-		assert.ErrorIs(t, err, ErrInvalidIntegrity)
-	})
+			p, _, err := ParseUpload(bytes.NewReader(b))
+			assert.Nil(t, p)
+			assert.ErrorIs(t, err, testCase.expectedError)
+		})
+	}
 
 	t.Run("Valid", func(t *testing.T) {
 		filename := fmt.Sprintf("%s-%s.tgz", packageFullName, packageVersion)

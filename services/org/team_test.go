@@ -104,37 +104,33 @@ func TestNewTeam(t *testing.T) {
 }
 
 func TestUpdateTeam(t *testing.T) {
-	// successful update
-	assert.NoError(t, unittest.PrepareTestDatabase())
+	for _, name := range []string{
+		// successful update
+		"newName",
+		// update to already-existing team
+		"Owners",
+	} {
+		assert.NoError(t, unittest.PrepareTestDatabase())
 
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
-	team.LowerName = "newname"
-	team.Name = "newName"
-	team.Description = strings.Repeat("A long description!", 100)
-	team.AccessMode = perm.AccessModeAdmin
-	assert.NoError(t, UpdateTeam(t.Context(), team, true, false))
-
-	team = unittest.AssertExistsAndLoadBean(t, &organization.Team{Name: "newName"})
-	assert.True(t, strings.HasPrefix(team.Description, "A long description!"))
-
-	access := unittest.AssertExistsAndLoadBean(t, &access_model.Access{UserID: 4, RepoID: 3})
-	assert.Equal(t, perm.AccessModeAdmin, access.Mode)
-
-	unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID})
-}
-
-func TestUpdateTeam2(t *testing.T) {
-	// update to already-existing team
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
-	team.LowerName = "owners"
-	team.Name = "Owners"
-	team.Description = strings.Repeat("A long description!", 100)
-	err := UpdateTeam(t.Context(), team, true, false)
-	assert.True(t, organization.IsErrTeamAlreadyExist(err))
-
-	unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID})
+		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+		team.LowerName = strings.ToLower(name)
+		team.Name = name
+		team.Description = strings.Repeat("A long description!", 100)
+		if name == "newName" {
+			team.AccessMode = perm.AccessModeAdmin
+		}
+		err := UpdateTeam(t.Context(), team, true, false)
+		if name == "newName" {
+			assert.NoError(t, err)
+			team = unittest.AssertExistsAndLoadBean(t, &organization.Team{Name: "newName"})
+			assert.True(t, strings.HasPrefix(team.Description, "A long description!"))
+			access := unittest.AssertExistsAndLoadBean(t, &access_model.Access{UserID: 4, RepoID: 3})
+			assert.Equal(t, perm.AccessModeAdmin, access.Mode)
+		} else {
+			assert.True(t, organization.IsErrTeamAlreadyExist(err))
+		}
+		unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID})
+	}
 }
 
 func TestDeleteTeam(t *testing.T) {

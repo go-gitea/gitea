@@ -25,17 +25,29 @@ import (
 )
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs, projectIDs []int64) error {
+func NewIssue(ctx context.Context, repo *repo_model.Repository, perm access_model.Permission, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs, projectIDs []int64) error {
 	if err := issue.LoadPoster(ctx); err != nil {
 		return err
 	}
 
-	if user_model.IsUserBlockedBy(ctx, issue.Poster, repo.OwnerID) || user_model.IsUserBlockedBy(ctx, issue.Poster, assigneeIDs...) {
-		return user_model.ErrBlockedUser
+	if user_model.IsUserBlockedBy(ctx, issue.Poster, repo.OwnerID) {
+		return util.ErrorWrapTranslatable(user_model.ErrBlockedUser, "repo.creation_blocked_by_owner")
+	}
+	if user_model.IsUserBlockedBy(ctx, issue.Poster, assigneeIDs...) {
+		return util.ErrorWrapTranslatable(user_model.ErrBlockedUser, "repo.creation_blocked_by_assignee")
+	}
+
+	restriction := repo.MustGetUnit(ctx, unit.TypeIssues).IssuesConfig().CreationRestriction
+	if restriction != repo_model.CreationRestrictionReader {
+		err := CheckCreationRestriction(perm, unit.TypeIssues, restriction)
+		if err != nil {
+			return err
+		}
 	}
 
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
 	assignees := make(map[int64]*user_model.User)
+	var addedProjectIDs []int64
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := issues_model.NewIssue(ctx, repo, issue, labelIDs, uuids); err != nil {
 			return err
@@ -54,8 +66,8 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 			assigneeCommentMap[assigneeID] = comment
 		}
 		if len(projectIDs) > 0 {
-			err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectIDs)
-			if err != nil {
+			var err error
+			if addedProjectIDs, _, err = issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectIDs); err != nil {
 				return err
 			}
 		}
@@ -82,6 +94,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 			notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assignee.ID])
 		}
 	}
+	notify_service.IssueChangeProjects(ctx, issue.Poster, issue, addedProjectIDs, nil)
 
 	return nil
 }
@@ -173,8 +186,10 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model
 		if err := issue.PullRequest.LoadBaseRepo(ctx); err != nil {
 			return err
 		}
-		if err := git.RemoveRef(ctx, issue.PullRequest.BaseRepo, issue.PullRequest.GetGitHeadRefName()); err != nil {
-			return err
+		for _, ref := range []git.RefName{git.RefNameFromPullIndex(issue.Index), git.MergeRefNameFromPullIndex(issue.Index), git.MergedRefNameFromPullIndex(issue.Index)} {
+			if err := git.RemoveRef(ctx, issue.PullRequest.BaseRepo, ref.String()); err != nil {
+				log.Error("RemoveRef %s: %v", ref, err)
+			}
 		}
 	}
 
@@ -290,7 +305,6 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 		issues := make([]*issues_model.Issue, 0, db.DefaultMaxInSize)
 		if err := db.GetEngine(ctx).
 			Where("repo_id = ?", repoID).
-			OrderBy("id").
 			Limit(db.DefaultMaxInSize).
 			Find(&issues); err != nil {
 			return nil, err
@@ -331,4 +345,9 @@ func CanSelfChangeOrAccessContent(doer *user_model.User, doerPerm access_model.P
 		return false
 	}
 	return true
+}
+
+// IsLockedForDoer returns whether the lock keeps a doer with perm from commenting
+func IsLockedForDoer(issue *issues_model.Issue, perm access_model.Permission) bool {
+	return issue.IsLocked && !perm.CanWriteIssuesOrPulls(issue.IsPull)
 }

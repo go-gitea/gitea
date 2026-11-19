@@ -23,8 +23,12 @@
 				"ClosedMilestones" .ClosedMilestones
 			}}
 		</div>
-		{{if $canWriteProject}}
-			<div class="ui compact mini menu">
+		<div class="ui compact mini menu">
+			<a class="item" href="{{.Link}}/workflows">
+				{{svg "octicon-workflow"}}
+				{{ctx.Locale.Tr "projects.workflows"}}
+			</a>
+			{{if $canWriteProject}}
 				<a class="item screen-full">
 					{{svg "octicon-screen-full"}}
 					{{ctx.Locale.Tr "projects.enter_fullscreen"}}
@@ -66,8 +70,8 @@
 					{{svg "octicon-plus"}}
 					{{ctx.Locale.Tr "new_project_column"}}
 				</button>
-			</div>
-		{{end}}
+			{{end}}
+		</div>
 	</div>
 
 	<div class="ui container project-description">

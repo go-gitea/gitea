@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"regexp"
+	"sync"
 
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/packages"
@@ -60,7 +61,9 @@ type Dependency struct {
 	Package         *string  `json:"package"`
 }
 
-var nameMatch = regexp.MustCompile(`\A[a-zA-Z][a-zA-Z0-9-_]{0,63}\z`)
+var nameMatch = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`\A[a-zA-Z][a-zA-Z0-9-_]{0,63}\z`)
+})
 
 // ParsePackage reads the metadata and content of a package
 func ParsePackage(r io.Reader) (*Package, error) {
@@ -120,7 +123,7 @@ func parsePackage(r io.Reader) (*Package, error) {
 		return nil, err
 	}
 
-	if !nameMatch.MatchString(meta.Name) {
+	if !nameMatch().MatchString(meta.Name) {
 		return nil, ErrInvalidName
 	}
 

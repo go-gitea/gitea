@@ -756,46 +756,30 @@ func TestActionsArtifactV4ListAndGetPublicApi(t *testing.T) {
 	}
 }
 
-func TestActionsArtifactV4GetArtifactMismatchedRepoNotFound(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
+func TestActionsArtifactV4ArtifactAccess(t *testing.T) {
+	for _, testCase := range []struct {
+		name       string
+		repoID     int64
+		suffix     string
+		statusCode int
+	}{
+		{"GetArtifactMismatchedRepoNotFound", 1, "", http.StatusNotFound},
+		{"DownloadArtifactMismatchedRepoNotFound", 1, "/zip", http.StatusNotFound},
+		{"DownloadArtifactCorrectRepoFound", 4, "/zip", http.StatusFound},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			defer prepareTestEnvActionsArtifacts(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: testCase.repoID})
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+			session := loginUser(t, user.Name)
+			token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	// confirm artifacts of wrong repo is not visible
-	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNotFound)
-}
-
-func TestActionsArtifactV4DownloadArtifactMismatchedRepoNotFound(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-
-	// confirm artifacts of wrong repo is not visible
-	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip", repo.FullName(), 22), nil).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNotFound)
-}
-
-func TestActionsArtifactV4DownloadArtifactCorrectRepoFound(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-
-	// confirm artifacts of correct repo is visible
-	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip", repo.FullName(), 22), nil).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusFound)
+			req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d%s", repo.FullName(), 22, testCase.suffix), nil).
+				AddTokenAuth(token)
+			MakeRequest(t, req, testCase.statusCode)
+		})
+	}
 }
 
 func TestActionsArtifactV4Delete(t *testing.T) {
@@ -837,51 +821,37 @@ func TestActionsArtifactV4Delete(t *testing.T) {
 }
 
 func TestActionsArtifactV4DeletePublicApi(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
+	for _, testCase := range []struct {
+		scope        auth_model.AccessTokenScope
+		deleteStatus int
+		getStatus    int
+	}{
+		{auth_model.AccessTokenScopeWriteRepository, http.StatusNoContent, http.StatusNotFound},
+		{auth_model.AccessTokenScopeReadRepository, http.StatusForbidden, http.StatusOK},
+	} {
+		t.Run(string(testCase.scope), func(t *testing.T) {
+			defer prepareTestEnvActionsArtifacts(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+			session := loginUser(t, user.Name)
+			token := getTokenForLoggedInUser(t, session, testCase.scope)
 
-	// confirm artifacts exists
-	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusOK)
+			// confirm artifacts exists
+			req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
+				AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusOK)
 
-	// delete artifact by id
-	req = NewRequestWithBody(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
+			// delete artifact by id
+			req = NewRequestWithBody(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
+				AddTokenAuth(token)
+			MakeRequest(t, req, testCase.deleteStatus)
 
-	// confirm artifacts has been deleted
-	req = NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNotFound)
-}
-
-func TestActionsArtifactV4DeletePublicApiNotAllowedReadScope(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-
-	// confirm artifacts exists
-	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusOK)
-
-	// try delete artifact by id
-	req = NewRequestWithBody(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusForbidden)
-
-	// confirm artifacts has not been deleted
-	req = NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusOK)
+			req = NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
+				AddTokenAuth(token)
+			MakeRequest(t, req, testCase.getStatus)
+		})
+	}
 }
 
 func testActionRunAttemptArtifactV4(t *testing.T, repo *repo_model.Repository, session *TestSession, runner *mockRunner) {

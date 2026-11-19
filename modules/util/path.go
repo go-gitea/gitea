@@ -360,7 +360,7 @@ func IsReadmeFileExtension(name string, ext ...string) (int, bool) {
 		}
 	}
 
-	if name[6] == '.' {
+	if len(name) > 6 && name[6] == '.' {
 		return len(ext), true
 	}
 
