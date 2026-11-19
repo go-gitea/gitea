@@ -158,7 +158,7 @@ jobs:
 }
 
 // A reusable workflow declares its own strategy, so the limit must reach the child jobs.
-func TestInsertCallerChildren_MaxParallel(t *testing.T) {
+func TestInsertCallerChildren_MaxParallelAndCacheModeCap(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
@@ -177,10 +177,12 @@ func TestInsertCallerChildren_MaxParallel(t *testing.T) {
 	}
 	require.NoError(t, db.Insert(ctx, caller))
 
-	called := []byte(`name: called
+	called := &reusableWorkflowSource{repoID: run.RepoID, commitSHA: run.CommitSHA, content: []byte(`name: called
 on: workflow_call
+cache-mode: read
 jobs:
   build:
+    cache-mode: write-only
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 2
@@ -188,8 +190,12 @@ jobs:
         version: [1, 2, 3]
     steps:
       - run: echo hi
-`)
-	require.NoError(t, insertCallerChildren(ctx, run, attempt, caller, called, run.RepoID, run.CommitSHA, nil, nil))
+`)}
+	require.EqualError(t, insertCallerChildren(ctx, run, attempt, caller, "read", called, nil, nil),
+		"cache-mode: The nested job 'build' is requesting 'write-only', but is only allowed 'read'")
+	require.EqualError(t, insertCallerChildren(ctx, run, attempt, caller, "write-only", called, nil, nil),
+		"cache-mode: The workflow is requesting 'read', but is only allowed 'write-only'")
+	require.NoError(t, insertCallerChildren(ctx, run, attempt, caller, "", called, nil, nil))
 
 	children := 0
 	for _, job := range runJobs(t, run.ID, attempt.ID) {

@@ -92,3 +92,43 @@ test('delete an edit history entry via a confirm over the history modal', async 
   await page.getByRole('dialog', {name: 'Delete from history?'}).getByRole('button', {name: 'Confirm'}).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
+
+test('toggle tasks in preview and after save', async ({page, request}) => {
+  const repoName = `e2e-issue-tasklist-${randomString(8)}`;
+  const owner = env.GITEA_TEST_E2E_USER;
+  const originalBody = 'Résumé\n\n- [X] Verify input';
+  const [{index}] = await Promise.all([
+    (async () => {
+      await apiCreateRepo(request, {name: repoName, autoInit: false});
+      return apiCreateIssue(request, {owner, repo: repoName, title: 'Checklist test', body: originalBody});
+    })(),
+    login(page),
+  ]);
+  await page.goto(`/${owner}/${repoName}/issues/${index}`);
+
+  const contextMenu = page.getByRole('heading', {level: 3}).getByRole('menu').filter({hasNotText: 'Edited'});
+  const editItem = contextMenu.getByRole('menuitem', {name: 'Edit', exact: true});
+  const issueBody = page.getByRole('article');
+  const editor = issueBody.getByRole('textbox');
+  await contextMenu.click();
+  await editItem.click();
+  await expect(editor).toHaveValue(originalBody);
+  await page.keyboard.press('Enter');
+  await page.keyboard.insertText('Record result');
+
+  await issueBody.getByText('Preview', {exact: true}).click();
+  await issueBody.getByRole('listitem').filter({hasText: 'Verify input'}).getByRole('checkbox').uncheck();
+  await issueBody.getByText('Write', {exact: true}).click();
+  await expect(editor).toHaveValue('Résumé\n\n- [ ] Verify input\n- [ ] Record result');
+
+  await issueBody.getByRole('button', {name: 'Save', exact: true}).click();
+  await issueBody.getByRole('listitem').filter({hasText: 'Record result'}).getByRole('checkbox').check();
+  const updatedBody = 'Résumé\n\n- [ ] Verify input\n- [x] Record result';
+  await expect(issueBody.getByText(updatedBody, {exact: true})).toBeAttached();
+
+  await contextMenu.click();
+  await editItem.click();
+  await expect(editor).toHaveValue(updatedBody);
+  const response = await request.get(`/api/v1/repos/${owner}/${repoName}/issues/${index}`);
+  expect((await response.json()).body).toContain('- [x] Record result');
+});
