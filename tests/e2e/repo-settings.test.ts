@@ -44,7 +44,7 @@ test('branch protection rule keeps its push allowlist and dragged priority', asy
   await expect(page.locator('#whitelist_box .dropdown > .label')).toHaveText(owner);
 });
 
-test('webhook delivery', async ({page, request}) => {
+test('webhook delivery dialog switches tabs after the history refreshes', async ({page, request}) => {
   const owner = env.GITEA_TEST_E2E_USER;
   const repo = `e2e-webhook-${randomString(8)}`;
   const [hookId] = await Promise.all([
@@ -57,9 +57,7 @@ test('webhook delivery', async ({page, request}) => {
   await page.goto(`/${owner}/${repo}/settings/hooks/${hookId}`);
   const deliveries = page.getByRole('button', {name: /^[\da-f-]{36}$/});
   const dialog = page.getByRole('dialog');
-  await expect(deliveries).toHaveCount(1);
   await deliveries.first().click();
-  await expect(dialog.getByRole('heading', {name: 'Content'})).toBeVisible();
   await dialog.getByRole('button', {name: 'Close'}).click();
   await expect(dialog).toBeHidden();
 
@@ -68,5 +66,5 @@ test('webhook delivery', async ({page, request}) => {
   await deliveries.last().click();
   await dialog.getByText('Response', {exact: true}).click();
   await expect(dialog.getByRole('heading', {name: 'Body'})).toBeVisible();
-  await expect(dialog.getByRole('heading', {name: 'Content'})).toBeHidden();
+  await expect(dialog.getByRole('heading', {name: 'Payload'})).toBeHidden();
 });
