@@ -1,5 +1,5 @@
 <div class="ui attached segment" id="webhook-history"
-	{{if .WebhookHistoryRefreshInterval}}data-fetch-url="{{.WebhookLink}}/history" data-fetch-trigger="every {{.WebhookHistoryRefreshSeconds}}s"{{end}}
+	{{if .WebhookHistoryRefreshSeconds}}data-fetch-url="{{.WebhookLink}}/history" data-fetch-trigger="every {{.WebhookHistoryRefreshSeconds}}s"{{end}}
 >
 	{{$canReplay := or $.Permission.IsAdmin $.IsOrganizationOwner $.PageIsAdmin $.PageIsUserSettings}}
 	<div class="flex-divided-list">
