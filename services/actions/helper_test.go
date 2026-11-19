@@ -9,10 +9,6 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
-	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/json"
-	api "gitea.dev/modules/structs"
-	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -86,43 +82,4 @@ func TestReusableChildInputs(t *testing.T) {
 		assert.Equal(t, map[string]any{"inputs": inputs}, gitCtx["event"])
 		assert.Equal(t, map[string]any{"original_event_name": "push", "inputs": inputs}, gitCtx["gitea_workflow_call"])
 	})
-}
-
-func TestPullRequestTargetBaseSHA(t *testing.T) {
-	prPayload := func(baseSHA string) string {
-		payload, err := json.Marshal(api.PullRequestPayload{
-			PullRequest: &api.PullRequest{
-				Base: &api.PRBranchInfo{Sha: baseSHA},
-			},
-		})
-		require.NoError(t, err)
-		return string(payload)
-	}
-
-	for _, test := range []struct {
-		name         string
-		triggerEvent string
-		payload      string
-		wantSHA      string
-	}{
-		{"pull_request_target with base SHA", actions_module.GithubEventPullRequestTarget, prPayload("base-sha"), "base-sha"},
-		{"non pull_request_target trigger", actions_module.GithubEventPullRequest, prPayload("base-sha"), ""},
-		{"missing base SHA", actions_module.GithubEventPullRequestTarget, prPayload(""), ""},
-		{"invalid payload", actions_module.GithubEventPullRequestTarget, "{", ""},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			got, ok := pullRequestTargetBaseSHA(&actions_model.ActionRun{
-				Event:        webhook_module.HookEventPullRequest,
-				TriggerEvent: test.triggerEvent,
-				EventPayload: test.payload,
-			})
-			if test.wantSHA != "" {
-				assert.True(t, ok)
-				assert.Equal(t, test.wantSHA, got)
-			} else {
-				assert.False(t, ok)
-				assert.Empty(t, got)
-			}
-		})
-	}
 }

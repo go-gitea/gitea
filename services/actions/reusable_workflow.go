@@ -171,16 +171,13 @@ func errCallLevelExceeded(uses string) error {
 }
 
 // resolveSameRepoWorkflowSourceCommit returns the commit to read a same-repo reusable workflow from.
-// pull_request_target runs must resolve local `uses:` at the PR base commit, not a stored head SHA.
 func resolveSameRepoWorkflowSourceCommit(run *actions_model.ActionRun, caller *actions_model.ActionRunJob) string {
 	// only a SHA copied from the run row can be the polluted head one; a SHA resolved from a `uses:` ref is right by construction
-	if run.IsScopedRun || caller.WorkflowSourceRepoID != run.RepoID || caller.WorkflowSourceCommitSHA != run.WorkflowCommitSHA {
+	if run.TriggerEvent != actions_module.GithubEventPullRequestTarget || run.IsScopedRun || caller.WorkflowSourceRepoID != run.RepoID || caller.WorkflowSourceCommitSHA != run.WorkflowCommitSHA {
 		return caller.WorkflowSourceCommitSHA
 	}
-	if baseSHA, ok := pullRequestTargetBaseSHA(run); ok && baseSHA != caller.WorkflowSourceCommitSHA {
-		return baseSHA
-	}
-	return caller.WorkflowSourceCommitSHA
+	_, _, _, sha := runRefs(run)
+	return sha
 }
 
 // readWorkflowFromRepo loads a workflow file from `repo` at `refOrSHA`.

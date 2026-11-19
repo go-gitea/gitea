@@ -21,7 +21,6 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
@@ -787,98 +786,40 @@ jobs:
 			runner.execTask(t, task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 		})
 
-		t.Run("pull_request_target resolves a local reusable workflow at the base commit", func(t *testing.T) {
+		t.Run("pull_request_target into another branch runs the default branch workflow and its local reusable one", func(t *testing.T) {
 			apiBaseRepo := createActionsTestRepo(t, user2Token, "prt-reusable-test", false)
 			baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
-
 			runner := newMockRunner()
 			runner.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-prt-runner", []string{"ubuntu-latest"}, false)
 
-			reusablePath := ".gitea/workflows/reusable.yaml"
-			// A pull_request_target run's workflow should always come from the base branch.
-			createRepoWorkflowFile(t, user2, user2Token, baseRepo, reusablePath, `name: Reusable
-on:
-  workflow_call:
-jobs:
-  trusted:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo trusted
-`)
-			baseFile := createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, ".gitea/workflows/prt.yaml",
-				getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create prt.yaml", `name: PRT
-on: pull_request_target
-jobs:
-  call_reusable:
-    uses: ./.gitea/workflows/reusable.yaml
-    secrets: inherit
-`))
-			baseSHA := baseFile.Commit.SHA
-
-			// user4 forks
-			req := NewRequestWithJSON(t, "POST",
-				fmt.Sprintf("/api/v1/repos/%s/%s/forks", baseRepo.OwnerName, baseRepo.Name),
+			testCreateFileInBranch(t, user2, baseRepo, createFileInBranchOptions{NewBranch: "release"}, map[string]string{
+				".gitea/workflows/release-only.yaml": "on: pull_request_target\njobs:\n  release-only:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo release-only\n",
+			})
+			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", baseRepo.OwnerName, baseRepo.Name),
 				&api.CreateForkOption{Name: new("prt-reusable-test-fork")}).AddTokenAuth(user4Token)
-			resp := MakeRequest(t, req, http.StatusAccepted)
-			apiForkRepo := DecodeJSON(t, resp, &api.Repository{})
-			forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiForkRepo.ID})
-			user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+			forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: DecodeJSON(t, MakeRequest(t, req, http.StatusAccepted), &api.Repository{}).ID})
+			reusablePath := ".gitea/workflows/reusable.yaml"
+			forkHeadSHA := testCreateFileInBranch(t, user4, forkRepo, createFileInBranchOptions{NewBranch: "fork-branch"}, map[string]string{
+				reusablePath: "on: workflow_call\njobs:\n  from-fork:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo from-fork\n",
+			}).Commit.SHA
+			defaultSHA := testCreateFileInBranch(t, user2, baseRepo, createFileInBranchOptions{}, map[string]string{
+				reusablePath:                "on: workflow_call\njobs:\n  trusted:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo trusted\n",
+				".gitea/workflows/prt.yaml": "on: pull_request_target\njobs:\n  call_reusable:\n    uses: ./.gitea/workflows/reusable.yaml\n",
+			}).Commit.SHA
 
-			// user4 rewrites the reusable workflow the base branch calls into, and opens a PR
-			req = NewRequest(t, "GET",
-				fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", forkRepo.OwnerName, forkRepo.Name, reusablePath)).AddTokenAuth(user4Token)
-			resp = MakeRequest(t, req, http.StatusOK)
-			forkReusable := DecodeJSON(t, resp, &api.ContentsResponse{})
-
-			req = NewRequestWithJSON(t, "PUT",
-				fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", forkRepo.OwnerName, forkRepo.Name, reusablePath), &api.UpdateFileOptions{
-					FileOptions: api.FileOptions{
-						NewBranchName: "fork-branch",
-						Message:       "rewrite the reusable workflow",
-						Author:        api.Identity{Name: user4.Name, Email: user4.Email},
-						Committer:     api.Identity{Name: user4.Name, Email: user4.Email},
-						Dates:         api.CommitDateOptions{Author: time.Now(), Committer: time.Now()},
-					},
-					SHA: forkReusable.SHA,
-					ContentBase64: base64.StdEncoding.EncodeToString([]byte(`name: Reusable
-on:
-  workflow_call:
-jobs:
-  from-fork:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo from-fork
-`)),
-				}).AddTokenAuth(user4Token)
-			resp = MakeRequest(t, req, http.StatusOK)
-			forkHeadSHA := DecodeJSON(t, resp, &api.FileResponse{}).Commit.SHA
-			require.NotEqual(t, baseSHA, forkHeadSHA)
-
-			doAPICreatePullRequest(user4APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, user4.Name+":fork-branch")(t)
+			doAPICreatePullRequest(APITestContext{Session: user4Session, Token: user4Token}, baseRepo.OwnerName, baseRepo.Name, "release", user4.Name+":fork-branch")(t)
 
 			assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: baseRepo.ID}))
-			prtRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID})
-			assert.Equal(t, actions_module.GithubEventPullRequestTarget, prtRun.TriggerEvent)
-			assert.True(t, prtRun.IsForkPullRequest)
-			assert.False(t, prtRun.NeedApproval)
-			// The run still points at the PR head, but its workflow source must be the base commit.
+			prtRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID, WorkflowID: "prt.yaml"})
 			assert.Equal(t, forkHeadSHA, prtRun.CommitSHA)
-			assert.Equal(t, baseSHA, prtRun.WorkflowCommitSHA)
-
-			caller := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: prtRun.ID, JobID: "call_reusable"})
-			assert.Equal(t, baseSHA, caller.WorkflowSourceCommitSHA)
-			assert.NotContains(t, string(caller.ReusableWorkflowContent), "from-fork")
-
-			// The caller has no needs, so it is expanded inline at insert time: the child comes from the base branch.
-			unittest.AssertNotExistsBean(t, &actions_model.ActionRunJob{RunID: prtRun.ID, JobID: "from-fork"})
+			assert.Equal(t, defaultSHA, prtRun.WorkflowCommitSHA)
 			child := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: prtRun.ID, JobID: "trusted"})
-			assert.Equal(t, caller.ID, child.ParentJobID)
-			assert.Equal(t, baseSHA, child.WorkflowSourceCommitSHA)
+			assert.Equal(t, defaultSHA, child.WorkflowSourceCommitSHA)
 
-			task := runner.fetchTask(t)
-			_, taskJob, _ := getTaskAndJobAndRunByTaskID(t, task.Id)
-			require.Equal(t, "trusted", taskJob.JobID)
-			runner.execTask(t, task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+			taskContext := runner.fetchTask(t).Context.GetFields()
+			assert.Equal(t, "refs/heads/main", taskContext["ref"].GetStringValue())
+			assert.Equal(t, defaultSHA, taskContext["sha"].GetStringValue())
+			assert.Equal(t, "release", taskContext["base_ref"].GetStringValue())
 		})
 
 		t.Run("Caller alternates expanding across attempts", func(t *testing.T) {
