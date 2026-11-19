@@ -76,9 +76,9 @@ function createModalBackdrop(elModal: HTMLDialogElement): HTMLElement {
   return elBackdrop;
 }
 
-// ATTENTION: showModal will move the document-connected modal element (or adapt the node)  to "body" level.
+// ATTENTION: showModal will move the document-connected modal element (or adapt the node) to "body" level.
 // If there will be changes to the original modal element (e.g.: morph),
-// caller must guarantee that there is no duplicate/conflict by wrapping the modal by a "template" element.
+// caller must guarantee that there is no duplicate/conflict by wrapping the modal with a "template" element.
 export function showModal(elModal: HTMLDialogElement, opts: ModalOpts = {}) {
   if (elModal.open) return;
 
