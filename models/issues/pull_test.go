@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
@@ -50,6 +51,7 @@ func TestPullRequest(t *testing.T) {
 	t.Run("Migrate_InsertPullRequests", testMigrateInsertPullRequests)
 	t.Run("PullRequestsClosedRecentSortType", testPullRequestsClosedRecentSortType)
 	t.Run("LoadRequestedReviewers", testLoadRequestedReviewers)
+	t.Run("MergeBlockedByUnresolvedConversations", testMergeBlockedByUnresolvedConversations)
 }
 
 func testPullRequestLoadAttributes(t *testing.T) {
@@ -494,4 +496,42 @@ func testCodeOwnerSectionsAndAnnotations(t *testing.T) {
 	require.Len(t, rules, 1)
 	assert.True(t, match(rules[0], "file#name"))
 	assert.False(t, rules[0].ReviewRequest.Value())
+}
+
+func testMergeBlockedByUnresolvedConversations(t *testing.T) {
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+	protectBranch := &git_model.ProtectedBranch{}
+	protectBranch.BlockOnUnresolvedConversations = true
+	isBlocked := func() bool {
+		return issues_model.MergeBlockedByUnresolvedConversations(t.Context(), protectBranch, pr)
+	}
+	addCodeComment := func(review *issues_model.Review) *issues_model.Comment {
+		comment := &issues_model.Comment{Type: issues_model.CommentTypeCode, IssueID: pr.IssueID, ReviewID: review.ID}
+		require.NoError(t, db.Insert(t.Context(), comment))
+		return comment
+	}
+
+	review := &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypePending}
+	require.NoError(t, db.Insert(t.Context(), review))
+	head := addCodeComment(review)
+	assert.False(t, isBlocked())
+
+	review.Type = issues_model.ReviewTypeComment
+	_, err := db.GetEngine(t.Context()).ID(review.ID).Cols("type").Update(review)
+	require.NoError(t, err)
+	assert.True(t, isBlocked())
+	assert.False(t, issues_model.MergeBlockedByUnresolvedConversations(t.Context(), &git_model.ProtectedBranch{}, pr))
+
+	head.Invalidated = true
+	require.NoError(t, issues_model.UpdateCommentInvalidate(t.Context(), head))
+	addCodeComment(review)
+	assert.True(t, isBlocked())
+
+	require.NoError(t, issues_model.MarkConversation(t.Context(), head, &user_model.User{ID: 1}, true))
+	assert.False(t, isBlocked())
+
+	otherReview := &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeComment}
+	require.NoError(t, db.Insert(t.Context(), otherReview))
+	addCodeComment(otherReview)
+	assert.True(t, isBlocked())
 }

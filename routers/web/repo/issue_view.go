@@ -952,8 +952,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 
 	data.hasOverridableBlockers = data.isBlockedByApprovals || data.isBlockedByRejection ||
 		data.isBlockedByOfficialReviewRequests || data.isBlockedByCodeowners ||
-		data.isBlockedByOutdatedBranch || data.isBlockedByChangedProtectedFiles ||
-		data.hasStatusCheckBlocker
+		data.isBlockedByOutdatedBranch || data.isBlockedByUnresolvedConversations ||
+		data.isBlockedByChangedProtectedFiles || data.hasStatusCheckBlocker
 
 	data.canBypassProtection = isRepoAdmin
 	data.canBypassProtectionAsAdmin = isRepoAdmin
@@ -1071,6 +1071,11 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectedRules(ctx *context.Co
 	data.isBlockedByOutdatedBranch = issues_model.MergeBlockedByOutdatedBranch(pb, pull)
 	if data.isBlockedByOutdatedBranch {
 		data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.blocked_by_outdated_branch"))
+	}
+
+	data.isBlockedByUnresolvedConversations = issues_model.MergeBlockedByUnresolvedConversations(ctx, pb, pull)
+	if data.isBlockedByUnresolvedConversations {
+		data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.blocked_by_unresolved_conversations"))
 	}
 
 	data.isBlockedByChangedProtectedFiles = len(pull.ChangedProtectedFiles) != 0

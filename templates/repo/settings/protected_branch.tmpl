@@ -297,6 +297,13 @@
 				</div>
 				<div class="field">
 					<div class="ui checkbox">
+						<input name="block_on_unresolved_conversations" type="checkbox" {{if .Rule.BlockOnUnresolvedConversations}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "repo.settings.block_unresolved_conversations"}}</label>
+						<p class="help">{{ctx.Locale.Tr "repo.settings.block_unresolved_conversations_desc"}}</p>
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui checkbox">
 						<input name="block_admin_merge_override" type="checkbox" {{if .Rule.BlockAdminMergeOverride}}checked{{end}}>
 						<label>{{ctx.Locale.Tr "repo.settings.block_admin_merge_override"}}</label>
 						<p class="help">{{ctx.Locale.Tr "repo.settings.block_admin_merge_override_desc"}}</p>

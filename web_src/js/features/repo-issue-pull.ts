@@ -36,6 +36,25 @@ async function initRepoPullRequestMergeForm(box: HTMLElement) {
   view.mount(el); // TODO: can unmount when reloaded?
 }
 
+async function reloadMergeBox(el: Element) {
+  const pullLink = el.getAttribute('data-pull-link')!;
+  const resp = await GET(`${pullLink}/merge_box`);
+  if (!resp.ok) return;
+  const respText = (await resp.text()).trim();
+  if (!respText) {
+    el.remove(); // merge box might not exist if the PR has changed (e.g.: merged and the head branch has been deleted)
+    return;
+  }
+  const newEl = createElementFromHTML(respText);
+  const scrollTop = el.querySelector<HTMLElement>('.commit-status-list')?.scrollTop;
+  el.replaceWith(newEl); // don't morph, do full replacement to make sure data-global-init and Vue components are re-initialized
+  if (scrollTop) newEl.querySelector<HTMLElement>('.commit-status-list')?.scrollTo({top: scrollTop, behavior: 'instant'});
+}
+
+export function reloadRepoPullMergeBox() {
+  document.querySelector('.pull-merge-box')?.dispatchEvent(new Event('ce-merge-box-reload'));
+}
+
 function initRepoPullMergeBoxRefresh(el: Element) {
   // The merge box has complex buttons & form, if the user has interacted with any element, don't refresh.
   // Otherwise, the user won't be able to merge or schedule a merge (auto-merge) when the PR status is not ready.
@@ -45,24 +64,18 @@ function initRepoPullMergeBoxRefresh(el: Element) {
     el.addEventListener(event, () => { interacted = true }, {capture: true});
   }
 
-  activePageTimerRefresh({
+  const timer = activePageTimerRefresh({
     once: true, // on successful refresh, the data-global-init will re-initialize the element
     interval: () => interacted ? 0 : Number(el.getAttribute('data-pull-merge-box-reloading-interval')),
     async callback() {
       if (interacted) return;
-      const pullLink = el.getAttribute('data-pull-link')!;
-      const resp = await GET(`${pullLink}/merge_box`);
-      if (!resp.ok) return;
-      const respText = (await resp.text()).trim();
-      if (!respText) {
-        el.remove(); // merge box might not exist if the PR has changed (e.g.: merged and the head branch has been deleted)
-        return;
-      }
-      const newEl = createElementFromHTML(respText);
-      const scrollTop = el.querySelector<HTMLElement>('.commit-status-list')?.scrollTop;
-      el.replaceWith(newEl); // don't morph, do full replacement to make sure data-global-init and Vue components are re-initialized
-      if (scrollTop) newEl.querySelector<HTMLElement>('.commit-status-list')?.scrollTo({top: scrollTop, behavior: 'instant'});
+      await reloadMergeBox(el);
     },
+  });
+  el.addEventListener('ce-merge-box-reload', () => {
+    if (interacted) return;
+    timer.clear();
+    reloadMergeBox(el);
   });
 }
 

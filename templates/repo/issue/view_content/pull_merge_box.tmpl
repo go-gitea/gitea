@@ -2,9 +2,9 @@
 {{if $data.ShowMergeBox}}
 <div class="timeline-item comment pull-merge-box"
 	data-global-init="initRepoPullMergeBox"
+	data-pull-link="{{$.Issue.Link}}"
 	{{if $data.ReloadingInterval}}
 		data-pull-merge-box-reloading-interval="{{$data.ReloadingInterval}}"
-		data-pull-link="{{$.Issue.Link}}"
 	{{end}}
 >
 	<div class="timeline-avatar {{$data.TimelineIconClass}}">{{svg "octicon-git-merge" 40}}</div>
