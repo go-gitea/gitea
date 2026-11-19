@@ -6,6 +6,7 @@ import {toggleElem} from '../utils/dom.ts';
 type MergeStyle = {
   name: string,
   allowed: boolean,
+  queueAction?: 'enqueue' | 'bypass',
   textDoMerge: string,
   mergeTitleFieldText?: string,
   mergeMessageFieldText?: string,
@@ -44,50 +45,45 @@ const props = defineProps<{
 const mergeStyleManuallyMerged = 'manually-merged';
 
 const mergeForm = props.mergeFormProps;
+const queueStyle = mergeForm.mergeStyles.find((style) => style.queueAction === 'enqueue');
 
 const mergeTitleFieldValue = shallowRef<string | undefined>('');
 const mergeMessageFieldValue = shallowRef<string | undefined>('');
 const deleteBranchAfterMerge = shallowRef(false);
 const autoMergeWhenSucceed = shallowRef(false);
 
-const mergeStyle = shallowRef('');
-const mergeStyleDetail = shallowRef<MergeStyle>({name: '', allowed: false, textDoMerge: '', hideAutoMerge: false});
-
-const mergeStyleAllowedCount = shallowRef(0);
+const mergeStyle = shallowRef<MergeStyle>({name: '', allowed: false, textDoMerge: '', hideAutoMerge: false});
 
 const showMergeStyleMenu = shallowRef(false);
 const showActionForm = shallowRef(false);
 
 const mergeButtonStyleClass = computed(() => {
-  if (mergeStyle.value === mergeStyleManuallyMerged) return 'red';
-  if (mergeForm.allOverridableChecksOk) return 'primary';
-  return autoMergeWhenSucceed.value ? 'primary' : 'red';
+  if (mergeStyle.value.queueAction === 'bypass' || mergeStyle.value.name === mergeStyleManuallyMerged) return 'red';
+  return mergeForm.allOverridableChecksOk || autoMergeWhenSucceed.value ? 'primary' : 'red';
 });
 
 const mergeSelectStyleClass = computed(() => {
-  if (mergeForm.emptyCommit) return '';
-  if (mergeStyle.value === mergeStyleManuallyMerged) return 'red';
-  if (!mergeForm.allOverridableChecksOk) return 'red';
-  return 'primary';
+  if (mergeForm.emptyCommit && mergeStyle.value.queueAction !== 'bypass') return '';
+  if (mergeStyle.value.queueAction !== 'enqueue' && !mergeForm.allOverridableChecksOk) return 'red';
+  return mergeButtonStyleClass.value;
 });
 
 const forceMerge = computed(() => {
+  if (queueStyle) return mergeStyle.value.queueAction === 'bypass';
   return mergeForm.canMergeNow && !mergeForm.allOverridableChecksOk;
 });
 
-watch(mergeStyle, (val) => {
-  mergeStyleDetail.value = mergeForm.mergeStyles.find((e) => e.name === val)!;
+watch(mergeStyle, ({name}) => {
   for (const elem of document.querySelectorAll('[data-pull-merge-style]')) {
-    toggleElem(elem, elem.getAttribute('data-pull-merge-style') === val);
+    toggleElem(elem, elem.getAttribute('data-pull-merge-style') === name);
   }
 });
 
 onMounted(() => {
-  mergeStyleAllowedCount.value = mergeForm.mergeStyles.reduce((v, msd) => v + (msd.allowed ? 1 : 0), 0);
-
-  let mergeStyle = mergeForm.mergeStyles.find((e) => e.allowed && e.name === mergeForm.defaultMergeStyle)?.name;
-  if (!mergeStyle) mergeStyle = mergeForm.mergeStyles.find((e) => e.allowed)?.name;
-  if (mergeStyle) switchMergeStyle(mergeStyle, !mergeForm.canMergeNow);
+  const defaultStyle = queueStyle ||
+    mergeForm.mergeStyles.find((style) => style.allowed && style.name === mergeForm.defaultMergeStyle) ||
+    mergeForm.mergeStyles.find((style) => style.allowed);
+  if (defaultStyle) switchMergeStyle(defaultStyle, !canMergeNow(defaultStyle));
 
   document.addEventListener('mouseup', hideMergeStyleMenu);
 });
@@ -104,12 +100,16 @@ function toggleActionForm(show: boolean) {
   showActionForm.value = show;
   if (!show) return;
   deleteBranchAfterMerge.value = mergeForm.defaultDeleteBranchAfterMerge;
-  mergeTitleFieldValue.value = mergeStyleDetail.value.mergeTitleFieldText;
-  mergeMessageFieldValue.value = mergeStyleDetail.value.mergeMessageFieldText;
+  mergeTitleFieldValue.value = mergeStyle.value.mergeTitleFieldText;
+  mergeMessageFieldValue.value = mergeStyle.value.mergeMessageFieldText;
 }
 
-function switchMergeStyle(name: string, autoMerge = false) {
-  mergeStyle.value = name;
+function canMergeNow(style: MergeStyle) {
+  return mergeForm.canMergeNow && (style.queueAction !== 'enqueue' || mergeForm.allOverridableChecksOk);
+}
+
+function switchMergeStyle(style: MergeStyle, autoMerge = false) {
+  mergeStyle.value = style;
   autoMergeWhenSucceed.value = autoMerge;
 }
 
@@ -137,9 +137,9 @@ function clearMergeMessage() {
     <form class="ui form form-fetch-action" v-if="showActionForm" :action="mergeForm.baseLink+'/merge'" method="post">
       <input type="hidden" name="head_commit_id" v-model="mergeForm.pullHeadCommitID">
       <input type="hidden" name="merge_when_checks_succeed" v-model="autoMergeWhenSucceed">
-      <input type="hidden" name="force_merge" v-model="forceMerge">
+      <input type="hidden" name="force_merge" :value="forceMerge">
 
-      <template v-if="!mergeStyleDetail.hideMergeMessageTexts">
+      <template v-if="!mergeStyle.hideMergeMessageTexts">
         <div class="field">
           <input type="text" name="merge_title_field" v-model="mergeTitleFieldValue">
         </div>
@@ -153,13 +153,13 @@ function clearMergeMessage() {
         </div>
       </template>
 
-      <div class="field" v-if="mergeStyle === mergeStyleManuallyMerged">
+      <div class="field" v-if="mergeStyle.name === mergeStyleManuallyMerged">
         <input type="text" name="merge_commit_id" :placeholder="mergeForm.textMergeCommitId">
       </div>
 
       <div class="flex-text-block tw-gap-3">
-        <button class="ui button" :class="mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle">
-          {{ mergeStyleDetail.textDoMerge }}
+        <button class="ui button" :class="mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle.name">
+          {{ mergeStyle.textDoMerge }}
           <template v-if="autoMergeWhenSucceed">
             {{ mergeForm.textAutoMergeButtonWhenSucceed }}
           </template>
@@ -169,7 +169,7 @@ function clearMergeMessage() {
           {{ mergeForm.textCancel }}
         </button>
 
-        <div class="ui checkbox" v-if="mergeForm.isPullBranchDeletable">
+        <div class="ui checkbox" v-if="mergeForm.isPullBranchDeletable && (!queueStyle || mergeStyle.queueAction === 'bypass')">
           <input name="delete_branch_after_merge" type="checkbox" v-model="deleteBranchAfterMerge" id="delete-branch-after-merge">
           <label for="delete-branch-after-merge">{{ mergeForm.textDeleteBranch }}</label>
         </div>
@@ -182,7 +182,7 @@ function clearMergeMessage() {
         <button class="ui button">
           <svg-icon name="octicon-git-merge"/>
           <span class="button-text">
-            {{ mergeStyleDetail.textDoMerge }}
+            {{ mergeStyle.textDoMerge }}
             <template v-if="autoMergeWhenSucceed">
               {{ mergeForm.textAutoMergeButtonWhenSucceed }}
             </template>
@@ -191,13 +191,13 @@ function clearMergeMessage() {
         <div class="ui dropdown icon button" @click.stop="showMergeStyleMenu = !showMergeStyleMenu">
           <svg-icon name="octicon-triangle-down" :size="14"/>
           <div class="menu" :class="{'show':showMergeStyleMenu}">
-            <template v-for="msd in mergeForm.mergeStyles">
+            <template v-for="msd in mergeForm.mergeStyles" :key="msd.queueAction === 'enqueue' ? 'queue' : msd.name">
               <!-- if can merge now, show one action "merge now", and an action "auto merge when succeed" -->
-              <div class="item" v-if="msd.allowed && mergeForm.canMergeNow" :key="msd.name" @click.stop="switchMergeStyle(msd.name)">
-                <div class="action-text">
+              <div class="item" v-if="msd.allowed && canMergeNow(msd)" @click.stop="switchMergeStyle(msd)">
+                <div class="action-text" :class="{'tw-text-red': msd.queueAction === 'bypass'}">
                   {{ msd.textDoMerge }}
                 </div>
-                <div v-if="!msd.hideAutoMerge" class="auto-merge-small" @click.stop="switchMergeStyle(msd.name, true)">
+                <div v-if="!msd.hideAutoMerge" class="auto-merge-small" @click.stop="switchMergeStyle(msd, true)">
                   <svg-icon name="octicon-clock" :size="14"/>
                   <div class="auto-merge-tip">
                     {{ mergeForm.textAutoMergeWhenSucceed }}
@@ -206,7 +206,7 @@ function clearMergeMessage() {
               </div>
 
               <!-- if can NOT merge now, only show one action "auto merge when succeed" -->
-              <div class="item" v-if="msd.allowed && !mergeForm.canMergeNow && !msd.hideAutoMerge" :key="msd.name" @click.stop="switchMergeStyle(msd.name, true)">
+              <div class="item" v-if="msd.allowed && !canMergeNow(msd) && !msd.hideAutoMerge" @click.stop="switchMergeStyle(msd, true)">
                 <div class="action-text">
                   {{ msd.textDoMerge }} {{ mergeForm.textAutoMergeButtonWhenSucceed }}
                 </div>

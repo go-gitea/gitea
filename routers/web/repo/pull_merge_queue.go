@@ -69,13 +69,10 @@ func RemoveFromMergeQueue(ctx *context.Context) {
 
 func MergeQueue(ctx *context.Context) {
 	branch := ctx.PathParam("*")
-	queue, err := mergequeue.GetQueue(ctx, ctx.Repo.Repository.ID, branch)
+	queue, err := mergequeue.GetQueue(ctx, ctx.Repo.Repository, branch)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
-	}
-	for _, e := range queue {
-		e.PullRequest.Issue.Repo = ctx.Repo.Repository
 	}
 	waitingFor, err := mergeQueueWaitingFor(ctx, branch, queue)
 	if err != nil {

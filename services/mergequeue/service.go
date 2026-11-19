@@ -6,7 +6,6 @@ package mergequeue
 import (
 	"context"
 	"errors"
-	"maps"
 	"slices"
 
 	"gitea.dev/models/db"
@@ -14,6 +13,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	pull_model "gitea.dev/models/pull"
+	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
@@ -25,8 +25,7 @@ import (
 
 var ErrNotQueued = util.NewNotExistErrorf("pull request is not in the merge queue")
 
-// Enqueue adds the pull request to the merge queue, the caller checks that its base branch requires one and that the doer may merge it.
-// A non-empty expectedHeadSHA must still be the head, like for a direct merge.
+// Enqueue relies on the caller to check the branch rule and merge permission.
 func Enqueue(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, jump bool, expectedHeadSHA string) (*pull_model.MergeQueueEntry, error) {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, err
@@ -39,12 +38,8 @@ func Enqueue(ctx context.Context, doer *user_model.User, pr *issues_model.PullRe
 	}
 
 	entry := &pull_model.MergeQueueEntry{
-		RepoID:     pr.BaseRepoID,
-		BaseBranch: pr.BaseBranch,
-		PullID:     pr.ID,
-		EnqueuerID: doer.ID,
-		Jump:       jump,
-		HeadSHA:    headSHA,
+		RepoID: pr.BaseRepoID, BaseBranch: pr.BaseBranch, PullID: pr.ID,
+		EnqueuerID: doer.ID, Jump: jump, HeadSHA: headSHA,
 	}
 	err = globallock.LockAndDo(ctx, lockKey(pr.BaseRepoID, pr.BaseBranch), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
@@ -57,13 +52,12 @@ func Enqueue(ctx context.Context, doer *user_model.User, pr *issues_model.PullRe
 	if err != nil {
 		return nil, err
 	}
-	notify_service.PullRequestMergeQueueChanged(ctx, doer, pr, true, "")
+	notify_service.PullRequestMergeQueueChanged(ctx, doer, pr, "")
 	addToQueue(pr.BaseRepoID, pr.BaseBranch)
 	return entry, nil
 }
 
-// EnqueueIfRequired adds the pull request to the merge queue when its merge goes through one, an already queued one counts as added
-func EnqueueIfRequired(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, expectedHeadSHA string, force bool) (queued bool, err error) {
+func EnqueueIfRequired(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, expectedHeadSHA string, force bool) (bool, error) {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return false, err
 	}
@@ -77,8 +71,6 @@ func EnqueueIfRequired(ctx context.Context, doer *user_model.User, pr *issues_mo
 	return true, nil
 }
 
-// Dequeue removes the pull request from the merge queue, the entries after it are rebuilt without it.
-// The enqueuer and users allowed to merge may do so.
 func Dequeue(ctx context.Context, doer *user_model.User, perm access_model.Permission, pr *issues_model.PullRequest) error {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return err
@@ -99,11 +91,10 @@ func Dequeue(ctx context.Context, doer *user_model.User, perm access_model.Permi
 		}
 		return removeEntry(ctx, pr.BaseRepo, entry, pr, doer, issues_model.MergeQueueRemovedByUser)
 	})
-	if err != nil {
-		return err
+	if err == nil {
+		addToQueue(pr.BaseRepoID, pr.BaseBranch)
 	}
-	addToQueue(pr.BaseRepoID, pr.BaseBranch)
-	return nil
+	return err
 }
 
 type QueueEntry struct {
@@ -113,43 +104,48 @@ type QueueEntry struct {
 	Enqueuer    *user_model.User
 }
 
-// loadPulls loads the pull requests of the entries with their issues, deleted ones are missing
-func loadPulls(ctx context.Context, entries []*pull_model.MergeQueueEntry) (map[int64]*issues_model.PullRequest, error) {
-	prs := make(map[int64]*issues_model.PullRequest, len(entries))
-	if err := db.GetEngine(ctx).In("id", container.FilterSlice(entries, func(e *pull_model.MergeQueueEntry) (int64, bool) { return e.PullID, true })).Find(&prs); err != nil {
+func loadEntries(ctx context.Context, rows []*pull_model.MergeQueueEntry, baseRepo *repo_model.Repository) ([]*QueueEntry, error) {
+	if len(rows) == 0 {
+		return []*QueueEntry{}, nil
+	}
+	pullIDs := make([]int64, len(rows))
+	enqueuerIDs := make(container.Set[int64])
+	for i, row := range rows {
+		pullIDs[i] = row.PullID
+		enqueuerIDs.Add(row.EnqueuerID)
+	}
+	pulls := make(map[int64]*issues_model.PullRequest, len(rows))
+	if err := db.GetEngine(ctx).In("id", pullIDs).Find(&pulls); err != nil {
 		return nil, err
 	}
-	_, err := issues_model.PullRequestList(slices.Collect(maps.Values(prs))).LoadIssues(ctx)
-	return prs, err
-}
-
-func loadEnqueuers(ctx context.Context, entries []*pull_model.MergeQueueEntry) (map[int64]*user_model.User, error) {
-	return user_model.GetUsersMapByIDs(ctx, container.FilterSlice(entries, func(e *pull_model.MergeQueueEntry) (int64, bool) { return e.EnqueuerID, true }))
-}
-
-func GetQueue(ctx context.Context, repoID int64, branch string) ([]*QueueEntry, error) {
-	entries, err := pull_model.GetMergeQueueEntries(ctx, repoID, branch)
+	prs := issues_model.PullRequestList(util.ValuesOfMap(pulls))
+	prs.SetBaseRepo(baseRepo)
+	if _, err := prs.LoadIssues(ctx); err != nil {
+		return nil, err
+	}
+	users, err := user_model.GetUsersMapByIDs(ctx, enqueuerIDs.Values())
 	if err != nil {
 		return nil, err
 	}
-	prs, err := loadPulls(ctx, entries)
-	if err != nil {
-		return nil, err
-	}
-	users, err := loadEnqueuers(ctx, entries)
-	if err != nil {
-		return nil, err
-	}
-	result := make([]*QueueEntry, 0, len(entries))
-	for i, e := range entries {
-		if pr := prs[e.PullID]; pr != nil {
-			result = append(result, &QueueEntry{MergeQueueEntry: e, Position: i + 1, PullRequest: pr, Enqueuer: user_model.GetPossibleUserFromMap(e.EnqueuerID, users)})
+	entries := make([]*QueueEntry, len(rows))
+	for i, row := range rows {
+		entries[i] = &QueueEntry{
+			MergeQueueEntry: row, Position: i + 1,
+			PullRequest: pulls[row.PullID], Enqueuer: user_model.GetPossibleUserFromMap(row.EnqueuerID, users),
 		}
 	}
-	return result, nil
+	return entries, nil
 }
 
-// GetEntry returns the queue entry of the pull request and its 1-based position, nil when it is not queued
+func GetQueue(ctx context.Context, repo *repo_model.Repository, branch string) ([]*QueueEntry, error) {
+	rows, err := pull_model.GetMergeQueueEntries(ctx, repo.ID, branch)
+	if err != nil {
+		return nil, err
+	}
+	entries, err := loadEntries(ctx, rows, repo)
+	return slices.DeleteFunc(entries, func(entry *QueueEntry) bool { return entry.PullRequest == nil }), err
+}
+
 func GetEntry(ctx context.Context, pr *issues_model.PullRequest) (*pull_model.MergeQueueEntry, int, error) {
 	entry, err := pull_model.GetMergeQueueEntryByPullID(ctx, pr.ID)
 	if err != nil || entry == nil {

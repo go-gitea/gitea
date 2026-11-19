@@ -4,6 +4,7 @@
 package notify
 
 import (
+	"cmp"
 	"context"
 
 	actions_model "gitea.dev/models/actions"
@@ -123,12 +124,28 @@ func MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_mod
 	}
 }
 
+var dequeueReasons = map[issues_model.MergeQueueRemovalReason]string{
+	issues_model.MergeQueueRemovedByUser:        "MANUAL",
+	issues_model.MergeQueueRemovedClosed:        "MANUAL",
+	issues_model.MergeQueueRemovedMerged:        "MERGE",
+	issues_model.MergeQueueRemovedAlreadyMerged: "ALREADY_MERGED",
+	issues_model.MergeQueueRemovedChecksFailed:  "CI_FAILURE",
+	issues_model.MergeQueueRemovedChecksTimeout: "CI_TIMEOUT",
+	issues_model.MergeQueueRemovedConflict:      "MERGE_CONFLICT",
+	issues_model.MergeQueueRemovedNotMergeable:  "BRANCH_PROTECTIONS",
+	issues_model.MergeQueueRemovedBaseDeleted:   "QUEUE_CLEARED",
+}
+
 // PullRequestMergeQueueChanged notifies that a pull request entered or left the merge queue, reason is only set when it left
-func PullRequestMergeQueueChanged(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, enqueued bool, reason string) {
+func PullRequestMergeQueueChanged(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, reason issues_model.MergeQueueRemovalReason) {
 	defer recoverPanic()
 
+	hookReason := ""
+	if reason != "" {
+		hookReason = cmp.Or(dequeueReasons[reason], "UNKNOWN_REMOVAL_REASON")
+	}
 	for _, notifier := range notifiers {
-		notifier.PullRequestMergeQueueChanged(ctx, doer, pr, enqueued, reason)
+		notifier.PullRequestMergeQueueChanged(ctx, doer, pr, reason == "", hookReason)
 	}
 }
 

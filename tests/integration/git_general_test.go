@@ -88,6 +88,26 @@ func testGitGeneral(t *testing.T, u *url.URL) {
 
 		t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, &httpContext, "test/head"))
 		t.Run("CreateProtectedBranch", doCreateProtectedBranch(&httpContext, dstPath))
+		t.Run("DirectPushRequiresMergeQueueBypass", func(t *testing.T) {
+			ruleURL := fmt.Sprintf("/api/v1/repos/%s/%s/branch_protections/release-*", httpContext.Username, httpContext.Reponame)
+			MakeRequest(t, NewRequestWithJSON(t, "PATCH", ruleURL, &api.EditBranchProtectionOption{
+				RequireMergeQueue:       new(true),
+				EnableStatusCheck:       new(true),
+				BlockAdminMergeOverride: new(true),
+			}).AddTokenAuth(httpContext.Token), http.StatusOK)
+
+			const refspec = "release-v2.0:release-v1.0"
+			_, stderr, err := gitcmd.NewCommand("push", "origin", refspec).WithDir(dstPath).RunStdString(t.Context())
+			require.Error(t, err)
+			assert.Contains(t, stderr, "Changes must be made through the merge queue")
+
+			MakeRequest(t, NewRequestWithJSON(t, "PATCH", ruleURL, &api.EditBranchProtectionOption{
+				EnableBypassAllowlist:    new(true),
+				BypassAllowlistUsernames: []string{httpContext.Username},
+			}).AddTokenAuth(httpContext.Token), http.StatusOK)
+			doGitPushTestRepository(dstPath, "origin", refspec)(t)
+		})
+
 		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
 		t.Run("AutoMerge", doAutoPRMerge(&httpContext, dstPath))
 		t.Run("CreatePRAndSetManuallyMerged", doCreatePRAndSetManuallyMerged(httpContext, httpContext, dstPath, "master", "test-manually-merge"))

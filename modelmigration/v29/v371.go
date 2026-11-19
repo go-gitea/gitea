@@ -25,7 +25,6 @@ func AddPullMergeQueueEntryTable(_ context.Context, x base.EngineMigration) erro
 		GroupRef          string `xorm:"VARCHAR(255)"`
 		ChecksStartedUnix timeutil.TimeStamp
 		CreatedUnix       timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix       timeutil.TimeStamp `xorm:"updated"`
 	}
 	return x.Sync(new(PullMergeQueueEntry))
 }

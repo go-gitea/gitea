@@ -35,6 +35,13 @@ func CreateMergeQueueCommit(ctx context.Context, pr *issues_model.PullRequest, d
 	if err != nil {
 		return "", err
 	}
+	if mergeStyle == repo_model.MergeStyleSquash {
+		squashCommitMessages, err := GetSquashMergeCommitMessages(ctx, pr)
+		if err != nil {
+			return "", err
+		}
+		body = git.CommitMessageMerge(squashCommitMessages, body)
+	}
 	if body != "" {
 		message += "\n\n" + body
 	}
@@ -46,7 +53,7 @@ func CreateMergeQueueCommit(ctx context.Context, pr *issues_model.PullRequest, d
 	defer cancel()
 
 	if err := doMergeStyle(mergeCtx, mergeStyle, message); err != nil {
-		return "", err
+		return "", ErrMergeQueueMerge{err}
 	}
 	commitID, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, tmpRepoBaseBranch)
 	if err != nil {
@@ -64,18 +71,19 @@ func CreateMergeQueueCommit(ctx context.Context, pr *issues_model.PullRequest, d
 	return commitID, nil
 }
 
+type ErrMergeQueueMerge struct{ error }
+
+func (err ErrMergeQueueMerge) Unwrap() error { return err.error }
+
 // MergeQueueRequiredContexts adapts required contexts to queue commits: Actions name their statuses after the event,
 // so a required "CI / test (pull_request)" is satisfied by "CI / test (merge_group)" like GitHub's event-less check names
 func MergeQueueRequiredContexts(required []string) []string {
-	adapted := make([]string, 0, len(required))
-	for _, c := range required {
-		for _, suffix := range []string{" (pull_request)", " (pull_request_target)"} {
-			if base, ok := strings.CutSuffix(c, suffix); ok {
-				c = base + " (merge_group)"
-				break
-			}
+	adapted := make([]string, len(required))
+	for i, name := range required {
+		if prefix, event, _ := strings.CutLast(name, " "); event == "(pull_request)" || event == "(pull_request_target)" {
+			name = prefix + " (merge_group)"
 		}
-		adapted = append(adapted, c)
+		adapted[i] = name
 	}
 	return adapted
 }
@@ -84,6 +92,7 @@ func MergeQueueRequiredContexts(required []string) []string {
 type MergeQueueItem struct {
 	PR       *issues_model.PullRequest
 	Doer     *user_model.User
+	HeadSHA  string
 	CommitID string
 }
 
@@ -99,7 +108,6 @@ func MergeQueuePullRequests(ctx context.Context, repo *repo_model.Repository, ba
 		}
 		defer release()
 	}
-	// they may have been merged or closed while waiting for the locks
 	for _, item := range items {
 		pr, err := issues_model.GetPullRequestByID(ctx, item.PR.ID)
 		if err != nil {
@@ -110,6 +118,15 @@ func MergeQueuePullRequests(ctx context.Context, repo *repo_model.Repository, ba
 		}
 		if pr.HasMerged || pr.Issue.IsClosed {
 			return fmt.Errorf("MergeQueuePullRequests: %-v was merged or closed", pr)
+		}
+		if pr.BaseRepoID != repo.ID || pr.BaseBranch != baseBranch {
+			return fmt.Errorf("MergeQueuePullRequests: %-v no longer targets %s", pr, baseBranch)
+		}
+		headSHA, err := git.GetFullCommitID(ctx, repo, pr.GetGitHeadRefName())
+		if err != nil {
+			return err
+		} else if headSHA != item.HeadSHA {
+			return ErrSHADoesNotMatch{GivenSHA: item.HeadSHA, CurrentSHA: headSHA}
 		}
 	}
 	var err error
@@ -140,7 +157,8 @@ func MergeQueuePullRequests(ctx context.Context, repo *repo_model.Repository, ba
 	}
 
 	for _, item := range items {
-		if _, err := MarkAsMerged(ctx, item.PR, item.PR.MergedCommitID, item.PR.MergedUnix, item.Doer, item.PR.Status); err != nil {
+		item.PR.HasMerged, err = MarkAsMerged(ctx, item.PR, item.PR.MergedCommitID, item.PR.MergedUnix, item.Doer, item.PR.Status)
+		if err != nil {
 			log.Error("MarkAsMerged %-v: %v", item.PR, err)
 		}
 	}

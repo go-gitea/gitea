@@ -173,7 +173,7 @@ func ListMergeQueue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/MergeQueueEntryList"
 	//   default:
 	//     "$ref": "#/responses/error"
-	queue, err := mergequeue.GetQueue(ctx, ctx.Repo.Repository.ID, ctx.PathParam("*"))
+	queue, err := mergequeue.GetQueue(ctx, ctx.Repo.Repository, ctx.PathParam("*"))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

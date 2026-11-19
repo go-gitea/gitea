@@ -31550,6 +31550,10 @@
           "format": "date-time",
           "x-go-name": "Timestamp"
         },
+        "tree_id": {
+          "type": "string",
+          "x-go-name": "TreeID"
+        },
         "url": {
           "description": "The URL to view this commit",
           "type": "string",

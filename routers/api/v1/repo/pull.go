@@ -742,7 +742,7 @@ func EditPullRequest(ctx *context.APIContext) {
 				ctx.APIError(http.StatusConflict, err.Error())
 				return
 			}
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 			return
 		}
 	}

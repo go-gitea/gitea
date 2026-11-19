@@ -100,7 +100,9 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 	ctx := NewAPITestContext(t, username, "my-noo-repo", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	giteaURL.Path = ctx.GitPath()
 
-	t.Run("CreateRepo", doAPICreateRepository(ctx, false))
+	t.Run("CreateRepo", doAPICreateRepository(ctx, false, func(t *testing.T, repo api.Repository) {
+		require.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{RepoID: repo.ID, RuleName: "blocked"}))
+	}))
 	testCases := []struct {
 		OldBranch          string
 		NewBranch          string
@@ -144,6 +146,7 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 			NewBranch:          "test-👀",
 			ExpectedHTTPStatus: http.StatusCreated,
 		},
+		{NewBranch: "blocked", ExpectedHTTPStatus: http.StatusForbidden},
 	}
 	for _, test := range testCases {
 		session := ctx.Session
@@ -365,18 +368,27 @@ func testAPIBranchProtectionBasic(t *testing.T) {
 	testAPIDeleteBranch(t, "master", http.StatusForbidden)
 
 	testAPIGetBranchProtection(t, "master", http.StatusOK)
-	testAPIEditBranchProtection(t, "master", &api.BranchProtection{
-		EnablePush: true,
+	testAPIEditBranchProtection(t, "master", &api.EditBranchProtectionOption{
+		EnablePush: new(true),
+		MergeQueue: &api.BranchProtectionMergeQueueOption{CheckResponseTimeoutMinutes: new(90)},
 	}, http.StatusOK)
 
 	// enable status checks, require the "test1" check to pass
-	testAPIEditBranchProtection(t, "master", &api.BranchProtection{
-		EnableStatusCheck:   true,
+	testAPIEditBranchProtection(t, "master", &api.EditBranchProtectionOption{
+		RequireMergeQueue:   new(true),
+		MergeQueue:          &api.BranchProtectionMergeQueueOption{MinEntriesToMergeWaitMinutes: new(0)},
+		EnableStatusCheck:   new(true),
 		StatusCheckContexts: []string{"test1"},
 	}, http.StatusOK)
 	bp := testAPIGetBranchProtection(t, "master", http.StatusOK)
 	assert.True(t, bp.EnableStatusCheck)
 	assert.Equal(t, []string{"test1"}, bp.StatusCheckContexts)
+	require.NotNil(t, bp.MergeQueue)
+	assert.Equal(t, 0, bp.MergeQueue.MinEntriesToMergeWaitMinutes)
+	assert.Equal(t, 90, bp.MergeQueue.CheckResponseTimeoutMinutes)
+	testAPIEditBranchProtection(t, "master", &api.EditBranchProtectionOption{
+		MergeQueue: &api.BranchProtectionMergeQueueOption{CheckResponseTimeoutMinutes: new(0)},
+	}, http.StatusUnprocessableEntity)
 
 	// disable status checks, clear the list of required checks
 	testAPIEditBranchProtection(t, "master", &api.BranchProtection{

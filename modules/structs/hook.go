@@ -153,7 +153,8 @@ type PayloadUser struct {
 // PayloadCommit represents a commit
 type PayloadCommit struct {
 	// sha1 hash of the commit
-	ID string `json:"id"`
+	ID     string `json:"id"`
+	TreeID string `json:"tree_id,omitempty"`
 	// The commit message
 	Message string `json:"message"`
 	// The URL to view this commit
@@ -512,7 +513,8 @@ type PullRequestPayload struct {
 	After string `json:"after,omitempty"`
 	// The index number of the pull request
 	Index int64 `json:"number"`
-	// Why the pull request was removed from the merge queue, only for the dequeued action
+	// GitHub merge queue removal reason, only for the dequeued action
+	// enum: ["UNKNOWN_REMOVAL_REASON","MANUAL","MERGE","MERGE_CONFLICT","CI_FAILURE","CI_TIMEOUT","ALREADY_MERGED","QUEUE_CLEARED","ROLL_BACK","BRANCH_PROTECTIONS","GIT_TREE_INVALID","INVALID_MERGE_COMMIT"]
 	Reason string `json:"reason,omitempty"`
 	// Changes made to the pull request
 	Changes *ChangesPayload `json:"changes,omitempty"`

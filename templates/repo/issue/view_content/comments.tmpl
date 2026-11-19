@@ -653,21 +653,16 @@
 					{{end}}
 				</span>
 			</div>
-		{{else if or (eq .Type 34) (eq .Type 35)}}
+		{{else if eq .Type 34 35 39 40}}
 			<div class="timeline-item event" id="{{.HashTag}}">
-				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
+				<span class="badge">{{svg (Iif (eq .Type 39 40) "octicon-git-merge-queue" "octicon-git-merge")}}</span>
 				<span class="comment-text-line">
-					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
+					{{if or (ne .Type 40) (eq .Content "dequeued")}}
+						{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
+					{{end}}
 					{{if eq .Type 34}}{{ctx.Locale.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr}}
-					{{else}}{{ctx.Locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr}}{{end}}
-				</span>
-			</div>
-		{{else if or (eq .Type 39) (eq .Type 40)}}
-			<div class="timeline-item event" id="{{.HashTag}}">
-				<span class="badge">{{svg "octicon-git-merge-queue" 16}}</span>
-				<span class="comment-text-line">
-					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
-					{{if eq .Type 39}}{{ctx.Locale.Tr "repo.pulls.merge_queue.added_comment" $createdStr}}
+					{{else if eq .Type 35}}{{ctx.Locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr}}
+					{{else if eq .Type 39}}{{ctx.Locale.Tr "repo.pulls.merge_queue.added_comment" $createdStr}}
 					{{else}}{{ctx.Locale.Tr (printf "repo.pulls.merge_queue.removed_comment.%s" .Content) $createdStr}}{{end}}
 				</span>
 			</div>

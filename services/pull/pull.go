@@ -20,6 +20,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -228,6 +229,8 @@ func (err ErrPullRequestHasMerged) Error() string {
 		err.ID, err.IssueID, err.HeadRepoID, err.BaseRepoID, err.HeadBranch, err.BaseBranch)
 }
 
+var ErrRetargetQueuedPull = util.ErrorWrapTranslatable(util.ErrUnprocessableContent, "repo.pulls.merge_queue.cannot_change_base")
+
 // ChangeTargetBranch changes the target branch of this pull request, as the given user.
 func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, targetBranch string) (err error) {
 	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
@@ -260,6 +263,12 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 			HeadBranch: pr.HeadBranch,
 			BaseBranch: pr.BaseBranch,
 		}
+	}
+
+	if queued, err := db.GetEngine(ctx).Where("pull_id = ?", pr.ID).Exist(&pull_model.MergeQueueEntry{}); err != nil {
+		return err
+	} else if queued {
+		return ErrRetargetQueuedPull
 	}
 
 	exist, err := git_model.IsBranchExist(ctx, pr.BaseRepoID, targetBranch)

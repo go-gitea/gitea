@@ -471,6 +471,11 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 	return nil
 }
 
+func checkMergeQueueBranch(ctx context.Context, repoID int64, branch string) error {
+	owned, err := pull_model.IsMergeQueueRef(ctx, repoID, git.RefNameFromBranch(branch))
+	return util.Iif(owned, git_model.ErrBranchIsProtected, err)
+}
+
 // RenameBranch rename a branch
 func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, from, to string) (string, error) {
 	err := repo.MustNotBeArchived()
@@ -480,6 +485,12 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 
 	if from == to {
 		return "target_exist", nil
+	}
+
+	for _, branch := range []string{from, to} {
+		if err := checkMergeQueueBranch(ctx, repo.ID, branch); err != nil {
+			return "", err
+		}
 	}
 
 	if exist, _ := git_model.IsBranchExist(ctx, repo.ID, to); exist {
@@ -522,7 +533,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	if err != nil {
 		return "", err
 	}
-	if pull_model.IsMergeQueueBranch(to) || (rule != nil && !rule.CanUserPush(ctx, doer, perm)) {
+	if rule != nil && !rule.CanUserPush(ctx, doer, perm) {
 		return "", git_model.ErrBranchIsProtected
 	}
 
@@ -621,11 +632,14 @@ func CanDeleteBranchWithPermission(ctx context.Context, repo *repo_model.Reposit
 	if branchName == repo.DefaultBranch || branchName == repo.GetPullRequestTargetBranch(ctx) {
 		return ErrBranchIsDefault
 	}
-	if pull_model.IsMergeQueueBranch(branchName) {
-		return git_model.ErrBranchIsProtected
+	if err := checkMergeQueueBranch(ctx, repo.ID, branchName); err != nil {
+		return err
 	}
 	if !permissionInRepo.CanWrite(unit.TypeCode) {
 		return util.NewPermissionDeniedErrorf("permission denied to access repo %d unit %s", repo.ID, unit.TypeCode.LogString())
+	}
+	if err := issues_model.CheckBranchNotQueuedForMerge(ctx, repo.ID, branchName); err != nil {
+		return err
 	}
 
 	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, branchName)

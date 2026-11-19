@@ -17,11 +17,7 @@ import (
 	notify_service "gitea.dev/services/notify"
 )
 
-type notifier struct {
-	notify_service.NullNotifier
-}
-
-var _ notify_service.Notifier = &notifier{}
+type notifier struct{ notify_service.NullNotifier }
 
 func checkQueueOfPull(ctx context.Context, pr *issues_model.PullRequest) {
 	entry, err := pull_model.GetMergeQueueEntryByPullID(ctx, pr.ID)
@@ -32,29 +28,26 @@ func checkQueueOfPull(ctx context.Context, pr *issues_model.PullRequest) {
 	}
 }
 
-func (n *notifier) CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit *repository.PushCommit, sender *user_model.User, status *git_model.CommitStatus) {
-	if status.State.IsPending() {
-		return // can't change an entry awaiting checks, timeouts are enforced by the cron task
-	}
+func (*notifier) CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit *repository.PushCommit, _sender *user_model.User, _status *git_model.CommitStatus) {
 	entries, err := pull_model.GetMergeQueueEntriesByGroupHeadSHA(ctx, repo.ID, commit.Sha1)
 	if err != nil {
 		log.Error("GetMergeQueueEntriesByGroupHeadSHA: %v", err)
 		return
 	}
-	for _, e := range entries {
-		addToQueue(e.RepoID, e.BaseBranch)
+	for _, entry := range entries {
+		addToQueue(entry.RepoID, entry.BaseBranch)
 	}
 }
 
-func (n *notifier) PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, before, after string) {
+func (*notifier) PullRequestSynchronized(ctx context.Context, _doer *user_model.User, pr *issues_model.PullRequest, _before, _after string) {
 	checkQueueOfPull(ctx, pr)
 }
 
-func (n *notifier) PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch, oldSHA string) {
+func (*notifier) PullRequestChangeTargetBranch(ctx context.Context, _doer *user_model.User, pr *issues_model.PullRequest, _oldBranch, _oldSHA string) {
 	checkQueueOfPull(ctx, pr)
 }
 
-func (n *notifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
+func (*notifier) IssueChangeStatus(ctx context.Context, _doer *user_model.User, _commitID string, issue *issues_model.Issue, _actionComment *issues_model.Comment, isClosed bool) {
 	if !isClosed || !issue.IsPull {
 		return
 	}
@@ -65,19 +58,19 @@ func (n *notifier) IssueChangeStatus(ctx context.Context, doer *user_model.User,
 	checkQueueOfPull(ctx, issue.PullRequest)
 }
 
-func (n *notifier) PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (*notifier) PushCommits(ctx context.Context, _pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, _commits *repository.PushCommits) {
 	checkQueueOfBranch(ctx, repo, opts.RefFullName)
 }
 
-func (n *notifier) DeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
+func (*notifier) DeleteRef(ctx context.Context, _doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
 	checkQueueOfBranch(ctx, repo, refFullName)
 }
 
 func checkQueueOfBranch(ctx context.Context, repo *repo_model.Repository, refFullName git.RefName) {
-	if !refFullName.IsBranch() {
+	branch := refFullName.BranchName()
+	if branch == "" {
 		return
 	}
-	branch := refFullName.BranchName()
 	if has, err := pull_model.HasMergeQueueEntries(ctx, repo.ID, branch); err != nil {
 		log.Error("HasMergeQueueEntries: %v", err)
 	} else if has {

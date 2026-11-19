@@ -177,15 +177,9 @@ func initBasicTasks() {
 		registerCleanupPackages()
 	}
 	registerSyncRepoLicenses()
-	registerCheckMergeQueues()
-}
-
-func registerCheckMergeQueues() {
 	RegisterTaskFatal("check_merge_queues", &BaseConfig{
-		Enabled:    true,
-		RunAtStart: false,
-		Schedule:   "@every 1m",
-	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
+		Enabled: true, Schedule: "@every 1m",
+	}, func(ctx context.Context, _user *user_model.User, _cfg *BaseConfig) error {
 		return mergequeue.CheckAllQueues(ctx)
 	})
 }

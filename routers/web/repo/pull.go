@@ -1535,6 +1535,8 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 	if err := pull_service.ChangeTargetBranch(ctx, pr, ctx.Doer, targetBranch); err != nil {
 		var prExistsErr issues_model.ErrPullRequestAlreadyExists
 		switch {
+		case errors.Is(err, pull_service.ErrRetargetQueuedPull):
+			ctx.JSONErrorAuto(err)
 		case git_model.IsErrBranchNotExist(err):
 			errorMessage := ctx.Tr("form.target_branch_not_exist")
 

@@ -116,15 +116,27 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		return
 	}
 
-	if pull_model.IsMergeQueueBranch(branchName) {
-		ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is reserved for the merge queue", branchName)
-		return
+	if !ctx.opts.IsWiki {
+		if owned, err := pull_model.IsMergeQueueRef(ctx, ctx.Repo.Repository.ID, refFullName); err != nil {
+			ctx.PrivateInternalErrorf("Unable to check merge queue ref: %v", err)
+			return
+		} else if owned {
+			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is reserved for the merge queue", branchName)
+			return
+		}
 	}
 
 	repo := ctx.Repo.Repository
 	gitRepo := ctx.Repo.GitRepo
 	objectFormat := ctx.Repo.GetObjectFormat()
 	isDeletingBranch := newCommitID == objectFormat.EmptyObjectID().String()
+
+	if !ctx.opts.IsWiki && oldCommitID != objectFormat.EmptyObjectID().String() {
+		if err := issues_model.CheckBranchNotQueuedForMerge(ctx, repo.ID, branchName); err != nil {
+			ctx.PrivateUserErrorAuto(err)
+			return
+		}
+	}
 
 	defaultBranch := repo.DefaultBranch
 	if ctx.opts.IsWiki && repo.DefaultWikiBranch != "" {
@@ -164,10 +176,17 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		return
 	}
 
+	isUpdate := oldCommitID != objectFormat.EmptyObjectID().String()
+	requiresMergeQueue := isUpdate && protectBranch.RequireMergeQueue
+	if requiresMergeQueue && ctx.opts.PullRequestID == 0 && !git_model.CanBypassBranchProtection(ctx, protectBranch, ctx.Doer, ctx.Repo.Permission.IsAdmin()) {
+		ctx.PrivateUserErrorf(http.StatusForbidden, "Changes must be made through the merge queue for branch %s", branchName)
+		return
+	}
+
 	isForcePush := false
 
 	// 2. Disallow force pushes to protected branches
-	if oldCommitID != objectFormat.EmptyObjectID().String() {
+	if isUpdate {
 		output, _, err := gitcmd.NewCommand("rev-list", "--max-count=1").
 			AddDynamicArguments(oldCommitID, "^"+newCommitID).
 			WithEnv(ctx.env).WithRepo(repo).RunStdString(ctx)
@@ -228,7 +247,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	}
 
 	// 6. If we're not allowed to push directly
-	if !canPush {
+	if !canPush || (requiresMergeQueue && ctx.opts.PullRequestID != 0) {
 		// Is this is a merge from the UI/API?
 		if ctx.opts.PullRequestID == 0 {
 			// 6a. If we're not merging from the UI/API then there are two ways we got here:
@@ -297,6 +316,8 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			// the merge queue only fast-forwards the branch to a queue commit whose required checks passed
 			if entry == nil || entry.BaseBranch != branchName || entry.GroupHeadSHA != newCommitID || entry.State != pull_model.MergeQueueStateMergeable {
 				ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s requires pull requests to be merged through the merge queue", branchName)
+			} else if changedProtectedFiles {
+				ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from changing file %s", branchName, protectedFilePath)
 			}
 			return
 		}

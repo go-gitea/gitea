@@ -69,13 +69,12 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	}
 
 	allOverridableChecksOk := !prInfo.MergeBoxData.hasOverridableBlockers
-	// the form submits a forced merge when blockers are bypassed, which merges directly instead of entering the queue
-	useQueue := queue != nil && (allOverridableChecksOk || !prInfo.MergeBoxData.canMergeNow)
+	showDirectStyles := queue == nil || (prInfo.MergeBoxData.canBypassProtection && prInfo.MergeBoxData.canMergeNow)
 
 	var defaultMergeTitle, defaultMergeBody string
 	var defaultSquashMergeTitle, defaultSquashMergeBody string
 	var defaultSquashMergeCommitMessages string
-	if !prInfo.IsPullRequestBroken && !useQueue {
+	if !prInfo.IsPullRequestBroken && showDirectStyles {
 		var err error
 		defaultMergeTitle, defaultMergeBody, err = pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, mergeStyle)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
@@ -118,22 +117,24 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 
 	// if this pr can be merged now, then hide the auto merge
 	generalHideAutoMerge := prInfo.MergeBoxData.canMergeNow && allOverridableChecksOk
-	var mergeStyles []any
-	if useQueue && (pull.IsStatusMergeable() || pull.IsEmpty()) {
+	var mergeStyles []map[string]any
+	mergeable := pull.IsStatusMergeable() || pull.IsEmpty()
+	if queue != nil && mergeable {
 		// the queue merges with the method of the branch protection, using the default message and branch deletion setting
-		mergeStyles = []any{map[string]any{
+		mergeStyles = append(mergeStyles, map[string]any{
 			"name":                  prInfo.ProtectedBranchRule.MergeQueue.MergeMethod,
 			"allowed":               true,
+			"queueAction":           "enqueue",
 			"textDoMerge":           ctx.Locale.Tr("repo.pulls.merge_queue.add"),
 			"hideMergeMessageTexts": true,
 			"hideAutoMerge":         generalHideAutoMerge,
-		}}
-		mergeFormProps["isPullBranchDeletable"] = false
+		})
 		mergeFormProps["textAutoMergeButtonWhenSucceed"] = ctx.Locale.Tr("repo.pulls.merge_queue.when_ready")
 		mergeFormProps["textAutoMergeWhenSucceed"] = ctx.Locale.Tr("repo.pulls.merge_queue.add_when_ready")
-	} else if pull.IsStatusMergeable() || pull.IsEmpty() {
-		mergeStyles = []any{
-			map[string]any{
+	}
+	if showDirectStyles && mergeable {
+		directStyles := []map[string]any{
+			{
 				"name":                  "merge",
 				"allowed":               prConfig.AllowMerge,
 				"textDoMerge":           ctx.Locale.Tr("repo.pulls.merge_pull_request"),
@@ -141,14 +142,14 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 				"mergeMessageFieldText": defaultMergeBody,
 				"hideAutoMerge":         generalHideAutoMerge,
 			},
-			map[string]any{
+			{
 				"name":                  "rebase",
 				"allowed":               prConfig.AllowRebase,
 				"textDoMerge":           ctx.Locale.Tr("repo.pulls.rebase_merge_pull_request"),
 				"hideMergeMessageTexts": true,
 				"hideAutoMerge":         generalHideAutoMerge,
 			},
-			map[string]any{
+			{
 				"name":                  "rebase-merge",
 				"allowed":               prConfig.AllowRebaseMerge,
 				"textDoMerge":           ctx.Locale.Tr("repo.pulls.rebase_merge_commit_pull_request"),
@@ -156,7 +157,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 				"mergeMessageFieldText": defaultMergeBody,
 				"hideAutoMerge":         generalHideAutoMerge,
 			},
-			map[string]any{
+			{
 				"name":                  "squash",
 				"allowed":               prConfig.AllowSquash,
 				"textDoMerge":           ctx.Locale.Tr("repo.pulls.squash_merge_pull_request"),
@@ -164,7 +165,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 				"mergeMessageFieldText": git.CommitMessageMerge(defaultSquashMergeCommitMessages, defaultSquashMergeBody),
 				"hideAutoMerge":         generalHideAutoMerge,
 			},
-			map[string]any{
+			{
 				"name":                  "fast-forward-only",
 				"allowed":               prConfig.AllowFastForwardOnly && pull.CommitsBehind == 0,
 				"textDoMerge":           ctx.Locale.Tr("repo.pulls.fast_forward_only_merge_pull_request"),
@@ -172,6 +173,14 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 				"hideAutoMerge":         generalHideAutoMerge,
 			},
 		}
+		if queue != nil {
+			for _, style := range directStyles {
+				style["queueAction"] = "bypass"
+				style["hideAutoMerge"] = true
+				style["textDoMerge"] = ctx.Locale.Tr("repo.pulls.merge_queue.bypass", style["textDoMerge"])
+			}
+		}
+		mergeStyles = append(mergeStyles, directStyles...)
 	}
 
 	// Manually Merged is not a well-known feature, it is used to mark a non-mergeable PR (already merged, conflicted) as merged
@@ -195,7 +204,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	if len(mergeStyles) > 0 {
 		mergeFormProps["mergeStyles"] = mergeStyles
 		prInfo.MergeBoxData.MergeFormProps = mergeFormProps
-	} else if pull.IsStatusMergeable() || pull.IsEmpty() {
+	} else if mergeable {
 		// no merge style was set in repo setting
 		prInfo.MergeBoxData.infoCommitBlockers.AddInfoItem(
 			svg.RenderHTML("octicon-x", 16, "tw-text-red"),

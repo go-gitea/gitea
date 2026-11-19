@@ -310,49 +310,48 @@
 							<p class="help">{{ctx.Locale.Tr "repo.settings.merge_queue.require_desc"}}</p>
 						</div>
 					</div>
-					<div id="merge_queue_box" class="checkbox-sub-item {{if not .Rule.RequireMergeQueue}}disabled{{end}}">
+					{{$queue := .Rule.MergeQueue.WithDefaults}}
+					<fieldset id="merge_queue_box" class="checkbox-sub-item tw-m-0 tw-border-0 tw-py-0 tw-pr-0" {{if not .Rule.RequireMergeQueue}}disabled inert{{end}}>
 						<div class="field">
 							<label>{{ctx.Locale.Tr "repo.settings.merge_queue.merge_method"}}</label>
 							<select class="ui selection dropdown" name="merge_queue_merge_method">
-								<option value="merge" {{if eq .MergeQueue.MergeMethod "merge"}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.merge_pull_request"}}</option>
-								<option value="rebase" {{if eq .MergeQueue.MergeMethod "rebase"}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.rebase_merge_pull_request"}}</option>
-								<option value="rebase-merge" {{if eq .MergeQueue.MergeMethod "rebase-merge"}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</option>
-								<option value="squash" {{if eq .MergeQueue.MergeMethod "squash"}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.squash_merge_pull_request"}}</option>
+								<option value="merge" {{if eq $queue.MergeMethod "merge"}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.merge_pull_request"}}</option>
+								<option value="rebase" {{if eq $queue.MergeMethod "rebase"}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.rebase_merge_pull_request"}}</option>
+								<option value="rebase-merge" {{if eq $queue.MergeMethod "rebase-merge"}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</option>
+								<option value="squash" {{if eq $queue.MergeMethod "squash"}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.squash_merge_pull_request"}}</option>
 							</select>
 						</div>
 						<div class="field">
 							<label>{{ctx.Locale.Tr "repo.settings.merge_queue.max_entries_to_build"}}</label>
-							<input name="merge_queue_max_entries_to_build" type="number" min="1" max="100" required value="{{.MergeQueue.MaxEntriesToBuild}}">
+							<input name="merge_queue_max_entries_to_build" type="number" min="1" max="100" required value="{{$queue.MaxEntriesToBuild}}">
 							<p class="help">{{ctx.Locale.Tr "repo.settings.merge_queue.max_entries_to_build_desc"}}</p>
 						</div>
-						<div class="two fields">
-							<div class="field">
-								<label>{{ctx.Locale.Tr "repo.settings.merge_queue.min_entries_to_merge"}}</label>
-								<input name="merge_queue_min_entries_to_merge" type="number" min="1" max="100" required value="{{.MergeQueue.MinEntriesToMerge}}">
-							</div>
-							<div class="field">
-								<label>{{ctx.Locale.Tr "repo.settings.merge_queue.max_entries_to_merge"}}</label>
-								<input name="merge_queue_max_entries_to_merge" type="number" min="1" max="100" required value="{{.MergeQueue.MaxEntriesToMerge}}">
-							</div>
+						<div class="field">
+							<label>{{ctx.Locale.Tr "repo.settings.merge_queue.min_entries_to_merge"}}</label>
+							<input name="merge_queue_min_entries_to_merge" type="number" min="1" max="100" required value="{{$queue.MinEntriesToMerge}}">
+						</div>
+						<div class="field">
+							<label>{{ctx.Locale.Tr "repo.settings.merge_queue.max_entries_to_merge"}}</label>
+							<input name="merge_queue_max_entries_to_merge" type="number" min="1" max="100" required value="{{$queue.MaxEntriesToMerge}}">
 						</div>
 						<div class="field">
 							<label>{{ctx.Locale.Tr "repo.settings.merge_queue.min_entries_to_merge_wait_minutes"}}</label>
-							<input name="merge_queue_min_entries_to_merge_wait_minutes" type="number" min="0" max="360" required value="{{.MergeQueue.MinEntriesToMergeWaitMinutes}}">
+							<input name="merge_queue_min_entries_to_merge_wait_minutes" type="number" min="0" max="360" required value="{{$queue.MinEntriesToMergeWaitMinutes}}">
 							<p class="help">{{ctx.Locale.Tr "repo.settings.merge_queue.min_entries_to_merge_wait_minutes_desc"}}</p>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
-								<input name="merge_queue_grouping_strategy" type="checkbox" value="ALLGREEN" {{if eq .MergeQueue.GroupingStrategy "ALLGREEN"}}checked{{end}}>
+								<input name="merge_queue_grouping_strategy" type="checkbox" value="ALLGREEN" {{if eq $queue.GroupingStrategy "ALLGREEN"}}checked{{end}}>
 								<label>{{ctx.Locale.Tr "repo.settings.merge_queue.all_green"}}</label>
 								<p class="help">{{ctx.Locale.Tr "repo.settings.merge_queue.all_green_desc"}}</p>
 							</div>
 						</div>
 						<div class="field">
 							<label>{{ctx.Locale.Tr "repo.settings.merge_queue.check_response_timeout_minutes"}}</label>
-							<input name="merge_queue_check_response_timeout_minutes" type="number" min="1" max="360" required value="{{.MergeQueue.CheckResponseTimeoutMinutes}}">
+							<input name="merge_queue_check_response_timeout_minutes" type="number" min="1" max="360" required value="{{$queue.CheckResponseTimeoutMinutes}}">
 							<p class="help">{{ctx.Locale.Tr "repo.settings.merge_queue.check_response_timeout_minutes_desc"}}</p>
 						</div>
-					</div>
+					</fieldset>
 				</div>
 				<div class="divider"></div>
 

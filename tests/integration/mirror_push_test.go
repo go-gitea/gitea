@@ -111,6 +111,10 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 
 	session := loginUser(t, user.Name)
 
+	const queueBranch = "gh-readonly-queue/master/pr-1-test"
+	require.NoError(t, git.CreateBranch(t.Context(), srcRepo, queueBranch, "master"))
+	defer func() { assert.NoError(t, git.DeleteBranch(t.Context(), srcRepo, queueBranch, true)) }()
+
 	pushMirrorURL := fmt.Sprintf("%s%s/%s", u.String(), url.PathEscape(user.Name), url.PathEscape(mirrorRepo.Name))
 	testCreatePushMirror(t, session, user.Name, srcRepo.Name, pushMirrorURL, user.LowerName, userPassword, "0")
 
@@ -137,6 +141,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, srcCommit.ID, mirrorCommit.ID)
+	assert.False(t, git.IsBranchExist(t.Context(), mirrorRepo, queueBranch))
 
 	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "")()
 	assert.False(t, mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID))

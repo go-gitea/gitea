@@ -40,7 +40,6 @@ type MergeQueueEntry struct {
 	GroupRef          string               `xorm:"VARCHAR(255)"`
 	ChecksStartedUnix timeutil.TimeStamp
 	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
-	UpdatedUnix       timeutil.TimeStamp `xorm:"updated"`
 }
 
 func (MergeQueueEntry) TableName() string {
@@ -55,16 +54,24 @@ func (e *MergeQueueEntry) IsBuilt() bool {
 	return e.GroupHeadSHA != ""
 }
 
-const mergeQueueBranchPrefix = "gh-readonly-queue/"
+const MergeQueueRefPrefix = git.BranchPrefix + "gh-readonly-queue/"
 
-// MergeQueueGroupRef returns the branch ref of a queue commit, named like GitHub's so existing workflow filters keep working
-func MergeQueueGroupRef(baseBranch string, prIndex int64, headSHA string) string {
-	return fmt.Sprintf("%s%s%s/pr-%d-%s", git.BranchPrefix, mergeQueueBranchPrefix, baseBranch, prIndex, headSHA)
+// MergeQueueGroupRef uses the SHA the group is built on so a rebuild on a new base gets a new ref.
+func MergeQueueGroupRef(baseBranch string, prIndex int64, baseSHA string) string {
+	return fmt.Sprintf("%s%s/pr-%d-%s", MergeQueueRefPrefix, baseBranch, prIndex, baseSHA)
 }
 
-// IsMergeQueueBranch reports whether the branch belongs to the merge queue: like on GitHub, users can't list or change these
-func IsMergeQueueBranch(branch string) bool {
-	return strings.HasPrefix(branch, mergeQueueBranchPrefix)
+func IsMergeQueueRef(ctx context.Context, repoID int64, ref git.RefName) (bool, error) {
+	if !strings.HasPrefix(ref.String(), MergeQueueRefPrefix) {
+		return false, nil
+	}
+	return db.Exist[MergeQueueEntry](ctx, builder.Eq{"repo_id": repoID, "group_ref": ref.String()})
+}
+
+func GetMergeQueueGroupRefs(ctx context.Context, repoID int64) ([]string, error) {
+	var refs []string
+	err := db.GetEngine(ctx).Table(&MergeQueueEntry{}).Where("repo_id = ? AND group_ref <> ''", repoID).Cols("group_ref").Find(&refs)
+	return refs, err
 }
 
 var ErrAlreadyInMergeQueue = util.NewAlreadyExistErrorf("pull request is already in the merge queue")

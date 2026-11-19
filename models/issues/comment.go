@@ -1274,28 +1274,13 @@ func UpdateCommentsMigrationsByType(ctx context.Context, tp structs.GitServiceTy
 }
 
 // CreateAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
-func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User) (comment *Comment, err error) {
+func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User) (*Comment, error) {
 	if typ != CommentTypePRScheduledToAutoMerge && typ != CommentTypePRUnScheduledToAutoMerge {
 		return nil, fmt.Errorf("comment type %d cannot be used to create an auto merge comment", typ)
 	}
-	if err = pr.LoadIssue(ctx); err != nil {
-		return nil, err
-	}
-
-	if err = pr.LoadBaseRepo(ctx); err != nil {
-		return nil, err
-	}
-
-	comment, err = CreateComment(ctx, &CreateCommentOptions{
-		Type:  typ,
-		Doer:  doer,
-		Repo:  pr.BaseRepo,
-		Issue: pr.Issue,
-	})
-	return comment, err
+	return createPullComment(ctx, typ, pr, doer, "")
 }
 
-// MergeQueueRemovalReason is stored as the content of CommentTypePRRemovedFromMergeQueue
 type MergeQueueRemovalReason string
 
 const (
@@ -1305,27 +1290,36 @@ const (
 	MergeQueueRemovedConflict      MergeQueueRemovalReason = "conflict"
 	MergeQueueRemovedHeadChanged   MergeQueueRemovalReason = "head_changed"
 	MergeQueueRemovedNotMergeable  MergeQueueRemovalReason = "not_mergeable"
-	MergeQueueRemovedClosed        MergeQueueRemovalReason = "closed" // closed or merged outside the queue, no comment is added
+	MergeQueueRemovedClosed        MergeQueueRemovalReason = "closed"
+	MergeQueueRemovedMerged        MergeQueueRemovalReason = "merged"
+	MergeQueueRemovedAlreadyMerged MergeQueueRemovalReason = "already_merged"
 	MergeQueueRemovedBaseChanged   MergeQueueRemovalReason = "base_changed"
 	MergeQueueRemovedBaseDeleted   MergeQueueRemovalReason = "base_deleted"
 )
 
-// CreateMergeQueueComment records that a pull request entered the merge queue, or left it when a reason is given
 func CreateMergeQueueComment(ctx context.Context, pr *PullRequest, doer *user_model.User, reason MergeQueueRemovalReason) error {
+	switch reason {
+	case MergeQueueRemovedClosed, MergeQueueRemovedMerged, MergeQueueRemovedAlreadyMerged:
+		return nil
+	}
+	_, err := createPullComment(ctx, util.Iif(reason == "", CommentTypePRAddedToMergeQueue, CommentTypePRRemovedFromMergeQueue), pr, doer, string(reason))
+	return err
+}
+
+func createPullComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User, content string) (*Comment, error) {
 	if err := pr.LoadIssue(ctx); err != nil {
-		return err
+		return nil, err
 	}
 	if err := pr.LoadBaseRepo(ctx); err != nil {
-		return err
+		return nil, err
 	}
-	_, err := CreateComment(ctx, &CreateCommentOptions{
-		Type:    util.Iif(reason == "", CommentTypePRAddedToMergeQueue, CommentTypePRRemovedFromMergeQueue),
+	return CreateComment(ctx, &CreateCommentOptions{
+		Type:    typ,
 		Doer:    doer,
 		Repo:    pr.BaseRepo,
 		Issue:   pr.Issue,
-		Content: string(reason),
+		Content: content,
 	})
-	return err
 }
 
 // RemapExternalUser ExternalUserRemappable interface

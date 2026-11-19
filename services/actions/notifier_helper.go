@@ -182,8 +182,10 @@ func notify(ctx context.Context, input *notifyInput) error {
 		ref = git.RefNameFromBranch(input.Repo.DefaultBranch)
 	}
 
-	commitID, err := gitRepo.GetRefCommitID(ctx, ref.String())
-	if err != nil {
+	var commitID string
+	if payload, ok := input.Payload.(*api.MergeGroupPayload); ok {
+		commitID = payload.MergeGroup.HeadSHA // a destroyed group's ref is already gone
+	} else if commitID, err = gitRepo.GetRefCommitID(ctx, ref.String()); err != nil {
 		return fmt.Errorf("gitRepo.GetRefCommitID: %w", err)
 	}
 

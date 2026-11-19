@@ -9,12 +9,18 @@ import (
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
+	api "gitea.dev/modules/structs"
 	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
@@ -136,4 +142,54 @@ func TestDetectAndHandleSchedulesDropsRemovedWorkflows(t *testing.T) {
 
 	require.NoError(t, DetectAndHandleSchedules(t.Context(), repo))
 	unittest.AssertNotExistsBean(t, &actions_model.ActionSchedule{RepoID: repo.ID})
+}
+
+func TestMergeGroupDestroyedAfterRefDeletion(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	require.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{
+		RepoID: repo.ID, RuleName: repo.DefaultBranch,
+		ProtectedBranchConfig: git_model.ProtectedBranchConfig{EnableStatusCheck: true, StatusCheckContexts: []string{"*"}},
+	}))
+
+	const groupRef = "refs/heads/gh-readonly-queue/master/pr-1"
+	const jobs = "\njobs: {cleanup: {runs-on: linux, steps: [{run: echo done}]}}"
+	require.NoError(t, git.ForceFastImport(t.Context(), repo, []git.FastImportCommit{{
+		Ref: groupRef,
+		Files: []git.FastImportFile{
+			{Path: ".gitea/workflows/cleanup.yml", Content: "on: {merge_group: {types: [destroyed]}}" + jobs},
+			{Path: ".gitea/workflows/default.yml", Content: "on: merge_group" + jobs},
+			{Path: ".gitea/workflows/filtered.yml", Content: "on: {merge_group: {types: [destroyed], branches: [other]}}" + jobs},
+			{Path: ".gitea/workflows/invalid.yml", Content: "on: {merge_group: {types: [destroyed]}}\njobs: {cleanup: {uses: ./.gitea/workflows/missing.yml}}"},
+		},
+	}}))
+	gitRepo, err := git.OpenRepository(t.Context(), repo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+	headSHA, err := gitRepo.GetRefCommitID(t.Context(), groupRef)
+	require.NoError(t, err)
+
+	notifier := new(actionsNotifier)
+	entry := &pull_model.MergeQueueEntry{GroupRef: groupRef, GroupHeadSHA: headSHA, BaseBranch: repo.DefaultBranch}
+	notifier.MergeGroupChanged(t.Context(), doer, repo, entry, api.HookMergeGroupChecksRequested, "")
+	unittest.AssertExistsAndLoadBean(t, &git_model.CommitStatus{RepoID: repo.ID, SHA: headSHA, Context: "default.yml / cleanup (merge_group)"})
+	require.NoError(t, git.RemoveRef(t.Context(), repo, groupRef))
+	notifier.MergeGroupChanged(t.Context(), doer, repo, entry, api.HookMergeGroupDestroyed, "dequeued")
+
+	run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, WorkflowID: "cleanup.yml", Event: webhook_module.HookEventMergeGroup})
+	assert.Equal(t, groupRef, run.Ref)
+	assert.Equal(t, headSHA, run.CommitSHA)
+	assert.Equal(t, headSHA, run.WorkflowCommitSHA)
+	var payload api.MergeGroupPayload
+	require.NoError(t, json.Unmarshal([]byte(run.EventPayload), &payload))
+	assert.Equal(t, api.HookMergeGroupDestroyed, payload.Action)
+	assert.Equal(t, "dequeued", payload.Reason)
+	require.NotNil(t, payload.MergeGroup)
+	assert.Equal(t, groupRef, payload.MergeGroup.HeadRef)
+	assert.Equal(t, headSHA, payload.MergeGroup.HeadSHA)
+	unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, Name: "cleanup"})
+	unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, WorkflowID: "invalid.yml", Ref: groupRef, Status: actions_model.StatusFailure})
+	unittest.AssertCount(t, &actions_model.ActionRun{RepoID: repo.ID, Ref: groupRef}, 3)
+	unittest.AssertCount(t, &git_model.CommitStatus{RepoID: repo.ID, SHA: headSHA}, 1)
 }

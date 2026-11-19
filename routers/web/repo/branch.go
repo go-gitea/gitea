@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/git"
@@ -97,6 +98,8 @@ func DeleteBranchPost(ctx *context.Context) {
 		ctx.JSONError(ctx.Tr("repo.branch.deletion_failed", branchName))
 	case errors.Is(err, repo_service.ErrBranchIsDefault):
 		ctx.JSONError(ctx.Tr("repo.branch.default_deletion_failed", branchName))
+	case errors.Is(err, issues_model.ErrQueuedPullHead):
+		ctx.JSONErrorAuto(err)
 	case errors.Is(err, git_model.ErrBranchIsProtected):
 		ctx.JSONError(ctx.Tr("repo.branch.protected_deletion_failed", branchName))
 	default:

@@ -55,6 +55,7 @@ func ToPayloadCommit(ctx context.Context, repo *repo_model.Repository, c *git.Co
 
 	return &api.PayloadCommit{
 		ID:      c.ID.String(),
+		TreeID:  c.TreeID.String(),
 		Message: c.MessageUTF8(),
 		URL:     repo.HTMLURL() + "/commit/" + c.ID.String(),
 		Author: &api.PayloadUser{

@@ -702,11 +702,9 @@ func (n *actionsNotifier) PullRequestMergeQueueChanged(ctx context.Context, doer
 		Notify(ctx)
 }
 
-// MergeGroupChanged runs the merge_group workflows of the queue commit, like GitHub only for checks_requested
 func (n *actionsNotifier) MergeGroupChanged(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, entry *pull_model.MergeQueueEntry, action api.HookMergeGroupAction, reason string) {
 	if action == api.HookMergeGroupDestroyed {
-		n.DeleteRef(ctx, doer, repo, git.RefName(entry.GroupRef)) // the queue branch is removed without hooks
-		return
+		defer n.DeleteRef(ctx, doer, repo, git.RefName(entry.GroupRef)) // the queue branch is removed without hooks
 	}
 	ctx = withMethod(ctx, "MergeGroupChanged")
 
@@ -720,10 +718,11 @@ func (n *actionsNotifier) MergeGroupChanged(ctx context.Context, doer *user_mode
 		WithPayload(payload).
 		Notify(ctx)
 
-	// the queue branch is written without hooks, so trigger the workflows a push of it would
-	opts, commits := convert.ToMergeGroupPush(doer, repo, entry, commit)
-	n.PushCommits(ctx, doer, repo, opts, commits)
-	n.CreateRef(ctx, doer, repo, opts.RefFullName, opts.NewCommitID)
+	if action == api.HookMergeGroupChecksRequested {
+		opts, commits := convert.ToMergeGroupPush(doer, repo, entry, commit)
+		n.PushCommits(ctx, doer, repo, opts, commits)
+		n.CreateRef(ctx, doer, repo, opts.RefFullName, opts.NewCommitID)
+	}
 }
 
 func (n *actionsNotifier) PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch, oldSHA string) {
