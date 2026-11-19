@@ -11,6 +11,7 @@ import (
 	"uuid"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -48,7 +49,7 @@ const (
 	HookDeliveryErrorTimeout    HookDeliveryError = "timeout"
 	HookDeliveryErrorConnection HookDeliveryError = "connection"
 	HookDeliveryErrorBlocked    HookDeliveryError = "blocked"
-	HookDeliveryErrorOther      HookDeliveryError = "other"
+	HookDeliveryErrorUnknown    HookDeliveryError = "unknown"
 )
 
 // HookResponse represents hook task response information.
@@ -97,7 +98,16 @@ func (t *HookTask) IsDeliveryWaitingForResult() bool {
 
 func (t *HookTask) DeliveryStatusTr(locale translation.Locale) template.HTML {
 	if t.ResponseInfo != nil && t.ResponseInfo.ErrorType != "" {
-		return locale.Tr("repo.settings.webhook.delivery." + string(t.ResponseInfo.ErrorType))
+		switch t.ResponseInfo.ErrorType {
+		case HookDeliveryErrorTimeout:
+			return locale.Tr("repo.settings.webhook.delivery.timeout")
+		case HookDeliveryErrorConnection:
+			return locale.Tr("repo.settings.webhook.delivery.connection")
+		case HookDeliveryErrorBlocked:
+			return locale.Tr("repo.settings.webhook.delivery.blocked")
+		default:
+			return htmlutil.EscapeString(string(t.ResponseInfo.ErrorType))
+		}
 	}
 	switch {
 	case t.IsSucceed:

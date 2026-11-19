@@ -282,7 +282,8 @@ func deliveryErrorType(err error) webhook_model.HookDeliveryError {
 	if _, ok := errors.AsType[*net.OpError](err); ok {
 		return webhook_model.HookDeliveryErrorConnection
 	}
-	return webhook_model.HookDeliveryErrorOther
+	setting.PanicInDevOrTesting("Unknown error type in webhook delivery: %v", err)
+	return webhook_model.HookDeliveryErrorUnknown
 }
 
 var webhookHTTPClient *http.Client
