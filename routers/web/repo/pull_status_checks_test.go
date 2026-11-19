@@ -42,6 +42,15 @@ func TestGroupStatusChecks(t *testing.T) {
 	assert.True(t, checkData.StatusCheckGroups[4].StatusChecks[0].IsRequired)
 	assert.EqualValues(t, "repo.pulls.status_checks_count_1:repo.pulls.status_checks_failing:1, repo.pulls.status_checks_pending:2, repo.pulls.status_checks_in_progress:1, repo.pulls.status_checks_skipped:1, repo.pulls.status_checks_expected:2, repo.pulls.status_checks_successful:1", checkData.StatusChecksSection(translation.MockLocale{}).SectionDetails[0])
 
+	externalData := &pullCommitStatusCheckData{}
+	externalData.groupStatuses([]*git_model.CommitStatus{
+		{ID: 1, Context: "external", State: commitstatus.CommitStatusRunning},
+		{ID: 2, Context: "custom", State: "stage-1"},
+	}, nil, nil, translation.MockLocale{})
+	assert.False(t, externalData.AllPassed())
+	assert.Equal(t, 1, externalData.count(statusCheckInProgress))
+	assert.Equal(t, 1, externalData.count(statusCheckPending))
+
 	approvalData := &pullCommitStatusCheckData{RequireApprovalRunCount: 1}
 	approvalData.groupStatuses([]*git_model.CommitStatus{{ID: 1, Context: "lint", State: commitstatus.CommitStatusSuccess}}, nil, nil, translation.MockLocale{})
 	assert.False(t, approvalData.AllPassed())

@@ -54,16 +54,16 @@ func (d *pullCommitStatusCheckData) groupStatuses(commitStatuses []*git_model.Co
 			StatusContext: cs.Context, StatusDescription: cs.Description, StatusTargetURL: cs.TargetURL,
 			StatusState: cs.State, ActionStatus: actionsStatuses.IconStatus(cs),
 		}
-		kind := statusCheckSkipped
+		kind := statusCheckPending // unknown states count as pending, like in the combined status
 		switch {
 		case cs.State.IsError() || cs.State.IsFailure() || cs.State.IsWarning():
 			kind = statusCheckFailing
-		case cs.State.IsPending() && actionsStatuses[cs.ID] == actions_model.StatusRunning:
+		case cs.State == commitstatus.CommitStatusRunning || actionsStatuses[cs.ID] == actions_model.StatusRunning && cs.State.IsPending():
 			kind = statusCheckInProgress
-		case cs.State.IsPending():
-			kind = statusCheckPending
 		case cs.State.IsSuccess():
 			kind = statusCheckSuccessful
+		case cs.State.IsSkipped():
+			kind = statusCheckSkipped
 		}
 		d.counts[kind]++
 		byKind[kind] = append(byKind[kind], checks[i])
