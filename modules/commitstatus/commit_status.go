@@ -10,6 +10,8 @@ type CommitStatusState string //nolint:revive // export stutter
 const (
 	// CommitStatusPending is for when the CommitStatus is Pending
 	CommitStatusPending CommitStatusState = "pending"
+	// CommitStatusRunning is for when the CommitStatus is Running
+	CommitStatusRunning CommitStatusState = "running"
 	// CommitStatusSuccess is for when the CommitStatus is Success
 	CommitStatusSuccess CommitStatusState = "success"
 	// CommitStatusError is for when the CommitStatus is Error
