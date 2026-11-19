@@ -213,6 +213,10 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 
 	// All code from this point will update the hook task
 	defer func() {
+		if ctx.Err() != nil {
+			return
+		}
+
 		t.Delivered = timeutil.TimeStampNanoNow()
 		if t.IsSucceed {
 			log.Trace("Hook delivered: %s", t.UUID)
@@ -222,8 +226,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 			log.Trace("Hook delivery failed: %s", t.UUID)
 		}
 
-		writeCtx := context.WithoutCancel(ctx)
-		if err := webhook_model.UpdateHookTask(writeCtx, t); err != nil {
+		if err := webhook_model.UpdateHookTask(ctx, t); err != nil {
 			log.Error("UpdateHookTask [%d]: %v", t.ID, err)
 		}
 
@@ -233,7 +236,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 		} else {
 			w.LastStatus = webhook_module.HookStatusFail
 		}
-		if err = webhook_model.UpdateWebhookLastStatus(writeCtx, w); err != nil {
+		if err = webhook_model.UpdateWebhookLastStatus(ctx, w); err != nil {
 			log.Error("UpdateWebhookLastStatus: %v", err)
 			return
 		}
