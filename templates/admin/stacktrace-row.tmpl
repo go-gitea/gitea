@@ -17,10 +17,11 @@
 		</div>
 		<div>
 			{{if or (eq .Process.Type "request") (eq .Process.Type "normal")}}
-				<a class="link-action" data-url="{{ctx.RootData.Link}}/cancel/{{.Process.PID}}"
+				<button type="button" class="btn link-action" data-url="{{ctx.RootData.Link}}/cancel/{{.Process.PID}}"
+					data-tooltip-content="{{ctx.Locale.Tr "cancel"}}"
 					data-modal-confirm-header="{{ctx.Locale.Tr "admin.monitor.process.cancel"}}"
 					data-modal-confirm-content="{{ctx.Locale.Tr "admin.monitor.process.cancel_desc"}}"
-				>{{svg "octicon-trash" 16 "tw-text-red"}}</a>
+				>{{svg "octicon-trash" 16 "tw-text-red"}}</button>
 			{{end}}
 		</div>
 	</div>

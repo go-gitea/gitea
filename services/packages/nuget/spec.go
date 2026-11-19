@@ -12,6 +12,7 @@ type Specialization struct {
 	packages_service.SpecGetViewPackageVersionData
 	packages_service.SpecOnBeforeRemovePackageAll
 	packages_service.SpecOnBeforeRemovePackageVersion
+	packages_service.SpecOnAfterRemovePackage
 	packages_service.SpecRenderUsageManual
 }
 

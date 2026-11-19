@@ -60,14 +60,14 @@ func TestRender_Commits(t *testing.T) {
 	test(sha[:7], `<p><a href="`+commitPath[:len(commitPath)-(40-7)]+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
 	test(sha[:39], `<p><a href="`+commitPath[:len(commitPath)-(40-39)]+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
 	test(commit, `<p><a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
-	test(tree, `<p><a href="`+tree+`" rel="nofollow"><code>65f1bf27bc/src</code></a></p>`)
+	test(tree, `<p><a href="`+tree+`" rel="nofollow">`+tree+`</a></p>`)
 
-	test(file, `<p><a href="`+file+`" rel="nofollow"><code>65f1bf27bc/example.txt</code></a></p>`)
-	test(fileWithExtra, `<p><a href="`+file+`" rel="nofollow"><code>65f1bf27bc/example.txt</code></a>:</p>`)
-	test(fileWithHash, `<p><a href="`+fileWithHash+`" rel="nofollow"><code>65f1bf27bc/example.txt (L2)</code></a></p>`)
-	test(fileWithHasExtra, `<p><a href="`+fileWithHash+`" rel="nofollow"><code>65f1bf27bc/example.txt (L2)</code></a>:</p>`)
+	test(file, `<p><a href="`+file+`" rel="nofollow"><code>65f1bf27bc</code>/example.txt</a></p>`)
+	test(fileWithExtra, `<p><a href="`+file+`" rel="nofollow"><code>65f1bf27bc</code>/example.txt</a>:</p>`)
+	test(fileWithHash, `<p><a href="`+fileWithHash+`" rel="nofollow"><code>65f1bf27bc</code>/example.txt#L2</a></p>`)
+	test(fileWithHasExtra, `<p><a href="`+fileWithHash+`" rel="nofollow"><code>65f1bf27bc</code>/example.txt#L2</a>:</p>`)
 	test(commitCompare, `<p><a href="`+commitCompare+`" rel="nofollow"><code>65f1bf27bc...65f1bf27bc</code></a></p>`)
-	test(commitCompareWithHash, `<p><a href="`+commitCompareWithHash+`" rel="nofollow"><code>65f1bf27bc...65f1bf27bc (L2)</code></a></p>`)
+	test(commitCompareWithHash, `<p><a href="`+commitCompareWithHash+`" rel="nofollow"><code>65f1bf27bc...65f1bf27bc</code>#L2</a></p>`)
 
 	test("commit "+sha, `<p>commit <a href="`+commitPath+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
 	test("/home/gitea/"+sha, "<p>/home/gitea/"+sha+"</p>")
@@ -79,6 +79,32 @@ func TestRender_Commits(t *testing.T) {
 	test(sha[:14]+".", `<p>`+expected14+`.</p>`)
 	test(sha[:14]+",", `<p>`+expected14+`,</p>`)
 	test("["+sha[:14]+"]", `<p>[`+expected14+`]</p>`)
+
+	commitShort := repo + "commit/" + sha[:7]
+	pullCommit := repo + "pulls/1/commits/" + sha
+	otherCommit := markup.TestAppURL + "user2/repo1/commit/" + sha
+	branchCompare := repo + "compare/main...feature/x"
+	githubCommit := "https://github.com/a/b/commit/" + sha
+	test(pullCommit+" fixes "+repo+"issues/2", `<p><a href="`+pullCommit+`" rel="nofollow"><code>65f1bf27bc</code></a> fixes <a href="`+repo+`issues/2" class="ref-issue" rel="nofollow">#2</a></p>`)
+	test(commitShort+"#diff-2.", `<p><a href="`+commitShort+`#diff-2" rel="nofollow"><code>65f1bf2</code>#diff-2</a>.</p>`)
+	test(commitShort+"?w=1", `<p><a href="`+commitShort+`?w=1" rel="nofollow"><code>65f1bf2</code>?w=1</a></p>`)
+	test(otherCommit, `<p><a href="`+otherCommit+`" rel="nofollow">user2/repo1@<code>65f1bf27bc</code></a></p>`)
+	test(branchCompare, `<p><a href="`+branchCompare+`" rel="nofollow"><code>main...feature/x</code></a></p>`)
+	test(githubCommit+" "+commitShort+" "+commit, `<p><a href="`+githubCommit+`" rel="nofollow">`+githubCommit+`</a> <a href="`+commitShort+`" rel="nofollow"><code>65f1bf2</code></a> <a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
+	test("<"+commitShort+"> ["+commit+"]("+commit+")", `<p><a href="`+commitShort+`" rel="nofollow"><code>65f1bf2</code></a> <a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
+	test("[[label|"+commitShort+"]]", `<p><a href="`+commitShort+`" rel="nofollow">label</a></p>`)
+	for input, attrs := range map[string]string{
+		commitShort + ".patch":                             ` rel="nofollow"><code>65f1bf2</code>.patch`,
+		repo + "compare/" + sha + ".." + sha:               ` rel="nofollow"><code>65f1bf27bc..65f1bf27bc</code>`,
+		commitCompare + ".diff?w=1":                        ` rel="nofollow"><code>65f1bf27bc...65f1bf27bc</code>.diff?w=1`,
+		repo + "compare/20240101...20240201":               ` rel="nofollow"><code>20240101...20240201</code>`,
+		repo + "src/commit/" + sha + "/README.md":          ` rel="nofollow"><code>65f1bf27bc</code>/README.md`,
+		repo + "commit/" + sha[:6]:                         ` rel="nofollow">` + repo + "commit/" + sha[:6],
+		repo + "src/branch/main/sub-dir/commit/" + sha[:7]: ` rel="nofollow">` + repo + "src/branch/main/sub-dir/commit/" + sha[:7],
+		repo + "src/branch/main/" + sha + ".txt":           ` rel="nofollow">` + repo + "src/branch/main/" + sha + ".txt",
+	} {
+		test(input, `<p><a href="`+input+`"`+attrs+`</a></p>`)
+	}
 }
 
 func TestRender_CrossReferences(t *testing.T) {
@@ -113,17 +139,13 @@ func TestRender_CrossReferences(t *testing.T) {
 	inputURL := setting.AppURL + "a/b/commit/0123456789012345678901234567890123456789/foo.txt?a=b#L2-L3"
 	test(
 		inputURL,
-		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789/foo.txt (L2-L3)</code></a></p>`)
+		`<p><a href="`+inputURL+`" rel="nofollow">a/b@<code>0123456789</code>/foo.txt?a=b#L2-L3</a></p>`)
 
-	inputURL = setting.AppURL + "repo/owner/archive/0123456789012345678901234567890123456789.tar.gz"
-	test(
-		inputURL,
-		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789.tar.gz</code></a></p>`)
+	inputURL = setting.AppURL + "owner/repo/archive/0123456789012345678901234567890123456789.tar.gz?key=val"
+	test(inputURL, `<p><a href="`+inputURL+`" rel="nofollow">owner/repo@<code>0123456789</code>.tar.gz?key=val</a></p>`)
 
-	inputURL = setting.AppURL + "owner/repo/commit/0123456789012345678901234567890123456789.patch?key=val"
-	test(
-		inputURL,
-		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789.patch</code></a></p>`)
+	test("test-owner/test-repo@"+"0123456789012345678901234567890123456789", `<p><a href="/test-owner/test-repo/commit/0123456789012345678901234567890123456789" rel="nofollow">test-owner/test-repo@<code>0123456789</code></a></p>`)
+	test(testRepoOwnerName+"/"+testRepoName+"@"+"0123456789012345678901234567890123456789", `<p><a href="/user13/repo11/commit/0123456789012345678901234567890123456789" rel="nofollow"><code>0123456789</code></a></p>`)
 }
 
 func TestRender_links(t *testing.T) {
@@ -178,6 +200,7 @@ func TestRender_links(t *testing.T) {
 		{"://", `<p>://</p>`},
 		{"www", `<p>www</p>`},
 		{"ftps://gitea.com", `<p>ftps://gitea.com</p>`},
+		{markup.TestAppURL + "user13/repo11/commit/65f1bf2", `<p><a href="` + markup.TestAppURL + `user13/repo11/commit/65f1bf2" rel="nofollow">` + markup.TestAppURL + `user13/repo11/commit/65f1bf2</a></p>`},
 	} {
 		test(testCase.input, testCase.expected)
 	}
@@ -459,7 +482,7 @@ func TestIssue18471(t *testing.T) {
 	err := markup.PostProcessDefault(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
 
 	assert.NoError(t, err)
-	assert.Equal(t, `<a href="`+markup.TestAppURL+`org/repo/compare/783b039...da951ce" class="compare"><code>783b039...da951ce</code></a>`, res.String())
+	assert.Equal(t, `<a href="`+markup.TestAppURL+`org/repo/compare/783b039...da951ce" class="commit">org/repo@<code>783b039...da951ce</code></a>`, res.String())
 }
 
 func TestRender_TeamMention(t *testing.T) {

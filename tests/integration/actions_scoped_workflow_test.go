@@ -252,7 +252,7 @@ jobs:
 				pbValues["enable_status_check"] = "true"
 				pbValues["status_check_contexts"] = "ci/manual"
 			}
-			user2Session.MakeRequest(t, NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", consumer.OwnerName, consumer.Name), pbValues), http.StatusSeeOther)
+			user2Session.MakeRequest(t, NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", consumer.OwnerName, consumer.Name), pbValues), http.StatusOK)
 
 			prFile := &api.CreateFileOptions{
 				FileOptions: api.FileOptions{

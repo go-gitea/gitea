@@ -326,13 +326,21 @@ async function handleFetchActionSuccessSync(el: Element, successSync: string, re
   if (res.targets.length > 1) throw new Error(`Fetch-sync command "${successSync}" found multiple target elements, which is not supported`);
   const target = res.targets[0];
   if (res.cmdMorph) {
-    Idiomorph.morph(target, respText, {morphStyle: res.cmdInnerHTML ? 'innerHTML' : 'outerHTML'});
+    morphByResult(target, res, respText);
   } else if (res.cmdInnerHTML) {
     target.innerHTML = respText;
   } else {
     target.outerHTML = respText;
   }
   await fetchActionReloadOutdatedElements();
+}
+
+function morphByResult(target: Element, res: PseudoSelectorCommandResult, respText: string) {
+  const respElem = createElementFromHTML(respText);
+  if (respElem.querySelector('.modal-dialog')) {
+    throw new Error(`Morph with embedded modal dialog is not supported, please use "template" to wrap the dialog.`);
+  }
+  Idiomorph.morph(target, respElem, {morphStyle: res.cmdInnerHTML ? 'innerHTML' : 'outerHTML'});
 }
 
 async function fetchActionReloadOutdatedElements() {
@@ -422,8 +430,8 @@ export function initGlobalFetchAction() {
   //   "$" prefix means it is our private command (for special logic), the selectors are run one by one from current element.
   //   * "$this": replace the current element with the response
   //   * "$innerHTML": replace innerHTML of the current element with the response, instead of replacing the whole element (outerHTML)
-  //   * "$morph": use morph algorithm to update the target element
-  //   * "$body #the-id .the-class": query the selector one by one from body
+  //   * "$morph": use morph algorithm to update the target element by the returned (single) element
+  //   * "$body .the-class": query the selector one by one from body
   //   * "$closest(tr) td": pseudo command can help to find the target element in a more flexible way
   //
   // * data-modal-confirm: a "confirm modal dialog" will be shown before taking action.

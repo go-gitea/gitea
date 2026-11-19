@@ -18,7 +18,7 @@ import {
   type DayData,
   type DayDataObject,
 } from '../utils/time.ts';
-import {chartJsColors} from '../utils/color.ts';
+import {chartJsColor} from '../utils/color.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {sleep} from '../utils.ts';
 import {computed, onMounted, shallowRef} from 'vue';
@@ -88,7 +88,7 @@ function toGraphData(data: DayData[]): ChartData<'line'> {
         pointHitRadius: 0,
         fill: true,
         label: 'Additions',
-        backgroundColor: chartJsColors['additions'],
+        backgroundColor: chartJsColor('additions'),
         borderWidth: 0,
         tension: 0.3,
       },
@@ -98,7 +98,7 @@ function toGraphData(data: DayData[]): ChartData<'line'> {
         pointHitRadius: 0,
         fill: true,
         label: 'Deletions',
-        backgroundColor: chartJsColors['deletions'],
+        backgroundColor: chartJsColor('deletions'),
         borderWidth: 0,
         tension: 0.3,
       },

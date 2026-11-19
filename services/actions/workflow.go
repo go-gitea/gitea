@@ -22,6 +22,7 @@ import (
 	"gitea.dev/modules/reqctx"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
 	"gitea.dev/services/audit"
 	gitea_context "gitea.dev/services/context"
 	"gitea.dev/services/convert"
@@ -129,7 +130,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		Ref:               string(refName),
 		CommitSHA:         runTargetCommit.ID.String(),
 		IsForkPullRequest: false,
-		Event:             "workflow_dispatch",
+		Event:             webhook_module.HookEventWorkflowDispatch,
 		TriggerEvent:      "workflow_dispatch",
 		Status:            actions_model.StatusWaiting,
 		// local dispatch: own repo at the target commit; the scoped path overrides these below

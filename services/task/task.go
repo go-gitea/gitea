@@ -9,7 +9,6 @@ import (
 	"fmt"
 
 	admin_model "gitea.dev/models/admin"
-	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/json"
@@ -114,7 +113,6 @@ func CreateMigrateTask(ctx context.Context, doer, u *user_model.User, opts base.
 		GitServiceType: opts.GitServiceType,
 		IsPrivate:      opts.Private || setting.Repository.ForcePrivate,
 		IsMirror:       opts.Mirror,
-		Status:         repo_model.RepositoryBeingMigrated,
 	}, false)
 	if err != nil {
 		task.EndTime = timeutil.TimeStampNow()
