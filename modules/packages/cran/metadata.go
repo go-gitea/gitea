@@ -170,7 +170,7 @@ func ParseDescription(r io.Reader) (*Package, error) {
 		if line == "" {
 			continue
 		}
-		if !globalVars().fieldPattern.MatchString(line) {
+		if !globalVars().fieldPattern.MatchString(scanner.Text()) {
 			b.WriteRune(' ')
 			b.WriteString(line)
 			continue
