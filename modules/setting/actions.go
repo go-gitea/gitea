@@ -42,7 +42,8 @@ var (
 		// MaxConcurrentTaskPicks bounds how many runners may run the task-assignment
 		// transaction at once per Gitea instance, to avoid a thundering herd when many
 		// runners poll together. It is a per-process limit, not a cluster-wide one.
-		MaxConcurrentTaskPicks int `ini:"MAX_CONCURRENT_TASK_PICKS"`
+		MaxConcurrentTaskPicks int           `ini:"MAX_CONCURRENT_TASK_PICKS"`
+		JobQueueOrder          jobQueueOrder `ini:"JOB_QUEUE_ORDER"`
 
 		ArtifactPreviewMaxSize int64 `ini:"ARTIFACT_PREVIEW_MAX_SIZE"`
 	}{
@@ -97,6 +98,17 @@ func (c logCompression) IsZstd() bool {
 	return c == "" || string(c) == "zstd"
 }
 
+type jobQueueOrder string
+
+func (o jobQueueOrder) IsValid() bool {
+	return o == "" || o == "ready" || o.IsCreated()
+}
+
+// IsCreated reports whether waiting jobs are picked in creation order instead of the order they became ready.
+func (o jobQueueOrder) IsCreated() bool {
+	return o == "created"
+}
+
 func loadActionsFrom(rootCfg ConfigProvider) error {
 	sec := rootCfg.Section("actions")
 	err := sec.MapTo(&Actions)
@@ -136,6 +148,10 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 
 	if !Actions.LogCompression.IsValid() {
 		return fmt.Errorf("invalid [actions] LOG_COMPRESSION: %q", Actions.LogCompression)
+	}
+
+	if !Actions.JobQueueOrder.IsValid() {
+		return fmt.Errorf("invalid [actions] JOB_QUEUE_ORDER: %q", Actions.JobQueueOrder)
 	}
 
 	workflowDirs := normalizeWorkflowDirs(Actions.WorkflowDirs)
