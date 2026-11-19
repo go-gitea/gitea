@@ -1,0 +1,10 @@
+{{/* compact "resolved/total" summary of review conversations, updated by resolve-conversation in repo-diff.ts */}}
+{{$stats := .PullMergeBoxData.ConversationStats}}
+{{if $stats}}
+	<a id="pull-conversation-stats" class="tw-whitespace-nowrap {{if not $stats.Unresolved}}text green{{end}}"
+		{{if $stats.NextOpenID}}href="#issuecomment-{{$stats.NextOpenID}}" data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.conversations_jump_next"}}"{{end}}
+		data-jump-tooltip="{{ctx.Locale.Tr "repo.pulls.conversations_jump_next"}}">
+		{{svg "octicon-comment-discussion"}}
+		{{ctx.Locale.Tr "repo.pulls.conversations_resolved" (HTMLFormat `<span class="js-resolved">%d</span>` $stats.Resolved) (HTMLFormat `<span class="js-total">%d</span>` $stats.Total)}}
+	</a>
+{{end}}
