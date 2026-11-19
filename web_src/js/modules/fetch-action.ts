@@ -430,8 +430,8 @@ export function initGlobalFetchAction() {
   //   "$" prefix means it is our private command (for special logic), the selectors are run one by one from current element.
   //   * "$this": replace the current element with the response
   //   * "$innerHTML": replace innerHTML of the current element with the response, instead of replacing the whole element (outerHTML)
-  //   * "$morph": use morph algorithm to update the target element
-  //   * "$body #the-id .the-class": query the selector one by one from body
+  //   * "$morph": use morph algorithm to update the target element by the returned (single) element
+  //   * "$body .the-class": query the selector one by one from body
   //   * "$closest(tr) td": pseudo command can help to find the target element in a more flexible way
   //
   // * data-modal-confirm: a "confirm modal dialog" will be shown before taking action.
