@@ -59,7 +59,7 @@
   position: relative;
 }
 
-.merge-box-checks-toggle { /* covers the header like GitHub, so clicking the header text toggles instead of selecting it */
+.merge-box-checks-toggle {
   position: absolute;
   inset: 0;
   z-index: 1; /* above the rotated chevron */
