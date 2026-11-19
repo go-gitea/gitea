@@ -112,22 +112,19 @@ export async function apiCreateBranchProtection(requestContext: APIRequestContex
   }), 'apiCreateBranchProtection');
 }
 
-export async function apiCreateWebhook(requestContext: APIRequestContext, owner: string, repo: string, url: string, {active = true}: {active?: boolean} = {}): Promise<number> {
-  const response = await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/hooks`, {
+export async function apiCreateWebhookWithDelivery(requestContext: APIRequestContext, owner: string, repo: string): Promise<number> {
+  const hooksUrl = `${baseUrl()}/api/v1/repos/${owner}/${repo}/hooks`;
+  const response = await apiRetry(() => requestContext.post(hooksUrl, {
     headers: apiHeaders(),
-    data: {type: 'gitea', active, config: {url, content_type: 'json'}},
+    data: {type: 'gitea', active: false, config: {url: 'http://127.0.0.1/webhook', content_type: 'json'}},
   }), 'apiCreateWebhook');
-  return (await response.json()).id;
-}
-
-/** Send a test push event and wait until its delivery has finished. */
-export async function apiTestWebhook(requestContext: APIRequestContext, owner: string, repo: string, id: number) {
-  const hookUrl = `${baseUrl()}/api/v1/repos/${owner}/${repo}/hooks/${id}`;
-  await apiRetry(() => requestContext.post(`${hookUrl}/tests`, {headers: apiHeaders()}), 'apiTestWebhook');
+  const {id} = await response.json();
+  await apiRetry(() => requestContext.post(`${hooksUrl}/${id}/tests`, {headers: apiHeaders()}), 'apiTestWebhook');
   await expect.poll(async () => {
-    const deliveries = await (await requestContext.get(`${hookUrl}/deliveries`, {headers: apiHeaders()})).json();
+    const deliveries = await (await requestContext.get(`${hooksUrl}/${id}/deliveries`, {headers: apiHeaders()})).json();
     return deliveries[0].response;
   }).toBeTruthy();
+  return id;
 }
 
 /** Create a PR via API. Returns the PR index for subsequent operations. */
