@@ -18,6 +18,9 @@ class PullMergeBox {
   }
 
   async init() {
+    addDelegatedEventListener(this.el, 'click', '[data-kind]', (toggle) => {
+      toggle.setAttribute('aria-expanded', String(toggle.getAttribute('aria-expanded') !== 'true'));
+    });
     await this.initContent();
     activePageTimerRefresh({
       interval: () => this.el.isConnected ? Number(this.el.getAttribute(reloadingIntervalAttr)) : 0,
@@ -69,9 +72,8 @@ class PullMergeBox {
   }
 
   private isBusy() {
-    // keep focused controls except disclosures, open menus and dialogs, forms, bypass choices and pending requests
     return Boolean(document.querySelector('dialog[open]') || this.el.querySelector(
-      ':focus:not([data-kind] > summary), [aria-expanded="true"], [data-fetch-is-loading], [data-pull-merge-busy]'));
+      ':focus:not([data-kind]), [aria-haspopup][aria-expanded="true"], [data-fetch-is-loading], [data-pull-merge-busy]'));
   }
 
   private async refresh() {
@@ -82,19 +84,20 @@ class PullMergeBox {
     const respText = (await resp.text()).trim();
     if (this.isBusy()) return;
     const newEl = createElementFromHTML(respText);
-    const openDetails = new Map([...this.el.querySelectorAll<HTMLDetailsElement>('[data-kind]')].map((details) => [details.getAttribute('data-kind'), details.open]));
-    for (const details of newEl.querySelectorAll<HTMLDetailsElement>('[data-kind]')) {
-      const open = openDetails.get(details.getAttribute('data-kind'));
-      if (open !== undefined) details.open = open;
+    const newToggles = new Map([...newEl.querySelectorAll<HTMLElement>('[data-kind]')].map((toggle) => [toggle.getAttribute('data-kind'), toggle]));
+    let focusedToggle: HTMLElement | undefined;
+    for (const toggle of this.el.querySelectorAll('[data-kind]')) {
+      const newToggle = newToggles.get(toggle.getAttribute('data-kind'));
+      newToggle?.setAttribute('aria-expanded', toggle.getAttribute('aria-expanded')!);
+      if (toggle === document.activeElement) focusedToggle = newToggle;
     }
     const scrollTop = this.el.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTop;
-    const focusedKind = this.el.querySelector('[data-kind] > summary:focus')?.parentElement!.getAttribute('data-kind');
     const oldElements = this.el.querySelectorAll('*');
     this.mergeFormApp?.unmount();
     this.mergeFormApp = undefined;
     for (const oldElement of oldElements) getAttachedTippyInstance(oldElement)?.destroy();
     this.el.replaceChildren(...newEl.childNodes); // don't morph, so data-global-init and Vue components are re-initialized
-    if (focusedKind) this.el.querySelector<HTMLElement>(`[data-kind="${CSS.escape(focusedKind)}"] > summary`)?.focus({preventScroll: true});
+    focusedToggle?.focus({preventScroll: true});
     this.el.setAttribute(reloadingIntervalAttr, newEl.getAttribute(reloadingIntervalAttr) ?? '0');
     await this.initContent();
     if (scrollTop) this.el.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTo({top: scrollTop, behavior: 'instant'});

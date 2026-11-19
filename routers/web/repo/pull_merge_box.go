@@ -52,7 +52,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxSections(ctx *context.Context)
 		section.FileNames = pull.ConflictedFiles[:min(len(pull.ConflictedFiles), 10)]
 		section.HasMoreFiles = len(pull.ConflictedFiles) > len(section.FileNames)
 	case pull.IsChecking():
-		section.StatusIcon, section.SectionTitle, section.SectionDetails = "octicon-sync", ctx.Locale.Tr("repo.pulls.is_checking"), []template.HTML{ctx.Locale.Tr("repo.pulls.is_checking_desc")}
+		section.StatusIcon, section.StatusIconClass = "", "ring-spinner"
+		section.SectionTitle, section.SectionDetails = ctx.Locale.Tr("repo.pulls.is_checking"), []template.HTML{ctx.Locale.Tr("repo.pulls.is_checking_desc")}
 	case pull.IsAncestor():
 		section.SectionTitle = ctx.Locale.Tr("repo.pulls.is_ancestor")
 	case pull.IsUnrelated():

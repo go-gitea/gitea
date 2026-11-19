@@ -8,7 +8,7 @@
 			<circle class="{{$segment.StrokeClass}}" cx="50" cy="50" r="44" pathLength="100" stroke-dasharray="{{$segment.DashLength}} 100" stroke-dashoffset="{{$segment.DashOffset}}" transform="rotate(-90 50 50)"/>
 		{{end}}
 	</svg>
-{{else if $section.StatusIcon}}
+{{else if or $section.StatusIcon $section.StatusIconClass}}
 	<span class="merge-box-status {{$section.StatusIconClass}}">{{svg $section.StatusIcon}}</span>
 {{end}}
 <span class="item-main tw-gap-0">

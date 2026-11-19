@@ -101,6 +101,9 @@ func DevtestPullMergeBox(ctx *context.Context) {
 		data.AutoMergeStyleName = trMergeStyleShortName(ctx.Locale, data.AutoMerge.MergeStyle)
 		data.CanCancelAutoMerge = true
 	})
+	add("Checking for conflicts", func(prInfo *pullRequestViewInfo) {
+		prInfo.issue.PullRequest.Status = issues_model.PullRequestStatusChecking
+	})
 	add("Work in progress, conflicts", func(prInfo *pullRequestViewInfo) {
 		prInfo.workInProgressPrefix, prInfo.issue.Title = "WIP:", "WIP: Add feature"
 		prInfo.issue.PullRequest.Status, prInfo.issue.PullRequest.ConflictedFiles = issues_model.PullRequestStatusConflict, []string{"README.md", "main.go"}
