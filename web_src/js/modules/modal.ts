@@ -1,4 +1,4 @@
-import {hideAll} from 'tippy.js';
+import {hideAll as hideTippyAll} from 'tippy.js';
 import {generateElemId, queryElems} from '../utils/dom.ts';
 import {hideToastsAll} from './toast.ts';
 
@@ -8,7 +8,7 @@ type ModalOpts = {
   onHidden?: () => void,
 };
 
-const modalStates = new WeakMap<Element, {opts: ModalOpts, opener: Element | null, template?: HTMLTemplateElement}>();
+const modalStates = new WeakMap<Element, {opts: ModalOpts, opener: Element | null, wasInDocument: boolean}>();
 
 const topModal = () => Array.from(document.querySelectorAll<HTMLDialogElement>('.modal-dialog[open]')).at(-1);
 
@@ -76,21 +76,18 @@ function createModalBackdrop(elModal: HTMLDialogElement): HTMLElement {
   return elBackdrop;
 }
 
-export function showModal(el: HTMLDialogElement | HTMLTemplateElement, opts: ModalOpts = {}) {
-  if (el instanceof HTMLTemplateElement ? el.hasAttribute('data-modal-open') : el.open) return;
-  const elModal = el instanceof HTMLTemplateElement ? el.content.querySelector('dialog')!.cloneNode(true) as HTMLDialogElement : el;
+export function showModal(elModal: HTMLDialogElement, opts: ModalOpts = {}) {
+  if (elModal.open) return;
 
-  const template = el instanceof HTMLTemplateElement ? el : undefined;
-  template?.setAttribute('data-modal-open', '');
   const elBackdrop = elModal.parentElement?.matches('.modal-backdrop') ? elModal.parentElement : createModalBackdrop(elModal);
-  modalStates.set(elModal, {opts, opener: document.activeElement, template});
+  modalStates.set(elModal, {opts, opener: document.activeElement, wasInDocument: elModal.isConnected && document.contains(elModal)});
   elModal.querySelector('.close-modal')?.setAttribute('aria-label', 'Close');
 
   // Avoid "cancel" buttons submitting the form, otherwise "Enter" in the form clicks this "cancel" button before the "ok" button
   queryElems(elModal, 'form button.cancel:not([type])', (button) => button.setAttribute('type', 'button'));
 
   hideToastsAll();
-  hideAll();
+  hideTippyAll();
   blockPage(elBackdrop);
 
   elModal.show(); // not showModal: popups and toasts mounted on body must stay usable above it, see https://github.com/whatwg/html/issues/9936
@@ -99,7 +96,7 @@ export function showModal(el: HTMLDialogElement | HTMLTemplateElement, opts: Mod
 
 export function hideModal(elModal: HTMLDialogElement) {
   if (!elModal.open) return;
-  const {opts, opener, template} = modalStates.get(elModal)!;
+  const {opts, opener, wasInDocument} = modalStates.get(elModal)!;
   const elBackdrop = elModal.parentElement!;
   elModal.close();
   blockPage(topModal()?.parentElement);
@@ -110,10 +107,7 @@ export function hideModal(elModal: HTMLDialogElement) {
 
   hideToastsAll();
   queryElems(elModal, 'form', (form: HTMLFormElement) => form.reset());
-  if (template) {
-    template.removeAttribute('data-modal-open');
-    elModal.remove();
-  }
   opts.onHidden?.();
   if (!elBackdrop.contains(elModal)) elBackdrop.remove();
+  if (!wasInDocument) elModal.remove();
 }

@@ -85,25 +85,3 @@ test('showModal blocks the page and restores focus until closed by actions, back
   expect(backdrop.isConnected).toBe(false);
   expect(document.activeElement).toBe(opener);
 });
-
-test('showModal creates template dialogs and removes them and their backdrops when hidden', () => {
-  document.body.innerHTML = '<template><dialog class="modal-dialog"></dialog></template>';
-  const template = document.querySelector('template')!;
-  const original = template.content.querySelector('dialog')!;
-
-  for (let i = 0; i < 2; i++) {
-    showModal(template);
-    expect(template.hasAttribute('data-modal-open')).toBe(true);
-    const modal = document.querySelector<HTMLDialogElement>('.modal-dialog')!;
-    expect(modal).not.toBe(original);
-    expect(modal.open).toBe(true);
-
-    showModal(template);
-    expect(document.querySelectorAll('.modal-dialog')).toHaveLength(1);
-
-    hideModal(modal);
-    expect(template.hasAttribute('data-modal-open')).toBe(false);
-    expect(document.querySelector('.modal-dialog, .modal-backdrop')).toBeNull();
-    expect(template.content.querySelector('dialog')).toBe(original);
-  }
-});
