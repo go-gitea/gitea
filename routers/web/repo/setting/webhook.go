@@ -640,9 +640,15 @@ func loadWebhookHistory(ctx *context.Context, orCtx *ownerRepoCtx, w *webhook.We
 		return false
 	}
 
+	hasWaiting := slices.ContainsFunc(tasks, (*webhook.HookTask).IsDeliveryWaitingForResult)
+	refreshSeconds := util.Iif(hasWaiting, 5, 0)
+	if refreshSeconds != 0 && !setting.IsProd {
+		refreshSeconds = 1
+	}
+
 	ctx.Data["Webhook"] = w
 	ctx.Data["WebhookLink"] = fmt.Sprintf("%s/%d", orCtx.Link, w.ID)
-	ctx.Data["WebhookHistoryPending"] = slices.ContainsFunc(tasks, (*webhook.HookTask).IsDeliveryPending)
+	ctx.Data["WebhookHistoryRefreshSeconds"] = refreshSeconds
 	ctx.Data["History"] = tasks
 	return true
 }

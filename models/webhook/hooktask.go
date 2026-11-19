@@ -34,13 +34,6 @@ func (opts ListHookTaskOptions) ToOrders() string {
 	return "hook_task.id DESC"
 }
 
-//   ___ ___                __   ___________              __
-//  /   |   \  ____   ____ |  | _\__    ___/____    _____|  | __
-// /    ~    \/  _ \ /  _ \|  |/ / |    |  \__  \  /  ___/  |/ /
-// \    Y    (  <_> |  <_> )    <  |    |   / __ \_\___ \|    <
-//  \___|_  / \____/ \____/|__|_ \ |____|  (____  /____  >__|_ \
-//        \/                    \/              \/     \/     \/
-
 // HookRequest represents hook task request information.
 type HookRequest struct {
 	URL        string            `json:"url"`
@@ -55,6 +48,7 @@ const (
 	HookDeliveryErrorTimeout    HookDeliveryError = "timeout"
 	HookDeliveryErrorConnection HookDeliveryError = "connection"
 	HookDeliveryErrorBlocked    HookDeliveryError = "blocked"
+	HookDeliveryErrorOther      HookDeliveryError = "other"
 )
 
 // HookResponse represents hook task response information.
@@ -97,7 +91,7 @@ func (t *HookTask) IsDeliveryInProgress() bool {
 	return timeout <= 0 || time.Since(t.Delivered.AsTime()) < timeout+10*time.Second
 }
 
-func (t *HookTask) IsDeliveryPending() bool {
+func (t *HookTask) IsDeliveryWaitingForResult() bool {
 	return !t.IsDelivered || t.IsDeliveryInProgress()
 }
 
