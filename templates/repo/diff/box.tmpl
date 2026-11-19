@@ -25,7 +25,7 @@
 		</div>
 		<div class="diff-detail-actions">
 			{{if .DiffRefreshHead}}
-				<button type="button" class="ui tiny primary button tw-hidden" data-global-init="initDiffRefresh" data-head="{{.DiffRefreshHead}}" data-ws-path="{{.Issue.Link}}/files/ws" data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.new_commits_available"}}">
+				<button type="button" class="ui tiny primary button tw-hidden" data-global-init="initDiffRefresh" data-head="{{.DiffRefreshHead}}" data-ws-path="{{.Issue.Link}}/files/ws" aria-label="{{ctx.Locale.Tr "repo.pulls.refresh_diff"}}" data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.new_commits_available"}}">
 					{{svg "octicon-sync"}} {{ctx.Locale.Tr "repo.pulls.refresh_diff"}}
 				</button>
 			{{end}}

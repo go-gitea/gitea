@@ -23,7 +23,7 @@ test('pull request diff prompts for a refresh when the head changes', async ({pa
   await expect(refresh).toBeHidden();
 
   await page.getByRole('button', {name: 'Add line comment', exact: true}).click();
-  const draft = page.locator('.diff-file-box textarea[name="content"]');
+  const draft = page.getByRole('textbox', {name: 'Leave a comment', exact: true});
   await draft.fill('Comment in progress');
 
   await apiCreateFiles(request, owner, repo, [{path: 'second.txt', content: 'second change\n'}], {
@@ -34,6 +34,7 @@ test('pull request diff prompts for a refresh when the head changes', async ({pa
   await expect(draft).toHaveValue('Comment in progress');
   const newFile = page.locator('.diff-file-box[data-new-filename="second.txt"]');
   await expect(newFile).toHaveCount(0);
+  await draft.clear();
   await refresh.click();
   await expect(newFile).toBeVisible();
   await expect(refresh).toBeHidden();
