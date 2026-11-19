@@ -59,7 +59,10 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	}
 
 	var hasPendingPullRequestMergeTip template.HTML
-	if hasPendingPullRequestMerge {
+	var pendingPullRequestMergeError string
+	if hasPendingPullRequestMerge && pendingPullRequestMerge.IsCanceled() {
+		hasPendingPullRequestMerge, pendingPullRequestMergeError = false, pendingPullRequestMerge.ErrorMessage
+	} else if hasPendingPullRequestMerge {
 		createdPRMergeStr := templates.TimeSince(pendingPullRequestMerge.CreatedUnix)
 		hasPendingPullRequestMergeTip = ctx.Locale.Tr("repo.pulls.auto_merge_has_pending_schedule", pendingPullRequestMerge.Doer.Name, createdPRMergeStr)
 	}
@@ -91,6 +94,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		"textAutoMergeButtonWhenSucceed": ctx.Locale.Tr("repo.pulls.auto_merge_button_when_succeed"),
 		"textAutoMergeWhenSucceed":       ctx.Locale.Tr("repo.pulls.auto_merge_when_succeed"),
 		"textAutoMergeCancelSchedule":    ctx.Locale.Tr("repo.pulls.auto_merge_cancel_schedule"),
+		"textAutoMergeFailed":            ctx.Locale.Tr("repo.pulls.auto_merge_failed"),
 		"textClearMergeMessage":          ctx.Locale.Tr("repo.pulls.clear_merge_message"),
 		"textClearMergeMessageHint":      ctx.Locale.Tr("repo.pulls.clear_merge_message_hint"),
 		"textMergeCommitId":              ctx.Locale.Tr("repo.pulls.merge_commit_id"),
@@ -107,6 +111,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 
 		"hasPendingPullRequestMerge":    hasPendingPullRequestMerge,
 		"hasPendingPullRequestMergeTip": hasPendingPullRequestMergeTip,
+		"pendingPullRequestMergeError":  pendingPullRequestMergeError,
 	}
 
 	// if this pr can be merged now, then hide the auto merge

@@ -26,9 +26,11 @@ type MergeForm = {
   isPullBranchDeletable: boolean,
   mergeMessageFieldPlaceHolder: string,
   mergeStyles: MergeStyle[],
+  pendingPullRequestMergeError: string,
   pullHeadCommitID: string,
   textAutoMergeButtonWhenSucceed: string,
   textAutoMergeCancelSchedule: string,
+  textAutoMergeFailed: string,
   textAutoMergeWhenSucceed: string,
   textCancel: string,
   textClearMergeMessage: string,
@@ -132,6 +134,10 @@ function clearMergeMessage() {
   <div>
     <!-- eslint-disable-next-line vue/no-v-html -->
     <div v-if="mergeForm.hasPendingPullRequestMerge" v-html="mergeForm.hasPendingPullRequestMergeTip" class="ui info message"/>
+    <div v-if="mergeForm.pendingPullRequestMergeError" class="ui error message">
+      {{ mergeForm.textAutoMergeFailed }}
+      <pre class="tw-whitespace-pre-wrap tw-mb-0">{{ mergeForm.pendingPullRequestMergeError }}</pre>
+    </div>
 
     <!-- another similar form is in pull.tmpl (manual merge)-->
     <form class="ui form form-fetch-action" v-if="showActionForm" :action="mergeForm.baseLink+'/merge'" method="post">

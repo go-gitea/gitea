@@ -447,6 +447,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(368, "Add unique index for team name", v29.AddUniqueTeamNameIndex),
 		newMigration(369, "Add runner_name to action_task", v29.AddRunnerNameToActionTask),
 		newMigration(370, "Change raw_concurrency of action_run and action_run_job to TEXT on MSSQL", v29.ChangeActionsRawConcurrencyToText),
+		newMigration(371, "Add error_message to pull_auto_merge", v29.AddAutoMergeErrorMessage),
 	}
 	return preparedMigrations
 }

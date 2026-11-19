@@ -128,6 +128,14 @@ func handleAutoMergeItem(item automergequeue.AutoMergeItem) {
 	}
 }
 
+// mergeErrorMessage returns what the pull request page may show for a failed merge, other errors can contain server paths
+func mergeErrorMessage(err error) string {
+	if pushRejectedErr, ok := errors.AsType[*git.ErrPushRejected](err); ok && pushRejectedErr.Message != "" {
+		return pushRejectedErr.Message
+	}
+	return "Internal error, see the server logs for details."
+}
+
 // handlePullRequestAutoMerge merge the pull request if all checks are successful
 func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullRequest, expectedHeadCommitID string) error {
 	_ = pr.LoadIssue(ctx)
@@ -152,6 +160,9 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 	}
 	if !exists {
 		return errors.Join(errSkipAutoMerge, errors.New("pull request doesn't exist"))
+	}
+	if scheduledPRM.IsCanceled() {
+		return errors.Join(errSkipAutoMerge, errors.New("auto merge was canceled after a failed merge"))
 	}
 
 	if err = pr.LoadBaseRepo(ctx); err != nil {
@@ -228,9 +239,9 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 		if pull_service.IsErrSHADoesNotMatch(err) {
 			return errors.Join(errSkipAutoMerge, err)
 		}
-		// FIXME: if merge failed, we should display some error message to the pull request page, or retry later.
-		// The resolution is add a new column on automerge table named `error_message` to store the error message and displayed
-		// on the pull request page. But this should not be finished in a bug fix PR which will be backport to release branch.
+		if updateErr := pull_model.UpdateScheduledAutoMergeError(ctx, pr.ID, mergeErrorMessage(err)); updateErr != nil {
+			log.Error("UpdateScheduledAutoMergeError: %v", updateErr)
+		}
 		return fmt.Errorf("failed to merge PR:%d: %w", pr.ID, err)
 	}
 
