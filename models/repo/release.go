@@ -357,18 +357,20 @@ func GetLatestRelease(ctx context.Context, repo *Repository) (*Release, error) {
 
 // GetLatestReleaseByRepoID returns the newest published stable release of a repository by date
 func GetLatestReleaseByRepoID(ctx context.Context, repoID int64) (*Release, error) {
-	rel := new(Release)
-	has, err := db.GetEngine(ctx).
-		Desc("created_unix", "id").
-		Where(latestReleaseCond(repoID)).
-		Get(rel)
+	rels, err := FindNewestStableReleases(ctx, repoID, 1)
 	if err != nil {
 		return nil, err
-	} else if !has {
+	} else if len(rels) == 0 {
 		return nil, ErrReleaseNotExist{0, "latest"}
 	}
+	return rels[0], nil
+}
 
-	return rel, nil
+// FindNewestStableReleases returns up to limit published stable releases, newest commit date first (not the listing order)
+func FindNewestStableReleases(ctx context.Context, repoID int64, limit int) ([]*Release, error) {
+	var rels []*Release
+	err := db.GetEngine(ctx).Desc("created_unix", "id").Where(latestReleaseCond(repoID)).Limit(limit).Find(&rels)
+	return rels, err
 }
 
 func SetLatestReleaseID(ctx context.Context, repo *Repository, releaseID int64) error {
