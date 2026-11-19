@@ -140,12 +140,7 @@ func processQueue(ctx context.Context, repoID int64, branch string) error {
 	}
 	s := &queueState{repo: repo, gitRepo: gitRepo, pb: pb, branch: branch, prs: prs, users: users}
 	if pb == nil || !pb.RequireMergeQueue {
-		for _, e := range entries {
-			if err := s.removeEntry(ctx, e, issues_model.MergeQueueRemovedNotMergeable); err != nil {
-				return err
-			}
-		}
-		return nil
+		return s.removeEntries(ctx, entries, issues_model.MergeQueueRemovedNotMergeable)
 	}
 	s.cfg = pb.MergeQueue
 	required, err := pull_service.EffectiveRequiredContexts(ctx, repo, pb)
@@ -158,7 +153,9 @@ func processQueue(ctx context.Context, repoID int64, branch string) error {
 		return err
 	}
 	baseSHA, err := gitRepo.GetBranchCommitID(ctx, branch)
-	if err != nil {
+	if git.IsErrNotExist(err) {
+		return s.removeEntries(ctx, s.entries, issues_model.MergeQueueRemovedBaseDeleted)
+	} else if err != nil {
 		return err
 	}
 	if err := s.invalidateBrokenChain(ctx, baseSHA); err != nil {
@@ -464,6 +461,15 @@ func destroyGroup(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		log.Error("RemoveRef %s: %v", e.GroupRef, err)
 	}
 	notify_service.MergeGroupChanged(ctx, doer, repo, e, api.HookMergeGroupDestroyed, reason)
+}
+
+func (s *queueState) removeEntries(ctx context.Context, entries []*pull_model.MergeQueueEntry, reason issues_model.MergeQueueRemovalReason) error {
+	for _, e := range entries {
+		if err := s.removeEntry(ctx, e, reason); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *queueState) removeEntry(ctx context.Context, e *pull_model.MergeQueueEntry, reason issues_model.MergeQueueRemovalReason) error {

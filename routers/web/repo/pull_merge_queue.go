@@ -6,12 +6,15 @@ package repo
 import (
 	"errors"
 	"net/http"
+	"slices"
 
+	git_model "gitea.dev/models/git"
 	pull_model "gitea.dev/models/pull"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 	"gitea.dev/services/mergequeue"
+	pull_service "gitea.dev/services/pull"
 )
 
 const tplMergeQueue templates.TplName = "repo/pulls/merge_queue"
@@ -74,8 +77,44 @@ func MergeQueue(ctx *context.Context) {
 	for _, e := range queue {
 		e.PullRequest.Issue.Repo = ctx.Repo.Repository
 	}
+	waitingFor, err := mergeQueueWaitingFor(ctx, branch, queue)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	ctx.Data["MergeQueueWaitingFor"] = waitingFor
 	ctx.Data["Title"] = ctx.Tr("repo.pulls.merge_queue.title", branch)
 	ctx.Data["PageIsPullList"] = true
 	ctx.Data["MergeQueueEntries"] = queue
 	ctx.HTML(http.StatusOK, tplMergeQueue)
+}
+
+// mergeQueueWaitingFor returns the required contexts not reported yet for each queue commit, a queue stalls when nothing reports them
+func mergeQueueWaitingFor(ctx *context.Context, branch string, queue []*mergequeue.QueueEntry) (map[int64][]string, error) {
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, branch)
+	if err != nil {
+		return nil, err
+	}
+	required, err := pull_service.EffectiveRequiredContexts(ctx, ctx.Repo.Repository, pb)
+	if err != nil {
+		return nil, err
+	}
+	required = pull_service.MergeQueueRequiredContexts(required)
+	waitingFor := map[int64][]string{}
+	for _, e := range queue {
+		if e.State != pull_model.MergeQueueStateAwaitingChecks {
+			continue
+		}
+		statuses, err := pull_service.GetLatestPullCommitStatuses(ctx, ctx.Repo.Repository.ID, e.GroupHeadSHA)
+		if err != nil {
+			return nil, err
+		}
+		for _, c := range required {
+			matches := createRequiredContextMatcher(c)
+			if !slices.ContainsFunc(statuses, func(status *git_model.CommitStatus) bool { return matches(status.Context) }) {
+				waitingFor[e.ID] = append(waitingFor[e.ID], c)
+			}
+		}
+	}
+	return waitingFor, nil
 }

@@ -21,8 +21,11 @@ import (
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
+	repo_module "gitea.dev/modules/repository"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/services/forms"
+	"gitea.dev/services/mergequeue"
+	repo_service "gitea.dev/services/repository"
 	commitstatus_service "gitea.dev/services/repository/commitstatus"
 
 	"github.com/stretchr/testify/assert"
@@ -39,15 +42,16 @@ func TestPullMergeQueue(t *testing.T) {
 		setStatus := func(sha string, state commitstatus.CommitStatusState) {
 			require.NoError(t, commitstatus_service.CreateCommitStatus(t.Context(), repo, user2, sha, &git_model.CommitStatus{State: state, Context: "ci"}))
 		}
-		createPull := func(branch string) *issues_model.PullRequest {
-			testCreateFile(t, session, "user2", "repo1", "master", branch, branch+".txt", branch)
-			testPullCreate(t, session, "user2", "repo1", true, "master", branch, branch)
+		createPullTo := func(base, branch string) *issues_model.PullRequest {
+			testCreateFile(t, session, "user2", "repo1", base, branch, branch+".txt", branch)
+			testPullCreate(t, session, "user2", "repo1", true, base, branch, branch)
 			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: branch})
 			headSHA, err := git.GetBranchCommitID(t.Context(), repo, branch)
 			require.NoError(t, err)
 			setStatus(headSHA, commitstatus.CommitStatusSuccess)
 			return pr
 		}
+		createPull := func(branch string) *issues_model.PullRequest { return createPullTo("master", branch) }
 		waitForEntry := func(pr *issues_model.PullRequest, cond func(*pull_model.MergeQueueEntry) bool) *pull_model.MergeQueueEntry {
 			var entry *pull_model.MergeQueueEntry
 			require.Eventually(t, func() bool {
@@ -67,22 +71,25 @@ func TestPullMergeQueue(t *testing.T) {
 			MakeRequest(t, req, http.StatusCreated)
 		}
 
-		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
-			"rule_name":             "master",
-			"enable_push":           "true",
-			"enable_status_check":   "true",
-			"status_check_contexts": "ci",
-			"require_merge_queue":   "true",
+		protect := func(branch string) {
+			req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
+				"rule_name":             branch,
+				"enable_push":           "true",
+				"enable_status_check":   "true",
+				"status_check_contexts": "ci",
+				"require_merge_queue":   "true",
 
-			"merge_queue_merge_method":                      "merge",
-			"merge_queue_max_entries_to_build":              "5",
-			"merge_queue_min_entries_to_merge":              "1",
-			"merge_queue_max_entries_to_merge":              "5",
-			"merge_queue_min_entries_to_merge_wait_minutes": "0",
-			"merge_queue_grouping_strategy":                 "ALLGREEN",
-			"merge_queue_check_response_timeout_minutes":    "60",
-		})
-		session.MakeRequest(t, req, http.StatusOK)
+				"merge_queue_merge_method":                      "merge",
+				"merge_queue_max_entries_to_build":              "5",
+				"merge_queue_min_entries_to_merge":              "1",
+				"merge_queue_max_entries_to_merge":              "5",
+				"merge_queue_min_entries_to_merge_wait_minutes": "0",
+				"merge_queue_grouping_strategy":                 "ALLGREEN",
+				"merge_queue_check_response_timeout_minutes":    "60",
+			})
+			session.MakeRequest(t, req, http.StatusOK)
+		}
+		protect("master")
 
 		pr1, pr2, pr3 := createPull("queue-1"), createPull("queue-2"), createPull("queue-3")
 
@@ -113,10 +120,19 @@ func TestPullMergeQueue(t *testing.T) {
 			return ok && after == entry1.GroupHeadSHA
 		}, 5*time.Second, 50*time.Millisecond)
 
+		// queue branches are neither listed nor writable by users
+		queueBranch := git.RefName(entry1.GroupRef).BranchName()
+		_, err = repo_module.SyncRepoBranches(t.Context(), repo.ID, user2.ID)
+		require.NoError(t, err)
+		unittest.AssertNotExistsBean(t, &git_model.Branch{RepoID: repo.ID, Name: queueBranch})
+		req := NewRequest(t, "DELETE", "/api/v1/repos/user2/repo1/branches/"+queueBranch).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+
 		resp := session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/user2/repo1/pulls/%d/merge_box", pr1.Index)), http.StatusOK)
 		assert.Contains(t, resp.Body.String(), "/user2/repo1/queue/master")
 		resp = session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/queue/master"), http.StatusOK)
 		assert.Contains(t, resp.Body.String(), fmt.Sprintf("#%d", pr3.Index))
+		assert.Contains(t, resp.Body.String(), "Waiting for ci")
 
 		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/merge-queue/master").AddTokenAuth(token)
 		var listed []*api.MergeQueueEntry
@@ -169,5 +185,28 @@ func TestPullMergeQueue(t *testing.T) {
 		unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr4.IssueID, Type: issues_model.CommentTypePRRemovedFromMergeQueue, Content: string(issues_model.MergeQueueRemovedNotMergeable)})
 		pr4 = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr4.ID})
 		assert.False(t, pr4.HasMerged)
+
+		// the queue follows a renamed branch and keeps its queue commits
+		testAPICreateBranch(t, session, "user2", "repo1", "master", "release", http.StatusCreated)
+		protect("release")
+		pr5, pr6 := createPullTo("release", "queue-5"), createPullTo("release", "queue-6")
+		enqueue(pr5)
+		enqueue(pr6)
+		entry5 := waitForEntry(pr5, built)
+		waitForEntry(pr6, built)
+		_, err = repo_service.RenameBranch(t.Context(), repo, user2, "release", "release2")
+		require.NoError(t, err)
+		setStatus(entry5.GroupHeadSHA, commitstatus.CommitStatusSuccess)
+		require.Eventually(t, func() bool {
+			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr5.ID})
+			return pr.HasMerged && pr.MergedCommitID == entry5.GroupHeadSHA
+		}, 5*time.Second, 50*time.Millisecond)
+
+		// a deleted branch empties its queue
+		waitForEntry(pr6, built)
+		require.NoError(t, git.DeleteBranch(t.Context(), repo, "release2", true))
+		require.NoError(t, mergequeue.CheckAllQueues(t.Context()))
+		waitForDequeue(pr6)
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr6.IssueID, Type: issues_model.CommentTypePRRemovedFromMergeQueue, Content: string(issues_model.MergeQueueRemovedBaseDeleted)})
 	})
 }

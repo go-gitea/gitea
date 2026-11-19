@@ -14,6 +14,7 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -521,7 +522,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	if err != nil {
 		return "", err
 	}
-	if rule != nil && !rule.CanUserPush(ctx, doer, perm) {
+	if pull_model.IsMergeQueueBranch(to) || (rule != nil && !rule.CanUserPush(ctx, doer, perm)) {
 		return "", git_model.ErrBranchIsProtected
 	}
 
@@ -619,6 +620,9 @@ func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchNam
 func CanDeleteBranchWithPermission(ctx context.Context, repo *repo_model.Repository, branchName string, doer *user_model.User, permissionInRepo access_model.Permission) error {
 	if branchName == repo.DefaultBranch || branchName == repo.GetPullRequestTargetBranch(ctx) {
 		return ErrBranchIsDefault
+	}
+	if pull_model.IsMergeQueueBranch(branchName) {
+		return git_model.ErrBranchIsProtected
 	}
 	if !permissionInRepo.CanWrite(unit.TypeCode) {
 		return util.NewPermissionDeniedErrorf("permission denied to access repo %d unit %s", repo.ID, unit.TypeCode.LogString())

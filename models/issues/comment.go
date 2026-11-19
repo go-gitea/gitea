@@ -1307,6 +1307,7 @@ const (
 	MergeQueueRemovedNotMergeable  MergeQueueRemovalReason = "not_mergeable"
 	MergeQueueRemovedClosed        MergeQueueRemovalReason = "closed" // closed or merged outside the queue, no comment is added
 	MergeQueueRemovedBaseChanged   MergeQueueRemovalReason = "base_changed"
+	MergeQueueRemovedBaseDeleted   MergeQueueRemovalReason = "base_deleted"
 )
 
 // CreateMergeQueueComment records that a pull request entered the merge queue, or left it when a reason is given

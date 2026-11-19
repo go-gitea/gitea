@@ -9,6 +9,7 @@ import (
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
@@ -63,7 +64,9 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 		}
 		log.Trace("SyncRepoBranches[%s]: branches[%d]: %v", repo.FullName(), len(branches), branches)
 		for _, branch := range branches {
-			allBranches.Add(branch)
+			if !pull_model.IsMergeQueueBranch(branch) {
+				allBranches.Add(branch)
+			}
 		}
 	}
 

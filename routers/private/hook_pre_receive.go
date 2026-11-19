@@ -116,6 +116,11 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		return
 	}
 
+	if pull_model.IsMergeQueueBranch(branchName) {
+		ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is reserved for the merge queue", branchName)
+		return
+	}
+
 	repo := ctx.Repo.Repository
 	gitRepo := ctx.Repo.GitRepo
 	objectFormat := ctx.Repo.GetObjectFormat()

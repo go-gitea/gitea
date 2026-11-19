@@ -25,6 +25,9 @@
 								<td><a href="{{$entry.PullRequest.Issue.Link}}">{{$entry.PullRequest.Issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}} #{{$entry.PullRequest.Index}}</a></td>
 								<td>
 									<a class="ui label" {{if $entry.GroupHeadSHA}}href="{{$.RepoLink}}/commit/{{PathEscape $entry.GroupHeadSHA}}"{{end}}>{{ctx.Locale.Tr (printf "repo.pulls.merge_queue.state.%s" $entry.State)}}</a>
+									{{with index $.MergeQueueWaitingFor $entry.ID}}
+										<span class="tw-text-text-light">{{ctx.Locale.Tr "repo.pulls.merge_queue.waiting_for" (StringUtils.Join . ", ")}}</span>
+									{{end}}
 								</td>
 								<td>{{DateUtils.TimeSince $entry.CreatedUnix}}</td>
 							</tr>

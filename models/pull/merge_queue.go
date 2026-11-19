@@ -6,6 +6,7 @@ package pull
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/git"
@@ -54,9 +55,16 @@ func (e *MergeQueueEntry) IsBuilt() bool {
 	return e.GroupHeadSHA != ""
 }
 
+const mergeQueueBranchPrefix = "gh-readonly-queue/"
+
 // MergeQueueGroupRef returns the branch ref of a queue commit, named like GitHub's so existing workflow filters keep working
 func MergeQueueGroupRef(baseBranch string, prIndex int64, headSHA string) string {
-	return fmt.Sprintf("%sgh-readonly-queue/%s/pr-%d-%s", git.BranchPrefix, baseBranch, prIndex, headSHA)
+	return fmt.Sprintf("%s%s%s/pr-%d-%s", git.BranchPrefix, mergeQueueBranchPrefix, baseBranch, prIndex, headSHA)
+}
+
+// IsMergeQueueBranch reports whether the branch belongs to the merge queue: like on GitHub, users can't list or change these
+func IsMergeQueueBranch(branch string) bool {
+	return strings.HasPrefix(branch, mergeQueueBranchPrefix)
 }
 
 var ErrAlreadyInMergeQueue = util.NewAlreadyExistErrorf("pull request is already in the merge queue")
