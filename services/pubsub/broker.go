@@ -37,3 +37,7 @@ var DefaultBroker Broker = NewMemoryBroker()
 func UserTopic(userID int64) string {
 	return fmt.Sprintf("user-%d", userID)
 }
+
+func PullHeadTopic(prID int64) string {
+	return fmt.Sprintf("pull-head-%d", prID)
+}

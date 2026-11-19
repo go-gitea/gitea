@@ -1765,6 +1765,8 @@
   "repo.pulls.switch_head_and_base": "Switch head and base",
   "repo.pulls.filter_branch": "Filter branch",
   "repo.pulls.show_all_commits": "Show all commits",
+  "repo.pulls.new_commits_available": "New commits available",
+  "repo.pulls.refresh_diff": "Refresh",
   "repo.pulls.show_changes_since_your_last_review": "Show changes since your last review",
   "repo.pulls.showing_specified_commit_range": "Showing only changes between %[1]s..%[2]s",
   "repo.pulls.select_commit_hold_shift_for_range": "Select commit. Hold Shift and click to select a range.",

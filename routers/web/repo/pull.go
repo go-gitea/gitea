@@ -736,6 +736,9 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	// it's questionable why single commit review can be submitted, but the range commits review cannot be submitted
 	ctx.Data["CanSubmitReview"] = isShowAllCommits || isSingleCommit
 	ctx.Data["IsShowingAllCommits"] = isShowAllCommits
+	if ctx.IsSigned && beforeCommitID == "" && afterCommitID == "" && !issue.IsClosed {
+		ctx.Data["DiffRefreshHead"] = headCommitID
+	}
 
 	// "commits list" is half-open, half-closed: (base, head]
 	// * base commit is not in the list

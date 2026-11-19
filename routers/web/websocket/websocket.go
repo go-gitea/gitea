@@ -38,7 +38,6 @@ func Serve(ctx *context.Context) {
 		ctx.Resp.WriteHeader(http.StatusUpgradeRequired)
 		return
 	}
-
 	if !ctx.IsSigned {
 		rejectUnauthenticated(ctx)
 		return
@@ -55,10 +54,8 @@ func Serve(ctx *context.Context) {
 	defer conn.CloseNow() //nolint:errcheck // best-effort close
 
 	sessionID := ctx.Session.ID()
-
-	// Ping requires a concurrent reader to observe the pong frame; CloseRead
-	// spawns one and cancels its context when the peer goes away.
-	wsCtx := conn.CloseRead(ctx.Req.Context())
+	wsCtx, cancelConnection := gocontext.WithCancel(ctx.Req.Context())
+	defer cancelConnection()
 	shutdownCtx := graceful.GetManager().ShutdownContext()
 	pingTicker := time.NewTicker(pingInterval)
 	defer pingTicker.Stop()
@@ -76,6 +73,9 @@ func Serve(ctx *context.Context) {
 		}
 		return err
 	}
+
+	conn.SetReadLimit(1024)
+	go readPullHeadSubscriptions(wsCtx, cancelConnection, conn, ctx.Doer, ctx.DoerNeedTwoFactorAuth(), send)
 
 	var backlog [][]byte // published before the snapshot read, so it must not follow the snapshot
 	for len(ch) > 0 {

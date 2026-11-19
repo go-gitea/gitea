@@ -36,6 +36,7 @@ import (
 	git_service "gitea.dev/services/git"
 	issue_service "gitea.dev/services/issue"
 	notify_service "gitea.dev/services/notify"
+	websocket_service "gitea.dev/services/websocket"
 )
 
 func getPullWorkingLockKey(prID int64) string {
@@ -565,7 +566,7 @@ func PushToBaseRepo(ctx context.Context, pr *issues_model.PullRequest) error {
 		return fmt.Errorf("unable to fetch head branch %s:%s into base repo %s, err: %w",
 			pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
-	return git.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), headCommitID)
+	return updatePullHeadRef(ctx, pr, headCommitID)
 }
 
 // UpdatePullsRefs update all the PRs head file pointers like /refs/pull/1/head so that it will be dependent by other operations
@@ -592,10 +593,20 @@ func UpdateRefForAgit(ctx context.Context, pr *issues_model.PullRequest) (err er
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return err
 	}
-	if err := git.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadCommitID); err != nil {
+	if err := updatePullHeadRef(ctx, pr, pr.HeadCommitID); err != nil {
 		return fmt.Errorf("unable to update ref %s for base repo %s, err: %w", pr.GetGitHeadRefName(), pr.BaseRepo.FullName(), err)
 	}
 	return syncCommitDivergence(ctx, pr)
+}
+
+func updatePullHeadRef(ctx context.Context, pr *issues_model.PullRequest, headCommitID string) error {
+	if err := git.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), headCommitID); err != nil {
+		return err
+	}
+	if pr.ID != 0 {
+		websocket_service.PublishPullHead(pr.ID, headCommitID)
+	}
+	return nil
 }
 
 // retargetBranchPulls change target branch for all pull requests whose base branch is the branch

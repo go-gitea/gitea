@@ -4,7 +4,7 @@ import {initRepoIssueContentHistory} from './repo-issue-content.ts';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
 import {initExpandAndCollapseFilesButton, initDiffFileViewedForm} from './pull-view-file.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
+import {queryElemSiblings, hideElem, showElem, toggleElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
@@ -16,6 +16,7 @@ import {applyFiltersToFileBoxes, type DiffFileTreeLocale, diffTreeStore} from '.
 import {initImageDiff} from './imagediff.ts';
 import DiffCommitSelector from '../components/DiffCommitSelector.vue';
 import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
+import {watchPullHead} from '../modules/worker.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -248,6 +249,12 @@ async function onLocationHashChange() {
   }
 }
 
+function initDiffRefresh(button: HTMLElement) {
+  const head = button.getAttribute('data-head');
+  watchPullHead(Number(button.getAttribute('data-pull-id')), (latestHead) => toggleElem(button, latestHead !== head));
+  button.addEventListener('click', () => window.location.reload());
+}
+
 function initDiffFileTree(el: HTMLElement) {
   const locale = JSON.parse(el.getAttribute('data-locale')!) as DiffFileTreeLocale;
   createApp(DiffFileTree, {locale}).mount(el);
@@ -266,6 +273,7 @@ export function initRepoDiffView() {
   registerGlobalInitFunc('initDiffFileViewedForm', initDiffFileViewedForm);
   registerGlobalInitFunc('initDiffFileImageDiff', initImageDiff);
   registerGlobalInitFunc('initDiffFileViewToggle', initDiffFileViewToggle);
+  registerGlobalInitFunc('initDiffRefresh', initDiffRefresh);
   registerGlobalInitFunc('initDiffFileTree', initDiffFileTree);
   registerGlobalInitFunc('initDiffCommitSelect', initDiffCommitSelect);
 
