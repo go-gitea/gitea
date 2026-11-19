@@ -248,6 +248,38 @@ async function onLocationHashChange() {
   }
 }
 
+function initDiffRefresh(button: HTMLElement) {
+  if (!window.WebSocket) return;
+
+  const head = button.getAttribute('data-head');
+  const url = new URL(button.getAttribute('data-ws-path')!, window.location.href);
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  let retryDelay = 1000;
+
+  button.addEventListener('click', () => window.location.reload());
+
+  function connect() {
+    if (!button.isConnected) return;
+    const socket = new WebSocket(url);
+    socket.addEventListener('message', (event) => {
+      const message = JSON.parse(event.data);
+      if (message.eventType !== 'pull-head') return;
+      retryDelay = 1000;
+      if (message.eventData !== head) {
+        showElem(button);
+        socket.close();
+      }
+    });
+    socket.addEventListener('close', (event) => {
+      if (event.code === 1000 || !button.classList.contains('tw-hidden')) return;
+      setTimeout(connect, retryDelay);
+      retryDelay = Math.min(retryDelay * 2, 30_000);
+    });
+  }
+
+  connect();
+}
+
 function initDiffFileTree(el: HTMLElement) {
   const locale = JSON.parse(el.getAttribute('data-locale')!) as DiffFileTreeLocale;
   createApp(DiffFileTree, {locale}).mount(el);
@@ -266,6 +298,7 @@ export function initRepoDiffView() {
   registerGlobalInitFunc('initDiffFileViewedForm', initDiffFileViewedForm);
   registerGlobalInitFunc('initDiffFileImageDiff', initImageDiff);
   registerGlobalInitFunc('initDiffFileViewToggle', initDiffFileViewToggle);
+  registerGlobalInitFunc('initDiffRefresh', initDiffRefresh);
   registerGlobalInitFunc('initDiffFileTree', initDiffFileTree);
   registerGlobalInitFunc('initDiffCommitSelect', initDiffCommitSelect);
 
