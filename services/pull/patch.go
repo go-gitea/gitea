@@ -6,6 +6,7 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -78,18 +79,22 @@ func checkPullRequestMergeableByTmpRepo(ctx context.Context, pr *issues_model.Pu
 	}
 	defer tmpGitRepo.Close()
 
+	if pr.HeadCommitID, err = tmpGitRepo.GetRefCommitID(ctx, git.BranchPrefix+tmpRepoTrackingBranch); err != nil {
+		return fmt.Errorf("GetBranchCommitID: can't find commit ID for head: %w", err)
+	}
+
 	// 1. update merge base
-	pr.MergeBase, _, err = gitcmd.NewCommand("merge-base", "--", tmpRepoBaseBranch, tmpRepoTrackingBranch).WithRepo(prCtx.tmpRepo).RunStdString(ctx)
-	if err != nil {
+	pr.MergeBase, err = git.MergeBase(ctx, prCtx.tmpRepo, tmpRepoBaseBranch, tmpRepoTrackingBranch)
+	if errors.Is(err, util.ErrNotExist) {
+		pr.Status = issues_model.PullRequestStatusUnrelated
+		pr.ConflictedFiles, pr.ChangedProtectedFiles = nil, nil
+		return nil
+	} else if err != nil {
 		var err2 error
 		pr.MergeBase, err2 = tmpGitRepo.GetRefCommitID(ctx, git.BranchPrefix+tmpRepoBaseBranch)
 		if err2 != nil {
 			return fmt.Errorf("GetMergeBase: %v and can't find commit ID for base: %w", err, err2)
 		}
-	}
-	pr.MergeBase = strings.TrimSpace(pr.MergeBase)
-	if pr.HeadCommitID, err = tmpGitRepo.GetRefCommitID(ctx, git.BranchPrefix+tmpRepoTrackingBranch); err != nil {
-		return fmt.Errorf("GetBranchCommitID: can't find commit ID for head: %w", err)
 	}
 
 	if pr.HeadCommitID == pr.MergeBase {

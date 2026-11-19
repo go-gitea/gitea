@@ -22,6 +22,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/queue"
@@ -129,6 +130,7 @@ on:
   push:
     paths:
       - '.gitea/workflows/caller.yaml'
+cache-mode: read
 jobs:
   caller_job1:
     runs-on: ubuntu-latest
@@ -212,7 +214,7 @@ jobs:
 				assert.False(t, callerJob3.IsReusableCaller)
 			})
 
-			t.Run("First run", func(t *testing.T) {
+			t.Run("First run caps nested jobs at the caller workflow's cache-mode", func(t *testing.T) {
 				callerJob1Task := defaultRunner.fetchTask(t) // for caller_job1
 				_, callerJob1, _ := getTaskAndJobAndRunByTaskID(t, callerJob1Task.Id)
 				assert.Equal(t, "caller_job1", callerJob1.JobID)
@@ -286,6 +288,9 @@ jobs:
 				_, fetchedR2Job1, _ := getTaskAndJobAndRunByTaskID(t, r2Job1Task.Id)
 				assert.Equal(t, "reusable2_job1", fetchedR2Job1.JobID)
 				assert.Equal(t, r1Job3ID, fetchedR2Job1.ParentJobID)
+				_, r2Job1RunnerJob, err := jobparser.ParseRawSingleWorkflow(r2Job1Task.WorkflowPayload)
+				require.NoError(t, err)
+				assert.Equal(t, "read", r2Job1RunnerJob.CacheMode)
 				r2Job1Payload := getWorkflowCallPayloadFromTask(t, r2Job1Task)
 				if assert.Len(t, r2Job1Payload.Inputs, 1) {
 					assert.Equal(t, "from_caller_job2", r2Job1Payload.Inputs["msg"])
@@ -523,7 +528,7 @@ jobs:
 			runner.fetchNoTask(t)
 		})
 
-		t.Run("Cross-repo callee with same-repo nested uses", func(t *testing.T) {
+		t.Run("Cross-repo callee with same-repo nested uses passes the cache-mode cap down", func(t *testing.T) {
 			// A same-repo `uses: ./...` inside a cross-repo reusable callee must resolve relative to the callee's own repo (matching GitHub's behavior), not the original triggering repo.
 
 			// Place a util.yaml with a distinguishable job name in BOTH repos to detect mis-resolution.
@@ -545,9 +550,11 @@ jobs:
 				`name: LibNested
 on:
   workflow_call:
+cache-mode: write
 
 jobs:
   call_util_in_lib:
+    cache-mode: read
     uses: ./.gitea/workflows/util.yaml
 `)
 
@@ -593,23 +600,32 @@ jobs:
 
 			// call_util_in_lib has `uses: ./.gitea/workflows/util.yaml`, so its children should come from libRepo/util.yaml
 			assert.True(t, callUtilJob.IsExpanded)
-			unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "util_lib_job", ParentJobID: callUtilJob.ID})
+			utilLibJob, err := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "util_lib_job", ParentJobID: callUtilJob.ID}).ParseJob()
+			require.NoError(t, err)
+			assert.Equal(t, "read", utilLibJob.CacheMode)
 			unittest.AssertNotExistsBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "util_consumer_job"})
 		})
 
-		t.Run("Missing or invalid callee fails the run as an invalid workflow file", func(t *testing.T) {
-			for name, testCase := range map[string]struct{ callee, want string }{
-				"missing":    {"", "job call: read user2/caller-missing-callee@"},
-				"no-runs-on": {"on: workflow_call\njobs:\n  inner:\n    steps:\n      - run: echo\n", "job call: Error from called workflow ./.gitea/workflows/callee.yml: job inner: Required property is missing: runs-on"},
+		t.Run("Missing, invalid or cache-mode exceeding callee fails the run as an invalid workflow file", func(t *testing.T) {
+			apiRepo := createActionsTestRepo(t, user2Token, "invalid-callees", false)
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+			const caller = "on: push\njobs:\n  plain_job: {runs-on: ubuntu-latest, steps: [{run: echo}]}\n  call:\n    needs: plain_job\n    uses: ./.gitea/workflows/"
+			testCreateFileInBranch(t, user2, repo, createFileInBranchOptions{}, map[string]string{
+				".gitea/workflows/missing.yaml":      caller + "absent.yml\n",
+				".gitea/workflows/invalid.yaml":      caller + "no-runs-on.yml\n",
+				".gitea/workflows/no-runs-on.yml":    "on: workflow_call\njobs: {inner: {steps: [{run: echo}]}}\n",
+				".gitea/workflows/workflow-cap.yaml": caller + "leaf.yml\n    cache-mode: write-only\n",
+				".gitea/workflows/leaf.yml":          "on: workflow_call\ncache-mode: read\njobs: {build: {runs-on: ubuntu-latest, cache-mode: write-only, steps: [{run: echo}]}}\n",
+				".gitea/workflows/relay.yml":         "on: workflow_call\njobs: {forward: {uses: ./.gitea/workflows/leaf.yml}}\n",
+				".gitea/workflows/job-cap.yaml":      "on: push\ncache-mode: read\njobs:\n  allow: {uses: ./.gitea/workflows/relay.yml, cache-mode: write}\n  inherit: {uses: ./.gitea/workflows/relay.yml}\n",
+			})
+			for workflowID, want := range map[string]string{
+				"missing.yaml":      "job call: read user2/invalid-callees@",
+				"invalid.yaml":      "job call: Error from called workflow ./.gitea/workflows/no-runs-on.yml: job inner: Required property is missing: runs-on",
+				"workflow-cap.yaml": "job call: Error from called workflow ./.gitea/workflows/leaf.yml: cache-mode: The workflow is requesting 'read', but is only allowed 'write-only'",
+				"job-cap.yaml":      "job inherit: Error from called workflow ./.gitea/workflows/relay.yml: job forward: Error from called workflow ./.gitea/workflows/leaf.yml: cache-mode: The nested job 'build' is requesting 'write-only', but is only allowed 'read'",
 			} {
-				apiRepo := createActionsTestRepo(t, user2Token, "caller-"+name+"-callee", false)
-				repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-				if testCase.callee != "" {
-					createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/callee.yml", testCase.callee)
-				}
-				createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/caller.yaml",
-					"on: push\njobs:\n  plain_job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n  call:\n    needs: plain_job\n    uses: ./.gitea/workflows/callee.yml\n")
-				assertInvalidWorkflowRun(t, repo.ID, "caller.yaml", testCase.want)
+				assertInvalidWorkflowRun(t, repo.ID, workflowID, want)
 			}
 		})
 

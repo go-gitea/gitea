@@ -5,6 +5,7 @@ package repo
 
 import (
 	"errors"
+	"html/template"
 	"net/http"
 	"slices"
 
@@ -20,11 +21,9 @@ import (
 const tplMergeQueue templates.TplName = "repo/pulls/merge_queue"
 
 type pullMergeQueueData struct {
-	BaseBranch string
-	QueueLink  string
 	Entry      *pull_model.MergeQueueEntry
-	Position   int
 	CanDequeue bool
+	Section    *pullMergeBoxSection
 }
 
 // prepareMergeBoxMergeQueue shows the queue position of a queued pull request, which can't be merged in another way meanwhile
@@ -40,17 +39,23 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxMergeQueue(ctx *context.Contex
 		return
 	}
 	data := prInfo.MergeBoxData
-	data.MergeQueue = &pullMergeQueueData{
-		BaseBranch: pull.BaseBranch,
-		QueueLink:  ctx.Repo.RepoLink + "/queue/" + util.PathEscapeSegments(pull.BaseBranch),
-		Entry:      entry,
-		Position:   position,
-		// same rule as mergequeue.Dequeue, reusing the merge permission computed for the merge box
-		CanDequeue: entry != nil && ctx.Doer != nil && (ctx.Doer.ID == entry.EnqueuerID || data.hasPermToMerge),
+	queueLink := ctx.Repo.RepoLink + "/queue/" + util.PathEscapeSegments(pull.BaseBranch)
+	section := &pullMergeBoxSection{
+		StatusIcon: "octicon-git-merge-queue", StatusIconClass: "tw-bg-grey-light", SectionTitle: ctx.Locale.Tr("repo.pulls.merge_queue.required_title"),
+		SectionDetails: []template.HTML{ctx.Locale.Tr("repo.pulls.merge_queue.required", queueLink, pull.BaseBranch)},
 	}
 	if entry != nil {
-		// queue progress follows CI runs, so a slower refresh is enough
-		data.ReloadingInterval = util.IfZero(data.ReloadingInterval, 15000)
+		section.StatusIconClass, section.SectionTitle = "tw-bg-yellow", ctx.Locale.Tr("repo.pulls.merge_queue.queued_title")
+		section.SectionDetails = []template.HTML{
+			ctx.Locale.Tr("repo.pulls.merge_queue.queued", position, queueLink, pull.BaseBranch),
+			ctx.Locale.Tr("repo.pulls.merge_queue.state." + string(entry.State)),
+		}
+	}
+	data.MergeQueue = &pullMergeQueueData{
+		Entry: entry,
+		// same rule as mergequeue.Dequeue, reusing the merge permission computed for the merge box
+		CanDequeue: entry != nil && ctx.Doer != nil && (ctx.Doer.ID == entry.EnqueuerID || data.hasPermToMerge),
+		Section:    section,
 	}
 }
 

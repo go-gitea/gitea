@@ -32,10 +32,9 @@ async function createQueueRequiredPR(page: Page, request: APIRequestContext, hea
   await page.goto(`/${owner}/${repo}/pulls/${index}`, {waitUntil: 'commit'});
 
   const addToQueue = async () => {
-    const mergeBox = page.locator('#pull-request-merge-form');
-    const addButton = {name: 'Add to merge queue', exact: true};
-    await mergeBox.getByRole('button', addButton).click();
-    await mergeBox.locator('form').getByRole('button', addButton).click();
+    const addButton = page.getByRole('button', {name: 'Add to merge queue', exact: true});
+    await addButton.click();
+    await addButton.click(); // the confirmation replaces the first button
     let groupSHA = '';
     await expect(async () => {
       const [entry] = await getQueue();
@@ -50,24 +49,19 @@ async function createQueueRequiredPR(page: Page, request: APIRequestContext, hea
 test('the admin queues by default, can explicitly bypass, and merges after queue checks pass', async ({page, request}) => {
   const {headSHA, setStatus, addToQueue, getPull} = await createQueueRequiredPR(page, request, 'pending');
 
-  const mergeBox = page.locator('#pull-request-merge-form');
-  const bypass = 'Create merge commit (bypass merge queue and checks)';
-  await mergeBox.locator('.dropdown').click();
-  await expect(mergeBox.getByText(bypass, {exact: true})).toBeVisible();
-  await mergeBox.getByRole('button', {name: 'Add to merge queue when ready', exact: true}).click();
-  await expect(mergeBox.locator('[name="merge_when_checks_succeed"]')).toHaveValue('true');
-  await expect(mergeBox.locator('[name="force_merge"]')).toHaveValue('false');
+  const bypass = page.getByLabel('Merge without waiting for requirements to be met (bypass rules)');
+  await page.getByRole('button', {name: 'Add to merge queue when ready', exact: true}).click();
+  await expect(page.locator('[name="merge_when_checks_succeed"]')).toHaveValue('true');
+  await expect(page.locator('[name="force_merge"]')).toHaveValue('false');
 
   await setStatus(headSHA, 'success');
   await page.reload({waitUntil: 'commit'});
-  await expect(mergeBox.getByRole('button', {name: 'Add to merge queue', exact: true})).toBeVisible();
-  await mergeBox.locator('.dropdown').click();
-  await mergeBox.getByText(bypass, {exact: true}).click();
-  await mergeBox.getByRole('button', {name: bypass}).click();
-  await expect(mergeBox.locator('[name="force_merge"]')).toHaveValue('true');
-  await mergeBox.getByRole('button', {name: 'Cancel'}).click();
-  await mergeBox.locator('.dropdown').click();
-  await mergeBox.getByText('Add to merge queue', {exact: true}).click();
+  await expect(page.getByRole('button', {name: 'Select merge style'})).toBeHidden();
+  await bypass.check();
+  await page.getByRole('button', {name: 'Bypass rules and merge (merge commit)'}).click();
+  await expect(page.locator('[name="force_merge"]')).toHaveValue('true');
+  await page.getByRole('button', {name: 'Cancel'}).click();
+  await bypass.uncheck();
   const groupSHA = await addToQueue();
 
   await page.getByRole('link', {name: 'merge queue of main'}).click();

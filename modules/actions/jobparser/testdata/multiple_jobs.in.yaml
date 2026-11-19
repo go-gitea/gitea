@@ -1,4 +1,5 @@
 name: test
+cache-mode: read
 jobs:
   zzz:
     runs-on: linux
@@ -6,6 +7,7 @@ jobs:
       - run: echo zzz
   job1:
     runs-on: linux
+    cache-mode: write
     steps:
       - run: uname -a && go version
   job2:
