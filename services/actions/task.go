@@ -120,11 +120,11 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 			break
 		}
 		releaseTaskForRunnerCleanup(t)
+		log.Error("PickTask: build task for job %d: %v", t.JobID, buildErr)
+		skipJobIDs = append(skipJobIDs, t.JobID)
 		if ctx.Err() != nil || len(skipJobIDs) == maxSkippedJobsPerPick {
 			return nil, false, buildErr
 		}
-		log.Error("PickTask: build task for job %d: %v", t.JobID, buildErr)
-		skipJobIDs = append(skipJobIDs, t.JobID)
 	}
 
 	CreateCommitStatusForRunJobs(ctx, job.Run, job)
