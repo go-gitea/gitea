@@ -473,10 +473,10 @@ func getRunIDByTaskID(ctx context.Context, taskID int64) (runID int64, _ error) 
 	return runID, nil
 }
 
-// UpdateTaskByState updates the task by the state.
+// UpdateTaskByState updates the task's state and outputs.
 // It will always update the task if the state is not final, even there is no change.
 // So it will update ActionTask.Updated to avoid the task being judged as a zombie task.
-func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.TaskState) (*ActionTask, error) {
+func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.TaskState, outputs map[string]string) (*ActionTask, error) {
 	stepStates := map[int64]*runnerv1.StepState{}
 	for _, v := range state.Steps {
 		stepStates[v.Id] = v
@@ -502,6 +502,21 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			return util.ErrNotExist
 		} else if runnerID != task.RunnerID {
 			return errors.New("invalid runner for task")
+		}
+
+		for key, value := range outputs {
+			if len(key) > 255 {
+				log.Warn("Ignore the output of task %d because the key is too long: %q", task.ID, key)
+				continue
+			}
+			if len(value) > 1024*1024 {
+				log.Warn("Ignore the output %q of task %d because the value is too long: %v", key, task.ID, len(value))
+				continue
+			}
+			// GitHub's 50 MB per-run cap is not enforced
+			if err := InsertTaskOutputIfNotExist(ctx, task.ID, key, value); err != nil {
+				return fmt.Errorf("UpdateTaskByState: insert output %q: %w", key, err)
+			}
 		}
 
 		if task.Status.IsDone() {

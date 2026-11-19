@@ -4,8 +4,12 @@
 package actions
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"slices"
+	"strings"
+	"sync/atomic"
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
@@ -13,10 +17,12 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"xorm.io/xorm/contexts"
 )
 
 func minimalWorkflowPayload(jobID string) []byte {
@@ -893,4 +899,43 @@ func Test_jobEmitterQueueHandler_DeletedRunIsNotRequeued(t *testing.T) {
 
 	assert.Empty(t, jobEmitterQueueHandler(&jobUpdate{RunID: unittest.NonexistentID}),
 		"an update for a deleted run must be dropped, not returned as unhandled")
+}
+
+type failFirstConcurrencyHolderRead struct{ fired atomic.Bool }
+
+func (h *failFirstConcurrencyHolderRead) BeforeProcess(query *contexts.ContextHook) (context.Context, error) {
+	if !h.fired.Load() && strings.HasPrefix(query.SQL, "SELECT") && strings.Contains(query.SQL, "action_run_attempt") && strings.Contains(query.SQL, "concurrency_group") && len(query.Args) == 5 {
+		h.fired.Store(true)
+		return nil, errors.New("interrupted")
+	}
+	return query.Ctx, nil
+}
+
+func (*failFirstConcurrencyHolderRead) AfterProcess(_query *contexts.ContextHook) error { return nil }
+
+func Test_jobEmitterQueueHandler_RetriesConcurrencyFailureAtomically(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(_runID int64) error { return nil })()
+	job := setupDeferredMatrixJob(t, "${{ fromJSON(needs.generate.outputs.values) }}", map[string]string{"values": `["a","b"]`})
+	job.RawConcurrency = "group: emitter-retry\ncancel-in-progress: true\n"
+	_, err := actions_model.UpdateRunJob(t.Context(), job, nil, "raw_concurrency")
+	require.NoError(t, err)
+	holder := &actions_model.ActionRunJob{
+		RunID: job.RunID, RunAttemptID: job.RunAttemptID, RepoID: job.RepoID, OwnerID: job.OwnerID,
+		JobID: "holder", Status: actions_model.StatusWaiting, ConcurrencyGroup: "emitter-retry",
+	}
+	require.NoError(t, db.Insert(t.Context(), holder))
+	hook := &failFirstConcurrencyHolderRead{}
+	unittest.GetXORMEngine().AddHook(hook)
+	t.Cleanup(func() { hook.fired.Store(true) })
+	update := &jobUpdate{RunID: job.RunID}
+
+	assert.Equal(t, []*jobUpdate{update}, jobEmitterQueueHandler(update))
+	assert.Equal(t, actions_model.StatusWaiting, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: holder.ID}).Status)
+	unittest.AssertCount(t, &actions_model.ActionRunJob{RunID: job.RunID}, 4)
+
+	assert.Empty(t, jobEmitterQueueHandler(update))
+	assert.Equal(t, actions_model.StatusWaiting, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID}).Status)
+	assert.Equal(t, actions_model.StatusCancelled, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: holder.ID}).Status)
+	unittest.AssertCount(t, &actions_model.ActionRunJob{RunID: job.RunID}, 5)
 }

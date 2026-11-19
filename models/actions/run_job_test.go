@@ -223,7 +223,7 @@ func TestRunJobDatabase(t *testing.T) {
 						assert.Equal(t, StatusCancelling, unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID}).Status, job.Name)
 					}
 
-					_, err = UpdateTaskByState(ctx, runner.ID, &runnerv1.TaskState{Id: task.ID, Result: runnerv1.Result_RESULT_CANCELLED})
+					_, err = UpdateTaskByState(ctx, runner.ID, &runnerv1.TaskState{Id: task.ID, Result: runnerv1.Result_RESULT_CANCELLED}, nil)
 					require.NoError(t, err)
 					for _, job := range []*ActionRunJob{outer, inner, child} {
 						assert.Equal(t, StatusCancelled, unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID}).Status, job.Name)
