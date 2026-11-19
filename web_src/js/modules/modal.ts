@@ -8,7 +8,7 @@ type ModalOpts = {
   onHidden?: () => void,
 };
 
-const modalStates = new WeakMap<Element, {opts: ModalOpts, opener: Element | null}>();
+const modalStates = new WeakMap<Element, {opts: ModalOpts, opener: Element | null, template?: HTMLTemplateElement}>();
 
 const topModal = () => Array.from(document.querySelectorAll<HTMLDialogElement>('.modal-dialog[open]')).at(-1);
 
@@ -76,11 +76,14 @@ function createModalBackdrop(elModal: HTMLDialogElement): HTMLElement {
   return elBackdrop;
 }
 
-export function showModal(elModal: HTMLDialogElement, opts: ModalOpts = {}) {
-  if (elModal.open) return;
+export function showModal(el: HTMLDialogElement | HTMLTemplateElement, opts: ModalOpts = {}) {
+  if (el instanceof HTMLTemplateElement ? el.hasAttribute('data-modal-open') : el.open) return;
+  const elModal = el instanceof HTMLTemplateElement ? el.content.querySelector('dialog')!.cloneNode(true) as HTMLDialogElement : el;
 
+  const template = el instanceof HTMLTemplateElement ? el : undefined;
+  template?.setAttribute('data-modal-open', '');
   const elBackdrop = elModal.parentElement?.matches('.modal-backdrop') ? elModal.parentElement : createModalBackdrop(elModal);
-  modalStates.set(elModal, {opts, opener: document.activeElement});
+  modalStates.set(elModal, {opts, opener: document.activeElement, template});
   elModal.querySelector('.close-modal')?.setAttribute('aria-label', 'Close');
 
   // Avoid "cancel" buttons submitting the form, otherwise "Enter" in the form clicks this "cancel" button before the "ok" button
@@ -96,7 +99,7 @@ export function showModal(elModal: HTMLDialogElement, opts: ModalOpts = {}) {
 
 export function hideModal(elModal: HTMLDialogElement) {
   if (!elModal.open) return;
-  const {opts, opener} = modalStates.get(elModal)!;
+  const {opts, opener, template} = modalStates.get(elModal)!;
   const elBackdrop = elModal.parentElement!;
   elModal.close();
   blockPage(topModal()?.parentElement);
@@ -107,6 +110,10 @@ export function hideModal(elModal: HTMLDialogElement) {
 
   hideToastsAll();
   queryElems(elModal, 'form', (form: HTMLFormElement) => form.reset());
+  if (template) {
+    template.removeAttribute('data-modal-open');
+    elModal.remove();
+  }
   opts.onHidden?.();
   if (!elBackdrop.contains(elModal)) elBackdrop.remove();
 }

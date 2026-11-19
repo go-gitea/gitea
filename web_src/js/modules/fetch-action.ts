@@ -326,13 +326,21 @@ async function handleFetchActionSuccessSync(el: Element, successSync: string, re
   if (res.targets.length > 1) throw new Error(`Fetch-sync command "${successSync}" found multiple target elements, which is not supported`);
   const target = res.targets[0];
   if (res.cmdMorph) {
-    Idiomorph.morph(target, respText, {morphStyle: res.cmdInnerHTML ? 'innerHTML' : 'outerHTML'});
+    morphByResult(target, res, respText);
   } else if (res.cmdInnerHTML) {
     target.innerHTML = respText;
   } else {
     target.outerHTML = respText;
   }
   await fetchActionReloadOutdatedElements();
+}
+
+function morphByResult(target: Element, res: PseudoSelectorCommandResult, respText: string) {
+  const respElem = createElementFromHTML(respText);
+  if (respElem.querySelector('.modal-dialog')) {
+    throw new Error(`Morph with embedded modal dialog is not supported, please use "template" to wrap the dialog.`);
+  }
+  Idiomorph.morph(target, respElem, {morphStyle: res.cmdInnerHTML ? 'innerHTML' : 'outerHTML'});
 }
 
 async function fetchActionReloadOutdatedElements() {
