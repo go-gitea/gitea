@@ -154,7 +154,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
-	performPush := func(storageRepo gitrepo.RepositoryFacade) error {
+	performPush := func(storageRepo gitrepo.RepositoryFacade, syncLFS bool) error {
 		remoteURL, err := git.ParseRemoteAddressURL(ctx, storageRepo, m.RemoteName)
 		if err != nil {
 			return fmt.Errorf("ParseRemoteAddressURL failed: %w", err)
@@ -167,7 +167,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			}
 		}
 
-		if setting.LFS.StartServer {
+		if syncLFS {
 			log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 
 			gitRepo, err := git.OpenRepository(ctx, storageRepo)
@@ -199,13 +199,13 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		return nil
 	}
 
-	err := performPush(m.Repo.CodeStorageRepo())
+	err := performPush(m.Repo.CodeStorageRepo(), setting.LFS.StartServer)
 	if err != nil {
 		return fmt.Errorf("performPush(code) failed: %w", err)
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		err := performPush(m.Repo.WikiStorageRepo())
+		err := performPush(m.Repo.WikiStorageRepo(), false)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			return fmt.Errorf("performPush(wiki) failed: %w", err)
 		}
@@ -215,6 +215,9 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 }
 
 func pushAllLFSObjects(ctx context.Context, repoID int64, gitRepo *git.Repository, lfsClient lfs.Client) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	contentStore := lfs.NewContentStore()
 
 	pointerChan := make(chan lfs.PointerBlob)
@@ -229,14 +232,7 @@ func pushAllLFSObjects(ctx context.Context, repoID int64, gitRepo *git.Repositor
 				return nil, objectError
 			}
 
-			// p is taken from the remote's response, it must be an object of this repository
-			meta, err := git_model.GetLFSMetaObjectByOid(ctx, repoID, p.Oid)
-			if err != nil {
-				log.Error("Error querying LFS meta object %v: %v", p, err)
-				return nil, err
-			}
-
-			content, err := contentStore.Get(meta.Pointer)
+			content, err := contentStore.Get(p)
 			if err != nil {
 				log.Error("Error reading LFS object %v: %v", p, err)
 			}
@@ -252,13 +248,14 @@ func pushAllLFSObjects(ctx context.Context, repoID int64, gitRepo *git.Repositor
 		return err
 	}
 
+	var skipped int
 	var batch []lfs.Pointer
 	for pointerBlob := range pointerChan {
-		if _, err := git_model.GetLFSMetaObjectByOid(ctx, repoID, pointerBlob.Oid); errors.Is(err, git_model.ErrLFSObjectNotExist) {
-			log.Trace("Skipping LFS object %v which doesn't belong to the repository", pointerBlob.Pointer)
+		meta, err := git_model.GetLFSMetaObjectByOid(ctx, repoID, pointerBlob.Oid)
+		if errors.Is(err, git_model.ErrLFSObjectNotExist) {
+			skipped++
 			continue
 		} else if err != nil {
-			log.Error("Error querying LFS meta object %v: %v", pointerBlob.Pointer, err)
 			return err
 		}
 
@@ -272,13 +269,16 @@ func pushAllLFSObjects(ctx context.Context, repoID int64, gitRepo *git.Repositor
 			continue
 		}
 
-		batch = append(batch, pointerBlob.Pointer)
+		batch = append(batch, meta.Pointer)
 		if len(batch) >= lfsClient.BatchSize() {
 			if err := uploadObjects(batch); err != nil {
 				return err
 			}
 			batch = nil
 		}
+	}
+	if skipped > 0 {
+		log.Info("Push mirror skipped %d LFS pointers without a link to repository %d", skipped, repoID)
 	}
 	if len(batch) > 0 {
 		if err := uploadObjects(batch); err != nil {

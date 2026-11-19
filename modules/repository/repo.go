@@ -5,8 +5,6 @@ package repository
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -61,6 +59,9 @@ func SyncRepoTags(ctx context.Context, repoID int64) error {
 
 // StoreMissingLfsObjectsInRepository downloads missing LFS objects
 func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, lfsClient lfs.Client) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	contentStore := lfs.NewContentStore()
 
 	pointerChan := make(chan lfs.PointerBlob)
@@ -87,43 +88,25 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 			defer content.Close()
 
-			exist, err := contentStore.Exists(p)
+			exists, err := contentStore.Exists(p)
 			if err != nil {
-				log.Error("Repo[%-v]: Error checking if LFS object %-v exists: %v", repo, p, err)
 				return err
 			}
-			if exist {
-				// the object is already in the content store, only use it if the remote delivers the same content
-				hash := sha256.New()
-				written, err := io.Copy(hash, content)
-				if err == nil && written != p.Size {
-					err = lfs.ErrSizeMismatch
-				} else if err == nil && hex.EncodeToString(hash.Sum(nil)) != p.Oid {
-					err = lfs.ErrHashMismatch
-				}
-				if err != nil {
-					log.Error("Repo[%-v]: Error verifying content for LFS meta object %-v: %v", repo, p, err)
-					return err
-				}
+			if exists {
+				err = lfs.VerifyContent(p, content)
+			} else {
+				err = contentStore.Put(p, content)
+			}
+			if err != nil {
+				log.Error("Repo[%-v]: Error storing content for LFS meta object %-v: %v", repo, p, err)
+				return err
 			}
 
 			_, err = git_model.NewLFSMetaObject(ctx, repo.ID, p)
 			if err != nil {
 				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, p, err)
-				return err
 			}
-			if exist {
-				return nil
-			}
-
-			if err := contentStore.Put(p, content); err != nil {
-				log.Error("Repo[%-v]: Error storing content for LFS meta object %-v: %v", repo, p, err)
-				if _, err2 := git_model.RemoveLFSMetaObjectByOid(ctx, repo.ID, p.Oid); err2 != nil {
-					log.Error("Repo[%-v]: Error removing LFS meta object %-v: %v", repo, p, err2)
-				}
-				return err
-			}
-			return nil
+			return err
 		})
 		if err != nil {
 			select {

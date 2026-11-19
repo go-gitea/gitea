@@ -5,6 +5,7 @@ package lfs
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -144,12 +145,31 @@ func (c *HTTPClient) performOperation(ctx context.Context, ref string, objects [
 		return fmt.Errorf("TransferAdapter not found: %s", result.Transfer)
 	}
 
+	requested := make(map[string]int64, len(objects))
+	for _, pointer := range objects {
+		requested[pointer.Oid] = pointer.Size
+	}
+	for _, object := range result.Objects {
+		if object == nil {
+			return errors.New("LFS batch response contains a null object")
+		}
+		if _, ok := requested[object.Oid]; !ok {
+			return fmt.Errorf("LFS batch response contains unrequested oid %q", object.Oid)
+		}
+	}
+
 	if setting.LFSClient.BatchOperationConcurrency <= 0 {
 		panic("BatchOperationConcurrency must be greater than 0, forgot to init?")
 	}
 	errGroup, groupCtx := errgroup.WithContext(ctx)
 	errGroup.SetLimit(setting.LFSClient.BatchOperationConcurrency)
 	for _, object := range result.Objects {
+		size, ok := requested[object.Oid]
+		if !ok {
+			continue
+		}
+		delete(requested, object.Oid)
+		object.Size = size
 		errGroup.Go(func() error {
 			return performSingleOperation(groupCtx, object, dc, uc, transferAdapter)
 		})
@@ -187,8 +207,8 @@ func performSingleOperation(ctx context.Context, object *ObjectResponse, dc Down
 			return nil
 		}
 
-		link, ok := object.Actions["upload"]
-		if !ok {
+		link := object.Actions["upload"]
+		if link == nil {
 			return errors.New("missing action 'upload'")
 		}
 
@@ -202,19 +222,12 @@ func performSingleOperation(ctx context.Context, object *ObjectResponse, dc Down
 			return err
 		}
 
-		link, ok = object.Actions["verify"]
-		if ok {
-			if err := transferAdapter.Verify(ctx, link, object.Pointer); err != nil {
-				return err
-			}
+		if link := object.Actions["verify"]; link != nil {
+			return transferAdapter.Verify(ctx, link, object.Pointer)
 		}
 	} else {
-		link, ok := object.Actions["download"]
-		if !ok {
-			// no actions block in response, try legacy response schema
-			link, ok = object.Links["download"]
-		}
-		if !ok {
+		link := cmp.Or(object.Actions["download"], object.Links["download"]) // no actions block in response, try legacy response schema
+		if link == nil {
 			log.Debug("%+v", object)
 			return errors.New("missing action 'download'")
 		}

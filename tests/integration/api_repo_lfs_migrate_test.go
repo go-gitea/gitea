@@ -5,25 +5,23 @@ package integration
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"path"
 	"strings"
-	"sync/atomic"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/lfs"
+	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
-	repo_service "gitea.dev/services/repository"
-	files_service "gitea.dev/services/repository/files"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -54,90 +52,56 @@ func TestAPIRepoLFSMigrateLocal(t *testing.T) {
 	assert.True(t, ok)
 }
 
-// createRepoWithLFSPointers creates a repository with two LFS pointer files:
-// the object of "own.bin" belongs to the new repository, the object of "other.bin" only belongs to repo1.
-func createRepoWithLFSPointers(t *testing.T, owner *user_model.User, name string) (repo *repo_model.Repository, ownPointer, otherPointer lfs.Pointer) {
+func splitLFSFixtureLinks(t *testing.T) (linked, unlinked lfs.Pointer) {
 	t.Helper()
-	repo, err := repo_service.CreateRepository(t.Context(), owner, owner, repo_service.CreateRepoOptions{
-		Name:          name,
-		AutoInit:      true,
-		Readme:        "Default",
-		DefaultBranch: "master",
-	})
+	linkedMeta := unittest.AssertExistsAndLoadBean(t, &git_model.LFSMetaObject{ID: 1, RepositoryID: 54})
+	unlinkedMeta := unittest.AssertExistsAndLoadBean(t, &git_model.LFSMetaObject{ID: 2, RepositoryID: 54})
+	_, err := db.GetEngine(t.Context()).ID(unlinkedMeta.ID).Cols("repository_id").Update(&git_model.LFSMetaObject{RepositoryID: 1})
 	require.NoError(t, err)
-
-	ownContent, otherContent := "object of "+name, "object of repo1, referenced by "+name
-	ownPointer = lfs.Pointer{Oid: storeObjectInRepo(t, repo.ID, ownContent), Size: int64(len(ownContent))}
-	otherPointer = lfs.Pointer{Oid: storeObjectInRepo(t, 1, otherContent), Size: int64(len(otherContent))}
-
-	_, err = files_service.ChangeRepoFiles(t.Context(), repo, owner, &files_service.ChangeRepoFilesOptions{
-		Files: []*files_service.ChangeRepoFile{
-			{Operation: "create", TreePath: "own.bin", ContentReader: strings.NewReader(ownPointer.StringContent())},
-			{Operation: "create", TreePath: "other.bin", ContentReader: strings.NewReader(otherPointer.StringContent())},
-		},
-		OldBranch: repo.DefaultBranch,
-		NewBranch: repo.DefaultBranch,
-		Message:   "add LFS pointers",
-	})
-	require.NoError(t, err)
-	return repo, ownPointer, otherPointer
+	return linkedMeta.Pointer, unlinkedMeta.Pointer
 }
 
 func TestAPIRepoLFSMigrateObjects(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		token := getUserToken(t, user.Name, auth_model.AccessTokenScopeWriteRepository)
-		srcRepo, ownPointer, otherPointer := createRepoWithLFSPointers(t, user, "lfs-migrate-src")
+		srcRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 54})
+		linked, unlinked := splitLFSFixtureLinks(t)
 
-		migrate := func(t *testing.T, repoName, lfsEndpoint string) {
+		t.Run("OnlyLinkedObjects", func(t *testing.T) {
 			req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", &api.MigrateRepoOptions{
-				CloneAddr:   u.String() + srcRepo.FullName() + ".git",
-				RepoOwnerID: user.ID,
-				RepoName:    repoName,
-				LFS:         true,
-				LFSEndpoint: lfsEndpoint,
-			}).AddTokenAuth(token)
-			MakeRequest(t, req, NoExpectedStatus)
-		}
-
-		t.Run("OnlyObjectsServedByRemote", func(t *testing.T) {
-			migrate(t, "lfs-migrate-dst", "")
-			dstRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, Name: "lfs-migrate-dst"})
-			unittest.AssertExistsAndLoadBean(t, &git_model.LFSMetaObject{RepositoryID: dstRepo.ID, Oid: ownPointer.Oid})
-			unittest.AssertNotExistsBean(t, &git_model.LFSMetaObject{RepositoryID: dstRepo.ID, Oid: otherPointer.Oid})
+				CloneAddr:    u.String() + srcRepo.FullName() + ".git",
+				AuthUsername: user.Name,
+				AuthPassword: userPassword,
+				RepoOwnerID:  user.ID,
+				RepoName:     "lfs-migrate-dst",
+				LFS:          true,
+			}).AddTokenAuth(getUserToken(t, user.Name, auth_model.AccessTokenScopeWriteRepository))
+			dstRepo := DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.Repository{})
+			unittest.AssertExistsAndLoadBean(t, &git_model.LFSMetaObject{RepositoryID: dstRepo.ID, Oid: linked.Oid})
+			unittest.AssertNotExistsBean(t, &git_model.LFSMetaObject{RepositoryID: dstRepo.ID, Oid: unlinked.Oid})
 		})
 
-		t.Run("RemoteServesOtherContent", func(t *testing.T) {
-			var downloads atomic.Int32
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Method == http.MethodGet {
-					downloads.Add(1)
-					_, _ = w.Write([]byte("other content"))
-					return
-				}
-				var batchReq lfs.BatchRequest
-				assert.NoError(t, json.NewDecoder(r.Body).Decode(&batchReq))
-				batchResp := &lfs.BatchResponse{}
-				for _, p := range batchReq.Objects {
-					batchResp.Objects = append(batchResp.Objects, &lfs.ObjectResponse{
-						Pointer: p,
-						Actions: map[string]*lfs.Link{"download": lfs.NewLink("http://" + r.Host + "/object")},
-					})
-				}
-				w.Header().Set("Content-Type", lfs.MediaType)
-				assert.NoError(t, json.NewEncoder(w).Encode(batchResp))
-			}))
-			defer server.Close()
+		t.Run("WrongContentKeepsStoredObject", func(t *testing.T) {
+			root := t.TempDir()
+			dir := path.Join("lfs", "objects", unlinked.Oid[:2], unlinked.Oid[2:4])
+			files := test.NewFileHelper(root)
+			files.MkdirAll(t, dir)
+			files.WriteFile(t, path.Join(dir, unlinked.Oid), strings.Repeat("x", int(unlinked.Size)))
+			client, err := lfs.NewClientFromEndpoint(root, "", nil)
+			require.NoError(t, err)
+			gitRepo, err := git.OpenRepository(t.Context(), srcRepo)
+			require.NoError(t, err)
+			defer gitRepo.Close()
 
-			migrate(t, "lfs-migrate-dst-other-content", server.URL)
-			assert.NotZero(t, downloads.Load())
-			unittest.AssertCount(t, &git_model.LFSMetaObject{Oid: ownPointer.Oid}, 2) // srcRepo and the first migration
-			unittest.AssertCount(t, &git_model.LFSMetaObject{Oid: otherPointer.Oid}, 1)
-			for _, p := range []lfs.Pointer{ownPointer, otherPointer} {
-				ok, err := lfs.NewContentStore().Verify(p)
-				assert.NoError(t, err)
-				assert.True(t, ok, "existing object must be kept")
-			}
+			err = repo_module.StoreMissingLfsObjectsInRepository(t.Context(), srcRepo, gitRepo, client)
+			require.ErrorIs(t, err, lfs.ErrHashMismatch)
+			unittest.AssertNotExistsBean(t, &git_model.LFSMetaObject{RepositoryID: srcRepo.ID, Oid: unlinked.Oid})
+			content, err := lfs.ReadMetaObject(unlinked)
+			require.NoError(t, err)
+			defer content.Close()
+			stored, err := lfs.GeneratePointer(content)
+			require.NoError(t, err)
+			assert.Equal(t, unlinked, stored)
 		})
 	})
 }

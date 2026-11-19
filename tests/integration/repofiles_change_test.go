@@ -14,11 +14,11 @@ import (
 
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/test"
 	"gitea.dev/services/contexttest"
 	files_service "gitea.dev/services/repository/files"
 
@@ -484,28 +484,22 @@ func TestChangeRepoFilesForUpdateWithFileRename(t *testing.T) {
 		assert.Len(t, filesResponse.Files, 4)
 		assert.Equal(t, expectedFileResponse.Files, filesResponse.Files)
 
-		t.Run("LFSObjectNotInRepo", func(t *testing.T) {
-			content := "object of repo1"
-			pointer := lfs.Pointer{Oid: storeObjectInRepo(t, 1, content), Size: int64(len(content))}
-
-			// commit the pointer as is to a path tracked by LFS
-			restoreLFS := test.MockVariableValue(&setting.LFS.StartServer, false)
-			_, err := files_service.ChangeRepoFiles(t.Context(), repo, ctx.Doer, &files_service.ChangeRepoFilesOptions{
-				Files:     []*files_service.ChangeRepoFile{{Operation: "create", TreePath: "other.bin", ContentReader: strings.NewReader(pointer.StringContent())}},
-				OldBranch: repo.DefaultBranch,
-				NewBranch: repo.DefaultBranch,
-				Message:   "add LFS pointer",
-			})
-			restoreLFS()
+		t.Run("UnlinkedRenameRollsBackOnlyNewLinks", func(t *testing.T) {
+			splitLFSFixtureLinks(t)
+			const existingContent, newContent = "object already linked to this repo", "new LFS object"
+			existingOID := storeObjectInRepo(t, repo.ID, existingContent)
+			newPointer, err := lfs.GeneratePointer(strings.NewReader(newContent))
 			require.NoError(t, err)
-
 			_, err = files_service.ChangeRepoFiles(t.Context(), repo, ctx.Doer, &files_service.ChangeRepoFilesOptions{
-				Files:     []*files_service.ChangeRepoFile{{Operation: "rename", FromTreePath: "other.bin", TreePath: "other.txt"}},
-				OldBranch: repo.DefaultBranch,
-				NewBranch: repo.DefaultBranch,
-				Message:   "rename LFS pointer",
+				Files: []*files_service.ChangeRepoFile{
+					{Operation: "create", TreePath: "existing.bin", ContentReader: strings.NewReader(existingContent)},
+					{Operation: "create", TreePath: "new.bin", ContentReader: strings.NewReader(newContent)},
+					{Operation: "rename", FromTreePath: "crypt1.bin", TreePath: "crypt.txt"},
+				},
 			})
-			assert.ErrorIs(t, err, git_model.ErrLFSObjectNotExist)
+			require.ErrorIs(t, err, git_model.ErrLFSObjectNotExist)
+			unittest.AssertExistsAndLoadBean(t, &git_model.LFSMetaObject{RepositoryID: repo.ID, Oid: existingOID})
+			unittest.AssertNotExistsBean(t, &git_model.LFSMetaObject{RepositoryID: repo.ID, Oid: newPointer.Oid})
 		})
 	})
 }

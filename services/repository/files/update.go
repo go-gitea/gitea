@@ -5,6 +5,7 @@ package files
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path"
@@ -12,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	"gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
@@ -511,24 +513,26 @@ func modifyFile(ctx context.Context, t *TemporaryUploadRepository, file *ChangeR
 	defer writeObjectRet.LfsContent.Close()
 
 	// Now we must store the content into an LFS object
-	lfsMetaObject, err := git_model.NewLFSMetaObject(ctx, repoID, writeObjectRet.LfsPointer)
-	if err != nil {
-		return nil, err
-	}
-	exist, err := contentStore.Exists(lfsMetaObject.Pointer)
+	pointer := writeObjectRet.LfsPointer
+	exist, err := contentStore.Exists(pointer)
 	if err != nil {
 		return nil, err
 	}
 	if !exist {
-		err = contentStore.Put(lfsMetaObject.Pointer, writeObjectRet.LfsContent)
-		if err != nil {
-			if _, errRemove := git_model.RemoveLFSMetaObjectByOid(ctx, repoID, lfsMetaObject.Oid); errRemove != nil {
-				return nil, fmt.Errorf("unable to remove failed inserted LFS object %s: %v (Prev Error: %w)", lfsMetaObject.Oid, errRemove, err)
-			}
+		if err := contentStore.Put(pointer, writeObjectRet.LfsContent); err != nil {
 			return nil, err
 		}
 	}
-	return &lfsMetaObject.Pointer, nil
+
+	if _, err := git_model.GetLFSMetaObjectByOid(ctx, repoID, pointer.Oid); err == nil {
+		return nil, nil //nolint:nilnil // the link predates this change, so a failed change must not remove it
+	} else if !errors.Is(err, git_model.ErrLFSObjectNotExist) {
+		return nil, err
+	}
+	if err := db.Insert(ctx, &git_model.LFSMetaObject{RepositoryID: repoID, Pointer: pointer}); err != nil {
+		return nil, err
+	}
+	return &pointer, nil
 }
 
 func checkIsLfsFileInGitAttributes(ctx context.Context, t *TemporaryUploadRepository, paths []string) (ret []bool, err error) {
