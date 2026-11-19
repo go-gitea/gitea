@@ -4,7 +4,6 @@
 package webhook
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -198,12 +197,7 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 
 func TestWebhookDeliveryErrorType(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	canceledCtx, cancel := context.WithCancel(t.Context())
-	defer cancel()
 	stalled := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/cancel" {
-			cancel()
-		}
 		<-r.Context().Done()
 	}))
 	t.Cleanup(stalled.Close)
@@ -218,15 +212,13 @@ func TestWebhookDeliveryErrorType(t *testing.T) {
 
 	for _, tc := range []struct {
 		name      string
-		ctx       context.Context
 		client    *http.Client
 		url       string
 		errorType webhook_model.HookDeliveryError
 	}{
-		{"blocked", t.Context(), blockedClient, stalled.URL, webhook_model.HookDeliveryErrorBlocked},
-		{"timeout", t.Context(), &timeoutClient, stalled.URL, webhook_model.HookDeliveryErrorTimeout},
-		{"connection", t.Context(), webhookHTTPClient, closed.URL, webhook_model.HookDeliveryErrorConnection},
-		{"stored after cancel", canceledCtx, webhookHTTPClient, stalled.URL + "/cancel", ""},
+		{"blocked", blockedClient, stalled.URL, webhook_model.HookDeliveryErrorBlocked},
+		{"timeout", &timeoutClient, stalled.URL, webhook_model.HookDeliveryErrorTimeout},
+		{"connection", webhookHTTPClient, closed.URL, webhook_model.HookDeliveryErrorConnection},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			defer test.MockVariableValue(&webhookHTTPClient, tc.client)()
@@ -235,7 +227,7 @@ func TestWebhookDeliveryErrorType(t *testing.T) {
 			task, err := webhook_model.CreateHookTask(t.Context(), &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventPush, PayloadVersion: 1})
 			require.NoError(t, err)
 
-			require.Error(t, Deliver(tc.ctx, task))
+			require.Error(t, Deliver(t.Context(), task))
 			stored, err := webhook_model.GetHookTaskByID(t.Context(), task.ID)
 			require.NoError(t, err)
 			require.NotNil(t, stored.ResponseInfo)

@@ -214,7 +214,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	// All code from this point will update the hook task
 	defer func() {
 		if ctx.Err() != nil {
-			return
+			return // when shutdown, no need to update the database
 		}
 
 		t.Delivered = timeutil.TimeStampNanoNow()
@@ -284,6 +284,9 @@ func deliveryErrorType(err error) webhook_model.HookDeliveryError {
 	}
 	if _, ok := errors.AsType[*net.OpError](err); ok {
 		return webhook_model.HookDeliveryErrorConnection
+	}
+	if errors.Is(err, context.Canceled) {
+		return webhook_model.HookDeliveryErrorUnknown
 	}
 	setting.PanicInDevOrTesting("Unknown error type in webhook delivery: %v", err)
 	return webhook_model.HookDeliveryErrorUnknown
