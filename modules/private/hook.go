@@ -10,7 +10,6 @@ import (
 
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 )
 
@@ -36,7 +35,6 @@ type HookOptions struct {
 	GitPushOptions                  GitPushOptions
 
 	PullRequestID int64
-	PushTrigger   repository.PushTrigger
 
 	UserID          int64
 	UserName        string

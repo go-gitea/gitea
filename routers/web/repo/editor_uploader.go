@@ -18,7 +18,7 @@ import (
 func UploadFileToServer(ctx *context.Context) {
 	file, header, err := ctx.Req.FormFile("file")
 	if err != nil {
-		ctx.ServerError("FormFile", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	defer file.Close()
@@ -45,7 +45,7 @@ func UploadFileToServer(ctx *context.Context) {
 
 	uploaded, err := repo_model.NewUpload(ctx, name, buf, file)
 	if err != nil {
-		ctx.ServerError("NewUpload", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -56,7 +56,7 @@ func UploadFileToServer(ctx *context.Context) {
 func RemoveUploadFileFromServer(ctx *context.Context) {
 	fileUUID := ctx.FormString("file")
 	if err := repo_model.DeleteUploadByUUID(ctx, fileUUID); err != nil {
-		ctx.ServerError("DeleteUploadByUUID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)

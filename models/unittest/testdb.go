@@ -31,9 +31,10 @@ import (
 
 // TestOptions represents test options
 type TestOptions struct {
-	FixtureFiles []string
-	SetUp        func() error // SetUp will be executed before all tests in this package
-	TearDown     func() error // TearDown will be executed after all tests in this package
+	FixtureFiles     []string
+	SkipRepoFixtures bool         // for packages that never read the fixture git repositories
+	SetUp            func() error // SetUp will be executed before all tests in this package
+	TearDown         func() error // TearDown will be executed after all tests in this package
 }
 
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
@@ -61,7 +62,6 @@ func mainTest(m *testing.M, testOptsArg ...*TestOptions) int {
 	}
 
 	setting.AppURL = "https://try.gitea.io/"
-	setting.Domain = "try.gitea.io"
 	setting.RunUser = "runuser"
 	setting.SSH.User = "sshuser"
 	setting.SSH.BuiltinServerUser = "builtinuser"
@@ -80,8 +80,10 @@ func mainTest(m *testing.M, testOptsArg ...*TestOptions) int {
 	if err = storage.Init(); err != nil {
 		return testlogger.MainErrorf("storage.Init: %v", err)
 	}
-	if err = SyncDirs(filepath.Join(giteaRoot, "tests", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
-		return testlogger.MainErrorf("util.SyncDirs: %v", err)
+	if !testOpts.SkipRepoFixtures {
+		if err = SyncDirs(filepath.Join(giteaRoot, "tests", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
+			return testlogger.MainErrorf("util.SyncDirs: %v", err)
+		}
 	}
 
 	if err = git.InitFull(); err != nil {
@@ -207,7 +209,7 @@ type FixturesOptions struct {
 
 // CreateTestEngine creates a test database and loads the fixture data from fixturesDir
 func CreateTestEngine(testSQLiteFile string, opts FixturesOptions) error {
-	driver, connStr, err := db.ConnStr(db.ConnOptions{Type: setting.DatabaseTypeSQLite3, SQLitePath: testSQLiteFile, SQLiteBusyTimeout: setting.DefaultSQLiteBusyTimeout})
+	driver, connStr, err := db.ConnStr(db.ConnOptions{Type: setting.DatabaseTypeSQLite3, SQLitePath: testSQLiteFile, SQLiteBusyTimeout: setting.DefaultSQLiteBusyTimeout, SQLiteJournalMode: "MEMORY"})
 	if err != nil {
 		return err
 	}

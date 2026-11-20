@@ -63,7 +63,6 @@ cpu.out
 /public/assets/fonts
 /public/assets/img/avatar
 /vendor
-/VERSION
 /.air
 /.go-licenses
 /Dockerfile

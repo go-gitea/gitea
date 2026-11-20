@@ -6,7 +6,6 @@ package common
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/gtprof"
@@ -14,12 +13,11 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/web/routing"
 	"gitea.dev/services/context"
 
-	"gitea.com/go-chi/session"
-	"github.com/chi-middleware/proxy"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -109,37 +107,8 @@ func ChiRoutePathHandler() func(h http.Handler) http.Handler {
 	}
 }
 
-func ForwardedHeadersHandler(limit int, trustedProxies []string) func(h http.Handler) http.Handler {
-	opt := proxy.NewForwardedHeadersOptions().WithForwardLimit(limit).ClearTrustedProxies()
-	for _, n := range trustedProxies {
-		if !strings.Contains(n, "/") {
-			opt.AddTrustedProxy(n)
-		} else {
-			opt.AddTrustedNetwork(n)
-		}
-	}
-	return proxy.ForwardedHeaders(opt)
-}
-
 func MustInitSessioner() func(next http.Handler) http.Handler {
-	// TODO: CHI-SESSION-GOB-REGISTER: chi-session has a design problem: it calls gob.Register for "Set"
-	// But if the server restarts, then the first "Get" will fail to decode the previously stored session data because the structs are not registered yet.
-	// So each package should make sure their structs are registered correctly during startup for session storage.
-
-	middleware, err := session.Sessioner(session.Options{
-		Provider:       setting.SessionConfig.Provider,
-		ProviderConfig: setting.SessionConfig.ProviderConfig,
-		CookieName:     setting.SessionConfig.CookieName,
-		CookiePath:     setting.SessionConfig.CookiePath,
-		Gclifetime:     setting.SessionConfig.Gclifetime,
-		Maxlifetime:    setting.SessionConfig.Maxlifetime,
-		Secure:         setting.SessionConfig.Secure,
-		SameSite:       setting.SessionConfig.SameSite,
-		Domain:         setting.SessionConfig.Domain,
-
-		// in the future, if websocket is used, the websocket handler should manage its own session sync (release)
-		IgnoreReleaseForWebSocket: true,
-	})
+	middleware, err := session.Sessioner()
 	if err != nil {
 		log.Fatal("common.Sessioner failed: %v", err)
 	}

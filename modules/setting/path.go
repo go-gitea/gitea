@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"gitea.dev/modules/consts"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/tempdir"
 )
@@ -39,7 +40,7 @@ var (
 func getAppPath() (string, error) {
 	var appPath string
 	var err error
-	if IsWindows && filepath.IsAbs(os.Args[0]) {
+	if consts.IsWindows && filepath.IsAbs(os.Args[0]) {
 		appPath = filepath.Clean(os.Args[0])
 	} else {
 		appPath, err = exec.LookPath(os.Args[0])

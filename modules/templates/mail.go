@@ -8,7 +8,6 @@ import (
 	"html/template"
 	"io"
 	"net/url"
-	"regexp"
 	"slices"
 	"strings"
 	"sync"
@@ -54,7 +53,7 @@ func mailSubjectTextFuncMap() texttmpl.FuncMap {
 			return setting.AppName
 		},
 		"AppDomain": func() string { // documented in mail-templates.md
-			return setting.Domain
+			return setting.AppDomain
 		},
 	}
 }
@@ -99,12 +98,10 @@ func mailBodyFuncMap() template.FuncMap {
 			return setting.AppURL
 		},
 		"AppDomain": func() string {
-			return setting.Domain
+			return setting.AppDomain
 		},
 	}
 }
-
-var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}\s*$`)
 
 func newMailRenderer() (*MailRender, error) {
 	subjectTemplates := texttmpl.New("")
@@ -155,7 +152,7 @@ func newMailRenderer() (*MailRender, error) {
 			}
 			var subjectContent []byte
 			bodyContent := content
-			loc := mailSubjectSplit.FindIndex(content)
+			loc := globalVars().mailSubjectSplit.FindIndex(content)
 			if loc != nil {
 				subjectContent, bodyContent = content[0:loc[0]], content[loc[1]:]
 			}

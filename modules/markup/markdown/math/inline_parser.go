@@ -91,6 +91,7 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 	} else {
 		startMarkLen = 2
 		stopMark = parser.endBytesParentheses
+		checkSurrounding = false // explicit delimiters like "$`...`$", adjacent text is unambiguous
 	}
 
 	if line[0] == '$' && !parser.enableInlineDollar && (len(line) == 1 || line[1] != '`') {

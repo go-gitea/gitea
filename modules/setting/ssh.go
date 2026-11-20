@@ -93,19 +93,15 @@ func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {
 }
 
 func loadSSHFrom(rootCfg ConfigProvider) {
-	sec := rootCfg.Section("server")
-	if len(SSH.Domain) == 0 {
-		SSH.Domain = Domain
-	}
-
 	homeDir, err := util.HomeDir()
 	if err != nil {
 		log.Fatal("Failed to get home directory: %v", err)
 	}
 	homeDir = strings.ReplaceAll(homeDir, "\\", "/")
-
 	SSH.RootPath = filepath.Join(homeDir, ".ssh")
+	SSH.Domain = AppDomain
 
+	sec := rootCfg.Section("server")
 	if err = sec.MapTo(&SSH); err != nil {
 		log.Fatal("Failed to map SSH settings: %v", err)
 	}

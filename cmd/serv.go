@@ -195,12 +195,10 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	}
 
 	if len(sshCmdArgs) < 2 {
-		if git.DefaultFeatures().SupportProcReceive {
-			// for AGit Flow
-			if cmd == "ssh_info" {
-				cprintf(c, "%s", agit.SshInfoJson)
-				return nil
-			}
+		// for AGit Flow
+		if cmd == "ssh_info" {
+			cprintf(c, "%s", agit.SshInfoJson)
+			return nil
 		}
 		return fail(ctx, "Too few arguments", "Too few arguments in cmd: %s", cmd)
 	}
@@ -343,8 +341,8 @@ func runServ(ctx context.Context, c *cli.Command) error {
 
 	// Update user key activity.
 	if results.PublicKeyID > 0 {
-		if err = private.UpdatePublicKeyInRepo(ctx, results.PublicKeyID, results.RepoID); err != nil {
-			return fail(ctx, "Failed to update public key", "UpdatePublicKeyInRepo: %v", err)
+		if err = private.UpdatePublicKeyLastUsed(ctx, results.PublicKeyID, results.RepoID); err != nil {
+			return fail(ctx, "Failed to update public key", "UpdatePublicKeyLastUsed: %v", err)
 		}
 	}
 

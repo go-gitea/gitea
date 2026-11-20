@@ -85,12 +85,6 @@
   padding: 8px;
 }
 
-.issue-content-right .ui.list.labels-list {
-  display: flex;
-  gap: var(--gap-inline);
-  flex-wrap: wrap;
-}
-
 .issue-content-right .empty-list {
   font-size: 12px;
 }
@@ -159,25 +153,8 @@
   font-size: 1em;
 }
 
-.non-diff-file-content .header .file-actions .btn-octicon {
-  line-height: var(--line-height-default);
+.non-diff-file-content .header .file-actions .btn {
   padding: 8px;
-  vertical-align: middle;
-  color: var(--color-text);
-}
-
-.non-diff-file-content .header .file-actions .btn-octicon:hover {
-  color: var(--color-primary);
-}
-
-.non-diff-file-content .header .file-actions .btn-octicon-danger:hover {
-  color: var(--color-red);
-}
-
-.non-diff-file-content .header .file-actions .btn-octicon.disabled {
-  color: inherit;
-  opacity: var(--opacity-disabled);
-  cursor: default;
 }
 
 .non-diff-file-content .plain-text {
@@ -620,10 +597,6 @@
   min-width: 0;
 }
 
-.repository .comment.form .content .field:first-child {
-  clear: none;
-}
-
 .repository.new.milestone textarea {
   height: 200px;
 }
@@ -952,16 +925,6 @@
   font-style: italic;
 }
 
-.repository.settings.webhook .events .column {
-  padding-bottom: 0;
-}
-
-.repository.settings.webhook .events .help {
-  font-size: 13px;
-  margin-left: 26px;
-  padding-top: 0;
-}
-
 .repository .repository-summary {
   box-shadow: none;
 }
@@ -990,24 +953,13 @@
   background: var(--color-secondary);
 }
 
-#cite-repo-modal #citation-panel {
-  display: flex;
-  width: 100%;
-}
-
-#cite-repo-modal #citation-panel input {
-  border-radius: 0;
-  padding: 5px 10px;
-  width: 50%;
-  line-height: 1.4;
-}
-
-#cite-repo-modal #citation-panel .citation.button {
+#cite-repo-modal .citation.button {
   font-size: 13px;
   padding: 7.5px 5px;
+  border-right: none;
 }
 
-#cite-repo-modal #citation-panel #citation-copy-content {
+#cite-repo-modal input {
   border-radius: 0;
   padding: 5px 10px;
   font-size: 1.2em;
@@ -1015,55 +967,35 @@
   flex: 1;
 }
 
-#cite-repo-modal #citation-panel #citation-copy-apa,
-#cite-repo-modal #citation-panel #citation-copy-bibtex {
-  border-right: none;
-}
-
-#cite-repo-modal #citation-panel #goto-citation-btn {
+#cite-repo-modal .jump.button {
   border-left: none;
 }
 
-#cite-repo-modal #citation-panel > :first-child {
+#cite-repo-modal .action.input > :first-child {
   border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
 }
 
-#cite-repo-modal #citation-panel > :last-child {
+#cite-repo-modal .action.input > :last-child {
   border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
 }
 
-#cite-repo-modal #citation-panel .icon.button {
+#cite-repo-modal .icon.button {
   padding: 0 10px;
 }
 
-.user-cards .list {
+.user-cards > ul {
+  margin: 0;
   padding: 0;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(400px, 100%), 1fr));
+  gap: var(--gap-block);
 }
 
-.user-cards .list .item {
+.user-cards > ul > li.ui.segment {
+  margin: 0;
   list-style: none;
-  width: 32%;
-  margin: 10px 10px 10px 0;
-  padding-bottom: 14px;
-  float: left;
-}
-
-.user-cards .list .item .avatar {
-  float: left;
-  display: block;
-  margin-right: 10px;
-}
-
-.user-cards .list .item .name {
-  margin-top: 0;
-  margin-bottom: 0;
-  font-weight: var(--font-weight-normal);
-}
-
-.user-cards .list .item .meta {
-  margin-top: 5px;
+  display: flex;
+  gap: var(--gap-block);
 }
 
 #search-user-box .results .result .image {
@@ -1553,11 +1485,6 @@ tbody.commit-list {
   height: 100%;
 }
 
-.ui.form .right .ui.button {
-  margin-left: 0.25em;
-  margin-right: 0;
-}
-
 .removed-code {
   color: var(--color-text);
   background: var(--color-diff-removed-word-bg);
@@ -1631,10 +1558,9 @@ tbody.commit-list {
 }
 
 .migrate-entries {
-  display: grid !important;
+  display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 25px;
-  margin: 0 !important;
 }
 
 @media (max-width: 767.98px) {
@@ -1643,18 +1569,25 @@ tbody.commit-list {
   }
 }
 
-.migrate-entry {
-  transition: all 0.1s ease-in-out;
-  box-shadow: none !important;
-  border: 1px solid var(--color-secondary);
-  color: var(--color-text) !important;
-  width: auto !important;
-  margin: 0 !important;
+.migrate-entry.ui.button {
+  flex-direction: column;
+  padding: 0;
+  margin: 0;
+  gap: 0;
+  white-space: normal;
+  line-height: var(--line-height-default);
 }
 
-.migrate-entry:hover {
-  transform: scale(105%);
-  box-shadow: 0 0.5rem 1rem var(--color-shadow) !important;
+.migrate-entry-content {
+  align-self: stretch;
+  padding: 1em;
+  border-top: 1px solid var(--color-light-border);
+}
+
+.migrate-entry-title {
+  font-size: 18px;
+  font-weight: var(--font-weight-medium);
+  margin-bottom: 0.5em;
 }
 
 @media (max-width: 767.98px) {
@@ -1687,14 +1620,13 @@ tbody.commit-list {
 }
 
 .commit-status-list {
-  max-height: 240px; /* fit exactly 6 items, commit-status-item.height * 6 */
+  max-height: 228px; /* fit exactly 6 items, commit-status-item.height * 6 */
   overflow-x: hidden;
-  transition: max-height .2s;
   width: 100%;
 }
 
-.commit-status-item { /* the item is used in the PR merge box and the commit status popup, both are commit-status-list */
-  height: 40px;
+.commit-status-item { /* the item is used in the PR merge box and the commit status popup */
+  height: 38px;
   padding-top: 0 !important; /* use "height" + "align items center", don't use padding-y (from the list container) to layout */
   padding-bottom: 0 !important;
   display: flex;
@@ -1752,7 +1684,6 @@ tbody.commit-list {
 .branch-selector-dropdown .ui.button.branch-dropdown-button {
   margin: 0;
   max-width: 340px;
-  line-height: var(--line-height-default);
   padding: 0 0.5em 0 0.75em;
 }
 

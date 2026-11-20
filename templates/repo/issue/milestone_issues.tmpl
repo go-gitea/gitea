@@ -1,44 +1,46 @@
 {{template "base/head" .}}
+{{$milestone := $.Milestone}}
+{{$repoLink := $.RepoLink}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository milestone-issue-list">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<div class="flex-text-block tw-flex-wrap tw-mb-2">
-			<h1 class="tw-flex-1 tw-m-0">{{.Milestone.Name}}</h1>
+			<h1 class="tw-flex-1 tw-m-0">{{$milestone.Name}}</h1>
 			{{if not .Repository.IsArchived}}
 				<div>
 					{{if or .CanWriteIssues .CanWritePulls}}
-						{{if .Milestone.IsClosed}}
-							<a class="ui primary basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.MilestoneID}}/open">{{ctx.Locale.Tr "repo.milestones.open"}}
+						{{if $milestone.IsClosed}}
+							<a class="ui primary basic button link-action" href data-url="{{$repoLink}}/milestones/{{$milestone.ID}}/open">{{ctx.Locale.Tr "repo.milestones.open"}}
 							</a>
 						{{else}}
-							<a class="ui red basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.MilestoneID}}/close">{{ctx.Locale.Tr "repo.milestones.close"}}
+							<a class="ui red basic button link-action" href data-url="{{$repoLink}}/milestones/{{$milestone.ID}}/close">{{ctx.Locale.Tr "repo.milestones.close"}}
 							</a>
 						{{end}}
-						<a class="ui button" href="{{.RepoLink}}/milestones/{{.MilestoneID}}/edit">{{ctx.Locale.Tr "repo.milestones.edit"}}</a>
+						<a class="ui button" href="{{$repoLink}}/milestones/{{$milestone.ID}}/edit">{{ctx.Locale.Tr "repo.milestones.edit"}}</a>
 					{{end}}
-					<a class="ui primary button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}?milestone={{.MilestoneID}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
+					<a class="ui primary button" href="{{$repoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}?milestone={{$milestone.ID}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
 				</div>
 			{{end}}
 		</div>
-		{{if .Milestone.RenderedContent}}
+		{{if $milestone.RenderedContent}}
 		<div class="render-content markup tw-mb-4">
-				{{.Milestone.RenderedContent}}
+				{{$milestone.RenderedContent}}
 		</div>
 		{{end}}
 		<div class="tw-flex tw-flex-col tw-gap-2">
-			<progress class="milestone-progress-big" value="{{.Milestone.Completeness}}" max="100"></progress>
+			<progress class="milestone-progress-big" value="{{$milestone.Completeness}}" max="100"></progress>
 			<div class="flex-text-block tw-gap-4">
 				<div class="flex-text-inline">
-					{{$closedDate:= DateUtils.TimeSince .Milestone.ClosedDateUnix}}
-					{{if .IsClosed}}
+					{{$closedDate:= DateUtils.TimeSince $milestone.ClosedDateUnix}}
+					{{if $milestone.IsClosed}}
 						{{svg "octicon-clock"}} {{ctx.Locale.Tr "repo.milestones.closed" $closedDate}}
 					{{else}}
 
-						{{if .Milestone.DeadlineString}}
-							<span{{if .IsOverdue}} class="tw-text-red"{{end}}>
+						{{if $milestone.DeadlineString}}
+							<span{{if $milestone.IsOverdue}} class="tw-text-red"{{end}}>
 								{{svg "octicon-calendar"}}
-								{{DateUtils.AbsoluteShort (.Milestone.DeadlineString|DateUtils.ParseLegacy)}}
+								{{DateUtils.AbsoluteShort ($milestone.DeadlineString|DateUtils.ParseLegacy)}}
 							</span>
 						{{else}}
 							{{svg "octicon-calendar"}}
@@ -46,7 +48,7 @@
 						{{end}}
 					{{end}}
 				</div>
-				<div>{{ctx.Locale.Tr "repo.milestones.completeness" .Milestone.Completeness}}</div>
+				<div>{{ctx.Locale.Tr "repo.milestones.completeness" $milestone.Completeness}}</div>
 				{{if .TotalTrackedTime}}
 					<div data-tooltip-content='{{ctx.Locale.Tr "tracked_time_summary"}}'>
 						{{svg "octicon-clock"}}
@@ -59,7 +61,7 @@
 
 		{{template "repo/issue/filters" .}}
 
-		{{template "shared/issuelist" dict "." . "listType" "milestone"}}
+		{{template "shared/issuelist" dict "listType" "milestone"}}
 	</div>
 </div>
 {{template "base/footer" .}}

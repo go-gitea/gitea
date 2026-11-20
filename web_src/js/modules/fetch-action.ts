@@ -68,7 +68,7 @@ function toggleLoadingIndicator(el: HTMLElement, opt: FetchActionOpts, isLoading
   }
 }
 
-export async function handleFetchActionSuccessJson(el: HTMLElement, respJson: {redirect?: unknown} | null) {
+export function handleFetchActionSuccessJson(el: HTMLElement, respJson: {redirect?: unknown} | null) {
   ignoreAreYouSure(el); // ignore the areYouSure check before reloading
   const redirect = respJson?.redirect;
   if (typeof redirect === 'string' && redirect) {
@@ -84,7 +84,7 @@ async function handleFetchActionSuccess(el: HTMLElement, opt: FetchActionOpts, r
   const respText = await resp.text();
   const respJson = isRespJson ? JSON.parse(respText) : null;
   if (isRespJson) {
-    await handleFetchActionSuccessJson(el, respJson);
+    handleFetchActionSuccessJson(el, respJson);
   } else if (opt.successSync) {
     await handleFetchActionSuccessSync(el, opt.successSync, respText);
   } else {
@@ -123,7 +123,9 @@ async function handleFetchActionError(el: HTMLElement, resp: Response) {
   const isRespJson = resp.headers.get('content-type')?.includes('application/json');
   const respText = await resp.text();
   const respJson = isRespJson ? JSON.parse(respText) : null;
-  if (respJson?.errorMessage) {
+  if (respJson?.redirect) {
+    fetchActionDoRedirect(respJson.redirect);
+  } else if (respJson?.errorMessage) {
     // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
     // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
     showErrorToast(respJson.errorMessage, {useHtmlBody: respJson.renderFormat === 'html'});
@@ -231,10 +233,10 @@ export async function submitFormFetchAction(elForm: HTMLFormElement, opts: Submi
 }
 
 async function confirmFetchAction(el: HTMLElement) {
-  let elModal: HTMLElement | null = null;
+  let elModal: HTMLDialogElement | null = null;
   const dataModalConfirm = el.getAttribute('data-modal-confirm') || '';
   if (dataModalConfirm.startsWith('#') && dataModalConfirm.length > 1) {
-    elModal = document.querySelector<HTMLElement>(`#${CSS.escape(dataModalConfirm.substring(1))}`);
+    elModal = document.querySelector<HTMLDialogElement>(`#${CSS.escape(dataModalConfirm.substring(1))}`);
     if (elModal) {
       elModal = createElementFromHTML(elModal.outerHTML);
       elModal.removeAttribute('id');
@@ -324,13 +326,21 @@ async function handleFetchActionSuccessSync(el: Element, successSync: string, re
   if (res.targets.length > 1) throw new Error(`Fetch-sync command "${successSync}" found multiple target elements, which is not supported`);
   const target = res.targets[0];
   if (res.cmdMorph) {
-    Idiomorph.morph(target, respText, {morphStyle: res.cmdInnerHTML ? 'innerHTML' : 'outerHTML'});
+    morphByResult(target, res, respText);
   } else if (res.cmdInnerHTML) {
     target.innerHTML = respText;
   } else {
     target.outerHTML = respText;
   }
   await fetchActionReloadOutdatedElements();
+}
+
+function morphByResult(target: Element, res: PseudoSelectorCommandResult, respText: string) {
+  const respElem = createElementFromHTML(respText);
+  if (respElem.querySelector('.modal-dialog')) {
+    throw new Error(`Morph with embedded modal dialog is not supported, please use "template" to wrap the dialog.`);
+  }
+  Idiomorph.morph(target, respElem, {morphStyle: res.cmdInnerHTML ? 'innerHTML' : 'outerHTML'});
 }
 
 async function fetchActionReloadOutdatedElements() {
@@ -420,8 +430,8 @@ export function initGlobalFetchAction() {
   //   "$" prefix means it is our private command (for special logic), the selectors are run one by one from current element.
   //   * "$this": replace the current element with the response
   //   * "$innerHTML": replace innerHTML of the current element with the response, instead of replacing the whole element (outerHTML)
-  //   * "$morph": use morph algorithm to update the target element
-  //   * "$body #the-id .the-class": query the selector one by one from body
+  //   * "$morph": use morph algorithm to update the target element by the returned (single) element
+  //   * "$body .the-class": query the selector one by one from body
   //   * "$closest(tr) td": pseudo command can help to find the target element in a more flexible way
   //
   // * data-modal-confirm: a "confirm modal dialog" will be shown before taking action.

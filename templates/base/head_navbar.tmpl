@@ -1,17 +1,11 @@
 <nav id="navbar" aria-label="{{ctx.Locale.Tr "aria.navbar"}}">
-	<div class="navbar-left">
-		<!-- the logo -->
-		<a class="item" id="navbar-logo" href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{ctx.Locale.Tr "dashboard"}}{{else}}{{ctx.Locale.Tr "home_title"}}{{end}}">
-			<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}" aria-hidden="true">
-		</a>
+	<a class="item" id="navbar-logo" href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{ctx.Locale.Tr "dashboard"}}{{else}}{{ctx.Locale.Tr "home_title"}}{{end}}">
+		<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}" aria-hidden="true">
+	</a>
 
-		<!-- mobile right menu, it must be here because in mobile view, each item is a flex column, the first item is a full row column -->
-		<div class="ui secondary menu navbar-mobile-right only-mobile">
-			{{template "base/head_navbar_icons" dict "PageGlobalData" .PageGlobalData}}
-			<button type="button" class="item ui icon mini button tw-m-0" id="navbar-expand-toggle" aria-label="{{ctx.Locale.Tr "home.nav_menu"}}">{{svg "octicon-three-bars"}}</button>
-		</div>
+	<button type="button" class="item btn only-mobile" id="navbar-expand-toggle" aria-label="{{ctx.Locale.Tr "home.nav_menu"}}">{{svg "octicon-three-bars"}}</button>
 
-		<!-- navbar links non-mobile -->
+	<div class="navbar-list navbar-left">
 		{{if and .IsSigned .MustChangePassword}}
 			{{/* No links */}}
 		{{else if .IsSigned}}
@@ -40,12 +34,13 @@
 		{{end}}
 	</div>
 
-	<!-- the full dropdown menus -->
-	<div class="navbar-right">
+	{{template "base/head_navbar_icons"}}
+
+	<div class="navbar-list navbar-right">
 		{{if and .IsSigned .MustChangePassword}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
-				<span class="text">
-					{{ctx.AvatarUtils.Avatar .SignedUser 24 "tw-mr-1"}}
+				<span class="flex-text-block">
+					{{ctx.AvatarUtils.Avatar .SignedUser 24}}
 					<span class="only-mobile">{{.SignedUser.Name}}</span>
 					<span class="not-mobile flex-text-block">{{svg "octicon-triangle-down"}}</span>
 				</span>
@@ -62,7 +57,6 @@
 				</div><!-- end content avatar menu -->
 			</div><!-- end dropdown avatar menu -->
 		{{else if .IsSigned}}
-			{{template "base/head_navbar_icons" dict "ItemExtraClass" "not-mobile" "PageGlobalData" .PageGlobalData}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "create_new"}}">
 				<span class="flex-text-block">
 					{{svg "octicon-plus"}}
@@ -149,33 +143,6 @@
 				<span class="tw-ml-1">{{ctx.Locale.Tr "sign_in"}}</span>
 			</a>
 		{{end}}
-	</div><!-- end full right menu -->
-
-	{{$activeStopwatch := and .PageGlobalData (call .PageGlobalData.GetActiveStopwatch)}}
-	{{/* always rendered so the Tippy popup has content to clone if the icon appears via a real-time push */}}
-	<div class="active-stopwatch-popup tippy-target">
-		<div class="flex-text-block tw-p-3">
-			<a class="stopwatch-link flex-text-block muted" {{if $activeStopwatch}}href="{{$activeStopwatch.IssueLink}}"{{end}}>
-				{{svg "octicon-issue-opened" 16}}
-				<span class="stopwatch-issue">{{if $activeStopwatch}}{{$activeStopwatch.RepoSlug}}#{{$activeStopwatch.IssueIndex}}{{end}}</span>
-			</a>
-			<div class="tw-flex tw-gap-1">
-				<form class="stopwatch-commit form-fetch-action" method="post" {{if $activeStopwatch}}action="{{$activeStopwatch.IssueLink}}/times/stopwatch/stop"{{end}}>
-					<button
-						type="submit"
-						class="ui button mini compact basic icon tw-mr-0"
-						data-tooltip-content="{{ctx.Locale.Tr "repo.issues.stop_tracking"}}"
-					>{{svg "octicon-square-fill"}}</button>
-				</form>
-				<form class="stopwatch-cancel form-fetch-action" method="post" {{if $activeStopwatch}}action="{{$activeStopwatch.IssueLink}}/times/stopwatch/cancel"{{end}}>
-					<button
-						type="submit"
-						class="ui button mini compact basic icon tw-mr-0"
-						data-tooltip-content="{{ctx.Locale.Tr "repo.issues.cancel_tracking"}}"
-					>{{svg "octicon-trash"}}</button>
-				</form>
-			</div>
-		</div>
 	</div>
 </nav>
 {{template "base/head_impersonate_banner"}}

@@ -13,20 +13,19 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	user_model "gitea.dev/models/user"
 	webhook_model "gitea.dev/models/webhook"
-	"gitea.dev/modules/glob"
+	"gitea.dev/modules/egress"
+	"gitea.dev/modules/egress/policy"
 	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/hostmatcher"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
-	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
@@ -214,6 +213,10 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 
 	// All code from this point will update the hook task
 	defer func() {
+		if ctx.Err() != nil {
+			return // when shutdown, no need to update the database
+		}
+
 		t.Delivered = timeutil.TimeStampNanoNow()
 		if t.IsSucceed {
 			log.Trace("Hook delivered: %s", t.UUID)
@@ -251,6 +254,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	resp, err := webhookHTTPClient.Do(req.WithContext(ctx))
 	if err != nil {
 		t.ResponseInfo.Body = fmt.Sprintf("Delivery: %v", err)
+		t.ResponseInfo.ErrorType = deliveryErrorType(err)
 		return fmt.Errorf("unable to deliver webhook task[%d] in %s due to error in http client: %w", t.ID, w.URL, err)
 	}
 	defer resp.Body.Close()
@@ -271,52 +275,32 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	return nil
 }
 
-var (
-	webhookHTTPClient *http.Client
-	once              sync.Once
-	hostMatchers      []glob.Glob
-)
-
-func webhookProxy(allowList *hostmatcher.HostMatchList) func(req *http.Request) (*url.URL, error) {
-	if setting.Webhook.ProxyURL == "" {
-		return proxy.Proxy()
+func deliveryErrorType(err error) webhook_model.HookDeliveryError {
+	if errors.Is(err, policy.ErrDenied) {
+		return webhook_model.HookDeliveryErrorBlocked
 	}
-
-	once.Do(func() {
-		for _, h := range setting.Webhook.ProxyHosts {
-			if g, err := glob.Compile(h); err == nil {
-				hostMatchers = append(hostMatchers, g)
-			} else {
-				log.Error("glob.Compile %s failed: %v", h, err)
-			}
-		}
-	})
-
-	return func(req *http.Request) (*url.URL, error) {
-		for _, v := range hostMatchers {
-			if v.Match(req.URL.Host) {
-				if !allowList.MatchHostName(req.URL.Host) {
-					return nil, fmt.Errorf("webhook can only call allowed HTTP servers (check your %s setting), deny '%s'", allowList.SettingKeyHint, req.URL.Host)
-				}
-				return http.ProxyURL(setting.Webhook.ProxyURLFixed)(req)
-			}
-		}
-		return http.ProxyFromEnvironment(req)
+	if netErr, ok := errors.AsType[net.Error](err); ok && netErr.Timeout() {
+		return webhook_model.HookDeliveryErrorTimeout
 	}
+	if _, ok := errors.AsType[*net.OpError](err); ok {
+		return webhook_model.HookDeliveryErrorConnection
+	}
+	if errors.Is(err, context.Canceled) {
+		return webhook_model.HookDeliveryErrorUnknown
+	}
+	setting.PanicInDevOrTesting("Unknown error type in webhook delivery: %v", err)
+	return webhook_model.HookDeliveryErrorUnknown
 }
+
+var webhookHTTPClient *http.Client
 
 // Init starts the hooks delivery thread
 func Init() error {
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
-	allowedHostMatcher := hostmatcher.ParseHostMatchList("security.ALLOWED_HOST_LIST", setting.Webhook.AllowedHostList)
 
-	// NewHTTPTransport enforces the allow-list on direct connections; when webhookProxy routes a request
-	// through a configured proxy, restricting the proxied target is the proxy server's responsibility.
-	webhookHTTPClient = &http.Client{
-		Timeout: timeout,
-		Transport: hostmatcher.NewHTTPTransport("webhook", allowedHostMatcher, nil, webhookProxy(allowedHostMatcher), setting.Webhook.ProxyURLFixed,
-			&tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify}),
-	}
+	transport := egress.NewWebhookPolicy().NewHTTPTransport()
+	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify}
+	webhookHTTPClient = &http.Client{Timeout: timeout, Transport: transport}
 
 	hookQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "webhook_sender", handler)
 	if hookQueue == nil {

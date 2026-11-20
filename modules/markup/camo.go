@@ -23,20 +23,16 @@ func CamoEncode(link string) string {
 
 	mac := hmac.New(sha1.New, []byte(setting.Camo.HMACKey))
 	_, _ = mac.Write([]byte(link)) // hmac does not return errors
-	macSum := b64encode(mac.Sum(nil))
-	encodedURL := b64encode([]byte(link))
+	macSum := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+	encodedURL := base64.RawURLEncoding.EncodeToString([]byte(link))
 
 	return strings.TrimSuffix(setting.Camo.ServerURL, "/") + "/" + macSum + "/" + encodedURL
-}
-
-func b64encode(data []byte) string {
-	return strings.TrimRight(base64.URLEncoding.EncodeToString(data), "=")
 }
 
 func camoHandleLink(link string) string {
 	if setting.Camo.Enabled {
 		lnkURL, err := url.Parse(link)
-		if err == nil && lnkURL.IsAbs() && !strings.HasPrefix(link, setting.AppURL) &&
+		if err == nil && (lnkURL.Scheme == "http" || lnkURL.Scheme == "https") && !strings.HasPrefix(link, setting.AppURL) &&
 			(setting.Camo.Always || lnkURL.Scheme != "https") {
 			return CamoEncode(link)
 		}

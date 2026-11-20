@@ -5,8 +5,11 @@
 package admin
 
 import (
+	"maps"
 	"net/http"
+	"slices"
 
+	audit_model "gitea.dev/models/audit"
 	system_model "gitea.dev/models/system"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
@@ -16,10 +19,9 @@ import (
 	"gitea.dev/modules/setting/config"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/mailer"
-
-	"gitea.com/go-chi/session"
 )
 
 const (
@@ -93,20 +95,6 @@ func Config(ctx *context.Context) {
 	ctx.Data["CacheItemTTL"] = setting.CacheService.TTL
 
 	sessionCfg := setting.SessionConfig
-	if sessionCfg.Provider == "VirtualSession" {
-		var realSession session.Options
-		if err := json.Unmarshal([]byte(sessionCfg.ProviderConfig), &realSession); err != nil {
-			log.Error("Unable to unmarshall session config for virtual provider config: %s\nError: %v", sessionCfg.ProviderConfig, err)
-		}
-		sessionCfg.Provider = realSession.Provider
-		sessionCfg.ProviderConfig = realSession.ProviderConfig
-		sessionCfg.CookieName = realSession.CookieName
-		sessionCfg.CookiePath = realSession.CookiePath
-		sessionCfg.Gclifetime = realSession.Gclifetime
-		sessionCfg.Maxlifetime = realSession.Maxlifetime
-		sessionCfg.Secure = realSession.Secure
-		sessionCfg.Domain = realSession.Domain
-	}
 	sessionCfg.ProviderConfig = ""
 	ctx.Data["SessionConfig"] = sessionCfg
 
@@ -168,9 +156,19 @@ loop:
 	if ctx.Written() {
 		return
 	}
-	if err := system_model.SetSettings(ctx, configSettings); err != nil {
-		ctx.ServerError("SetSettings", err)
+	_, oldSettings, err := system_model.GetAllSettings(ctx)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
 		return
+	}
+	if err := system_model.SetSettings(ctx, configSettings); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	for _, key := range slices.Sorted(maps.Keys(configSettings)) {
+		if configSettings[key] != oldSettings[key] {
+			audit.Record(ctx, audit_model.SystemConfigUpdate, nil, "key", key)
+		}
 	}
 	config.GetDynGetter().InvalidateCache()
 	ctx.JSONOK()

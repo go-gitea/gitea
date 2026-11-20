@@ -4,13 +4,7 @@
 import rule from './unescaped-html-literal.ts';
 import {RuleTester} from 'eslint';
 
-class VitestRuleTester extends RuleTester {
-  static describe = describe;
-  static it = it;
-  static itOnly = it.only;
-}
-
-const ruleTester = new VitestRuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run('unescaped-html-literal', rule, {
   valid: [
@@ -32,6 +26,10 @@ ruleTester.run('unescaped-html-literal', rule, {
     },
     {
       code: 'const helloTemplate = (name) => html`<div>Hello ${name}!</div>`;',
+      languageOptions: {ecmaVersion: 2017},
+    },
+    {
+      code: 'const attr = htmlRaw` width="${width}"`, img = htmlRaw`<img ${attr}>`, cmp = "a < b";',
       languageOptions: {ecmaVersion: 2017},
     },
   ],
@@ -67,6 +65,21 @@ ruleTester.run('unescaped-html-literal', rule, {
       code: 'const helloHTML = ` \n\t<div>Hello ${name}!</div>`',
       languageOptions: {ecmaVersion: 2017},
       errors: [
+        {
+          message: 'Unescaped HTML literal. Use html`` tag template literal for secure escaping.',
+        },
+      ],
+    },
+    {
+      code: "const rowHTML = `${cells}</tr>`, tailHTML = '</tbody>', textHTML = 'Hello <b>World</b>'",
+      languageOptions: {ecmaVersion: 2017},
+      errors: [
+        {
+          message: 'Unescaped HTML literal. Use html`` tag template literal for secure escaping.',
+        },
+        {
+          message: 'Unescaped HTML literal. Use html`` tag template literal for secure escaping.',
+        },
         {
           message: 'Unescaped HTML literal. Use html`` tag template literal for secure escaping.',
         },

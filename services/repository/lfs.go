@@ -14,6 +14,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 )
@@ -51,7 +52,10 @@ func GarbageCollectLFSMetaObjects(ctx context.Context, opts GarbageCollectLFSMet
 		if newMinimum := int64(float64(count) * opts.ProportionToCheckPerRepo); newMinimum > opts.NumberToCheckPerRepo && opts.NumberToCheckPerRepo != 0 {
 			opts.NumberToCheckPerRepo = newMinimum
 		}
-		return GarbageCollectLFSMetaObjectsForRepo(ctx, repo, opts)
+		if err := GarbageCollectLFSMetaObjectsForRepo(ctx, repo, opts); err != nil {
+			log.Error("Unable to garbage collect LFS meta objects in %-v: %v", repo, err)
+		}
+		return nil
 	})
 }
 
@@ -128,9 +132,15 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 
 	if err == errStop {
 		opts.LogDetail("Processing stopped at %d total LFSMetaObjects in %-v", total, repo)
-		return nil
 	} else if err != nil {
 		return err
 	}
+
+	if collected > 0 {
+		if err := repo_module.UpdateRepoSize(ctx, repo); err != nil {
+			return fmt.Errorf("unable to update size for %s: %w", repo.FullName(), err)
+		}
+	}
+
 	return nil
 }

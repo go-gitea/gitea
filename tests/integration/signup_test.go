@@ -9,12 +9,15 @@ import (
 	"strings"
 	"testing"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/translation"
+	"gitea.dev/routers"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -23,6 +26,7 @@ import (
 func TestSignup(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	defer test.MockVariableValue(&setting.Service.EnableCaptcha, false)()
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 
 	req := NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
 		"user_name": "exampleUser",
@@ -31,10 +35,40 @@ func TestSignup(t *testing.T) {
 		"retype":    "examplePassword!1",
 	})
 	MakeRequest(t, req, http.StatusSeeOther)
+	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.UserCreate, ActorName: "exampleUser", ScopeName: "exampleUser"})
 
 	// should be able to view new user's page
 	req = NewRequest(t, "GET", "/exampleUser")
 	MakeRequest(t, req, http.StatusOK)
+
+	t.Run("ImageCaptcha", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Service.EnableCaptcha, true)()
+		defer test.MockVariableValue(&setting.Service.CaptchaType, setting.ImageCaptcha)()
+		defer test.MockVariableValue(&testWebRoutes, routers.NormalRoutes())()
+
+		resp := MakeRequest(t, NewRequest(t, "GET", "/user/sign_up"), http.StatusOK)
+		captchaID := NewHTMLParser(t, resp.Body).GetInputValueByName("captcha_id")
+		resp = MakeRequest(t, NewRequest(t, "GET", "/captcha?id="+captchaID), http.StatusOK)
+		assert.Equal(t, "image/png", resp.Header().Get("Content-Type"))
+		assert.Equal(t, "no-store", resp.Header().Get("Cache-Control"))
+
+		values := map[string]string{
+			"user_name":  "captchaUser",
+			"email":      "captchaUser@example.com",
+			"password":   "examplePassword!1",
+			"retype":     "examplePassword!1",
+			"captcha_id": captchaID,
+			"captcha":    "wrong",
+		}
+		resp = MakeRequest(t, NewRequestWithValues(t, "POST", "/user/sign_up", values), http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.Equal(t, translation.NewLocale("en-US").TrString("form.captcha_incorrect"), strings.TrimSpace(htmlDoc.Find(".ui.message").Text()))
+
+		values["captcha_id"] = htmlDoc.GetInputValueByName("captcha_id")
+		captchaCode, _ := cache.GetCache().Get("captcha_" + values["captcha_id"])
+		values["captcha"] = captchaCode
+		MakeRequest(t, NewRequestWithValues(t, "POST", "/user/sign_up", values), http.StatusSeeOther)
+	})
 }
 
 func TestSignupAsRestricted(t *testing.T) {
@@ -94,6 +128,7 @@ func TestSignupEmailValidation(t *testing.T) {
 func TestSignupEmailActive(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	defer test.MockVariableValue(&setting.Service.RegisterEmailConfirm, true)()
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 
 	// try to sign up and send the activation email
 	req := NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
@@ -121,6 +156,7 @@ func TestSignupEmailActive(t *testing.T) {
 	email := unittest.AssertExistsAndLoadBean(t, &user_model.EmailAddress{Email: "email-changed@example.com"})
 	assert.False(t, email.IsActivated)
 	assert.True(t, email.IsPrimary)
+	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.UserEmailPrimaryChange, ScopeID: user.ID})
 
 	// generate an activation code from lower-cased email
 	activationCode := user_model.GenerateUserTimeLimitCode(&user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeActivateAccount}, user)
@@ -153,4 +189,5 @@ func TestSignupEmailActive(t *testing.T) {
 	assert.Equal(t, "/", test.RedirectURL(resp))
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "Test-User-1"})
 	assert.True(t, user.IsActive)
+	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.UserActive, ScopeID: user.ID, ActorID: user.ID})
 }

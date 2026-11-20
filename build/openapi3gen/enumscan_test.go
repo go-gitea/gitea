@@ -33,9 +33,17 @@ func TestEnumKey_handlesNonStringValues(t *testing.T) {
 	}
 }
 
-func TestScanSwaggerEnumTypes_basic(t *testing.T) {
-	dir := t.TempDir()
-	src := `package fixture
+func TestScanSwaggerEnumTypes(t *testing.T) {
+	scan := func(t *testing.T, filename, src string) (map[string][]string, error) {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, filename), []byte(src), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return ScanSwaggerEnumTypes([]string{dir})
+	}
+
+	t.Run("basic", func(t *testing.T) {
+		got, err := scan(t, "color.go", `package fixture
 
 // Color is a primary color.
 // swagger:enum Color
@@ -46,24 +54,18 @@ const (
 	ColorGreen Color = "green"
 	ColorBlue  Color = "blue"
 )
-`
-	if err := os.WriteFile(filepath.Join(dir, "color.go"), []byte(src), 0o644); err != nil {
-		t.Fatal(err)
-	}
+`)
+		if err != nil {
+			t.Fatalf("ScanSwaggerEnumTypes: %v", err)
+		}
+		wantKey := EnumKey([]any{"red", "green", "blue"})
+		if single(got, wantKey) != "Color" {
+			t.Fatalf("map[%q] = %q, want %q", wantKey, got[wantKey], "Color")
+		}
+	})
 
-	got, err := ScanSwaggerEnumTypes([]string{dir})
-	if err != nil {
-		t.Fatalf("ScanSwaggerEnumTypes: %v", err)
-	}
-	wantKey := EnumKey([]any{"red", "green", "blue"})
-	if single(got, wantKey) != "Color" {
-		t.Fatalf("map[%q] = %q, want %q", wantKey, got[wantKey], "Color")
-	}
-}
-
-func TestScanSwaggerEnumTypes_orphanAnnotation(t *testing.T) {
-	dir := t.TempDir()
-	src := `package fixture
+	t.Run("orphanAnnotation", func(t *testing.T) {
+		_, err := scan(t, "typo.go", `package fixture
 
 // swagger:enum Sttype
 type StateType string
@@ -71,23 +73,17 @@ type StateType string
 const (
 	StateOpen StateType = "open"
 )
-`
-	if err := os.WriteFile(filepath.Join(dir, "typo.go"), []byte(src), 0o644); err != nil {
-		t.Fatal(err)
-	}
+`)
+		if err == nil {
+			t.Fatal("expected error for annotation referencing a non-matching type name")
+		}
+		if !strings.Contains(err.Error(), "Sttype") {
+			t.Fatalf("error %q should mention the typo'd name Sttype", err.Error())
+		}
+	})
 
-	_, err := ScanSwaggerEnumTypes([]string{dir})
-	if err == nil {
-		t.Fatal("expected error for annotation referencing a non-matching type name")
-	}
-	if !strings.Contains(err.Error(), "Sttype") {
-		t.Fatalf("error %q should mention the typo'd name Sttype", err.Error())
-	}
-}
-
-func TestScanSwaggerEnumTypes_collision(t *testing.T) {
-	dir := t.TempDir()
-	src := `package fixture
+	t.Run("collision", func(t *testing.T) {
+		got, err := scan(t, "dup.go", `package fixture
 
 // swagger:enum Alpha
 type Alpha string
@@ -102,52 +98,90 @@ const (
 	BetaX Beta = "x"
 	BetaY Beta = "y"
 )
-`
-	if err := os.WriteFile(filepath.Join(dir, "dup.go"), []byte(src), 0o644); err != nil {
-		t.Fatal(err)
-	}
+`)
+		if err != nil {
+			t.Fatalf("ScanSwaggerEnumTypes: %v", err)
+		}
+		key := EnumKey([]any{"x", "y"})
+		names := got[key]
+		if !slices.Equal(names, []string{"Alpha", "Beta"}) {
+			t.Fatalf("map[%q] = %v, want [Alpha Beta]", key, names)
+		}
+	})
 
-	got, err := ScanSwaggerEnumTypes([]string{dir})
-	if err != nil {
-		t.Fatalf("ScanSwaggerEnumTypes: %v", err)
-	}
-	key := EnumKey([]any{"x", "y"})
-	names := got[key]
-	if !slices.Equal(names, []string{"Alpha", "Beta"}) {
-		t.Fatalf("map[%q] = %v, want [Alpha Beta]", key, names)
-	}
-}
+	t.Run("parseFailure", func(t *testing.T) {
+		_, err := scan(t, "bad.go", "package fixture\nfunc Foo() {")
+		if err == nil {
+			t.Fatal("expected parse error, got nil")
+		}
+	})
 
-func TestScanSwaggerEnumTypes_parseFailure(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "bad.go"), []byte("package fixture\nfunc Foo() {"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	_, err := ScanSwaggerEnumTypes([]string{dir})
-	if err == nil {
-		t.Fatal("expected parse error, got nil")
-	}
-}
-
-func TestScanSwaggerEnumTypes_annotationWithoutConsts(t *testing.T) {
-	dir := t.TempDir()
-	src := `package fixture
+	t.Run("annotationWithoutConsts", func(t *testing.T) {
+		_, err := scan(t, "lonely.go", `package fixture
 
 // swagger:enum Lonely
 type Lonely string
-`
-	if err := os.WriteFile(filepath.Join(dir, "lonely.go"), []byte(src), 0o644); err != nil {
-		t.Fatal(err)
-	}
+`)
+		if err == nil {
+			t.Fatal("expected error for annotation without consts")
+		}
+		if !strings.Contains(err.Error(), "Lonely") {
+			t.Fatalf("error %q should mention Lonely", err.Error())
+		}
+	})
 
-	_, err := ScanSwaggerEnumTypes([]string{dir})
-	if err == nil {
-		t.Fatal("expected error for annotation without consts")
-	}
-	if !strings.Contains(err.Error(), "Lonely") {
-		t.Fatalf("error %q should mention Lonely", err.Error())
-	}
+	t.Run("constsBeforeType", func(t *testing.T) {
+		got, err := scan(t, "shade.go", `package fixture
+
+const (
+	ShadeDark  Shade = "dark"
+	ShadeLight Shade = "light"
+)
+
+// swagger:enum Shade
+type Shade string
+`)
+		if err != nil {
+			t.Fatalf("ScanSwaggerEnumTypes: %v", err)
+		}
+		wantKey := EnumKey([]any{"dark", "light"})
+		if single(got, wantKey) != "Shade" {
+			t.Fatalf("map[%q] = %q, want %q", wantKey, got[wantKey], "Shade")
+		}
+	})
+
+	t.Run("groupedTypeDecl", func(t *testing.T) {
+		got, err := scan(t, "grouped.go", `package fixture
+
+type (
+	// swagger:enum Color
+	Color string
+	// swagger:enum Shade
+	Shade string
+)
+
+const (
+	ColorRed  Color = "red"
+	ColorBlue Color = "blue"
+)
+
+const (
+	ShadeDark  Shade = "dark"
+	ShadeLight Shade = "light"
+)
+`)
+		if err != nil {
+			t.Fatalf("ScanSwaggerEnumTypes: %v", err)
+		}
+		colorKey := EnumKey([]any{"red", "blue"})
+		shadeKey := EnumKey([]any{"dark", "light"})
+		if single(got, colorKey) != "Color" {
+			t.Fatalf("Color: map[%q] = %q, want %q", colorKey, got[colorKey], "Color")
+		}
+		if single(got, shadeKey) != "Shade" {
+			t.Fatalf("Shade: map[%q] = %q, want %q", shadeKey, got[shadeKey], "Shade")
+		}
+	})
 }
 
 func TestScanSwaggerEnumTypes_constsAndTypeInDifferentFiles(t *testing.T) {
@@ -180,70 +214,5 @@ type Hue string
 	wantKey := EnumKey([]any{"a", "b"})
 	if single(got, wantKey) != "Hue" {
 		t.Fatalf("map[%q] = %q, want %q", wantKey, got[wantKey], "Hue")
-	}
-}
-
-func TestScanSwaggerEnumTypes_constsBeforeType(t *testing.T) {
-	dir := t.TempDir()
-	src := `package fixture
-
-const (
-	ShadeDark  Shade = "dark"
-	ShadeLight Shade = "light"
-)
-
-// swagger:enum Shade
-type Shade string
-`
-	if err := os.WriteFile(filepath.Join(dir, "shade.go"), []byte(src), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	got, err := ScanSwaggerEnumTypes([]string{dir})
-	if err != nil {
-		t.Fatalf("ScanSwaggerEnumTypes: %v", err)
-	}
-	wantKey := EnumKey([]any{"dark", "light"})
-	if single(got, wantKey) != "Shade" {
-		t.Fatalf("map[%q] = %q, want %q", wantKey, got[wantKey], "Shade")
-	}
-}
-
-func TestScanSwaggerEnumTypes_groupedTypeDecl(t *testing.T) {
-	dir := t.TempDir()
-	src := `package fixture
-
-type (
-	// swagger:enum Color
-	Color string
-	// swagger:enum Shade
-	Shade string
-)
-
-const (
-	ColorRed  Color = "red"
-	ColorBlue Color = "blue"
-)
-
-const (
-	ShadeDark  Shade = "dark"
-	ShadeLight Shade = "light"
-)
-`
-	if err := os.WriteFile(filepath.Join(dir, "grouped.go"), []byte(src), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	got, err := ScanSwaggerEnumTypes([]string{dir})
-	if err != nil {
-		t.Fatalf("ScanSwaggerEnumTypes: %v", err)
-	}
-	colorKey := EnumKey([]any{"red", "blue"})
-	shadeKey := EnumKey([]any{"dark", "light"})
-	if single(got, colorKey) != "Color" {
-		t.Fatalf("Color: map[%q] = %q, want %q", colorKey, got[colorKey], "Color")
-	}
-	if single(got, shadeKey) != "Shade" {
-		t.Fatalf("Shade: map[%q] = %q, want %q", shadeKey, got[shadeKey], "Shade")
 	}
 }

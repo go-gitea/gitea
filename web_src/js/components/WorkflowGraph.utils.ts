@@ -1,3 +1,4 @@
+import {cutString} from '../utils/string.ts';
 import type {ActionsJob, ActionsStatus} from '../modules/gitea-actions.ts';
 
 export type GraphNodeType = 'job' | 'matrix' | 'group';
@@ -89,10 +90,7 @@ function graphIdForJob(job: ActionsJob): string {
 
 // matrix legs are named `<job name> (<combination>)`; a workflow-provided `name:` may not be
 function matrixLabel(matrixJobs: ActionsJob[], jobId: string): string {
-  const prefixes = new Set(matrixJobs.map((job) => {
-    const idx = job.name.indexOf(' (');
-    return idx === -1 ? '' : job.name.slice(0, idx).trim();
-  }));
+  const prefixes = new Set(matrixJobs.map((job) => cutString(job.name, ' (')[0].trim()));
   const [prefix] = prefixes;
   return prefixes.size === 1 && prefix ? prefix : jobId;
 }
@@ -122,9 +120,10 @@ function compareStatusWorstFirst(a: ActionsStatus, b: ActionsStatus): number {
     if (s === 'running') return 2;
     if (s === 'waiting') return 3;
     if (s === 'blocked') return 4;
-    if (s === 'success') return 5;
-    if (s === 'skipped') return 6;
-    return 7;
+    if (s === 'pending') return 5;
+    if (s === 'success') return 6;
+    if (s === 'skipped') return 7;
+    return 8;
   };
   return rank(a) - rank(b);
 }

@@ -7,7 +7,6 @@ import (
 	"context"
 	"strings"
 
-	asymkey_model "gitea.dev/models/asymkey"
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
@@ -31,8 +30,8 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	}
 	sr := source.SearchEntry(loginName, password, source.AuthSource.Type == auth.DLDAP)
 	if sr == nil {
-		// User not in LDAP, do nothing
-		return nil, user_model.ErrUserNotExist{Name: loginName}
+		// User is not in LDAP database, or password is invalid (direct bind)
+		return nil, user_model.ErrUserNotExist{Name: loginName, ExtraMsg: "not in LDAP database or invalid password"}
 	}
 	// Fallback.
 	// FIXME: this fallback would cause problems when the "Username" attribute is not set and a user inputs their email.
@@ -77,7 +76,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	}
 
 	if user != nil {
-		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, user, source.AuthSource, sr.SSHPublicKey, source.SSHKeysAreVerified) {
+		if isAttributeSSHPublicKeySet && asymkey_service.SynchronizePublicKeys(ctx, user, source.AuthSource, sr.SSHPublicKey, source.SSHKeysAreVerified) {
 			if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 				return user, err
 			}
@@ -105,7 +104,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 
 		audit.Record(ctx, audit_model.UserCreate, user)
 
-		if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(ctx, user, source.AuthSource, sr.SSHPublicKey, source.SSHKeysAreVerified) {
+		if isAttributeSSHPublicKeySet && asymkey_service.AddPublicKeysBySource(ctx, user, source.AuthSource, sr.SSHPublicKey, source.SSHKeysAreVerified) {
 			if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 				return user, err
 			}

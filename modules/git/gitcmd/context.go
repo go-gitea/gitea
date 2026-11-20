@@ -27,6 +27,6 @@ func (c *cmdContext) CancelPipeline(err error) error {
 	// * context canceled by pipeline caller with/without error (normal cancellation)
 	// * context canceled by parent context (still context.Canceled error)
 	// * other causes
-	c.cmd.cmdCancel(pipelineError{err})
+	c.cmd.cmdCtxCancel(pipelineError{err})
 	return err
 }

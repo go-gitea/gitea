@@ -24,6 +24,7 @@ import (
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/automergequeue"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
@@ -67,36 +68,42 @@ func populateRecentAutoMergeItems(ctx context.Context) {
 	}
 }
 
-// ScheduleAutoMerge if schedule is false and no error, pull can be merged directly
-func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, style repo_model.MergeStyle, message string, deleteBranchAfterMerge bool) (scheduled bool, err error) {
-	err = db.WithTx(ctx, func(ctx context.Context) error {
+func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, style repo_model.MergeStyle, message string, deleteBranchAfterMerge bool) error {
+	err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message, deleteBranchAfterMerge); err != nil {
 			return err
 		}
-		_, err = issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRScheduledToAutoMerge, pull, doer)
+		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRScheduledToAutoMerge, pull, doer, string(style))
 		return err
 	})
-	// Old code made "scheduled" to be true after "ScheduleAutoMerge", but it's not right:
-	// If the transaction rolls back, then the pull request is not scheduled to auto merge.
-	// So we should only set "scheduled" to true if there is no error.
-	scheduled = err == nil
-	if scheduled {
+	if err == nil {
 		log.Trace("Pull request [%d] scheduled for auto merge with style [%s] and message [%s]", pull.ID, style, message)
+		pull_service.StartPullRequestCheckOnView(ctx, pull)
 		automergequeue.StartAutoMergeCheckByPullHead(ctx, pull)
 	}
-	return scheduled, err
+	return err
 }
 
-// RemoveScheduledAutoMerge cancels a previously scheduled pull request
-func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		if err := pull_model.DeleteScheduledAutoMerge(ctx, pull.ID); err != nil {
-			return err
-		}
+var ErrAutoMergeNotScheduled = util.NewNotExistErrorf("auto merge is not scheduled")
 
-		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer)
+func CancelScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, perm access_model.Permission) error {
+	exist, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
+	if err != nil {
 		return err
-	})
+	} else if !exist {
+		return ErrAutoMergeNotScheduled
+	}
+	if err := pull.LoadIssue(ctx); err != nil {
+		return err
+	}
+	if doer.ID != autoMerge.DoerID && !pull.Issue.IsPoster(doer.ID) {
+		if allowed, err := pull_service.IsUserAllowedToMerge(ctx, pull, perm, doer); err != nil {
+			return err
+		} else if !allowed {
+			return util.NewPermissionDeniedErrorf("user has no permission to cancel the scheduled auto merge")
+		}
+	}
+	return pull_service.RemoveScheduledAutoMerge(ctx, doer, pull, "")
 }
 
 var errSkipAutoMerge = errors.New("skip auto merge")
@@ -132,7 +139,7 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 	_ = pr.LoadIssue(ctx)
 	if (pr.Issue != nil && pr.Issue.IsClosed) || pr.HasMerged {
 		// if the PR has been closed or merged, delete the automerge record and skip
-		err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID)
+		_, err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID)
 		if err != nil {
 			return errors.Join(errSkipAutoMerge, err)
 		}
@@ -223,7 +230,7 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 
 	// although expectedHeadCommitID is checked before, we should pass it to the Merge function to
 	// make it be checked again in case the head commit id changed after the previous check.
-	if err := pull_service.Merge(pr, doer, scheduledPRM.MergeStyle, expectedHeadCommitID, scheduledPRM.Message, true); err != nil {
+	if err := pull_service.Merge(ctx, pr.ID, doer, scheduledPRM.MergeStyle, expectedHeadCommitID, scheduledPRM.Message, true); err != nil {
 		if pull_service.IsErrSHADoesNotMatch(err) {
 			return errors.Join(errSkipAutoMerge, err)
 		}

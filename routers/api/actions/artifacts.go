@@ -281,7 +281,7 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 		artifact.FileCompressedSize != chunksTotalSize {
 		artifact.FileSize = fileRealTotalSize
 		artifact.FileCompressedSize = chunksTotalSize
-		artifact.ContentEncodingOrType = ctx.Req.Header.Get("Content-Encoding")
+		artifact.ContentEncodingOrType = util.Iif(ctx.Req.Header.Get("Content-Encoding") == actions.ContentEncodingV3Gzip, actions.ContentEncodingV3Gzip, "") // other values could be served as a v4 Content-Type
 		if err := actions.UpdateArtifact(ctx, artifact, "file_size", "file_compressed_size", "content_encoding"); err != nil {
 			log.Error("Error update artifact: %v", err)
 			ctx.HTTPError(http.StatusInternalServerError, "Error update artifact")

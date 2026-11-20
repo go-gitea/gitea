@@ -8,36 +8,43 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 	"net/url"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/egress"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/hostmatcher"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 )
 
 // MigrateOptions is equal to base.MigrateOptions
 type MigrateOptions = base.MigrateOptions
 
-var (
-	factories []base.DownloaderFactory
-
-	allowList *hostmatcher.HostMatchList
-	blockList *hostmatcher.HostMatchList
-)
+var factories []base.DownloaderFactory
 
 // RegisterDownloaderFactory registers a downloader factory
 func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 	factories = append(factories, factory)
+}
+
+// IsMigrateURLAllowedForService checks the URL like IsMigrateURLAllowed, and additionally rejects local paths
+// unless it is a plain git migration, because other services are accessed by their remote API.
+func IsMigrateURLAllowedForService(remoteURL string, serviceType structs.GitServiceType, doer *user_model.User) error {
+	if serviceType != structs.PlainGitService {
+		if u, err := url.Parse(remoteURL); err == nil && (u.Scheme == "file" || u.Scheme == "") {
+			return &git.ErrInvalidCloneAddr{Host: remoteURL, IsProtocolInvalid: true}
+		}
+	}
+	return IsMigrateURLAllowed(remoteURL, doer)
 }
 
 // IsMigrateURLAllowed checks if an URL is allowed to be migrated from
@@ -76,39 +83,15 @@ func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 		return &git.ErrInvalidCloneAddr{Host: u.Host, IsProtocolInvalid: true, IsPermissionDenied: true, IsURLError: true}
 	}
 
-	hostName, _, errIgnored := net.SplitHostPort(u.Host)
-	if errIgnored != nil {
-		hostName = u.Host // u.Host can be "host" or "host:port"
+	if err := egress.NewMigrationPolicy().CheckHostIPs(u); err != nil {
+		return &git.ErrInvalidCloneAddr{Host: u.Hostname(), IsPermissionDenied: true}
 	}
-
-	// some users only use proxy, there is no DNS resolver. it's safe to ignore the LookupIP error
-	addrList, _ := net.LookupIP(hostName)
-	return checkByAllowBlockList(hostName, addrList)
-}
-
-func checkByAllowBlockList(hostName string, addrList []net.IP) error {
-	ipAllowed := len(addrList) > 0
-	var ipBlocked bool
-	for _, addr := range addrList {
-		ipAllowed = ipAllowed && allowList.MatchIPAddr(addr)
-		ipBlocked = ipBlocked || blockList.MatchIPAddr(addr)
-	}
-	if blockList.MatchHostName(hostName) || ipBlocked {
-		return &git.ErrInvalidCloneAddr{Host: hostName, IsPermissionDenied: true}
-	}
-	// if we have an allow-list, check the allow-list before return to get the more accurate error
-	if !allowList.IsEmpty() {
-		if !allowList.MatchHostName(hostName) && !ipAllowed {
-			return &git.ErrInvalidCloneAddr{Host: hostName, IsPermissionDenied: true}
-		}
-	}
-	// otherwise, we always follow the blocked list
 	return nil
 }
 
 // MigrateRepository migrate repository according MigrateOptions
 func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName string, opts base.MigrateOptions, messenger base.Messenger) (*repo_model.Repository, error) {
-	err := IsMigrateURLAllowed(opts.CloneAddr, doer)
+	err := IsMigrateURLAllowedForService(opts.CloneAddr, opts.GitServiceType, doer)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +109,7 @@ func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName str
 	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
 	uploader.gitServiceType = opts.GitServiceType
 
-	if err := migrateRepository(ctx, doer, downloader, uploader, opts, messenger); err != nil {
+	if err := migrateRepository(ctx, doer, downloader, wrapGithubIssueRecoveryUploader(uploader, downloader), opts, messenger); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
@@ -173,9 +156,6 @@ func newDownloader(ctx context.Context, ownerName string, opts base.MigrateOptio
 	return downloader, nil
 }
 
-// migrateRepository will download information and then upload it to Uploader, this is a simple
-// process for small repository. For a big repository, save all the data to disk
-// before upload is better
 func migrateRepository(ctx context.Context, doer *user_model.User, downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, messenger base.Messenger) error {
 	if messenger == nil {
 		messenger = base.NilMessenger
@@ -225,6 +205,16 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 	}
 	defer uploader.Close()
 
+	if err := migrateRepositoryMetadata(ctx, downloader, uploader, opts, messenger); err != nil {
+		return err
+	}
+	if err := migrateRepositoryIssueData(ctx, downloader, uploader, opts, messenger); err != nil {
+		return err
+	}
+	return uploader.Finish(ctx)
+}
+
+func migrateRepositoryMetadata(ctx context.Context, downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, messenger base.Messenger) error {
 	log.Trace("migrating topics")
 	messenger("repo.migrate.migrating_topics")
 	topics, err := downloader.GetTopics(ctx)
@@ -235,7 +225,7 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 		log.Warn("migrating topics is not supported, ignored")
 	}
 	if len(topics) != 0 {
-		if err = uploader.CreateTopics(ctx, topics...); err != nil {
+		if err := uploader.CreateTopics(ctx, topics...); err != nil {
 			return err
 		}
 	}
@@ -243,295 +233,167 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 	if opts.Milestones {
 		log.Trace("migrating milestones")
 		messenger("repo.migrate.migrating_milestones")
-		milestones, err := downloader.GetMilestones(ctx)
-		if err != nil {
-			if !base.IsErrNotSupported(err) {
-				return err
-			}
-			log.Warn("migrating milestones is not supported, ignored")
-		}
-		msBatchSize := uploader.MaxBatchInsertSize("milestone")
-		for len(milestones) > 0 {
-			if len(milestones) < msBatchSize {
-				msBatchSize = len(milestones)
-			}
-
-			if err := uploader.CreateMilestones(ctx, milestones[:msBatchSize]...); err != nil {
-				return err
-			}
-			milestones = milestones[msBatchSize:]
-		}
-	}
-
-	if opts.Labels {
-		log.Trace("migrating labels")
-		messenger("repo.migrate.migrating_labels")
-		labels, err := downloader.GetLabels(ctx)
-		if err != nil {
-			if !base.IsErrNotSupported(err) {
-				return err
-			}
-			log.Warn("migrating labels is not supported, ignored")
-		}
-
-		lbBatchSize := uploader.MaxBatchInsertSize("label")
-		for len(labels) > 0 {
-			if len(labels) < lbBatchSize {
-				lbBatchSize = len(labels)
-			}
-
-			if err := uploader.CreateLabels(ctx, labels[:lbBatchSize]...); err != nil {
-				return err
-			}
-			labels = labels[lbBatchSize:]
-		}
-	}
-
-	if opts.Releases {
-		log.Trace("migrating releases")
-		messenger("repo.migrate.migrating_releases")
-		releases, err := downloader.GetReleases(ctx)
-		if err != nil {
-			if !base.IsErrNotSupported(err) {
-				return err
-			}
-			log.Warn("migrating releases is not supported, ignored")
-		}
-
-		relBatchSize := uploader.MaxBatchInsertSize("release")
-		for len(releases) > 0 {
-			if len(releases) < relBatchSize {
-				relBatchSize = len(releases)
-			}
-
-			if err = uploader.CreateReleases(ctx, releases[:relBatchSize]...); err != nil {
-				return err
-			}
-			releases = releases[relBatchSize:]
-		}
-
-		// Once all releases (if any) are inserted, sync any remaining non-release tags
-		if err = uploader.SyncTags(ctx); err != nil {
+		if err := migrateMetadataBatches(ctx, uploader, "milestone", downloader.GetMilestones, uploader.CreateMilestones); err != nil {
 			return err
 		}
 	}
+	if opts.Labels {
+		log.Trace("migrating labels")
+		messenger("repo.migrate.migrating_labels")
+		if err := migrateMetadataBatches(ctx, uploader, "label", downloader.GetLabels, uploader.CreateLabels); err != nil {
+			return err
+		}
+	}
+	if opts.Releases {
+		log.Trace("migrating releases")
+		messenger("repo.migrate.migrating_releases")
+		if err := migrateMetadataBatches(ctx, uploader, "release", downloader.GetReleases, uploader.CreateReleases); err != nil {
+			return err
+		}
+		// Once all releases (if any) are inserted, sync any remaining non-release tags
+		return uploader.SyncTags(ctx)
+	}
+	return nil
+}
 
-	var (
-		commentBatchSize = uploader.MaxBatchInsertSize("comment")
-		reviewBatchSize  = uploader.MaxBatchInsertSize("review")
-	)
+func migrateMetadataBatches[T any](ctx context.Context, uploader base.Uploader, entity string,
+	download func(context.Context) ([]T, error), upload func(context.Context, ...T) error,
+) error {
+	items, err := download(ctx)
+	if err != nil {
+		if !base.IsErrNotSupported(err) {
+			return err
+		}
+		log.Warn("migrating %ss is not supported, ignored", entity)
+	}
+	for batch := range slices.Chunk(items, uploader.MaxBatchInsertSize(entity)) {
+		if err := upload(ctx, batch...); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
+func migrateRepositoryIssueData(ctx context.Context, downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, messenger base.Messenger) error {
+	commentBatchSize := uploader.MaxBatchInsertSize("comment")
 	supportAllComments := downloader.SupportGetRepoComments()
+	downloadComments := func(ctx context.Context, item base.Reviewable) ([]*base.Comment, error) {
+		comments, _, err := downloader.GetComments(ctx, item)
+		return comments, err
+	}
 
+	issueIndexes, pullIndexes := container.Set[int64]{}, container.Set[int64]{}
 	if opts.Issues {
 		log.Trace("migrating issues and comments")
 		messenger("repo.migrate.migrating_issues")
-		issueBatchSize := uploader.MaxBatchInsertSize("issue")
-
-		// because when the migrating is running, some issues maybe removed, so after the next page
-		// some of issue maybe duplicated, so we need to record the inserted issue indexes
-		mapInsertedIssueIndexes := container.Set[int64]{}
-		for i := 1; ; i++ {
-			issues, isEnd, err := downloader.GetIssues(ctx, i, issueBatchSize)
-			if err != nil {
-				if !base.IsErrNotSupported(err) {
-					return err
-				}
-				log.Warn("migrating issues is not supported, ignored")
-				break
-			}
-			for i := 0; i < len(issues); i++ {
-				if mapInsertedIssueIndexes.Contains(issues[i].Number) {
-					issues = append(issues[:i], issues[i+1:]...)
-					i--
-					continue
-				}
-				mapInsertedIssueIndexes.Add(issues[i].Number)
-			}
-
-			if err := uploader.CreateIssues(ctx, issues...); err != nil {
-				return err
-			}
-
+		if err := migrateIssuePages(ctx, "issues", issueIndexes, uploader.MaxBatchInsertSize("issue"), downloader.GetIssues, uploader.CreateIssues, func(issues []*base.Issue) error {
 			if opts.Comments && !supportAllComments {
-				allComments := make([]*base.Comment, 0, commentBatchSize)
-				for _, issue := range issues {
-					log.Trace("migrating issue %d's comments", issue.Number)
-					comments, _, err := downloader.GetComments(ctx, issue)
-					if err != nil {
-						if !base.IsErrNotSupported(err) {
-							return err
-						}
-						log.Warn("migrating comments is not supported, ignored")
-					}
-
-					allComments = append(allComments, comments...)
-
-					if len(allComments) >= commentBatchSize {
-						if err = uploader.CreateComments(ctx, allComments[:commentBatchSize]...); err != nil {
-							return err
-						}
-
-						allComments = allComments[commentBatchSize:]
-					}
-				}
-
-				if len(allComments) > 0 {
-					if err = uploader.CreateComments(ctx, allComments...); err != nil {
-						return err
-					}
-				}
+				return migrateItemChildren(ctx, "comments", issues, commentBatchSize, downloadComments, uploader.CreateComments)
 			}
-
-			if isEnd {
-				break
-			}
+			return nil
+		}); err != nil {
+			return err
 		}
 	}
 
 	if opts.PullRequests {
 		log.Trace("migrating pull requests and comments")
 		messenger("repo.migrate.migrating_pulls")
-		prBatchSize := uploader.MaxBatchInsertSize("pullrequest")
-		mapInsertedPRIndexes := container.Set[int64]{}
-		for i := 1; ; i++ {
-			prs, isEnd, err := downloader.GetPullRequests(ctx, i, prBatchSize)
-			if err != nil {
-				if !base.IsErrNotSupported(err) {
+		if err := migrateIssuePages(ctx, "pull requests", pullIndexes, uploader.MaxBatchInsertSize("pullrequest"), downloader.GetPullRequests, uploader.CreatePullRequests, func(pulls []*base.PullRequest) error {
+			if !opts.Comments {
+				return nil
+			}
+			if !supportAllComments {
+				if err := migrateItemChildren(ctx, "comments", pulls, commentBatchSize, downloadComments, uploader.CreateComments); err != nil {
 					return err
 				}
-				log.Warn("migrating pull requests is not supported, ignored")
-				break
 			}
-			for i := 0; i < len(prs); i++ {
-				if mapInsertedPRIndexes.Contains(prs[i].Number) {
-					prs = append(prs[:i], prs[i+1:]...)
-					i--
-					continue
-				}
-				mapInsertedPRIndexes.Add(prs[i].Number)
-			}
-
-			if err := uploader.CreatePullRequests(ctx, prs...); err != nil {
-				return err
-			}
-
-			if opts.Comments {
-				if !supportAllComments {
-					// plain comments
-					allComments := make([]*base.Comment, 0, commentBatchSize)
-					for _, pr := range prs {
-						log.Trace("migrating pull request %d's comments", pr.Number)
-						comments, _, err := downloader.GetComments(ctx, pr)
-						if err != nil {
-							if !base.IsErrNotSupported(err) {
-								return err
-							}
-							log.Warn("migrating comments is not supported, ignored")
-						}
-
-						allComments = append(allComments, comments...)
-
-						if len(allComments) >= commentBatchSize {
-							if err = uploader.CreateComments(ctx, allComments[:commentBatchSize]...); err != nil {
-								return err
-							}
-							allComments = allComments[commentBatchSize:]
-						}
-					}
-					if len(allComments) > 0 {
-						if err = uploader.CreateComments(ctx, allComments...); err != nil {
-							return err
-						}
-					}
-				}
-
-				// migrate reviews
-				allReviews := make([]*base.Review, 0, reviewBatchSize)
-				for _, pr := range prs {
-					reviews, err := downloader.GetReviews(ctx, pr)
-					if err != nil {
-						if !base.IsErrNotSupported(err) {
-							return err
-						}
-						log.Warn("migrating reviews is not supported, ignored")
-						break
-					}
-
-					allReviews = append(allReviews, reviews...)
-
-					if len(allReviews) >= reviewBatchSize {
-						if err = uploader.CreateReviews(ctx, allReviews[:reviewBatchSize]...); err != nil {
-							return err
-						}
-						allReviews = allReviews[reviewBatchSize:]
-					}
-				}
-				if len(allReviews) > 0 {
-					if err = uploader.CreateReviews(ctx, allReviews...); err != nil {
-						return err
-					}
-				}
-			}
-
-			if isEnd {
-				break
-			}
+			return migrateItemChildren(ctx, "reviews", pulls, uploader.MaxBatchInsertSize("review"), downloader.GetReviews, uploader.CreateReviews)
+		}); err != nil {
+			return err
 		}
-		if len(mapInsertedPRIndexes) > 0 {
-			// The pull requests migrating process may created head branches in the base repository
-			// because head repository maybe a fork one which will not be migrated. So that we need
-			// to sync branches again.
+		if len(pullIndexes) > 0 { // importing pull requests can create head branches for forks that were not migrated
 			log.Trace("syncing branches after migrating pull requests")
-			if err = uploader.SyncBranches(ctx); err != nil {
+			if err := uploader.SyncBranches(ctx); err != nil {
 				return err
 			}
 		}
 	}
 
-	if opts.Comments && supportAllComments {
-		log.Trace("migrating comments")
-		for i := 1; ; i++ {
-			comments, isEnd, err := downloader.GetAllComments(ctx, i, commentBatchSize)
-			if err != nil {
-				return err
-			}
-
-			if err := uploader.CreateComments(ctx, comments...); err != nil {
-				return err
-			}
-
-			if isEnd {
-				break
-			}
+	if !opts.Comments || !supportAllComments {
+		return nil
+	}
+	log.Trace("migrating comments")
+	for page := 1; ; page++ {
+		comments, isEnd, err := downloader.GetAllComments(ctx, page, commentBatchSize)
+		if err != nil {
+			return err
+		}
+		comments = slices.DeleteFunc(comments, func(comment *base.Comment) bool {
+			return !issueIndexes.Contains(comment.IssueIndex) && !pullIndexes.Contains(comment.IssueIndex)
+		})
+		if err := uploader.CreateComments(ctx, comments...); err != nil {
+			return err
+		}
+		if isEnd {
+			return nil
 		}
 	}
-
-	return uploader.Finish(ctx)
 }
 
-// Init migrations service
-func Init() error {
-	// TODO: maybe we can deprecate these legacy ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS/BLOCKED_DOMAINS, use ALLOWED_HOST_LIST/BLOCKED_HOST_LIST instead
-
-	blockList = hostmatcher.ParseSimpleMatchList("migrations.BLOCKED_DOMAINS", setting.Migrations.BlockedDomains)
-
-	allowList = hostmatcher.ParseSimpleMatchList("migrations.ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS", setting.Migrations.AllowedDomains)
-	if allowList.IsEmpty() {
-		// the default policy is that migration module can access external hosts
-		allowList.AppendBuiltin(hostmatcher.MatchBuiltinExternal)
+func migrateIssuePages[T base.Commentable](ctx context.Context, name string, indexes container.Set[int64], pageSize int,
+	download func(context.Context, int, int) ([]T, bool, error),
+	upload func(context.Context, ...T) error,
+	afterPage func([]T) error,
+) error {
+	for page := 1; ; page++ {
+		items, isEnd, err := download(ctx, page, pageSize)
+		if err != nil {
+			if !base.IsErrNotSupported(err) {
+				return err
+			}
+			log.Warn("migrating %s is not supported, ignored", name)
+			return nil
+		}
+		items = slices.DeleteFunc(items, func(item T) bool {
+			return !indexes.Add(item.GetLocalIndex()) // deletions at the source can shift previously seen items into this page
+		})
+		if err := upload(ctx, items...); err != nil {
+			return err
+		}
+		if err := afterPage(items); err != nil {
+			return err
+		}
+		if isEnd {
+			return nil
+		}
 	}
-	if setting.Migrations.AllowLocalNetworks {
-		allowList.AppendBuiltin(hostmatcher.MatchBuiltinPrivate)
-		allowList.AppendBuiltin(hostmatcher.MatchBuiltinLoopback)
-	} else {
-		blockList.AppendBuiltin(hostmatcher.MatchBuiltinPrivate)
-		blockList.AppendBuiltin(hostmatcher.MatchBuiltinLoopback)
+}
+
+func migrateItemChildren[T base.Reviewable, C any](ctx context.Context, name string, items []T, batchSize int,
+	download func(context.Context, base.Reviewable) ([]C, error), upload func(context.Context, ...C) error,
+) error {
+	pending := make([]C, 0, batchSize)
+	for _, item := range items {
+		log.Trace("migrating %s of #%d", name, item.GetLocalIndex())
+		children, err := download(ctx, item)
+		if err != nil {
+			if !base.IsErrNotSupported(err) {
+				return err
+			}
+			log.Warn("migrating %s is not supported, ignored", name)
+			break
+		}
+		pending = append(pending, children...)
+		if len(pending) >= batchSize {
+			if err := upload(ctx, pending[:batchSize]...); err != nil {
+				return err
+			}
+			pending = pending[batchSize:]
+		}
 	}
-
-	// reset the shared client so it is rebuilt from the freshly parsed lists on next use; download paths
-	// then reuse one connection pool instead of creating a client (and pool) per request
-	migrationHTTPClient.Reset()
-
+	if len(pending) > 0 {
+		return upload(ctx, pending...)
+	}
 	return nil
 }

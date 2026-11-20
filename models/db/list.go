@@ -5,6 +5,7 @@ package db
 
 import (
 	"context"
+	"slices"
 
 	"gitea.dev/modules/setting"
 
@@ -197,4 +198,19 @@ func FindAndCount[T any](ctx context.Context, opts FindOptions) ([]*T, int64, er
 		return nil, 0, err
 	}
 	return objects, cnt, nil
+}
+
+func QueryAndProcessByChunk[IN, OUT any](in []IN, fnIn func(chunk []IN) ([]OUT, error), fnOut func(out OUT) error) error {
+	for chunkIn := range slices.Chunk(in, DefaultMaxInSize) {
+		chunkOut, err := fnIn(chunkIn)
+		if err != nil {
+			return err
+		}
+		for _, out := range chunkOut {
+			if err := fnOut(out); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

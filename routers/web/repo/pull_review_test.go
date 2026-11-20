@@ -12,6 +12,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/templates"
+	"gitea.dev/routers/common"
 	"gitea.dev/services/context"
 	"gitea.dev/services/contexttest"
 	"gitea.dev/services/pull"
@@ -52,40 +53,29 @@ func TestRenderConversation(t *testing.T) {
 	})
 	require.NotNil(t, preparedComment)
 
-	run("diff with outdated", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
-		ctx.Data["ShowOutdatedComments"] = true
-		renderConversation(ctx, preparedComment, "diff")
-		assert.Contains(t, resp.Body.String(), `<div class="content comment-container"`)
-	})
-	run("diff without outdated", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
-		ctx.Data["ShowOutdatedComments"] = false
-		renderConversation(ctx, preparedComment, "diff")
-		assert.Contains(t, resp.Body.String(), `conversation-not-existing`)
-	})
-	run("timeline with outdated", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
-		ctx.Data["ShowOutdatedComments"] = true
-		renderConversation(ctx, preparedComment, "timeline")
-		assert.Contains(t, resp.Body.String(), `<div id="code-comments-`)
-	})
-	run("timeline is not affected by ShowOutdatedComments=false", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
-		ctx.Data["ShowOutdatedComments"] = false
-		renderConversation(ctx, preparedComment, "timeline")
-		assert.Contains(t, resp.Body.String(), `<div id="code-comments-`)
-	})
-	run("diff non-existing review", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
-		err := db.TruncateBeans(t.Context(), &issues_model.Review{})
-		assert.NoError(t, err)
-		ctx.Data["ShowOutdatedComments"] = true
-		renderConversation(ctx, preparedComment, "diff")
-		assert.Equal(t, http.StatusOK, resp.Code)
-		assert.NotContains(t, resp.Body.String(), `status-page-500`)
-	})
-	run("timeline non-existing review", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
-		err := db.TruncateBeans(t.Context(), &issues_model.Review{})
-		assert.NoError(t, err)
-		ctx.Data["ShowOutdatedComments"] = true
-		renderConversation(ctx, preparedComment, "timeline")
-		assert.Equal(t, http.StatusOK, resp.Code)
-		assert.NotContains(t, resp.Body.String(), `status-page-500`)
-	})
+	for _, testCase := range []struct {
+		name, origin, expected string
+		showOutdated           bool
+	}{
+		{"diff with outdated", "diff", `<div class="content comment-container"`, true},
+		{"diff without outdated", "diff", `conversation-not-existing`, false},
+		{"timeline with outdated", "timeline", `<div id="code-comments-`, true},
+		{"timeline is not affected by ShowOutdatedComments=false", "timeline", `<div id="code-comments-`, false},
+	} {
+		run(testCase.name, func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
+			ctx.Data["ShowOutdatedComments"] = testCase.showOutdated
+			renderConversation(ctx, preparedComment, testCase.origin)
+			assert.Contains(t, resp.Body.String(), testCase.expected)
+		})
+	}
+	for _, origin := range []string{"diff", "timeline"} {
+		run(origin+" non-existing review", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
+			err := db.TruncateBeans(t.Context(), &issues_model.Review{})
+			assert.NoError(t, err)
+			ctx.Data["ShowOutdatedComments"] = true
+			renderConversation(ctx, preparedComment, origin)
+			assert.Equal(t, http.StatusOK, resp.Code)
+			assert.NotContains(t, resp.Body.String(), common.PageInternalServerErrorMark)
+		})
+	}
 }

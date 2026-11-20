@@ -5,6 +5,7 @@
 package gitcmd
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -49,8 +50,8 @@ type Command struct {
 	cmd *process.Cmd
 
 	cmdCtx       context.Context
-	cmdCancel    process.CancelCauseFunc
-	cmdFinished  process.FinishedFunc
+	cmdCtxCancel process.CancelCauseFunc
+	cmdFinished  func()
 	cmdStartTime time.Time
 
 	pipelineFunc func(Context) error
@@ -172,6 +173,16 @@ func (c *Command) AddOptionFormat(opt string, args ...any) *Command {
 	return c
 }
 
+func (c *Command) AddOptionGrepExpr(s string) *Command {
+	if len(c.args) == 0 || c.args[0] != "grep" {
+		c.handlePreErrorBrokenCommand("(not grep command)")
+		return c
+	}
+	// man git-grep: -e: This option has to be used for patterns starting with "-"
+	c.args = append(c.args, "-e", s)
+	return c
+}
+
 // AddDynamicArguments adds new dynamic argument values to the command.
 // The arguments may come from user input and can not be trusted, so no leading '-' is allowed to avoid passing options.
 // TODO: in the future, this function can be renamed to AddArgumentValues
@@ -245,10 +256,14 @@ func commonBaseEnvs() []string {
 
 // CommonGitCmdEnvs returns the common environment variables for a "git" command.
 func CommonGitCmdEnvs() []string {
-	return append(commonBaseEnvs(), []string{
+	envs := append(commonBaseEnvs(), []string{
 		"LC_ALL=C",              // ensure git output is in English, error messages are parsed in English
 		"GIT_TERMINAL_PROMPT=0", // avoid prompting for credentials interactively, supported since git v2.3
 	}...)
+	if extra := extraEnvs.Load(); extra != nil {
+		envs = append(envs, *extra...)
+	}
+	return envs
 }
 
 // CommonCmdServEnvs is like CommonGitCmdEnvs, but it only returns minimal required environment variables for the "gitea serv" command
@@ -414,19 +429,24 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 	if c.callerInfo == "" {
 		c.WithParentCallerInfo()
 	}
+
 	// these logs are for debugging purposes only, so no guarantee of correctness or stability
 	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", c.callerInfo, logArgSanitize(c.gitDir), cmdLogString)
 	log.Debug("git.Command: %s", desc)
 
 	_, span := gtprof.GetTracer().Start(ctx, gtprof.TraceSpanGitRun)
-	defer span.End()
 	span.SetAttributeString(gtprof.TraceAttrFuncCaller, c.callerInfo)
 	span.SetAttributeString(gtprof.TraceAttrGitCommand, cmdLogString)
 
+	var cmdCtxFinished func()
 	if c.cmdTimeout <= 0 {
-		c.cmdCtx, c.cmdCancel, c.cmdFinished = process.GetManager().AddContext(ctx, desc)
+		c.cmdCtx, c.cmdCtxCancel, cmdCtxFinished = process.GetManager().AddContext(ctx, desc)
 	} else {
-		c.cmdCtx, c.cmdCancel, c.cmdFinished = process.GetManager().AddContextTimeout(ctx, c.cmdTimeout, desc)
+		c.cmdCtx, c.cmdCtxCancel, cmdCtxFinished = process.GetManager().AddContextTimeout(ctx, c.cmdTimeout, desc)
+	}
+	c.cmdFinished = func() {
+		cmdCtxFinished()
+		span.End()
 	}
 
 	c.cmdStartTime = time.Now()
@@ -549,6 +569,9 @@ func (c *Command) RunWithStderr(ctx context.Context) RunStdError {
 	return c.WaitWithStderr()
 }
 
+// Run runs the command and leaves stderr handling to the caller, such as through [Command.MakeStderrPipe].
+// Without a stderr reader, Git's diagnostics are discarded and the error may only report an exit status.
+// Use [Command.RunWithStderr] to include Git's stderr in the returned error.
 func (c *Command) Run(ctx context.Context) (err error) {
 	if err = c.WithParentCallerInfo().Start(ctx); err != nil {
 		return err
@@ -579,4 +602,21 @@ func (c *Command) runStdBytes(ctx context.Context) ([]byte, []byte, RunStdError)
 
 func (c *Command) DebugKill() {
 	_ = c.cmd.Process.Kill()
+}
+
+func RunWithScannerSplit(ctx context.Context, cmd *Command, split bufio.SplitFunc, f func(ctx Context, chunk []byte) error) error {
+	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+	cmd.WithParentCallerInfo(util.CallerFuncName(1))
+	cmd.WithPipelineFunc(func(ctx Context) error {
+		scanner := bufio.NewScanner(stdoutReader)
+		scanner.Split(split)
+		for scanner.Scan() {
+			if err := f(ctx, scanner.Bytes()); err != nil || ctx.Err() != nil {
+				return err
+			}
+		}
+		return scanner.Err()
+	})
+	return cmd.RunWithStderr(ctx)
 }

@@ -54,77 +54,57 @@ func TestLoadServiceVisibilityModes(t *testing.T) {
 		}
 		return ret
 	}
-	testCases := map[string]func(){
+	testCases := map[string]struct {
+		defaultMode  structs.VisibleType
+		allowedModes []structs.VisibilityString
+	}{
 		`
 [service]
 DEFAULT_USER_VISIBILITY = public
 ALLOWED_USER_VISIBILITY_MODES = public,limited,private
-`: func() {
-			assert.Equal(t, structs.VisibleTypePublic, Service.DefaultUserVisibilityMode)
-			assert.Equal(t, visibleTypeSlice("public", "limited", "private"), Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice())
-		},
+`: {structs.VisibleTypePublic, []structs.VisibilityString{"public", "limited", "private"}},
 		`
 		[service]
 		DEFAULT_USER_VISIBILITY = public
-		`: func() {
-			assert.Equal(t, structs.VisibleTypePublic, Service.DefaultUserVisibilityMode)
-			assert.Equal(t, visibleTypeSlice("public", "limited", "private"), Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice())
-		},
+		`: {structs.VisibleTypePublic, []structs.VisibilityString{"public", "limited", "private"}},
 		`
 		[service]
 		DEFAULT_USER_VISIBILITY = limited
-		`: func() {
-			assert.Equal(t, structs.VisibleTypeLimited, Service.DefaultUserVisibilityMode)
-			assert.Equal(t, visibleTypeSlice("public", "limited", "private"), Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice())
-		},
+		`: {structs.VisibleTypeLimited, []structs.VisibilityString{"public", "limited", "private"}},
 		`
 [service]
 ALLOWED_USER_VISIBILITY_MODES = public,limited,private
-`: func() {
-			assert.Equal(t, structs.VisibleTypePublic, Service.DefaultUserVisibilityMode)
-			assert.Equal(t, visibleTypeSlice("public", "limited", "private"), Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice())
-		},
+`: {structs.VisibleTypePublic, []structs.VisibilityString{"public", "limited", "private"}},
 		`
 [service]
 DEFAULT_USER_VISIBILITY = public
 ALLOWED_USER_VISIBILITY_MODES = limited,private
-`: func() {
-			assert.Equal(t, structs.VisibleTypeLimited, Service.DefaultUserVisibilityMode)
-			assert.Equal(t, visibleTypeSlice("limited", "private"), Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice())
-		},
+`: {structs.VisibleTypeLimited, []structs.VisibilityString{"limited", "private"}},
 		`
 [service]
 DEFAULT_USER_VISIBILITY = my_type
 ALLOWED_USER_VISIBILITY_MODES = limited,private
-`: func() {
-			assert.Equal(t, structs.VisibleTypeLimited, Service.DefaultUserVisibilityMode)
-			assert.Equal(t, visibleTypeSlice("limited", "private"), Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice())
-		},
+`: {structs.VisibleTypeLimited, []structs.VisibilityString{"limited", "private"}},
 		`
 [service]
 DEFAULT_USER_VISIBILITY = my_type
-`: func() {
-			assert.Equal(t, structs.VisibleTypePublic, Service.DefaultUserVisibilityMode)
-			assert.Equal(t, visibleTypeSlice("public", "limited", "private"), Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice())
-		},
+`: {structs.VisibleTypePublic, []structs.VisibilityString{"public", "limited", "private"}},
 		`
 [service]
 DEFAULT_USER_VISIBILITY = public
 ALLOWED_USER_VISIBILITY_MODES = public, limit, privated
-`: func() {
-			assert.Equal(t, structs.VisibleTypePublic, Service.DefaultUserVisibilityMode)
-			assert.Equal(t, visibleTypeSlice("public"), Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice())
-		},
+`: {structs.VisibleTypePublic, []structs.VisibilityString{"public"}},
 	}
 
-	for tc, fn := range testCases {
+	for tc, expected := range testCases {
 		t.Run(tc, func(t *testing.T) {
 			Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
 			Service.DefaultUserVisibilityMode = structs.VisibleTypePublic
 			cfg, err := NewConfigProviderFromData(tc)
 			assert.NoError(t, err)
 			loadServiceFrom(cfg)
-			fn()
+			assert.Equal(t, expected.defaultMode, Service.DefaultUserVisibilityMode)
+			assert.Equal(t, visibleTypeSlice(expected.allowedModes...), Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice())
 		})
 	}
 }

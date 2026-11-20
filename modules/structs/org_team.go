@@ -62,8 +62,8 @@ type CreateTeamOption struct {
 	UnitsMap map[string]string `json:"units_map"`
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo bool `json:"can_create_org_repo"`
-	// Team visibility within the organization. Defaults to "private".
-	Visibility TeamVisibility `json:"visibility" binding:"OmitEmpty;In(public,limited,private)"`
+	// Team visibility within the organization. Defaults to the instance's default team visibility, "private" unless configured.
+	Visibility TeamVisibility `json:"visibility" binding:"In(public,limited,private)"`
 }
 
 // EditTeamOption options for editing a team
@@ -85,5 +85,5 @@ type EditTeamOption struct {
 	CanCreateOrgRepo *bool `json:"can_create_org_repo"`
 	// Team visibility within the organization. When omitted, visibility is
 	// left unchanged.
-	Visibility *TeamVisibility `json:"visibility" binding:"OmitEmpty;In(public,limited,private)"`
+	Visibility *TeamVisibility `json:"visibility" binding:"In(public,limited,private)"`
 }

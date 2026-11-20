@@ -9,7 +9,6 @@ import (
 	"html/template"
 	"math"
 	"net/url"
-	"regexp"
 	"slices"
 	"strings"
 
@@ -78,12 +77,9 @@ func (ut *RenderUtils) RenderCommitBody(msg string, repo *repo.Repository) templ
 	return renderedMessage
 }
 
-// Match text that is between back ticks.
-var codeMatcher = regexp.MustCompile("`([^`]+)`")
-
 // renderCodeBlock renders "`…`" as highlighted "<code>" block, intended for issue and PR titles
 func renderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
-	htmlWithCodeTags := codeMatcher.ReplaceAllString(string(htmlEscapedTextToRender), `<code class="inline-code-block">$1</code>`) // replace with HTML <code> tags
+	htmlWithCodeTags := globalVars().codeMatcher.ReplaceAllString(string(htmlEscapedTextToRender), `<code class="inline-code-block">$1</code>`) // replace with HTML <code> tags
 	return template.HTML(htmlWithCodeTags)
 }
 
@@ -190,12 +186,22 @@ func reactionToEmoji(reaction string) template.HTML {
 	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/assets/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, url.PathEscape(reaction)))
 }
 
-func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML {
-	output, err := markdown.RenderString(markup.NewRenderContext(ut.ctx).WithMetas(markup.ComposeSimpleDocumentMetas()), input)
+func (ut *RenderUtils) renderMarkdownToHtml(input string, feedExcerpt bool) template.HTML {
+	rctx := markup.NewRenderContext(ut.ctx).WithMetas(markup.ComposeSimpleDocumentMetas())
+	rctx.RenderOptions.FeedExcerpt = feedExcerpt
+	output, err := markdown.RenderString(rctx, input)
 	if err != nil {
 		log.Error("RenderString: %v", err)
 	}
 	return output
+}
+
+func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML {
+	return ut.renderMarkdownToHtml(input, false)
+}
+
+func (ut *RenderUtils) FeedExcerptToHtml(input string) template.HTML {
+	return ut.renderMarkdownToHtml(input, true)
 }
 
 // RenderPackageMarkdown renders package page Markdown so relative links resolve against the

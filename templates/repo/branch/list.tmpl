@@ -192,14 +192,16 @@
 										{{svg "octicon-pencil"}}
 									</button>
 								{{end}}
-								{{if and $.IsWriter $.Repository.CanContentChange (not .IsProtected)}}
+								{{if and $.IsWriter $.Repository.CanContentChange}}
 									{{if .DBBranch.IsDeleted}}
-										<button type="button" class="btn interact-bg tw-p-2 link-action restore-branch-button" data-url="{{$.Link}}/restore?branch_id={{.DBBranch.ID}}&name={{.DBBranch.Name}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.restore" (.DBBranch.Name)}}">
-											<span class="tw-text-blue">
-												{{svg "octicon-reply"}}
-											</span>
-										</button>
-									{{else}}
+										{{if not .IsProtected}}
+											<button type="button" class="btn interact-bg tw-p-2 link-action restore-branch-button" data-url="{{$.Link}}/restore?branch_id={{.DBBranch.ID}}&name={{.DBBranch.Name}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.restore" (.DBBranch.Name)}}">
+												<span class="tw-text-blue">
+													{{svg "octicon-reply"}}
+												</span>
+											</button>
+										{{end}}
+									{{else if .CanDelete}}
 										<button type="button" class="btn interact-bg tw-p-2 show-modal delete-branch-button tw-text-red" data-modal="#delete-branch-modal" data-modal-form.url="{{$.Link}}/delete?name={{.DBBranch.Name}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.delete" (.DBBranch.Name)}}" data-modal-name="{{.DBBranch.Name}}">
 											{{svg "octicon-trash"}}
 										</button>
@@ -216,18 +218,20 @@
 	</div>
 </div>
 
-<form class="ui small modal form-fetch-action" method="post" id="delete-branch-modal">
+<dialog class="modal-dialog" id="delete-branch-modal">
 	<div class="header">
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "repo.branch.delete_html"}} <span class="name"></span>
 	</div>
-	<div class="content">
-		<p>{{ctx.Locale.Tr "repo.branch.delete_desc"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
-</form>
+	<form class="form-fetch-action" method="post">
+		<div class="content">
+			<p>{{ctx.Locale.Tr "repo.branch.delete_desc"}}</p>
+		</div>
+		{{template "base/modal_actions_confirm" .}}
+	</form>
+</dialog>
 
-<div class="ui mini modal" id="create-branch-modal">
+<dialog class="modal-dialog" id="create-branch-modal">
 	<div class="header">
 		{{ctx.Locale.Tr "repo.branch.new_branch"}}
 	</div>
@@ -245,9 +249,9 @@
 		</div>
 		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 	</form>
-</div>
+</dialog>
 
-<div class="ui mini modal" id="rename-branch-modal">
+<dialog class="modal-dialog" id="rename-branch-modal">
 	<div class="header">
 		{{ctx.Locale.Tr "repo.settings.rename_branch"}}
 	</div>
@@ -264,5 +268,5 @@
 		</div>
 		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 	</form>
-</div>
+</dialog>
 {{template "base/footer" .}}

@@ -30,13 +30,18 @@ func TestGitSmartHTTP(t *testing.T) {
 		testGitArchiveRemote(t, u)
 		t.Run("AnonymousAccess-Repo", func(t *testing.T) { testGitSmartHTTPPrivateRepoAnonymousAccess(t, false) })
 		t.Run("AnonymousAccess-Wiki", func(t *testing.T) { testGitSmartHTTPPrivateRepoAnonymousAccess(t, true) })
+		t.Run("BeingCreated", func(t *testing.T) {
+			require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), &repo_model.Repository{ID: 1, Status: repo_model.RepositoryBeingMigrated}, "status"))
+			MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/info/refs?service=git-receive-pack").AddBasicAuth("user2"), http.StatusForbidden)
+		})
 	})
 }
 
 func testGitSmartHTTP(t *testing.T, u *url.URL) {
-	kases := []struct {
+	cases := []struct {
 		method, path string
 		code         int
+		contains     string
 	}{
 		{
 			path: "user2/repo1/info/refs",
@@ -50,6 +55,11 @@ func testGitSmartHTTP(t *testing.T, u *url.URL) {
 		{
 			path: "user2/repo1/HEAD",
 			code: http.StatusOK,
+		},
+		{
+			path:     "user2/repo2.wiki/info/refs?service=git-upload-pack",
+			code:     http.StatusOK,
+			contains: "ERR wiki doesn't exist",
 		},
 		{
 			path: "user2/repo1/objects/info/alternates",
@@ -73,17 +83,20 @@ func testGitSmartHTTP(t *testing.T, u *url.URL) {
 		},
 	}
 
-	for _, kase := range kases {
-		t.Run(kase.path, func(t *testing.T) {
-			req, err := http.NewRequest(util.IfZero(kase.method, "GET"), u.String()+kase.path, nil)
+	for _, tc := range cases {
+		t.Run(tc.path, func(t *testing.T) {
+			req, err := http.NewRequest(util.IfZero(tc.method, "GET"), u.String()+tc.path, nil)
 			require.NoError(t, err)
 			req.SetBasicAuth("user2", userPassword)
 			resp, err := http.DefaultClient.Do(req)
 			require.NoError(t, err)
 			defer resp.Body.Close()
-			assert.Equal(t, kase.code, resp.StatusCode)
-			_, err = io.ReadAll(resp.Body)
+			assert.Equal(t, tc.code, resp.StatusCode)
+			respBody, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
+			if tc.contains != "" {
+				assert.Contains(t, string(respBody), tc.contains)
+			}
 		})
 	}
 }
@@ -120,7 +133,7 @@ func testGitSmartHTTPTokenScopes(t *testing.T) {
 
 	t.Run("public-only scope rejects private repo", func(t *testing.T) {
 		path := "/user2/repo2/info/refs?service=git-upload-pack"
-		MakeRequest(t, NewRequest(t, "GET", path).AddTokenAuth(publicOnlyToken), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, "GET", path).AddTokenAuth(publicOnlyToken), http.StatusNotFound)
 	})
 }
 

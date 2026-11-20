@@ -4,20 +4,23 @@
 package migrations
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"path/filepath"
 	"testing"
 
-	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 
-	"github.com/google/go-github/v91/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,6 +36,9 @@ func TestIsAuthenticationError(t *testing.T) {
 		{"github unauthorized", true, util.SanitizeErrorCredentialURLs(&github.ErrorResponse{Response: &http.Response{StatusCode: http.StatusUnauthorized}})},
 		{"github other", false, &github.ErrorResponse{Response: &http.Response{StatusCode: http.StatusNotFound}}},
 		{"github nil response", false, &github.ErrorResponse{}},
+		{"bitbucket server unauthorized", true, fmt.Errorf("wrapped: %w", &bbsStatusError{Status: http.StatusUnauthorized})},
+		{"bitbucket server forbidden", true, &bbsStatusError{Status: http.StatusForbidden}},
+		{"bitbucket server not found", false, &bbsStatusError{Status: http.StatusNotFound}},
 		{"unrelated error", false, errDummy},
 	}
 	for _, c := range cases {
@@ -43,102 +49,112 @@ func TestIsAuthenticationError(t *testing.T) {
 }
 
 func TestMigrateWhiteBlocklist(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+	adminUser := &user_model.User{IsAdmin: true}
+	nonAdminUser := &user_model.User{}
 
-	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
-	nonAdminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
-
-	setting.Migrations.AllowedDomains = "github.com"
-	setting.Migrations.AllowLocalNetworks = false
-	assert.NoError(t, Init())
-
-	err := IsMigrateURLAllowed("https://gitlab.com/gitlab/gitlab.git", nonAdminUser)
-	assert.Error(t, err)
-
-	err = IsMigrateURLAllowed("https://github.com/go-gitea/gitea.git", nonAdminUser)
-	assert.NoError(t, err)
-
-	err = IsMigrateURLAllowed("https://gITHUb.com/go-gitea/gitea.git", nonAdminUser)
-	assert.NoError(t, err)
-
-	setting.Migrations.AllowedDomains = ""
-	setting.Migrations.BlockedDomains = "github.com"
-	assert.NoError(t, Init())
-
-	err = IsMigrateURLAllowed("https://gitlab.com/gitlab/gitlab.git", nonAdminUser)
-	assert.NoError(t, err)
-
-	err = IsMigrateURLAllowed("https://github.com/go-gitea/gitea.git", nonAdminUser)
-	assert.Error(t, err)
-
-	err = IsMigrateURLAllowed("https://10.0.0.1/go-gitea/gitea.git", nonAdminUser)
-	assert.Error(t, err)
-
-	setting.Migrations.AllowLocalNetworks = true
-	assert.NoError(t, Init())
-	err = IsMigrateURLAllowed("https://10.0.0.1/go-gitea/gitea.git", nonAdminUser)
-	assert.NoError(t, err)
+	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "")()
+	defer test.MockVariableValue(&setting.Migrations.BlockedHostList, "8.8.4.4")()
+	assert.NoError(t, IsMigrateURLAllowed("https://8.8.8.8/go-gitea/gitea.git", nonAdminUser))
+	assert.Error(t, IsMigrateURLAllowed("https://8.8.4.4/go-gitea/gitea.git", nonAdminUser))
+	assert.Error(t, IsMigrateURLAllowed("https://[64:ff9b::a9fe:a9fe]/go-gitea/gitea.git", nonAdminUser))
 
 	old := setting.ImportLocalPaths
 	setting.ImportLocalPaths = false
 
-	err = IsMigrateURLAllowed("/home/foo/bar/goo", adminUser)
-	assert.Error(t, err)
+	assert.Error(t, IsMigrateURLAllowed("/home/foo/bar/goo", adminUser))
 
 	setting.ImportLocalPaths = true
 	abs, err := filepath.Abs(".")
 	assert.NoError(t, err)
 
-	err = IsMigrateURLAllowed(abs, adminUser)
-	assert.NoError(t, err)
-
-	err = IsMigrateURLAllowed(abs, nonAdminUser)
-	assert.Error(t, err)
+	assert.NoError(t, IsMigrateURLAllowed(abs, adminUser))
+	assert.Error(t, IsMigrateURLAllowed(abs, nonAdminUser))
 
 	nonAdminUser.AllowImportLocal = true
-	err = IsMigrateURLAllowed(abs, nonAdminUser)
-	assert.NoError(t, err)
+	assert.NoError(t, IsMigrateURLAllowed(abs, nonAdminUser))
 
 	setting.ImportLocalPaths = old
 }
 
-func TestAllowBlockList(t *testing.T) {
-	init := func(allow, block string, local bool) {
-		setting.Migrations.AllowedDomains = allow
-		setting.Migrations.BlockedDomains = block
-		setting.Migrations.AllowLocalNetworks = local
-		assert.NoError(t, Init())
+func TestIsMigrateURLAllowedForServiceLocalPath(t *testing.T) {
+	defer test.MockVariableValue(&setting.ImportLocalPaths, true)()
+	admin := &user_model.User{IsAdmin: true}
+	for _, addr := range []string{"/tmp", "file:///tmp"} {
+		assert.NoError(t, IsMigrateURLAllowedForService(addr, structs.PlainGitService, admin))
+		for _, svc := range []structs.GitServiceType{structs.GithubService, structs.GiteaService, structs.GitlabService, structs.BitbucketServerService} {
+			err := IsMigrateURLAllowedForService(addr, svc, admin)
+			assert.ErrorAs(t, err, new(*git.ErrInvalidCloneAddr), "%s %d", addr, svc)
+		}
 	}
+}
 
-	// default, allow all external, block none, no local networks
-	init("", "", false)
-	assert.NoError(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
-	assert.Error(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("127.0.0.1")}))
+func TestMigrateRepositoryIssueData(t *testing.T) {
+	for repoComments, want := range map[bool][]string{
+		false: {"issues [1 2]", "comments [1 2]", "issues [3]", "comments [3]", "pulls [4]", "comments [4]", "reviews [4]", "sync branches"},
+		true:  {"issues [1 2]", "issues [3]", "pulls [4]", "reviews [4]", "sync branches", "comments [1]", "comments [4]"},
+	} {
+		migration := &issueMigration{repoComments: repoComments}
+		assert.NoError(t, migrateRepositoryIssueData(t.Context(), migration, migration, base.MigrateOptions{Issues: true, PullRequests: true, Comments: true}, base.NilMessenger))
+		assert.Equal(t, want, migration.calls)
+	}
+}
 
-	// allow all including local networks (it could lead to SSRF in production)
-	init("", "", true)
-	assert.NoError(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
-	assert.NoError(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("127.0.0.1")}))
+type issueMigration struct {
+	base.NullDownloader
+	base.Uploader
+	repoComments bool
+	calls        []string
+}
 
-	// allow wildcard, block some subdomains. every resolved address must still be allowed.
-	init("*.domain.com", "blocked.domain.com", false)
-	assert.NoError(t, checkByAllowBlockList("sub.domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
-	assert.Error(t, checkByAllowBlockList("sub.domain.com", []net.IP{net.ParseIP("127.0.0.1")}))
-	assert.Error(t, checkByAllowBlockList("sub.domain.com", []net.IP{net.ParseIP("1.2.3.4"), net.ParseIP("127.0.0.1")}))
-	assert.Error(t, checkByAllowBlockList("blocked.domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
-	assert.Error(t, checkByAllowBlockList("sub.other.com", []net.IP{net.ParseIP("1.2.3.4")}))
+func (m *issueMigration) MaxBatchInsertSize(_tp string) int { return 2 }
+func (m *issueMigration) SupportGetRepoComments() bool      { return m.repoComments }
 
-	// allow wildcard still follows the local network policy for resolved addresses.
-	init("*", "", false)
-	assert.NoError(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
-	assert.Error(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("127.0.0.1")}))
-	assert.Error(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("1.2.3.4"), net.ParseIP("127.0.0.1")}))
+func (m *issueMigration) GetIssues(_ctx context.Context, page, _perPage int) ([]*base.Issue, bool, error) {
+	return [][]*base.Issue{{{Number: 1}, {Number: 2}}, {{Number: 2}, {Number: 3}}}[page-1], page == 2, nil
+}
 
-	// local network can still be blocked
-	init("*", "127.0.0.*", false)
-	assert.NoError(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
-	assert.Error(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("127.0.0.1")}))
+func (m *issueMigration) GetPullRequests(_ctx context.Context, _page, _perPage int) ([]*base.PullRequest, bool, error) {
+	return []*base.PullRequest{{Number: 4}}, true, nil
+}
 
-	// reset to allow local networks (mock servers use 127.0.0.1)
-	init("", "", true)
+func (m *issueMigration) GetComments(_ctx context.Context, item base.Commentable) ([]*base.Comment, bool, error) {
+	return []*base.Comment{{IssueIndex: item.GetLocalIndex()}}, true, nil
+}
+
+func (m *issueMigration) GetAllComments(_ctx context.Context, page, _perPage int) ([]*base.Comment, bool, error) {
+	return [][]*base.Comment{{{IssueIndex: 1}, {IssueIndex: 7}}, {{IssueIndex: 4}}}[page-1], page == 2, nil
+}
+
+func (m *issueMigration) GetReviews(_ctx context.Context, item base.Reviewable) ([]*base.Review, error) {
+	return []*base.Review{{IssueIndex: item.GetLocalIndex()}}, nil
+}
+
+func (m *issueMigration) CreateIssues(_ctx context.Context, issues ...*base.Issue) error {
+	return recordMigrationCall(m, "issues", issues, (*base.Issue).GetLocalIndex)
+}
+
+func (m *issueMigration) CreatePullRequests(_ctx context.Context, pulls ...*base.PullRequest) error {
+	return recordMigrationCall(m, "pulls", pulls, (*base.PullRequest).GetLocalIndex)
+}
+
+func (m *issueMigration) CreateComments(_ctx context.Context, comments ...*base.Comment) error {
+	return recordMigrationCall(m, "comments", comments, func(comment *base.Comment) int64 { return comment.IssueIndex })
+}
+
+func (m *issueMigration) CreateReviews(_ctx context.Context, reviews ...*base.Review) error {
+	return recordMigrationCall(m, "reviews", reviews, func(review *base.Review) int64 { return review.IssueIndex })
+}
+
+func (m *issueMigration) SyncBranches(_ctx context.Context) error {
+	m.calls = append(m.calls, "sync branches")
+	return nil
+}
+
+func recordMigrationCall[Item any](migration *issueMigration, name string, items []Item, index func(Item) int64) error {
+	indexes := make([]int64, len(items))
+	for i, item := range items {
+		indexes[i] = index(item)
+	}
+	migration.calls = append(migration.calls, fmt.Sprintf("%s %v", name, indexes))
+	return nil
 }

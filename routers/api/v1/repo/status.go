@@ -6,6 +6,7 @@ package repo
 import (
 	"fmt"
 	"net/http"
+	"unicode/utf8"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -47,15 +48,17 @@ func NewCommitStatus(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/CommitStatus"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm[*api.CreateStatusOption](ctx)
 	sha := ctx.PathParam("sha")
 	if len(sha) == 0 {
 		ctx.APIError(http.StatusBadRequest, "sha not provided")
+		return
+	}
+	if stateLen := utf8.RuneCountInString(string(form.State)); stateLen == 0 || stateLen > git_model.CommitStatusStateMaxLength {
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("state must be 1 to %d characters", git_model.CommitStatusStateMaxLength))
 		return
 	}
 	status := &git_model.CommitStatus{
@@ -118,10 +121,8 @@ func GetCommitStatuses(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommitStatusList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	getCommitStatuses(ctx, ctx.PathParam("sha"))
 }
@@ -172,10 +173,8 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommitStatusList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	refCommit := resolveRefCommit(ctx, ctx.PathParam("ref"), 7)
 	if ctx.Written() {
@@ -246,10 +245,8 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CombinedStatus"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	refCommit := resolveRefCommit(ctx, ctx.PathParam("ref"), 7)
 	if ctx.Written() {

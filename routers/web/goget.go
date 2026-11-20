@@ -69,13 +69,7 @@ func goGet(ctx *context.Context) {
 
 	goGetImport := context.ComposeGoGetImport(ctx, ownerName, trimmedRepoName)
 
-	var cloneURL string
-	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
-		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, ownerName, repoName)
-	} else {
-		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, ownerName, repoName)
-	}
-	goImportContent := fmt.Sprintf("%s git %s", goGetImport, cloneURL /*CloneLink*/)
+	goImportContent := fmt.Sprintf("%s git %s", goGetImport, context.ComposeGoGetCloneURL(ctx, ownerName, trimmedRepoName))
 	goSourceContent := fmt.Sprintf("%s _ %s %s", goGetImport, prefix+"{/dir}" /*GoDocDirectory*/, prefix+"{/dir}/{file}#L{line}" /*GoDocFile*/)
 	goGetCli := fmt.Sprintf("go get %s%s", insecure, goGetImport)
 
@@ -102,22 +96,14 @@ func goGetDefaultBranch(ctx *context.Context, repo *repo_model.Repository) strin
 	if len(repo.DefaultBranch) == 0 {
 		return def
 	}
-	if err := repo.LoadOwner(ctx); err != nil || repo.Owner == nil {
-		return def
-	}
 	// a token that was not granted repository read scope must not learn repository details, even when the
 	// account behind it could read the repo through the web UI
 	if !goGetTokenCanReadRepo(ctx) {
 		return def
 	}
-	// a public-only token may only reach genuinely public resources (a public repo under a public owner)
-	if context.TokenIsPublicOnly(ctx) && (repo.IsPrivate || !repo.Owner.Visibility.IsPublic()) {
-		return def
-	}
-	// the caller must be able to read the code and see the owner: a limited/private owner hides its repos
-	// from anonymous/non-member callers even when the repo itself is public
+	// the caller must be able to read the code
 	perm, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
-	if err != nil || !perm.CanRead(unit.TypeCode) || !user_model.IsUserVisibleToViewer(ctx, repo.Owner, ctx.Doer) {
+	if err != nil || !perm.CanRead(unit.TypeCode) {
 		return def
 	}
 	return repo.DefaultBranch
@@ -127,7 +113,7 @@ func goGetDefaultBranch(ctx *context.Context, repo *repo_model.Repository) strin
 // always may; a token request may only when its scope grants repository read, so a PAT that was never
 // scoped for repositories cannot disclose the branch even if its owner can read the repo.
 func goGetTokenCanReadRepo(ctx *context.Context) bool {
-	scope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	scope, hasApiTokenScope := user_model.GetDoerTokenScope(ctx.Doer)
 	if !hasApiTokenScope {
 		return true
 	}

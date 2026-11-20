@@ -1,6 +1,7 @@
 import {debounce} from './func.ts';
 import type {Promisable} from '../types.ts';
 import type $ from 'jquery';
+import {Idiomorph} from 'idiomorph';
 
 type ArrayLikeIterable<T> = ArrayLike<T> & Iterable<T>; // for NodeListOf and Array
 type ElementArg = Element | string | ArrayLikeIterable<Element> | ReturnType<typeof $>;
@@ -79,14 +80,6 @@ export function queryElemChildren<T extends Element>(parent: Element | ParentNod
 // in the future, all "queryElems(document, ...)" should be refactored to use a more specific parent if the targets are not for page-level components.
 export function queryElems<T extends HTMLElement>(parent: Element | ParentNode, selector: string, fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
   return applyElemsCallback<T>(parent.querySelectorAll(selector), fn);
-}
-
-export function onDomReady(cb: () => Promisable<void>) {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', cb);
-  } else {
-    cb();
-  }
 }
 
 /** checks whether an element is owned by the current document, and whether it is a document fragment or element node
@@ -261,20 +254,9 @@ export function isElemVisible(el: HTMLElement): boolean {
 export function createElementFromHTML<T extends Element>(htmlString: string): T {
   htmlString = htmlString.trim();
   if (!htmlString.startsWith('<')) throw new Error(`Invalid HTML element string: ${htmlString}`);
-  const isLetter = (code: number) => (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
-  const startsWithTag = (s: string, tag: string) => {
-    return s.substring(1, 1 + tag.length).toLowerCase() === tag.toLowerCase() &&
-      !isLetter(s[1 + tag.length].charCodeAt(0));
-  };
-  // There is no way to create some elements without a proper parent, jQuery's approach: https://github.com/jquery/jquery/blob/main/src/manipulation/wrapMap.js
-  if (startsWithTag(htmlString, 'tr')) {
-    const container = document.createElement('table');
-    container.innerHTML = htmlString;
-    return container.querySelector<T>('tr')!;
-  }
-  const div = document.createElement('div');
-  div.innerHTML = htmlString;
-  return div.firstChild as T;
+  const template = document.createElement('template');
+  template.innerHTML = htmlString;
+  return document.adoptNode(template.content.firstElementChild!) as T;
 }
 
 export function createElementFromAttrs<T extends HTMLElement>(tagName: string, attrs: Record<string, string | number | boolean | null | undefined> | null, ...children: (Node | string)[]): T {
@@ -361,8 +343,11 @@ export class ActivePageTimer {
 
   private async handler() {
     this.clear();
-    await this.opts.callback();
-    if (!this.opts.once) this.start();
+    try {
+      await this.opts.callback();
+    } finally {
+      if (!this.opts.once) this.start(); // a failed callback like a network error must not stop the refreshing
+    }
   }
 
   start() {
@@ -424,6 +409,36 @@ export function recoverMorphElements(el: Element, protectedElems: ProtectedMorph
   for (const [id, html] of Object.entries(protectedElems)) {
     const it = el.querySelector(`[data-morph-protect="${CSS.escape(id)}"]`);
     if (!it) continue;
-    it.outerHTML = html;
+    it.replaceWith(createElementFromHTML(html));
   }
+}
+
+export type MorphElementOptions = {
+  morphStyle: 'innerHTML' | 'outerHTML';
+};
+
+export function morphElementWithProtection(el: Element, newEl: Element, opts: MorphElementOptions): Element {
+  const protectedElems = protectMorphElements(newEl);
+  const selectorSkipElems = '.ui.dropdown.active';
+  const nodes = Idiomorph.morph(el, newEl, {
+    morphStyle: opts.morphStyle,
+    callbacks: {
+      beforeNodeMorphed: (oldNode /* , newNode */) => {
+        if (!(oldNode instanceof Element)) return true;
+
+        // If the end user is operating a row, then don't refresh its content.
+        // Otherwise, there will be more edge cases and inconsistencies, e.g.: dropdown still shows old items but the icon has changed.
+        const oldNodeMorphWholeAndSkipChild = oldNode.matches('[data-morph-whole]') && oldNode.querySelector(selectorSkipElems);
+
+        // If the element should be skipped, don't morph it
+        const oldNodeShouldSkip = oldNode.matches(selectorSkipElems);
+
+        const shouldSkip = oldNodeMorphWholeAndSkipChild || oldNodeShouldSkip;
+        return !shouldSkip;
+      },
+    },
+  });
+  const morphedElem = nodes[0] as Element;
+  recoverMorphElements(morphedElem, protectedElems);
+  return morphedElem;
 }

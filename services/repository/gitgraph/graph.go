@@ -7,20 +7,26 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"strings"
 
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 )
 
+const gitLogGraphFormatSep = "^" // disallowed char in git ref names
+
 // GetCommitGraph return a list of commit (GraphItems) from all branches
 func GetCommitGraph(ctx context.Context, gitRepo *git.Repository, page, maxAllowedColors int, hidePRRefs bool, refs, files []string) (*Graph, error) {
-	format := "DATA:%D|%H|%ad|%h|%s"
+	format := "DATA:" + strings.Join([]string{
+		"%D",  // ref names without the " (", ")" wrapping.
+		"%H",  // commit hash
+		"%ad", // author date (format respects --date= option)
+		"%h",  // abbreviated commit hash
+		"%s",  // subject
+	}, gitLogGraphFormatSep)
 
-	if page == 0 {
-		page = 1
-	}
-
+	page = max(page, 1)
 	graphCmd := gitcmd.NewCommand("log", "--graph", "--date-order", "--decorate=full")
 
 	if hidePRRefs {
@@ -31,7 +37,7 @@ func GetCommitGraph(ctx context.Context, gitRepo *git.Repository, page, maxAllow
 		graphCmd.AddArguments("--tags", "--branches")
 	}
 
-	graphCmd.AddArguments("-C", "-M", "--date=iso-strict").
+	graphCmd.AddArguments("--find-copies", "--find-renames", "--date=iso-strict").
 		AddOptionFormat("-n %d", setting.UI.GraphMaxCommitNum*page).
 		AddOptionFormat("--pretty=format:%s", format)
 

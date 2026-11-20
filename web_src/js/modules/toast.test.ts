@@ -1,21 +1,21 @@
 import {showSuccessToast, showInfoToast, showErrorToast, showWarningToast} from './toast.ts';
 
-test('showSuccessToast', async () => {
+test('showSuccessToast', () => {
   showSuccessToast('success', {duration: -1});
   expect(document.querySelector('.toastify')).toBeTruthy();
 });
 
-test('showInfoToast', async () => {
+test('showInfoToast', () => {
   showInfoToast('info', {duration: -1});
   expect(document.querySelector('.toastify')).toBeTruthy();
 });
 
-test('showWarningToast', async () => {
+test('showWarningToast', () => {
   showWarningToast('warning', {duration: -1});
   expect(document.querySelector('.toastify')).toBeTruthy();
 });
 
-test('showErrorToast', async () => {
+test('showErrorToast', () => {
   showErrorToast('error', {duration: -1});
   expect(document.querySelector('.toastify')).toBeTruthy();
 });

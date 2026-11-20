@@ -38,14 +38,14 @@ func ReloadTemplates(ctx context.Context) ResponseExtra {
 
 // FlushOptions represents the options for the flush call
 type FlushOptions struct {
-	Timeout     time.Duration
+	Timeout     int64
 	NonBlocking bool
 }
 
 // FlushQueues calls the internal flush-queues function
 func FlushQueues(ctx context.Context, timeout time.Duration, nonBlocking bool) ResponseExtra {
 	reqURL := setting.LocalURL + "api/internal/manager/flush-queues"
-	req := newInternalRequestAPI(ctx, reqURL, "POST", FlushOptions{Timeout: timeout, NonBlocking: nonBlocking})
+	req := newInternalRequestAPI(ctx, reqURL, "POST", FlushOptions{Timeout: int64(timeout), NonBlocking: nonBlocking})
 	if timeout > 0 {
 		req.SetReadWriteTimeout(timeout + 10*time.Second)
 	}
