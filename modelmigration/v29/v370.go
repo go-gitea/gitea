@@ -5,30 +5,20 @@ package v29
 
 import (
 	"context"
+	"fmt"
 
 	"gitea.dev/modelmigration/base"
-
-	"xorm.io/xorm"
+	"gitea.dev/modules/setting"
 )
 
-func AddMetadataMirrorSyncColumns(_ context.Context, x base.EngineMigration) error {
-	type Comment struct {
-		OriginalID int64 `xorm:"index"`
+func ChangeActionsRawConcurrencyToText(_ context.Context, x base.EngineMigration) error {
+	if !setting.Database.Type.IsMSSQL() { // startup sync widens VARCHAR to TEXT on MySQL and PostgreSQL
+		return nil
 	}
-	type Review struct {
-		OriginalID int64 `xorm:"index"`
+	for _, table := range []string{"action_run", "action_run_job"} {
+		if _, err := x.Exec("ALTER TABLE " + table + " ALTER COLUMN raw_concurrency NVARCHAR(MAX) NULL"); err != nil {
+			return fmt.Errorf("ChangeActionsRawConcurrencyToText: %s: %w", table, err)
+		}
 	}
-	type Mirror struct {
-		SyncIssues       bool `xorm:"NOT NULL DEFAULT false"`
-		SyncPullRequests bool `xorm:"NOT NULL DEFAULT false"`
-		SyncTopics       bool `xorm:"NOT NULL DEFAULT false"`
-	}
-	type PullRequest struct {
-		HeadRepoOwner string `xorm:"NOT NULL DEFAULT ''"`
-	}
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
-		IgnoreConstrains:  true,
-	}, new(Comment), new(Review), new(Mirror), new(PullRequest))
-	return err
+	return nil
 }
