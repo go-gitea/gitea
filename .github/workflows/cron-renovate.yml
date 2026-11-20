@@ -9,7 +9,7 @@ concurrency:
   group: cron-renovate
 
 env:
-  RENOVATE_VERSION: 44.93.7 # renovate: datasource=npm depName=renovate
+  RENOVATE_VERSION: 44.232.0 # renovate: datasource=npm depName=renovate
 
 permissions:
   contents: read
@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: renovatebot/github-action@dcfba84a42d1b5d5e49bf131b1bf53511851a123 # v46.3.1
+      - uses: renovatebot/github-action@266fef21329c44765ad42f9dea1f01f5d2d91084 # v46.3.13
         with:
           renovate-version: ${{ env.RENOVATE_VERSION }}
           configurationFile: renovate.json5
@@ -30,3 +30,4 @@ jobs:
           RENOVATE_BINARY_SOURCE: install # auto-install go/node toolchains needed by post-upgrade tasks.
           RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^make (tidy|svg|generate-codemirror-languages)$"]'
           RENOVATE_REPOSITORIES: '["go-gitea/gitea"]'
+          RENOVATE_DOCKER_MAX_PAGES: 10 # https://github.com/renovatebot/renovate/issues/46925

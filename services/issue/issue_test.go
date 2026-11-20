@@ -7,12 +7,91 @@ import (
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestCheckCreationRestriction(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	for _, tc := range []struct {
+		name   string
+		repoID int64
+		userID int64
+		member bool
+	}{
+		{"owner", 1, 2, true},
+		{"site admin", 1, 1, true},
+		{"team member", 3, 4, true},
+		{"collaborator", 4, 4, true},
+		{"public reader", 1, 4, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: tc.repoID})
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: tc.userID})
+			permission, err := access_model.GetDoerRepoPermission(t.Context(), repo, user)
+			require.NoError(t, err)
+			for _, unitType := range []unit.Type{unit.TypeIssues, unit.TypePullRequests} {
+				require.NoError(t, CheckCreationRestriction(permission, unitType, repo_model.CreationRestrictionReader))
+				for _, restriction := range []string{repo_model.CreationRestrictionMember, repo_model.CreationRestrictionWriter} {
+					err := CheckCreationRestriction(permission, unitType, restriction)
+					if tc.member {
+						assert.NoError(t, err)
+					} else {
+						assert.ErrorIs(t, err, util.ErrPermissionDenied)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestCanSelfChangeOrAccessContent(t *testing.T) {
+	doer := &user_model.User{ID: 1}
+	for _, u := range []struct {
+		name     string
+		unitType unit.Type
+	}{
+		{"issues", unit.TypeIssues},
+		{"pulls", unit.TypePullRequests},
+	} {
+		t.Run(u.name, func(t *testing.T) {
+			for _, tc := range []struct {
+				name         string
+				doer         *user_model.User
+				posterID     int64
+				mode         perm.AccessMode
+				requiredMode perm.AccessMode
+				locked       bool
+				allowed      bool
+			}{
+				{"anonymous", nil, 1, perm.AccessModeWrite, perm.AccessModeWrite, false, false},
+				{"author without read access", doer, 1, perm.AccessModeNone, perm.AccessModeWrite, false, false},
+				{"author with read access", doer, 1, perm.AccessModeRead, perm.AccessModeWrite, false, true},
+				{"reader cannot edit others", doer, 2, perm.AccessModeRead, perm.AccessModeWrite, false, false},
+				{"reader can access others", doer, 2, perm.AccessModeRead, perm.AccessModeRead, false, true},
+				{"writer can edit others", doer, 2, perm.AccessModeWrite, perm.AccessModeWrite, false, true},
+				{"locked author needs write access", doer, 1, perm.AccessModeRead, perm.AccessModeWrite, true, false},
+				{"locked reader needs write access", doer, 2, perm.AccessModeRead, perm.AccessModeRead, true, false},
+				{"locked writer can edit", doer, 2, perm.AccessModeWrite, perm.AccessModeWrite, true, true},
+			} {
+				t.Run(tc.name, func(t *testing.T) {
+					var permission access_model.Permission
+					permission.SetUnitsWithDefaultAccessMode([]*repo_model.RepoUnit{{Type: u.unitType}}, tc.mode)
+					issue := &issues_model.Issue{IsPull: u.unitType == unit.TypePullRequests, IsLocked: tc.locked}
+					assert.Equal(t, tc.allowed, CanSelfChangeOrAccessContent(tc.doer, permission, issue, tc.posterID, tc.requiredMode))
+				})
+			}
+		})
+	}
+}
 
 func TestGetRefEndNamesAndURLs(t *testing.T) {
 	issues := []*issues_model.Issue{

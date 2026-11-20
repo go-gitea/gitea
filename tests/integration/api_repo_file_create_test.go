@@ -136,11 +136,10 @@ func TestAPICreateFile(t *testing.T) {
 		fileID := 0
 
 		// Get user2's token
-		session := loginUser(t, user2.Name)
-		token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+		session2 := loginUser(t, user2.Name)
+		token2 := getTokenForLoggedInUser(t, session2, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 		// Get user4's token
-		session = loginUser(t, user4.Name)
-		token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+		token4 := getTokenForLoggedInUser(t, loginUser(t, user4.Name), auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 		// Test creating a file in repo1 which user2 owns, try both with branch and empty branch
 		for _, branch := range [...]string{
@@ -222,54 +221,42 @@ func TestAPICreateFile(t *testing.T) {
 		apiError := DecodeJSON(t, resp, &context.APIError{})
 		assert.Equal(t, expectedAPIError, apiError)
 
-		// Test creating a file in repo1 by user4 who does not have write access
-		createFileOptions = getCreateFileOptions()
-		fileID++
-		treePath = fmt.Sprintf("new/file%d.txt", fileID)
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath), &createFileOptions).
-			AddTokenAuth(token4)
-		MakeRequest(t, req, http.StatusNotFound)
-
-		// Tests a repo with no token given so will fail
-		createFileOptions = getCreateFileOptions()
-		fileID++
-		treePath = fmt.Sprintf("new/file%d.txt", fileID)
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath), &createFileOptions)
-		MakeRequest(t, req, http.StatusNotFound)
-
-		// Test using access token for a private repo that the user of the token owns
-		createFileOptions = getCreateFileOptions()
-		fileID++
-		treePath = fmt.Sprintf("new/file%d.txt", fileID)
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath), &createFileOptions).
-			AddTokenAuth(token2)
-		MakeRequest(t, req, http.StatusCreated)
-
-		// Test using org repo "org3/repo3" where user2 is a collaborator
-		createFileOptions = getCreateFileOptions()
-		fileID++
-		treePath = fmt.Sprintf("new/file%d.txt", fileID)
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", org3.Name, repo3.Name, treePath), &createFileOptions).
-			AddTokenAuth(token2)
-		MakeRequest(t, req, http.StatusCreated)
-
-		// Test using org repo "org3/repo3" with no user token
-		createFileOptions = getCreateFileOptions()
-		fileID++
-		treePath = fmt.Sprintf("new/file%d.txt", fileID)
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", org3.Name, repo3.Name, treePath), &createFileOptions)
-		MakeRequest(t, req, http.StatusNotFound)
-
-		// Test using repo "user2/repo1" where user4 is a NOT collaborator
-		createFileOptions = getCreateFileOptions()
-		fileID++
-		treePath = fmt.Sprintf("new/file%d.txt", fileID)
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &createFileOptions).
-			AddTokenAuth(token4)
-		MakeRequest(t, req, http.StatusForbidden)
+		for _, testCase := range []struct {
+			owner          *user_model.User
+			repo           *repo_model.Repository
+			token          string
+			expectedStatus int
+		}{
+			// Test creating a file in repo1 by user4 who does not have write access
+			{user2, repo16, token4, http.StatusNotFound},
+			// Tests a repo with no token given so will fail
+			{user2, repo16, "", http.StatusNotFound},
+			// Test using access token for a private repo that the user of the token owns
+			{user2, repo16, token2, http.StatusCreated},
+			// Test using org repo "org3/repo3" where user2 is a collaborator
+			{org3, repo3, token2, http.StatusCreated},
+			// Test using org repo "org3/repo3" with no user token
+			{org3, repo3, "", http.StatusNotFound},
+			// Test using repo "user2/repo1" where user4 is a NOT collaborator
+			{user2, repo1, token4, http.StatusForbidden},
+		} {
+			createFileOptions = getCreateFileOptions()
+			fileID++
+			treePath = fmt.Sprintf("new/file%d.txt", fileID)
+			req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", testCase.owner.Name, testCase.repo.Name, treePath), &createFileOptions)
+			if testCase.token != "" {
+				req.AddTokenAuth(testCase.token)
+			}
+			MakeRequest(t, req, testCase.expectedStatus)
+		}
 
 		// Test creating a file in an empty repository
-		doAPICreateRepository(NewAPITestContext(t, "user2", "empty-repo", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser), true)(t)
+		doAPICreateRepository(APITestContext{
+			Session:  session2,
+			Token:    token2,
+			Username: "user2",
+			Reponame: "empty-repo",
+		}, true)(t)
 		createFileOptions = getCreateFileOptions()
 		fileID++
 		treePath = fmt.Sprintf("new/file%d.txt", fileID)

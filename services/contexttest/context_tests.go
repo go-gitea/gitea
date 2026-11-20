@@ -70,7 +70,7 @@ func MockContext(t *testing.T, reqPath string, opts ...MockContextOption) (*cont
 	ctx := context.NewWebContext(base, opt.Render, nil)
 	ctx.SetContextValue(chi.RouteCtxKey, chiCtx)
 	if opt.SessionStore != nil {
-		ctx.SetContextValue(session.MockStoreContextKey, opt.SessionStore)
+		ctx.SetContextValue(session.ContextKey, opt.SessionStore)
 		ctx.Session = opt.SessionStore
 	}
 	ctx.Cache = cache.GetCache()

@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"path"
@@ -120,19 +121,19 @@ func GetContentFromEntry(ctx context.Context, gitRepo *git.Repository, entry *gi
 }
 
 func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
-	workflow, err := jobparser.ReadWorkflow(content)
-	if err != nil {
-		return nil, err
-	}
-	events, err := jobparser.ParseRawOn(&workflow.RawOn)
-	if err != nil {
-		return nil, err
-	}
-	if err := ValidateWorkflowContent(content); err != nil {
-		return nil, err
-	}
+	events, _, err := readWorkflowEvents(content)
+	return events, err
+}
 
-	return events, nil
+// readWorkflowEvents also reports whether its error needs no run-time values to find, as a parse error of a workflow without expressions does.
+func readWorkflowEvents(content []byte) (events []*jobparser.Event, static bool, err error) {
+	if events, err = jobparser.ValidateWorkflowStatic(content); err != nil {
+		return nil, true, err
+	}
+	if err = ValidateWorkflowContent(content); err != nil {
+		return nil, !bytes.Contains(content, []byte("${{")), err
+	}
+	return events, false, nil
 }
 
 // ValidateWorkflowContent catches structural errors (e.g. blank lines in run: | blocks)
@@ -164,11 +165,12 @@ func ScopedWorkflowStatusContextName(prefix, displayName, jobName, event string)
 	return strings.TrimSpace(fmt.Sprintf("%s: %s", prefix, WorkflowStatusContextName(displayName, jobName, event)))
 }
 
-// ShouldEventCreateCommitStatus reports whether a run triggered by the given workflow `on:` event posts a commit status,
+// IsPullRequestCheckEvent reports whether a run triggered by the given workflow `on:` event posts a commit status that pull requests count,
 // so its context can serve as a required status check.
-// TODO: this allowlist duplicates the truth in services/actions.getCommitStatusEventNameAndCommitID, which decides the actual event string and whether a status is posted.
-// The two are kept in sync by hand and can drift; unify them into a single source so adding a status-producing event in one place automatically updates the other.
-func ShouldEventCreateCommitStatus(event string) bool {
+// TODO: this allowlist duplicates the truth in services/actions.getCommitStatusEventNameAndCommitID, which decides the actual event string and whether a status is posted,
+// and in services/pull.GetLatestPullCommitStatuses, which decides whether pull requests count it.
+// They are kept in sync by hand and can drift, unify them into a single source so adding a status-producing event in one place automatically updates the others.
+func IsPullRequestCheckEvent(event string) bool {
 	switch event {
 	case "push", "pull_request", "pull_request_target", "pull_request_review", "pull_request_review_comment", "release":
 		return true
@@ -183,22 +185,26 @@ func DetectWorkflows(
 	triggedEvent webhook_module.HookEventType,
 	payload api.Payloader,
 	detectSchedule bool,
-) (workflows, schedules, filtered []*DetectedWorkflow, err error) {
+) (workflows, schedules, filtered []*DetectedWorkflow, invalid map[string]error, err error) {
 	_, entries, err := ListWorkflows(ctx, gitRepo, commit)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
+	invalid = map[string]error{}
 	for _, entry := range entries {
 		content, err := GetContentFromEntry(ctx, gitRepo, entry)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
 
 		// one workflow may have multiple events
-		events, err := GetEventsFromContent(content)
+		events, static, err := readWorkflowEvents(content)
 		if err != nil {
 			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
+			if static {
+				invalid[entry.Name()] = err
+			}
 			continue
 		}
 		for _, evt := range events {
@@ -231,7 +237,7 @@ func DetectWorkflows(
 		}
 	}
 
-	return workflows, schedules, filtered, nil
+	return workflows, schedules, filtered, invalid, nil
 }
 
 func DetectScheduledWorkflows(ctx context.Context, gitRepo *git.Repository, commit *git.Commit) ([]*DetectedWorkflow, error) {
@@ -505,29 +511,13 @@ func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool
 			// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#issues
 			// Actions with the same name:
 			// opened, edited, closed, reopened, assigned, unassigned, milestoned, demilestoned
-			// Actions need to be converted:
-			// label_updated -> labeled (when adding) or unlabeled (when removing)
-			// label_cleared -> unlabeled
+			// Actions need to be converted: see toActivityTypes
 			// Unsupported activity types:
 			// deleted, transferred, pinned, unpinned, locked, unlocked
 
-			actions := []string{}
-			switch issuePayload.Action {
-			case api.HookIssueLabelUpdated:
-				if len(issuePayload.Changes.AddedLabels) > 0 {
-					actions = append(actions, "labeled")
-				}
-				if len(issuePayload.Changes.RemovedLabels) > 0 {
-					actions = append(actions, "unlabeled")
-				}
-			case api.HookIssueLabelCleared:
-				actions = append(actions, "unlabeled")
-			default:
-				actions = append(actions, string(issuePayload.Action))
-			}
-
+			actions := toActivityTypes(issuePayload.Action, issuePayload.Changes)
 			for _, val := range vals {
-				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
+				if matchActivityType(val, actions...) {
 					matchTimes++
 					break
 				}
@@ -552,25 +542,14 @@ func matchPullRequestEvent(ctx context.Context, gitRepo *git.Repository, commit 
 		// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
 		// Actions with the same name:
 		// opened, edited, closed, reopened, assigned, unassigned, review_requested, review_request_removed, milestoned, demilestoned
-		// Actions need to be converted:
-		// synchronized -> synchronize
-		// label_updated -> labeled
-		// label_cleared -> unlabeled
+		// Actions need to be converted: see toActivityTypes
 		// Unsupported activity types:
 		// converted_to_draft, ready_for_review, locked, unlocked, auto_merge_enabled, auto_merge_disabled, enqueued, dequeued
 
-		action := prPayload.Action
-		switch action {
-		case api.HookIssueSynchronized:
-			action = "synchronize"
-		case api.HookIssueLabelUpdated:
-			action = "labeled"
-		case api.HookIssueLabelCleared:
-			action = "unlabeled"
-		}
-		log.Trace("matching pull_request %s with %v", action, vals)
+		actions := toActivityTypes(prPayload.Action, prPayload.Changes)
+		log.Trace("matching pull_request %v with %v", actions, vals)
 		for _, val := range vals {
-			if glob.MustCompile(val, '/').Match(string(action)) {
+			if matchActivityType(val, actions...) {
 				activityTypeMatched = true
 				matchTimes++
 				break
@@ -582,7 +561,7 @@ func matchPullRequestEvent(ctx context.Context, gitRepo *git.Repository, commit 
 		headCommit = commit
 		err        error
 	)
-	if evt.Name == GithubEventPullRequestTarget && (len(acts["paths"]) > 0 || len(acts["paths-ignore"]) > 0) {
+	if (len(acts["paths"]) > 0 || len(acts["paths-ignore"]) > 0) && commit.ID.String() != prPayload.PullRequest.Head.Sha {
 		headCommit, err = gitRepo.GetCommit(ctx, prPayload.PullRequest.Head.Sha)
 		if err != nil {
 			log.Error("GetCommit [ref: %s]: %v", prPayload.PullRequest.Head.Sha, err)
@@ -673,7 +652,7 @@ func matchIssueCommentEvent(issueCommentPayload *api.IssueCommentPayload, evt *j
 			// NONE
 
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(string(issueCommentPayload.Action)) {
+				if matchActivityType(val, string(issueCommentPayload.Action)) {
 					matchTimes++
 					break
 				}
@@ -713,7 +692,7 @@ func matchPullRequestReviewEvent(prPayload *api.PullRequestPayload, evt *jobpars
 			}
 
 			for _, val := range vals {
-				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
+				if matchActivityType(val, actions...) {
 					matchTimes++
 					break
 				}
@@ -753,7 +732,7 @@ func matchPullRequestReviewCommentEvent(prPayload *api.PullRequestPayload, evt *
 			}
 
 			for _, val := range vals {
-				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
+				if matchActivityType(val, actions...) {
 					matchTimes++
 					break
 				}
@@ -790,7 +769,7 @@ func matchReleaseEvent(payload *api.ReleasePayload, evt *jobparser.Event) bool {
 				action = "edited"
 			}
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(string(action)) {
+				if matchActivityType(val, string(action)) {
 					matchTimes++
 					break
 				}
@@ -827,7 +806,7 @@ func matchPackageEvent(payload *api.PackagePayload, evt *jobparser.Event) bool {
 				action = "published"
 			}
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(string(action)) {
+				if matchActivityType(val, string(action)) {
 					matchTimes++
 					break
 				}
@@ -852,7 +831,7 @@ func matchWorkflowRunEvent(payload *api.WorkflowRunPayload, evt *jobparser.Event
 		case "types":
 			action := payload.Action
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(action) {
+				if matchActivityType(val, action) {
 					matchTimes++
 					break
 				}
@@ -887,4 +866,35 @@ func matchWorkflowRunEvent(payload *api.WorkflowRunPayload, evt *jobparser.Event
 		}
 	}
 	return matchTimes == len(evt.Acts())
+}
+
+// toActivityTypes returns several types because one label update can both add and remove labels
+func toActivityTypes(action api.HookIssueAction, changes *api.ChangesPayload) []string {
+	switch action {
+	case api.HookIssueSynchronized:
+		return []string{"synchronize"}
+	case api.HookIssueLabelUpdated:
+		var types []string
+		if len(changes.AddedLabels) > 0 {
+			types = append(types, "labeled")
+		}
+		if len(changes.RemovedLabels) > 0 {
+			types = append(types, "unlabeled")
+		}
+		return types
+	case api.HookIssueLabelCleared:
+		return []string{"unlabeled"}
+	default:
+		return []string{string(action)}
+	}
+}
+
+// matchActivityType treats an invalid user-provided pattern as no match instead of panicking
+func matchActivityType(pattern string, actions ...string) bool {
+	g, err := glob.Compile(pattern, '/')
+	if err != nil {
+		log.Debug("invalid activity type pattern %q: %v", pattern, err)
+		return false
+	}
+	return slices.ContainsFunc(actions, g.Match)
 }

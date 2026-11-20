@@ -93,7 +93,12 @@ const artifactKeepForever timeutil.TimeStamp = 0
 
 func artifactExpiry(requested optional.Option[timeutil.TimeStamp]) timeutil.TimeStamp {
 	if requested.Has() {
-		return max(requested.Value(), artifactKeepForever+1)
+		now := timeutil.TimeStampNow()
+		expiry := max(requested.Value(), now.Add(timeutil.Day)) // v4 clients use the runner's clock
+		if setting.Actions.ArtifactRetentionDays > 0 {
+			expiry = min(expiry, now.Add(timeutil.Day*setting.Actions.ArtifactRetentionDays))
+		}
+		return expiry
 	}
 	if setting.Actions.ArtifactRetentionDays <= 0 {
 		return artifactKeepForever
@@ -210,8 +215,11 @@ func keepLatestAttemptArtifacts(arts []*ActionArtifact) []*ActionArtifact {
 	})
 }
 
-// ActionArtifactMeta is the meta-data of an artifact
+// ActionArtifactMeta is the metadata of an artifact
 type ActionArtifactMeta struct {
+	// The ID identifies the artifact group. The preview handler loads all files with the same run, attempt, and artifact name, then selects the requested file by path.
+	// It is the lowest row ID in the group query, legacy artifacts have one row per file.
+	ID           int64
 	ArtifactName string
 	FileSize     int64
 	Status       ArtifactStatus
@@ -225,7 +233,7 @@ func ListUploadedArtifactsMetaByRunAttempt(ctx context.Context, repoID, runID, r
 	return arts, db.GetEngine(ctx).Table("action_artifact").
 		Where("repo_id=? AND run_id=? AND run_attempt_id=? AND (status=? OR status=?)", repoID, runID, runAttemptID, ArtifactStatusUploadConfirmed, ArtifactStatusExpired).
 		GroupBy("artifact_name").
-		Select("artifact_name, sum(file_size) as file_size, max(status) as status, max(expired_unix) as expired_unix").
+		Select("min(id) as id, artifact_name, sum(file_size) as file_size, max(status) as status, max(expired_unix) as expired_unix").
 		Find(&arts)
 }
 

@@ -94,9 +94,9 @@
 </div>
 
 {{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
-<div class="ui small modal" id="repo-project-delete-modal">
+<dialog class="modal-dialog" id="repo-project-delete-modal">
 	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.projects.deletion"}}</div>
 	<div class="content"><p>{{ctx.Locale.Tr "repo.projects.deletion_desc"}}</p></div>
 	{{template "base/modal_actions_confirm" .}}
-</div>
+</dialog>
 {{end}}

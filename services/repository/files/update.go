@@ -13,6 +13,7 @@ import (
 	"time"
 
 	git_model "gitea.dev/models/git"
+	"gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -25,6 +26,7 @@ import (
 	"gitea.dev/routers/api/v1/utils"
 	asymkey_service "gitea.dev/services/asymkey"
 	pull_service "gitea.dev/services/pull"
+	repo_service "gitea.dev/services/repository"
 )
 
 // IdentityOptions for a person's identity like an author or committer
@@ -286,20 +288,15 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		return nil, err
 	}
 
-	// FIXME: this call seems not right, why it needs to read the file content again
-	// FIXME: why it uses the NewBranch as "ref", it should use the commit ID because the response is only for this commit
-	filesResponse, err := GetFilesResponseFromCommit(ctx, repo, gitRepo, utils.NewRefCommit(git.RefNameFromBranch(opts.NewBranch), commit), treePaths)
-	if err != nil {
-		return nil, err
-	}
-
 	if repo.IsEmpty {
-		if isEmpty, err := gitRepo.IsEmpty(ctx); err == nil && !isEmpty {
-			_ = repo_model.UpdateRepositoryColsWithAutoTime(ctx, &repo_model.Repository{ID: repo.ID, IsEmpty: false, DefaultBranch: opts.NewBranch}, "is_empty", "default_branch")
+		if err := repo_service.SyncBranchesToDB(ctx, repo, doer.ID, gitRepo, []string{opts.NewBranch}); err != nil {
+			log.Error("SyncBranchesToDB: %v", err)
 		}
 	}
 
-	return filesResponse, nil
+	// FIXME: this call seems not right, why it needs to read the file content again
+	// FIXME: why it uses the NewBranch as "ref", it should use the commit ID because the response is only for this commit
+	return GetFilesResponseFromCommit(ctx, repo, gitRepo, utils.NewRefCommit(git.RefNameFromBranch(opts.NewBranch), commit), treePaths)
 }
 
 // ErrRepoFileAlreadyExists represents a "RepoFileAlreadyExist" kind of error.
@@ -667,7 +664,11 @@ func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, gi
 		protectedBranch.Repo = repo
 		globUnprotected := protectedBranch.GetUnprotectedFilePatterns()
 		globProtected := protectedBranch.GetProtectedFilePatterns()
-		canUserPush := protectedBranch.CanUserPush(ctx, doer)
+		perm, err := access.GetDoerRepoPermission(ctx, repo, doer)
+		if err != nil {
+			return err
+		}
+		canUserPush := protectedBranch.CanUserPush(ctx, doer, perm)
 		for _, treePath := range treePaths {
 			isUnprotectedFile := false
 			if len(globUnprotected) != 0 {

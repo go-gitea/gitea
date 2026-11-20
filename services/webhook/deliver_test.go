@@ -7,81 +7,21 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 	"time"
 
 	"gitea.dev/models/unittest"
 	webhook_model "gitea.dev/models/webhook"
-	"gitea.dev/modules/hostmatcher"
+	"gitea.dev/modules/egress"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestWebhookProxy(t *testing.T) {
-	oldWebhook := setting.Webhook
-	t.Cleanup(func() {
-		setting.Webhook = oldWebhook
-	})
-
-	setting.Webhook.ProxyURL = "http://localhost:8080"
-	setting.Webhook.ProxyURLFixed, _ = url.Parse(setting.Webhook.ProxyURL)
-	setting.Webhook.ProxyHosts = []string{"*.discordapp.com", "discordapp.com"}
-
-	allowedHostMatcher := hostmatcher.ParseHostMatchList("webhook.ALLOWED_HOST_LIST", "discordapp.com,s.discordapp.com")
-
-	tests := []struct {
-		req     string
-		want    string
-		wantErr bool
-	}{
-		{
-			req:     "https://discordapp.com/api/webhooks/xxxxxxxxx/xxxxxxxxxxxxxxxxxxx",
-			want:    "http://localhost:8080",
-			wantErr: false,
-		},
-		{
-			req:     "http://s.discordapp.com/assets/xxxxxx",
-			want:    "http://localhost:8080",
-			wantErr: false,
-		},
-		{
-			req:     "http://github.com/a/b",
-			want:    "",
-			wantErr: false,
-		},
-		{
-			req:     "http://www.discordapp.com/assets/xxxxxx",
-			want:    "",
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.req, func(t *testing.T) {
-			req, err := http.NewRequest(http.MethodPost, tt.req, nil)
-			require.NoError(t, err)
-
-			u, err := webhookProxy(allowedHostMatcher)(req)
-			if tt.wantErr {
-				assert.Error(t, err)
-				return
-			}
-
-			assert.NoError(t, err)
-
-			got := ""
-			if u != nil {
-				got = u.String()
-			}
-			assert.Equal(t, tt.want, got)
-		})
-	}
-}
 
 func TestWebhookDeliverAuthorizationHeader(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
@@ -221,55 +161,79 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 	}
 	assert.NoError(t, webhook_model.CreateWebhook(t.Context(), hook))
 
-	t.Run("Version 1", func(t *testing.T) {
-		testVersion = 1
-		hookTask := &webhook_model.HookTask{
-			HookID:         hook.ID,
-			EventType:      webhook_module.HookEventPush,
-			PayloadContent: `{"data": 42}`,
-			PayloadVersion: 1,
-		}
+	for version, name := range []string{"Version 1", "Version 2"} {
+		t.Run(name, func(t *testing.T) {
+			payloadContent := `{"data": 42}`
+			if version == 1 {
+				p := pushTestPayload()
+				data, err := p.JSONPayload()
+				assert.NoError(t, err)
+				payloadContent = string(data)
+			}
 
-		hookTask, err := webhook_model.CreateHookTask(t.Context(), hookTask)
-		assert.NoError(t, err)
-		assert.NotNil(t, hookTask)
+			testVersion = version + 1
+			hookTask := &webhook_model.HookTask{
+				HookID:         hook.ID,
+				EventType:      webhook_module.HookEventPush,
+				PayloadContent: payloadContent,
+				PayloadVersion: testVersion,
+			}
 
-		assert.NoError(t, Deliver(t.Context(), hookTask))
-		select {
-		case <-done:
-		case <-time.After(5 * time.Second):
-			t.Fatal("waited to long for request to happen")
-		}
+			hookTask, err := webhook_model.CreateHookTask(t.Context(), hookTask)
+			assert.NoError(t, err)
+			assert.NotNil(t, hookTask)
 
-		assert.True(t, hookTask.IsSucceed)
-	})
+			assert.NoError(t, Deliver(t.Context(), hookTask))
+			select {
+			case <-done:
+			case <-time.After(5 * time.Second):
+				t.Fatal("waited to long for request to happen")
+			}
 
-	t.Run("Version 2", func(t *testing.T) {
-		p := pushTestPayload()
-		data, err := p.JSONPayload()
-		assert.NoError(t, err)
+			assert.True(t, hookTask.IsSucceed)
+		})
+	}
+}
 
-		testVersion = 2
-		hookTask := &webhook_model.HookTask{
-			HookID:         hook.ID,
-			EventType:      webhook_module.HookEventPush,
-			PayloadContent: string(data),
-			PayloadVersion: 2,
-		}
+func TestWebhookDeliveryErrorType(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	stalled := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done()
+	}))
+	t.Cleanup(stalled.Close)
+	closed := httptest.NewServer(http.NotFoundHandler())
+	closed.Close()
 
-		hookTask, err = webhook_model.CreateHookTask(t.Context(), hookTask)
-		assert.NoError(t, err)
-		assert.NotNil(t, hookTask)
+	timeoutClient := *webhookHTTPClient
+	timeoutClient.Timeout = 50 * time.Millisecond
+	restoreAllowList := test.MockVariableValue(&setting.Webhook.AllowedHostList, "")
+	blockedClient := &http.Client{Transport: egress.NewWebhookPolicy().NewHTTPTransport()}
+	restoreAllowList()
 
-		assert.NoError(t, Deliver(t.Context(), hookTask))
-		select {
-		case <-done:
-		case <-time.After(5 * time.Second):
-			t.Fatal("waited to long for request to happen")
-		}
+	for _, tc := range []struct {
+		name      string
+		client    *http.Client
+		url       string
+		errorType webhook_model.HookDeliveryError
+	}{
+		{"blocked", blockedClient, stalled.URL, webhook_model.HookDeliveryErrorBlocked},
+		{"timeout", &timeoutClient, stalled.URL, webhook_model.HookDeliveryErrorTimeout},
+		{"connection", webhookHTTPClient, closed.URL, webhook_model.HookDeliveryErrorConnection},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			defer test.MockVariableValue(&webhookHTTPClient, tc.client)()
+			hook := &webhook_model.Webhook{RepoID: 3, URL: tc.url, ContentType: webhook_model.ContentTypeJSON, Events: `{}`, IsActive: true}
+			require.NoError(t, webhook_model.CreateWebhook(t.Context(), hook))
+			task, err := webhook_model.CreateHookTask(t.Context(), &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventPush, PayloadVersion: 1})
+			require.NoError(t, err)
 
-		assert.True(t, hookTask.IsSucceed)
-	})
+			require.Error(t, Deliver(t.Context(), task))
+			stored, err := webhook_model.GetHookTaskByID(t.Context(), task.ID)
+			require.NoError(t, err)
+			require.NotNil(t, stored.ResponseInfo)
+			assert.Equal(t, tc.errorType, stored.ResponseInfo.ErrorType)
+		})
+	}
 }
 
 func TestWebhookDeliverSpecificTypes(t *testing.T) {

@@ -8,7 +8,7 @@ const {appSubUrl} = window.config;
 /** One of the possible values for the `data-webauthn-error-msg` attribute on the webauthn error message element */
 type ErrorType = 'general' | 'insecure' | 'browser' | 'unable-to-process' | 'duplicated' | 'unknown';
 
-export async function initUserAuthWebAuthn() {
+export function initUserAuthWebAuthn() {
   const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
   const elSignInPasskeyBtn = document.querySelector('.signin-passkey');
   if (!elPrompt && !elSignInPasskeyBtn) {
@@ -17,7 +17,8 @@ export async function initUserAuthWebAuthn() {
 
   const errorType = detectWebAuthnSupport();
   if (errorType) {
-    if (elSignInPasskeyBtn) hideElem(elSignInPasskeyBtn);
+    // no webauthn support, completely hide the passkey related UI elements, including the error message
+    if (elSignInPasskeyBtn) hideElem(elSignInPasskeyBtn.closest('.signin-passkey-container')!);
     return;
   }
 

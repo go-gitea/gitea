@@ -49,29 +49,6 @@ func TestParseMetadataFromBox(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("Valid", func(t *testing.T) {
-		content, err := json.Marshal(map[string]string{
-			"description": description,
-			"author":      author,
-			"website":     projectURL,
-			"repository":  repositoryURL,
-		})
-		assert.NoError(t, err)
-
-		data := createArchive(map[string][]byte{"info.json": content})
-
-		metadata, err := ParseMetadataFromBox(data)
-		assert.NotNil(t, metadata)
-		assert.NoError(t, err)
-
-		assert.Equal(t, author, metadata.Author)
-		assert.Equal(t, description, metadata.Description)
-		assert.Equal(t, projectURL, metadata.ProjectURL)
-		assert.Equal(t, repositoryURL, metadata.RepositoryURL)
-	})
-}
-
-func TestParseInfoFile(t *testing.T) {
 	t.Run("UnknownKeys", func(t *testing.T) {
 		content, err := json.Marshal(map[string]string{
 			"package": "",
@@ -89,22 +66,31 @@ func TestParseInfoFile(t *testing.T) {
 		assert.Empty(t, metadata.RepositoryURL)
 	})
 
-	t.Run("Valid", func(t *testing.T) {
-		content, err := json.Marshal(map[string]string{
-			"description": description,
-			"author":      author,
-			"website":     projectURL,
-			"repository":  repositoryURL,
+	for name, parse := range map[string]func([]byte) (*Metadata, error){
+		"ValidBox": func(content []byte) (*Metadata, error) {
+			return ParseMetadataFromBox(createArchive(map[string][]byte{"info.json": content}))
+		},
+		"ValidInfoFile": func(content []byte) (*Metadata, error) {
+			return ParseInfoFile(bytes.NewReader(content))
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			content, err := json.Marshal(map[string]string{
+				"description": description,
+				"author":      author,
+				"website":     projectURL,
+				"repository":  repositoryURL,
+			})
+			assert.NoError(t, err)
+
+			metadata, err := parse(content)
+			assert.NotNil(t, metadata)
+			assert.NoError(t, err)
+
+			assert.Equal(t, author, metadata.Author)
+			assert.Equal(t, description, metadata.Description)
+			assert.Equal(t, projectURL, metadata.ProjectURL)
+			assert.Equal(t, repositoryURL, metadata.RepositoryURL)
 		})
-		assert.NoError(t, err)
-
-		metadata, err := ParseInfoFile(bytes.NewReader(content))
-		assert.NotNil(t, metadata)
-		assert.NoError(t, err)
-
-		assert.Equal(t, author, metadata.Author)
-		assert.Equal(t, description, metadata.Description)
-		assert.Equal(t, projectURL, metadata.ProjectURL)
-		assert.Equal(t, repositoryURL, metadata.RepositoryURL)
-	})
+	}
 }

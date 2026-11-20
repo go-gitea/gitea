@@ -13,6 +13,7 @@ import (
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckAuthToken(t *testing.T) {
@@ -20,7 +21,7 @@ func TestCheckAuthToken(t *testing.T) {
 
 	t.Run("Empty", func(t *testing.T) {
 		token, err := CheckAuthToken(t.Context(), "")
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, ErrAuthTokenInvalidFormat)
 		assert.Nil(t, token)
 	})
 
@@ -105,5 +106,20 @@ func TestRegenerateAuthToken(t *testing.T) {
 	assert.NotEqual(t, token, token2)
 	assert.NotEqual(t, at.ExpiresUnix, at2.ExpiresUnix)
 
+	// A second request validated the same cookie before the first rotation.
+	_, _, err = RegenerateAuthToken(t.Context(), at)
+	require.ErrorIs(t, err, ErrAuthTokenStale)
+
+	_, err = CheckAuthToken(t.Context(), at.ID+":"+token)
+	require.ErrorIs(t, err, ErrAuthTokenStale)
+	current, err := CheckAuthToken(t.Context(), at2.ID+":"+token2)
+	require.NoError(t, err)
+	require.Equal(t, at2.TokenHash, current.TokenHash)
+
+	timeutil.MockSet(time.Date(2023, 1, 1, 0, 1, 2, 0, time.UTC))
+	_, err = CheckAuthToken(t.Context(), at.ID+":"+token)
+	require.ErrorIs(t, err, ErrAuthTokenInvalidHash)
+	_, err = auth_model.GetAuthTokenByID(t.Context(), at.ID)
+	require.ErrorIs(t, err, util.ErrNotExist)
 	assert.NoError(t, auth_model.DeleteAuthTokenByID(t.Context(), at.ID))
 }

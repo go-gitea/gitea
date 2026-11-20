@@ -30,7 +30,7 @@ import (
 )
 
 func TestAddDeployKey(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	t.Run("ReadOnly", func(t *testing.T) {
 		const testKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf\n"
 		ctx, _ := contexttest.MockContext(t, "POST /user2/repo1/settings/keys")
@@ -52,128 +52,49 @@ func TestAddDeployKey(t *testing.T) {
 }
 
 func TestCollaborationPost(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
-	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadUser(t, ctx, 4)
-	contexttest.LoadRepo(t, ctx, 1)
+	for _, c := range []struct {
+		name, collaborator string
+		userID             int64
+	}{
+		{"AddCollaboratorTwice", "user4", 4},
+		{"InactiveUser", "user9", 9},
+		{"NonExistentUser", "user34", 0},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			assert.NoError(t, unittest.PrepareTestDatabase())
+			ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
+			contexttest.LoadUser(t, ctx, 2)
+			if c.userID != 0 {
+				contexttest.LoadUser(t, ctx, c.userID)
+			}
+			contexttest.LoadRepo(t, ctx, 1)
+			ctx.Req.Form.Set("collaborator", c.collaborator)
 
-	ctx.Req.Form.Set("collaborator", "user4")
+			owner := &user_model.User{LowerName: "user2", Type: user_model.UserTypeIndividual}
+			ctx.Repo = &context.Repository{Owner: owner}
+			if c.userID == 4 {
+				ctx.Repo.Repository = &repo_model.Repository{ID: 2, Owner: owner}
+			}
 
-	u := &user_model.User{
-		LowerName: "user2",
-		Type:      user_model.UserTypeIndividual,
+			CollaborationPost(ctx)
+			assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+
+			if c.userID == 4 {
+				exists, err := repo_model.IsCollaborator(ctx, ctx.Repo.Repository.ID, 4)
+				assert.NoError(t, err)
+				assert.True(t, exists)
+
+				// Try adding the same collaborator again
+				CollaborationPost(ctx)
+				assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+			}
+			assert.NotEmpty(t, ctx.Flash.ErrorMsg)
+		})
 	}
-
-	re := &repo_model.Repository{
-		ID:    2,
-		Owner: u,
-	}
-
-	repo := &context.Repository{
-		Owner:      u,
-		Repository: re,
-	}
-
-	ctx.Repo = repo
-
-	CollaborationPost(ctx)
-
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
-
-	exists, err := repo_model.IsCollaborator(ctx, re.ID, 4)
-	assert.NoError(t, err)
-	assert.True(t, exists)
-}
-
-func TestCollaborationPost_InactiveUser(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
-	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadUser(t, ctx, 9)
-	contexttest.LoadRepo(t, ctx, 1)
-
-	ctx.Req.Form.Set("collaborator", "user9")
-
-	repo := &context.Repository{
-		Owner: &user_model.User{
-			LowerName: "user2",
-		},
-	}
-
-	ctx.Repo = repo
-
-	CollaborationPost(ctx)
-
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
-	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
-}
-
-func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
-	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadUser(t, ctx, 4)
-	contexttest.LoadRepo(t, ctx, 1)
-
-	ctx.Req.Form.Set("collaborator", "user4")
-
-	u := &user_model.User{
-		LowerName: "user2",
-		Type:      user_model.UserTypeIndividual,
-	}
-
-	re := &repo_model.Repository{
-		ID:    2,
-		Owner: u,
-	}
-
-	repo := &context.Repository{
-		Owner:      u,
-		Repository: re,
-	}
-
-	ctx.Repo = repo
-
-	CollaborationPost(ctx)
-
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
-
-	exists, err := repo_model.IsCollaborator(ctx, re.ID, 4)
-	assert.NoError(t, err)
-	assert.True(t, exists)
-
-	// Try adding the same collaborator again
-	CollaborationPost(ctx)
-
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
-	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
-}
-
-func TestCollaborationPost_NonExistentUser(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
-	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadRepo(t, ctx, 1)
-
-	ctx.Req.Form.Set("collaborator", "user34")
-
-	repo := &context.Repository{
-		Owner: &user_model.User{
-			LowerName: "user2",
-		},
-	}
-
-	ctx.Repo = repo
-
-	CollaborationPost(ctx)
-
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
-	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }
 
 func TestAddTeamPost(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 43})
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 11})
@@ -219,7 +140,7 @@ func TestAddTeamPost(t *testing.T) {
 }
 
 func TestDeleteTeam(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx, _ := contexttest.MockContext(t, "org3/team1/repo3")
 
 	ctx.Req.Form.Set("id", "2")
@@ -240,7 +161,7 @@ func TestDeleteTeam(t *testing.T) {
 	assert.False(t, repo_service.HasRepository(t.Context(), team, repo.ID))
 }
 
-func TestHandleSettingsPostMirrorPreservesExistingUsername(t *testing.T) {
+func TestHandleSettingsPostMirrorReusesCredentialsOnlyForSameAddress(t *testing.T) {
 	defer test.MockVariableValue(&setting.Mirror.Enabled, true)()
 
 	unittest.PrepareTestEnv(t)
@@ -251,33 +172,28 @@ func TestHandleSettingsPostMirrorPreservesExistingUsername(t *testing.T) {
 
 	require.NoError(t, mirror_service.UpdateAddress(t.Context(), mirror, "https://existing-user:existing-password@example.com/user2/repo1.git"))
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	postMirrorSettings := func(form *forms.RepoSettingForm) string {
+		ctx, _ := contexttest.MockContext(t, mirrorRepo.Link()+"/settings")
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadRepo(t, ctx, mirrorRepo.ID)
+		form.Interval = "8h"
+		web.SetForm(ctx, form)
+		handleSettingsPostMirror(ctx)
+		require.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+		remoteURL, err := git.ParseRemoteAddressURL(t.Context(), mirrorRepo, mirror.GetRemoteName())
+		require.NoError(t, err)
+		return remoteURL.User.String()
+	}
 
-	ctx, _ := contexttest.MockContext(t, mirrorRepo.Link()+"/settings")
-	contexttest.LoadUser(t, ctx, user.ID)
-	contexttest.LoadRepo(t, ctx, mirrorRepo.ID)
-
-	web.SetForm(ctx, &forms.RepoSettingForm{
-		Interval:       "8h",
+	assert.Equal(t, "existing-user:updated-password", postMirrorSettings(&forms.RepoSettingForm{
 		MirrorAddress:  "https://example.com/user2/repo1.git",
 		MirrorPassword: "updated-password",
-	})
+	}))
+	assert.Equal(t, "https://example.com/user2/repo1.git", unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID}).RemoteAddress)
+	assert.Equal(t, "https://example.com/user2/repo1.git", unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID}).OriginalURL)
 
-	handleSettingsPostMirror(ctx)
-
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
-
-	updatedMirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
-	assert.Equal(t, "https://example.com/user2/repo1.git", updatedMirror.RemoteAddress)
-
-	updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
-	assert.Equal(t, "https://example.com/user2/repo1.git", updatedRepo.OriginalURL)
-
-	remoteURL, err := git.ParseRemoteAddressURL(t.Context(), updatedRepo, updatedMirror.GetRemoteName())
-	require.NoError(t, err)
-	require.NotNil(t, remoteURL.User)
-	assert.Equal(t, "existing-user", remoteURL.User.Username())
-	password, ok := remoteURL.User.Password()
-	require.True(t, ok)
-	assert.Equal(t, "updated-password", password)
+	assert.Equal(t, "existing-user:", postMirrorSettings(&forms.RepoSettingForm{
+		MirrorAddress:  "https://example.com/user2/private.git",
+		MirrorUsername: "existing-user",
+	}))
 }

@@ -154,8 +154,8 @@ func (t telegramConvertor) Repository(p *api.RepositoryPayload) (TelegramPayload
 	case api.HookRepoDeleted:
 		title = fmt.Sprintf("[%s] Repository deleted", html.EscapeString(p.Repository.FullName))
 		return createTelegramPayloadHTML(title), nil
-	case api.HookRepoRenamed:
-		title = fmt.Sprintf("[%s] Repository renamed from %s", htmlLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName), html.EscapeString(getRepoRenamedFrom(p)))
+	case api.HookRepoRenamed, api.HookRepoTransferred:
+		title = fmt.Sprintf("[%s] Repository %s from %s", htmlLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName), p.Action, html.EscapeString(getRepoChangedFrom(p)))
 		return createTelegramPayloadHTML(title), nil
 	}
 	return TelegramPayload{}, nil
@@ -201,9 +201,12 @@ func (telegramConvertor) WorkflowJob(p *api.WorkflowJobPayload) (TelegramPayload
 
 func createTelegramPayloadHTML(msgHTML string) TelegramPayload {
 	// https://core.telegram.org/bots/api#formatting-options
+	sanitized := strings.TrimSpace(string(markup.Sanitize(msgHTML)))
+	// Rich messages collapse bare newlines like HTML, so keep line breaks as <br>.
+	sanitized = strings.NewReplacer("\r\n", "<br>", "\r", "<br>", "\n", "<br>").Replace(sanitized)
 	return TelegramPayload{
 		RichMessage: InputRichMessage{
-			HTML: strings.TrimSpace(string(markup.Sanitize(msgHTML))),
+			HTML: sanitized,
 		},
 	}
 }

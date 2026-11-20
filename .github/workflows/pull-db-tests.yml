@@ -2,6 +2,7 @@ name: db-tests
 
 on:
   pull_request:
+  merge_group:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -25,6 +26,8 @@ jobs:
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
+        options: >-
+          --mount type=tmpfs,destination=/var/lib/postgresql/data
         ports:
           - "5432:5432"
       ldap:
@@ -61,6 +64,8 @@ jobs:
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
+        options: >-
+          --mount type=tmpfs,destination=/var/lib/postgresql/data
         ports:
           - "5432:5432"
       ldap:
@@ -95,17 +100,17 @@ jobs:
       - run: make deps-backend
       - run: make backend
         env:
-          TAGS: bindata gogit
+          TAGS: bindata
       - run: GITEA_TEST_DATABASE=sqlite make test-migration
         env:
-          TAGS: bindata gogit
+          TAGS: bindata
       - name: run tests
         run: GITEA_TEST_DATABASE=sqlite make test-integration
         timeout-minutes: 50
         env:
           # sqlite driver can contain large amount of Golang code, so don't use race detector for it, otherwise, extremely slow
           GOTEST_FLAGS: -timeout=40m
-          TAGS: bindata gogit
+          TAGS: bindata
 
   test-unit:
     if: needs.files-changed.outputs.backend == 'true'
@@ -113,7 +118,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       elasticsearch:
-        image: elasticsearch:8.19.21@sha256:ae1f398ec8734a63eb7f719cecc2ea33e2bb46e23bdf24641dec86fd256bf594
+        image: elasticsearch:8.19.23@sha256:ef5cafd961d7e273f13fed8def82e63c5ae0491106b5eecb5a69aa12d64f089b
         env:
           discovery.type: single-node
           xpack.security.enabled: false
@@ -123,13 +128,13 @@ jobs:
         ports:
           - "9200:9200"
       meilisearch:
-        image: getmeili/meilisearch:v1@sha256:c94e58ca09662dd6e65e8f1b0fd145767be3da7d5422a863a27b8d2b68e090c9
+        image: getmeili/meilisearch:v1@sha256:88f2a08eb9532cc54a60d8fd014a23bf5cfda33d0c01ecbbaca9b4b463e17466
         env:
           MEILI_ENV: development # disable auth
         ports:
           - "7700:7700"
       redis:
-        image: redis:8@sha256:298e5b3bc566bade82f46ad5511777a4a07a294097ce16ada2f6a42be5239df5
+        image: redis:8@sha256:1f88291b4c57bdf249f02eb085a8669889b2d2954e91d4de5118a5da6b78dd53
         options: >- # wait until redis has started
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -163,13 +168,6 @@ jobs:
           GOTEST_FLAGS: -race -timeout=20m
           TAGS: bindata
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
-      - name: unit-tests-gogit
-        run: make test-backend
-        env:
-          GOTEST_FLAGS: -race -timeout=20m
-          TAGS: bindata gogit
-          GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
-          GITEA_TEST_CI_SKIP_EXTERNAL: true
       - run: make test-check
 
   test-mysql:
@@ -188,7 +186,7 @@ jobs:
         options: >-
           --mount type=tmpfs,destination=/bitnami/mysql/data
       elasticsearch:
-        image: elasticsearch:8.19.21@sha256:ae1f398ec8734a63eb7f719cecc2ea33e2bb46e23bdf24641dec86fd256bf594
+        image: elasticsearch:8.19.23@sha256:ef5cafd961d7e273f13fed8def82e63c5ae0491106b5eecb5a69aa12d64f089b
         env:
           discovery.type: single-node
           xpack.security.enabled: false
@@ -218,7 +216,6 @@ jobs:
         run: GITEA_TEST_DATABASE=mysql make test-integration
         env:
           TAGS: bindata
-          TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
   test-mssql:
     if: needs.files-changed.outputs.backend == 'true'
@@ -226,7 +223,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mssql:
-        image: mcr.microsoft.com/mssql/server:2019-latest@sha256:ef0b8db33970ecd01bed49c3a84a1d083c435a9891718df619298b67b352e74a
+        image: mcr.microsoft.com/mssql/server:2019-latest@sha256:debdc21628cddd1a4433371c601c8dee9bad3533ae8b18fe9dc8c5596368b10d
         env:
           ACCEPT_EULA: Y
           MSSQL_PID: Standard

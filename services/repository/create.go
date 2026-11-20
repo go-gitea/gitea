@@ -49,34 +49,12 @@ type CreateRepoOptions struct {
 	IsMirror         bool
 	IsTemplate       bool
 	AutoInit         bool
-	Status           repo_model.RepositoryStatus
 	TrustModel       repo_model.TrustModelType
 	MirrorInterval   string
 	ObjectFormatName string
 }
 
 func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir string, opts CreateRepoOptions) error {
-	commitTimeStr := time.Now().Format(time.RFC3339)
-	authorSig := repo.Owner.NewGitSig()
-
-	// Because this may call hooks we should pass in the environment
-	env := append(os.Environ(),
-		"GIT_AUTHOR_NAME="+authorSig.Name,
-		"GIT_AUTHOR_EMAIL="+authorSig.Email,
-		"GIT_AUTHOR_DATE="+commitTimeStr,
-		"GIT_COMMITTER_NAME="+authorSig.Name,
-		"GIT_COMMITTER_EMAIL="+authorSig.Email,
-		"GIT_COMMITTER_DATE="+commitTimeStr,
-	)
-
-	// Clone to temporary path and do the init commit.
-	if err := git.CloneRepoToLocal(ctx, repo, tmpDir, git.CloneRepoOptions{
-		Env: env,
-	}); err != nil {
-		log.Error("Failed to clone from %v into %s\nError: %v", repo, tmpDir, err)
-		return fmt.Errorf("git clone: %w", err)
-	}
-
 	// README
 	data, err := options.Readme(opts.Readme)
 	if err != nil {
@@ -96,8 +74,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 		// here we could just log the error and continue the rendering
 		log.Error("unable to expand template vars for repo README: %s, err: %v", opts.Readme, err)
 	}
-	if err = os.WriteFile(filepath.Join(tmpDir, "README.md"),
-		[]byte(res), 0o644); err != nil {
+	if err = os.WriteFile(filepath.Join(tmpDir, "README.md"), []byte(res), 0o644); err != nil {
 		return fmt.Errorf("write README.md: %w", err)
 	}
 
@@ -126,7 +103,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 	if len(opts.License) > 0 {
 		data, err = repo_module.GetLicense(opts.License, &repo_module.LicenseValues{
 			Owner: repo.OwnerName,
-			Email: authorSig.Email,
+			Email: repo.Owner.GetEmail(),
 			Repo:  repo.Name,
 			Year:  time.Now().Format("2006"),
 		})
@@ -139,20 +116,28 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 		}
 	}
 
+	// the initial commit must only contain the files written above, so start from a fresh git dir
+	if err = util.RemoveAllWithRetry(filepath.Join(tmpDir, ".git")); err != nil {
+		return fmt.Errorf("remove git dir: %w", err)
+	}
+	if err = git.InitRepositoryLocal(ctx, tmpDir, false, repo.ObjectFormatName, ""); err != nil {
+		return fmt.Errorf("git init: %w", err)
+	}
 	return nil
 }
 
 // InitRepository initializes README and .gitignore if needed.
 func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
+	repo.DefaultBranch = util.IfZero(opts.DefaultBranch, setting.Repository.DefaultBranch)
+	repo.DefaultWikiBranch = setting.Repository.DefaultBranch
+
 	// Init git bare new repository.
-	if err = git.InitRepository(ctx, repo, repo.ObjectFormatName); err != nil {
+	if err = git.InitRepository(ctx, repo, repo.ObjectFormatName, repo.DefaultBranch); err != nil {
 		return fmt.Errorf("git.InitRepository: %w", err)
 	} else if err = git.CreateDelegateHooks(ctx, repo); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
 	}
 
-	repo.DefaultBranch = util.IfZero(opts.DefaultBranch, setting.Repository.DefaultBranch)
-	repo.DefaultWikiBranch = setting.Repository.DefaultBranch
 	if !opts.AutoInit {
 		repo.IsEmpty = true
 	}
@@ -177,10 +162,6 @@ func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Re
 		if err = initRepoCommit(ctx, tmpDir, repo, u); err != nil {
 			return fmt.Errorf("initRepoCommit: %w", err)
 		}
-	}
-
-	if err = git.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
-		return fmt.Errorf("setDefaultBranch: %w", err)
 	}
 
 	// Re-fetch the repository from database before updating it (keep changes that were done earlier with SQL)
@@ -242,7 +223,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 		IsFsckEnabled:                   !opts.IsMirror,
 		IsTemplate:                      opts.IsTemplate,
 		CloseIssuesViaCommitInAnyBranch: setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch,
-		Status:                          opts.Status,
+		Status:                          repo_model.RepositoryBeingMigrated,
 		IsEmpty:                         !opts.AutoInit,
 		TrustModel:                      opts.TrustModel,
 		IsMirror:                        opts.IsMirror,
@@ -281,7 +262,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 		return nil, err
 	}
 	if isExist {
-		log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.FullName())
+		log.Error("Files already exist in %s", repo.FullName())
 		// Don't return directly, we need err in defer to cleanupRepository
 		err = repo_model.ErrRepoFilesAlreadyExist{
 			Uname: repo.OwnerName,
@@ -373,11 +354,7 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Config: &repo_model.IssuesConfig{
-					EnableTimetracker:                setting.Service.DefaultEnableTimetracking,
-					AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime,
-					EnableDependencies:               setting.Service.DefaultEnableDependencies,
-				},
+				Config: repo_model.DefaultIssuesConfig(),
 			})
 		case unit.TypePullRequests:
 			units = append(units, repo_model.DefaultPullRequestsUnit(repo.ID))

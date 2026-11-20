@@ -7,17 +7,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
+	"strings"
 	"sync"
 	"time"
 
+	"gitea.dev/actionslib/pkg/model"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
 	secret_model "gitea.dev/models/secret"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 
+	"go.yaml.in/yaml/v4"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -92,11 +98,12 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		}
 	}
 
-	t, ok, err := actions_model.CreateTaskForRunner(ctx, runner)
+	t, cancelledJobs, err := actions_model.CreateTaskForRunner(ctx, runner)
+	notifyAndEmitFinishedJobs(context.WithoutCancel(ctx), cancelledJobs) // the cancellations are committed even if the runner went away
 	if err != nil {
 		return nil, false, fmt.Errorf("CreateTaskForRunner: %w", err)
 	}
-	if !ok {
+	if t == nil {
 		return nil, false, nil
 	}
 
@@ -156,14 +163,62 @@ func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask) (*runnerv
 		return nil, nil, fmt.Errorf("generateTaskContext: %w", err)
 	}
 
+	payload, err := runnerWorkflowPayload(ctx, job)
+	if err != nil {
+		return nil, nil, fmt.Errorf("runnerWorkflowPayload: %w", err)
+	}
+
 	return &runnerv1.Task{
 		Id:              t.ID,
-		WorkflowPayload: t.Job.WorkflowPayload,
+		WorkflowPayload: payload,
 		Context:         taskContext,
 		Secrets:         secrets,
 		Vars:            vars,
 		Needs:           needs,
 	}, job, nil
+}
+
+// runnerWorkflowPayload sets the job `if:` to `always()` as Gitea has decided it, and pins `$/` steps to the job's workflow source, which a runner doesn't know.
+func runnerWorkflowPayload(ctx context.Context, job *actions_model.ActionRunJob) ([]byte, error) {
+	swf, parsedJob, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
+	if err != nil {
+		return nil, err
+	}
+	parsedJob.If = yaml.Node{Kind: yaml.ScalarNode, Value: "always()"}
+	var source *repo_model.Repository
+	var sourceSHA string
+	for _, step := range parsedJob.Steps {
+		uses, err := model.ParseActionUses(step.Uses)
+		if err != nil || uses.Kind != model.ActionUsesSelfRepo || strings.Contains(step.Uses, "${{") {
+			continue
+		}
+		if source == nil {
+			var runnerResolves bool
+			if sourceSHA, runnerResolves = selfRepoSourceCommit(job.Run, job); runnerResolves {
+				break
+			}
+			source, err = repo_model.GetRepositoryByID(ctx, job.WorkflowSourceRepoID)
+			if repo_model.IsErrRepoNotExist(err) {
+				break
+			}
+			if err != nil {
+				return nil, err
+			}
+		}
+		step.Uses = "self:" + path.Join(source.FullName(), uses.Path) + "@" + sourceSHA
+	}
+	if err := swf.SetJob(job.JobID, parsedJob); err != nil {
+		return nil, err
+	}
+	return swf.Marshal()
+}
+
+// selfRepoSourceCommit returns the commit `$/` steps of a workflow from source must resolve at,
+// and whether a runner resolves them there by itself, as it uses `github.repository` at `github.sha`.
+func selfRepoSourceCommit(run *actions_model.ActionRun, source *actions_model.ActionRunJob) (sha string, runnerResolves bool) {
+	sha = resolveSameRepoWorkflowSourceCommit(run, source)
+	_, _, _, runSHA := runRefs(run)
+	return sha, source.WorkflowSourceRepoID == run.RepoID && sha == runSHA
 }
 
 func generateTaskContext(ctx context.Context, t *actions_model.ActionTask) (*structpb.Struct, error) {
@@ -173,14 +228,29 @@ func generateTaskContext(ctx context.Context, t *actions_model.ActionTask) (*str
 	}
 
 	gitCtx := GenerateGiteaContext(ctx, t.Job.Run, nil, t.Job)
+	if t.Job.ParentJobID > 0 {
+		if err := setCalledWorkflowContext(ctx, t.Job, gitCtx); err != nil {
+			return nil, err
+		}
+	}
 	gitCtx["token"] = t.Token
 	gitCtx["gitea_runtime_token"] = giteaRuntimeToken
+	if allowed, err := taskAllowsOIDCToken(ctx, t); err != nil {
+		return nil, err
+	} else if allowed {
+		requestToken, err := signActionsClaims(actionsClaims{Scp: idTokenRequestScope, TaskID: t.ID})
+		if err != nil {
+			return nil, err
+		}
+		gitCtx["actions_id_token_request_url"] = OIDCIssuer() + "/token?" // actions/core appends "&audience=..."
+		gitCtx["actions_id_token_request_token"] = requestToken
+	}
 
 	return structpb.NewStruct(gitCtx)
 }
 
 func findTaskNeeds(ctx context.Context, taskJob *actions_model.ActionRunJob) (map[string]*runnerv1.TaskNeed, error) {
-	taskNeeds, err := FindTaskNeeds(ctx, taskJob)
+	taskNeeds, _, err := FindTaskNeeds(ctx, taskJob)
 	if err != nil {
 		return nil, err
 	}
@@ -192,4 +262,23 @@ func findTaskNeeds(ctx context.Context, taskJob *actions_model.ActionRunJob) (ma
 		}
 	}
 	return ret, nil
+}
+
+// setCalledWorkflowContext rewrites the context for older runners, newer runners undo it via `gitea_workflow_call`.
+func setCalledWorkflowContext(ctx context.Context, job *actions_model.ActionRunJob, gitCtx GiteaContext) error {
+	inputs, err := getInputsForJob(ctx, job.Run, job)
+	if err != nil {
+		return err
+	}
+	event, _ := gitCtx["event"].(map[string]any)
+	workflowCall := map[string]any{"original_event_name": gitCtx["event_name"], "inputs": inputs}
+	if eventInputs, ok := event["inputs"]; ok {
+		workflowCall["original_event_inputs"] = eventInputs
+	}
+	gitCtx["gitea_workflow_call"] = workflowCall
+	gitCtx["event_name"] = "workflow_call"
+	if event != nil {
+		event["inputs"] = inputs
+	}
+	return nil
 }

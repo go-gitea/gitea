@@ -39,12 +39,13 @@ func (milestones MilestoneList) SplitByOpenClosed() (open, closed MilestoneList)
 // FindMilestoneOptions contain options to get milestones
 type FindMilestoneOptions struct {
 	db.ListOptions
-	RepoID   int64
-	IsClosed optional.Option[bool]
-	Name     string
-	SortType string
-	RepoCond builder.Cond
-	RepoIDs  []int64
+	RepoID    int64
+	IsClosed  optional.Option[bool]
+	Name      string
+	SortType  string
+	RepoCond  builder.Cond
+	RepoIDs   []int64
+	ProjectID int64
 }
 
 func (opts FindMilestoneOptions) ToConds() builder.Cond {
@@ -63,6 +64,11 @@ func (opts FindMilestoneOptions) ToConds() builder.Cond {
 	}
 	if len(opts.Name) != 0 {
 		cond = cond.And(db.BuildCaseInsensitiveLike("name", opts.Name))
+	}
+	if opts.ProjectID != 0 {
+		cond = cond.And(builder.In("id", builder.Select("issue.milestone_id").From("issue").
+			InnerJoin("project_issue", "project_issue.issue_id = issue.id").
+			Where(builder.Eq{"project_issue.project_id": opts.ProjectID})))
 	}
 
 	return cond
@@ -113,36 +119,29 @@ func (milestones MilestoneList) LoadTotalTrackedTimes(ctx context.Context) error
 	trackedTimes := make(map[int64]int64, len(milestones))
 
 	// Get total tracked time by milestone_id
-	rows, err := db.GetEngine(ctx).Table("issue").
+	var totalTimesByMilestones []*totalTimesByMilestone
+	err := db.GetEngine(ctx).Table("issue").
 		Join("INNER", "milestone", "issue.milestone_id = milestone.id").
 		Join("LEFT", "tracked_time", "tracked_time.issue_id = issue.id").
 		Where("tracked_time.deleted = ?", false).
 		Select("milestone_id, sum(time) as time").
 		In("milestone_id", milestones.getMilestoneIDs()).
 		GroupBy("milestone_id").
-		Rows(new(totalTimesByMilestone))
+		Find(&totalTimesByMilestones)
 	if err != nil {
 		return err
 	}
 
-	defer rows.Close()
-
-	for rows.Next() {
-		var totalTime totalTimesByMilestone
-		err = rows.Scan(&totalTime)
-		if err != nil {
-			return err
-		}
+	for _, totalTime := range totalTimesByMilestones {
 		trackedTimes[totalTime.MilestoneID] = totalTime.Time
 	}
-
 	for _, milestone := range milestones {
 		milestone.TotalTrackedTime = trackedTimes[milestone.ID]
 	}
 	return nil
 }
 
-// CountMilestonesByRepoCondAndKw map from repo conditions and the keyword of milestones' name to number of milestones matching the options`
+// CountMilestonesMap map from repo conditions and the keyword of milestones' name to number of milestones matching the options`
 func CountMilestonesMap(ctx context.Context, opts FindMilestoneOptions) (map[int64]int64, error) {
 	sess := db.GetEngine(ctx).Where(opts.ToConds())
 

@@ -8,9 +8,9 @@ import (
 
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/highlight"
-	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/internal"
+	"gitea.dev/modules/markup/markdown/math"
 
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
@@ -54,6 +54,9 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 		}
 		tocMode = rc.TOC
 	}
+	if ctx.RenderOptions.FeedExcerpt {
+		filterFeedExcerpt(node)
+	}
 
 	_ = ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
@@ -96,6 +99,25 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 	}
 }
 
+func filterFeedExcerpt(parent ast.Node) {
+	for node := parent.FirstChild(); node != nil; {
+		next := node.NextSibling()
+		switch node.Kind() {
+		case ast.KindText, ast.KindAutoLink, math.KindInline:
+		case ast.KindParagraph, ast.KindHeading, ast.KindTextBlock, ast.KindBlockquote, ast.KindList, ast.KindListItem,
+			ast.KindEmphasis, ast.KindCodeSpan, ast.KindLink,
+			east.KindStrikethrough, east.KindDefinitionList, east.KindDefinitionTerm, east.KindDefinitionDescription:
+			filterFeedExcerpt(node)
+			if !node.HasChildren() {
+				parent.RemoveChild(parent, node)
+			}
+		default:
+			parent.RemoveChild(parent, node)
+		}
+		node = next
+	}
+}
+
 // NewHTMLRenderer creates a HTMLRenderer to render in the gitea form.
 func NewHTMLRenderer(renderInternal *internal.RenderInternal, opts ...html.Option) renderer.NodeRenderer {
 	r := &HTMLRenderer{
@@ -122,24 +144,29 @@ func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(KindSummary, r.renderSummary)
 	reg.Register(ast.KindCodeSpan, r.renderCodeSpan)
 	reg.Register(ast.KindCodeBlock, r.renderCodeBlock)
+	reg.Register(ast.KindFencedCodeBlock, r.renderCodeBlock)
 	reg.Register(KindAttention, r.renderAttention)
-	reg.Register(KindTaskCheckBoxListItem, r.renderTaskCheckBoxListItem)
 	reg.Register(east.KindTaskCheckBox, r.renderTaskCheckBox)
 	reg.Register(KindRawHTML, r.renderRawHTML)
 }
 
-// renderCodeBlock wraps indented code blocks like the fenced renderer
 func (r *HTMLRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		preAttrs, codeAttrs := highlight.CodeBlockAttributes("") // no language
-		opening := r.renderInternal.ProtectSafeAttrs(htmlutil.HTMLFormat(`<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs))
-		if _, err := w.WriteString(string(opening)); err != nil {
+		var language string
+		if fenced, ok := n.(*ast.FencedCodeBlock); ok {
+			language = string(fenced.Language(source))
+		}
+		preAttrs, codeAttrs := highlight.CodeBlockAttributes(language)
+		err := r.renderInternal.FormatWithSafeAttrsf(w, `<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs)
+		if err != nil {
 			return ast.WalkStop, err
 		}
-		lines := n.Lines()
-		for i := 0; i < lines.Len(); i++ {
-			line := lines.At(i)
-			r.Writer.RawWrite(w, line.Value(source))
+
+		code := n.Lines().Value(source)
+		lexer := highlight.DetectChromaLexerByFileName("", language)
+		renderedHTML := highlight.RenderCodeByLexer(lexer, string(code))
+		if _, err = w.WriteString(string(renderedHTML)); err != nil {
+			return ast.WalkStop, err
 		}
 	} else {
 		if _, err := w.WriteString("</code></pre></div>"); err != nil {

@@ -6,6 +6,7 @@ package markup
 import (
 	"strings"
 
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/markup/common"
 
 	"golang.org/x/net/html"
@@ -127,6 +128,10 @@ func processNodeA(ctx *RenderContext, node *html.Node) {
 	}
 }
 
+func resolveMediaLinkWithCamo(ctx *RenderContext, link string) string {
+	return camoHandleLink(ctx.RenderHelper.ResolveLink(link, LinkTypeMedia))
+}
+
 func visitNodeImg(ctx *RenderContext, img *html.Node) (next *html.Node) {
 	next = img.NextSibling
 	attrSrc, hasLazy := "", false
@@ -152,19 +157,21 @@ func visitNodeImg(ctx *RenderContext, img *html.Node) (next *html.Node) {
 			cnt++
 		}
 		if isLinkable {
+			linkNode := img
+			if img.Parent.Data == "picture" {
+				linkNode = img.Parent
+			}
 			wrapper := &html.Node{Type: html.ElementNode, Data: "a", Attr: []html.Attribute{
 				{Key: "href", Val: ctx.RenderHelper.ResolveLink(imgSrcOrigin, LinkTypeDefault)},
 				{Key: "target", Val: "_blank"},
 			}}
-			parent := img.Parent
-			imgNext := img.NextSibling
-			parent.RemoveChild(img)
-			parent.InsertBefore(wrapper, imgNext)
-			wrapper.AppendChild(img)
+			parent := linkNode.Parent
+			linkNext := linkNode.NextSibling
+			parent.RemoveChild(linkNode)
+			parent.InsertBefore(wrapper, linkNext)
+			wrapper.AppendChild(linkNode)
 		}
-
-		imgAttr.Val = ctx.RenderHelper.ResolveLink(imgSrcOrigin, LinkTypeMedia)
-		imgAttr.Val = camoHandleLink(imgAttr.Val)
+		imgAttr.Val = resolveMediaLinkWithCamo(ctx, imgSrcOrigin)
 		img.Attr[i] = imgAttr
 	}
 	if !RenderBehaviorForTesting.DisableAdditionalAttributes && !hasLazy && !strings.HasPrefix(attrSrc, "data:") {
@@ -179,9 +186,24 @@ func visitNodeVideo(ctx *RenderContext, node *html.Node) (next *html.Node) {
 		if attr.Key != "src" {
 			continue
 		}
-		attr.Val = ctx.RenderHelper.ResolveLink(attr.Val, LinkTypeMedia)
-		attr.Val = camoHandleLink(attr.Val)
+		attr.Val = resolveMediaLinkWithCamo(ctx, attr.Val)
 		node.Attr[i] = attr
+	}
+	return next
+}
+
+func visitNodePictureSource(ctx *RenderContext, node *html.Node) (next *html.Node) {
+	next = node.NextSibling
+	for attrIdx, attr := range node.Attr {
+		if attr.Key != "srcset" {
+			continue
+		}
+		srcsetCandidates := htmlutil.ParseSrcset(attr.Val)
+		for i, candidate := range srcsetCandidates {
+			srcsetCandidates[i].SrcLink = resolveMediaLinkWithCamo(ctx, candidate.SrcLink)
+		}
+		attr.Val = htmlutil.EncodeSrcset(srcsetCandidates)
+		node.Attr[attrIdx] = attr
 	}
 	return next
 }

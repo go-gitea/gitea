@@ -42,7 +42,10 @@ func TestTxContext(t *testing.T) {
 		assert.NoError(t, committer.Commit())
 	}
 
-	{ // reuse the transaction created by TxContext and commit it
+	for _, finish := range []func(db.Committer) error{
+		db.Committer.Commit, // reuse the transaction created by TxContext and commit it
+		db.Committer.Close,  // reuse the transaction created by TxContext and close it
+	} {
 		ctx, committer, err := db.TxContext(t.Context())
 		engine := db.GetEngine(ctx)
 		assert.NoError(t, err)
@@ -52,24 +55,9 @@ func TestTxContext(t *testing.T) {
 			assert.NoError(t, err)
 			assert.True(t, db.InTransaction(ctx))
 			assert.Equal(t, engine, db.GetEngine(ctx))
-			assert.NoError(t, committer.Commit())
+			assert.NoError(t, finish(committer))
 		}
-		assert.NoError(t, committer.Commit())
-	}
-
-	{ // reuse the transaction created by TxContext and close it
-		ctx, committer, err := db.TxContext(t.Context())
-		engine := db.GetEngine(ctx)
-		assert.NoError(t, err)
-		assert.True(t, db.InTransaction(ctx))
-		{
-			ctx, committer, err := db.TxContext(ctx)
-			assert.NoError(t, err)
-			assert.True(t, db.InTransaction(ctx))
-			assert.Equal(t, engine, db.GetEngine(ctx))
-			assert.NoError(t, committer.Close())
-		}
-		assert.NoError(t, committer.Close())
+		assert.NoError(t, finish(committer))
 	}
 
 	{ // reuse the transaction created by WithTx

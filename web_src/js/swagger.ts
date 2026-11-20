@@ -6,7 +6,7 @@ async function initGiteaAPIViewer() {
   const url = elSwaggerUi.getAttribute('data-source')!;
   const res = await fetch(url); // eslint-disable-line no-restricted-globals -- standalone entry, it must not pull in main site modules
   // HINT: SWAGGER-CSS-IMPORT: this is used in the standalone page which already has the related CSS imported by `<link>`
-  await initSwaggerUI(elSwaggerUi, {specText: await res.text()});
+  initSwaggerUI(elSwaggerUi, {specText: await res.text()});
 }
 
 initGiteaAPIViewer();

@@ -36,6 +36,7 @@ import "strings"
 
 const (
 	tildePrefix      = '~'
+	commentPrefix    = '#'
 	needsEscape      = " \t\n|&;()<>${}[]*?!\"'`\\"
 	needsSingleQuote = "!\n"
 )
@@ -74,7 +75,7 @@ func ShellEscape(toEscape string) string {
 	}
 
 	// Now for simplicity we'll look at the rest of the string
-	if !strings.ContainsAny(toEscape[start:], needsEscape) {
+	if !strings.ContainsAny(toEscape[start:], needsEscape) && toEscape[0] != commentPrefix {
 		return toEscape
 	}
 

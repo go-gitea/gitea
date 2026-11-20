@@ -10,11 +10,13 @@ import (
 
 	"gitea.dev/models/unittest"
 	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
+	setting.Migrations.AllowedHostList = "private:*, loopback:*"
 	unittest.MainTest(m)
 }
 
@@ -52,6 +54,7 @@ func assertCommentsEqual(t *testing.T, expected, actual []*base.Comment) {
 func assertLabelEqual(t *testing.T, expected, actual *base.Label) {
 	assert.Equal(t, expected.Name, actual.Name)
 	assert.Equal(t, expected.Exclusive, actual.Exclusive)
+	assert.Equal(t, expected.Archived, actual.Archived)
 	assert.Equal(t, expected.Color, actual.Color)
 	assert.Equal(t, expected.Description, actual.Description)
 }
@@ -188,6 +191,7 @@ func assertReleaseEqual(t *testing.T, expected, actual *base.Release) {
 	assert.Equal(t, expected.Body, actual.Body)
 	assert.Equal(t, expected.Draft, actual.Draft)
 	assert.Equal(t, expected.Prerelease, actual.Prerelease)
+	assert.Equal(t, expected.Latest, actual.Latest)
 	assert.Equal(t, expected.PublisherID, actual.PublisherID)
 	assert.Equal(t, expected.PublisherName, actual.PublisherName)
 	assert.Equal(t, expected.PublisherEmail, actual.PublisherEmail)
@@ -226,6 +230,7 @@ func assertReviewEqual(t *testing.T, expected, actual *base.Review) {
 	assert.Equal(t, expected.Content, actual.Content, "Content")
 	assert.WithinDuration(t, expected.CreatedAt, actual.CreatedAt, 10*time.Second)
 	assert.Equal(t, expected.State, actual.State, "State")
+	assert.Equal(t, expected.Dismissed, actual.Dismissed, "Dismissed")
 	assertReviewCommentsEqual(t, expected.Comments, actual.Comments)
 }
 

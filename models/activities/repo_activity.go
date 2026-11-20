@@ -83,23 +83,17 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 
 // GetActivityStatsTopAuthors returns top author stats for git commits for all branches
 func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo)
-	if err != nil {
-		return nil, fmt.Errorf("OpenRepository: %w", err)
-	}
-	defer closer.Close()
-
-	code, err := gitRepo.GetCodeActivityStats(ctx, timeFrom, "")
+	authors, err := git.GetCodeActivityAuthors(ctx, repo, timeFrom)
 	if err != nil {
 		return nil, fmt.Errorf("FillFromGit: %w", err)
 	}
-	if code.Authors == nil {
+	if authors == nil {
 		return nil, nil
 	}
 	users := make(map[int64]*ActivityAuthorData)
 	var unknownUserID int64
 	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink(ctx)
-	for _, v := range code.Authors {
+	for _, v := range authors {
 		if len(v.Email) == 0 {
 			continue
 		}

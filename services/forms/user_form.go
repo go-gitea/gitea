@@ -38,7 +38,7 @@ type InstallForm struct {
 	SMTPAddr        string `binding:"TrimSpace"`
 	SMTPPort        string `binding:"TrimSpace"`
 	SMTPFrom        string `binding:"TrimSpace"`
-	SMTPUser        string `binding:"TrimSpace;OmitEmpty;MaxSize(254)" locale:"install.mailer_user"`
+	SMTPUser        string `binding:"TrimSpace;MaxSize(254)" locale:"install.mailer_user"`
 	SMTPPasswd      string
 	RegisterConfirm bool
 	MailNotify      bool
@@ -160,8 +160,8 @@ type IntrospectTokenForm struct {
 // UpdateProfileForm form for updating profile
 type UpdateProfileForm struct {
 	middleware.FormDefaultValidator
-	Name                string `binding:"Username;MaxSize(40)"`
-	FullName            string `binding:"MaxSize(100)"`
+	Name                string  `binding:"Username;MaxSize(40)"`
+	FullName            *string `binding:"MaxSize(100)"`
 	KeepEmailPrivate    bool
 	Website             string `binding:"ValidSiteUrl;MaxSize(255)"`
 	Location            string `binding:"MaxSize(50)"`
@@ -183,7 +183,7 @@ type AvatarForm struct {
 	middleware.FormDefaultValidator
 	Source   string
 	Avatar   *multipart.FileHeader
-	Gravatar string `binding:"OmitEmpty;Email;MaxSize(254)"`
+	Gravatar string `binding:"Email;MaxSize(254)"`
 }
 
 // AddEmailForm form for adding new email
@@ -206,21 +206,15 @@ type ChangePasswordForm struct {
 	Retype      string `form:"retype"`
 }
 
-// AddOpenIDForm is for changing openid uri
-type AddOpenIDForm struct {
-	middleware.FormDefaultValidator
-	Openid string `binding:"Required;MaxSize(256)"`
-}
-
 // AddKeyForm form for adding SSH/GPG key
 type AddKeyForm struct {
 	middleware.FormDefaultValidator
-	Type        string `binding:"OmitEmpty"`
+	Type        string
 	Title       string `binding:"Required;MaxSize(50)"`
 	Content     string `binding:"Required"`
-	Signature   string `binding:"OmitEmpty"`
-	KeyID       string `binding:"OmitEmpty"`
-	Fingerprint string `binding:"OmitEmpty"`
+	Signature   string
+	KeyID       string
+	Fingerprint string
 	IsWritable  bool
 }
 
@@ -287,7 +281,14 @@ type TwoFactorScratchAuthForm struct {
 // WebauthnRegistrationForm for reserving an WebAuthn name
 type WebauthnRegistrationForm struct {
 	middleware.FormDefaultValidator
-	Name string `binding:"Required"`
+	Name string `binding:"TrimSpace;MaxSize(255)"`
+}
+
+// WebauthnRenameForm for renaming a WebAuthn credential
+type WebauthnRenameForm struct {
+	middleware.FormDefaultValidator
+	ID   int64  `binding:"Required"`
+	Name string `binding:"TrimSpace;Required;MaxSize(255)"`
 }
 
 // PackageSettingForm form for package settings

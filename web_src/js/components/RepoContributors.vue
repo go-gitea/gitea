@@ -15,7 +15,7 @@ import {
   type Plugin,
 } from 'chart.js';
 import zoomPlugin from 'chartjs-plugin-zoom';
-import {chartJsColors} from '../utils/color.ts';
+import {chartJsColor} from '../utils/color.ts';
 import {
   startDaysBetween,
   firstStartDateAfterDate,
@@ -46,13 +46,13 @@ const customEventListener: Plugin = {
 };
 
 type LineOptions = ChartOptions<'line'> & {
- plugins?: {
-   customEventListener?: {
-     chartType: ChartType;
-     onDoubleClick: (args: {chart: Chart}, reset: boolean) => void;
-   };
- };
-}
+  plugins?: {
+    customEventListener?: {
+      chartType: ChartType;
+      onDoubleClick: (args: {chart: Chart}, reset: boolean) => void;
+    };
+  };
+};
 
 Chart.register(
   Title,
@@ -157,7 +157,7 @@ async function fetchGraphData() {
       const data: ContributorsData = await response.json();
       const {total, ...other} = data;
       // below line might be deleted if we are sure go produces map always sorted by keys
-      const totalWeeks = Object.fromEntries(Object.entries(total.weeks).sort());
+      const totalWeeks = Object.fromEntries(Object.entries(total.weeks).sort(([a], [b]) => Number(a) - Number(b)));
 
       const weekValues = Object.values(totalWeeks);
       xAxisStart = weekValues[0].week;
@@ -239,7 +239,7 @@ function toGraphData(data: DayData[]): ChartData<'line'> {
         pointRadius: 0,
         pointHitRadius: 0,
         fill: 'start',
-        backgroundColor: chartJsColors[type.value],
+        backgroundColor: chartJsColor(type.value),
         borderWidth: 0,
         tension: 0.3,
       },

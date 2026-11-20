@@ -64,7 +64,7 @@
 				{{if not .Issues}}
 					{{ctx.Locale.Tr "notification.no_subscriptions"}}
 				{{else}}
-					{{template "shared/issuelist" dict "." . "listType" "dashboard"}}
+					{{template "shared/issuelist" dict "listType" "dashboard"}}
 				{{end}}
 			{{else}}
 				{{template "shared/repo/search" .}}

@@ -40,7 +40,7 @@ func WebAuthnRegister(ctx *context.Context) {
 
 	cred, err := auth.GetWebAuthnCredentialByName(ctx, ctx.Doer.ID, form.Name)
 	if err != nil && !auth.IsErrWebAuthnCredentialNotExist(err) {
-		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if cred != nil {
@@ -50,7 +50,7 @@ func WebAuthnRegister(ctx *context.Context) {
 
 	_ = ctx.Session.Delete("webauthnRegistration")
 	if err := ctx.Session.Set("webauthnName", form.Name); err != nil {
-		ctx.ServerError("Unable to set session key for webauthnName", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -58,7 +58,7 @@ func WebAuthnRegister(ctx *context.Context) {
 	// the exclusions stop enrolling the same authenticator twice
 	credentials, err := auth.GetWebAuthnCredentialsByUID(ctx, ctx.Doer.ID)
 	if err != nil {
-		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	exclusions := webauthn.Credentials(credentials.ToCredentials()).CredentialDescriptors()
@@ -68,13 +68,13 @@ func WebAuthnRegister(ctx *context.Context) {
 		UserVerification: protocol.VerificationRequired,
 	}))
 	if err != nil {
-		ctx.ServerError("Unable to BeginRegistration", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	// Save the session data as marshaled JSON
 	if err = ctx.Session.Set("webauthnRegistration", sessionData); err != nil {
-		ctx.ServerError("Unable to set session", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -90,14 +90,14 @@ func WebauthnRegisterPost(ctx *context.Context) {
 
 	name, ok := ctx.Session.Get("webauthnName").(string)
 	if !ok || name == "" {
-		ctx.ServerError("Get webauthnName", errors.New("no webauthnName"))
+		ctx.ServerErrorAuto(errors.New("no webauthnName"))
 		return
 	}
 
 	// Load the session data
 	sessionData, ok := ctx.Session.Get("webauthnRegistration").(*webauthn.SessionData)
 	if !ok || sessionData == nil {
-		ctx.ServerError("Get registration", errors.New("no registration"))
+		ctx.ServerErrorAuto(errors.New("no registration"))
 		return
 	}
 	defer func() {
@@ -111,13 +111,13 @@ func WebauthnRegisterPost(ctx *context.Context) {
 		if pErr, ok := err.(*protocol.Error); ok {
 			log.Error("Unable to finish registration due to error: %v\nDevInfo: %s", pErr, pErr.DevInfo)
 		}
-		ctx.ServerError("CreateCredential", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	dbCred, err := auth.GetWebAuthnCredentialByName(ctx, ctx.Doer.ID, name)
 	if err != nil && !auth.IsErrWebAuthnCredentialNotExist(err) {
-		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if dbCred != nil {
@@ -128,7 +128,7 @@ func WebauthnRegisterPost(ctx *context.Context) {
 	// Create the credential
 	dbCred, err = auth.CreateCredential(ctx, ctx.Doer.ID, name, cred)
 	if err != nil {
-		ctx.ServerError("CreateCredential", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	_ = ctx.Session.Delete("webauthnName")
@@ -139,21 +139,50 @@ func WebauthnRegisterPost(ctx *context.Context) {
 	ctx.JSON(http.StatusCreated, cred)
 }
 
-// WebauthnDelete deletes an security key by id
+// WebauthnRename changes the nickname of a security key
+func WebauthnRename(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
+		ctx.HTTPError(http.StatusNotFound)
+		return
+	}
+
+	form := context.GetFetchActionForm[*forms.WebauthnRenameForm](ctx)
+	if form == nil {
+		return
+	}
+
+	cred, err := auth.GetWebAuthnCredentialByID(ctx, ctx.Doer.ID, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.JSONErrorAuto(err)
+		return
+	}
+
+	renamed, err := auth.RenameCredential(ctx, ctx.Doer.ID, form.ID, form.Name)
+	if err != nil {
+		ctx.JSONErrorAuto(err)
+		return
+	}
+	if renamed {
+		audit.Record(ctx, audit_model.UserWebAuthRename, ctx.Doer, "previous_credential", cred.Name, "credential", form.Name)
+	}
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
+}
+
+// WebauthnDelete deletes a security key by id
 func WebauthnDelete(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
 		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
-	cred, err := auth.GetWebAuthnCredentialByID(ctx, ctx.FormInt64("id"))
+	cred, err := auth.GetWebAuthnCredentialByID(ctx, ctx.Doer.ID, ctx.FormInt64("id"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetWebAuthnCredentialByID", auth.IsErrWebAuthnCredentialNotExist, err)
+		ctx.JSONErrorAuto(err)
 		return
 	}
 
-	if ok, err := auth.DeleteCredential(ctx, cred.ID, ctx.Doer.ID); err != nil {
-		ctx.ServerError("DeleteCredential", err)
+	if ok, err := auth.DeleteCredential(ctx, ctx.Doer.ID, cred.ID); err != nil {
+		ctx.ServerErrorAuto(err)
 		return
 	} else if ok {
 		audit.Record(ctx, audit_model.UserWebAuthRemove, ctx.Doer, "credential", cred.Name)

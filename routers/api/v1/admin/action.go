@@ -18,7 +18,7 @@ func ListWorkflowJobs(ctx *context.APIContext) {
 	// parameters:
 	// - name: status
 	//   in: query
-	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   description: workflow status (requested, pending, queued, in_progress, failure, success, skipped)
 	//   type: string
 	//   required: false
 	// - name: page
@@ -40,12 +40,8 @@ func ListWorkflowJobs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowJobsList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	shared.ListJobs(ctx, 0, 0, 0, nil)
 }
@@ -70,7 +66,7 @@ func ListWorkflowRuns(ctx *context.APIContext) {
 	//   required: false
 	// - name: status
 	//   in: query
-	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   description: workflow status (requested, pending, queued, in_progress, failure, success, skipped)
 	//   type: string
 	//   required: false
 	// - name: actor
@@ -94,10 +90,8 @@ func ListWorkflowRuns(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowRunsList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	shared.ListRuns(ctx, 0, 0, "")
 }

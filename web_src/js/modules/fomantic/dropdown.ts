@@ -90,7 +90,7 @@ function delegateDropdownModule($dropdown: JQueryElem<AriaDropdownElement>) {
   const dropdownCall = fomanticDropdownFn.bind($dropdown);
 
   // the "template" functions are used for dynamic creation (eg: AJAX)
-  const dropdownTemplates = {...dropdownCall('setting', 'templates'), t: performance.now()};
+  const dropdownTemplates = dropdownCall('setting', 'templates');
   const dropdownTemplatesMenuOld = dropdownTemplates.menu;
   dropdownTemplates.menu = function(response: any, fields: any, preserveHTML: any, className: Record<string, string>) {
     // when the dropdown menu items are loaded from AJAX requests, the items are created dynamically
@@ -103,7 +103,6 @@ function delegateDropdownModule($dropdown: JQueryElem<AriaDropdownElement>) {
     $dropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem();
     return $wrapper.html();
   };
-  dropdownCall('setting', 'templates', dropdownTemplates);
 
   // the `onLabelCreate` is used to add necessary aria attributes for dynamically created selection labels
   const dropdownOnLabelCreateOld = dropdownCall('setting', 'onLabelCreate');
@@ -166,6 +165,14 @@ function attachStaticElements(dropdown: AriaDropdownElement, focusable: HTMLElem
   const tooltipContent = dropdown.getAttribute('data-tooltip-content');
   if (tooltipContent && !dropdown.getAttribute('aria-label')) {
     dropdown.setAttribute('aria-label', tooltipContent);
+  }
+  // a selection dropdown's text is its value, other dropdowns are button-like and named by their visible text
+  if (!dropdown.classList.contains('selection') && !focusable.getAttribute('aria-label') && !focusable.getAttribute('aria-labelledby')) {
+    const textElem = dropdown.querySelector<HTMLElement>(':scope > .text, :scope > span');
+    if (textElem) {
+      if (!textElem.id) textElem.id = generateElemId('_aria_dropdown_text_');
+      focusable.setAttribute('aria-labelledby', textElem.id);
+    }
   }
 }
 
@@ -241,10 +248,14 @@ function attachDomEvents(dropdown: AriaDropdownElement, focusable: HTMLElement, 
     }
   };
 
+  dropdown.addEventListener('mousedown', () => dropdown.classList.remove('keyboard-nav')); // stands in for ":focus-visible", menu items never receive focus
+
   dropdown.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.isComposing) return;
-    // here it must use keydown event before dropdown's keyup handler, otherwise there is no Enter event in our keyup handler
-    if (e.key === 'Enter') {
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      dropdown.classList.add('keyboard-nav');
+    } else if (e.key === 'Enter') {
+      // here it must use keydown event before dropdown's keyup handler, otherwise there is no Enter event in our keyup handler
       const elItem = menu.querySelector<HTMLElement>(':scope > .item.selected, .menu > .item.selected');
       // if the selected item is clickable, then trigger the click event.
       // we can not click any item without check, because Fomantic code might also handle the Enter event. that would result in double click.
@@ -279,6 +290,7 @@ function attachDomEvents(dropdown: AriaDropdownElement, focusable: HTMLElement, 
   }, {capture: true});
   dropdown.addEventListener('blur', () => {
     ignoreClickPreVisible = ignoreClickPreEvents = 0;
+    dropdown.classList.remove('keyboard-nav');
     deferredRefreshAriaActiveItem(100);
   }, {capture: true});
   dropdown.addEventListener('mouseup', () => {

@@ -18,25 +18,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRemoveSessionCookieHeader(t *testing.T) {
-	w := httptest.NewRecorder()
-	w.Header().Add("Set-Cookie", (&http.Cookie{Name: setting.SessionConfig.CookieName, Value: "foo"}).String())
-	w.Header().Add("Set-Cookie", (&http.Cookie{Name: "other", Value: "bar"}).String())
-	assert.Len(t, w.Header().Values("Set-Cookie"), 2)
-	removeSessionCookieHeader(w)
-	assert.Len(t, w.Header().Values("Set-Cookie"), 1)
-	assert.Contains(t, "other=bar", w.Header().Get("Set-Cookie"))
-}
-
 func TestServerErrorFetchActionRespondsJSON(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPost, "/", nil)
 	req.Header.Add("X-Gitea-Fetch-Action", "1")
 	resp := httptest.NewRecorder()
 	ctx := NewWebContext(NewBaseContextForTest(t, resp, req), nil, nil)
-	ctx.ServerError("test", errors.New("boom"))
+	ctx.ServerErrorAuto(errors.New("boom"))
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 	assert.Contains(t, resp.Header().Get("Content-Type"), "application/json")
-	assert.JSONEq(t, `{"errorMessage":"test, error: boom","renderFormat":"text"}`, resp.Body.String())
+	assert.JSONEq(t, `{"errorMessage":"internal server error, error: boom","renderFormat":"text"}`, resp.Body.String())
 }
 
 func TestRedirectToCurrentSite(t *testing.T) {

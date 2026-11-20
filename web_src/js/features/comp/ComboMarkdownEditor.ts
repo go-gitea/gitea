@@ -1,6 +1,5 @@
 import '@github/markdown-toolbar-element';
 import '@github/text-expander-element';
-import {attachTribute} from '../tribute.ts';
 import {hideElem, showElem, autosize, isElemVisible, generateElemId} from '../../utils/dom.ts';
 import {
   EventUploadStateChanged,
@@ -12,9 +11,8 @@ import {handleGlobalEnterQuickSubmit} from './QuickSubmit.ts';
 import {renderPreviewPanelContent} from '../repo-editor.ts';
 import {toggleTasklistCheckbox} from '../../markup/tasklist.ts';
 import {easyMDEToolbarActions, type EasyMdeToolbarAction} from './EasyMDEToolbarActions.ts';
-import {initTextExpander} from './TextExpander.ts';
 import {showErrorToast} from '../../modules/toast.ts';
-import {POST} from '../../modules/fetch.ts';
+import {ExclusiveFetch} from '../../modules/fetch.ts';
 import {
   EventEditorContentChanged,
   initTextareaMarkdown,
@@ -94,6 +92,8 @@ export class ComboMarkdownEditor {
   previewUrl!: string;
   previewContext!: string;
 
+  previewFetch: ExclusiveFetch = new ExclusiveFetch();
+
   constructor(container: ComboMarkdownEditorContainer, options:ComboMarkdownEditorOptions = {}) {
     if (container._giteaComboMarkdownEditor) throw new Error('ComboMarkdownEditor already initialized');
     container._giteaComboMarkdownEditor = this;
@@ -105,7 +105,10 @@ export class ComboMarkdownEditor {
     this.prepareEasyMDEToolbarActions();
     this.setupContainer();
     this.setupTab();
-    await this.setupDropzone(); // textarea depends on dropzone
+    await Promise.all([
+      this.setupDropzone(), // textarea depends on dropzone
+      this.setupTextExpander(),
+    ]);
     this.setupTextarea();
 
     await this.switchToUserPreference();
@@ -129,6 +132,10 @@ export class ComboMarkdownEditor {
     this.previewUrl = this.container.getAttribute('data-preview-url')!;
     this.previewContext = this.container.getAttribute('data-preview-context')!;
     this.updateEditorContainerTabPage('writer');
+  }
+
+  async setupTextExpander() {
+    const {initTextExpander} = await import('./TextExpander.ts');
     initTextExpander(this.container.querySelector('text-expander')!);
   }
 
@@ -236,16 +243,7 @@ export class ComboMarkdownEditor {
       });
     });
 
-    this.tabPreviewer.addEventListener('click', async () => {
-      // use capture to get the event before Fomantic Tab switches the tab, so that we can set the minHeight of the previewer panel to avoid flickering.
-      panelPreviewer.style.minHeight = `${panelEditor?.clientHeight}px`;
-      this.updateEditorContainerTabPage('previewer');
-      const formData = new FormData();
-      formData.append('mode', this.previewMode);
-      formData.append('context', this.previewContext);
-      formData.append('text', this.value());
-      const response = await POST(this.previewUrl, {data: formData});
-      const data = await response.text();
+    const renderPreview = (data: string) => {
       renderPreviewPanelContent(panelPreviewer, data);
       // enable task list checkboxes in preview and sync state back to the editor
       for (const checkbox of panelPreviewer.querySelectorAll<HTMLInputElement>('.task-list-item input[type=checkbox]')) {
@@ -258,9 +256,21 @@ export class ComboMarkdownEditor {
             return;
           }
           this.value(newContent);
-          triggerEditorContentChanged(this.container);
         });
       }
+    };
+
+    this.tabPreviewer.addEventListener('click', async () => {
+      // use capture to get the event before Fomantic Tab switches the tab, so that we can set the minHeight of the previewer panel to avoid flickering.
+      panelPreviewer.style.minHeight = `${panelEditor?.clientHeight}px`;
+      this.updateEditorContainerTabPage('previewer');
+      const formData = new FormData();
+      formData.append('mode', this.previewMode);
+      formData.append('context', this.previewContext);
+      formData.append('text', this.value());
+      const resp = this.previewFetch.request(this.previewUrl, {method: 'POST', data: formData});
+      resp.onResponseError((details) => showErrorToast(`Failed to render preview: ${details.message}`, {duration: 2500}));
+      await resp.fetchText(renderPreview);
     }, {capture: true});
   }
 
@@ -343,8 +353,9 @@ export class ComboMarkdownEditor {
 
   async switchToEasyMDE() {
     if (this.easyMDE) return;
-    const [{default: EasyMDE}] = await Promise.all([
+    const [{default: EasyMDE}, {attachTribute}] = await Promise.all([
       import('easymde'),
+      import('../tribute.ts'),
       import('../../../css/easymde.css'),
     ]);
     const easyMDEOpt: EasyMDE.Options = {
@@ -386,7 +397,7 @@ export class ComboMarkdownEditor {
       },
     });
     this.applyEditorHeights(this.container.querySelector('.CodeMirror-scroll')!, this.options.editorHeights);
-    await attachTribute(this.easyMDE.codemirror.getInputField());
+    attachTribute(this.easyMDE.codemirror.getInputField());
     if (this.dropzone) {
       initEasyMDEPaste(this.easyMDE, this.dropzone);
     }
@@ -399,6 +410,7 @@ export class ComboMarkdownEditor {
         this.easyMDE.value(v);
       } else {
         this.textarea.value = v;
+        triggerEditorContentChanged(this.container);
       }
       this.textareaAutosize?.resizeToFit();
     }
