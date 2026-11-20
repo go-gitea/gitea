@@ -158,24 +158,10 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		return
 	}
 
-	isForcePush := false
-
 	// 2. Disallow force pushes to protected branches
-	if oldCommitID != objectFormat.EmptyObjectID().String() {
-		output, _, err := gitcmd.NewCommand("rev-list", "--max-count=1").
-			AddDynamicArguments(oldCommitID, "^"+newCommitID).
-			WithEnv(ctx.env).WithRepo(repo).RunStdString(ctx)
-		if err != nil {
-			ctx.PrivateInternalErrorf("Unable to detect force push between %s and %s in %s: %v", oldCommitID, newCommitID, repo.FullName(), err)
-			return
-		} else if len(output) > 0 {
-			if protectBranch.CanForcePush {
-				isForcePush = true
-			} else {
-				ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from force push", branchName)
-				return
-			}
-		}
+	isForcePush, ok := checkForcePush(ctx, protectBranch, branchName, oldCommitID, newCommitID)
+	if !ok {
+		return
 	}
 
 	// 3. Enforce require signed commits
@@ -289,6 +275,33 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			return
 		}
 	}
+}
+
+// checkForcePush reports whether the push rewrites the branch history. It
+// rejects the push when the branch does not allow force pushes; ok is false
+// if the push was rejected.
+func checkForcePush(ctx *preReceiveContext, protectBranch *git_model.ProtectedBranch, branchName, oldCommitID, newCommitID string) (isForcePush, ok bool) {
+	// A new branch has no history to rewrite.
+	if oldCommitID == ctx.Repo.GetObjectFormat().EmptyObjectID().String() {
+		return false, true
+	}
+
+	repo := ctx.Repo.Repository
+	output, _, err := gitcmd.NewCommand("rev-list", "--max-count=1").
+		AddDynamicArguments(oldCommitID, "^"+newCommitID).
+		WithEnv(ctx.env).WithRepo(repo).RunStdString(ctx)
+	if err != nil {
+		ctx.PrivateInternalErrorf("Unable to detect force push between %s and %s in %s: %v", oldCommitID, newCommitID, repo.FullName(), err)
+		return false, false
+	}
+	if len(output) == 0 {
+		return false, true
+	}
+	if !protectBranch.CanForcePush {
+		ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from force push", branchName)
+		return false, false
+	}
+	return true, true
 }
 
 // checkSignedCommits rejects the push when the branch requires signed commits
