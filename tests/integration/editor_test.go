@@ -337,7 +337,7 @@ func testEditorWebGitCommitEmail(t *testing.T) {
 	})
 
 	t.Run("ApplyPatchCherryPick", func(t *testing.T) {
-		testWebGit(t,
+		resp1, _ := testWebGit(t,
 			"/user2/repo1/_diffpatch/master", map[string]string{
 				"tree_path": "__dummy__",
 				"content": `diff --git a/patch-file-1.txt b/patch-file-1.txt
@@ -361,12 +361,13 @@ index 0000000000..bbbbbbbbbb
 `,
 			},
 		)
+		assert.Equal(t, "/user2/repo1/src/branch/master", test.RedirectURL(resp1))
 
 		commit1, err := gitRepo.GetCommitByPath(t.Context(), "patch-file-1.txt")
 		require.NoError(t, err)
 		commit2, err := gitRepo.GetCommitByPath(t.Context(), "patch-file-2.txt")
 		require.NoError(t, err)
-		resp1, _ := testWebGit(t,
+		resp1, _ = testWebGit(t,
 			"/user2/repo1/_cherrypick/"+commit1.ID.String()+"/master", map[string]string{"revert": "true"},
 			"/user2/repo1/_cherrypick/"+commit2.ID.String()+"/master", map[string]string{"revert": "true"},
 		)
