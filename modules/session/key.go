@@ -4,7 +4,8 @@
 package session
 
 const (
-	KeyUID = "uid"
+	KeyUID               = "uid"
+	KeySessionGeneration = "sessionGeneration"
 
 	KeyImpersonatorData = "impersonatorData"
 

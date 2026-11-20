@@ -5,6 +5,7 @@
 package admin
 
 import (
+	stdcontext "context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -541,5 +542,47 @@ func RenameUser(ctx *context.APIContext) {
 		}
 		return
 	}
+	ctx.Status(http.StatusNoContent)
+}
+
+// RevokeUserSessions revokes all web sessions and remember-me credentials for a user
+func RevokeUserSessions(ctx *context.APIContext) {
+	// swagger:operation DELETE /admin/users/{username}/sessions admin adminRevokeUserSessions
+	// ---
+	// summary: Revoke a user's web sessions
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of the user whose sessions should be revoked
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   default:
+	//     "$ref": "#/responses/error"
+
+	target := ctx.ContextUser
+	if target.IsOrganization() {
+		ctx.APIError(http.StatusUnprocessableEntity, "target is an organization but not user")
+		return
+	}
+
+	if err := db.WithTx(ctx, func(txCtx stdcontext.Context) error {
+		if err := user_model.IncrementSessionGeneration(txCtx, target.ID); err != nil {
+			return fmt.Errorf("increment session generation: %w", err)
+		}
+		if err := auth.DeleteAuthTokensByUserID(txCtx, target.ID); err != nil {
+			return fmt.Errorf("delete auth tokens: %w", err)
+		}
+		return nil
+	}); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	audit.Record(ctx, audit_model.UserSessionRevoke, target)
 	ctx.Status(http.StatusNoContent)
 }

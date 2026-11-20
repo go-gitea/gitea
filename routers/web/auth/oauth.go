@@ -420,6 +420,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 
 		if err := regenerateSession(ctx, map[string]any{
 			session.KeyUID:                  u.ID,
+			session.KeySessionGeneration:    u.SessionGeneration,
 			session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 			session.KeySignInMethod:         session.SignInMethodOAuth2,
 		}); err != nil {
