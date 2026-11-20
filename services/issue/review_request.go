@@ -6,6 +6,7 @@ package issue
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -288,11 +289,7 @@ func isReviewerCandidate(ctx context.Context, repo *repo_model.Repository, poste
 		if err != nil {
 			return false, fmt.Errorf("isReviewerCandidate: %w", err)
 		}
-		for _, id := range userIDs {
-			if id == reviewer.ID {
-				return true, nil
-			}
-		}
+		return slices.Contains(userIDs, reviewer.ID), nil
 	}
 	return false, nil
 }
@@ -309,12 +306,9 @@ func isTeamReviewerCandidate(ctx context.Context, repo *repo_model.Repository, t
 	if err != nil {
 		return false, fmt.Errorf("isTeamReviewerCandidate: %w", err)
 	}
-	for _, team := range teams {
-		if team.ID == teamID {
-			return true, nil
-		}
-	}
-	return false, nil
+	return slices.ContainsFunc(teams, func(team *organization.Team) bool {
+		return team.ID == teamID
+	}), nil
 }
 
 // CanDoerChangeReviewRequests returns if the doer can add/remove review requests of a PR
