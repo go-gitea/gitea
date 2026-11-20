@@ -75,8 +75,8 @@ const maxJSONBodySize = 1024 * 1024 // 1 MiB
 // writes the error response (413 if the body is too large, errStatus
 // otherwise) and returns false.
 func decodeJSONBody(ctx *context.Context, v any, errStatus int) bool {
-	if err := json.NewDecoder(packages_module.NewLimitedReader(ctx.Req.Body, maxJSONBodySize)).Decode(v); err != nil {
-		apiError(ctx, util.Iif(errors.Is(err, packages_module.ErrContentTooLarge), http.StatusRequestEntityTooLarge, errStatus), err)
+	if err := json.DecodeWithLimit(ctx.Req.Body, maxJSONBodySize, v); err != nil {
+		apiError(ctx, util.Iif(errors.Is(err, json.ErrTooLarge), http.StatusRequestEntityTooLarge, errStatus), err)
 		return false
 	}
 	return true
