@@ -1501,7 +1501,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	startCommitID := compareInfo.CompareBase
 	endCommitID := headCommitID
 
-	maxLines := setting.Git.MaxGitDiffLines
+	listOptions := utils.GetListOptions(ctx)
 
 	// FIXME: If there are too many files in the repo, may cause some unpredictable issues.
 	diffCommonOptions := gitdiff.DiffCommonOptions{
@@ -1513,9 +1513,9 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		&gitdiff.DiffOptions{
 			DiffCommonOptions: diffCommonOptions,
 			SkipTo:            ctx.FormString("skip-to"),
-			MaxLines:          maxLines,
+			MaxLines:          setting.Git.MaxGitDiffLines,
 			MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
-			MaxFiles:          -1, // GetDiff() will return all files
+			MaxFiles:          listOptions.Page * listOptions.PageSize,
 		})
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -1528,7 +1528,6 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		return
 	}
 
-	listOptions := utils.GetListOptions(ctx)
 	totalNumberOfFiles := diffShortStat.NumFiles
 	totalNumberOfPages := int(math.Ceil(float64(totalNumberOfFiles) / float64(listOptions.PageSize)))
 

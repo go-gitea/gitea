@@ -145,6 +145,16 @@ func TestAPIViewPulls(t *testing.T) {
 			}))
 	}
 
+	t.Run("APIGetPullFilesPagination", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/api/v1/repos/user2/commitsonpr/pulls/1/files?limit=2&page=2&skip-to=test10.txt")
+		resp := MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, "true", resp.Header().Get("X-HasMore"))
+		files := DecodeJSON(t, resp, []*api.ChangedFile{})
+		require.Len(t, files, 2)
+		assert.Equal(t, "test3.txt", files[0].Filename)
+		assert.Equal(t, "test4.txt", files[1].Filename)
+	})
+
 	t.Run("DefaultState", func(t *testing.T) {
 		writeToken := getTokenForLoggedInUser(t, ctx.Session, auth_model.AccessTokenScopeWriteRepository)
 		req := NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/3", owner.Name, repo.Name), &api.EditPullRequestOption{
