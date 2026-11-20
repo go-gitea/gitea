@@ -741,7 +741,7 @@ func EditPullRequest(ctx *context.APIContext) {
 				ctx.APIError(http.StatusConflict, err.Error())
 				return
 			}
-			ctx.APIErrorAuto(err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -819,25 +819,44 @@ func IsPullRequestMerged(ctx *context.APIContext) {
 	ctx.APIErrorNotFound()
 }
 
-func writeCheckPullMergeableError(ctx *context.APIContext, err error) {
-	if errors.Is(err, pull_service.ErrIsClosed) {
+func getPullRequestToMerge(ctx *context.APIContext) *issues_model.PullRequest {
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return nil
+	}
+	pr.Issue.Repo = ctx.Repo.Repository
+	return pr
+}
+
+func checkPullMergeable(ctx *context.APIContext, pr *issues_model.PullRequest, checkType pull_service.MergeCheckType, style repo_model.MergeStyle, force bool) bool {
+	err := pull_service.CheckPullMergeable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, checkType, style, force)
+	switch {
+	case err == nil:
+		return true
+	case errors.Is(err, pull_service.ErrIsClosed):
 		ctx.APIErrorNotFound()
-	} else if errors.Is(err, pull_service.ErrNoPermissionToMerge) {
+	case errors.Is(err, pull_service.ErrNoPermissionToMerge):
 		ctx.APIError(http.StatusMethodNotAllowed, "User not allowed to merge PR")
-	} else if errors.Is(err, pull_service.ErrHasMerged) {
+	case errors.Is(err, pull_service.ErrHasMerged):
 		ctx.APIError(http.StatusMethodNotAllowed, "The PR is already merged")
-	} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
+	case errors.Is(err, pull_service.ErrIsWorkInProgress):
 		ctx.APIError(http.StatusMethodNotAllowed, "Work in progress PRs cannot be merged")
-	} else if errors.Is(err, pull_service.ErrNotMergeableState) {
+	case errors.Is(err, pull_service.ErrNotMergeableState):
 		ctx.APIError(http.StatusMethodNotAllowed, "Please try again later")
-	} else if errors.Is(err, pull_service.ErrNotReadyToMerge) {
+	case errors.Is(err, pull_service.ErrNotReadyToMerge), asymkey_service.IsErrWontSign(err), errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified):
 		ctx.APIError(http.StatusMethodNotAllowed, err.Error())
-	} else if asymkey_service.IsErrWontSign(err) {
-		ctx.APIError(http.StatusMethodNotAllowed, err.Error())
-	} else if errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified) {
-		ctx.APIError(http.StatusMethodNotAllowed, err.Error())
-	} else {
+	default:
 		ctx.APIErrorInternal(err)
+	}
+	return false
+}
+
+func writeMergeError(ctx *context.APIContext, err error) {
+	if pull_service.IsErrSHADoesNotMatch(err) {
+		ctx.APIError(http.StatusConflict, "head out of date")
+	} else {
+		ctx.APIErrorAuto(err)
 	}
 }
 
@@ -873,15 +892,14 @@ func MergePullRequest(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/empty"
 	//   "201":
-	//     description: the merge is scheduled or the pull request was added to the merge queue
+	//     "$ref": "#/responses/empty"
 	//   default:
 	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*forms.MergePullRequestForm](ctx)
 
-	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	pr := getPullRequestToMerge(ctx)
+	if pr == nil {
 		return
 	}
 
@@ -889,12 +907,6 @@ func MergePullRequest(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-
-	if err := pr.LoadIssue(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	pr.Issue.Repo = ctx.Repo.Repository
 
 	if ctx.IsSigned {
 		// Update issue-user.
@@ -915,8 +927,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	// start with merging by checking
-	if err := pull_service.CheckPullMergeable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, repo_model.MergeStyle(form.Do), form.ForceMerge); err != nil {
-		writeCheckPullMergeableError(ctx, err)
+	if !checkPullMergeable(ctx, pr, mergeCheckType, repo_model.MergeStyle(form.Do), form.ForceMerge) {
 		return
 	}
 
@@ -972,12 +983,8 @@ func MergePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	// the queue merges with the method of its branch protection, form.Do is ignored
-	if queued, err := mergequeue.EnqueueIfRequired(ctx, ctx.Doer, pr, form.HeadCommitID, form.ForceMerge); pull_service.IsErrSHADoesNotMatch(err) {
-		ctx.APIError(http.StatusConflict, "head out of date")
-		return
-	} else if err != nil {
-		ctx.APIErrorAuto(err)
+	if queued, err := mergequeue.EnqueueIfRequired(ctx, ctx.Doer, pr, form.HeadCommitID, form.ForceMerge); err != nil {
+		writeMergeError(ctx, err)
 		return
 	} else if queued {
 		ctx.Status(http.StatusCreated)
@@ -995,8 +1002,6 @@ func MergePullRequest(ctx *context.APIContext) {
 			ctx.JSON(http.StatusConflict, conflictError)
 		} else if git.IsErrPushOutOfDate(err) {
 			ctx.APIError(http.StatusConflict, "merge push out of date")
-		} else if pull_service.IsErrSHADoesNotMatch(err) {
-			ctx.APIError(http.StatusConflict, "head out of date")
 		} else if errPushRej, ok := err.(*git.ErrPushRejected); ok {
 			if len(errPushRej.Message) == 0 {
 				ctx.APIError(http.StatusConflict, "PushRejected without remote error message")
@@ -1004,7 +1009,7 @@ func MergePullRequest(ctx *context.APIContext) {
 				ctx.APIError(http.StatusConflict, "PushRejected with remote message: "+errPushRej.Message)
 			}
 		} else {
-			ctx.APIErrorInternal(err)
+			writeMergeError(ctx, err)
 		}
 		return
 	}

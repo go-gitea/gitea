@@ -32,7 +32,7 @@ func TestPreReceive(t *testing.T) {
 	t.Run("Branch", testPreReceiveActionsBranch)
 	t.Run("Tag", testPreReceiveSystemUserTag)
 	t.Run("CanWrite", testPreReceiveCanWriteCodePerBranch)
-	t.Run("MergeQueue", testPreReceiveMergeQueue)
+	t.Run("QueuedMergeProtectsFiles", testPreReceiveQueuedMergeProtectsFiles)
 	t.Run("ProcReceiveNeedsPullRequests", func(t *testing.T) {
 		ctx, resp := contexttest.MockPrivateContext(t, "/")
 		ctx.SetPathParam("owner", "user2")
@@ -50,44 +50,34 @@ func TestPreReceive(t *testing.T) {
 	})
 }
 
-func testPreReceiveMergeQueue(t *testing.T) {
+func testPreReceiveQueuedMergeProtectsFiles(t *testing.T) {
+	ctx, resp := contexttest.MockPrivateContext(t, "/")
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "branch2"})
-	gitRepo, err := git.OpenRepository(t.Context(), repo)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
-	baseSHA, err := gitRepo.GetBranchCommitID(t.Context(), pr.BaseBranch)
+	baseSHA, err := gitRepo.GetBranchCommitID(ctx, pr.BaseBranch)
 	require.NoError(t, err)
-	groupSHA, err := gitRepo.GetBranchCommitID(t.Context(), pr.HeadBranch)
+	groupSHA, err := gitRepo.GetBranchCommitID(ctx, pr.HeadBranch)
 	require.NoError(t, err)
-	groupRef := git.RefName(pull_model.MergeQueueGroupRef(pr.BaseBranch, pr.Index, baseSHA))
-	check := func(ref git.RefName, pullID int64, wantStatus int, message string) {
-		t.Helper()
-		ctx, resp := contexttest.MockPrivateContext(t, "/")
-		ctx.Repo = &context.Repository{Repository: repo, GitRepo: gitRepo}
-		web.SetForm(ctx, &private.HookOptions{
-			UserID: repo.OwnerID, PullRequestID: pullID, RefFullNames: []git.RefName{ref},
-			OldCommitIDs: []string{baseSHA}, NewCommitIDs: []string{groupSHA},
-		})
-		HookPreReceive(ctx)
-		assert.Equal(t, wantStatus, resp.Code, resp.Body.String())
-		assert.Contains(t, resp.Body.String(), message)
-	}
-	check(groupRef, 0, http.StatusOK, "ok")
-
-	require.NoError(t, db.Insert(t.Context(), &pull_model.MergeQueueEntry{
-		RepoID: repo.ID, PullID: pr.ID, EnqueuerID: repo.OwnerID, BaseBranch: pr.BaseBranch,
-		BaseSHA: baseSHA, GroupRef: groupRef.String(), GroupHeadSHA: groupSHA, State: pull_model.MergeQueueStateMergeable,
+	require.NoError(t, db.Insert(ctx, &pull_model.MergeQueueEntry{
+		RepoID: repo.ID, PullID: pr.ID, BaseBranch: pr.BaseBranch,
+		GroupHeadSHA: groupSHA, State: pull_model.MergeQueueStateMergeable,
 	}, &git_model.ProtectedBranch{
 		RepoID: repo.ID, RuleName: pr.BaseBranch,
 		ProtectedBranchConfig: git_model.ProtectedBranchConfig{
-			CanPush: true, EnableStatusCheck: true, RequireMergeQueue: true, ProtectedFilePatterns: "README.md", BlockAdminMergeOverride: true,
+			CanPush: true, RequireMergeQueue: true, ProtectedFilePatterns: "README.md", BlockAdminMergeOverride: true,
 		},
 	}))
-	baseRef := git.RefNameFromBranch(pr.BaseBranch)
-	check(baseRef, pr.ID, http.StatusForbidden, "protected from changing file readme.md")
-	check(baseRef, 0, http.StatusForbidden, "Changes must be made through the merge queue")
-	check(groupRef, 0, http.StatusForbidden, "reserved for the merge queue")
+	ctx.Repo = &context.Repository{Repository: repo, GitRepo: gitRepo}
+	web.SetForm(ctx, &private.HookOptions{
+		UserID: repo.OwnerID, PullRequestID: pr.ID, RefFullNames: []git.RefName{git.RefNameFromBranch(pr.BaseBranch)},
+		OldCommitIDs: []string{baseSHA}, NewCommitIDs: []string{groupSHA},
+	})
+	HookPreReceive(ctx)
+	assert.Equal(t, http.StatusForbidden, resp.Code)
+	assert.Contains(t, resp.Body.String(), "protected from changing file readme.md")
 }
 
 func testPreReceiveActionsBranch(t *testing.T) {

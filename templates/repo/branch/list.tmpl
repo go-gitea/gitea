@@ -24,6 +24,7 @@
 									{{if .DefaultBranchBranch.IsProtected}}
 										<span data-tooltip-content="{{ctx.Locale.Tr "repo.settings.protected_branch"}}">{{svg "octicon-shield-lock"}}</span>
 									{{end}}
+									{{if and $.CanReadMergeQueue .DefaultBranchBranch.HasMergeQueue}}{{$queueSize := index $.MergeQueueSizes .DefaultBranchBranch.DBBranch.Name}}<a class="ui small basic label" href="{{$.RepoLink}}/queue/{{PathEscapeSegments .DefaultBranchBranch.DBBranch.Name}}" data-tooltip-content="{{ctx.Locale.TrN $queueSize "repo.pulls.merge_queue.branch_queued_1" "repo.pulls.merge_queue.branch_queued_n" $queueSize}}">{{svg "octicon-git-merge-queue" 12 "tw-text-yellow"}}{{$queueSize}}</a>{{end}}
 									<button type="button" class="btn interact-fg tw-px-1" data-clipboard-text="{{.DefaultBranchBranch.DBBranch.Name}}" data-tooltip-content="{{ctx.Locale.Tr "copy_branch"}}">{{svg "octicon-copy" 14}}</button>
 									{{template "repo/commit_statuses" dict "Status" (index $.CommitStatus .DefaultBranchBranch.DBBranch.CommitID) "Statuses" (index $.CommitStatuses .DefaultBranchBranch.DBBranch.CommitID)}}
 								</div>
@@ -103,6 +104,7 @@
 									{{if .IsProtected}}
 										<span data-tooltip-content="{{ctx.Locale.Tr "repo.settings.protected_branch"}}">{{svg "octicon-shield-lock"}}</span>
 									{{end}}
+									{{if and $.CanReadMergeQueue .HasMergeQueue}}{{$queueSize := index $.MergeQueueSizes .DBBranch.Name}}<a class="ui small basic label" href="{{$.RepoLink}}/queue/{{PathEscapeSegments .DBBranch.Name}}" data-tooltip-content="{{ctx.Locale.TrN $queueSize "repo.pulls.merge_queue.branch_queued_1" "repo.pulls.merge_queue.branch_queued_n" $queueSize}}">{{svg "octicon-git-merge-queue" 12 "tw-text-yellow"}}{{$queueSize}}</a>{{end}}
 									<button type="button" class="btn interact-fg tw-px-1" data-clipboard-text="{{.DBBranch.Name}}" data-tooltip-content="{{ctx.Locale.Tr "copy_branch"}}">{{svg "octicon-copy" 14}}</button>
 									{{template "repo/commit_statuses" dict "Status" (index $.CommitStatus .DBBranch.CommitID) "Statuses" (index $.CommitStatuses .DBBranch.CommitID)}}
 								</div>

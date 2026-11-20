@@ -66,12 +66,9 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 		return nil, cancel, err
 	}
 	if baseCommitID != "" {
-		// merge onto this commit of the base repo instead of the base branch, its objects are reachable through the alternates
-		for _, branch := range []string{tmpRepoBaseBranch, "original_" + tmpRepoBaseBranch} {
-			if err := git.UpdateRef(ctx, prCtx.tmpRepo, git.BranchPrefix+branch, baseCommitID); err != nil {
-				cancel()
-				return nil, nil, fmt.Errorf("unable to set %s to %s in tmpBasePath: %w", branch, baseCommitID, err)
-			}
+		if err := git.UpdateRef(ctx, prCtx.tmpRepo, git.BranchPrefix+tmpRepoBaseBranch, baseCommitID); err != nil {
+			cancel()
+			return nil, nil, fmt.Errorf("unable to set %s to %s in tmpBasePath: %w", tmpRepoBaseBranch, baseCommitID, err)
 		}
 	}
 

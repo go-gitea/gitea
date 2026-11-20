@@ -266,10 +266,17 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		}
 	}
 
-	if queued, err := db.GetEngine(ctx).Where("pull_id = ?", pr.ID).Exist(&pull_model.MergeQueueEntry{}); err != nil {
+	if queued, err := db.Exist[pull_model.MergeQueueEntry](ctx, builder.Eq{"pull_id": pr.ID}); err != nil {
 		return err
 	} else if queued {
-		return ErrRetargetQueuedPull
+		if err := pr.LoadBaseRepo(ctx); err != nil {
+			return err
+		}
+		if _, err := git.GetBranchCommitID(ctx, pr.BaseRepo, pr.BaseBranch); err == nil {
+			return ErrRetargetQueuedPull
+		} else if !git.IsErrNotExist(err) {
+			return err
+		}
 	}
 
 	exist, err := git_model.IsBranchExist(ctx, pr.BaseRepoID, targetBranch)

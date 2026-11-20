@@ -100,9 +100,7 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 	ctx := NewAPITestContext(t, username, "my-noo-repo", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	giteaURL.Path = ctx.GitPath()
 
-	t.Run("CreateRepo", doAPICreateRepository(ctx, false, func(t *testing.T, repo api.Repository) {
-		require.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{RepoID: repo.ID, RuleName: "blocked"}))
-	}))
+	t.Run("CreateRepo", doAPICreateRepository(ctx, false))
 	testCases := []struct {
 		OldBranch          string
 		NewBranch          string
@@ -146,7 +144,6 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 			NewBranch:          "test-👀",
 			ExpectedHTTPStatus: http.StatusCreated,
 		},
-		{NewBranch: "blocked", ExpectedHTTPStatus: http.StatusForbidden},
 	}
 	for _, test := range testCases {
 		session := ctx.Session

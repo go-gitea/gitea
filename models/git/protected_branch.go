@@ -86,7 +86,7 @@ type MergeQueueGroupingStrategy string
 
 const (
 	MergeQueueGroupingAllGreen  MergeQueueGroupingStrategy = "ALLGREEN"
-	MergeQueueGroupingHeadGreen MergeQueueGroupingStrategy = "HEADGREEN" // a passing entry also covers the entries before it
+	MergeQueueGroupingHeadGreen MergeQueueGroupingStrategy = "HEADGREEN"
 )
 
 type MergeQueueConfig struct {
@@ -115,14 +115,18 @@ func (c MergeQueueConfig) WithDefaults() MergeQueueConfig {
 	return util.IfZero(c, DefaultMergeQueueConfig())
 }
 
-var ErrMergeQueueRequiresStatusCheck = util.NewInvalidArgumentErrorf("a merge queue requires status checks to be enabled")
+var ErrMergeQueueMethodNotAllowed = util.NewInvalidArgumentErrorf("the merge queue merge method is not allowed in the pull request settings")
 
-func (protectBranch *ProtectedBranch) SetMergeQueue(require bool, cfg MergeQueueConfig) error {
+func (protectBranch *ProtectedBranch) SetMergeQueue(require bool, cfg MergeQueueConfig, prConfig *repo_model.PullRequestsConfig) error {
 	outOfRange := func(value, low, high int) bool { return value < low || value > high }
 	switch {
+	case require && prConfig != nil && !prConfig.IsMergeStyleAllowed(cfg.MergeMethod):
+		return ErrMergeQueueMethodNotAllowed
 	case !slices.Contains([]repo_model.MergeStyle{repo_model.MergeStyleMerge, repo_model.MergeStyleRebase, repo_model.MergeStyleRebaseMerge, repo_model.MergeStyleSquash}, cfg.MergeMethod):
 		return util.NewInvalidArgumentErrorf("merge queue merge method %q is not supported", cfg.MergeMethod)
-	case outOfRange(cfg.MaxEntriesToBuild, 1, 100), outOfRange(cfg.MinEntriesToMerge, 1, 100), outOfRange(cfg.MaxEntriesToMerge, 1, 100):
+	case outOfRange(cfg.MaxEntriesToBuild, 0, 100):
+		return util.NewInvalidArgumentErrorf("merge queue build concurrency must be between 0 and 100")
+	case outOfRange(cfg.MinEntriesToMerge, 1, 100), outOfRange(cfg.MaxEntriesToMerge, 1, 100):
 		return util.NewInvalidArgumentErrorf("merge queue group sizes must be between 1 and 100")
 	case cfg.MinEntriesToMerge > cfg.MaxEntriesToMerge:
 		return util.NewInvalidArgumentErrorf("merge queue minimum group size must not exceed the maximum")
@@ -132,8 +136,6 @@ func (protectBranch *ProtectedBranch) SetMergeQueue(require bool, cfg MergeQueue
 		return util.NewInvalidArgumentErrorf("merge queue check timeout must be between 1 and 360 minutes")
 	case cfg.GroupingStrategy != MergeQueueGroupingAllGreen && cfg.GroupingStrategy != MergeQueueGroupingHeadGreen:
 		return util.NewInvalidArgumentErrorf("merge queue grouping strategy %q is not supported", cfg.GroupingStrategy)
-	case require && !protectBranch.EnableStatusCheck:
-		return ErrMergeQueueRequiresStatusCheck
 	}
 	protectBranch.RequireMergeQueue, protectBranch.MergeQueue = require, cfg
 	return nil

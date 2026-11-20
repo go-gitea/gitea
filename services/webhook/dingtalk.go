@@ -185,10 +185,9 @@ func (dingtalkConvertor) WorkflowRun(p *api.WorkflowRunPayload) (DingtalkPayload
 	return createDingtalkPayload(text, text, "Workflow Run", p.WorkflowRun.HTMLURL), nil
 }
 
-func (dingtalkConvertor) MergeGroup(p *api.MergeGroupPayload) (DingtalkPayload, error) {
-	text, _ := getMergeGroupPayloadInfo(p, noneLinkFormatter, true)
-
-	return createDingtalkPayload(text, text, "Merge Group", p.Repo.HTMLURL+"/commit/"+p.MergeGroup.HeadSHA), nil
+func (dingtalkConvertor) MergeGroup(payload *api.MergeGroupPayload) (DingtalkPayload, error) {
+	text, _, commitURL := getMergeGroupPayloadInfo(payload, noneLinkFormatter, true)
+	return createDingtalkPayload(text, text, "Merge Group", commitURL), nil
 }
 
 func (dingtalkConvertor) WorkflowJob(p *api.WorkflowJobPayload) (DingtalkPayload, error) {

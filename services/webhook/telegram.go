@@ -193,9 +193,8 @@ func (telegramConvertor) WorkflowRun(p *api.WorkflowRunPayload) (TelegramPayload
 	return createTelegramPayloadHTML(text), nil
 }
 
-func (telegramConvertor) MergeGroup(p *api.MergeGroupPayload) (TelegramPayload, error) {
-	text, _ := getMergeGroupPayloadInfo(p, htmlLinkFormatter, true)
-
+func (telegramConvertor) MergeGroup(payload *api.MergeGroupPayload) (TelegramPayload, error) {
+	text, _, _ := getMergeGroupPayloadInfo(payload, htmlLinkFormatter, true)
 	return createTelegramPayloadHTML(text), nil
 }
 

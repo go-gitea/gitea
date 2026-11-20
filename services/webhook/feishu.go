@@ -188,9 +188,8 @@ func (feishuConvertor) WorkflowRun(p *api.WorkflowRunPayload) (FeishuPayload, er
 	return newFeishuTextPayload(text), nil
 }
 
-func (feishuConvertor) MergeGroup(p *api.MergeGroupPayload) (FeishuPayload, error) {
-	text, _ := getMergeGroupPayloadInfo(p, noneLinkFormatter, true)
-
+func (feishuConvertor) MergeGroup(payload *api.MergeGroupPayload) (FeishuPayload, error) {
+	text, _, _ := getMergeGroupPayloadInfo(payload, noneLinkFormatter, true)
 	return newFeishuTextPayload(text), nil
 }
 

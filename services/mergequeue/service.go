@@ -25,8 +25,10 @@ import (
 
 var ErrNotQueued = util.NewNotExistErrorf("pull request is not in the merge queue")
 
-// Enqueue relies on the caller to check the branch rule and merge permission.
 func Enqueue(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, jump bool, expectedHeadSHA string) (*pull_model.MergeQueueEntry, error) {
+	if doer.ID == user_model.ActionsUserID { // its task-scoped permission can't be re-checked when the queue builds
+		return nil, util.NewInvalidArgumentErrorf("Gitea Actions tokens cannot add pull requests to the merge queue")
+	}
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, err
 	}
@@ -39,11 +41,28 @@ func Enqueue(ctx context.Context, doer *user_model.User, pr *issues_model.PullRe
 
 	entry := &pull_model.MergeQueueEntry{
 		RepoID: pr.BaseRepoID, BaseBranch: pr.BaseBranch, PullID: pr.ID,
-		EnqueuerID: doer.ID, Jump: jump, HeadSHA: headSHA,
+		EnqueuerID: doer.ID, HeadSHA: headSHA,
 	}
+	added := false
 	err = globallock.LockAndDo(ctx, lockKey(pr.BaseRepoID, pr.BaseBranch), func(ctx context.Context) error {
+		if jump {
+			existing, err := pull_model.GetMergeQueueEntryByPullID(ctx, pr.ID)
+			if err != nil {
+				return err
+			} else if existing != nil {
+				entry = existing
+				return pull_model.JumpMergeQueueEntry(ctx, entry)
+			}
+			if entry.JumpUnix, err = pull_model.NextJumpUnix(ctx, pr.BaseRepoID, pr.BaseBranch); err != nil {
+				return err
+			}
+		}
+		added = true
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			if err := pull_model.AddToMergeQueue(ctx, entry); err != nil {
+				return err
+			}
+			if _, err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil {
 				return err
 			}
 			return issues_model.CreateMergeQueueComment(ctx, pr, doer, "")
@@ -52,9 +71,45 @@ func Enqueue(ctx context.Context, doer *user_model.User, pr *issues_model.PullRe
 	if err != nil {
 		return nil, err
 	}
-	notify_service.PullRequestMergeQueueChanged(ctx, doer, pr, "")
+	if added {
+		notify_service.PullRequestMergeQueueChanged(ctx, doer, pr, "")
+	}
 	addToQueue(pr.BaseRepoID, pr.BaseBranch)
 	return entry, nil
+}
+
+func Jump(ctx context.Context, pr *issues_model.PullRequest) error {
+	return updateQueuedEntry(ctx, pr, pull_model.JumpMergeQueueEntry)
+}
+
+func Clear(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, branch string) error {
+	return globallock.LockAndDo(ctx, lockKey(repo.ID, branch), func(ctx context.Context) error {
+		rows, err := pull_model.GetMergeQueueEntries(ctx, repo.ID, branch)
+		if err != nil {
+			return err
+		}
+		entries, err := loadEntries(ctx, rows, repo)
+		if err != nil {
+			return err
+		}
+		for _, entry := range entries {
+			if err := removeEntry(ctx, repo, entry.MergeQueueEntry, entry.PullRequest, doer, issues_model.MergeQueueRemovedCleared); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func GetEnabledRule(ctx context.Context, repo *repo_model.Repository, branch string) (*git_model.ProtectedBranch, error) {
+	if exist, err := git_model.IsBranchExist(ctx, repo.ID, branch); err != nil || !exist {
+		return nil, err
+	}
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, branch)
+	if pb == nil || !pb.RequireMergeQueue {
+		return nil, err
+	}
+	return pb, err
 }
 
 func EnqueueIfRequired(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, expectedHeadSHA string, force bool) (bool, error) {
@@ -75,13 +130,7 @@ func Dequeue(ctx context.Context, doer *user_model.User, perm access_model.Permi
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return err
 	}
-	err := globallock.LockAndDo(ctx, lockKey(pr.BaseRepoID, pr.BaseBranch), func(ctx context.Context) error {
-		entry, err := pull_model.GetMergeQueueEntryByPullID(ctx, pr.ID)
-		if err != nil {
-			return err
-		} else if entry == nil {
-			return ErrNotQueued
-		}
+	return updateQueuedEntry(ctx, pr, func(ctx context.Context, entry *pull_model.MergeQueueEntry) error {
 		if doer.ID != entry.EnqueuerID {
 			if allowed, err := pull_service.IsUserAllowedToMerge(ctx, pr, perm, doer); err != nil {
 				return err
@@ -91,18 +140,25 @@ func Dequeue(ctx context.Context, doer *user_model.User, perm access_model.Permi
 		}
 		return removeEntry(ctx, pr.BaseRepo, entry, pr, doer, issues_model.MergeQueueRemovedByUser)
 	})
+}
+
+func updateQueuedEntry(ctx context.Context, pr *issues_model.PullRequest, update func(context.Context, *pull_model.MergeQueueEntry) error) error {
+	err := globallock.LockAndDo(ctx, lockKey(pr.BaseRepoID, pr.BaseBranch), func(ctx context.Context) error {
+		entry, err := pull_model.GetMergeQueueEntryByPullID(ctx, pr.ID)
+		if err != nil {
+			return err
+		} else if entry == nil {
+			return ErrNotQueued
+		}
+		return update(ctx, entry)
+	})
 	if err == nil {
 		addToQueue(pr.BaseRepoID, pr.BaseBranch)
 	}
 	return err
 }
 
-type QueueEntry struct {
-	*pull_model.MergeQueueEntry
-	Position    int
-	PullRequest *issues_model.PullRequest
-	Enqueuer    *user_model.User
-}
+type QueueEntry = pull_service.MergeQueueEntry
 
 func loadEntries(ctx context.Context, rows []*pull_model.MergeQueueEntry, baseRepo *repo_model.Repository) ([]*QueueEntry, error) {
 	if len(rows) == 0 {
@@ -144,13 +200,4 @@ func GetQueue(ctx context.Context, repo *repo_model.Repository, branch string) (
 	}
 	entries, err := loadEntries(ctx, rows, repo)
 	return slices.DeleteFunc(entries, func(entry *QueueEntry) bool { return entry.PullRequest == nil }), err
-}
-
-func GetEntry(ctx context.Context, pr *issues_model.PullRequest) (*pull_model.MergeQueueEntry, int, error) {
-	entry, err := pull_model.GetMergeQueueEntryByPullID(ctx, pr.ID)
-	if err != nil || entry == nil {
-		return nil, 0, err
-	}
-	position, err := pull_model.GetMergeQueuePosition(ctx, entry)
-	return entry, position, err
 }

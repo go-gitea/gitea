@@ -211,7 +211,7 @@ func testHasUnmergedPullRequestsByHeadInfo(t *testing.T) {
 	assert.False(t, exist)
 
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})
-	require.NoError(t, pull_model.AddToMergeQueue(t.Context(), &pull_model.MergeQueueEntry{RepoID: pr.BaseRepoID, PullID: pr.ID, BaseBranch: pr.BaseBranch}))
+	require.NoError(t, db.Insert(t.Context(), &pull_model.MergeQueueEntry{PullID: pr.ID, RepoID: pr.BaseRepoID}))
 	assert.ErrorIs(t, issues_model.CheckBranchNotQueuedForMerge(t.Context(), pr.HeadRepoID, pr.HeadBranch), issues_model.ErrQueuedPullHead)
 	assert.NoError(t, issues_model.CheckBranchNotQueuedForMerge(t.Context(), pr.BaseRepoID, pr.HeadBranch))
 }

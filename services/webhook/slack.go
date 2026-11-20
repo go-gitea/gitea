@@ -198,9 +198,8 @@ func (s slackConvertor) WorkflowRun(p *api.WorkflowRunPayload) (SlackPayload, er
 	return s.createPayload(text, nil), nil
 }
 
-func (s slackConvertor) MergeGroup(p *api.MergeGroupPayload) (SlackPayload, error) {
-	text, _ := getMergeGroupPayloadInfo(p, SlackLinkFormatter, true)
-
+func (s slackConvertor) MergeGroup(payload *api.MergeGroupPayload) (SlackPayload, error) {
+	text, _, _ := getMergeGroupPayloadInfo(payload, SlackLinkFormatter, true)
 	return s.createPayload(text, nil), nil
 }
 

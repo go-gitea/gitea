@@ -122,8 +122,8 @@ const (
 
 	CommentTypeChangeTimeEstimate // 38 Change time estimate
 
-	CommentTypePRAddedToMergeQueue     // 39 pr was added to the merge queue
-	CommentTypePRRemovedFromMergeQueue // 40 pr was removed from the merge queue, the content holds the reason
+	CommentTypePRAddedToMergeQueue
+	CommentTypePRRemovedFromMergeQueue
 )
 
 var commentStrings = []string{
@@ -1273,12 +1273,20 @@ func UpdateCommentsMigrationsByType(ctx context.Context, tp structs.GitServiceTy
 	return err
 }
 
-// CreateAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
 func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User, content string) (*Comment, error) {
-	if typ != CommentTypePRScheduledToAutoMerge && typ != CommentTypePRUnScheduledToAutoMerge {
-		return nil, fmt.Errorf("comment type %d cannot be used to create an auto merge comment", typ)
+	if err := pr.LoadIssue(ctx); err != nil {
+		return nil, err
 	}
-	return createPullComment(ctx, typ, pr, doer, content)
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return nil, err
+	}
+	return CreateComment(ctx, &CreateCommentOptions{
+		Type:    typ,
+		Doer:    doer,
+		Repo:    pr.BaseRepo,
+		Issue:   pr.Issue,
+		Content: content,
+	})
 }
 
 type MergeQueueRemovalReason string
@@ -1295,31 +1303,15 @@ const (
 	MergeQueueRemovedAlreadyMerged MergeQueueRemovalReason = "already_merged"
 	MergeQueueRemovedBaseChanged   MergeQueueRemovalReason = "base_changed"
 	MergeQueueRemovedBaseDeleted   MergeQueueRemovalReason = "base_deleted"
+	MergeQueueRemovedCleared       MergeQueueRemovalReason = "queue_cleared"
 )
 
 func CreateMergeQueueComment(ctx context.Context, pr *PullRequest, doer *user_model.User, reason MergeQueueRemovalReason) error {
-	switch reason {
-	case MergeQueueRemovedClosed, MergeQueueRemovedMerged, MergeQueueRemovedAlreadyMerged:
+	if reason == MergeQueueRemovedMerged || reason == MergeQueueRemovedAlreadyMerged {
 		return nil
 	}
-	_, err := createPullComment(ctx, util.Iif(reason == "", CommentTypePRAddedToMergeQueue, CommentTypePRRemovedFromMergeQueue), pr, doer, string(reason))
+	_, err := CreateAutoMergeComment(ctx, util.Iif(reason == "", CommentTypePRAddedToMergeQueue, CommentTypePRRemovedFromMergeQueue), pr, doer, string(reason))
 	return err
-}
-
-func createPullComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User, content string) (*Comment, error) {
-	if err := pr.LoadIssue(ctx); err != nil {
-		return nil, err
-	}
-	if err := pr.LoadBaseRepo(ctx); err != nil {
-		return nil, err
-	}
-	return CreateComment(ctx, &CreateCommentOptions{
-		Type:    typ,
-		Doer:    doer,
-		Repo:    pr.BaseRepo,
-		Issue:   pr.Issue,
-		Content: content,
-	})
 }
 
 // RemapExternalUser ExternalUserRemappable interface

@@ -380,21 +380,20 @@ func getStatusPayloadInfo(p *api.CommitStatusPayload, linkFormatter linkFormatte
 	return text, color
 }
 
-func getMergeGroupPayloadInfo(p *api.MergeGroupPayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {
-	repoLink := linkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
-	commitLink := linkFormatter(p.Repo.HTMLURL+"/commit/"+p.MergeGroup.HeadSHA, base.ShortSha(p.MergeGroup.HeadSHA))
-	branch := git.RefName(p.MergeGroup.BaseRef).ShortName()
-	if p.Action == api.HookMergeGroupChecksRequested {
-		text = fmt.Sprintf("[%s:%s] Merge group checks requested: %s", repoLink, branch, commitLink)
-		color = orangeColor
-	} else {
-		text = fmt.Sprintf("[%s:%s] Merge group %s: %s", repoLink, branch, p.Reason, commitLink)
-		color = util.Iif(p.Reason == "merged", greenColor, greyColor)
+func getMergeGroupPayloadInfo(payload *api.MergeGroupPayload, linkFormatter linkFormatter, withSender bool) (text string, color int, commitURL string) {
+	commitURL = payload.Repo.HTMLURL + "/commit/" + payload.MergeGroup.HeadSHA
+	repoLink := linkFormatter(payload.Repo.HTMLURL, payload.Repo.FullName)
+	commitLink := linkFormatter(commitURL, base.ShortSha(payload.MergeGroup.HeadSHA))
+	description := payload.Reason
+	color = util.Iif(description == "merged", greenColor, greyColor)
+	if payload.Action == api.HookMergeGroupChecksRequested {
+		description, color = "checks requested", orangeColor
 	}
+	text = fmt.Sprintf("[%s:%s] Merge group %s: %s", repoLink, git.RefName(payload.MergeGroup.BaseRef).ShortName(), description, commitLink)
 	if withSender {
-		text += " by " + linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
+		text += " by " + linkFormatter(setting.AppURL+url.PathEscape(payload.Sender.UserName), payload.Sender.UserName)
 	}
-	return text, color
+	return text, color, commitURL
 }
 
 func getWorkflowRunPayloadInfo(p *api.WorkflowRunPayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {

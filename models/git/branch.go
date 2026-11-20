@@ -392,7 +392,6 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 			return err
 		}
 
-		// the merge queue of the branch follows it, its queue commits stay valid
 		if _, err = sess.Table("pull_merge_queue_entry").Where("repo_id=? AND base_branch=?", repo.ID, from).
 			Update(map[string]any{"base_branch": to}); err != nil {
 			return err

@@ -116,25 +116,24 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		return
 	}
 
+	repo := ctx.Repo.Repository
+	gitRepo := ctx.Repo.GitRepo
+	emptyID := ctx.Repo.GetObjectFormat().EmptyObjectID().String()
+	isDeletingBranch := newCommitID == emptyID
+	isUpdate := oldCommitID != emptyID
 	if !ctx.opts.IsWiki {
-		if owned, err := pull_model.IsMergeQueueRef(ctx, ctx.Repo.Repository.ID, refFullName); err != nil {
+		if owned, err := pull_model.IsMergeQueueRef(ctx, repo.ID, refFullName); err != nil {
 			ctx.PrivateInternalErrorf("Unable to check merge queue ref: %v", err)
 			return
 		} else if owned {
 			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is reserved for the merge queue", branchName)
 			return
 		}
-	}
-
-	repo := ctx.Repo.Repository
-	gitRepo := ctx.Repo.GitRepo
-	objectFormat := ctx.Repo.GetObjectFormat()
-	isDeletingBranch := newCommitID == objectFormat.EmptyObjectID().String()
-
-	if !ctx.opts.IsWiki && oldCommitID != objectFormat.EmptyObjectID().String() {
-		if err := issues_model.CheckBranchNotQueuedForMerge(ctx, repo.ID, branchName); err != nil {
-			ctx.PrivateUserErrorAuto(err)
-			return
+		if isUpdate && ctx.opts.PullRequestID == 0 {
+			if err := issues_model.CheckBranchNotQueuedForMerge(ctx, repo.ID, branchName); err != nil {
+				ctx.PrivateUserErrorAuto(err)
+				return
+			}
 		}
 	}
 
@@ -176,8 +175,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		return
 	}
 
-	isUpdate := oldCommitID != objectFormat.EmptyObjectID().String()
-	requiresMergeQueue := isUpdate && protectBranch.RequireMergeQueue
+	requiresMergeQueue := isUpdate && !ctx.opts.IsWiki && protectBranch.RequireMergeQueue
 	if requiresMergeQueue && ctx.opts.PullRequestID == 0 && !git_model.CanBypassBranchProtection(ctx, protectBranch, ctx.Doer, ctx.Repo.Permission.IsAdmin()) {
 		ctx.PrivateUserErrorf(http.StatusForbidden, "Changes must be made through the merge queue for branch %s", branchName)
 		return
@@ -313,18 +311,19 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 				ctx.PrivateInternalErrorf("Unable to get merge queue entry of pull request %d: %v", pr.ID, err)
 				return
 			}
-			// the merge queue only fast-forwards the branch to a queue commit whose required checks passed
 			if entry == nil || entry.BaseBranch != branchName || entry.GroupHeadSHA != newCommitID || entry.State != pull_model.MergeQueueStateMergeable {
 				ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s requires pull requests to be merged through the merge queue", branchName)
-			} else if changedProtectedFiles {
-				ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from changing file %s", branchName, protectedFilePath)
+				return
 			}
-			return
 		}
 
 		// Now if we're not an admin - we can't overwrite protected files so fail now
 		if changedProtectedFiles {
 			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from changing file %s", branchName, protectedFilePath)
+			return
+		}
+
+		if protectBranch.RequireMergeQueue {
 			return
 		}
 

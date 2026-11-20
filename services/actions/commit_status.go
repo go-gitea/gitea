@@ -250,8 +250,8 @@ func CreateSkippedCommitStatusForFilteredWorkflow(ctx context.Context, repo *rep
 			}
 		}
 	case webhook_module.HookEventMergeGroup:
-		if p, ok := payload.(*api.MergeGroupPayload); ok && p.Action == api.HookMergeGroupChecksRequested && p.MergeGroup != nil {
-			statusEvent, commitID = "merge_group", p.MergeGroup.HeadSHA
+		if group, ok := payload.(*api.MergeGroupPayload); ok && group.Action == api.HookMergeGroupChecksRequested && group.MergeGroup != nil {
+			statusEvent, commitID = string(event), group.MergeGroup.HeadSHA
 		}
 	}
 	if statusEvent == "" || commitID == "" {

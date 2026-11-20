@@ -168,7 +168,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(svg.Init)
 
 	mustInitCtx(ctx, actions_service.Init)
-	mustInit(mergequeue.Init) // after the notifiers it triggers are registered
+	mustInit(mergequeue.Init)
 
 	mustInit(repo_service.InitLicenseClassifier)
 

@@ -4,8 +4,8 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 	"time"
@@ -24,33 +24,22 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/mergequeue"
-	repo_service "gitea.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setupMergeQueue(t *testing.T, mergeMethod string) (*repo_model.Repository, *issues_model.PullRequest) {
+func mergeQueueAPI(t *testing.T, method, path string, body any, status int) *httptest.ResponseRecorder {
 	t.Helper()
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: 1, Index: 3})
-	pr.BaseBranch = "develop"
-	require.NoError(t, pr.UpdateCols(t.Context(), "base_branch"))
-	require.NoError(t, pr.LoadBaseRepo(t.Context()))
-	MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.CreateBranchProtectionOption{
-		RuleName: pr.BaseBranch, EnableStatusCheck: true, StatusCheckContexts: []string{"ci"},
-		RequireMergeQueue: true, MergeQueue: &api.BranchProtectionMergeQueueOption{MergeMethod: &mergeMethod},
-	}).AddBasicAuth("user2"), http.StatusCreated)
-	return pr.BaseRepo, pr
+	return MakeRequest(t, NewRequestWithJSON(t, method, "/api/v1/repos/user2/repo1"+path, body).AddBasicAuth("user2"), status)
 }
 
 func setMergeQueueStatus(t *testing.T, sha string, state commitstatus.CommitStatusState) {
 	t.Helper()
-	MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/statuses/"+sha, &api.CreateStatusOption{
-		State: state, Context: "ci",
-	}).AddBasicAuth("user2"), http.StatusCreated)
+	mergeQueueAPI(t, "POST", "/statuses/"+sha, api.CreateStatusOption{State: state, Context: "ci"}, http.StatusCreated)
 }
 
-func watchQueueWebhook[T any](t *testing.T, event string, accept func(*T) bool, branchFilter ...string) func() *T {
+func watchQueueWebhook[T any](t *testing.T, session *TestSession, event string, accept func(*T) bool, branchFilter ...string) func(*testing.T) *T {
 	t.Helper()
 	events := make(chan *T, 1)
 	provider := newMockWebhookProvider(func(r *http.Request) {
@@ -63,8 +52,8 @@ func watchQueueWebhook[T any](t *testing.T, event string, accept func(*T) bool, 
 		}
 	}, http.StatusOK)
 	t.Cleanup(provider.Close)
-	testAPICreateWebhookForRepo(t, loginUser(t, "user2"), "user2", "repo1", provider.URL(), event, branchFilter...)
-	return func() *T {
+	testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), event, branchFilter...)
+	return func(t *testing.T) *T {
 		t.Helper()
 		select {
 		case payload := <-events:
@@ -76,125 +65,120 @@ func watchQueueWebhook[T any](t *testing.T, event string, accept func(*T) bool, 
 	}
 }
 
-func watchQueueRemovals(t *testing.T) func(*issues_model.PullRequest, string) {
-	t.Helper()
-	next := watchQueueWebhook(t, "pull_request", func(payload *api.PullRequestPayload) bool { return payload.Action == api.HookIssueDequeued })
-	return func(pr *issues_model.PullRequest, reason string) {
-		t.Helper()
-		payload := next()
-		assert.Equal(t, pr.Index, payload.Index)
-		assert.Equal(t, reason, payload.Reason)
-	}
-}
-
 func TestPullMergeQueue(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
-		ctx := t.Context()
-		repo, pr := setupMergeQueue(t, "squash")
-		user := repo.MustOwner(ctx)
-		MakeRequest(t, NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1", &api.EditRepoOption{
-			SquashMergeCommitMessage: new(string(repo_model.SquashMergeMessageCommitMessages)),
-		}).AddBasicAuth(user.Name), http.StatusOK)
-		gitRepo, err := git.OpenRepository(ctx, repo)
+	onGiteaRun(t, func(t *testing.T, _giteaURL *url.URL) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		user := repo.MustOwner(t.Context())
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		require.NoError(t, err)
 		defer gitRepo.Close()
-		require.NoError(t, repo_service.SyncBranchesToDB(ctx, repo, user.ID, gitRepo, []string{pr.BaseBranch}))
-		headSHA, err := gitRepo.GetBranchCommitID(ctx, pr.HeadBranch)
-		require.NoError(t, err)
-		setMergeQueueStatus(t, headSHA, commitstatus.CommitStatusSuccess)
-		pullURL := fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d", pr.Index)
-		MakeRequest(t, NewRequestWithJSON(t, "POST", pullURL+"/merge", &forms.MergePullRequestForm{Do: "merge", HeadCommitID: pr.MergeBase}).AddBasicAuth(user.Name), http.StatusConflict)
-
-		nextPush := watchQueueWebhook[api.PushPayload](t, "push", nil, "gh-readonly-queue/**")
-		assertRemoved := watchQueueRemovals(t)
-		MakeRequest(t, NewRequestWithJSON(t, "POST", pullURL+"/merge-queue", &api.AddToMergeQueueOption{}).AddBasicAuth(user.Name), http.StatusCreated)
-		push := nextPush()
-		assert.Equal(t, 1, push.TotalCommits)
-		groupSHA := push.After
-		_, err = repo_service.RenameBranch(ctx, repo, user, pr.BaseBranch, "renamed")
-		require.NoError(t, err)
-		setMergeQueueStatus(t, groupSHA, commitstatus.CommitStatusSuccess)
-		assertRemoved(pr, "MERGE")
-		merged, err := gitRepo.GetBranchCommit(ctx, "renamed")
-		require.NoError(t, err)
-		assert.Equal(t, groupSHA, merged.ID.String())
-		assert.Contains(t, merged.CommitMessage.MessageRaw, "* a change\n\n* make pull5 outdated")
-		assert.Contains(t, merged.MessageTrailer()["co-authored-by"], "6543 <6543@obermui.de>")
-	})
-}
-
-func insertBuiltQueueEntry(t *testing.T, repo *repo_model.Repository, pr *issues_model.PullRequest) *pull_model.MergeQueueEntry {
-	t.Helper()
-	ctx := t.Context()
-	baseSHA, err := git.GetBranchCommitID(ctx, repo, pr.BaseBranch)
-	require.NoError(t, err)
-	headSHA, err := git.GetFullCommitID(ctx, repo, pr.GetGitHeadRefName())
-	require.NoError(t, err)
-	entry := &pull_model.MergeQueueEntry{
-		RepoID: repo.ID, PullID: pr.ID, EnqueuerID: repo.OwnerID, BaseBranch: pr.BaseBranch,
-		BaseSHA: baseSHA, HeadSHA: headSHA, GroupHeadSHA: headSHA,
-		GroupRef: pull_model.MergeQueueGroupRef(pr.BaseBranch, pr.Index, baseSHA),
-		State:    pull_model.MergeQueueStateAwaitingChecks, ChecksStartedUnix: timeutil.TimeStampNow(),
-	}
-	require.NoError(t, git.UpdateRef(ctx, repo, entry.GroupRef, entry.GroupHeadSHA))
-	require.NoError(t, db.Insert(ctx, entry))
-	return entry
-}
-
-func TestPullMergeQueueRebuild(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
-		ctx := t.Context()
-		repo, first := setupMergeQueue(t, "merge")
-		second := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: 5})
-		second.BaseBranch = first.BaseBranch
-		require.NoError(t, second.UpdateCols(ctx, "base_branch"))
-		seed := insertBuiltQueueEntry(t, repo, first)
-		nextPush := watchQueueWebhook[api.PushPayload](t, "push", nil, "gh-readonly-queue/**")
-		assertRemoved := watchQueueRemovals(t)
-		_, err := mergequeue.Enqueue(ctx, repo.MustOwner(ctx), second, false, "")
-		require.NoError(t, err)
-		refPrefix := fmt.Sprintf("refs/heads/gh-readonly-queue/%s/pr-%d-", first.BaseBranch, second.Index)
-		built := nextPush()
-		assert.Equal(t, refPrefix+seed.GroupHeadSHA, built.Ref)
-		setMergeQueueStatus(t, seed.GroupHeadSHA, commitstatus.CommitStatusFailure)
-		assertRemoved(first, "CI_FAILURE")
-		assert.Equal(t, refPrefix+seed.BaseSHA, nextPush().Ref)
-		assert.False(t, git.IsReferenceExist(ctx, repo, built.Ref))
-
-		require.NoError(t, git.DeleteBranch(ctx, repo, first.BaseBranch, true))
-		require.NoError(t, mergequeue.CheckAllQueues(ctx))
-		assertRemoved(second, "QUEUE_CLEARED")
-	})
-}
-
-func TestPullMergeQueueBranchProtection(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
-		ctx := t.Context()
-		repo, pr := setupMergeQueue(t, "rebase")
-		user := repo.MustOwner(ctx)
-		entry := insertBuiltQueueEntry(t, repo, pr)
-		branch := git.RefName(entry.GroupRef).BranchName()
-
-		_, err := repo_module.SyncRepoBranches(ctx, repo.ID, user.ID)
-		require.NoError(t, err)
-		unittest.AssertNotExistsBean(t, &git_model.Branch{RepoID: repo.ID, Name: branch})
-		_, err = repo_service.RenameBranch(ctx, repo, user, repo.DefaultBranch, branch)
-		require.ErrorIs(t, err, git_model.ErrBranchIsProtected)
-		testAPIDeleteBranch(t, branch, http.StatusForbidden)
-		push := func(refspec string) error {
-			return git.PushManaged(ctx, repo, repo, git.PushOptions{Branch: refspec, Env: repo_module.PushingEnvironment(user, repo)})
+		session := loginUser(t, user.Name)
+		nextRemoval := watchQueueWebhook(t, session, "pull_request", func(payload *api.PullRequestPayload) bool { return payload.Action == api.HookIssueDequeued })
+		assertRemoved := func(t *testing.T, index int64, reason string) {
+			t.Helper()
+			event := nextRemoval(t)
+			assert.Equal(t, index, event.Index)
+			assert.Equal(t, reason, event.Reason)
 		}
-		require.ErrorContains(t, push(":"+entry.GroupRef), "reserved for the merge queue")
-		require.ErrorContains(t, push("+pr-to-update:"+git.BranchPrefix+pr.HeadBranch), "To modify this branch, dequeue the associated pull request.")
-		pullURL := fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d", pr.Index)
-		req := NewRequestWithJSON(t, "PATCH", pullURL, &api.EditPullRequestOption{Base: repo.DefaultBranch})
-		assert.Contains(t, MakeRequest(t, req.AddBasicAuth(user.Name), http.StatusUnprocessableEntity).Body.String(), "Cannot change the base branch")
+		predecessor := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: 5})
+		headSHA, err := gitRepo.GetBranchCommitID(t.Context(), predecessor.HeadBranch)
+		require.NoError(t, err)
+		prepareGroup := func(t *testing.T, branch string) pull_model.MergeQueueEntry {
+			t.Helper()
+			ctx := t.Context()
+			predecessor.BaseBranch = branch
+			require.NoError(t, predecessor.UpdateCols(ctx, "base_branch"))
+			mergeQueueAPI(t, "POST", "/branch_protections", api.CreateBranchProtectionOption{
+				RuleName: branch, RequireMergeQueue: true, EnableStatusCheck: true, StatusCheckContexts: []string{"ci"},
+				MergeQueue: &api.BranchProtectionMergeQueueOption{MergeMethod: new("squash")},
+			}, http.StatusCreated)
+			baseSHA, err := gitRepo.GetBranchCommitID(ctx, branch)
+			require.NoError(t, err)
+			return pull_model.MergeQueueEntry{
+				RepoID: repo.ID, PullID: predecessor.ID, EnqueuerID: user.ID, BaseBranch: branch, HeadSHA: headSHA,
+				BaseSHA: baseSHA, GroupHeadSHA: headSHA, GroupRef: pull_model.MergeQueueGroupRef(branch, predecessor.Index, baseSHA),
+				State: pull_model.MergeQueueStateAwaitingChecks, ChecksStartedUnix: timeutil.TimeStampNow(),
+			}
+		}
+		insertGroup := func(t *testing.T, entry pull_model.MergeQueueEntry) {
+			t.Helper()
+			require.NoError(t, git.UpdateRef(t.Context(), repo, entry.GroupRef, entry.GroupHeadSHA))
+			require.NoError(t, db.Insert(t.Context(), &entry))
+		}
 
-		assertRemoved := watchQueueRemovals(t)
-		req = NewRequestWithJSON(t, "PATCH", pullURL, &api.EditPullRequestOption{Title: "WIP: queued change"})
-		MakeRequest(t, req.AddBasicAuth(user.Name), http.StatusCreated)
-		setMergeQueueStatus(t, entry.GroupHeadSHA, commitstatus.CommitStatusSuccess)
-		assertRemoved(pr, "BRANCH_PROTECTIONS")
-		testAPICreateBranch(t, loginUser(t, user.Name), user.Name, repo.Name, pr.BaseBranch, branch, http.StatusCreated)
+		t.Run("RebuildAndMerge", func(t *testing.T) {
+			ctx := t.Context()
+			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: 3})
+			nextPush := watchQueueWebhook[api.PushPayload](t, session, "push", nil, "gh-readonly-queue/*/pr-3-*")
+			first := prepareGroup(t, pr.BaseBranch)
+			insertGroup(t, first)
+			headSHA, err := gitRepo.GetBranchCommitID(ctx, pr.HeadBranch)
+			require.NoError(t, err)
+			setMergeQueueStatus(t, headSHA, commitstatus.CommitStatusSuccess)
+			const pullURL = "/pulls/3"
+			mergeQueueAPI(t, "POST", pullURL+"/merge", forms.MergePullRequestForm{Do: "merge", HeadCommitID: pr.MergeBase}, http.StatusConflict)
+			mergeQueueAPI(t, "POST", pullURL+"/merge-queue", api.AddToMergeQueueOption{}, http.StatusCreated)
+			built := nextPush(t)
+			const refPrefix = "refs/heads/gh-readonly-queue/master/pr-3-"
+			assert.Equal(t, refPrefix+first.GroupHeadSHA, built.Ref)
+			setMergeQueueStatus(t, first.GroupHeadSHA, commitstatus.CommitStatusFailure)
+			assertRemoved(t, predecessor.Index, "CI_FAILURE")
+			rebuilt := nextPush(t)
+			assert.Equal(t, refPrefix+first.BaseSHA, rebuilt.Ref)
+			assert.False(t, git.IsReferenceExist(ctx, repo, built.Ref))
+
+			mergeQueueAPI(t, "PATCH", "", api.EditRepoOption{SquashMergeCommitMessage: new(string(repo_model.SquashMergeMessageCommitMessages))}, http.StatusOK)
+			mergeQueueAPI(t, "PATCH", "/branches/master", api.RenameBranchRepoOption{Name: "renamed"}, http.StatusNoContent)
+			require.NoError(t, mergequeue.CheckAllQueues(ctx))
+			renamed := nextPush(t)
+			assert.Contains(t, renamed.Ref, "gh-readonly-queue/renamed/")
+			assert.False(t, git.IsReferenceExist(ctx, repo, rebuilt.Ref))
+			setMergeQueueStatus(t, renamed.After, commitstatus.CommitStatusSuccess)
+			assertRemoved(t, pr.Index, "MERGE")
+			merged, err := gitRepo.GetBranchCommit(ctx, "renamed")
+			require.NoError(t, err)
+			assert.Equal(t, renamed.After, merged.ID.String())
+			assert.Contains(t, merged.CommitMessage.MessageRaw, "* a change\n\n* make pull5 outdated")
+			assert.Contains(t, merged.MessageTrailer()["co-authored-by"], "6543 <6543@obermui.de>")
+			testAPICreateBranch(t, session, user.Name, repo.Name, "renamed", git.RefName(renamed.Ref).BranchName(), http.StatusCreated)
+		})
+
+		t.Run("ProtectedBranchesAndRemoval", func(t *testing.T) {
+			ctx := t.Context()
+			setMergeQueueStatus(t, headSHA, commitstatus.CommitStatusPending)
+			entry := prepareGroup(t, "develop")
+			insertGroup(t, entry)
+			branch := git.RefName(entry.GroupRef).BranchName()
+			_, _, err := repo_module.SyncRepoBranchesWithRepo(ctx, repo, gitRepo, user.ID)
+			require.NoError(t, err)
+			unittest.AssertNotExistsBean(t, &git_model.Branch{RepoID: repo.ID, Name: branch})
+			assert.Contains(t, mergeQueueAPI(t, "PATCH", "/branches/develop", api.RenameBranchRepoOption{Name: branch}, http.StatusForbidden).Body.String(), "branch protection rules")
+			testAPIDeleteBranch(t, branch, http.StatusForbidden)
+			push := func(refspec string) error {
+				return git.PushManaged(ctx, repo, repo, git.PushOptions{Branch: refspec, Env: repo_module.PushingEnvironment(user, repo)})
+			}
+			require.ErrorContains(t, push(":"+entry.GroupRef), "reserved for the merge queue")
+			require.ErrorContains(t, push("+develop:"+git.BranchPrefix+predecessor.HeadBranch), "To modify this branch, dequeue the associated pull request.")
+			assert.Contains(t, mergeQueueAPI(t, "PATCH", "/pulls/5", api.EditPullRequestOption{Base: "feature/1"}, http.StatusUnprocessableEntity).Body.String(), "Cannot change the base branch")
+
+			require.NoError(t, predecessor.LoadIssue(ctx))
+			assert.Contains(t, session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/queue/develop"), http.StatusOK).Body.String(), predecessor.Issue.Title)
+			session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/queue/feature/1"), http.StatusNotFound)
+			session.MakeRequest(t, NewRequest(t, "POST", "/user2/repo1/pulls/5/merge_queue/jump"), http.StatusOK)
+			assert.NotZero(t, unittest.AssertExistsAndLoadBean(t, &pull_model.MergeQueueEntry{PullID: entry.PullID}).JumpUnix)
+			session.MakeRequest(t, NewRequest(t, "POST", "/user2/repo1/queue/clear/develop"), http.StatusOK)
+			assertRemoved(t, predecessor.Index, "QUEUE_CLEARED")
+
+			insertGroup(t, entry)
+			mergeQueueAPI(t, "PATCH", "/pulls/5", api.EditPullRequestOption{Title: "WIP: queued change"}, http.StatusCreated)
+			setMergeQueueStatus(t, entry.GroupHeadSHA, commitstatus.CommitStatusSuccess)
+			assertRemoved(t, predecessor.Index, "BRANCH_PROTECTIONS")
+
+			require.NoError(t, git.DeleteBranch(ctx, repo, "develop", true))
+			insertGroup(t, entry)
+			require.NoError(t, mergequeue.CheckAllQueues(ctx))
+			assertRemoved(t, predecessor.Index, "QUEUE_CLEARED")
+			testAPICreateBranch(t, session, user.Name, repo.Name, "", "develop", http.StatusForbidden)
+		})
 	})
 }

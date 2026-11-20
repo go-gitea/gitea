@@ -84,6 +84,10 @@ class PullMergeBox {
     const respText = (await resp.text()).trim();
     if (this.isBusy()) return;
     const newEl = createElementFromHTML(respText);
+    if (this.el.hasAttribute('data-pull-merge-queued') !== newEl.hasAttribute('data-pull-merge-queued')) {
+      window.location.reload();
+      return;
+    }
     const newToggles = new Map([...newEl.querySelectorAll<HTMLElement>('[data-kind]')].map((toggle) => [toggle.getAttribute('data-kind'), toggle]));
     let focusedToggle: HTMLElement | undefined;
     for (const toggle of this.el.querySelectorAll('[data-kind]')) {

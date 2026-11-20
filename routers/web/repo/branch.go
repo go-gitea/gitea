@@ -12,6 +12,7 @@ import (
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/git"
@@ -77,6 +78,14 @@ func Branches(ctx *context.Context) {
 		commitStatus[commitID] = git_model.CalcCommitStatus(cs)
 	}
 
+	canReadMergeQueue := ctx.Repo.Permission.CanRead(unit.TypePullRequests) && ctx.Repo.Repository.AllowsPulls(ctx)
+	ctx.Data["CanReadMergeQueue"] = canReadMergeQueue
+	if canReadMergeQueue {
+		if ctx.Data["MergeQueueSizes"], err = pull_model.CountMergeQueueEntries(ctx, ctx.Repo.Repository.ID); err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+	}
 	ctx.Data["Keyword"] = kw
 	ctx.Data["Branches"] = branches
 	ctx.Data["CommitStatus"] = commitStatus

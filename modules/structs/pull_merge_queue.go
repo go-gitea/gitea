@@ -21,6 +21,8 @@ type MergeQueueEntry struct {
 	MergeGroupHeadSHA string `json:"merge_group_head_sha"`
 	// Ref of the queue commit, empty until it is built
 	MergeGroupHeadRef string `json:"merge_group_head_ref"`
+	// Whether the pull request jumped to the front of the queue
+	Jump bool `json:"jump"`
 	// User who added the pull request
 	Enqueuer *User `json:"enqueuer"`
 	// swagger:strfmt date-time
@@ -29,6 +31,8 @@ type MergeQueueEntry struct {
 
 // AddToMergeQueueOption options for adding a pull request to the merge queue
 type AddToMergeQueueOption struct {
-	// Put the pull request at the front of the queue, requires admin permission
+	// Put the pull request at the front of the queue, also when it is already queued, requires admin permission
 	Jump bool `json:"jump"`
+	// Only add the pull request if its head is still this commit
+	HeadCommitID string `json:"head_commit_id"`
 }

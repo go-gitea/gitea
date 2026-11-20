@@ -6,8 +6,13 @@ package pull
 import (
 	"testing"
 
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	pull_model "gitea.dev/models/pull"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,14 +25,42 @@ func TestMergeQueueRequiredContexts(t *testing.T) {
 	)
 }
 
-func TestMergeQueuePullRequestsRejectsChangedBaseOrHead(t *testing.T) {
+func TestQueuedPullHeadAndBaseChanges(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	require.NoError(t, pr.LoadBaseRepo(ctx))
-	items := []MergeQueueItem{{PR: pr, HeadSHA: pr.MergeBase}}
-	require.ErrorAs(t, MergeQueuePullRequests(ctx, pr.BaseRepo, pr.BaseBranch, items), new(ErrSHADoesNotMatch))
+	entry := &MergeQueueEntry{MergeQueueEntry: &pull_model.MergeQueueEntry{PullID: pr.ID, HeadSHA: pr.MergeBase}, PullRequest: pr, Enqueuer: pr.BaseRepo.MustOwner(ctx)}
+	entries := []*MergeQueueEntry{entry}
+	require.ErrorAs(t, MergeQueuePullRequests(ctx, entries), new(ErrSHADoesNotMatch))
 
 	pr.BaseBranch = "MASTER"
-	require.ErrorContains(t, MergeQueuePullRequests(ctx, pr.BaseRepo, pr.BaseBranch, items), "no longer targets MASTER")
+	require.ErrorContains(t, MergeQueuePullRequests(ctx, entries), "no longer targets MASTER")
+
+	pr.BaseBranch = "queue-lease"
+	require.NoError(t, pr.UpdateCols(ctx, "base_branch"))
+	head, err := git.GetFullCommitID(ctx, pr.BaseRepo, pr.GetGitHeadRefName())
+	require.NoError(t, err)
+	parent, err := git.GetFullCommitID(ctx, pr.BaseRepo, head+"^")
+	require.NoError(t, err)
+	entry.HeadSHA, entry.BaseSHA, entry.GroupHeadSHA = head, parent, head
+	require.NoError(t, git.CreateBranch(ctx, pr.BaseRepo, pr.BaseBranch, parent+"^"))
+	rewound, err := git.GetBranchCommitID(ctx, pr.BaseRepo, pr.BaseBranch)
+	require.NoError(t, err)
+	require.ErrorAs(t, MergeQueuePullRequests(ctx, entries), new(*git.ErrPushOutOfDate))
+	current, err := git.GetBranchCommitID(ctx, pr.BaseRepo, pr.BaseBranch)
+	require.NoError(t, err)
+	assert.Equal(t, rewound, current)
+	assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID}).MergedCommitID)
+
+	require.NoError(t, pr.LoadIssue(ctx))
+	require.NoError(t, db.Insert(ctx, &pull_model.MergeQueueEntry{RepoID: pr.BaseRepoID, BaseBranch: pr.BaseBranch, PullID: pr.ID}))
+	require.ErrorIs(t, ChangeTargetBranch(ctx, pr, entry.Enqueuer, pr.BaseRepo.DefaultBranch), ErrRetargetQueuedPull)
+	require.NoError(t, git.RemoveRef(ctx, pr.BaseRepo, git.BranchPrefix+pr.BaseBranch))
+	require.ErrorAs(t, MergeQueuePullRequests(ctx, entries), new(*git.ErrPushOutOfDate))
+	assert.False(t, git.IsBranchExist(ctx, pr.BaseRepo, pr.BaseBranch))
+
+	defer test.MockVariableValue(&setting.Repository.PullRequest.RetargetChildrenOnMerge, true)()
+	require.NoError(t, AdjustPullsCausedByBranchDeleted(ctx, entry.Enqueuer, pr.BaseRepo, pr.BaseBranch))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID, BaseBranch: pr.BaseRepo.DefaultBranch})
 }

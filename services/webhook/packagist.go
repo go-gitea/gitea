@@ -118,7 +118,7 @@ func (pc packagistConvertor) WorkflowRun(_ *api.WorkflowRunPayload) (PackagistPa
 	return PackagistPayload{}, nil
 }
 
-func (pc packagistConvertor) MergeGroup(_ *api.MergeGroupPayload) (PackagistPayload, error) {
+func (pc packagistConvertor) MergeGroup(_payload *api.MergeGroupPayload) (PackagistPayload, error) {
 	return PackagistPayload{}, nil
 }
 

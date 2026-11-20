@@ -178,6 +178,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		branchName = bp.RuleName
 	}
 
+	queueConfig := bp.MergeQueue.WithDefaults()
 	return &api.BranchProtection{
 		BranchName:                    branchName, //nolint:staticcheck // deprecated but useful to API response
 		RuleName:                      bp.RuleName,
@@ -218,10 +219,18 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		ProtectedFilePatterns:         bp.ProtectedFilePatterns,
 		UnprotectedFilePatterns:       bp.UnprotectedFilePatterns,
 		BlockAdminMergeOverride:       bp.BlockAdminMergeOverride,
-		RequireMergeQueue:             bp.RequireMergeQueue,
-		MergeQueue:                    ToBranchProtectionMergeQueue(bp.MergeQueue),
 		Created:                       bp.CreatedUnix.AsTime(),
 		Updated:                       bp.UpdatedUnix.AsTime(),
+		RequireMergeQueue:             bp.RequireMergeQueue,
+		MergeQueue: &api.BranchProtectionMergeQueue{
+			MergeMethod:                  string(queueConfig.MergeMethod),
+			MaxEntriesToBuild:            queueConfig.MaxEntriesToBuild,
+			MinEntriesToMerge:            queueConfig.MinEntriesToMerge,
+			MaxEntriesToMerge:            queueConfig.MaxEntriesToMerge,
+			MinEntriesToMergeWaitMinutes: queueConfig.MinEntriesToMergeWaitMinutes,
+			GroupingStrategy:             string(queueConfig.GroupingStrategy),
+			CheckResponseTimeoutMinutes:  queueConfig.CheckResponseTimeoutMinutes,
+		},
 	}
 }
 

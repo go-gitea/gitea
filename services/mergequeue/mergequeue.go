@@ -17,15 +17,15 @@ import (
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
-	access_model "gitea.dev/models/perm/access"
 	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/private"
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/queue"
 	api "gitea.dev/modules/structs"
@@ -38,7 +38,6 @@ import (
 
 var branchQueue atomic.Pointer[queue.WorkerPoolQueue[string]]
 
-// Init leaves existing queues to the cron task, the server can't answer the git hooks of a merge yet
 func Init() error {
 	notify_service.RegisterNotifier(&notifier{})
 	worker := queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "merge_queue", handleBranches)
@@ -51,7 +50,10 @@ func Init() error {
 }
 
 func CheckAllQueues(ctx context.Context) error {
-	branches, err := pull_model.GetMergeQueueBranches(ctx)
+	return scheduleQueues(pull_model.GetMergeQueueBranches(ctx))
+}
+
+func scheduleQueues(branches []*pull_model.MergeQueueEntry, err error) error {
 	if err != nil {
 		return err
 	}
@@ -74,13 +76,18 @@ func addToQueue(repoID int64, branch string) {
 func handleBranches(items ...string) []string {
 	var wg sync.WaitGroup
 	for _, item := range items {
-		wg.Go(func() { handleBranch(item) }) // a slow build must not delay the other queues of the batch
+		wg.Go(func() { handleBranch(item) })
 	}
 	wg.Wait()
 	return nil
 }
 
 func handleBranch(item string) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Error("Recovered from panic in merge queue branch %q: %v\n%s", item, err, log.Stack(2))
+		}
+	}()
 	idStr, branch, _ := strings.Cut(item, ":")
 	repoID, _ := strconv.ParseInt(idStr, 10, 64)
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), "merge queue "+item)
@@ -130,61 +137,59 @@ func processQueue(ctx context.Context, repoID int64, branch string) error {
 	if err := repo.LoadUnits(ctx); err != nil {
 		return err
 	}
-	s := &queueState{repo: repo, gitRepo: gitRepo, rule: rule, branch: branch, entries: entries}
-	if rule == nil || !rule.RequireMergeQueue || !repo.AllowsPulls(ctx) {
-		return s.removeEntries(ctx, issues_model.MergeQueueRemovedNotMergeable, entries...)
-	}
-	if err := s.dropStaleEntries(ctx); err != nil || len(s.entries) == 0 {
+	state := &queueState{repo: repo, gitRepo: gitRepo, rule: rule, branch: branch, entries: entries}
+	if err := state.dropStaleEntries(ctx); err != nil || len(state.entries) == 0 {
 		return err
 	}
 	base, err := gitRepo.GetBranchCommitID(ctx, branch)
 	if git.IsErrNotExist(err) {
-		return s.removeEntries(ctx, issues_model.MergeQueueRemovedBaseDeleted, s.entries...)
+		return state.removeEntries(ctx, issues_model.MergeQueueRemovedBaseDeleted, state.entries...)
 	} else if err != nil {
 		return err
 	}
-	if err := s.evaluateChecks(ctx, base); err != nil {
-		return err
+	if merged, err := state.mergeReadyEntries(ctx, base); err != nil || merged {
+		return err // The base push schedules the next queue pass.
 	}
-	if merged, err := s.mergeReadyEntries(ctx); err != nil || merged {
-		return err // the push to the base branch schedules the next step
-	}
-	return s.buildEntries(ctx, base)
+	return state.buildEntries(ctx, base)
 }
 
 func (s *queueState) dropStaleEntries(ctx context.Context) error {
+	disabled := s.rule == nil || !s.rule.RequireMergeQueue || !s.repo.AllowsPulls(ctx)
 	live := s.entries[:0]
 	for _, entry := range s.entries {
-		var reason issues_model.MergeQueueRemovalReason
-		pr := entry.PullRequest
-		if pr != nil && !pr.HasMerged && pr.MergedCommitID != "" {
-			// a merge interrupted after its push must not be built and merged again
-			merged, err := pull_service.RestoreInterruptedMerge(ctx, pr.ID)
-			if err != nil {
-				return err
-			} else if merged {
-				reason = issues_model.MergeQueueRemovedMerged
-			}
+		if err := entry.RestoreInterruptedMerge(ctx); err != nil {
+			return err
 		}
+		pr := entry.PullRequest
+		var reason issues_model.MergeQueueRemovalReason
 		switch {
-		case reason != "":
 		case pr == nil:
 			reason = issues_model.MergeQueueRemovedClosed
+		case pr.HasMerged && entry.IsBuilt() && pr.MergedCommitID == entry.GroupHeadSHA:
+			reason = issues_model.MergeQueueRemovedMerged
 		case pr.HasMerged:
 			reason = issues_model.MergeQueueRemovedAlreadyMerged
+		case disabled:
+			reason = issues_model.MergeQueueRemovedNotMergeable
 		case pr.BaseBranch != s.branch:
 			reason = issues_model.MergeQueueRemovedBaseChanged
 		case pr.Issue.IsClosed:
 			reason = issues_model.MergeQueueRemovedClosed
 		default:
-			head, err := s.gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
-			if err != nil {
+			if err := pr.LoadHeadRepo(ctx); err != nil {
 				return err
-			} else if head == entry.HeadSHA {
+			}
+			reason = issues_model.MergeQueueRemovedHeadChanged
+			if pr.HeadRepo == nil {
+				break
+			}
+			head, err := s.gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
+			if err != nil && !git.IsErrNotExist(err) {
+				return err
+			} else if err == nil && head == entry.HeadSHA {
 				live = append(live, entry)
 				continue
 			}
-			reason = issues_model.MergeQueueRemovedHeadChanged
 		}
 		if err := s.removeEntries(ctx, reason, entry); err != nil {
 			return err
@@ -194,27 +199,9 @@ func (s *queueState) dropStaleEntries(ctx context.Context) error {
 	return nil
 }
 
-func (s *queueState) isBlocked(ctx context.Context, entry *QueueEntry) (bool, error) {
-	if entry.Enqueuer.IsGhost() {
-		return true, nil
-	}
-	perm, err := access_model.GetIndividualUserRepoPermission(ctx, s.repo, entry.Enqueuer)
-	if err != nil {
-		return false, err
-	}
-	if !git_model.IsUserMergeWhitelisted(ctx, s.rule, entry.Enqueuer.ID, perm) {
-		return true, nil
-	}
-	pr := entry.PullRequest
-	if noDeps, err := issues_model.IssueNoDependenciesLeft(ctx, pr.Issue); err != nil || !noDeps {
-		return !noDeps, err
-	}
-	return pr.IsWorkInProgress(ctx) || pull_service.CheckPullReviews(ctx, s.rule, pr) != nil, nil
-}
-
 func (s *queueState) validateChain(ctx context.Context, base string) ([]*QueueEntry, error) {
 	for i, entry := range s.entries {
-		if !entry.IsBuilt() || entry.BaseSHA != base {
+		if entry.BaseSHA != base || entry.GroupRef != pull_model.MergeQueueGroupRef(s.branch, entry.PullRequest.Index, base) {
 			return s.entries[:i], s.invalidateFrom(ctx, i)
 		}
 		base = entry.GroupHeadSHA
@@ -222,30 +209,40 @@ func (s *queueState) validateChain(ctx context.Context, base string) ([]*QueueEn
 	return s.entries, nil
 }
 
-func (s *queueState) evaluateChecks(ctx context.Context, base string) error {
+func (s *queueState) readyGroup(ctx context.Context, base string) ([]*QueueEntry, error) {
 	built, err := s.validateChain(ctx, base)
 	if err != nil || len(built) == 0 {
-		return err
+		return nil, err
 	}
 	required, err := pull_service.EffectiveRequiredContexts(ctx, s.repo, s.rule)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	required = pull_service.MergeQueueRequiredContexts(required)
 	cfg := s.rule.MergeQueue
 	timeout := time.Duration(cfg.CheckResponseTimeoutMinutes) * time.Minute
+	headGreen := cfg.GroupingStrategy == git_model.MergeQueueGroupingHeadGreen
+	var group []*QueueEntry
 	firstFailed := -1
+	canAdvance := true
 	var failureReason issues_model.MergeQueueRemovalReason
 	for i, entry := range built {
-		statuses, err := pull_service.GetLatestPullCommitStatuses(ctx, s.repo.ID, entry.GroupHeadSHA)
-		if err != nil {
-			return err
+		state := commitstatus.CommitStatusSuccess
+		if s.rule.EnableStatusCheck || len(required) > 0 {
+			statuses, err := pull_service.GetLatestPullCommitStatuses(ctx, s.repo.ID, entry.GroupHeadSHA)
+			if err != nil {
+				return nil, err
+			}
+			state = pull_service.MergeRequiredContextsCommitStatus(statuses, required)
 		}
 		nextState := pull_model.MergeQueueStateAwaitingChecks
 		var reason issues_model.MergeQueueRemovalReason
-		switch state := pull_service.MergeRequiredContextsCommitStatus(statuses, required); {
+		switch {
 		case state.IsSuccess():
 			nextState = pull_model.MergeQueueStateMergeable
+			if canAdvance && i < cfg.MaxEntriesToMerge {
+				group = built[:i+1]
+			}
 		case state.IsFailure() || state.IsError():
 			reason = issues_model.MergeQueueRemovedChecksFailed
 		case entry.ChecksStartedUnix.AddDuration(timeout) <= timeutil.TimeStampNow():
@@ -253,23 +250,24 @@ func (s *queueState) evaluateChecks(ctx context.Context, base string) error {
 		}
 		if reason != "" {
 			nextState = pull_model.MergeQueueStateUnmergeable
-			if firstFailed < 0 {
+			if firstFailed < 0 && canAdvance {
 				firstFailed, failureReason = i, reason
 			}
-		} else if cfg.GroupingStrategy == git_model.MergeQueueGroupingHeadGreen && i < cfg.MaxEntriesToMerge {
-			firstFailed = -1 // This group can still merge the failed entries before it.
+		} else if headGreen && i < cfg.MaxEntriesToMerge {
+			firstFailed = -1 // The later group can cover an earlier failure.
 		}
+		canAdvance = headGreen || (canAdvance && state.IsSuccess())
 		if entry.State != nextState {
 			entry.State = nextState
 			if err := pull_model.UpdateMergeQueueEntry(ctx, entry.MergeQueueEntry); err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
 	if firstFailed >= 0 {
-		return s.dropEntry(ctx, firstFailed, failureReason)
+		return group, s.dropEntry(ctx, firstFailed, failureReason)
 	}
-	return nil
+	return group, nil
 }
 
 func (s *queueState) invalidateFrom(ctx context.Context, index int) error {
@@ -299,34 +297,27 @@ func (s *queueState) dropEntry(ctx context.Context, index int, reason issues_mod
 	return nil
 }
 
-func (s *queueState) mergeReadyEntries(ctx context.Context) (bool, error) {
-	cfg := s.rule.MergeQueue
-	var group []*QueueEntry
-	for i, entry := range s.entries {
-		if i >= cfg.MaxEntriesToMerge || !entry.IsBuilt() {
-			break
-		}
-		if entry.State == pull_model.MergeQueueStateMergeable {
-			group = s.entries[:i+1]
-		} else if cfg.GroupingStrategy != git_model.MergeQueueGroupingHeadGreen {
-			break
-		}
+func (s *queueState) mergeReadyEntries(ctx context.Context, base string) (bool, error) {
+	group, err := s.readyGroup(ctx, base)
+	if err != nil || len(group) == 0 {
+		return false, err
 	}
-	wait := time.Duration(cfg.MinEntriesToMergeWaitMinutes) * time.Minute
-	if len(group) == 0 || (len(group) < cfg.MinEntriesToMerge && group[0].CreatedUnix.AddDuration(wait) > timeutil.TimeStampNow()) {
+	cfg := s.rule.MergeQueue
+	cutoff := timeutil.TimeStampNow().AddDuration(-time.Duration(cfg.MinEntriesToMergeWaitMinutes) * time.Minute)
+	if len(group) < cfg.MinEntriesToMerge && !slices.ContainsFunc(group, func(entry *QueueEntry) bool {
+		return entry.CreatedUnix <= cutoff
+	}) {
 		return false, nil
 	}
-	items := make([]pull_service.MergeQueueItem, len(group))
 	for i, entry := range group {
-		if blocked, err := s.isBlocked(ctx, entry); err != nil {
+		if blocked, err := entry.IsBlocked(ctx, s.rule); err != nil {
 			return false, err
 		} else if blocked {
 			return false, s.dropEntry(ctx, i, issues_model.MergeQueueRemovedNotMergeable)
 		}
-		items[i] = pull_service.MergeQueueItem{PR: entry.PullRequest, Doer: entry.Enqueuer, HeadSHA: entry.HeadSHA, CommitID: entry.GroupHeadSHA}
 	}
-	if err := pull_service.MergeQueuePullRequests(ctx, s.repo, s.branch, items); err != nil {
-		if _, ok := errors.AsType[*git.ErrPushRejected](err); ok { // unlike an out-of-date push, a rejection repeats on every retry
+	if err := pull_service.MergeQueuePullRequests(ctx, group); err != nil {
+		if rejected, ok := errors.AsType[*git.ErrPushRejected](err); ok && !strings.Contains(rejected.Message, private.InternalServerConnectionError) {
 			last := len(group) - 1
 			log.Warn("Merge queue push of %-v rejected: %v", group[last].PullRequest, err)
 			return false, s.dropEntry(ctx, last, issues_model.MergeQueueRemovedNotMergeable)
@@ -334,19 +325,11 @@ func (s *queueState) mergeReadyEntries(ctx context.Context) (bool, error) {
 		return false, err
 	}
 	for _, entry := range group {
-		pr, doer := entry.PullRequest, entry.Enqueuer
-		if deleted, err := pull_model.DeleteMergeQueueEntry(ctx, entry.PullID); err != nil {
-			log.Error("DeleteMergeQueueEntry: %v", err)
-		} else if deleted && pr.HasMerged {
-			notify_service.PullRequestMergeQueueChanged(ctx, doer, pr, issues_model.MergeQueueRemovedMerged)
+		if !entry.PullRequest.HasMerged {
+			continue
 		}
-		destroyGroup(ctx, s.repo, doer, entry.MergeQueueEntry, "merged")
-		if shouldDelete, err := pull_service.ShouldDeleteBranchAfterMerge(ctx, nil, s.repo, pr); err != nil {
-			log.Error("ShouldDeleteBranchAfterMerge: %v", err)
-		} else if shouldDelete {
-			if err := repo_service.DeleteBranchAfterMerge(ctx, doer, pr.ID, nil); err != nil {
-				log.Error("DeleteBranchAfterMerge: %v", err)
-			}
+		if err := s.removeEntries(ctx, issues_model.MergeQueueRemovedMerged, entry); err != nil {
+			return true, err
 		}
 	}
 	return true, nil
@@ -359,7 +342,7 @@ func (s *queueState) buildEntries(ctx context.Context, base string) error {
 			if building >= s.rule.MergeQueue.MaxEntriesToBuild {
 				break
 			}
-			reason, err := s.buildEntry(ctx, entry, base)
+			reason, err := entry.CreateMergeQueueCommit(ctx, s.gitRepo, s.rule, base)
 			if err != nil {
 				return err
 			} else if reason != "" {
@@ -369,9 +352,14 @@ func (s *queueState) buildEntries(ctx context.Context, base string) error {
 				addToQueue(s.repo.ID, s.branch)
 				continue
 			}
+			entry.State, entry.ChecksStartedUnix = pull_model.MergeQueueStateAwaitingChecks, timeutil.TimeStampNow()
+			if err := pull_model.UpdateMergeQueueEntry(ctx, entry.MergeQueueEntry); err != nil {
+				return err
+			}
+			notify_service.MergeGroupChanged(ctx, entry.Enqueuer, s.repo, entry.MergeQueueEntry, api.HookMergeGroupChecksRequested, "")
 			scheduled = true
 		}
-		if entry.State == pull_model.MergeQueueStateAwaitingChecks {
+		if entry.State == pull_model.MergeQueueStateAwaitingChecks { // Passed entries must free build slots while waiting for the minimum group size.
 			building++
 		}
 		base = entry.GroupHeadSHA
@@ -382,45 +370,7 @@ func (s *queueState) buildEntries(ctx context.Context, base string) error {
 	return nil
 }
 
-func (s *queueState) buildEntry(ctx context.Context, entry *QueueEntry, base string) (issues_model.MergeQueueRemovalReason, error) {
-	if blocked, err := s.isBlocked(ctx, entry); err != nil {
-		return "", err
-	} else if blocked {
-		return issues_model.MergeQueueRemovedNotMergeable, nil
-	}
-	pr := entry.PullRequest
-	ref := pull_model.MergeQueueGroupRef(s.branch, pr.Index, base)
-	sha, err := pull_service.CreateMergeQueueCommit(ctx, pr, entry.Enqueuer, s.gitRepo, s.rule.MergeQueue.MergeMethod, base, entry.HeadSHA, ref)
-	if err != nil {
-		switch mergeErr := err.(type) {
-		case pull_service.ErrSHADoesNotMatch:
-			return issues_model.MergeQueueRemovedHeadChanged, nil
-		case pull_service.ErrMergeQueueMerge:
-			cause := mergeErr.Unwrap()
-			switch {
-			case pull_service.IsErrMergeConflicts(cause) || pull_service.IsErrRebaseConflicts(cause) || pull_service.IsErrMergeUnrelatedHistories(cause):
-				return issues_model.MergeQueueRemovedConflict, nil
-			case gitcmd.IsErrorExitCode(cause, 1) || errors.Is(cause, util.ErrInvalidArgument):
-				log.Error("CreateMergeQueueCommit %-v: %v", pr, cause)
-				return issues_model.MergeQueueRemovedNotMergeable, nil
-			}
-		}
-		return "", err
-	}
-	entry.State = pull_model.MergeQueueStateAwaitingChecks
-	entry.BaseSHA, entry.GroupHeadSHA, entry.GroupRef = base, sha, ref
-	entry.ChecksStartedUnix = timeutil.TimeStampNow()
-	if err := pull_model.UpdateMergeQueueEntry(ctx, entry.MergeQueueEntry); err != nil {
-		return "", err
-	}
-	notify_service.MergeGroupChanged(ctx, entry.Enqueuer, s.repo, entry.MergeQueueEntry, api.HookMergeGroupChecksRequested, "")
-	return "", nil
-}
-
 func destroyGroup(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, entry *pull_model.MergeQueueEntry, reason string) {
-	if !entry.IsBuilt() {
-		return
-	}
 	if err := git.RemoveRef(ctx, repo, entry.GroupRef); err != nil {
 		log.Error("RemoveRef %s: %v", entry.GroupRef, err)
 	}
@@ -447,9 +397,14 @@ func removeEntry(ctx context.Context, repo *repo_model.Repository, entry *pull_m
 	if err != nil || !deleted {
 		return err
 	}
-	destroyGroup(ctx, repo, doer, entry, util.Iif(reason == issues_model.MergeQueueRemovedMerged, "merged", "dequeued"))
+	if entry.IsBuilt() {
+		destroyGroup(ctx, repo, doer, entry, util.Iif(reason == issues_model.MergeQueueRemovedMerged, "merged", "dequeued"))
+	}
 	if pr != nil {
 		notify_service.PullRequestMergeQueueChanged(ctx, doer, pr, reason)
+	}
+	if reason == issues_model.MergeQueueRemovedMerged {
+		repo_service.DeleteBranchAfterMergeIfNeeded(ctx, doer, repo, pr, nil)
 	}
 	return nil
 }

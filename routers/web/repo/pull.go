@@ -271,7 +271,9 @@ type pullMergeBoxData struct {
 	CanCancelAutoMerge bool
 
 	MergeFormProps        map[string]any
-	MergeQueue            *pullMergeQueueData
+	MergeQueueLink        string
+	IsQueued              bool
+	CanDequeue            bool
 	ShowPullCommands      bool
 	ShowMergeInstructions bool
 	AutodetectManualMerge bool
@@ -313,6 +315,7 @@ type pullRequestViewInfo struct {
 	MergeBoxData        *pullMergeBoxData
 
 	workInProgressPrefix string
+	queueEntry           *pull_model.MergeQueueEntry
 }
 
 func newPullRequestViewInfo() *pullRequestViewInfo {
@@ -482,6 +485,11 @@ func getViewPullHeadBranchCommitID(ctx *context.Context, pull *issues_model.Pull
 
 func (prInfo *pullRequestViewInfo) prepareViewOpenPullInfo(ctx *context.Context) {
 	pull := prInfo.issue.PullRequest
+	var err error
+	if prInfo.queueEntry, err = pull_model.GetMergeQueueEntryByPullID(ctx, pull.ID); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
 	if exist, _ := git_model.IsBranchExist(ctx, pull.BaseRepo.ID, pull.BaseBranch); !exist {
 		// if base branch doesn't exist, prepare from the merge base
 		ctx.Data["BaseBranchNotExist"] = true
@@ -506,6 +514,7 @@ func (prInfo *pullRequestViewInfo) prepareViewOpenPullInfo(ctx *context.Context)
 		ctx.Data["IsPullWorkInProgress"] = prInfo.workInProgressPrefix != ""
 		ctx.Data["WorkInProgressPrefix"] = prInfo.workInProgressPrefix
 	}
+	ctx.Data["IsPullQueued"] = prInfo.queueEntry != nil
 }
 
 func createRequiredContextMatcher(requiredContext string) func(string) bool {
@@ -1114,21 +1123,16 @@ func MergePullRequest(ctx *context.Context) {
 		}
 	}
 
-	// the queue merges with the method of its branch protection, form.Do is ignored
-	if queued, err := mergequeue.EnqueueIfRequired(ctx, ctx.Doer, pr, form.HeadCommitID, form.ForceMerge); pull_service.IsErrSHADoesNotMatch(err) {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.head_out_of_date"))
-		ctx.JSONRedirect(issue.Link())
-		return
-	} else if err != nil {
-		ctx.ServerErrorAuto(err)
-		return
-	} else if queued {
+	queued, err := mergequeue.EnqueueIfRequired(ctx, ctx.Doer, pr, form.HeadCommitID, form.ForceMerge)
+	if queued {
 		ctx.Flash.Success(ctx.Tr("repo.pulls.merge_queue.added"))
 		ctx.JSONRedirect(issue.Link())
 		return
 	}
-
-	if err := pull_service.Merge(ctx, pr.ID, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
+	if err == nil {
+		err = pull_service.Merge(ctx, pr.ID, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false)
+	}
+	if err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
 		} else if conflictError, ok := err.(pull_service.ErrMergeConflicts); ok {

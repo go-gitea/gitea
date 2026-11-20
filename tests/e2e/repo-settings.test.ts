@@ -49,8 +49,7 @@ test('disabling the merge queue discards unsaved queue settings', async ({page, 
   const repo = `e2e-protection-${randomString(8)}`;
   await Promise.all([apiCreateRepo(request, {name: repo, autoInit: false}), login(page)]);
   await apiCreateBranchProtection(request, owner, repo, 'main', {
-    enable_status_check: true, status_check_contexts: ['ci'],
-    require_merge_queue: true, merge_queue: {min_entries_to_merge: 2, max_entries_to_merge: 5},
+    require_merge_queue: true, merge_queue: {min_entries_to_merge: 2},
   });
   const branches = `/${owner}/${repo}/settings/branches`;
   await page.goto(`${branches}/edit?rule_name=main`);

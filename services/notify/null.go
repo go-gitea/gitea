@@ -65,12 +65,10 @@ func (*NullNotifier) MergePullRequest(ctx context.Context, doer *user_model.User
 func (*NullNotifier) AutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 }
 
-// PullRequestMergeQueueChanged places a place holder function
-func (*NullNotifier) PullRequestMergeQueueChanged(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, enqueued bool, reason string) {
+func (*NullNotifier) PullRequestMergeQueueChanged(_ctx context.Context, _doer *user_model.User, _pr *issues_model.PullRequest, _enqueued bool, _reason string) {
 }
 
-// MergeGroupChanged places a place holder function
-func (*NullNotifier) MergeGroupChanged(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, entry *pull_model.MergeQueueEntry, action api.HookMergeGroupAction, reason string) {
+func (*NullNotifier) MergeGroupChanged(_ctx context.Context, _doer *user_model.User, _repo *repo_model.Repository, _entry *pull_model.MergeQueueEntry, _action api.HookMergeGroupAction, _reason string) {
 }
 
 // PullRequestSynchronized places a place holder function

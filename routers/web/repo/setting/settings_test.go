@@ -37,8 +37,6 @@ func TestDisableMergeQueueKeepsSettings(t *testing.T) {
 	ctx, _ := contexttest.MockContext(t, "POST /user2/repo1/settings/branches/edit")
 	contexttest.LoadRepo(t, ctx, 1)
 	rule := &git_model.ProtectedBranch{RepoID: 1, RuleName: "release"}
-	rule.EnableStatusCheck = true
-	rule.StatusCheckContexts = []string{"ci"}
 	rule.RequireMergeQueue = true
 	rule.MergeQueue = git_model.DefaultMergeQueueConfig()
 	rule.MergeQueue.MinEntriesToMerge = 2

@@ -29,13 +29,8 @@ func checkQueueOfPull(ctx context.Context, pr *issues_model.PullRequest) {
 }
 
 func (*notifier) CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit *repository.PushCommit, _sender *user_model.User, _status *git_model.CommitStatus) {
-	entries, err := pull_model.GetMergeQueueEntriesByGroupHeadSHA(ctx, repo.ID, commit.Sha1)
-	if err != nil {
+	if err := scheduleQueues(pull_model.GetMergeQueueEntriesByGroupHeadSHA(ctx, repo.ID, commit.Sha1)); err != nil {
 		log.Error("GetMergeQueueEntriesByGroupHeadSHA: %v", err)
-		return
-	}
-	for _, entry := range entries {
-		addToQueue(entry.RepoID, entry.BaseBranch)
 	}
 }
 

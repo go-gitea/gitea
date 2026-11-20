@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
 	pull_model "gitea.dev/models/pull"
+	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -52,8 +52,8 @@ func AddPullRequestToMergeQueue(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.AddToMergeQueueOption](ctx)
-	pr := getPullRequestForMergeQueue(ctx)
-	if ctx.Written() {
+	pr := getPullRequestToMerge(ctx)
+	if pr == nil {
 		return
 	}
 	if form.Jump && !ctx.Repo.Permission.IsAdmin() {
@@ -68,13 +68,12 @@ func AddPullRequestToMergeQueue(ctx *context.APIContext) {
 		ctx.APIError(http.StatusUnprocessableEntity, "the base branch does not require a merge queue")
 		return
 	}
-	if err := pull_service.CheckPullMergeable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, pull_service.MergeCheckTypeGeneral, pb.MergeQueue.MergeMethod, false); err != nil {
-		writeCheckPullMergeableError(ctx, err)
+	if !checkPullMergeable(ctx, pr, pull_service.MergeCheckTypeGeneral, pb.MergeQueue.MergeMethod, false) {
 		return
 	}
-	entry, err := mergequeue.Enqueue(ctx, ctx.Doer, pr, form.Jump, "")
+	entry, err := mergequeue.Enqueue(ctx, ctx.Doer, pr, form.Jump, form.HeadCommitID)
 	if err != nil {
-		ctx.APIErrorAuto(err)
+		writeMergeError(ctx, err)
 		return
 	}
 	position, err := pull_model.GetMergeQueuePosition(ctx, entry)
@@ -82,7 +81,12 @@ func AddPullRequestToMergeQueue(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, convert.ToMergeQueueEntry(ctx, entry, position, pr.Index, ctx.Doer, ctx.Doer))
+	_, enqueuer, err := user_model.GetPossibleUserByID(ctx, entry.EnqueuerID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusCreated, convert.ToMergeQueueEntry(ctx, entry, position, pr.Index, enqueuer, ctx.Doer))
 }
 
 func RemovePullRequestFromMergeQueue(ctx *context.APIContext) {
@@ -113,8 +117,8 @@ func RemovePullRequestFromMergeQueue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   default:
 	//     "$ref": "#/responses/error"
-	pr := getPullRequestForMergeQueue(ctx)
-	if ctx.Written() {
+	pr := getPullRequestToMerge(ctx)
+	if pr == nil {
 		return
 	}
 	if err := mergequeue.Dequeue(ctx, ctx.Doer, ctx.Repo.Permission, pr); err != nil {
@@ -122,20 +126,6 @@ func RemovePullRequestFromMergeQueue(ctx *context.APIContext) {
 		return
 	}
 	ctx.Status(http.StatusNoContent)
-}
-
-func getPullRequestForMergeQueue(ctx *context.APIContext) *issues_model.PullRequest {
-	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
-		return nil
-	}
-	if err := pr.LoadIssue(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return nil
-	}
-	pr.Issue.Repo = ctx.Repo.Repository
-	return pr
 }
 
 func ListMergeQueue(ctx *context.APIContext) {
@@ -173,7 +163,15 @@ func ListMergeQueue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/MergeQueueEntryList"
 	//   default:
 	//     "$ref": "#/responses/error"
-	queue, err := mergequeue.GetQueue(ctx, ctx.Repo.Repository, ctx.PathParam("*"))
+	branch := ctx.PathParam("*")
+	if rule, err := mergequeue.GetEnabledRule(ctx, ctx.Repo.Repository, branch); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	} else if rule == nil {
+		ctx.APIErrorNotFound()
+		return
+	}
+	queue, err := mergequeue.GetQueue(ctx, ctx.Repo.Repository, branch)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -181,9 +179,9 @@ func ListMergeQueue(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 	page := util.PaginateSlice(queue, listOptions.Page, listOptions.PageSize)
 
-	result := make([]*api.MergeQueueEntry, 0, len(page))
-	for _, e := range page {
-		result = append(result, convert.ToMergeQueueEntry(ctx, e.MergeQueueEntry, e.Position, e.PullRequest.Index, e.Enqueuer, ctx.Doer))
+	result := make([]*api.MergeQueueEntry, len(page))
+	for i, entry := range page {
+		result[i] = convert.ToMergeQueueEntry(ctx, entry.MergeQueueEntry, entry.Position, entry.PullRequest.Index, entry.Enqueuer, ctx.Doer)
 	}
 	ctx.SetLinkHeader(int64(len(queue)), listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(len(queue)))

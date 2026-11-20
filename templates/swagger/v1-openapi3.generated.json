@@ -2579,8 +2579,13 @@
       "AddToMergeQueueOption": {
         "description": "AddToMergeQueueOption options for adding a pull request to the merge queue",
         "properties": {
+          "head_commit_id": {
+            "description": "Only add the pull request if its head is still this commit",
+            "type": "string",
+            "x-go-name": "HeadCommitID"
+          },
           "jump": {
-            "description": "Put the pull request at the front of the queue, requires admin permission",
+            "description": "Put the pull request at the front of the queue, also when it is already queued, requires admin permission",
             "type": "boolean",
             "x-go-name": "Jump"
           }
@@ -8185,6 +8190,11 @@
             "description": "Head commit of the pull request when it was added",
             "type": "string",
             "x-go-name": "HeadSHA"
+          },
+          "jump": {
+            "description": "Whether the pull request jumped to the front of the queue",
+            "type": "boolean",
+            "x-go-name": "Jump"
           },
           "merge_group_head_ref": {
             "description": "Ref of the queue commit, empty until it is built",
@@ -30044,7 +30054,7 @@
             "$ref": "#/components/responses/empty"
           },
           "201": {
-            "description": "the merge is scheduled or the pull request was added to the merge queue"
+            "$ref": "#/components/responses/empty"
           },
           "default": {
             "$ref": "#/components/responses/error"

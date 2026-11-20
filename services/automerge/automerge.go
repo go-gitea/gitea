@@ -229,7 +229,6 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 		return errors.Join(errSkipAutoMerge, errors.New("pull request is not mergeable"))
 	}
 
-	// like GitHub's "merge when ready", a ready pull request enters the merge queue
 	if queued, err := mergequeue.EnqueueIfRequired(ctx, doer, pr, expectedHeadCommitID, false); pull_service.IsErrSHADoesNotMatch(err) {
 		return errors.Join(errSkipAutoMerge, err)
 	} else if err != nil {
@@ -252,15 +251,6 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 	}
 
 	// the PR has been merged, so no error should be returned after this point
-	{
-		deleteBranchAfterMerge, err := pull_service.ShouldDeleteBranchAfterMerge(ctx, &scheduledPRM.DeleteBranchAfterMerge, pr.BaseRepo, pr)
-		if err != nil {
-			log.Error("ShouldDeleteBranchAfterMerge: %v", err)
-		} else if deleteBranchAfterMerge {
-			if err = repo_service.DeleteBranchAfterMerge(ctx, doer, pr.ID, nil); err != nil {
-				log.Error("DeleteBranchAfterMerge: %v", err)
-			}
-		}
-	}
+	repo_service.DeleteBranchAfterMergeIfNeeded(ctx, doer, pr.BaseRepo, pr, &scheduledPRM.DeleteBranchAfterMerge)
 	return nil
 }

@@ -262,9 +262,8 @@ func (m matrixConvertor) WorkflowRun(p *api.WorkflowRunPayload) (MatrixPayload, 
 	return m.newPayload(text)
 }
 
-func (m matrixConvertor) MergeGroup(p *api.MergeGroupPayload) (MatrixPayload, error) {
-	text, _ := getMergeGroupPayloadInfo(p, htmlLinkFormatter, true)
-
+func (m matrixConvertor) MergeGroup(payload *api.MergeGroupPayload) (MatrixPayload, error) {
+	text, _, _ := getMergeGroupPayloadInfo(payload, htmlLinkFormatter, true)
 	return m.newPayload(text)
 }
 

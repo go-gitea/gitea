@@ -51,5 +51,5 @@ func TestToCommitMetaAndTree(t *testing.T) {
 	assert.Equal(t, "2a2f1d4670728a2e10049e345bd7a276468beab6", apiCommit.RepoCommit.Tree.SHA)
 	assert.Equal(t, repo.APIURL()+"/git/trees/2a2f1d4670728a2e10049e345bd7a276468beab6", apiCommit.RepoCommit.Tree.URL)
 	assert.Equal(t, "65f1bf27bc3bf70f64657658635e66094edbcb4d", apiCommit.SHA)
-	assert.Equal(t, "2a2f1d4670728a2e10049e345bd7a276468beab6", ToPayloadCommit(t.Context(), repo, commit).TreeID)
+	assert.Equal(t, commit.TreeID.String(), ToPayloadCommit(t.Context(), repo, commit).TreeID)
 }

@@ -14,6 +14,7 @@ import (
 	git_model "gitea.dev/models/git"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/optional"
@@ -792,7 +793,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		Priority: form.Priority,
 	}
 
-	if err := applyMergeQueueOption(protectBranch, &form.RequireMergeQueue, form.MergeQueue); err != nil {
+	if err := applyMergeQueueOption(ctx, protectBranch, &form.RequireMergeQueue, form.MergeQueue); err != nil {
 		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
@@ -977,7 +978,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		protectBranch.BlockAdminMergeOverride = *form.BlockAdminMergeOverride
 	}
 
-	if err := applyMergeQueueOption(protectBranch, form.RequireMergeQueue, form.MergeQueue); err != nil {
+	if err := applyMergeQueueOption(ctx, protectBranch, form.RequireMergeQueue, form.MergeQueue); err != nil {
 		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
@@ -1304,8 +1305,10 @@ func MergeUpstream(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &api.MergeUpstreamResponse{MergeStyle: mergeStyle})
 }
 
-// applyMergeQueueOption sets the merge queue settings, keeping the current ones for unset options
-func applyMergeQueueOption(pb *git_model.ProtectedBranch, require *bool, opt *api.BranchProtectionMergeQueueOption) error {
+func applyMergeQueueOption(ctx *context.APIContext, pb *git_model.ProtectedBranch, require *bool, opt *api.BranchProtectionMergeQueueOption) error {
+	if require == nil && opt == nil {
+		return nil
+	}
 	cfg := pb.MergeQueue.WithDefaults()
 	if opt != nil {
 		cfg.MergeMethod = repo_model.MergeStyle(optional.FromPtr(opt.MergeMethod).ValueOrDefault(string(cfg.MergeMethod)))
@@ -1316,5 +1319,9 @@ func applyMergeQueueOption(pb *git_model.ProtectedBranch, require *bool, opt *ap
 		cfg.GroupingStrategy = git_model.MergeQueueGroupingStrategy(optional.FromPtr(opt.GroupingStrategy).ValueOrDefault(string(cfg.GroupingStrategy)))
 		cfg.CheckResponseTimeoutMinutes = optional.FromPtr(opt.CheckResponseTimeoutMinutes).ValueOrDefault(cfg.CheckResponseTimeoutMinutes)
 	}
-	return pb.SetMergeQueue(optional.FromPtr(require).ValueOrDefault(pb.RequireMergeQueue), cfg)
+	var prConfig *repo_model.PullRequestsConfig
+	if prUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypePullRequests); err == nil {
+		prConfig = prUnit.PullRequestsConfig()
+	}
+	return pb.SetMergeQueue(optional.FromPtr(require).ValueOrDefault(pb.RequireMergeQueue), cfg, prConfig)
 }

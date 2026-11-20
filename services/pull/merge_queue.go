@@ -5,33 +5,82 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
-// MergesThroughQueue reports whether a merge by the doer enters the merge queue of the rule, only a forced merge that bypasses the protection merges directly
 func MergesThroughQueue(ctx context.Context, pb *git_model.ProtectedBranch, repo *repo_model.Repository, doer *user_model.User, force bool) bool {
 	return pb != nil && pb.RequireMergeQueue && !(force && git_model.CanBypassBranchProtection(ctx, pb, doer, access_model.IsUserRepoAdmin(ctx, repo, doer)))
 }
 
-// CreateMergeQueueCommit merges the pull request onto baseCommitID and stores the result at targetRef in the base repo.
-// The ref is written without running hooks, like GitHub's queue branches it is not a user branch.
-func CreateMergeQueueCommit(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, baseCommitID, expectedHeadCommitID, targetRef string) (string, error) {
-	if err := pr.LoadBaseRepo(ctx); err != nil {
-		return "", err
+type MergeQueueEntry struct {
+	*pull_model.MergeQueueEntry
+	Position    int
+	PullRequest *issues_model.PullRequest
+	Enqueuer    *user_model.User
+}
+
+func (entry *MergeQueueEntry) RestoreInterruptedMerge(ctx context.Context) error {
+	pr := entry.PullRequest
+	if pr == nil || pr.HasMerged || pr.Issue.IsClosed || pr.MergedCommitID == "" {
+		return nil
 	}
-	message, body, err := GetDefaultMergeMessage(ctx, baseGitRepo, pr, mergeStyle)
+	return globallock.LockAndDo(ctx, getPullWorkingLockKey(entry.PullID), func(ctx context.Context) error {
+		pr, err := issues_model.GetPullRequestByID(ctx, entry.PullID)
+		if err != nil {
+			return err
+		}
+		if !pr.HasMerged {
+			if merged, err := restoreInterruptedMerge(ctx, pr); err != nil || !merged {
+				return err
+			}
+		}
+		entry.PullRequest = pr
+		return pr.LoadIssue(ctx)
+	})
+}
+
+func (entry *MergeQueueEntry) IsBlocked(ctx context.Context, rule *git_model.ProtectedBranch) (bool, error) {
+	if entry.Enqueuer.IsGhost() {
+		return true, nil
+	}
+	pr := entry.PullRequest
+	perm, err := access_model.GetIndividualUserRepoPermission(ctx, pr.BaseRepo, entry.Enqueuer)
+	if err != nil {
+		return false, err
+	}
+	if !git_model.IsUserMergeWhitelisted(ctx, rule, entry.Enqueuer.ID, perm) {
+		return true, nil
+	}
+	if noDeps, err := issues_model.IssueNoDependenciesLeft(ctx, pr.Issue); err != nil || !noDeps {
+		return !noDeps, err
+	}
+	return pr.IsWorkInProgress(ctx) || checkPullReviews(ctx, rule, pr) != nil, nil
+}
+
+func (entry *MergeQueueEntry) CreateMergeQueueCommit(ctx context.Context, gitRepo *git.Repository, rule *git_model.ProtectedBranch, base string) (issues_model.MergeQueueRemovalReason, error) {
+	if blocked, err := entry.IsBlocked(ctx, rule); err != nil {
+		return "", err
+	} else if blocked {
+		return issues_model.MergeQueueRemovedNotMergeable, nil
+	}
+	pr, mergeStyle := entry.PullRequest, rule.MergeQueue.MergeMethod
+	message, body, err := GetDefaultMergeMessage(ctx, gitRepo, pr, mergeStyle)
 	if err != nil {
 		return "", err
 	}
@@ -46,37 +95,40 @@ func CreateMergeQueueCommit(ctx context.Context, pr *issues_model.PullRequest, d
 		message += "\n\n" + body
 	}
 
-	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, expectedHeadCommitID, baseCommitID)
-	if err != nil {
+	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, entry.Enqueuer, entry.HeadSHA, base)
+	if IsErrSHADoesNotMatch(err) {
+		return issues_model.MergeQueueRemovedHeadChanged, nil
+	} else if err != nil {
 		return "", err
 	}
 	defer cancel()
-
 	if err := doMergeStyle(mergeCtx, mergeStyle, message); err != nil {
-		return "", ErrMergeQueueMerge{err}
+		switch {
+		case IsErrMergeConflicts(err) || IsErrRebaseConflicts(err) || IsErrMergeUnrelatedHistories(err):
+			return issues_model.MergeQueueRemovedConflict, nil
+		case gitcmd.IsErrorExitCode(err, 1) || errors.Is(err, util.ErrInvalidArgument):
+			log.Error("CreateMergeQueueCommit %-v: %v", pr, err)
+			return issues_model.MergeQueueRemovedNotMergeable, nil
+		}
+		return "", err
 	}
 	commitID, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, tmpRepoBaseBranch)
 	if err != nil {
 		return "", fmt.Errorf("CreateMergeQueueCommit: %w", err)
 	}
 	if setting.LFS.StartServer {
-		if err := LFSPush(ctx, mergeCtx.tmpBasePath, mergeCtx.tmpRepo, commitID, baseCommitID, pr); err != nil {
+		if err := LFSPush(ctx, mergeCtx.tmpBasePath, mergeCtx.tmpRepo, commitID, base, pr); err != nil {
 			return "", err
 		}
 	}
-
-	if err := git.FetchRemoteCommitUpdateRef(ctx, pr.BaseRepo, mergeCtx.tmpRepo, git.BranchPrefix+tmpRepoBaseBranch, targetRef); err != nil {
-		return "", fmt.Errorf("CreateMergeQueueCommit: fetch into %s: %w", targetRef, err)
+	ref := pull_model.MergeQueueGroupRef(pr.BaseBranch, pr.Index, base)
+	if err := git.FetchRemoteCommitUpdateRef(ctx, pr.BaseRepo, mergeCtx.tmpRepo, git.BranchPrefix+tmpRepoBaseBranch, ref); err != nil {
+		return "", fmt.Errorf("CreateMergeQueueCommit: fetch into %s: %w", ref, err)
 	}
-	return commitID, nil
+	entry.BaseSHA, entry.GroupHeadSHA, entry.GroupRef = base, commitID, ref
+	return "", nil
 }
 
-type ErrMergeQueueMerge struct{ error }
-
-func (err ErrMergeQueueMerge) Unwrap() error { return err.error }
-
-// MergeQueueRequiredContexts adapts required contexts to queue commits: Actions name their statuses after the event,
-// so a required "CI / test (pull_request)" is satisfied by "CI / test (merge_group)" like GitHub's event-less check names
 func MergeQueueRequiredContexts(required []string) []string {
 	adapted := make([]string, len(required))
 	for i, name := range required {
@@ -88,28 +140,18 @@ func MergeQueueRequiredContexts(required []string) []string {
 	return adapted
 }
 
-// MergeQueueItem is a pull request merged by the queue, as the user who enqueued it, with the queue commit that added it
-type MergeQueueItem struct {
-	PR       *issues_model.PullRequest
-	Doer     *user_model.User
-	HeadSHA  string
-	CommitID string
-}
-
-// MergeQueuePullRequests fast-forwards the base branch to the last queue commit and marks the pull requests merged.
-// The push runs the hooks so the usual push events are sent.
-func MergeQueuePullRequests(ctx context.Context, repo *repo_model.Repository, baseBranch string, items []MergeQueueItem) error {
-	last := items[len(items)-1]
-	// like Merge, keep the pull request checker from marking them merged before this does
-	for _, item := range items {
-		release, err := globallock.Lock(ctx, getPullWorkingLockKey(item.PR.ID))
+func MergeQueuePullRequests(ctx context.Context, entries []*MergeQueueEntry) error {
+	last := entries[len(entries)-1]
+	repo, baseBranch := last.PullRequest.BaseRepo, last.PullRequest.BaseBranch
+	for _, entry := range entries {
+		release, err := globallock.Lock(ctx, getPullWorkingLockKey(entry.PullID))
 		if err != nil {
 			return err
 		}
 		defer release()
 	}
-	for _, item := range items {
-		pr, err := issues_model.GetPullRequestByID(ctx, item.PR.ID)
+	for _, entry := range entries {
+		pr, err := issues_model.GetPullRequestByID(ctx, entry.PullID)
 		if err != nil {
 			return err
 		}
@@ -125,43 +167,43 @@ func MergeQueuePullRequests(ctx context.Context, repo *repo_model.Repository, ba
 		headSHA, err := git.GetFullCommitID(ctx, repo, pr.GetGitHeadRefName())
 		if err != nil {
 			return err
-		} else if headSHA != item.HeadSHA {
-			return ErrSHADoesNotMatch{GivenSHA: item.HeadSHA, CurrentSHA: headSHA}
+		} else if headSHA != entry.HeadSHA {
+			return ErrSHADoesNotMatch{GivenSHA: entry.HeadSHA, CurrentSHA: headSHA}
 		}
 	}
 	var err error
-	for _, item := range items {
-		if err = recordMergeIntent(ctx, item.PR, item.Doer, item.CommitID, false); err != nil {
+	for _, entry := range entries {
+		if err = recordMergeIntent(ctx, entry.PullRequest, entry.Enqueuer, entry.GroupHeadSHA, false); err != nil {
 			break
 		}
 	}
 	if err == nil {
-		if err = git.PushManaged(ctx, repo, repo.CodeStorageRepo(), git.PushOptions{
-			Branch: last.CommitID + ":" + git.BranchPrefix + baseBranch,
-			Env:    repo_module.FullPushingEnvironment(last.Doer, last.Doer, repo, repo.Name, last.PR.ID, last.PR.Index),
+		baseRef := git.BranchPrefix + baseBranch
+		if err = git.PushManaged(ctx, repo, repo, git.PushOptions{
+			Branch:         last.GroupHeadSHA + ":" + baseRef,
+			ForceWithLease: baseRef + ":" + entries[0].BaseSHA, // A rewound base may still fast-forward to the tested commit.
+			Env:            repo_module.FullPushingEnvironment(last.Enqueuer, last.Enqueuer, repo, repo.Name, last.PullID, last.PullRequest.Index),
 		}); err != nil {
+			if rejected, ok := errors.AsType[*git.ErrPushRejected](err); ok && (strings.Contains(rejected.StdErr, "(stale info)") || strings.Contains(rejected.StdErr, "incorrect old value provided")) {
+				err = &git.ErrPushOutOfDate{StdOut: rejected.StdOut, StdErr: rejected.StdErr, Err: rejected.Err}
+			}
 			err = fmt.Errorf("push to %s: %w", baseBranch, err)
 		}
 	}
 	if err != nil {
-		for _, item := range items {
-			// like Merge, keep the intent unless the commit verifiably didn't reach the base branch, so the checker can still mark it merged
-			if merged, checkErr := hasPullRequestCommitBeenMerged(ctx, item.PR); checkErr != nil || merged || item.PR.MergedCommitID == "" {
-				continue
-			}
-			if clearErr := clearMergeIntent(ctx, item.PR); clearErr != nil {
-				log.Error("Unable to clear merge intent of %-v: %v", item.PR, clearErr)
-			}
+		for _, entry := range entries {
+			clearUnmergedIntent(ctx, entry.PullRequest)
 		}
 		return fmt.Errorf("MergeQueuePullRequests: %w", err)
 	}
 
-	for _, item := range items {
-		item.PR.HasMerged, err = MarkAsMerged(ctx, item.PR, item.PR.MergedCommitID, item.PR.MergedUnix, item.Doer, item.PR.Status)
+	for _, entry := range entries {
+		pr := entry.PullRequest
+		pr.HasMerged, err = MarkAsMerged(ctx, pr, pr.MergedCommitID, pr.MergedUnix, entry.Enqueuer, pr.Status)
 		if err != nil {
-			log.Error("MarkAsMerged %-v: %v", item.PR, err)
+			log.Error("MarkAsMerged %-v: %v", pr, err)
 		}
 	}
-	addTestPullRequestTaskAfterWebOperation(last.PR, last.Doer)
+	addTestPullRequestTaskAfterWebOperation(last.PullRequest, last.Enqueuer)
 	return nil
 }

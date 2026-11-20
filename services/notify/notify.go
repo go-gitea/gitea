@@ -4,7 +4,6 @@
 package notify
 
 import (
-	"cmp"
 	"context"
 
 	actions_model "gitea.dev/models/actions"
@@ -134,22 +133,21 @@ var dequeueReasons = map[issues_model.MergeQueueRemovalReason]string{
 	issues_model.MergeQueueRemovedConflict:      "MERGE_CONFLICT",
 	issues_model.MergeQueueRemovedNotMergeable:  "BRANCH_PROTECTIONS",
 	issues_model.MergeQueueRemovedBaseDeleted:   "QUEUE_CLEARED",
+	issues_model.MergeQueueRemovedCleared:       "QUEUE_CLEARED",
 }
 
-// PullRequestMergeQueueChanged notifies that a pull request entered or left the merge queue, reason is only set when it left
 func PullRequestMergeQueueChanged(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, reason issues_model.MergeQueueRemovalReason) {
 	defer recoverPanic()
 
-	hookReason := ""
-	if reason != "" {
-		hookReason = cmp.Or(dequeueReasons[reason], "UNKNOWN_REMOVAL_REASON")
+	hookReason := dequeueReasons[reason]
+	if reason != "" && hookReason == "" {
+		hookReason = "UNKNOWN_REMOVAL_REASON"
 	}
 	for _, notifier := range notifiers {
 		notifier.PullRequestMergeQueueChanged(ctx, doer, pr, reason == "", hookReason)
 	}
 }
 
-// MergeGroupChanged notifies that a queue commit needs its checks or was destroyed, reason is only set for destroyed
 func MergeGroupChanged(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, entry *pull_model.MergeQueueEntry, action api.HookMergeGroupAction, reason string) {
 	defer recoverPanic()
 

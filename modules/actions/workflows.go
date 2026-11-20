@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -382,8 +383,7 @@ func detectWorkflowMatch(ctx context.Context, gitRepo *git.Repository, commit *g
 		}
 		return detectNotApplicable
 
-	case // merge_group
-		webhook_module.HookEventMergeGroup:
+	case webhook_module.HookEventMergeGroup:
 		return matchMergeGroupEvent(payloadAs[*api.MergeGroupPayload](payload, inputEvent), evt)
 
 	default:
@@ -392,13 +392,9 @@ func detectWorkflowMatch(ctx context.Context, gitRepo *git.Repository, commit *g
 	}
 }
 
-// matchMergeGroupEvent matches the activity types, by default only checks_requested like GitHub, and the base branch filters
 func matchMergeGroupEvent(payload *api.MergeGroupPayload, evt *jobparser.Event) detectResult {
 	acts := evt.Acts()
-	types, ok := acts["types"]
-	if !ok {
-		types = []string{string(api.HookMergeGroupChecksRequested)}
-	}
+	types := optional.FromMapLookup(acts, "types").ValueOrDefault([]string{string(api.HookMergeGroupChecksRequested)})
 	if !slices.ContainsFunc(types, func(val string) bool { return matchActivityType(val, string(payload.Action)) }) {
 		return detectNotApplicable
 	}

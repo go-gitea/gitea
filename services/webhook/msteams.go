@@ -347,18 +347,10 @@ func (msteamsConvertor) WorkflowRun(p *api.WorkflowRunPayload) (MSTeamsPayload, 
 	), nil
 }
 
-func (msteamsConvertor) MergeGroup(p *api.MergeGroupPayload) (MSTeamsPayload, error) {
-	title, color := getMergeGroupPayloadInfo(p, noneLinkFormatter, false)
-
-	return createMSTeamsPayload(
-		p.Repo,
-		p.Sender,
-		title,
-		"",
-		p.Repo.HTMLURL+"/commit/"+p.MergeGroup.HeadSHA,
-		color,
-		&MSTeamsFact{"MergeGroup:", p.MergeGroup.HeadRef},
-	), nil
+func (msteamsConvertor) MergeGroup(payload *api.MergeGroupPayload) (MSTeamsPayload, error) {
+	title, color, commitURL := getMergeGroupPayloadInfo(payload, noneLinkFormatter, false)
+	return createMSTeamsPayload(payload.Repo, payload.Sender, title, "", commitURL, color,
+		&MSTeamsFact{"MergeGroup:", payload.MergeGroup.HeadRef}), nil
 }
 
 func (msteamsConvertor) WorkflowJob(p *api.WorkflowJobPayload) (MSTeamsPayload, error) {

@@ -182,15 +182,11 @@ func notify(ctx context.Context, input *notifyInput) error {
 		ref = git.RefNameFromBranch(input.Repo.DefaultBranch)
 	}
 
-	var commitID string
+	commitRef := ref.String()
 	if payload, ok := input.Payload.(*api.MergeGroupPayload); ok {
-		commitID = payload.MergeGroup.HeadSHA // a destroyed group's ref is already gone
-	} else if commitID, err = gitRepo.GetRefCommitID(ctx, ref.String()); err != nil {
-		return fmt.Errorf("gitRepo.GetRefCommitID: %w", err)
+		commitRef = payload.MergeGroup.HeadSHA
 	}
-
-	// Get the commit object for the ref
-	commit, err := gitRepo.GetCommit(ctx, commitID)
+	commit, err := gitRepo.GetCommit(ctx, commitRef)
 	if err != nil {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
@@ -204,7 +200,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	if input.PullRequest != nil {
 		baseCommit, err = gitRepo.GetCommit(ctx, git.BranchPrefix+input.PullRequest.BaseBranch)
 		if git.IsErrNotExist(err) {
-			return nil // nothing to run against, e.g. the dequeued event of a deleted base branch
+			return nil
 		} else if err != nil {
 			return fmt.Errorf("gitRepo.GetCommit: %w", err)
 		}
