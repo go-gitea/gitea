@@ -91,8 +91,6 @@
   display: flex;
   align-items: center;
   flex: 0 0 auto;
-  padding-top: 0.78571429em;
-  padding-bottom: 0.78571429em;
   margin: 0;
 }
 
@@ -132,8 +130,6 @@
 
 .ui.action.input .ui.ui.button {
   border-color: var(--color-input-border);
-  padding-top: 0; /* the ".action.input" is "flex + stretch", so let the buttons layout themselves */
-  padding-bottom: 0;
 }
 
 /* currently used for search bar dropdowns in repo search and explore code */

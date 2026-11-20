@@ -28,21 +28,10 @@ const (
 	EnvPusherID          = "GITEA_PUSHER_ID"
 	EnvPusherExtDoerData = "GITEA_PUSHER_EXT_DOER_DATA"
 
-	EnvPRID       = "GITEA_PR_ID"
-	EnvPRIndex    = "GITEA_PR_INDEX" // not used by Gitea at the moment, it is for custom git hooks
-	EnvIsInternal = "GITEA_INTERNAL_PUSH"
-	EnvAppURL     = "GITEA_ROOT_URL"
+	EnvPRID    = "GITEA_PR_ID"
+	EnvPRIndex = "GITEA_PR_INDEX" // not used by Gitea at the moment, it is for custom git hooks
+	EnvAppURL  = "GITEA_ROOT_URL"
 )
-
-// InternalPushingEnvironment returns an os environment to switch off hooks on push
-// It is recommended to avoid using this unless you are pushing within a transaction
-// or if you absolutely are sure that post-receive and pre-receive will do nothing
-// We provide the full pushing-environment for other hook providers
-func InternalPushingEnvironment(doer *user_model.User, repo *repo_model.Repository) []string {
-	return append(PushingEnvironment(doer, repo),
-		EnvIsInternal+"=true",
-	)
-}
 
 // PushingEnvironment returns an os environment to allow hooks to work on push
 func PushingEnvironment(doer *user_model.User, repo *repo_model.Repository) []string {

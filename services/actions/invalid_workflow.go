@@ -12,7 +12,6 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
@@ -22,7 +21,7 @@ func handleInvalidWorkflows(ctx context.Context, input *notifyInput, ref git.Ref
 	if len(invalid) == 0 {
 		return
 	}
-	payload, err := json.Marshal(input.Payload)
+	payload, err := input.EncodedPayload()
 	if err != nil {
 		log.Error("marshal event payload: %v", err)
 		return
@@ -35,7 +34,7 @@ func handleInvalidWorkflows(ctx context.Context, input *notifyInput, ref git.Ref
 		insertInvalidWorkflowRun(ctx, &actions_model.ActionRun{
 			Title: commit.MessageTitle(), RepoID: input.Repo.ID, Repo: input.Repo, OwnerID: input.Repo.OwnerID,
 			WorkflowID: entryName, TriggerUserID: input.Doer.ID, TriggerUser: input.Doer, Ref: ref.String(),
-			CommitSHA: commit.ID.String(), Event: input.Event, TriggerEvent: string(input.Event), EventPayload: string(payload),
+			CommitSHA: commit.ID.String(), Event: input.Event, TriggerEvent: string(input.Event), EventPayload: payload,
 			WorkflowRepoID: input.Repo.ID, WorkflowCommitSHA: commit.ID.String(),
 		}, parseErr)
 	}

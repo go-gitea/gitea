@@ -103,8 +103,7 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 			log.Error("re-emit run %d: %v", rid, err)
 		}
 	}
-	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, result.CancelledJobs)
-	EmitJobsIfReadyByJobs(result.CancelledJobs)
+	notifyAndEmitFinishedJobs(ctx, result.CancelledJobs)
 	if err := createCommitStatusesForJobsByRun(ctx, result.Jobs); err != nil {
 		return err
 	}
@@ -309,50 +308,41 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 				continue
 			}
 
+			if status.IsDone() {
+				result.UpdatedJobs = append(result.UpdatedJobs, job)
+				continue
+			}
+
 			if job.IsReusableCaller {
-				switch status {
-				case actions_model.StatusWaiting:
-					if err := expandReusableWorkflowCaller(ctx, run, attempt, job, vars); err != nil {
-						// Terminal expansion failure (an invalid/unresolvable reusable workflow): fail this caller.
-						log.Warn("caller %d cannot be expanded: %v", job.ID, err)
-						job.Status = actions_model.StatusFailure
-						job.Stopped = timeutil.TimeStampNow()
-						if n, uerr := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked, "is_expanded": false}, "status", "stopped"); uerr != nil {
-							return fmt.Errorf("mark unexpandable caller %d failed: %w", job.ID, uerr)
-						} else if n == 1 {
-							if err := upsertJobErrorSummary(ctx, job, "uses", err); err != nil {
-								return err
-							}
-							log.Warn("unexpandable caller %d has been marked as failed", job.ID)
-							result.UpdatedJobs = append(result.UpdatedJobs, job)
-							// Re-emit so the failed caller's dependents get resolved on the next pass.
-							expandedAnyCaller = true
-						} else {
-							// A concurrent writer advanced the caller; restore the in-memory state.
-							log.Warn("unexpandable caller %d has been advanced by a concurrent writer, not marking it failed", job.ID)
-							job.Status = actions_model.StatusBlocked
-							job.Stopped = 0
-						}
-					} else {
-						expandedAnyCaller = true
-					}
-				case actions_model.StatusSkipped, actions_model.StatusFailure:
-					job.Status = status
-					if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status"); err != nil {
-						return err
+				if err := expandReusableWorkflowCaller(ctx, run, attempt, job, vars); err != nil {
+					// Terminal expansion failure (an invalid/unresolvable reusable workflow): fail this caller.
+					log.Warn("caller %d cannot be expanded: %v", job.ID, err)
+					job.Status = actions_model.StatusFailure
+					job.Stopped = timeutil.TimeStampNow()
+					if n, uerr := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked, "is_expanded": false}, "status", "stopped"); uerr != nil {
+						return fmt.Errorf("mark unexpandable caller %d failed: %w", job.ID, uerr)
 					} else if n == 1 {
+						if err := upsertJobErrorSummary(ctx, job, "uses", err); err != nil {
+							return err
+						}
+						log.Warn("unexpandable caller %d has been marked as failed", job.ID)
 						result.UpdatedJobs = append(result.UpdatedJobs, job)
+						// Re-emit so the failed caller's dependents get resolved on the next pass.
+						expandedAnyCaller = true
+					} else {
+						// A concurrent writer advanced the caller; restore the in-memory state.
+						log.Warn("unexpandable caller %d has been advanced by a concurrent writer, not marking it failed", job.ID)
+						job.Status = actions_model.StatusBlocked
+						job.Stopped = 0
 					}
+				} else {
+					expandedAnyCaller = true
 				}
 				continue
 			}
 
-			// Non-caller: standard status update.
-			job.Status = status
-			if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status"); err != nil {
+			if err := updateBlockedJobStatus(ctx, job, status); err != nil {
 				return err
-			} else if n != 1 {
-				return fmt.Errorf("no affected for updating blocked job %v", job.ID)
 			}
 			result.UpdatedJobs = append(result.UpdatedJobs, job)
 		}
@@ -362,13 +352,48 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	}
 
 	result.UpdatedJobs = append(result.UpdatedJobs, resolver.matrixUpdatedJobs...)
-	// Caller and matrix expansion insert Pending or Blocked jobs and a deferred gate leaves a job Blocked, only a follow-up pass resolves them.
+	hasFinishedCaller, err := reloadCallersFinishedByChildren(ctx, run.ID, resolver.jobMap, result.UpdatedJobs)
+	if err != nil {
+		return nil, err
+	}
+	// Only a follow-up pass resolves:
+	//   - the children a caller expansion inserted, or the dependents of a caller that failed to expand
+	//   - the siblings a matrix expansion inserted and the expanded job's dependents, or the dependents of a placeholder that failed to expand
+	//   - a job the deferred gate left Blocked
+	//   - the dependents of a caller finished by its children, which was still unfinished to the resolver
 	// Like the caller's children, matrix siblings are left out of result.Jobs and picked up there.
-	if expandedAnyCaller || resolver.matrixChanged || resolver.gateDeferred {
+	if expandedAnyCaller || resolver.matrixChanged || resolver.gateDeferred || hasFinishedCaller {
 		result.RunIDsToReEmit = append(result.RunIDsToReEmit, run.ID)
 	}
 	result.CancelledJobs = append(result.CancelledJobs, resolver.cancelledJobs...)
 	return result, nil
+}
+
+// reloadCallersFinishedByChildren reloads the callers the children's cascade finished in this pass,
+// so this pass's commit statuses and run notification see the callers finished.
+// They are kept out of result.UpdatedJobs, so no workflow_job webhook is sent for them, as for callers finished through a runner.
+func reloadCallersFinishedByChildren(ctx context.Context, runID int64, jobMap map[int64]*actions_model.ActionRunJob, updatedJobs []*actions_model.ActionRunJob) (bool, error) {
+	hasFinishedCaller := false
+	checkedCallers := make(container.Set[int64])
+	finishedJobs := slices.Clone(updatedJobs)
+	for i := 0; i < len(finishedJobs); i++ {
+		child := finishedJobs[i]
+		caller := jobMap[child.ParentJobID]
+		if caller == nil || !child.Status.IsDone() || caller.Status.IsDone() || !checkedCallers.Add(caller.ID) {
+			continue
+		}
+		freshCaller, err := actions_model.GetRunJobByRunAndID(ctx, runID, caller.ID)
+		if err != nil {
+			return false, fmt.Errorf("reloadCallersFinishedByChildren: reload caller %d: %w", caller.ID, err)
+		}
+		if !freshCaller.Status.IsDone() {
+			continue
+		}
+		caller.Status, caller.Started, caller.Stopped = freshCaller.Status, freshCaller.Started, freshCaller.Stopped
+		finishedJobs = append(finishedJobs, caller)
+		hasFinishedCaller = true
+	}
+	return hasFinishedCaller, nil
 }
 
 func cancelFailedMatrixSiblings(ctx context.Context, jobs actions_model.ActionJobList) ([]*actions_model.ActionRunJob, error) {
@@ -462,9 +487,14 @@ func (r *jobStatusResolver) Resolve(ctx context.Context) (map[int64]actions_mode
 		if len(updated) == 0 {
 			return ret, nil
 		}
-		for k, v := range updated {
-			ret[k] = v
-			r.statuses[k] = v
+		for id, status := range updated {
+			if status.IsDone() { // later rounds evaluate `if:` against needs read from the database
+				if err := updateBlockedJobStatus(ctx, r.jobMap[id], status); err != nil {
+					return nil, err
+				}
+			}
+			ret[id] = status
+			r.statuses[id] = status
 		}
 		if r.matrixInserted {
 			// Matrix expansion inserted sibling rows this round. They are not in statuses/needs, so
@@ -495,6 +525,16 @@ func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed boo
 		}
 	}
 	return allDone, allSucceed
+}
+
+func updateBlockedJobStatus(ctx context.Context, job *actions_model.ActionRunJob, status actions_model.Status) error {
+	job.Status = status
+	if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status"); err != nil {
+		return err
+	} else if n != 1 {
+		return fmt.Errorf("no affected for updating blocked job %v", job.ID)
+	}
+	return nil
 }
 
 func (r *jobStatusResolver) updateStatus(ctx context.Context, job *actions_model.ActionRunJob, status actions_model.Status) error {
@@ -616,7 +656,7 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 
 		newStatus, cancelledJobs, err := PrepareToStartJobWithConcurrency(ctx, actionRunJob)
 		if err != nil {
-			log.Error("ShouldBlockJobByConcurrency failed, this job will stay blocked: job: %d, err: %v", id, err)
+			log.Error("PrepareToStartJobWithConcurrency failed, this job will stay blocked: job: %d, err: %v", id, err)
 		} else {
 			r.cancelledJobs = append(r.cancelledJobs, cancelledJobs...)
 			for _, cancelled := range cancelledJobs {

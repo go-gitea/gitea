@@ -73,7 +73,7 @@ func NewActionsUserWithTaskID(id int64) *User {
 }
 
 func NewDeployKeyUser() *User {
-	return newSystemUser(DeployKeyUserID, "(deploy-key)", "Deploy Key")
+	return newSystemUser(DeployKeyUserID, "gitea:deploy-key", "Deploy Key")
 }
 
 func GetDeployKeyUserDeployKeyID(u *User) (int64, bool) {
@@ -94,32 +94,38 @@ func NewDeployKeyUserWithKeyID(id int64) *User {
 
 func NewCliUser() *User {
 	// for audit log only
-	return newSystemUser(CliUserID, "(gitea-cli)", "Gitea CLI")
+	return newSystemUser(CliUserID, "gitea:cli", "Gitea CLI")
 }
 
 func NewAuthSourceUser() *User {
 	// for audit log only
-	return newSystemUser(AuthSourceUserID, "(gitea-auth-source)", "Gitea Auth Source")
+	return newSystemUser(AuthSourceUserID, "gitea:auth-source", "Gitea Auth Source")
 }
 
 func GetSystemUserByName(name string) *User {
 	lowerName := strings.ToLower(name)
-	uid := globalVars().systemUserNameIdMap[lowerName]
+	uid := globalVars().systemUserLowerNameIdMap[lowerName]
+	return GetSystemUserByID(uid)
+}
+
+func GetSystemUserByID(uid int64) *User {
 	if fn := globalVars().systemUserNewFuncs[uid]; fn != nil {
 		return fn()
 	}
 	return nil
 }
 
-func GetDoerPermissionUser(ctx context.Context, id int64, extDoerData string) (u *User, _ error) {
-	if id > 0 {
-		return GetUserByID(ctx, id)
-	}
-	switch id {
-	case ActionsUserID:
+func GetDoerPermissionUser(ctx context.Context, id int64, extDoerData string) (u *User, err error) {
+	switch {
+	case id > 0:
+		if u, err = GetUserByID(ctx, id); err != nil || extDoerData == "" {
+			return u, err
+		}
+		u.ExtDoerData = &extDoerToken{}
+	case id == ActionsUserID:
 		u = NewActionsUser()
 		u.ExtDoerData = &extDoerGiteaActions{}
-	case DeployKeyUserID:
+	case id == DeployKeyUserID:
 		u = NewDeployKeyUser()
 		u.ExtDoerData = &extDoerDeployKey{}
 	default:

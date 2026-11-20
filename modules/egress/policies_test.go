@@ -4,10 +4,13 @@
 package egress
 
 import (
+	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"testing"
 
+	"gitea.dev/modules/egress/policy"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 
@@ -68,6 +71,27 @@ func TestWebhookPolicyProxy(t *testing.T) {
 			assert.Equal(t, want, u.String(), target)
 		}
 	}
+}
+
+func TestWebhookPolicyNeedsIPAllow(t *testing.T) {
+	defer test.MockVariableValue(&setting.Webhook.AllowedHostList, "localhost")()
+	defer test.MockVariableValue(&setting.Security.EgressMode, "lax")()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = ln.Close() })
+	dial := func() error {
+		tcpAddr, ok := ln.Addr().(*net.TCPAddr)
+		require.True(t, ok)
+		target := net.JoinHostPort("localhost", strconv.Itoa(tcpAddr.Port))
+		conn, err := NewWebhookPolicy().NewDialContext()(t.Context(), "tcp", target)
+		if err == nil {
+			_ = conn.Close()
+		}
+		return err
+	}
+	assert.ErrorIs(t, dial(), policy.ErrDenied) // a host name entry doesn't cover the loopback address
+	setting.Webhook.AllowedHostList = "loopback"
+	assert.NoError(t, dial()) // an IP entry does
 }
 
 func TestSecurityPolicy(t *testing.T) {

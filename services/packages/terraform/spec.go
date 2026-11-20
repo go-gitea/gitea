@@ -15,6 +15,8 @@ import (
 )
 
 type Specialization struct {
+	packages_service.SpecOnAfterRemovePackage
+	packages_service.SpecPublicPropertyNames
 	packages_service.SpecRenderUsageManual
 }
 

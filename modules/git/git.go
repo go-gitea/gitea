@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"gitea.dev/modules/cache"
@@ -69,12 +68,12 @@ func DefaultFeatures() *Features {
 func loadGitVersionFeatures() (*Features, error) {
 	stdout, _, runErr := gitcmd.NewCommand("version").RunStdString(context.Background())
 	if runErr != nil {
-		return nil, runErr
+		return nil, fmt.Errorf(`failed to run command "git version": %w`, runErr)
 	}
 
 	ver, err := parseGitVersionLine(strings.TrimSpace(stdout))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(`failed to parse output of command "git version": %w`, err)
 	}
 
 	features := &Features{gitVersion: ver}
@@ -105,7 +104,11 @@ func parseGitVersionLine(s string) (*version.Version, error) {
 	if len(versionFields) > 3 {
 		versionFields = versionFields[:3]
 	}
-	return version.NewVersion(strings.Join(versionFields, "."))
+	ver, err := version.NewVersion(strings.Join(versionFields, "."))
+	if err != nil {
+		return nil, fmt.Errorf("invalid git version: %q: %w", s, err)
+	}
+	return ver, nil
 }
 
 func checkGitVersionCompatibility(gitVer *version.Version) error {
@@ -126,16 +129,8 @@ func checkGitVersionCompatibility(gitVer *version.Version) error {
 func ensureGitVersion() error {
 	if !DefaultFeatures().CheckVersionAtLeast(RequiredVersion) {
 		moreHint := "get git: https://git-scm.com/downloads"
-		if runtime.GOOS == "linux" {
-			// there are a lot of CentOS/RHEL users using old git, so we add a special hint for them
-			if _, err := os.Stat("/etc/redhat-release"); err == nil {
-				// ius.io is the recommended official(git-scm.com) method to install git
-				moreHint = "get git: https://git-scm.com/downloads/linux and https://ius.io"
-			}
-		}
 		return fmt.Errorf("installed git version %q is not supported, Gitea requires git version >= %q, %s", DefaultFeatures().gitVersion.Original(), RequiredVersion, moreHint)
 	}
-
 	if err := checkGitVersionCompatibility(DefaultFeatures().gitVersion); err != nil {
 		return fmt.Errorf("installed git version %s has a known compatibility issue with Gitea: %w, please upgrade (or downgrade) git", DefaultFeatures().gitVersion.String(), err)
 	}
@@ -179,6 +174,10 @@ func InitFull() (err error) {
 	if err = InitSimple(); err != nil {
 		return err
 	}
+	// remove keyboxd's stale lock, gpg times out on it after a hostname change, like on container restarts
+	if gnupgHome := filepath.Join(gitcmd.HomeDir(), ".gnupg"); os.Getenv("GNUPGHOME") == gnupgHome {
+		_ = os.Remove(filepath.Join(gnupgHome, "public-keys.d", "pubring.db.lock"))
+	}
 	return syncGitConfig(context.Background())
 }
 
@@ -205,8 +204,4 @@ func runGitTests(m interface{ Run() int }) int {
 
 func LockConfigAndDo(ctx context.Context, repo RepositoryFacade, fn func(ctx context.Context) error) error {
 	return globallock.LockAndDo(ctx, "repo-config:"+repo.GitRepoManagedID(), fn)
-}
-
-func LockWriteAndDo(ctx context.Context, repo RepositoryFacade, fn func(ctx context.Context) error) error {
-	return globallock.LockAndDo(ctx, "repo-write:"+repo.GitRepoManagedID(), fn)
 }

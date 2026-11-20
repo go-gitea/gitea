@@ -48,5 +48,5 @@ func NewDiffPatchPost(ctx *context.Context) {
 		editorHandleFileOperationError(ctx, parsed.NewBranchName, err)
 		return
 	}
-	redirectForCommitChoice(ctx, parsed, parsed.form.TreePath)
+	redirectForCommitChoice(ctx, parsed, "")
 }

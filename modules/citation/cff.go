@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -111,10 +112,16 @@ type reference struct {
 	Conference      actor   `yaml:"conference"`
 }
 
+const (
+	MaxContentSize    = 256 * 1024 // parsing takes up to ~1000x the input, largest real-world file found is 80 KiB
+	maxAliasExpansion = 64 * 1024  // nodes plus value bytes aliases may add
+)
+
 // FormatCFF returns the APA and BibTeX citations of a CITATION.cff file, both empty if it has no title or authors
 func FormatCFF(content string) (apa, bibtex string) {
 	var node yaml.Node
-	if yaml.Unmarshal([]byte(content), &node) != nil {
+	// the parser copies %TAG prefixes into every node
+	if len(content) > MaxContentSize || strings.Contains(content, "%TAG") || yaml.Unmarshal([]byte(content), &node) != nil || aliasExpansion(&node) > maxAliasExpansion {
 		return "", ""
 	}
 	retagTimestamps(&node)
@@ -142,6 +149,32 @@ func retagTimestamps(node *yaml.Node) {
 	for _, child := range node.Content {
 		retagTimestamps(child)
 	}
+}
+
+func aliasExpansion(root *yaml.Node) int {
+	anchors := map[*yaml.Node]int{}
+	added := 0
+	var expandedSize func(node, parent *yaml.Node) int
+	expandedSize = func(node, parent *yaml.Node) int {
+		if node.Kind == yaml.AliasNode {
+			size, walked := anchors[node.Alias]
+			if !walked && (node.Alias != parent || parent.Kind != yaml.SequenceNode) { // decoders never expand a sequence listing itself
+				size = maxAliasExpansion + 1
+			}
+			added = min(added+size, maxAliasExpansion+1)
+			return size
+		}
+		size := 1 + len(node.Value)
+		for _, child := range node.Content {
+			size = min(size+expandedSize(child, node), maxAliasExpansion+1)
+		}
+		if node.Anchor != "" {
+			anchors[node] = size
+		}
+		return size
+	}
+	expandedSize(root, nil)
+	return added
 }
 
 func inspectNode(node *yaml.Node) string {
@@ -343,15 +376,25 @@ var bibtexTypeFields = map[string][]string{
 	"unpublished":   {"note"},
 }
 
-var (
-	bibtexEscaper = strings.NewReplacer("&", `\&`, "%", `\%`, "$", `\$`, "#", `\#`, "_", `\_`, "{", `\{`, "}", `\}`)
-	keyLetters    = strings.NewReplacer(
+var globalVars = sync.OnceValue(func() (ret struct {
+	bibtexEscaper  *strings.Replacer
+	keyLetters     *strings.Replacer
+	keyUnsafeChars *regexp.Regexp
+	bibtexPattern  *regexp.Regexp
+},
+) {
+	ret.bibtexEscaper = strings.NewReplacer("&", `\&`, "%", `\%`, "$", `\$`, "#", `\#`, "_", `\_`, "{", `\{`, "}", `\}`)
+	ret.keyLetters = strings.NewReplacer(
 		"Æ", "AE", "æ", "ae", "Ð", "D", "ð", "d", "Ø", "O", "ø", "o", "Þ", "Th", "þ", "th", "ß", "ss", "×", "x",
 		"Đ", "D", "đ", "d", "Ħ", "H", "ħ", "h", "ı", "i", "Ĳ", "IJ", "ĳ", "ij", "ĸ", "k", "Ŀ", "L", "ŀ", "l",
 		"Ł", "L", "ł", "l", "ŉ", "'n", "Ŋ", "NG", "ŋ", "ng", "Œ", "OE", "œ", "oe", "Ŧ", "T", "ŧ", "t",
 	)
-	keyUnsafeChars = regexp.MustCompile(`[^a-zA-Z0-9-]+`)
-)
+	ret.keyUnsafeChars = regexp.MustCompile(`[^a-zA-Z0-9-]+`)
+
+	// https://www.acm.org/publications/authors/bibtex-formatting
+	ret.bibtexPattern = regexp.MustCompile(`(?m)^\s*@?\w+\s*{`) // a simple and quick check, no need to be strict
+	return ret
+})
 
 func keyToASCII() transform.Transformer {
 	return transform.Chain(
@@ -372,6 +415,7 @@ func (r *reference) formatBibTeX() string {
 	if len(editors) == 0 {
 		editors = r.EditorsSeries
 	}
+	bibtexEscaper := globalVars().bibtexEscaper
 	typeFields := map[string]string{
 		"address":     joinNonEmpty(", ", place.City, place.Region, place.Country),
 		"booktitle":   bibtexEscaper.Replace(r.CollectionTitle),
@@ -441,6 +485,7 @@ func bibtexType(cffType string) string {
 }
 
 func bibtexActors(actors []actor) string {
+	bibtexEscaper := globalVars().bibtexEscaper
 	names := make([]string, 0, len(actors))
 	for _, entry := range actors {
 		switch {
@@ -463,6 +508,10 @@ func bibtexKey(fields map[string]string) string {
 	author, _, _ := strings.Cut(fields["author"], ",")
 	titleWords := splitWords(fields["title"])
 	key := joinNonEmpty("_", author, strings.Join(titleWords[:min(3, len(titleWords))], "_"), fields["year"])
-	key, _, _ = transform.String(keyToASCII(), keyLetters.Replace(key))
-	return strings.Trim(keyUnsafeChars.ReplaceAllString(key, "_"), "_")
+	key, _, _ = transform.String(keyToASCII(), globalVars().keyLetters.Replace(key))
+	return strings.Trim(globalVars().keyUnsafeChars.ReplaceAllString(key, "_"), "_")
+}
+
+func IsLikelyBibTeX(content string) bool {
+	return globalVars().bibtexPattern.MatchString(content)
 }

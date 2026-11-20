@@ -43,6 +43,19 @@ version:
 			assert.Nil(t, rp)
 		}
 	})
+
+	t.Run("LineBreakInIndexedMetadata", func(t *testing.T) {
+		for _, field := range []string{
+			`platform: "ruby\nx"`,
+			`dependencies: [{name: "d\nx"}]`,
+			`dependencies: [{name: d, requirement: {requirements: [[">=", {version: "1\nx"}]]}}]`,
+			`required_ruby_version: {requirements: [[">=", {version: "1\nx"}]]}`,
+		} {
+			rp, err := parseMetadataFile(test.CompressGzip("name: g\nversion:\n  version: 1\n" + field + "\n"))
+			assert.ErrorIs(t, err, ErrInvalidMetadata, field)
+			assert.Nil(t, rp)
+		}
+	})
 }
 
 func TestParseMetadataFile(t *testing.T) {

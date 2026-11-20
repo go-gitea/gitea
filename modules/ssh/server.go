@@ -28,7 +28,6 @@ type sshServer struct {
 type sshSession struct {
 	gossh.Channel
 	conn   *gossh.ServerConn
-	ctx    context.Context
 	rawCmd string
 	env    []string
 }
@@ -84,27 +83,31 @@ func (srv *sshServer) serve(listener net.Listener) error {
 }
 
 func (srv *sshServer) handleConn(netConn net.Conn) {
-	ctx, cancel := context.WithCancel(graceful.GetManager().HammerContext())
-	defer cancel()
 	defer netConn.Close()
 
-	conn, chans, reqs, err := gossh.NewServerConn(netConn, srv.newServerConfig(ctx))
+	sshConn, sshChannels, sshReqs, err := gossh.NewServerConn(netConn, srv.newServerConfig(graceful.GetManager().HammerContext()))
 	if err != nil {
-		sshConnectionFailed(netConn, err)
+		// OpenSSH's logs are something like:
+		// * disconnect without sending anything: "Connection closed by 1.2.3.4 port 5678"
+		// * send invalid bytes: "banner exchange: Connection from 1.2.3.4 port 5678: invalid format"
+		// * preauth failed: "Connection closed by authenticating user SYSOP 1.2.3.4 port 5678 [preauth]"
+		// * successfully logon and disconnect: "Disconnected from user SYSOP 1.2.3.4 port 5678"
+		log.Warn("Failed connection from %s with error: %v", netConn.RemoteAddr(), err)
 		return
 	}
+	defer sshConn.Close()
 
-	go gossh.DiscardRequests(reqs)
-	for newChan := range chans {
+	go gossh.DiscardRequests(sshReqs)
+	for newChan := range sshChannels {
 		if newChan.ChannelType() != "session" {
 			_ = newChan.Reject(gossh.UnknownChannelType, "unsupported channel type")
 			continue
 		}
-		go handleSessionChannel(ctx, conn, newChan)
+		go handleSessionChannel(sshConn, newChan)
 	}
 }
 
-func handleSessionChannel(ctx context.Context, conn *gossh.ServerConn, newChan gossh.NewChannel) {
+func handleSessionChannel(conn *gossh.ServerConn, newChan gossh.NewChannel) {
 	channel, reqs, err := newChan.Accept()
 	if err != nil {
 		log.Error("SSH: Accept session channel: %v", err)
@@ -112,7 +115,7 @@ func handleSessionChannel(ctx context.Context, conn *gossh.ServerConn, newChan g
 	}
 	defer channel.Close()
 
-	session := &sshSession{Channel: channel, conn: conn, ctx: ctx}
+	session := &sshSession{Channel: channel, conn: conn}
 	for req := range reqs {
 		switch req.Type {
 		case "env":

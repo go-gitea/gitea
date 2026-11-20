@@ -4,6 +4,7 @@
 package citation
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -125,6 +126,10 @@ year = {in press}
 }`,
 		},
 		{cff: "title: No authors\nauthor:\n  - name: Typo\n"},
+		{cff: "title: T\nauthors: [{name: A}]\nmessage: " + strings.Repeat("x", MaxContentSize)},
+		{cff: "title: T\nauthors: [{name: A}]\nmessage: &s " + strings.Repeat("x", maxAliasExpansion/2) + "\nlicense: [*s, *s]\n"},
+		{cff: "%TAG !e! tag:example.com,2000:\n---\ntitle: T\nauthors: [{name: A}]\n"},
+		{cff: "preferred-citation: &m {title: T, name: A, authors: [*m]}\n"},
 	}
 	for _, tc := range cases {
 		t.Run("", func(t *testing.T) {
@@ -134,4 +139,11 @@ year = {in press}
 			assert.Equal(t, tc.bibtex, bibtex)
 		})
 	}
+}
+
+func TestIsLikelyBibTeX(t *testing.T) {
+	assert.True(t, IsLikelyBibTeX("@article{key, title={Title}}"))
+	assert.True(t, IsLikelyBibTeX("Inproceedings\n{\n}\n"))
+	assert.True(t, IsLikelyBibTeX("% comment\n\n@misc{key}\n% comment\n"))
+	assert.False(t, IsLikelyBibTeX("not bib {}"))
 }

@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"runtime"
 	"strings"
 
+	"gitea.dev/modules/consts"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 )
@@ -90,7 +90,7 @@ func syncGitConfig(ctx context.Context) (err error) {
 		return err
 	}
 
-	if runtime.GOOS == "windows" {
+	if consts.IsWindows {
 		if err := configSet(ctx, "core.longpaths", "true"); err != nil {
 			return err
 		}
@@ -119,11 +119,20 @@ func syncGitConfig(ctx context.Context) (err error) {
 		return err
 	}
 
+	// Gitea used to write "90", which git reads as a date in 1990
+	if err := configUnsetAll(ctx, "gc.reflogExpire", "90"); err != nil {
+		return err
+	}
+
 	// Apply user's git config options last so they take precedence over builtin defaults
 	for k, v := range setting.GitConfig.Options {
 		if err = configSet(ctx, strings.ToLower(k), v); err != nil {
 			return err
 		}
+	}
+
+	if err := configAddNonExist(ctx, "transfer.hideRefs", hiddenRefPrefix); err != nil { // after the user's options, which replace all values
+		return err
 	}
 
 	GlobalConfig = &GlobalConfigStruct{}
@@ -156,7 +165,7 @@ func configSet(ctx context.Context, key, value string) error {
 		return nil
 	}
 
-	if _, _, err = gitcmd.NewCommand("config", "--global").
+	if _, _, err = gitcmd.NewCommand("config", "--global", "--replace-all").
 		AddDynamicArguments(key, value).
 		RunStdString(ctx); err != nil {
 		return fmt.Errorf("failed to set git global config %s, err: %w", key, err)
@@ -184,7 +193,7 @@ func configSetNonExist(ctx context.Context, key, value string) error {
 }
 
 func configAddNonExist(ctx context.Context, key, value string) error {
-	_, _, err := gitcmd.NewCommand("config", "--global", "--get").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(ctx)
+	_, _, err := gitcmd.NewCommand("config", "--global", "--get").AddDynamicArguments(key, "^"+regexp.QuoteMeta(value)+"$").RunStdString(ctx)
 	if err == nil {
 		// already exist
 		return nil
@@ -201,18 +210,9 @@ func configAddNonExist(ctx context.Context, key, value string) error {
 }
 
 func configUnsetAll(ctx context.Context, key, value string) error {
-	_, _, err := gitcmd.NewCommand("config", "--global", "--get").AddDynamicArguments(key).RunStdString(ctx)
-	if err == nil {
-		// exist, need to remove
-		_, _, err = gitcmd.NewCommand("config", "--global", "--unset-all").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to unset git global config %s, err: %w", key, err)
-		}
-		return nil
+	_, _, err := gitcmd.NewCommand("config", "--global", "--unset-all").AddDynamicArguments(key, "^"+regexp.QuoteMeta(value)+"$").RunStdString(ctx)
+	if err != nil && !gitcmd.IsErrorExitCode(err, 5) { // 5: no such key or no matching value
+		return fmt.Errorf("failed to unset git global config %s, err: %w", key, err)
 	}
-	if gitcmd.IsErrorExitCode(err, 1) {
-		// not exist
-		return nil
-	}
-	return fmt.Errorf("failed to get git config %s, err: %w", key, err)
+	return nil
 }

@@ -1,0 +1,51 @@
+<div class="inline required field">
+	<label>{{ctx.Locale.Tr "repo.owner"}}</label>
+	<div class="ui selection owner dropdown ellipsis-text-items">
+		<input type="hidden" name="uid" value="{{ctx.RootData.ContextUser.ID}}" required>
+		<span class="text" title="{{ctx.RootData.ContextUser.Name}}">
+			{{ctx.AvatarUtils.Avatar ctx.RootData.ContextUser 28 "mini"}}
+			{{ctx.RootData.ContextUser.ShortName 40}}
+		</span>
+		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+		<div class="menu" title="{{ctx.RootData.SignedUser.Name}}">
+			<div class="item" data-value="{{ctx.RootData.SignedUser.ID}}">
+				{{ctx.AvatarUtils.Avatar ctx.RootData.SignedUser 28 "mini"}}
+				{{ctx.RootData.SignedUser.ShortName 40}}
+			</div>
+			{{range $org := ctx.RootData.Orgs}}
+				<div class="item" data-value="{{$org.ID}}" title="{{$org.Name}}">
+					{{ctx.AvatarUtils.Avatar $org 28 "mini"}}
+					{{$org.ShortName 40}}
+				</div>
+			{{end}}
+		</div>
+	</div>
+</div>
+
+<div class="inline required field">
+	<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
+	<input name="repo_name" required maxlength="100">
+</div>
+<div class="inline field">
+	<label>{{ctx.Locale.Tr "repo.visibility"}}</label>
+	<div class="ui checkbox">
+		{{if ctx.RootData.IsForcedPrivate}}
+			<input name="private" type="checkbox" checked disabled>
+			<label>{{ctx.Locale.Tr "repo.visibility_helper_forced"}}</label>
+		{{else}}
+			<input name="private" type="checkbox" {{if ctx.RootData.private}}checked{{end}}>
+			<label>{{ctx.Locale.Tr "repo.visibility_helper"}}</label>
+		{{end}}
+	</div>
+</div>
+<div class="inline field">
+	<label>{{ctx.Locale.Tr "repo.repo_desc"}}</label>
+	<textarea name="description" maxlength="2048"></textarea>
+</div>
+
+<div class="inline field">
+	<label></label>
+	<button type="submit" class="ui primary button">
+		{{ctx.Locale.Tr "repo.migrate_repo"}}
+	</button>
+</div>

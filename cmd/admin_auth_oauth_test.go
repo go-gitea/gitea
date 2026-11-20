@@ -16,10 +16,11 @@ import (
 
 func TestAddOauth(t *testing.T) {
 	testCases := []struct {
-		name   string
-		args   []string
-		source *auth_model.Source
-		errMsg string
+		name            string
+		args            []string
+		config          *oauth2.Source
+		twoFactorPolicy string
+		errMsg          string
 	}{
 		{
 			name: "valid config",
@@ -29,17 +30,11 @@ func TestAddOauth(t *testing.T) {
 				"--key", "some_key",
 				"--secret", "some_secret",
 			},
-			source: &auth_model.Source{
-				Type:     auth_model.OAuth2,
-				Name:     "test",
-				IsActive: true,
-				Cfg: &oauth2.Source{
-					Scopes:       []string{},
-					Provider:     "github",
-					ClientID:     "some_key",
-					ClientSecret: "some_secret",
-				},
-				TwoFactorPolicy: "",
+			config: &oauth2.Source{
+				Scopes:       []string{},
+				Provider:     "github",
+				ClientID:     "some_key",
+				ClientSecret: "some_secret",
 			},
 		},
 		{
@@ -51,18 +46,12 @@ func TestAddOauth(t *testing.T) {
 				"--secret", "some_secret",
 				"--auto-discover-url", "https://example.com",
 			},
-			source: &auth_model.Source{
-				Type:     auth_model.OAuth2,
-				Name:     "test",
-				IsActive: true,
-				Cfg: &oauth2.Source{
-					Scopes:                        []string{},
-					Provider:                      "openidConnect",
-					ClientID:                      "some_key",
-					ClientSecret:                  "some_secret",
-					OpenIDConnectAutoDiscoveryURL: "https://example.com",
-				},
-				TwoFactorPolicy: "",
+			config: &oauth2.Source{
+				Scopes:                        []string{},
+				Provider:                      "openidConnect",
+				ClientID:                      "some_key",
+				ClientSecret:                  "some_secret",
+				OpenIDConnectAutoDiscoveryURL: "https://example.com",
 			},
 		},
 		{
@@ -91,35 +80,30 @@ func TestAddOauth(t *testing.T) {
 				"--ssh-public-key-claim-name", "attr_ssh_pub_key",
 				"--full-name-claim-name", "attr_full_name",
 			},
-			source: &auth_model.Source{
-				Type:     auth_model.OAuth2,
-				Name:     "test",
-				IsActive: true,
-				Cfg: &oauth2.Source{
-					Provider:     "gitlab",
-					ClientID:     "some_key",
-					ClientSecret: "some_secret",
-					CustomURLMapping: &oauth2.CustomURLMapping{
-						TokenURL:   "https://example.com/token",
-						AuthURL:    "https://example.com/auth",
-						ProfileURL: "https://example.com/profile",
-						EmailURL:   "https://example.com/email",
-						Tenant:     "some_tenant",
-					},
-					IconURL:               "https://example.com/icon",
-					Scopes:                []string{"scope1", "scope2"},
-					RequiredClaimName:     "claim_name",
-					RequiredClaimValue:    "claim_value",
-					GroupClaimName:        "group_name",
-					AdminGroup:            "admin",
-					RestrictedGroup:       "restricted",
-					GroupTeamMap:          `{"group1": [1,2]}`,
-					GroupTeamMapRemoval:   true,
-					SSHPublicKeyClaimName: "attr_ssh_pub_key",
-					FullNameClaimName:     "attr_full_name",
+			config: &oauth2.Source{
+				Provider:     "gitlab",
+				ClientID:     "some_key",
+				ClientSecret: "some_secret",
+				CustomURLMapping: &oauth2.CustomURLMapping{
+					TokenURL:   "https://example.com/token",
+					AuthURL:    "https://example.com/auth",
+					ProfileURL: "https://example.com/profile",
+					EmailURL:   "https://example.com/email",
+					Tenant:     "some_tenant",
 				},
-				TwoFactorPolicy: "skip",
+				IconURL:               "https://example.com/icon",
+				Scopes:                []string{"scope1", "scope2"},
+				RequiredClaimName:     "claim_name",
+				RequiredClaimValue:    "claim_value",
+				GroupClaimName:        "group_name",
+				AdminGroup:            "admin",
+				RestrictedGroup:       "restricted",
+				GroupTeamMap:          `{"group1": [1,2]}`,
+				GroupTeamMapRemoval:   true,
+				SSHPublicKeyClaimName: "attr_ssh_pub_key",
+				FullNameClaimName:     "attr_full_name",
 			},
+			twoFactorPolicy: "skip",
 		},
 	}
 
@@ -150,7 +134,13 @@ func TestAddOauth(t *testing.T) {
 				assert.EqualError(t, err, tc.errMsg)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tc.source, createdSource)
+				assert.Equal(t, &auth_model.Source{
+					Type:            auth_model.OAuth2,
+					Name:            "test",
+					IsActive:        true,
+					Cfg:             tc.config,
+					TwoFactorPolicy: tc.twoFactorPolicy,
+				}, createdSource)
 			}
 		})
 	}
@@ -158,12 +148,10 @@ func TestAddOauth(t *testing.T) {
 
 func TestUpdateOauth(t *testing.T) {
 	testCases := []struct {
-		name               string
-		args               []string
-		id                 int64
-		existingAuthSource *auth_model.Source
-		authSource         *auth_model.Source
-		errMsg             string
+		name       string
+		args       []string
+		authSource *auth_model.Source
+		errMsg     string
 	}{
 		{
 			name: "missing id",
@@ -174,19 +162,6 @@ func TestUpdateOauth(t *testing.T) {
 		},
 		{
 			name: "valid config",
-			id:   1,
-			existingAuthSource: &auth_model.Source{
-				ID:       1,
-				Type:     auth_model.OAuth2,
-				Name:     "old name",
-				IsActive: true,
-				Cfg: &oauth2.Source{
-					Provider:     "github",
-					ClientID:     "old_key",
-					ClientSecret: "old_secret",
-				},
-				TwoFactorPolicy: "",
-			},
 			args: []string{
 				"--id", "1",
 				"--name", "test",
@@ -210,37 +185,6 @@ func TestUpdateOauth(t *testing.T) {
 		},
 		{
 			name: "valid config with options",
-			id:   1,
-			existingAuthSource: &auth_model.Source{
-				ID:       1,
-				Type:     auth_model.OAuth2,
-				Name:     "old name",
-				IsActive: true,
-				Cfg: &oauth2.Source{
-					Provider:     "gitlab",
-					ClientID:     "old_key",
-					ClientSecret: "old_secret",
-					CustomURLMapping: &oauth2.CustomURLMapping{
-						TokenURL:   "https://old.example.com/token",
-						AuthURL:    "https://old.example.com/auth",
-						ProfileURL: "https://old.example.com/profile",
-						EmailURL:   "https://old.example.com/email",
-						Tenant:     "old_tenant",
-					},
-					IconURL:               "https://old.example.com/icon",
-					Scopes:                []string{"old_scope1", "old_scope2"},
-					RequiredClaimName:     "old_claim_name",
-					RequiredClaimValue:    "old_claim_value",
-					GroupClaimName:        "old_group_name",
-					AdminGroup:            "old_admin",
-					RestrictedGroup:       "old_restricted",
-					GroupTeamMap:          `{"old_group1": [1,2]}`,
-					GroupTeamMapRemoval:   true,
-					SSHPublicKeyClaimName: "old_ssh_pub_key",
-					FullNameClaimName:     "old_full_name",
-				},
-				TwoFactorPolicy: "",
-			},
 			args: []string{
 				"--id", "1",
 				"--name", "test",

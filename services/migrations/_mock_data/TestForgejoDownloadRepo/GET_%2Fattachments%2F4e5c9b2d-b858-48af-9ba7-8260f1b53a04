@@ -1,0 +1,12 @@
+Accept-Ranges: bytes
+Access-Control-Expose-Headers: Content-Disposition
+Cache-Control: private, max-age=300
+Content-Disposition: inline; filename="asset.txt"; filename*=UTF-8''asset.txt
+Content-Length: 14
+Content-Type: text/plain; charset=utf-8
+Etag: "4e5c9b2d-b858-48af-9ba7-8260f1b53a04"
+Last-Modified: Fri, 25 Sep 2026 01:13:55 GMT
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+
+forgejo asset

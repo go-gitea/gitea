@@ -39,7 +39,7 @@ func (r *HTMLRenderer) renderCodeSpan(w util.BufWriter, source []byte, n ast.Nod
 					r.Writer.RawWrite(w, value)
 				}
 			case *ColorPreview:
-				_ = r.renderInternal.FormatWithSafeAttrs(w, `<span class="color-preview" style="background-color: %s"></span>`, v.Color)
+				_ = r.renderInternal.FormatWithSafeAttrsf(w, `<span class="color-preview" style="background-color: %s"></span>`, v.Color)
 			}
 		}
 		return ast.WalkSkipChildren, nil
