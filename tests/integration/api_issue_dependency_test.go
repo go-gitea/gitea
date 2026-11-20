@@ -281,34 +281,20 @@ func TestAPIIssueDependencyIncludes(t *testing.T) {
 	t.Run("CrossRepoDepsFilteredByPermission", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		publicRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		privateRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-		assert.False(t, publicRepo.IsPrivate)
 		assert.True(t, privateRepo.IsPrivate)
-
-		publicIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: publicRepo.ID, Index: 1})
 		privateIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: privateRepo.ID, Index: 1})
-
-		enableRepoDependencies(t, publicRepo.ID)
 		enableRepoDependencies(t, privateRepo.ID)
+		assert.NoError(t, issues_model.CreateIssueDependency(t.Context(), user1, issue1, privateIssue))
 
-		assert.NoError(t, issues_model.CreateIssueDependency(t.Context(), user1, publicIssue, privateIssue))
+		outsiderToken := getUserToken(t, "user5", auth_model.AccessTokenScopeReadIssue)
+		url := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d?includes=dependencies", owner.Name, repo.Name, issue1.Index)
+		req := NewRequest(t, "GET", url).AddTokenAuth(outsiderToken)
+		apiIssue := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.Issue{})
 
-		outsideUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-		outsideToken := getUserToken(t, outsideUser.Name, auth_model.AccessTokenScopeReadIssue)
-
-		publicOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: publicRepo.OwnerID})
-		url := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d?includes=dependencies", publicOwner.Name, publicRepo.Name, publicIssue.Index)
-		req := NewRequest(t, "GET", url).AddTokenAuth(outsideToken)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		var apiIssue api.Issue
-		DecodeJSON(t, resp, &apiIssue)
-
-		for _, dep := range apiIssue.BlockedBy {
-			assert.NotEqual(t, privateRepo.Name, dep.Name,
-				"private repo dependency should be filtered out, but found %s/%s#%d", dep.Owner, dep.Name, dep.Index)
-		}
+		ref2 := &api.IssueMeta{Owner: owner.Name, Name: repo.Name, Index: issue2.Index}
+		ref3 := &api.IssueMeta{Owner: owner.Name, Name: repo.Name, Index: issue3.Index}
+		assert.ElementsMatch(t, []*api.IssueMeta{ref2, ref3}, apiIssue.BlockedBy)
 	})
 }
 
@@ -342,6 +328,7 @@ func TestAPIGetIssueBlocks(t *testing.T) {
 		req := NewRequest(t, "GET", url).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
+		assert.Equal(t, "2", resp.Header().Get("X-Total-Count"))
 		var blocked []*api.Issue
 		DecodeJSON(t, resp, &blocked)
 

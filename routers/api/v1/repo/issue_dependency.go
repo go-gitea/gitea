@@ -298,10 +298,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 		return
 	}
 
-	listOptions := utils.GetListOptions(ctx)
-
-	loadOpts := issue_service.LoadVisibleDependenciesOptions{Doer: ctx.Doer}
-	deps, err := issue_service.LoadVisibleDependencies(ctx, loadOpts, issues_model.IssueList{issue})
+	deps, err := issue_service.LoadVisibleDependencies(ctx, ctx.Doer, issues_model.IssueList{issue})
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -309,14 +306,14 @@ func GetIssueBlocks(ctx *context.APIContext) {
 	blocking := deps[issue.ID].Blocking
 
 	// paginate after filtering so hidden issues never leave gaps in a page
+	listOptions := utils.GetListOptions(ctx)
 	skip, take := listOptions.GetSkipTake()
-	start, end := len(blocking), len(blocking) // a negative skip means page*limit overflowed, so it is past the end
-	if skip >= 0 {
-		start = min(skip, len(blocking))
-		end = min(start+take, len(blocking))
+	if skip < 0 || skip > len(blocking) { // negative when page*limit overflows
+		skip = len(blocking)
 	}
-
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, blocking[start:end]))
+	ctx.SetLinkHeader(int64(len(blocking)), listOptions.PageSize)
+	ctx.SetTotalCountHeader(int64(len(blocking)))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, blocking[skip:min(skip+take, len(blocking))]))
 }
 
 // CreateIssueBlocking block the issue given in the body by the issue in path

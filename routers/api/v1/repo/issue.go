@@ -30,22 +30,35 @@ import (
 	issue_service "gitea.dev/services/issue"
 )
 
-// parseIssueIncludes parses the "includes" query parameter for issue endpoints
-func parseIssueIncludes(ctx *context.APIContext) (convert.ToIssueOptions, bool) {
-	opts := convert.ToIssueOptions{}
+func parseIssueIncludes(ctx *context.APIContext) (includeDependencies, ok bool) {
 	for includeOpt := range strings.SplitSeq(ctx.FormString("includes"), ",") {
-		if includeOpt == "" {
-			continue
-		}
 		switch includeOpt {
+		case "":
 		case "dependencies":
-			opts.IncludeDependencies = true
+			includeDependencies = true
 		default:
 			ctx.APIError(http.StatusBadRequest, fmt.Sprintf("unknown include option %q", includeOpt))
-			return opts, false
+			return false, false
 		}
 	}
-	return opts, true
+	return includeDependencies, true
+}
+
+func toAPIIssueListWithIncludes(ctx *context.APIContext, issues issues_model.IssueList, includeDependencies bool) ([]*api.Issue, bool) {
+	apiIssues := convert.ToAPIIssueList(ctx, ctx.Doer, issues)
+	if !includeDependencies {
+		return apiIssues, true
+	}
+	deps, err := issue_service.LoadVisibleDependencies(ctx, ctx.Doer, issues)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return nil, false
+	}
+	for i, issue := range issues {
+		apiIssues[i].BlockedBy = convert.ToIssueMetaList(deps[issue.ID].BlockedBy)
+		apiIssues[i].Blocking = convert.ToIssueMetaList(deps[issue.ID].Blocking)
+	}
+	return apiIssues, true
 }
 
 // SearchIssues searches for issues across the repositories that the user has access to
@@ -148,7 +161,7 @@ func SearchIssues(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 
-	issueOpts, ok := parseIssueIncludes(ctx)
+	includeDependencies, ok := parseIssueIncludes(ctx)
 	if !ok {
 		return
 	}
@@ -270,7 +283,11 @@ func SearchIssues(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(total, limit)
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues, issueOpts))
+	apiIssues, ok := toAPIIssueListWithIncludes(ctx, issues, includeDependencies)
+	if !ok {
+		return
+	}
+	ctx.JSON(http.StatusOK, apiIssues)
 }
 
 // ListIssues list the issues of a repository
@@ -356,7 +373,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 
-	issueOpts, ok := parseIssueIncludes(ctx)
+	includeDependencies, ok := parseIssueIncludes(ctx)
 	if !ok {
 		return
 	}
@@ -486,7 +503,11 @@ func ListIssues(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues, issueOpts))
+	apiIssues, ok := toAPIIssueListWithIncludes(ctx, issues, includeDependencies)
+	if !ok {
+		return
+	}
+	ctx.JSON(http.StatusOK, apiIssues)
 }
 
 func getUserIDForFilter(ctx *context.APIContext, queryName string) int64 {
@@ -538,7 +559,7 @@ func GetIssue(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 
-	opts, ok := parseIssueIncludes(ctx)
+	includeDependencies, ok := parseIssueIncludes(ctx)
 	if !ok {
 		return
 	}
@@ -551,7 +572,11 @@ func GetIssue(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, ctx.Doer, issue, opts))
+	apiIssues, ok := toAPIIssueListWithIncludes(ctx, issues_model.IssueList{issue}, includeDependencies)
+	if !ok {
+		return
+	}
+	ctx.JSON(http.StatusOK, apiIssues[0])
 }
 
 func loadAssigneeUserIDs(ctx *context.APIContext, oneAssignee string, multipleAssignees []string) []int64 {
