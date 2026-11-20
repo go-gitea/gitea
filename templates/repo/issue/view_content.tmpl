@@ -2,6 +2,11 @@
 	{{$createdStr:= DateUtils.TimeSince .Issue.CreatedUnix}}
 	<div class="issue-content-left">
 		<div class="comment-list">
+			<script nonce="{{ctx.CspScriptNonce}}">
+				if (window.localUserSettings.getBoolean('issue-timeline-comments-only')) {
+					document.currentScript.parentElement.classList.add('comments-only');
+				}
+			</script>
 			<div id="{{.Issue.HashTag}}" class="timeline-item comment issue-content-comment">
 				{{if .Issue.OriginalAuthor}}
 				<span class="timeline-avatar">

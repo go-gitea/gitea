@@ -18,6 +18,7 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {showFomanticModal} from '../modules/fomantic/modal.ts';
 import {ignoreAreYouSure} from '../modules/are-you-sure.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
+import {localUserSettings} from '../modules/user-settings.ts';
 import type {FomanticApiResponse} from '../types.ts';
 
 const {appSubUrl} = window.config;
@@ -93,38 +94,20 @@ export function initRepoIssueFilterItemLabel() {
   queryElems(document, '.ui.dropdown.label-filter', initRepoIssueLabelFilter);
 }
 
-export function toggleIssueCommentsOnlyFilter(root: ParentNode = document, commentsOnly: boolean) {
-  const commentList = root.querySelector('.repository.issue .comment-list');
-  if (!commentList) return;
-
-  for (const el of commentList.querySelectorAll<HTMLElement>('.timeline-item.event')) {
-    el.classList.toggle('tw-hidden', commentsOnly);
-  }
-}
-
-export function initRepoIssueCommentsFilter() {
-  const elFilterButton = document.querySelector<HTMLButtonElement>('#issue-comments-filter');
-  if (!elFilterButton) return;
-
-  const setFilterState = (commentsOnly: boolean) => {
-    elFilterButton.setAttribute('aria-pressed', String(commentsOnly));
-    const checkbox = elFilterButton.querySelector<HTMLInputElement>(
-      'input[type="checkbox"]',
-    );
-    if (checkbox) {
-      checkbox.checked = commentsOnly;
-    }
+export function initRepoIssueTimelineOptions() {
+  const elCommentsOnly = document.querySelector('#issue-timeline-comments-only');
+  if (!elCommentsOnly) return;
+  const elCommentList = document.querySelector('.repository.view.issue .comment-list')!;
+  const elCheck = elCommentsOnly.querySelector('svg')!;
+  const apply = (commentsOnly: boolean) => {
+    elCommentList.classList.toggle('comments-only', commentsOnly);
+    elCheck.classList.toggle('tw-invisible', !commentsOnly);
   };
-
-  let commentsOnly = elFilterButton.getAttribute('data-comments-only-state') === 'true';
-  setFilterState(commentsOnly);
-  toggleIssueCommentsOnlyFilter(document, commentsOnly);
-
-  elFilterButton.addEventListener('click', () => {
-    commentsOnly = !commentsOnly;
-    elFilterButton.setAttribute('data-comments-only-state', String(commentsOnly));
-    setFilterState(commentsOnly);
-    toggleIssueCommentsOnlyFilter(document, commentsOnly);
+  apply(elCommentList.classList.contains('comments-only')); // initially set by an inline script to avoid layout shift
+  elCommentsOnly.addEventListener('click', () => {
+    const commentsOnly = !elCommentList.classList.contains('comments-only');
+    localUserSettings.setBoolean('issue-timeline-comments-only', commentsOnly);
+    apply(commentsOnly);
   });
 }
 

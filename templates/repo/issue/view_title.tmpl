@@ -17,10 +17,14 @@
 			<span class="index">#{{.Issue.Index}}</span>
 		</h1>
 		<div class="issue-title-buttons">
-			<button type="button" id="issue-comments-filter" class="ui small basic button" aria-pressed="false">
-				<input type="checkbox" checked>
-			<span>{{ctx.Locale.Tr "repo.issues.filter_comments_only"}}</span>
-			</button>
+			{{if not (or .PageIsPullFiles .PageIsPullCommits)}}
+			<div class="ui dropdown jump small basic icon button" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.view_options"}}" aria-label="{{ctx.Locale.Tr "repo.issues.view_options"}}">
+				{{svg "octicon-kebab-horizontal"}}
+				<div class="menu">
+					<a class="item" id="issue-timeline-comments-only">{{svg "octicon-check" 16 "tw-invisible"}}{{ctx.Locale.Tr "repo.issues.filter_comments_only"}}</a>
+				</div>
+			</div>
+			{{end}}
 			{{if $canEditIssueTitle}}
 			<button type="button" id="issue-title-edit-show" class="ui small basic button">{{ctx.Locale.Tr "repo.issues.edit"}}</button>
 			{{end}}
