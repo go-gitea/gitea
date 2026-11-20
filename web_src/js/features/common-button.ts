@@ -95,7 +95,7 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
   if (elTarget instanceof HTMLDialogElement) {
     elModal = elTarget;
   } else if (elTarget instanceof HTMLTemplateElement) {
-    elModal = elTarget.content.querySelector('dialog')?.cloneNode(true) as HTMLDialogElement;
+    elModal = elTarget.content.querySelector('dialog.modal-dialog')?.cloneNode(true) as HTMLDialogElement;
   }
   if (!elModal) throw new Error('no modal for this action');
 
