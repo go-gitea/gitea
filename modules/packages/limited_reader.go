@@ -14,7 +14,8 @@ var ErrContentTooLarge = util.NewInvalidArgumentErrorf("content exceeds the size
 
 const MaxMetadataSize = 32 * 1024 * 1024
 
-const archiveDecompressionFloor = 512 * 1024 * 1024
+// ArchiveDecompressionFloor is a var so tests can lower it
+var ArchiveDecompressionFloor int64 = 512 * 1024 * 1024
 
 // SizedReader is an uploaded buffer that knows its own compressed size
 type SizedReader interface {
@@ -24,7 +25,7 @@ type SizedReader interface {
 
 // NewArchiveLimitedReader bounds inflation while locating metadata, scaled to the compressed size so large packages still pass
 func NewArchiveLimitedReader(r io.Reader, archiveSize int64) io.Reader {
-	return NewLimitedReader(r, max(archiveDecompressionFloor, setting.Packages.MaxDecompressionRatio*archiveSize))
+	return NewLimitedReader(r, max(ArchiveDecompressionFloor, setting.Packages.MaxDecompressionRatio*archiveSize))
 }
 
 type limitedReader struct {

@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -46,6 +48,14 @@ func TestParseMetadataFromBox(t *testing.T) {
 		metadata, err := ParseMetadataFromBox(data)
 		assert.NotNil(t, metadata)
 		assert.NoError(t, err)
+	})
+
+	t.Run("DecompressionLimit", func(t *testing.T) {
+		defer test.MockVariableValue(&packages.ArchiveDecompressionFloor, 0)()
+		data := createArchive(map[string][]byte{"dummy.txt": make([]byte, 1024*1024)})
+
+		_, err := ParseMetadataFromBox(data)
+		assert.ErrorIs(t, err, packages.ErrContentTooLarge)
 	})
 
 	t.Run("UnknownKeys", func(t *testing.T) {

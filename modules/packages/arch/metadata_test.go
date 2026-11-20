@@ -10,6 +10,7 @@ import (
 	"io"
 	"testing"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 
@@ -90,6 +91,15 @@ func TestParsePackage(t *testing.T) {
 				pp, err := ParsePackage(data)
 				assert.Nil(t, pp)
 				assert.ErrorIs(t, err, ErrMissingPKGINFOFile)
+			})
+
+			t.Run("DecompressionLimit", func(t *testing.T) {
+				defer test.MockVariableValue(&packages.ArchiveDecompressionFloor, 0)()
+				data := createPackage(c, map[string][]byte{"dummy.txt": make([]byte, 1024*1024)})
+
+				pp, err := ParsePackage(data)
+				assert.Nil(t, pp)
+				assert.ErrorIs(t, err, packages.ErrContentTooLarge)
 			})
 
 			t.Run("InvalidPKGINFOFile", func(t *testing.T) {

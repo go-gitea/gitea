@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/test"
 
 	"github.com/dsnet/compress/bzip2"
@@ -147,6 +148,21 @@ func TestParsePackage(t *testing.T) {
 			return gzip.NewWriter(w)
 		}, map[string]string{"composer.json": buildComposerContent(""), "README.md": readme}).Bytes()
 		assertValidPackage(t, data, "", "gitea-composer-package.tar.gz")
+	})
+
+	t.Run("DecompressionLimit", func(t *testing.T) {
+		defer test.MockVariableValue(&packages.ArchiveDecompressionFloor, 0)()
+		files := map[string]string{"dummy.txt": strings.Repeat("\x00", 1024*1024)}
+		for _, data := range [][]byte{
+			test.WriteTarCompression(gzip.NewWriter, files).Bytes(),
+			test.WriteTarCompression(func(w io.Writer) io.WriteCloser {
+				bz2Writer, _ := bzip2.NewWriter(w, nil)
+				return bz2Writer
+			}, files).Bytes(),
+		} {
+			_, err := ParsePackage(bytes.NewReader(data))
+			assert.ErrorIs(t, err, packages.ErrContentTooLarge)
+		}
 	})
 
 	t.Run("ReadmeEncoding", func(t *testing.T) {

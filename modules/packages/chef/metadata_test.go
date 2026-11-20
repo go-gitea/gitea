@@ -10,6 +10,9 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/modules/packages"
+	"gitea.dev/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -53,6 +56,14 @@ func TestParsePackage(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("DecompressionLimit", func(t *testing.T) {
+		defer test.MockVariableValue(&packages.ArchiveDecompressionFloor, 0)()
+		buf := test.WriteTarCompression(gzip.NewWriter, map[string]string{"dummy.txt": strings.Repeat("\x00", 1024*1024)})
+
+		_, err := ParsePackage(bytes.NewReader(buf.Bytes()))
+		assert.ErrorIs(t, err, packages.ErrContentTooLarge)
+	})
 }
 
 func TestParseChefMetadata(t *testing.T) {

@@ -10,6 +10,8 @@ import (
 	"io"
 	"testing"
 
+	"gitea.dev/modules/packages"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/zstd"
 
 	"github.com/dsnet/compress/bzip2"
@@ -99,6 +101,30 @@ func TestParsePackage(t *testing.T) {
 		assert.Equal(t, projectURL, p.VersionMetadata.ProjectURL)
 		assert.Equal(t, repositoryURL, p.VersionMetadata.RepositoryURL)
 		assert.Equal(t, documentationURL, p.VersionMetadata.DocumentationURL)
+	})
+
+	t.Run("DecompressionLimit", func(t *testing.T) {
+		defer test.MockVariableValue(&packages.ArchiveDecompressionFloor, 0)()
+		tarArchive := createArchive(map[string][]byte{"dummy.txt": make([]byte, 1024*1024)}).Bytes()
+
+		var bz2Buf bytes.Buffer
+		bw, _ := bzip2.NewWriter(&bz2Buf, nil)
+		bw.Write(tarArchive)
+		bw.Close()
+		_, err := ParsePackageBZ2(bytes.NewReader(bz2Buf.Bytes()))
+		assert.ErrorIs(t, err, packages.ErrContentTooLarge)
+
+		var infoBuf bytes.Buffer
+		zsw, _ := zstd.NewWriter(&infoBuf)
+		zsw.Write(tarArchive)
+		zsw.Close()
+		var zipBuf bytes.Buffer
+		zpw := zip.NewWriter(&zipBuf)
+		w, _ := zpw.Create("info-x.tar.zst")
+		w.Write(infoBuf.Bytes())
+		zpw.Close()
+		_, err = ParsePackageConda(bytes.NewReader(zipBuf.Bytes()), int64(zipBuf.Len()))
+		assert.ErrorIs(t, err, packages.ErrContentTooLarge)
 	})
 
 	t.Run(".tar.bz2", func(t *testing.T) {

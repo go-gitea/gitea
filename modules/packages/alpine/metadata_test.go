@@ -10,6 +10,9 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/modules/packages"
+	"gitea.dev/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -78,6 +81,15 @@ func TestParsePackage(t *testing.T) {
 		pp, err := ParsePackage(data)
 		assert.Nil(t, pp)
 		assert.ErrorIs(t, err, ErrMissingPKGINFOFile)
+	})
+
+	t.Run("DecompressionLimit", func(t *testing.T) {
+		defer test.MockVariableValue(&packages.ArchiveDecompressionFloor, 0)()
+		data := createPackage("dummy.txt", make([]byte, 1024*1024))
+
+		pp, err := ParsePackage(data)
+		assert.Nil(t, pp)
+		assert.ErrorIs(t, err, packages.ErrContentTooLarge)
 	})
 
 	t.Run("InvalidPKGINFOFile", func(t *testing.T) {
