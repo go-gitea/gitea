@@ -511,6 +511,19 @@ func TestPackageConan(t *testing.T) {
 					assert.Empty(t, revisions, "case %d: should be empty", i)
 				}
 			})
+
+			// runs last: on unfixed code an oversized body is decoded and
+			// can delete the whole recipe, so it must not run before Recipe
+			t.Run("OversizedBody", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				// a body larger than the 1MiB limit must be rejected with 413
+				// instead of being decoded without a size limit
+				oversized := `{"package_ids": ["` + strings.Repeat("a", 2*1024*1024) + `"]}`
+				req := NewRequestWithBody(t, "POST", fmt.Sprintf("%s/v1/conans/%s/%s/%s/%s/packages/delete", url, name, version1, user1, channel1), strings.NewReader(oversized)).
+					AddTokenAuth(token)
+				MakeRequest(t, req, http.StatusRequestEntityTooLarge)
+			})
 		})
 	})
 
