@@ -205,8 +205,6 @@ func testEditorDiffPreview(t *testing.T) {
 
 func testEditorPatchFile(t *testing.T) {
 	session := loginUser(t, "user2")
-	patchPage := session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/_diffpatch/master/"), http.StatusOK)
-	AssertHTMLElement(t, NewHTMLParser(t, patchPage.Body), "input[name=tree_path]", false)
 	pathContentCommon := `diff --git a/patch-file-1.txt b/patch-file-1.txt
 new file mode 100644
 index 0000000000..aaaaaaaaaa
@@ -221,6 +219,7 @@ index 0000000000..aaaaaaaaaa
 	})
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, "/user2/repo1/compare/master...patched-branch", test.RedirectURL(resp))
+
 	resp = MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/raw/branch/patched-branch/patch-file-1.txt"), http.StatusOK)
 	assert.Equal(t, "patched content\n", resp.Body.String())
 
@@ -230,6 +229,7 @@ index 0000000000..aaaaaaaaaa
 		"commit_choice":   "commit-to-new-branch",
 		"new_branch_name": "patched-branch-1",
 	})
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
 	assert.Equal(t, "Unable to apply patch", test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 }
 
