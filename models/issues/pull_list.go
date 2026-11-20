@@ -30,6 +30,8 @@ type PullRequestsOptions struct {
 	MilestoneID int64
 	PosterID    int64
 	BaseBranch  string
+	HeadRepoID  int64
+	HeadBranch  string
 }
 
 func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullRequestsOptions) db.Session {
@@ -37,6 +39,9 @@ func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullR
 
 	if opts.BaseBranch != "" {
 		sess.And("pull_request.base_branch=?", opts.BaseBranch)
+	}
+	if opts.HeadRepoID > 0 {
+		sess.And("pull_request.head_repo_id=? AND pull_request.head_branch=?", opts.HeadRepoID, opts.HeadBranch)
 	}
 
 	sess.Join("INNER", "issue", "pull_request.issue_id = issue.id")
