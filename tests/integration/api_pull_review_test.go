@@ -408,6 +408,16 @@ func TestAPIPullReviewRequest(t *testing.T) {
 		Reviewers: []string{"user8"},
 	}, http.StatusUnprocessableEntity)
 
+	// eligible team is rejected when the doer cannot manage review requests
+	requestReview(http.MethodPost, pull22Repo, pullIssue22.Index, token5, &api.PullReviewRequestOptions{
+		TeamReviewers: []string{"team1"},
+	}, http.StatusUnprocessableEntity)
+	unittest.AssertNotExistsBean(t, &issues_model.Review{
+		IssueID:        pullIssue22.ID,
+		Type:           issues_model.ReviewTypeRequest,
+		ReviewerTeamID: 22, // org41 Team1 — eligible via GetReviewerTeams
+	})
+
 	// Test team review request
 	pullIssue12 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12})
 	assert.NoError(t, pullIssue12.LoadAttributes(t.Context()))
