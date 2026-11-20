@@ -53,6 +53,23 @@ func RecreateTable(sess Session, bean any) error {
 	tableName := sess.Engine().TableName(bean)
 	tempTableName := "tmp_recreate__" + tableName
 
+	// Keep the old column definitions for the PostgreSQL copy below. xorm's
+	// PostgreSQL dialect does not cast values during INSERT ... SELECT, so a
+	// legacy column type (for example VARCHAR to INT) otherwise fails.
+	var oldTable *schemas.Table
+	if setting.Database.Type.IsPostgreSQL() {
+		oldTables, err := sess.Engine().DBMetas()
+		if err != nil {
+			return err
+		}
+		for _, old := range oldTables {
+			if old.Name == tableName {
+				oldTable = old
+				break
+			}
+		}
+	}
+
 	// We need to move the old table away and create a new one with the correct columns
 	// We will need to do this in stages to prevent data loss
 	//
@@ -95,6 +112,17 @@ func RecreateTable(sess Session, bean any) error {
 		}
 	}
 
+	selectColumn := func(column *schemas.Column) string {
+		if oldTable != nil {
+			if oldColumn := oldTable.GetColumn(column.Name); oldColumn != nil &&
+				oldColumn.SQLType.Name != column.SQLType.Name {
+				return fmt.Sprintf("CAST(`%s` AS %s)", column.Name,
+					sess.Engine().Dialect().SQLType(column))
+			}
+		}
+		return fmt.Sprintf("`%s`", column.Name)
+	}
+
 	sqlStringBuilder := &strings.Builder{}
 	_, _ = sqlStringBuilder.WriteString("INSERT INTO `")
 	_, _ = sqlStringBuilder.WriteString(tempTableName)
@@ -109,28 +137,25 @@ func RecreateTable(sess Session, bean any) error {
 	_, _ = sqlStringBuilder.WriteString(")")
 	_, _ = sqlStringBuilder.WriteString(" SELECT ")
 	if newTableColumns[0].Default != "" {
-		_, _ = sqlStringBuilder.WriteString("COALESCE(`")
-		_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Name)
-		_, _ = sqlStringBuilder.WriteString("`, ")
+		_, _ = sqlStringBuilder.WriteString("COALESCE(")
+		_, _ = sqlStringBuilder.WriteString(selectColumn(newTableColumns[0]))
+		_, _ = sqlStringBuilder.WriteString(", ")
 		_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Default)
 		_, _ = sqlStringBuilder.WriteString(")")
 	} else {
-		_, _ = sqlStringBuilder.WriteString("`")
-		_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Name)
-		_, _ = sqlStringBuilder.WriteString("`")
+		_, _ = sqlStringBuilder.WriteString(selectColumn(newTableColumns[0]))
 	}
 
 	for _, column := range newTableColumns[1:] {
 		if column.Default != "" {
-			_, _ = sqlStringBuilder.WriteString(", COALESCE(`")
-			_, _ = sqlStringBuilder.WriteString(column.Name)
-			_, _ = sqlStringBuilder.WriteString("`, ")
+			_, _ = sqlStringBuilder.WriteString(", COALESCE(")
+			_, _ = sqlStringBuilder.WriteString(selectColumn(column))
+			_, _ = sqlStringBuilder.WriteString(", ")
 			_, _ = sqlStringBuilder.WriteString(column.Default)
 			_, _ = sqlStringBuilder.WriteString(")")
 		} else {
-			_, _ = sqlStringBuilder.WriteString(", `")
-			_, _ = sqlStringBuilder.WriteString(column.Name)
-			_, _ = sqlStringBuilder.WriteString("`")
+			_, _ = sqlStringBuilder.WriteString(", ")
+			_, _ = sqlStringBuilder.WriteString(selectColumn(column))
 		}
 	}
 	_, _ = sqlStringBuilder.WriteString(" FROM `")
