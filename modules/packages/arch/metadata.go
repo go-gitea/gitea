@@ -99,7 +99,6 @@ type FileMetadata struct {
 
 // ParsePackage parses an Arch package file
 func ParsePackage(r packages.SizedReader) (*Package, error) {
-	archiveSize := r.Size()
 	header := make([]byte, 10)
 	n, err := util.ReadAtMost(r, header)
 	if err != nil {
@@ -143,7 +142,7 @@ func ParsePackage(r packages.SizedReader) (*Package, error) {
 	var p *Package
 	files := packages.NewBoundedFileList(maxFileEntries, maxFileNameBytes)
 
-	tr := tar.NewReader(packages.NewArchiveLimitedReader(inner, archiveSize))
+	tr := tar.NewReader(packages.NewArchiveLimitedReader(inner, r.Size()))
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {
