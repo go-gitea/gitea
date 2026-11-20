@@ -20,6 +20,7 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
@@ -182,7 +183,7 @@ func UpdateLatestRelease(ctx context.Context, repo *repo_model.Repository, rel *
 	case wasEligible || !rel.CanBeLatest(), repo.LatestReleaseID == 0 && makeLatest != api.MakeLatestFalse:
 		return nil
 	}
-	newest, err := repo_model.FindNewestStableReleases(ctx, repo.ID, 2)
+	newest, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{ListOptions: db.ListOptions{PageSize: 2}, RepoID: repo.ID, IsPreRelease: optional.Some(false)})
 	if err != nil || newest[0].ID != rel.ID {
 		return err
 	}
