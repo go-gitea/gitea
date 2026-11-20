@@ -89,6 +89,13 @@ func TestGetCommitStatuses(t *testing.T) {
 			"deploy/awesomeness": 5,
 		}, latestIndexes)
 	})
+
+	t.Run("GetLatestCommitStatusForRepoAndSHAsEmpty", func(t *testing.T) {
+		assert.NoError(t, git_model.UpdateCommitStatusSummary(t.Context(), repo1.ID, sha1))
+		statuses, err := git_model.GetLatestCommitStatusForRepoAndSHAs(t.Context(), nil)
+		assert.NoError(t, err)
+		assert.Empty(t, statuses)
+	})
 }
 
 func Test_CalcCommitStatus(t *testing.T) {
