@@ -213,10 +213,15 @@ The Core Team (formerly the Technical Oversight Committee, TOC) leads the projec
 At the start of 2023, the `Owners` team was dissolved and replaced by the TOC, which expanded the project leadership from three elected positions to six positions. Three positions are elected by the community, and the other three are appointed members from the Gitea company.
 <https://blog.gitea.com/quarterly-23q1/>
 
+#### Core team decisions
+
+The core team decides decisions by absolute majority.
+This means, at least fifty percent of the casted votes must be in favor of a result.
+Abstained votes are included in the calculation.
+
 Every decision within the core team must give a minimum deadline of 72 hours (three days) for participating.
 If a core team member does not participate in three subsequent decisions, they will be asked to step down from the core team.
 The core team will then continue with one member less until the next election.
-
 
 #### Core Team election process
 
@@ -257,7 +262,7 @@ A maintainer is inactive after three consecutive months, and a collaborator afte
 
 The Core Team notifies inactive members that they will be moved to advisors and waits at least one week before doing so.
 
-#### Returning from advisors
+### Returning from advisors
 
 Advisors who want to contribute again can ask the Core Team to be re-added as collaborators or maintainers, depending on their previous role. A Core Team seat can only be regained through an [election](#core-team-election-process).
 
