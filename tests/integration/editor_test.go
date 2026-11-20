@@ -343,6 +343,7 @@ func testEditorWebGitCommitEmail(t *testing.T) {
 	t.Run("ApplyPatchCherryPick", func(t *testing.T) {
 		patchResp1, patchResp2 := testWebGit(t,
 			"/user2/repo1/_diffpatch/master", map[string]string{
+				"tree_path": "__dummy__", // the "tree_path" should be ignored and should not affect the redirect URL
 				"content": `diff --git a/patch-file-1.txt b/patch-file-1.txt
 new file mode 100644
 index 0000000000..aaaaaaaaaa
