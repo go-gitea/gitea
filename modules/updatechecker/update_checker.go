@@ -5,6 +5,7 @@ package updatechecker
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -25,8 +26,21 @@ func (CheckerState) StateName() string {
 	return "update-checker"
 }
 
+// maxResponseSize caps the version check response. It is a small JSON document,
+// so this is far above any legitimate payload while still bounding memory use.
+const maxResponseSize = 1024 * 1024 // 1 MiB
+
 // GiteaUpdateChecker returns error when new version of Gitea is available
 func GiteaUpdateChecker(httpEndpoint string) error {
+	latestVersion, err := fetchLatestVersion(httpEndpoint)
+	if err != nil {
+		return err
+	}
+	return UpdateRemoteVersion(context.Background(), latestVersion)
+}
+
+// fetchLatestVersion reads the latest released version from the JSON endpoint
+func fetchLatestVersion(httpEndpoint string) (string, error) {
 	httpClient := &http.Client{
 		Transport: &http.Transport{
 			Proxy: proxy.Proxy(),
@@ -35,16 +49,19 @@ func GiteaUpdateChecker(httpEndpoint string) error {
 
 	req, err := http.NewRequest(http.MethodGet, httpEndpoint, nil)
 	if err != nil {
-		return err
+		return "", err
 	}
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize+1))
 	if err != nil {
-		return err
+		return "", err
+	}
+	if len(body) > maxResponseSize {
+		return "", fmt.Errorf("update check response exceeds %d bytes", maxResponseSize)
 	}
 
 	type respType struct {
@@ -55,10 +72,10 @@ func GiteaUpdateChecker(httpEndpoint string) error {
 	respData := respType{}
 	err = json.Unmarshal(body, &respData)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return UpdateRemoteVersion(req.Context(), respData.Latest.Version)
+	return respData.Latest.Version, nil
 }
 
 // UpdateRemoteVersion updates the latest available version of Gitea
