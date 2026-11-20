@@ -713,7 +713,6 @@
   "repo.pulls.tab_conversation": "Beszélgetés",
   "repo.pulls.tab_commits": "Commit-ok",
   "repo.pulls.tab_files": "Módosított fájlok",
-  "repo.pulls.reopen_to_merge": "Kérjük, nyissa újra az egyesítési kérést.",
   "repo.pulls.cant_reopen_deleted_branch": "Ez a pull request nem nyitható meg újra, mivel az ág törölve lett.",
   "repo.pulls.merged": "Egyesítve",
   "repo.pulls.can_auto_merge_desc": "Ez az egyesítési kérés automatikusan végrehajtható.",

@@ -6,6 +6,7 @@ package repo
 import (
 	"fmt"
 	"net/http"
+	"unicode/utf8"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -54,6 +55,10 @@ func NewCommitStatus(ctx *context.APIContext) {
 	sha := ctx.PathParam("sha")
 	if len(sha) == 0 {
 		ctx.APIError(http.StatusBadRequest, "sha not provided")
+		return
+	}
+	if stateLen := utf8.RuneCountInString(string(form.State)); stateLen == 0 || stateLen > git_model.CommitStatusStateMaxLength {
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("state must be 1 to %d characters", git_model.CommitStatusStateMaxLength))
 		return
 	}
 	status := &git_model.CommitStatus{
