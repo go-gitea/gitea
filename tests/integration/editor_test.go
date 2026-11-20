@@ -205,6 +205,8 @@ func testEditorDiffPreview(t *testing.T) {
 
 func testEditorPatchFile(t *testing.T) {
 	session := loginUser(t, "user2")
+	patchPage := session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/_diffpatch/master/"), http.StatusOK)
+	AssertHTMLElement(t, NewHTMLParser(t, patchPage.Body), "input[name=tree_path]", false)
 	pathContentCommon := `diff --git a/patch-file-1.txt b/patch-file-1.txt
 new file mode 100644
 index 0000000000..aaaaaaaaaa
@@ -212,12 +214,14 @@ index 0000000000..aaaaaaaaaa
 +++ b/patch-file-1.txt
 @@ -0,0 +1 @@
 +`
-	testEditorActionPostRequest(t, session, "/user2/repo1/_diffpatch/master/", map[string]string{
+	resp := testEditorActionPostRequest(t, session, "/user2/repo1/_diffpatch/master/", map[string]string{
 		"content":         pathContentCommon + "patched content\n",
 		"commit_choice":   "commit-to-new-branch",
 		"new_branch_name": "patched-branch",
 	})
-	resp := MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/raw/branch/patched-branch/patch-file-1.txt"), http.StatusOK)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, "/user2/repo1/compare/master...patched-branch", test.RedirectURL(resp))
+	resp = MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/raw/branch/patched-branch/patch-file-1.txt"), http.StatusOK)
 	assert.Equal(t, "patched content\n", resp.Body.String())
 
 	// patch again, it should fail
@@ -337,9 +341,8 @@ func testEditorWebGitCommitEmail(t *testing.T) {
 	})
 
 	t.Run("ApplyPatchCherryPick", func(t *testing.T) {
-		resp1, _ := testWebGit(t,
+		patchResp1, patchResp2 := testWebGit(t,
 			"/user2/repo1/_diffpatch/master", map[string]string{
-				"tree_path": "__dummy__",
 				"content": `diff --git a/patch-file-1.txt b/patch-file-1.txt
 new file mode 100644
 index 0000000000..aaaaaaaaaa
@@ -350,7 +353,6 @@ index 0000000000..aaaaaaaaaa
 `,
 			},
 			"/user2/repo1/_diffpatch/master", map[string]string{
-				"tree_path": "__dummy__",
 				"content": `diff --git a/patch-file-2.txt b/patch-file-2.txt
 new file mode 100644
 index 0000000000..bbbbbbbbbb
@@ -361,13 +363,16 @@ index 0000000000..bbbbbbbbbb
 `,
 			},
 		)
-		assert.Equal(t, "/user2/repo1/src/branch/master", test.RedirectURL(resp1))
+		for _, resp := range []*httptest.ResponseRecorder{patchResp1, patchResp2} {
+			assert.Equal(t, http.StatusOK, resp.Code)
+			assert.Equal(t, "/user2/repo1/src/branch/master", test.RedirectURL(resp))
+		}
 
 		commit1, err := gitRepo.GetCommitByPath(t.Context(), "patch-file-1.txt")
 		require.NoError(t, err)
 		commit2, err := gitRepo.GetCommitByPath(t.Context(), "patch-file-2.txt")
 		require.NoError(t, err)
-		resp1, _ = testWebGit(t,
+		resp1, _ := testWebGit(t,
 			"/user2/repo1/_cherrypick/"+commit1.ID.String()+"/master", map[string]string{"revert": "true"},
 			"/user2/repo1/_cherrypick/"+commit2.ID.String()+"/master", map[string]string{"revert": "true"},
 		)
