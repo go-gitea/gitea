@@ -543,8 +543,21 @@ func DeletePackageV1(ctx *context.Context) {
 		References []string `json:"package_ids"`
 	}
 
+	// the request body only carries a list of package IDs, so bound its size
+	// to avoid an unbounded read that could exhaust memory
+	const maxDeletePackageBodySize = 1 * 1024 * 1024
+	body, err := io.ReadAll(io.LimitReader(ctx.Req.Body, maxDeletePackageBodySize+1))
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(body) > maxDeletePackageBodySize {
+		apiError(ctx, http.StatusRequestEntityTooLarge, errors.New("request body too large"))
+		return
+	}
+
 	var ids *PackageReferences
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&ids); err != nil {
+	if err := json.Unmarshal(body, &ids); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
