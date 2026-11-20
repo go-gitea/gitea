@@ -3556,7 +3556,7 @@
                 "$ref": "#/components/schemas/CommitStatusState"
               }
             ],
-            "description": "State represents the status state (pending, running, success, error, failure, warning, skipped)"
+            "description": "State represents the status state (pending, running, success, error, failure, warning, skipped, cancelled)"
           },
           "target_url": {
             "description": "TargetURL is the URL to link to for more details",
@@ -3587,7 +3587,8 @@
           "error",
           "failure",
           "warning",
-          "skipped"
+          "skipped",
+          "cancelled"
         ],
         "type": "string"
       },
@@ -4930,7 +4931,7 @@
                 "$ref": "#/components/schemas/CommitStatusState"
               }
             ],
-            "description": "State represents the status state to set (pending, running, success, error, failure, warning, skipped)"
+            "description": "State represents the status state to set (pending, running, success, error, failure, warning, skipped, cancelled)"
           },
           "target_url": {
             "description": "TargetURL is the URL to link to for more details",

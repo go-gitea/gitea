@@ -489,7 +489,7 @@ func testAPIActionsForceCancelWorkflowRun(t *testing.T) {
 	statuses, err = git_model.GetLatestCommitStatus(t.Context(), repo.ID, commitSHA, db.ListOptionsAll)
 	require.NoError(t, err)
 	require.Len(t, statuses, 1)
-	assert.Equal(t, commitstatus.CommitStatusFailure, statuses[0].State)
+	assert.Equal(t, commitstatus.CommitStatusCancelled, statuses[0].State)
 
 	// both endpoints refuse the completed run
 	MakeRequest(t, NewRequest(t, "POST", cancelURL).AddTokenAuth(ownerToken), http.StatusConflict)

@@ -11,6 +11,8 @@
 	{{svg "octicon-x" 18 "commit-status icon tw-text-red"}}
 {{else if eq .State "warning"}}
 	{{svg "gitea-exclamation" 18 "commit-status icon tw-text-yellow"}}
+{{else if eq .State "cancelled"}}
+	{{svg "octicon-stop" 18 "commit-status icon tw-text-text-light"}}
 {{else if eq .State "skipped"}}
 	{{svg "octicon-skip" 18 "commit-status icon tw-text-text-light"}}
 {{else}}{{/* external CI may report any state */}}

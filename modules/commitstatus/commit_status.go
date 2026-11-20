@@ -22,6 +22,8 @@ const (
 	CommitStatusWarning CommitStatusState = "warning"
 	// CommitStatusSkipped is for when CommitStatus is Skipped
 	CommitStatusSkipped CommitStatusState = "skipped"
+	// CommitStatusCancelled is for when the CommitStatus is Cancelled
+	CommitStatusCancelled CommitStatusState = "cancelled"
 )
 
 func (css CommitStatusState) String() string {
@@ -58,24 +60,36 @@ func (css CommitStatusState) IsSkipped() bool {
 	return css == CommitStatusSkipped
 }
 
+// IsCancelled represents if commit status state is cancelled
+func (css CommitStatusState) IsCancelled() bool {
+	return css == CommitStatusCancelled
+}
+
 type CommitStatusStates []CommitStatusState //nolint:revive // export stutter
 
 // According to https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#get-the-combined-status-for-a-specific-reference
 // > Additionally, a combined state is returned. The state is one of:
 // > failure if any of the contexts report as error or failure
 // > failure if any of the contexts report as warning (Gitea specific behavior)
+// > cancelled if any of the contexts report as cancelled and none failed (Gitea specific behavior)
 // > pending if there are no statuses or a context is pending
 // > success if the latest status for all contexts is success
 func (css CommitStatusStates) Combine() CommitStatusState {
 	successCnt := 0
+	hasCancelled := false
 	for _, state := range css {
 		switch {
 		case state.IsError() || state.IsFailure() || state.IsWarning():
 			return CommitStatusFailure
+		case state.IsCancelled():
+			hasCancelled = true
 		case state.IsPending():
 		case state.IsSuccess() || state.IsSkipped():
 			successCnt++
 		}
+	}
+	if hasCancelled {
+		return CommitStatusCancelled
 	}
 	if successCnt > 0 && successCnt == len(css) {
 		return CommitStatusSuccess

@@ -1331,6 +1331,7 @@
   "repo.commit.cherry-pick": "Cherry-pick",
   "repo.commit.cherry-pick-header": "Cherry-pick: %s",
   "repo.commit.cherry-pick-content": "Select branch to cherry-pick onto:",
+  "repo.commitstatus.cancelled": "Canceled",
   "repo.commitstatus.error": "Error",
   "repo.commitstatus.failure": "Failure",
   "repo.commitstatus.pending": "Pending",

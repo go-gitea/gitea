@@ -348,8 +348,10 @@ func toCommitStatus(status actions_model.Status) commitstatus.CommitStatusState 
 	switch status {
 	case actions_model.StatusSuccess:
 		return commitstatus.CommitStatusSuccess
-	case actions_model.StatusFailure, actions_model.StatusCancelled:
+	case actions_model.StatusFailure:
 		return commitstatus.CommitStatusFailure
+	case actions_model.StatusCancelled:
+		return commitstatus.CommitStatusCancelled
 	case actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusPending, actions_model.StatusRunning, actions_model.StatusCancelling:
 		return commitstatus.CommitStatusPending
 	case actions_model.StatusSkipped:
