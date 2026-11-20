@@ -16,7 +16,7 @@
 			</div>
 			<div class="item-body" data-testid="admin-user-local-password">
 				<b>{{ctx.Locale.Tr "admin.users.local_password"}}:</b>
-				{{svg (Iif .User.HasLocalPassword "octicon-check" "octicon-x")}}
+				{{svg (Iif .User.IsPasswordSet "octicon-check" "octicon-x")}}
 			</div>
 			<div class="item-body" data-testid="admin-user-password-verified-by">
 				<b>{{ctx.Locale.Tr "admin.users.password_verified_by"}}:</b>

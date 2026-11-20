@@ -260,7 +260,7 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 	}
 
 	deleteAuthTokens := false
-	if opts.Password.Has() && (u.IsLocal() || u.IsOAuth2()) {
+	if opts.Password.Has() && u.PasswordVerifiedLocally() {
 		password := opts.Password.Value()
 
 		if len(password) < setting.MinPasswordLength {
