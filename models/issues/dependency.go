@@ -102,7 +102,7 @@ type IssueDependency struct {
 	ID           int64              `xorm:"pk autoincr"`
 	UserID       int64              `xorm:"NOT NULL"`
 	IssueID      int64              `xorm:"UNIQUE(issue_dependency) NOT NULL"`
-	DependencyID int64              `xorm:"UNIQUE(issue_dependency) NOT NULL"`
+	DependencyID int64              `xorm:"UNIQUE(issue_dependency) NOT NULL INDEX"`
 	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix  timeutil.TimeStamp `xorm:"updated"`
 }
