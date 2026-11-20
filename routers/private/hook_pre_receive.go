@@ -179,17 +179,8 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	}
 
 	// 3. Enforce require signed commits
-	if protectBranch.RequireSignedCommits {
-		err := verifyCommits(ctx, oldCommitID, newCommitID, gitRepo, ctx.env)
-		if err != nil {
-			errUnverified, ok := err.(*errUnverifiedCommit)
-			if !ok {
-				ctx.PrivateInternalErrorf("Unable to check commits from %s to %s: %v", oldCommitID, newCommitID, err)
-				return
-			}
-			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from unverified commit %s", branchName, errUnverified.sha)
-			return
-		}
+	if !checkSignedCommits(ctx, protectBranch, branchName, oldCommitID, newCommitID) {
+		return
 	}
 
 	// Now there are several tests which can be overridden:
@@ -298,6 +289,25 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			return
 		}
 	}
+}
+
+// checkSignedCommits rejects the push when the branch requires signed commits
+// and a new commit is not verified. It returns false if the push was rejected.
+func checkSignedCommits(ctx *preReceiveContext, protectBranch *git_model.ProtectedBranch, branchName, oldCommitID, newCommitID string) bool {
+	if !protectBranch.RequireSignedCommits {
+		return true
+	}
+	err := verifyCommits(ctx, oldCommitID, newCommitID, ctx.Repo.GitRepo, ctx.env)
+	if err != nil {
+		errUnverified, ok := err.(*errUnverifiedCommit)
+		if !ok {
+			ctx.PrivateInternalErrorf("Unable to check commits from %s to %s: %v", oldCommitID, newCommitID, err)
+			return false
+		}
+		ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from unverified commit %s", branchName, errUnverified.sha)
+		return false
+	}
+	return true
 }
 
 func preReceiveTag(ctx *preReceiveContext, refFullName git.RefName) {
