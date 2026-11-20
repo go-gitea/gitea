@@ -21,7 +21,7 @@ func createMentionAvatar(ctx *RenderContext, avatarLink string) *html.Node {
 	if rel, ok := strings.CutPrefix(avatarLink, setting.AppSubURL+"/"); ok {
 		avatarLink = LinkTypeRoot + "/" + rel
 	}
-	img := &html.Node{
+	return &html.Node{
 		Type: html.ElementNode,
 		Data: atom.Img.String(),
 		Attr: []html.Attribute{
@@ -30,13 +30,20 @@ func createMentionAvatar(ctx *RenderContext, avatarLink string) *html.Node {
 			{Key: "alt", Val: ""}, // decorative, the mention text already names the user
 			{Key: "width", Val: "20"},
 			{Key: "height", Val: "20"},
-			{Key: "loading", Val: "lazy"},
 		},
 	}
-	return img
 }
 
 func mentionProcessor(ctx *RenderContext, node *html.Node) {
+	processMentions(ctx, node, false)
+}
+
+// mentionWithAvatarProcessor is only for full documents, one-line renderings like commit subjects have no room for avatars
+func mentionWithAvatarProcessor(ctx *RenderContext, node *html.Node) {
+	processMentions(ctx, node, true)
+}
+
+func processMentions(ctx *RenderContext, node *html.Node, withAvatar bool) {
 	start := 0
 	nodeStop := node.NextSibling
 	for node != nodeStop {
@@ -74,7 +81,7 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 		if mentionable {
 			link := "/:root/" + url.PathEscape(mentionedUsername)
 			linkNode := createLink(ctx, link, mention, "" /*mention*/)
-			if avatarLink != "" {
+			if withAvatar && avatarLink != "" {
 				linkNode.InsertBefore(createMentionAvatar(ctx, avatarLink), linkNode.FirstChild)
 			}
 			replaceContent(node, loc.Start, loc.End, linkNode)

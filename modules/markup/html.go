@@ -107,7 +107,7 @@ func PostProcessDefault(ctx *RenderContext, input io.Reader, output io.Writer) e
 		fullHashPatternProcessor,
 		shortLinkProcessor,
 		linkProcessor,
-		mentionProcessor,
+		mentionWithAvatarProcessor,
 		issueIndexPatternProcessor,
 		commitCrossReferencePatternProcessor,
 		hashCurrentPatternProcessor,
