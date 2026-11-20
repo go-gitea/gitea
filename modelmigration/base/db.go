@@ -44,6 +44,24 @@ func RecreateTables(beans ...any) func(EngineMigration) error {
 	}
 }
 
+// postgresCastTarget returns the PostgreSQL type name to use in a CAST for
+// the given rendered column type, or "" if it cannot be used as a cast target.
+// Length/precision suffixes are dropped (e.g. VARCHAR(255) -> VARCHAR) and
+// the SERIAL pseudo-types are mapped to their real integer types, since
+// CAST(x AS SERIAL) is not valid PostgreSQL.
+func postgresCastTarget(sqlType string) string {
+	if idx := strings.Index(sqlType, "("); idx != -1 {
+		sqlType = sqlType[:idx]
+	}
+	switch strings.ToUpper(sqlType) {
+	case "SERIAL":
+		return "INTEGER"
+	case "BIGSERIAL":
+		return "BIGINT"
+	}
+	return sqlType
+}
+
 // RecreateTable will recreate the table using the newly provided bean definition and move all data to that new table
 // WARNING: YOU MUST PROVIDE THE FULL BEAN DEFINITION
 // WARNING: YOU MUST COMMIT THE SESSION AT THE END
@@ -96,6 +114,48 @@ func RecreateTable(sess Session, bean any) error {
 	}
 
 	sqlStringBuilder := &strings.Builder{}
+	// On PostgreSQL, the old table may have columns whose types differ from
+	// the new bean definition (e.g. review.type was VARCHAR(255) in old
+	// databases while the current bean defines it as INTEGER, see #22275).
+	// PostgreSQL rejects INSERT...SELECT when the selected expression type
+	// cannot be assigned to the target column, so cast the affected columns
+	// to the new column type. Other databases convert implicitly or are
+	// typeless, so they need no cast.
+	castTypes := map[string]string{}
+	if setting.Database.Type.IsPostgreSQL() {
+		dialect := sess.Engine().Dialect()
+		_, oldColumns, err := dialect.GetColumns(sess.Engine().DB(), context.Background(), tableName)
+		if err != nil {
+			log.Warn("Unable to get columns for table %s. Error: %v", tableName, err)
+		} else {
+			for _, column := range newTableColumns {
+				if oldColumn, ok := oldColumns[column.Name]; ok {
+					newSQLType := dialect.SQLType(column)
+					if dialect.SQLType(oldColumn) != newSQLType {
+						if target := postgresCastTarget(newSQLType); target != "" {
+							castTypes[column.Name] = target
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// selectExpr returns the SELECT expression for a column, casting it to
+	// the new column type on PostgreSQL when the old column type differs.
+	selectExpr := func(column *schemas.Column) string {
+		var expr string
+		if column.Default != "" {
+			expr = "COALESCE(`" + column.Name + "`, " + column.Default + ")"
+		} else {
+			expr = "`" + column.Name + "`"
+		}
+		if target, ok := castTypes[column.Name]; ok {
+			expr = "CAST(" + expr + " AS " + target + ")"
+		}
+		return expr
+	}
+
 	_, _ = sqlStringBuilder.WriteString("INSERT INTO `")
 	_, _ = sqlStringBuilder.WriteString(tempTableName)
 	_, _ = sqlStringBuilder.WriteString("` (`")
@@ -108,30 +168,11 @@ func RecreateTable(sess Session, bean any) error {
 	}
 	_, _ = sqlStringBuilder.WriteString(")")
 	_, _ = sqlStringBuilder.WriteString(" SELECT ")
-	if newTableColumns[0].Default != "" {
-		_, _ = sqlStringBuilder.WriteString("COALESCE(`")
-		_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Name)
-		_, _ = sqlStringBuilder.WriteString("`, ")
-		_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Default)
-		_, _ = sqlStringBuilder.WriteString(")")
-	} else {
-		_, _ = sqlStringBuilder.WriteString("`")
-		_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Name)
-		_, _ = sqlStringBuilder.WriteString("`")
-	}
+	_, _ = sqlStringBuilder.WriteString(selectExpr(newTableColumns[0]))
 
 	for _, column := range newTableColumns[1:] {
-		if column.Default != "" {
-			_, _ = sqlStringBuilder.WriteString(", COALESCE(`")
-			_, _ = sqlStringBuilder.WriteString(column.Name)
-			_, _ = sqlStringBuilder.WriteString("`, ")
-			_, _ = sqlStringBuilder.WriteString(column.Default)
-			_, _ = sqlStringBuilder.WriteString(")")
-		} else {
-			_, _ = sqlStringBuilder.WriteString(", `")
-			_, _ = sqlStringBuilder.WriteString(column.Name)
-			_, _ = sqlStringBuilder.WriteString("`")
-		}
+		_, _ = sqlStringBuilder.WriteString(", ")
+		_, _ = sqlStringBuilder.WriteString(selectExpr(column))
 	}
 	_, _ = sqlStringBuilder.WriteString(" FROM `")
 	_, _ = sqlStringBuilder.WriteString(tableName)
