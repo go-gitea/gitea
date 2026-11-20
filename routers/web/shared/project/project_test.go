@@ -23,14 +23,14 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m)
+	unittest.MainTest(m, &unittest.TestOptions{SkipRepoFixtures: true})
 }
 
 // TestFindColumn covers the scoping rule every board handler depends on: a request only
 // resolves projects owned by the scope its route assigned, so an ID belonging to anyone
 // else reads as not found rather than leaking across owners.
 func TestFindColumn(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	for _, tc := range []struct {
 		name       string
 		projectID  string
@@ -69,7 +69,7 @@ func TestFindColumn(t *testing.T) {
 }
 
 func TestMoveIssuesNeedsOnlyProjectWrite(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), &repo_model.Repository{ID: 3, IsArchived: true}, "is_archived"))
 	ctx, _ := contexttest.MockContext(t, "POST /org3/-/projects")
 	contexttest.LoadUser(t, ctx, 15)

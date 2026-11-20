@@ -555,9 +555,13 @@ func EditUserPost(ctx *context.Context) {
 	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	if form.Reset2FA {
-		if _, _, err := auth.DisableTwoFactor(ctx, u.ID); err != nil {
+		totp, webAuthn, err := auth.DisableTwoFactor(ctx, u.ID)
+		if err != nil {
 			ctx.ServerErrorAuto(err)
 			return
+		}
+		if totp+webAuthn > 0 {
+			audit.Record(ctx, audit_model.UserTwoFactorDisable, u)
 		}
 	}
 

@@ -396,7 +396,7 @@ func handleWorkflows(
 	for _, dwf := range detectedWorkflows {
 		// repo-level run: the workflow content is this repo at dwf.SourceCommitSHA
 		if err := buildApproveAndInsertRun(ctx, input, ref, commit, payload, isForkPullRequest, dwf, input.Repo.ID, false); err != nil {
-			log.Error("repo %s: %v", input.Repo.FullName(), err)
+			log.Error("repo %s workflow %s ref %s: %v", input.Repo.FullName(), dwf.EntryName, ref, err)
 			continue
 		}
 	}
@@ -514,7 +514,7 @@ func newNotifyInputFromIssue(issue *issues_model.Issue, event webhook_module.Hoo
 	return newNotifyInput(issue.Repo, issue.Poster, event)
 }
 
-func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release, action api.HookReleaseAction) {
+func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release, action api.HookReleaseAction, changes *api.ChangesPayload) {
 	if err := rel.LoadAttributes(ctx); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return
@@ -527,6 +527,7 @@ func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.R
 		WithPayload(&api.ReleasePayload{
 			Action:     action,
 			Release:    convert.ToAPIRelease(ctx, rel.Repo, rel),
+			Changes:    changes,
 			Repository: convert.ToRepo(ctx, rel.Repo, permission),
 			Sender:     convert.ToUser(ctx, doer, nil),
 		}).
@@ -815,7 +816,7 @@ func detectAndHandleScopedWorkflows(
 			}
 
 			if err := buildApproveAndInsertRun(ctx, input, ref, consumerCommit, payload, isForkPullRequest, dwf, sourceRepo.ID, true); err != nil {
-				log.Error("scoped workflows: source %s workflow %s: %v", sourceRepo.FullName(), dwf.EntryName, err)
+				log.Error("scoped workflows: source %s workflow %s for consumer %s ref %s: %v", sourceRepo.FullName(), dwf.EntryName, input.Repo.FullName(), ref, err)
 				continue
 			}
 		}

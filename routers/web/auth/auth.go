@@ -698,6 +698,7 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 		}
 		return false
 	}
+	audit.RecordAs(ctx, u, audit_model.UserCreate, u)
 	log.Trace("Account created: %s", u.Name)
 	return true
 }
@@ -842,6 +843,7 @@ func ActivatePost(ctx *context.Context) {
 				return
 			}
 			ctx.Doer.Email = newEmail
+			audit.Record(ctx, audit_model.UserEmailPrimaryChange, ctx.Doer, "email", newEmail)
 		}
 		// FIXME: at the moment, GET request handles the "send confirmation email" action. But the old code does this redirect and then send a confirmation email.
 		ctx.Redirect(setting.AppSubURL + "/user/activate")
@@ -890,6 +892,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 		return
 	}
 
+	audit.RecordAs(ctx, user, audit_model.UserActive, user, "active", true)
 	log.Trace("User activated: %s", user.Name)
 
 	if err := regenerateSession(ctx, map[string]any{
@@ -933,6 +936,7 @@ func ActivateEmail(ctx *context.Context) {
 		if u, err := user_model.GetUserByID(ctx, email.UID); err != nil {
 			log.Warn("GetUserByID: %d", email.UID)
 		} else {
+			audit.RecordAs(ctx, u, audit_model.UserEmailActivate, u, "email", email.Email, "activated", true)
 			// Allow user to validate more emails
 			_ = ctx.Cache.Delete("MailResendLimit_" + u.LowerName)
 		}

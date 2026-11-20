@@ -36,7 +36,6 @@ func Packages(ctx *context.Context) {
 }
 
 func PackagesRuleAdd(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsPackages"] = true
 
@@ -51,7 +50,6 @@ func PackagesRuleAdd(ctx *context.Context) {
 }
 
 func PackagesRuleEdit(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsPackages"] = true
 
@@ -66,7 +64,6 @@ func PackagesRuleEdit(ctx *context.Context) {
 }
 
 func PackagesRuleAddPost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsPackages"] = true
 
@@ -79,7 +76,6 @@ func PackagesRuleAddPost(ctx *context.Context) {
 }
 
 func PackagesRuleEditPost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsPackages"] = true
 
@@ -92,7 +88,6 @@ func PackagesRuleEditPost(ctx *context.Context) {
 }
 
 func PackagesRulePreview(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsPackages"] = true
 

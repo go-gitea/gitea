@@ -37,11 +37,16 @@
 					<button type="button" class="ui basic green button">Basic Green</button>
 				</li>
 				<li class="sample-group">
-					<h2>Inline / Plain:</h2>
+					<h2>Button reset and interact</h2>
 					<div class="tw-my-1">
-						<button type="button" class="btn tw-p-2">Plain button</button>
-						<button type="button" class="btn interact-fg tw-p-2">Plain button with interact fg</button>
-						<button type="button" class="btn interact-bg tw-p-2">Plain button with interact bg</button>
+						<button type="button" class="btn">btn reset</button>
+						<button type="button" class="btn interact-fg tw-p-2">btn interact-fg</button>
+						<button type="button" class="btn interact-link tw-p-2">btn interact-link</button>
+						<button type="button" class="btn interact-bg tw-p-2">btn interact-bg</button>
+					</div>
+					<div class="tw-my-1">
+						<button type="button" class="interact-fg">interact-fg</button>
+						<button type="button" class="interact-link">interact-link</button>
 					</div>
 				</li>
 			</ul>
@@ -146,16 +151,6 @@
 				<input type="text" placeholder="place holder">
 			</div>
 		</div>
-	</div>
-
-	<div>
-		<h1>ComboMarkdownEditor</h1>
-		{{template "shared/combomarkdowneditor" dict "MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorGeneral nil)}}
-	</div>
-
-	<h1>Tailwind CSS Demo</h1>
-	<div>
-		<button type="button" class="{{if true}}tw-bg-red{{end}} tw-p-5 tw-border tw-rounded hover:tw-bg-blue active:tw-bg-yellow">Button</button>
 	</div>
 </div>
 {{template "devtest/devtest-footer"}}

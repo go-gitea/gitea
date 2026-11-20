@@ -8289,6 +8289,68 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/code/search": {
+      "get": {
+        "description": "The files of the ref are searched with git grep, which returns at most 50 files. The result window is limited to 1000 files (page * limit).",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Search the code of a repository",
+        "operationId": "repoSearchCode",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Terms must all occur in a file. Supports \"exact phrases\", /regexp/ and path:DIR. Language and repository qualifiers are not supported.",
+            "name": "q",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default to the repository’s default branch",
+            "name": "ref",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CodeSearchResults"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/collaborators": {
       "get": {
         "produces": [
@@ -16784,6 +16846,9 @@
           "200": {
             "$ref": "#/responses/empty"
           },
+          "201": {
+            "$ref": "#/responses/empty"
+          },
           "default": {
             "$ref": "#/responses/error"
           }
@@ -20029,6 +20094,48 @@
         }
       }
     },
+    "/search/code": {
+      "get": {
+        "description": "Authentication is required. The default branches are searched with the code indexer. Regular expressions are not supported. The result window is limited to 1000 files (page * limit).",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Search the code of all repositories",
+        "operationId": "codeSearch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Literal terms and \"exact phrases\" must all occur in a file, with optional qualifiers:\n\"repo:OWNER/NAME\", \"user:NAME\" and \"org:NAME\" to only search these repositories (each can be repeated),\n\"path:DIR\" to only search the files in a directory, \"language:NAME\" to only search the files of a language\n",
+            "name": "q",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CodeSearchResults"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/settings/api": {
       "get": {
         "produces": [
@@ -23082,6 +23189,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/UserSettings"
+          },
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -25073,6 +25183,11 @@
           "format": "date-time",
           "x-go-name": "Created"
         },
+        "digest": {
+          "description": "Digest is the SHA-256 of the content as \"sha256:{hex}\", omitted when not recorded at upload",
+          "type": "string",
+          "x-go-name": "Digest"
+        },
         "download_count": {
           "description": "DownloadCount is the number of times the attachment has been downloaded",
           "type": "integer",
@@ -25549,6 +25664,120 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "CodeSearchResultItem": {
+      "type": "object",
+      "title": "CodeSearchResultItem is a matching file.",
+      "properties": {
+        "html_url": {
+          "description": "File URL at the searched commit",
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "language": {
+          "description": "Programming language (Gitea extension)",
+          "type": "string",
+          "x-go-name": "Language"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "path": {
+          "type": "string",
+          "x-go-name": "Path"
+        },
+        "repository": {
+          "$ref": "#/definitions/Repository"
+        },
+        "text_matches": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeSearchTextMatch"
+          },
+          "x-go-name": "TextMatches"
+        },
+        "url": {
+          "description": "Contents API URL at the searched commit",
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CodeSearchResults": {
+      "type": "object",
+      "title": "CodeSearchResults contains matching files.",
+      "properties": {
+        "incomplete_results": {
+          "description": "Search stopped early",
+          "type": "boolean",
+          "x-go-name": "IncompleteResults"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeSearchResultItem"
+          },
+          "x-go-name": "Items"
+        },
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CodeSearchTextMatch": {
+      "type": "object",
+      "title": "CodeSearchTextMatch is a matching fragment.",
+      "properties": {
+        "fragment": {
+          "type": "string",
+          "x-go-name": "Fragment"
+        },
+        "matches": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeSearchTextMatchTerm"
+          },
+          "x-go-name": "Matches"
+        },
+        "object_type": {
+          "type": "string",
+          "x-go-name": "ObjectType"
+        },
+        "object_url": {
+          "type": "string",
+          "x-go-name": "ObjectURL"
+        },
+        "property": {
+          "type": "string",
+          "x-go-name": "Property"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CodeSearchTextMatchTerm": {
+      "type": "object",
+      "title": "CodeSearchTextMatchTerm is a matched term.",
+      "properties": {
+        "indices": {
+          "description": "Start and end UTF-8 byte offsets in the fragment, end-exclusive",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "Indices"
+        },
+        "text": {
+          "type": "string",
+          "x-go-name": "Text"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "CombinedStatus": {
       "description": "CombinedStatus holds the combined state of several statuses for a single commit",
       "type": "object",
@@ -25571,13 +25800,14 @@
           "type": "string",
           "enum": [
             "pending",
+            "running",
             "success",
             "error",
             "failure",
             "warning",
             "skipped"
           ],
-          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
+          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nrunning CommitStatusRunning is for when the CommitStatus is Running\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
           "x-go-name": "State"
         },
         "statuses": {
@@ -25825,17 +26055,18 @@
           "x-go-name": "ID"
         },
         "status": {
-          "description": "State represents the status state (pending, success, error, failure)",
+          "description": "State represents the status state (pending, running, success, error, failure, warning, skipped)",
           "type": "string",
           "enum": [
             "pending",
+            "running",
             "success",
             "error",
             "failure",
             "warning",
             "skipped"
           ],
-          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
+          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nrunning CommitStatusRunning is for when the CommitStatus is Running\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
           "x-go-name": "State"
         },
         "target_url": {
@@ -27203,17 +27434,18 @@
           "x-go-name": "Description"
         },
         "state": {
-          "description": "State represents the status state to set (pending, success, error, failure)",
+          "description": "State represents the status state to set (pending, running, success, error, failure, warning, skipped)",
           "type": "string",
           "enum": [
             "pending",
+            "running",
             "success",
             "error",
             "failure",
             "warning",
             "skipped"
           ],
-          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
+          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nrunning CommitStatusRunning is for when the CommitStatus is Running\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
           "x-go-name": "State"
         },
         "target_url": {
@@ -27355,7 +27587,7 @@
           }
         },
         "visibility": {
-          "description": "Team visibility within the organization. Defaults to \"private\".",
+          "description": "Team visibility within the organization. Defaults to the instance's default team visibility, \"private\" unless configured.",
           "type": "string",
           "enum": [
             "public",
@@ -31451,6 +31683,9 @@
           },
           "x-go-name": "Assignees"
         },
+        "auto_merge": {
+          "$ref": "#/definitions/PullRequestAutoMerge"
+        },
         "base": {
           "$ref": "#/definitions/PRBranchInfo"
         },
@@ -31632,6 +31867,31 @@
         },
         "user": {
           "$ref": "#/definitions/User"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PullRequestAutoMerge": {
+      "description": "PullRequestAutoMerge represents a pull request scheduled to auto merge when all checks succeed",
+      "type": "object",
+      "properties": {
+        "commit_message": {
+          "description": "The message of the resulting merge commit",
+          "type": "string",
+          "x-go-name": "CommitMessage"
+        },
+        "commit_title": {
+          "description": "The title of the resulting merge commit",
+          "type": "string",
+          "x-go-name": "CommitTitle"
+        },
+        "enabled_by": {
+          "$ref": "#/definitions/User"
+        },
+        "merge_method": {
+          "description": "The merge method that will be used, eg: \"merge\", \"rebase\", \"rebase-merge\", \"squash\", \"fast-forward-only\"",
+          "type": "string",
+          "x-go-name": "MergeMethod"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -33860,6 +34120,12 @@
           "format": "int64",
           "description": "Total file count"
         }
+      }
+    },
+    "CodeSearchResults": {
+      "description": "CodeSearchResults",
+      "schema": {
+        "$ref": "#/definitions/CodeSearchResults"
       }
     },
     "CombinedStatus": {

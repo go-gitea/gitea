@@ -7,12 +7,29 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
+
+	"xorm.io/xorm"
 )
 
-func AddSessionGenerationToUser(_ context.Context, x base.EngineMigration) error {
-	type User struct {
-		SessionGeneration int64 `xorm:"NOT NULL DEFAULT 0"`
+func AddRunnerNameToActionTask(_ context.Context, x base.EngineMigration) error {
+	type ActionTask struct {
+		RunnerName string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
 	}
 
-	return x.Sync(new(User))
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+		IgnoreConstrains:  true,
+	}, new(ActionTask)); err != nil {
+		return err
+	}
+
+	_, err := x.Exec(`
+UPDATE action_task SET runner_name = (
+	SELECT action_runner.name FROM action_runner WHERE action_runner.id = action_task.runner_id
+)
+WHERE runner_name = ''
+	AND EXISTS (
+		SELECT 1 FROM action_runner WHERE action_runner.id = action_task.runner_id AND action_runner.name IS NOT NULL
+	);`) // soft-deleted runners are included to keep their names
+	return err
 }
