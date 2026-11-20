@@ -193,12 +193,13 @@ func TestRepoCommitsWithStatus(t *testing.T) {
 	t.Run("failure", func(t *testing.T) { testRefMaster(t, "failure", "octicon-x", "tw-text-red") })
 	t.Run("warning", func(t *testing.T) { testRefMaster(t, "warning", "gitea-exclamation", "tw-text-yellow") })
 	t.Run("running", func(t *testing.T) { testRefMaster(t, "running", "gitea-running", "tw-text-yellow", "rotate-clockwise") })
+	t.Run("cancelled", func(t *testing.T) { testRefMaster(t, "cancelled", "octicon-stop", "tw-text-text-light") })
 	t.Run("unknown", func(t *testing.T) { testRefMaster(t, "stage-1", "octicon-question", "tw-text-text-light") })
 	t.Run("InvalidState", func(t *testing.T) {
 		invalidCtx := ctx
 		invalidCtx.ExpectedCode = http.StatusUnprocessableEntity
 		doAPICreateCommitStatusTest(invalidCtx, "master", "", "testci")(t)
-		doAPICreateCommitStatusTest(invalidCtx, "master", "in_progress", "testci")(t)
+		doAPICreateCommitStatusTest(invalidCtx, "master", commitstatus.CommitStatusState(strings.Repeat("a", git_model.CommitStatusStateMaxLength+1)), "testci")(t)
 	})
 	t.Run("BranchWithSlash", func(t *testing.T) {
 		_ = db.TruncateBeans(t.Context(), &git_model.CommitStatus{})

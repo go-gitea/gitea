@@ -56,7 +56,7 @@ func (d *pullCommitStatusCheckData) groupStatuses(commitStatuses []*git_model.Co
 		}
 		kind := statusCheckPending // unknown states count as pending, like in the combined status
 		switch {
-		case cs.State.IsError() || cs.State.IsFailure() || cs.State.IsWarning():
+		case cs.State.IsError() || cs.State.IsFailure() || cs.State.IsWarning() || cs.State.IsCancelled():
 			kind = statusCheckFailing
 		case cs.State == commitstatus.CommitStatusRunning || actionsStatuses[cs.ID] == actions_model.StatusRunning && cs.State.IsPending():
 			kind = statusCheckInProgress
