@@ -263,7 +263,7 @@ func runWeb(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("unknown command: %s", subCmdName)
 	}
 
-	managerCtx, cancel := context.WithCancel(ctx)
+	managerCtx, cancel := context.WithCancel(context.WithoutCancel(ctx))
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
