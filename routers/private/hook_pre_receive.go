@@ -172,22 +172,9 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	// Now there are several tests which can be overridden:
 	//
 	// 4. Check protected file patterns - this is overridable from the UI
-	changedProtectedFiles := false
-	protectedFilePath := ""
-
-	globs := protectBranch.GetProtectedFilePatterns()
-	if len(globs) > 0 {
-		_, err := pull_service.CheckFileProtection(ctx, gitRepo, branchName, oldCommitID, newCommitID, globs, 1, ctx.env)
-		if err != nil {
-			errFilePathProtected, ok := errors.AsType[pull_service.ErrFilePathProtected](err)
-			if !ok {
-				ctx.PrivateInternalErrorf("Unable to check file protection for commits from %s to %s: %v", oldCommitID, newCommitID, err)
-				return
-			}
-
-			changedProtectedFiles = true
-			protectedFilePath = errFilePathProtected.Path
-		}
+	changedProtectedFiles, protectedFilePath, ok := checkProtectedFiles(ctx, protectBranch, branchName, oldCommitID, newCommitID)
+	if !ok {
+		return
 	}
 
 	// 5. Check if the doer is allowed to push (and force-push if the incoming push is a force-push)
@@ -275,6 +262,27 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			return
 		}
 	}
+}
+
+// checkProtectedFiles reports whether the push changes a file that matches the
+// branch's protected file patterns, and the first such path. It does not reject
+// the push for that, since step 6 decides; ok is false only if the check failed.
+func checkProtectedFiles(ctx *preReceiveContext, protectBranch *git_model.ProtectedBranch, branchName, oldCommitID, newCommitID string) (changed bool, path string, ok bool) {
+	globs := protectBranch.GetProtectedFilePatterns()
+	if len(globs) == 0 {
+		return false, "", true
+	}
+
+	_, err := pull_service.CheckFileProtection(ctx, ctx.Repo.GitRepo, branchName, oldCommitID, newCommitID, globs, 1, ctx.env)
+	if err == nil {
+		return false, "", true
+	}
+	errFilePathProtected, isProtected := errors.AsType[pull_service.ErrFilePathProtected](err)
+	if !isProtected {
+		ctx.PrivateInternalErrorf("Unable to check file protection for commits from %s to %s: %v", oldCommitID, newCommitID, err)
+		return false, "", false
+	}
+	return true, errFilePathProtected.Path, true
 }
 
 // checkForcePush reports whether the push rewrites the branch history. It
