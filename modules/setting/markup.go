@@ -6,7 +6,6 @@ package setting
 import (
 	"regexp"
 	"strings"
-	"sync"
 
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
@@ -222,14 +221,10 @@ func createMarkupSanitizerRule(name string, sec ConfigSection) (MarkupSanitizerR
 	return rule, true
 }
 
-var extensionReg = sync.OnceValue(func() *regexp.Regexp {
-	return regexp.MustCompile(`^(\.[-\w]+)+$`)
-})
-
 func fileExtensionsToPatterns(sectionName string, extensions []string) []string {
 	patterns := make([]string, 0, len(extensions))
 	for _, extension := range extensions {
-		if !extensionReg().MatchString(extension) {
+		if !globalVars().extensionReg.MatchString(extension) {
 			log.Warn("Config section %s file extension %s is invalid. Extension ignored", sectionName, extension)
 		} else {
 			patterns = append(patterns, "*"+extension)

@@ -6,9 +6,9 @@ package install
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
-	"gitea.dev/models/unittest"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/contexttest"
 	"gitea.dev/services/forms"
@@ -38,7 +38,8 @@ func TestRoutes(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m)
+	setting.SetupGiteaTestEnv()
+	os.Exit(m.Run())
 }
 
 func TestFillInstallConfig(t *testing.T) {

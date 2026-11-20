@@ -13,10 +13,14 @@ import (
 
 	"gitea.dev/models/unittest"
 	webhook_model "gitea.dev/models/webhook"
+	"gitea.dev/modules/egress"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWebhookDeliverAuthorizationHeader(t *testing.T) {
@@ -187,6 +191,47 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 			}
 
 			assert.True(t, hookTask.IsSucceed)
+		})
+	}
+}
+
+func TestWebhookDeliveryErrorType(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	stalled := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done()
+	}))
+	t.Cleanup(stalled.Close)
+	closed := httptest.NewServer(http.NotFoundHandler())
+	closed.Close()
+
+	timeoutClient := *webhookHTTPClient
+	timeoutClient.Timeout = 50 * time.Millisecond
+	restoreAllowList := test.MockVariableValue(&setting.Webhook.AllowedHostList, "")
+	blockedClient := &http.Client{Transport: egress.NewWebhookPolicy().NewHTTPTransport()}
+	restoreAllowList()
+
+	for _, tc := range []struct {
+		name      string
+		client    *http.Client
+		url       string
+		errorType webhook_model.HookDeliveryError
+	}{
+		{"blocked", blockedClient, stalled.URL, webhook_model.HookDeliveryErrorBlocked},
+		{"timeout", &timeoutClient, stalled.URL, webhook_model.HookDeliveryErrorTimeout},
+		{"connection", webhookHTTPClient, closed.URL, webhook_model.HookDeliveryErrorConnection},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			defer test.MockVariableValue(&webhookHTTPClient, tc.client)()
+			hook := &webhook_model.Webhook{RepoID: 3, URL: tc.url, ContentType: webhook_model.ContentTypeJSON, Events: `{}`, IsActive: true}
+			require.NoError(t, webhook_model.CreateWebhook(t.Context(), hook))
+			task, err := webhook_model.CreateHookTask(t.Context(), &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventPush, PayloadVersion: 1})
+			require.NoError(t, err)
+
+			require.Error(t, Deliver(t.Context(), task))
+			stored, err := webhook_model.GetHookTaskByID(t.Context(), task.ID)
+			require.NoError(t, err)
+			require.NotNil(t, stored.ResponseInfo)
+			assert.Equal(t, tc.errorType, stored.ResponseInfo.ErrorType)
 		})
 	}
 }

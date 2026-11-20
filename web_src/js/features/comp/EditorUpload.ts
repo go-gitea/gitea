@@ -166,6 +166,9 @@ export function initTextareaEvents(textarea: HTMLTextAreaElement, dropzoneEl: HT
   });
   dropzoneEl?.dropzone.on(DropzoneCustomEventRemovedFile, ({fileUuid}: {fileUuid: string}) => {
     const newText = removeAttachmentLinksFromMarkdown(textarea.value, fileUuid);
-    if (textarea.value !== newText) textarea.value = newText;
+    if (textarea.value !== newText) {
+      textarea.value = newText;
+      triggerEditorContentChanged(textarea);
+    }
   });
 }

@@ -6,14 +6,17 @@ package webhook
 import (
 	"context"
 	"errors"
+	"html/template"
 	"time"
 	"uuid"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/translation"
 	webhook_module "gitea.dev/modules/webhook"
 
 	"xorm.io/builder"
@@ -32,13 +35,6 @@ func (opts ListHookTaskOptions) ToOrders() string {
 	return "hook_task.id DESC"
 }
 
-//   ___ ___                __   ___________              __
-//  /   |   \  ____   ____ |  | _\__    ___/____    _____|  | __
-// /    ~    \/  _ \ /  _ \|  |/ / |    |  \__  \  /  ___/  |/ /
-// \    Y    (  <_> |  <_> )    <  |    |   / __ \_\___ \|    <
-//  \___|_  / \____/ \____/|__|_ \ |____|  (____  /____  >__|_ \
-//        \/                    \/              \/     \/     \/
-
 // HookRequest represents hook task request information.
 type HookRequest struct {
 	URL        string            `json:"url"`
@@ -47,11 +43,21 @@ type HookRequest struct {
 	Body       string            `json:"body"`
 }
 
+type HookDeliveryError string
+
+const (
+	HookDeliveryErrorTimeout    HookDeliveryError = "timeout"
+	HookDeliveryErrorConnection HookDeliveryError = "connection"
+	HookDeliveryErrorBlocked    HookDeliveryError = "blocked"
+	HookDeliveryErrorUnknown    HookDeliveryError = "unknown"
+)
+
 // HookResponse represents hook task response information.
 type HookResponse struct {
-	Status  int               `json:"status"`
-	Headers map[string]string `json:"headers"`
-	Body    string            `json:"body"`
+	Status    int               `json:"status"`
+	Headers   map[string]string `json:"headers"`
+	Body      string            `json:"body"`
+	ErrorType HookDeliveryError `json:"error_type,omitempty"`
 }
 
 // HookTask represents a hook task.
@@ -75,6 +81,44 @@ type HookTask struct {
 	RequestInfo     *HookRequest  `xorm:"-"`
 	ResponseContent string        `xorm:"LONGTEXT"`
 	ResponseInfo    *HookResponse `xorm:"-"`
+}
+
+func (t *HookTask) IsDeliveryInProgress() bool {
+	if !t.IsDelivered || t.ResponseContent != "" {
+		return false
+	}
+	// Legacy claims only recorded the time the delivery was queued.
+	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
+	return timeout <= 0 || time.Since(t.Delivered.AsTime()) < timeout+10*time.Second
+}
+
+func (t *HookTask) IsDeliveryWaitingForResult() bool {
+	return !t.IsDelivered || t.IsDeliveryInProgress()
+}
+
+func (t *HookTask) DeliveryStatusTr(locale translation.Locale) template.HTML {
+	if t.ResponseInfo != nil && t.ResponseInfo.ErrorType != "" {
+		switch t.ResponseInfo.ErrorType {
+		case HookDeliveryErrorTimeout:
+			return locale.Tr("repo.settings.webhook.delivery.timeout")
+		case HookDeliveryErrorConnection:
+			return locale.Tr("repo.settings.webhook.delivery.connection")
+		case HookDeliveryErrorBlocked:
+			return locale.Tr("repo.settings.webhook.delivery.blocked")
+		default:
+			return htmlutil.EscapeString(string(t.ResponseInfo.ErrorType))
+		}
+	}
+	switch {
+	case t.IsSucceed:
+		return locale.Tr("repo.settings.webhook.delivery.succeeded")
+	case !t.IsDelivered:
+		return locale.Tr("repo.settings.webhook.delivery.queued")
+	case t.IsDeliveryInProgress():
+		return locale.Tr("repo.settings.webhook.delivery.in_progress")
+	default:
+		return locale.Tr("repo.settings.webhook.delivery.failed")
+	}
 }
 
 func init() {
@@ -207,9 +251,10 @@ func FindUndeliveredHookTaskIDs(ctx context.Context, lowerID int64) ([]int64, er
 }
 
 func MarkTaskDelivered(ctx context.Context, task *HookTask) (bool, error) {
-	count, err := db.GetEngine(ctx).ID(task.ID).Where("is_delivered = ?", false).Cols("is_delivered").Update(&HookTask{
+	count, err := db.GetEngine(ctx).ID(task.ID).Where("is_delivered = ?", false).Cols("is_delivered", "delivered").Update(&HookTask{
 		ID:          task.ID,
 		IsDelivered: true,
+		Delivered:   timeutil.TimeStampNanoNow(),
 	})
 
 	return count != 0, err

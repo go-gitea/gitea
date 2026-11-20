@@ -85,7 +85,9 @@ func rewriteAllPrincipalKeys(ctx context.Context) error {
 		return err
 	}
 
-	_ = t.Close()
+	if err := t.Close(); err != nil {
+		return err
+	}
 	return util.RenameWithRetry(tmpPath, fPath)
 }
 

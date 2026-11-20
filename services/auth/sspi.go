@@ -183,18 +183,11 @@ func (s *SSPI) newUser(ctx context.Context, username string, cfg *sspi.Source) (
 // (eg. "DOMAIN\user" becomes "user"), and removes the UPN suffix (domain name) and separator
 // from UPNs (eg. "user@domain.local" becomes "user")
 func stripDomainNames(username string) string {
-	if strings.Contains(username, "\\") {
-		parts := strings.SplitN(username, "\\", 2)
-		if len(parts) > 1 {
-			username = parts[1]
-		}
-	} else if strings.Contains(username, "@") {
-		parts := strings.Split(username, "@")
-		if len(parts) > 1 {
-			username = parts[0]
-		}
+	if _, after, ok := strings.Cut(username, "\\"); ok {
+		return after
 	}
-	return username
+	before, _, _ := strings.Cut(username, "@")
+	return before
 }
 
 func replaceSeparators(username string, cfg *sspi.Source) string {

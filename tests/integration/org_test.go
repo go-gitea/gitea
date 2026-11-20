@@ -304,6 +304,14 @@ func testTeamsPage(t *testing.T) {
 	req = NewRequestf(t, "GET", "/org/%s/teams", org.Name)
 	nonMemberSession.MakeRequest(t, req, http.StatusNotFound)
 
+	t.Run("NewTeamDefaultVisibility", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Service.DefaultTeamVisibilityMode, api.VisibleTypeLimited)()
+		req := NewRequestf(t, "GET", "/org/%s/teams/new", org.Name)
+		checked := NewHTMLParser(t, ownerSession.MakeRequest(t, req, http.StatusOK).Body).Find(`input[name="visibility"][checked]`)
+		assert.Equal(t, 1, checked.Length())
+		assert.Equal(t, "limited", checked.AttrOr("value", ""))
+	})
+
 	t.Run("Pagination", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.UI.MembersPagingNum, 2)()
 		assert.Len(t, listTeams(t, ownerSession, "?page=1"), 2)

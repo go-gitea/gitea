@@ -3,10 +3,12 @@
 }
 
 .modal-dialog {
+  position: static;
+  margin-top: auto;
+  margin-bottom: auto;
   text-align: left;
   background: var(--color-body);
   border: none;
-  margin: 0;
   padding: 0;
   color: inherit;
   box-shadow: 1px 3px 3px 0 var(--color-shadow), 1px 3px 15px 2px var(--color-shadow);

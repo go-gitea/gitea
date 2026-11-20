@@ -1,26 +1,25 @@
 {{/* need to reload after "watch/unwatch" or "star/unstar" fetch actions */}}
 <div class="user-cards" id="user-cards-container" data-fetch-trigger="fetch-reload">
 	{{if .CardsTitle}}
-	<h2 class="ui dividing header">
-		{{.CardsTitle}}
-	</h2>
+		<h2 class="ui dividing header">{{.CardsTitle}}</h2>
 	{{end}}
-	<ul class="list">
-		{{range .Cards}}
-			<li class="item ui segment">
-				<a href="{{.HomeLink}}">
-					{{ctx.AvatarUtils.Avatar . 48}}
-				</a>
-				<h3 class="name flex-text-block"><a href="{{.HomeLink}}">{{.DisplayName}}</a>{{template "shared/user/user_type_label" .}}</h3>
-
-				<div class="meta flex-text-block">
-					{{if .Website}}
-						{{svg "octicon-link"}} <a href="{{.Website}}" target="_blank">{{.Website}}</a>
-					{{else if .Location}}
-						{{svg "octicon-location"}} {{.Location}}
-					{{else}}
-						{{svg "octicon-calendar"}} {{ctx.Locale.Tr "user.joined_on" (DateUtils.AbsoluteShort .CreatedUnix)}}
-					{{end}}
+	<ul>
+		{{range $card := .Cards}}
+			<li class="ui segment">
+				<a href="{{$card.HomeLink}}">{{ctx.AvatarUtils.Avatar $card 48}}</a>
+				<div class="flex-relaxed-list">
+					<div class="item tw-text-xl">
+						{{template "shared/user/name" $card}}
+					</div>
+					<div class="item flex-text-inline">
+						{{if $card.Website}}
+							{{svg "octicon-link"}} <a href="{{$card.Website}}" target="_blank" class="muted">{{$card.Website}}</a>
+						{{else if $card.Location}}
+							{{svg "octicon-location"}} <span>{{$card.Location}}</span>
+						{{else}}
+							{{svg "octicon-calendar"}} <span>{{ctx.Locale.Tr "user.joined_on" (DateUtils.AbsoluteShort $card.CreatedUnix)}}</span>
+						{{end}}
+					</div>
 				</div>
 			</li>
 		{{end}}
