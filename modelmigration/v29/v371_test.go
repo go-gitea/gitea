@@ -33,6 +33,7 @@ func TestRepairPackageSigningKeys(t *testing.T) {
 	settings := map[int64]*UserSetting{}
 	require.NoError(t, x.Find(&settings))
 	assert.Equal(t, "valid", settings[4].SettingValue)
+	assert.Equal(t, "untouched", settings[6].SettingValue)
 
 	readIdentity := func(armored string) *openpgp.Identity {
 		entities, err := openpgp.ReadArmoredKeyRing(strings.NewReader(armored))

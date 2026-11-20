@@ -131,3 +131,15 @@
   user_id: 2
   setting_key: rpm.key.public
   setting_value: valid
+
+-
+  id: 5
+  user_id: 3
+  setting_key: debian.key.private
+  setting_value: unreadable
+
+-
+  id: 6
+  user_id: 3
+  setting_key: debian.key.public
+  setting_value: untouched
