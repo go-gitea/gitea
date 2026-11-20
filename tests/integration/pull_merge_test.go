@@ -921,6 +921,43 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 	})
 }
 
+func TestPullAutoMergeFailureIsShown(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		defer test.MockVariableValue(&setting.DisableGitHooks, false)()
+
+		session := loginUser(t, "user1")
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1-1", "")
+		testEditFile(t, session, "user1", "repo1-1", "master", "README.md", "Hello, World (Edited)\n")
+		resp := testPullCreate(t, session, "user1", "repo1-1", false, "master", "master", "Auto merge failure test pull")
+		prLink := test.RedirectURL(resp)
+
+		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		forkedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: "repo1-1"})
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: baseRepo.ID, BaseBranch: "master", HeadRepoID: forkedRepo.ID, HeadBranch: "master"})
+
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+		req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1/hooks/git/pre-receive", &api.EditGitHookOption{
+			Content: "#!/bin/sh\necho 'invalid commit message' >&2\nexit 1\n",
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+
+		require.NoError(t, automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false))
+
+		assert.Eventually(t, func() bool {
+			return unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: pr.ID}).ErrorMessage == "invalid commit message"
+		}, 2*time.Second, 50*time.Millisecond)
+
+		resp = session.MakeRequest(t, NewRequest(t, "GET", prLink), http.StatusOK)
+		assert.Contains(t, resp.Body.String(), "invalid commit message")
+		assert.NotContains(t, resp.Body.String(), "/cancel_auto_merge")
+
+		// a canceled auto merge can be scheduled again
+		require.NoError(t, pull_model.ScheduleAutoMerge(t.Context(), user1, pr.ID, repo_model.MergeStyleMerge, "auto merge test", false))
+		assert.False(t, unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: pr.ID}).IsCanceled())
+	})
+}
+
 func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		// create a pull request

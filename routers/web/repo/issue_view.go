@@ -12,6 +12,7 @@ import (
 	"slices"
 	"sort"
 	"strconv"
+	"strings"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -26,6 +27,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/emoji"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/markdown"
@@ -942,6 +944,15 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	if _, data.AutoMerge, err = pull_model.GetScheduledMergeByPullID(ctx, pull.ID); err != nil {
 		ctx.ServerErrorAuto(err)
 		return
+	}
+	if data.AutoMerge != nil && data.AutoMerge.IsCanceled() {
+		if data.hasPermToMerge {
+			data.AutoMergeFailedSection = &pullMergeBoxSection{StatusIcon: "octicon-x", StatusIconClass: "tw-bg-red", SectionTitle: ctx.Locale.Tr("repo.pulls.auto_merge_failed")}
+			for line := range strings.SplitSeq(data.AutoMerge.ErrorMessage, "\n") {
+				data.AutoMergeFailedSection.SectionDetails = append(data.AutoMergeFailedSection.SectionDetails, htmlutil.HTMLFormat("%s", line))
+			}
+		}
+		data.AutoMerge = nil
 	}
 	if data.AutoMerge != nil {
 		data.AutoMergeStyleName = trMergeStyleShortName(ctx.Locale, data.AutoMerge.MergeStyle)

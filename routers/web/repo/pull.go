@@ -275,10 +275,11 @@ type pullMergeBoxData struct {
 	AutodetectManualMerge bool
 	IsPullBranchDeletable bool
 
-	ReviewSection         *pullMergeBoxSection
-	MergeSection          *pullMergeBoxSection
-	BlockedSection        *pullMergeBoxSection
-	WorkInProgressSection *pullMergeBoxSection
+	ReviewSection          *pullMergeBoxSection
+	MergeSection           *pullMergeBoxSection
+	BlockedSection         *pullMergeBoxSection
+	WorkInProgressSection  *pullMergeBoxSection
+	AutoMergeFailedSection *pullMergeBoxSection
 }
 
 func (d *pullMergeBoxData) addOverridableBlocker(info template.HTML) {

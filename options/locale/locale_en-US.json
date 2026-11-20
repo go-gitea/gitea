@@ -1941,6 +1941,7 @@
   "repo.pulls.auto_merge_disabled_reason.pushed_by_non_writer": "Head branch was pushed to by a user without write access",
   "repo.pulls.auto_merge_disabled_reason.base_changed": "Base branch was changed",
   "repo.pulls.auto_merge_disabled_reason.work_in_progress": "Pull request was marked as work in progress",
+  "repo.pulls.auto_merge_failed": "Auto-merge was disabled because the merge failed",
   "repo.pulls.auto_merge_already_enabled": "Auto-merge is already enabled for this pull request.",
   "repo.pulls.delete.title": "Delete this pull request?",
   "repo.pulls.delete.text": "Do you really want to delete this pull request? (This will permanently remove all content. Consider closing it instead, if you intend to keep it archived)",

@@ -37,6 +37,9 @@
 					{{end}}
 				</div>
 			{{end}}
+			{{if $mergeBoxData.AutoMergeFailedSection}}
+				<div class="item">{{template "repo/issue/view_content/pull_merge_section" (dict "MergeBoxSection" $mergeBoxData.AutoMergeFailedSection)}}</div>
+			{{end}}
 			{{if or $mergeBoxData.AutoMerge $mergeBoxData.MergeFormProps $mergeBoxData.ShowPullCommands}}
 				<div class="item merge-box-footer tw-items-center tw-bg-box-header">
 					{{if $mergeBoxData.AutoMerge}}
