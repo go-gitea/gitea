@@ -10,6 +10,7 @@ import (
 	"slices"
 	"uuid"
 
+	"gitea.dev/actionslib/pkg/protocol"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	"gitea.dev/actionslib/runner/v1/runnerv1connect"
 	actions_model "gitea.dev/models/actions"
@@ -228,22 +229,21 @@ func (s *Service) UpdateTask(
 		return nil, status.Errorf(codes.Internal, "update task: %v", err)
 	}
 
-	for k, v := range req.Outputs {
-		if len(k) > 255 {
-			log.Warn("Ignore the output of task %d because the key is too long: %q", task.ID, k)
+	for key, value := range req.Outputs {
+		if len(key) > protocol.MaxOutputKeyLength {
+			log.Warn("Ignore the output of task %d because the key is too long: %q", task.ID, key)
 			continue
 		}
-		// The value can be a maximum of 1 MB
-		if l := len(v); l > 1024*1024 {
-			log.Warn("Ignore the output %q of task %d because the value is too long: %v", k, task.ID, l)
+		if len(value) > protocol.MaxOutputValueLength {
+			log.Warn("Ignore the output %q of task %d because the value is too long: %v", key, task.ID, len(value))
 			continue
 		}
 		// There's another limitation on GitHub that the total of all outputs in a workflow run can be a maximum of 50 MB.
 		// We don't check the total size here because it's not easy to do, and it doesn't really worth it.
 		// See https://docs.github.com/en/actions/using-jobs/defining-outputs-for-jobs
 
-		if err := actions_model.InsertTaskOutputIfNotExist(ctx, task.ID, k, v); err != nil {
-			log.Warn("Failed to insert the output %q of task %d: %v", k, task.ID, err)
+		if err := actions_model.InsertTaskOutputIfNotExist(ctx, task.ID, key, value); err != nil {
+			log.Warn("Failed to insert the output %q of task %d: %v", key, task.ID, err)
 			// It's ok not to return errors, the runner will resend the outputs.
 		}
 	}

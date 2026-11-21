@@ -35,8 +35,8 @@ import (
 	"xorm.io/builder"
 )
 
-// MaxReusableCallLevels allows nine calls across ten workflows, including the top-level workflow.
-const MaxReusableCallLevels = 8
+// MaxReusableCallLevels counts ancestors of the deepest caller, leaving room for the caller and its callee.
+const MaxReusableCallLevels = model.MaxWorkflowCallDepth - 2
 
 // checkRunJobLimit rejects adding jobs that would push the attempt over actions_model.MaxJobNumPerRun.
 // checkCallerChain bounds nesting *depth*, but a reusable graph also fans out in *breadth*: without a
