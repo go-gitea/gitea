@@ -8,18 +8,21 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
 	perm_model "gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/queue"
@@ -127,6 +130,7 @@ on:
   push:
     paths:
       - '.gitea/workflows/caller.yaml'
+cache-mode: read
 jobs:
   caller_job1:
     runs-on: ubuntu-latest
@@ -168,6 +172,22 @@ jobs:
 				r2Job1AttemptJobID                   int64
 			)
 
+			completeCallerJob3 := func(t *testing.T, expectedOutput string) {
+				callerJob3Task := defaultRunner.fetchTask(t) // for caller_job3
+				_, callerJob3, _ := getTaskAndJobAndRunByTaskID(t, callerJob3Task.Id)
+				assert.Equal(t, "caller_job3", callerJob3.JobID)
+				if assert.Len(t, callerJob3Task.Needs, 1) {
+					assert.Contains(t, callerJob3Task.Needs, "caller_job2")
+					assert.Equal(t, runnerv1.Result_RESULT_SUCCESS, callerJob3Task.Needs["caller_job2"].Result)
+					if assert.Len(t, callerJob3Task.Needs["caller_job2"].Outputs, 1) {
+						assert.Equal(t, expectedOutput, callerJob3Task.Needs["caller_job2"].Outputs["r1_out"])
+					}
+				}
+				defaultRunner.execTask(t, callerJob3Task, &mockTaskOutcome{
+					result: runnerv1.Result_RESULT_SUCCESS,
+				})
+			}
+
 			t.Run("Check initialized jobs", func(t *testing.T) {
 				// run
 				assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
@@ -194,7 +214,7 @@ jobs:
 				assert.False(t, callerJob3.IsReusableCaller)
 			})
 
-			t.Run("First run", func(t *testing.T) {
+			t.Run("First run caps nested jobs at the caller workflow's cache-mode", func(t *testing.T) {
 				callerJob1Task := defaultRunner.fetchTask(t) // for caller_job1
 				_, callerJob1, _ := getTaskAndJobAndRunByTaskID(t, callerJob1Task.Id)
 				assert.Equal(t, "caller_job1", callerJob1.JobID)
@@ -268,6 +288,9 @@ jobs:
 				_, fetchedR2Job1, _ := getTaskAndJobAndRunByTaskID(t, r2Job1Task.Id)
 				assert.Equal(t, "reusable2_job1", fetchedR2Job1.JobID)
 				assert.Equal(t, r1Job3ID, fetchedR2Job1.ParentJobID)
+				_, r2Job1RunnerJob, err := jobparser.ParseRawSingleWorkflow(r2Job1Task.WorkflowPayload)
+				require.NoError(t, err)
+				assert.Equal(t, "read", r2Job1RunnerJob.CacheMode)
 				r2Job1Payload := getWorkflowCallPayloadFromTask(t, r2Job1Task)
 				if assert.Len(t, r2Job1Payload.Inputs, 1) {
 					assert.Equal(t, "from_caller_job2", r2Job1Payload.Inputs["msg"])
@@ -279,19 +302,7 @@ jobs:
 				callerJob2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: callerJob2ID})
 				assert.Equal(t, actions_model.StatusSuccess, callerJob2.Status)
 
-				callerJob3Task := defaultRunner.fetchTask(t) // for caller_job3
-				_, callerJob3, _ := getTaskAndJobAndRunByTaskID(t, callerJob3Task.Id)
-				assert.Equal(t, "caller_job3", callerJob3.JobID)
-				if assert.Len(t, callerJob3Task.Needs, 1) {
-					assert.Contains(t, callerJob3Task.Needs, "caller_job2")
-					assert.Equal(t, runnerv1.Result_RESULT_SUCCESS, callerJob3Task.Needs["caller_job2"].Result)
-					if assert.Len(t, callerJob3Task.Needs["caller_job2"].Outputs, 1) {
-						assert.Equal(t, "r1j2_out_data", callerJob3Task.Needs["caller_job2"].Outputs["r1_out"])
-					}
-				}
-				defaultRunner.execTask(t, callerJob3Task, &mockTaskOutcome{
-					result: runnerv1.Result_RESULT_SUCCESS,
-				})
+				completeCallerJob3(t, "r1j2_out_data")
 				callerRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runID})
 				assert.Equal(t, actions_model.StatusSuccess, callerRun.Status)
 			})
@@ -349,23 +360,52 @@ jobs:
 				callerJob2 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: callerJob2.ID})
 				assert.Equal(t, actions_model.StatusSuccess, callerJob2.Status)
 
-				callerJob3Task := defaultRunner.fetchTask(t)
-				_, callerJob3, _ = getTaskAndJobAndRunByTaskID(t, callerJob3Task.Id)
-				assert.Equal(t, "caller_job3", callerJob3.JobID)
-				if assert.Len(t, callerJob3Task.Needs, 1) {
-					assert.Contains(t, callerJob3Task.Needs, "caller_job2")
-					assert.Equal(t, runnerv1.Result_RESULT_SUCCESS, callerJob3Task.Needs["caller_job2"].Result)
-					if assert.Len(t, callerJob3Task.Needs["caller_job2"].Outputs, 1) {
-						assert.Equal(t, "r1j2_out_data_updated", callerJob3Task.Needs["caller_job2"].Outputs["r1_out"])
-					}
-				}
-				defaultRunner.execTask(t, callerJob3Task, &mockTaskOutcome{
-					result: runnerv1.Result_RESULT_SUCCESS,
-				})
+				completeCallerJob3(t, "r1j2_out_data_updated")
 				attempt2 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunAttempt{RunID: runID, Attempt: 2})
 				assert.Equal(t, actions_model.StatusSuccess, attempt2.Status)
 				run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runID})
 				assert.Equal(t, actions_model.StatusSuccess, run.Status)
+			})
+
+			t.Run("Sidebar groups workflow_call-only workflows", func(t *testing.T) {
+				require.NoError(t, db.Insert(t.Context(), &actions_model.ActionRun{
+					Title: "former push run", RepoID: repo.ID, OwnerID: repo.OwnerID, WorkflowID: "reusable2.yaml", Index: 9701,
+					TriggerUserID: user2.ID, Ref: "refs/heads/" + repo.DefaultBranch, Event: "push", TriggerEvent: "push",
+					Status: actions_model.StatusSuccess,
+				}))
+				job := "jobs:\n  job1:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n"
+				testCreateFileInBranch(t, user2, repo, createFileInBranchOptions{}, map[string]string{
+					".gitea/workflows/mixed.yaml":     "on: [workflow_call, workflow_dispatch]\n" + job,
+					".gitea/workflows/no-events.yaml": "on: []\n" + job,
+				})
+				MakeRequest(t, NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/actions/workflows/reusable2.yaml/disable", repo.FullName())).
+					AddTokenAuth(user2Token), http.StatusNoContent)
+
+				doc := NewHTMLParser(t, user2Session.MakeRequest(t, NewRequest(t, "GET", repo.Link()+"/actions?workflow=reusable1.yaml"), http.StatusOK).Body)
+				listed := func(name string) int {
+					return doc.Find(fmt.Sprintf(`.flex-container-nav > .menu > a.item[href*="workflow=%s&"]`, name)).Length()
+				}
+				grouped := func(name string) int {
+					return doc.Find(fmt.Sprintf(`.flex-container-nav details .menu a.item[href*="workflow=%s&"]`, name)).Length()
+				}
+				assert.Equal(t, "2", doc.Find(".flex-container-nav details summary .ui.label").Text())
+				assert.Equal(t, 1, grouped("reusable1.yaml"))
+				assert.Equal(t, 1, grouped("reusable2.yaml"))
+				assert.Equal(t, 1, doc.Find(`.flex-container-nav details a.item[href*="workflow=reusable2.yaml&"] .ui.red.label`).Length())
+				assert.Zero(t, listed("reusable1.yaml"))
+				assert.Equal(t, 1, listed("caller.yaml"))
+				assert.Equal(t, 1, listed("mixed.yaml"))
+				assert.Equal(t, 1, listed("no-events.yaml"))
+				assert.Equal(t, "This workflow can only be called by other workflows.", strings.TrimSpace(doc.Find(".empty-placeholder h2").Text()))
+				assert.Zero(t, doc.Find(`[data-url*="/disable?workflow=reusable1.yaml"]`).Length())
+				assert.Zero(t, doc.Find(`[data-modal="#workflow-status-badge-modal"]`).Length())
+
+				doc = NewHTMLParser(t, user2Session.MakeRequest(t, NewRequest(t, "GET", repo.Link()+"/actions?workflow=reusable2.yaml"), http.StatusOK).Body)
+				assert.Equal(t, 1, doc.Find(`[data-url*="/enable?workflow=reusable2.yaml"]`).Length())
+
+				doc = NewHTMLParser(t, user2Session.MakeRequest(t, NewRequest(t, "GET", repo.Link()+"/actions?workflow=mixed.yaml"), http.StatusOK).Body)
+				assert.Equal(t, 1, doc.Find(`[data-url*="/disable?workflow=mixed.yaml"]`).Length())
+				assert.Equal(t, 1, doc.Find(`[data-modal="#workflow-status-badge-modal"]`).Length())
 			})
 		})
 
@@ -488,7 +528,7 @@ jobs:
 			runner.fetchNoTask(t)
 		})
 
-		t.Run("Cross-repo callee with same-repo nested uses", func(t *testing.T) {
+		t.Run("Cross-repo callee with same-repo nested uses passes the cache-mode cap down", func(t *testing.T) {
 			// A same-repo `uses: ./...` inside a cross-repo reusable callee must resolve relative to the callee's own repo (matching GitHub's behavior), not the original triggering repo.
 
 			// Place a util.yaml with a distinguishable job name in BOTH repos to detect mis-resolution.
@@ -510,9 +550,11 @@ jobs:
 				`name: LibNested
 on:
   workflow_call:
+cache-mode: write
 
 jobs:
   call_util_in_lib:
+    cache-mode: read
     uses: ./.gitea/workflows/util.yaml
 `)
 
@@ -558,23 +600,32 @@ jobs:
 
 			// call_util_in_lib has `uses: ./.gitea/workflows/util.yaml`, so its children should come from libRepo/util.yaml
 			assert.True(t, callUtilJob.IsExpanded)
-			unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "util_lib_job", ParentJobID: callUtilJob.ID})
+			utilLibJob, err := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "util_lib_job", ParentJobID: callUtilJob.ID}).ParseJob()
+			require.NoError(t, err)
+			assert.Equal(t, "read", utilLibJob.CacheMode)
 			unittest.AssertNotExistsBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "util_consumer_job"})
 		})
 
-		t.Run("Missing or invalid callee fails the run as an invalid workflow file", func(t *testing.T) {
-			for name, testCase := range map[string]struct{ callee, want string }{
-				"missing":    {"", "job call: read user2/caller-missing-callee@"},
-				"no-runs-on": {"on: workflow_call\njobs:\n  inner:\n    steps:\n      - run: echo\n", "job call: Error from called workflow ./.gitea/workflows/callee.yml: job inner: Required property is missing: runs-on"},
+		t.Run("Missing, invalid or cache-mode exceeding callee fails the run as an invalid workflow file", func(t *testing.T) {
+			apiRepo := createActionsTestRepo(t, user2Token, "invalid-callees", false)
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+			const caller = "on: push\njobs:\n  plain_job: {runs-on: ubuntu-latest, steps: [{run: echo}]}\n  call:\n    needs: plain_job\n    uses: ./.gitea/workflows/"
+			testCreateFileInBranch(t, user2, repo, createFileInBranchOptions{}, map[string]string{
+				".gitea/workflows/missing.yaml":      caller + "absent.yml\n",
+				".gitea/workflows/invalid.yaml":      caller + "no-runs-on.yml\n",
+				".gitea/workflows/no-runs-on.yml":    "on: workflow_call\njobs: {inner: {steps: [{run: echo}]}}\n",
+				".gitea/workflows/workflow-cap.yaml": caller + "leaf.yml\n    cache-mode: write-only\n",
+				".gitea/workflows/leaf.yml":          "on: workflow_call\ncache-mode: read\njobs: {build: {runs-on: ubuntu-latest, cache-mode: write-only, steps: [{run: echo}]}}\n",
+				".gitea/workflows/relay.yml":         "on: workflow_call\njobs: {forward: {uses: ./.gitea/workflows/leaf.yml}}\n",
+				".gitea/workflows/job-cap.yaml":      "on: push\ncache-mode: read\njobs:\n  allow: {uses: ./.gitea/workflows/relay.yml, cache-mode: write}\n  inherit: {uses: ./.gitea/workflows/relay.yml}\n",
+			})
+			for workflowID, want := range map[string]string{
+				"missing.yaml":      "job call: read user2/invalid-callees@",
+				"invalid.yaml":      "job call: Error from called workflow ./.gitea/workflows/no-runs-on.yml: job inner: Required property is missing: runs-on",
+				"workflow-cap.yaml": "job call: Error from called workflow ./.gitea/workflows/leaf.yml: cache-mode: The workflow is requesting 'read', but is only allowed 'write-only'",
+				"job-cap.yaml":      "job inherit: Error from called workflow ./.gitea/workflows/relay.yml: job forward: Error from called workflow ./.gitea/workflows/leaf.yml: cache-mode: The nested job 'build' is requesting 'write-only', but is only allowed 'read'",
 			} {
-				apiRepo := createActionsTestRepo(t, user2Token, "caller-"+name+"-callee", false)
-				repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-				if testCase.callee != "" {
-					createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/callee.yml", testCase.callee)
-				}
-				createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/caller.yaml",
-					"on: push\njobs:\n  plain_job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n  call:\n    needs: plain_job\n    uses: ./.gitea/workflows/callee.yml\n")
-				assertInvalidWorkflowRun(t, repo.ID, "caller.yaml", testCase.want)
+				assertInvalidWorkflowRun(t, repo.ID, workflowID, want)
 			}
 		})
 
@@ -623,6 +674,35 @@ jobs:
 			summary, err := actions_model.GetActionRunJobSummary(t.Context(), repo.ID, run.ID, badCaller.RunAttemptID, badCaller.ID, 0)
 			require.NoError(t, err)
 			assert.Contains(t, summary.Content, "secret token is required, but not provided while calling")
+		})
+
+		t.Run("Callee changed after run creation is checked again on expansion", func(t *testing.T) {
+			libRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: createActionsTestRepo(t, user2Token, "self-repo-steps-lib", false).ID})
+			libPath := ".gitea/workflows/lib.yml"
+			libFile := createWorkflowFile(t, user2Token, libRepo.OwnerName, libRepo.Name, libPath, getWorkflowCreateFileOptions(user2, libRepo.DefaultBranch, "create lib",
+				"on: workflow_call\njobs:\n  inner:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n"))
+
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: createActionsTestRepo(t, user2Token, "self-repo-steps-caller", false).ID})
+			runner := newMockRunner()
+			runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/caller.yaml",
+				"on: push\njobs:\n  plain_job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n  call:\n    needs: plain_job\n    uses: user2/self-repo-steps-lib/"+libPath+"@main\n")
+			plainTask := runner.fetchTask(t)
+
+			req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", libRepo.OwnerName, libRepo.Name, libPath), &api.UpdateFileOptions{
+				SHA:           libFile.Content.SHA,
+				FileOptions:   api.FileOptions{BranchName: libRepo.DefaultBranch, Message: "use a dynamic $/ step"},
+				ContentBase64: base64.StdEncoding.EncodeToString([]byte("on: workflow_call\njobs:\n  inner:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: $/${{ vars.ACTION }}\n")),
+			}).AddTokenAuth(user2Token)
+			MakeRequest(t, req, http.StatusOK)
+			runner.execTask(t, plainTask, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+
+			_, _, run := getTaskAndJobAndRunByTaskID(t, plainTask.Id)
+			call := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "call"})
+			assert.Equal(t, actions_model.StatusFailure, call.Status)
+			summary, err := actions_model.GetActionRunJobSummary(t.Context(), repo.ID, run.ID, call.RunAttemptID, call.ID, 0)
+			require.NoError(t, err)
+			assert.Contains(t, summary.Content, "job inner: `uses: $/${{ vars.ACTION }}` cannot use expressions in a workflow from another repository or commit")
 		})
 
 		t.Run("Fork PR with secrets: inherit does not leak base repo secrets", func(t *testing.T) {

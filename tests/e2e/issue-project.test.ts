@@ -1,6 +1,25 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, apiCreateRepo, apiCreateIssue, apiDeleteRepo, createProject, createProjectColumn, randomString} from './utils.ts';
+import {
+  login, apiCreateRepo, apiCreateIssue, apiCreateProject, apiDeleteRepo, createProject, createProjectColumn, randomString,
+} from './utils.ts';
+import type {Page} from '@playwright/test';
+
+const projectCards = (page: Page, column: string) => page.locator('.project-column', {hasText: column}).locator('.cards');
+
+async function dragProjectCardToTop(page: Page, title: string, column: string) {
+  const card = page.locator('.issue-card', {hasText: title});
+  const cards = projectCards(page, column);
+  const moved = page.waitForResponse((resp) => resp.url().endsWith('/move'));
+  await card.hover();
+  await page.mouse.down();
+  await card.hover({position: {x: 10, y: 10}});
+  await expect(card).toHaveClass(/card-ghost/); // sortable ignores dragover until its deferred drag start ran
+  await cards.hover({position: {x: 10, y: 10}});
+  await expect(cards.locator('.issue-card').first()).toContainText(title);
+  await page.mouse.up();
+  await moved;
+}
 
 test('assign issue to project and change column', async ({page}) => {
   const repoName = `e2e-issue-project-${randomString(8)}`;
@@ -439,5 +458,27 @@ test('select projects on new issue page shows in sidebar', async ({page}) => {
     await expect(projectList.locator(`.item:has-text("${project2Title}")`).first()).toBeVisible();
   } finally {
     await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
+  }
+});
+
+test('project board drag keeps a card moved in another tab', async ({page}) => {
+  const owner = env.GITEA_TEST_E2E_USER;
+  const repo = `e2e-project-board-${randomString(8)}`;
+  const [otherPage] = await Promise.all([
+    page.context().newPage(), login(page), apiCreateRepo(page.request, {name: repo, autoInit: false}),
+  ]);
+  try {
+    const projectID = await apiCreateProject(page.request, owner, repo, 'Board', {templateType: 'basic_kanban'});
+    for (const title of ['first', 'second']) await apiCreateIssue(page.request, {owner, repo, title, projects: [projectID]});
+    await Promise.all([page, otherPage].map((board) => board.goto(`/${owner}/${repo}/projects/${projectID}`)));
+
+    await dragProjectCardToTop(otherPage, 'first', 'To Do');
+    await dragProjectCardToTop(page, 'second', 'Backlog');
+
+    await page.reload();
+    await expect(projectCards(page, 'Backlog').locator('.issue-card')).toHaveText([/second/]);
+    await expect(projectCards(page, 'To Do').locator('.issue-card')).toHaveText([/first/]);
+  } finally {
+    await apiDeleteRepo(page.request, owner, repo);
   }
 });

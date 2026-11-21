@@ -5,6 +5,7 @@ package repository
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	repo_model "gitea.dev/models/repo"
@@ -39,6 +40,14 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 		assert.Equal(t, "custom-default", branch)
 
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: createdRepo.Name})
+
+		assert.NoError(t, git.ForceFastImport(t.Context(), createdRepo, []git.FastImportCommit{{
+			Ref:   git.BranchPrefix + createdRepo.DefaultBranch,
+			Files: []git.FastImportFile{{Path: "existing.txt"}},
+		}}))
+		tmpDir := t.TempDir()
+		assert.NoError(t, prepareRepoCommit(t.Context(), createdRepo, tmpDir, CreateRepoOptions{Readme: "Default"}))
+		assert.NoFileExists(t, filepath.Join(tmpDir, "existing.txt"))
 
 		err = DeleteRepositoryDirectly(t.Context(), createdRepo.ID)
 		assert.NoError(t, err)

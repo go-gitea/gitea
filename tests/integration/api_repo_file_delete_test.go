@@ -110,56 +110,45 @@ func TestAPIDeleteFile(t *testing.T) {
 			AddTokenAuth(token2)
 		MakeRequest(t, req, http.StatusUnprocessableEntity)
 
-		// Test creating a file in repo16 by user4 who does not have write access
-		fileID++
-		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
-		createFile(user2, repo16, treePath)
-		deleteFileOptions = getDeleteFileOptions()
-		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath), &deleteFileOptions).
-			AddTokenAuth(token4)
-		MakeRequest(t, req, http.StatusNotFound)
-
-		// Tests a repo with no token given so will fail
-		fileID++
-		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
-		createFile(user2, repo16, treePath)
-		deleteFileOptions = getDeleteFileOptions()
-		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath), &deleteFileOptions)
-		MakeRequest(t, req, http.StatusNotFound)
-
-		// Test using access token for a private repo that the user of the token owns
-		fileID++
-		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
-		createFile(user2, repo16, treePath)
-		deleteFileOptions = getDeleteFileOptions()
-		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath), &deleteFileOptions).
-			AddTokenAuth(token2)
-		MakeRequest(t, req, http.StatusOK)
-
-		// Test using org repo "org3/repo3" where user2 is a collaborator
-		fileID++
-		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
-		createFile(org3, repo3, treePath)
-		deleteFileOptions = getDeleteFileOptions()
-		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", org3.Name, repo3.Name, treePath), &deleteFileOptions).
-			AddTokenAuth(token2)
-		MakeRequest(t, req, http.StatusOK)
-
-		// Test using org repo "org3/repo3" with no user token
-		fileID++
-		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
-		createFile(org3, repo3, treePath)
-		deleteFileOptions = getDeleteFileOptions()
-		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", org3.Name, repo3.Name, treePath), &deleteFileOptions)
-		MakeRequest(t, req, http.StatusNotFound)
-
-		// Test using repo "user2/repo1" where user4 is a NOT collaborator
-		fileID++
-		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
-		createFile(user2, repo1, treePath)
-		deleteFileOptions = getDeleteFileOptions()
-		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &deleteFileOptions).
-			AddTokenAuth(token4)
-		MakeRequest(t, req, http.StatusForbidden)
+		testCases := []struct {
+			owner          *user_model.User
+			repo           *repo_model.Repository
+			token          string
+			expectedStatus int
+		}{
+			// Test creating a file in repo16 by user4 who does not have write access
+			{user2, repo16, token4, http.StatusNotFound},
+			// Tests a repo with no token given so will fail
+			{user2, repo16, "", http.StatusNotFound},
+			// Test using access token for a private repo that the user of the token owns
+			{user2, repo16, token2, http.StatusOK},
+			// Test using org repo "org3/repo3" where user2 is a collaborator
+			{org3, repo3, token2, http.StatusOK},
+			// Test using org repo "org3/repo3" with no user token
+			{org3, repo3, "", http.StatusNotFound},
+			// Test using repo "user2/repo1" where user4 is a NOT collaborator
+			{user2, repo1, token4, http.StatusForbidden},
+		}
+		permissionFiles := map[*repo_model.Repository]map[string]string{}
+		for i, testCase := range testCases {
+			if permissionFiles[testCase.repo] == nil {
+				permissionFiles[testCase.repo] = map[string]string{}
+			}
+			permissionFiles[testCase.repo][fmt.Sprintf("delete/file%d.txt", fileID+i+1)] = "This is a NEW file"
+		}
+		for _, testCase := range testCases {
+			if permissionFiles[testCase.repo] != nil {
+				createFileInBranch(testCase.owner, testCase.repo, createFileInBranchOptions{}, permissionFiles[testCase.repo])
+				delete(permissionFiles, testCase.repo)
+			}
+			fileID++
+			treePath = fmt.Sprintf("delete/file%d.txt", fileID)
+			deleteFileOptions = getDeleteFileOptions()
+			req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", testCase.owner.Name, testCase.repo.Name, treePath), &deleteFileOptions)
+			if testCase.token != "" {
+				req.AddTokenAuth(testCase.token)
+			}
+			MakeRequest(t, req, testCase.expectedStatus)
+		}
 	})
 }

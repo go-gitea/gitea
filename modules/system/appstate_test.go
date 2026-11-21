@@ -20,7 +20,7 @@ type testItem1 struct {
 	Val2 int
 }
 
-func (*testItem1) Name() string {
+func (*testItem1) StateName() string {
 	return "test-item1"
 }
 
@@ -28,11 +28,13 @@ type testItem2 struct {
 	K string
 }
 
-func (*testItem2) Name() string {
+func (*testItem2) StateName() string {
 	return "test-item2"
 }
 
 func TestAppStateDB(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
 	as := &DBStore{}
 
 	item1 := new(testItem1)

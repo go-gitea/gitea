@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
@@ -42,7 +43,9 @@ const (
 	PropertySymbolID = "nuget.symbol.id"
 )
 
-var idmatch = regexp.MustCompile(`\A\w+(?:[.-]\w+)*\z`)
+var idmatch = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`\A\w+(?:[.-]\w+)*\z`)
+})
 
 const maxNuspecFileSize = 3 * 1024 * 1024
 
@@ -151,7 +154,7 @@ func ParsePackageMetaData(r io.ReaderAt, size int64) (*Package, error) {
 			if file.UncompressedSize64 > maxNuspecFileSize {
 				return nil, ErrNuspecFileTooLarge
 			}
-			f, err := archive.Open(file.Name)
+			f, err := file.Open()
 			if err != nil {
 				return nil, err
 			}
@@ -171,7 +174,7 @@ func ParseNuspecMetaData(archive *zip.Reader, r io.Reader) (*Package, error) {
 		return nil, err
 	}
 
-	if !idmatch.MatchString(p.Metadata.ID) {
+	if !idmatch().MatchString(p.Metadata.ID) {
 		return nil, ErrNuspecInvalidID
 	}
 

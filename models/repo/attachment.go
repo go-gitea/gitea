@@ -34,12 +34,17 @@ type Attachment struct {
 	Name              string
 	DownloadCount     int64              `xorm:"DEFAULT 0"`
 	Size              int64              `xorm:"DEFAULT 0"`
+	HashSHA256        string             `xorm:"hash_sha256 VARCHAR(64) NOT NULL DEFAULT ''"` // empty for attachments uploaded before it was recorded
 	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
 	CustomDownloadURL string             `xorm:"-"`
 }
 
 func init() {
 	db.RegisterModel(new(Attachment))
+}
+
+func (a *Attachment) IsLinked() bool {
+	return a.IssueID > 0 || a.ReleaseID > 0 || a.CommentID > 0
 }
 
 // IncreaseDownloadCount is update download count + 1
@@ -133,6 +138,9 @@ func ExistAttachmentsByUUID(ctx context.Context, uuid string) (bool, error) {
 
 // GetAttachmentsByIssueID returns all attachments of an issue.
 func GetAttachmentsByIssueID(ctx context.Context, issueID int64) ([]*Attachment, error) {
+	if issueID == 0 { // unsaved issue, would match every issue-less attachment
+		return []*Attachment{}, nil
+	}
 	attachments := make([]*Attachment, 0, 10)
 	return attachments, db.GetEngine(ctx).Where("issue_id = ? AND comment_id = 0", issueID).Find(&attachments)
 }

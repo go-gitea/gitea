@@ -93,7 +93,12 @@ const artifactKeepForever timeutil.TimeStamp = 0
 
 func artifactExpiry(requested optional.Option[timeutil.TimeStamp]) timeutil.TimeStamp {
 	if requested.Has() {
-		return max(requested.Value(), artifactKeepForever+1)
+		now := timeutil.TimeStampNow()
+		expiry := max(requested.Value(), now.Add(timeutil.Day)) // v4 clients use the runner's clock
+		if setting.Actions.ArtifactRetentionDays > 0 {
+			expiry = min(expiry, now.Add(timeutil.Day*setting.Actions.ArtifactRetentionDays))
+		}
+		return expiry
 	}
 	if setting.Actions.ArtifactRetentionDays <= 0 {
 		return artifactKeepForever

@@ -211,7 +211,7 @@ export default defineConfig([
       '@typescript-eslint/no-magic-numbers': [0],
       '@typescript-eslint/no-meaningless-void-operator': [0],
       '@typescript-eslint/no-misused-new': [2],
-      '@typescript-eslint/no-misused-promises': [2, {checksVoidReturn: {attributes: false, arguments: false}}],
+      '@typescript-eslint/no-misused-promises': [2, {checksVoidReturn: {attributes: false, arguments: false, properties: false}}],
       '@typescript-eslint/no-misused-spread': [2],
       '@typescript-eslint/no-mixed-enums': [0],
       '@typescript-eslint/no-namespace': [2],
@@ -311,6 +311,7 @@ export default defineConfig([
       'func-names': [0],
       'func-style': [0],
       'getter-return': [2],
+      'gitea/unescaped-html-literal': [2],
       'grouped-accessor-pairs': [2],
       'guard-for-in': [0],
       'id-denylist': [0],
@@ -850,6 +851,7 @@ export default defineConfig([
       'unicorn/no-prevent-default-in-passive-listener': [2],
       'unicorn/no-process-exit': [0],
       'unicorn/no-redundant-comparison': [2],
+      'unicorn/no-repeated-call-wrappers': [0],
       'unicorn/no-return-array-push': [2],
       'unicorn/no-selector-as-dom-name': [2],
       'unicorn/no-shorthand-property-overrides': [0], // only applies to css language
@@ -870,6 +872,7 @@ export default defineConfig([
       'unicorn/no-unnecessary-array-splice-count': [2],
       'unicorn/no-unnecessary-await': [2],
       'unicorn/no-unnecessary-boolean-comparison': [2],
+      'unicorn/no-unnecessary-default-arguments': [0],
       'unicorn/no-unnecessary-fetch-options': [0],
       'unicorn/no-unnecessary-global-this': [0],
       'unicorn/no-unnecessary-nested-ternary': [2],
@@ -1033,7 +1036,7 @@ export default defineConfig([
       'unicorn/prefer-single-call': [2],
       'unicorn/prefer-single-object-destructuring': [2],
       'unicorn/prefer-single-replace': [2],
-      'unicorn/prefer-smaller-scope': [2],
+      'unicorn/prefer-smaller-scope': [0],
       'unicorn/prefer-split-limit': [0], // too opinionated
       'unicorn/prefer-spread': [0],
       'unicorn/prefer-string-match-all': [2],
@@ -1239,6 +1242,9 @@ export default defineConfig([
   {
     files: ['*', 'tools/**/*', 'tests/**/*'],
     languageOptions: {globals: globals.nodeBuiltin},
+    rules: {
+      'gitea/unescaped-html-literal': [0],
+    },
   },
   {
     files: ['web_src/**/*'],

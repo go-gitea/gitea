@@ -45,7 +45,7 @@ func VerifyCaptcha(ctx *Context, tpl templates.TplName, form any) bool {
 	case setting.CfTurnstile:
 		valid, err = turnstile.Verify(ctx, ctx.Req.Form.Get(cfTurnstileResponseField))
 	default:
-		ctx.ServerError("Unknown Captcha Type", fmt.Errorf("unknown Captcha Type: %s", setting.Service.CaptchaType))
+		ctx.ServerErrorAuto(fmt.Errorf("unknown Captcha Type: %s", setting.Service.CaptchaType))
 		return false
 	}
 	if err != nil {
