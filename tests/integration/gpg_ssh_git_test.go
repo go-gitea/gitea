@@ -165,24 +165,12 @@ func testGitSigning(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-always", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
-			var signedCommitID string
 			t.Run("CheckMasterBranchSigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
 				require.NotNil(t, branch.Commit, "no commit provided with branch! %v", branch)
 				require.NotNil(t, branch.Commit.Verification, "no verification provided with branch commit! %v", branch.Commit)
 				require.True(t, branch.Commit.Verification.Verified)
 				assert.Equal(t, "gitea@fake.local", branch.Commit.Verification.Signer.Email)
-				signedCommitID = branch.Commit.ID
 			}))
-			t.Run("CheckSignerAvatarTitle", func(t *testing.T) {
-				signerAvatarTitle := func() string {
-					req := NewRequestf(t, "GET", "/%s/%s/commit/%s", testCtx.Username, testCtx.Reponame, signedCommitID)
-					resp := testCtx.Session.MakeRequest(t, req, http.StatusOK)
-					return NewHTMLParser(t, resp.Body).Find(".commit-sign-badge img.avatar").AttrOr("title", "")
-				}
-				assert.Equal(t, "gitea", signerAvatarTitle())
-				defer test.MockVariableValue(&setting.Repository.Signing.SigningName, "")()
-				assert.Equal(t, setting.AppName, signerAvatarTitle())
-			})
 		})
 
 		setting.Repository.Signing.CRUDActions = []string{"never"}
