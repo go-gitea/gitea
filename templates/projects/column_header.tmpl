@@ -1,0 +1,39 @@
+<div class="project-column-header{{if and .CanWriteProject (not .Grouped)}} tw-cursor-grab{{end}}">
+	<div class="ui circular label project-column-issue-count">
+		{{.Column.NumIssues}}
+	</div>
+	<div class="project-column-title-text flex-text-inline gt-ellipsis" {{if .Column.Default}}data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.default_column_hint"}}"{{end}}>
+		{{if .Column.Default}}{{svg "octicon-star"}} {{end}}{{.Column.Title}}
+	</div>
+	{{if .CanWriteProject}}
+		<div class="ui dropdown tw-p-1">
+			{{svg "octicon-kebab-horizontal"}}
+			<div class="menu">
+				<a class="item button show-modal show-project-column-modal-edit" data-modal="#project-column-modal-edit"
+					data-modal-header="{{ctx.Locale.Tr "repo.projects.column.edit"}}"
+					data-modal-project-column-title-label="{{ctx.Locale.Tr "repo.projects.column.edit_title"}}"
+					data-modal-project-column-button-save="{{ctx.Locale.Tr "repo.projects.column.edit"}}"
+					data-modal-project-column-id="{{.Column.ID}}"
+					data-modal-project-column-title-input="{{.Column.Title}}"
+					data-modal-project-column-color-input="{{.Column.Color}}"
+				>
+					{{svg "octicon-pencil"}} {{ctx.Locale.Tr "repo.projects.column.edit"}}
+				</a>
+				{{if not .Column.Default}}
+					<a class="item button link-action" data-url="{{.Link}}/{{.Column.ID}}/default"
+						data-modal-confirm-header="{{ctx.Locale.Tr "repo.projects.column.set_default"}}"
+						data-modal-confirm-content="{{ctx.Locale.Tr "repo.projects.column.set_default_desc"}}"
+					>
+						{{svg "octicon-star"}} {{ctx.Locale.Tr "repo.projects.column.set_default"}}
+					</a>
+					<a class="item button link-action negative" data-url="{{.Link}}/{{.Column.ID}}" data-fetch-method="DELETE"
+						data-modal-confirm-header="{{ctx.Locale.Tr "repo.projects.column.delete"}}"
+						data-modal-confirm-content="{{ctx.Locale.Tr "repo.projects.column.deletion_desc"}}"
+					>
+						{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.projects.column.delete"}}
+					</a>
+				{{end}}
+			</div>
+		</div>
+	{{end}}
+</div>
