@@ -223,7 +223,7 @@ func listDirRecursively(result *[]string, fsDir, recordParentPath string, opts *
 	}
 	defer dir.Close()
 
-	fis, err := dir.Readdir(0)
+	fis, err := dir.ReadDir(0)
 	if err != nil {
 		return err
 	}
@@ -360,7 +360,7 @@ func IsReadmeFileExtension(name string, ext ...string) (int, bool) {
 		}
 	}
 
-	if name[6] == '.' {
+	if len(name) > 6 && name[6] == '.' {
 		return len(ext), true
 	}
 

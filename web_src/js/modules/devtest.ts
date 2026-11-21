@@ -1,6 +1,5 @@
 import {showSuccessToast, showInfoToast, showWarningToast, showErrorToast} from './toast.ts';
 import {registerGlobalInitFunc} from './observer.ts';
-import {showFomanticModal} from './fomantic/modal.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
 import {showGlobalErrorMessage} from './errors.ts';
@@ -25,9 +24,8 @@ function initDevtestPage() {
 
   const modalButtons = document.querySelector('.modal-buttons');
   if (modalButtons) {
-    for (const el of document.querySelectorAll('.ui.modal:not([data-skip-button])')) {
-      const btn = createElementFromHTML(html`<button type="button" class="ui button">${el.id}</button>`);
-      btn.addEventListener('click', () => showFomanticModal(el));
+    for (const el of document.querySelectorAll<HTMLDialogElement>('[data-devtest-modal]')) {
+      const btn = createElementFromHTML(html`<button type="button" class="ui button show-modal" data-modal="#${el.id}">${el.id}</button`);
       modalButtons.append(btn);
     }
   }
@@ -85,7 +83,7 @@ function initDevtestAnsiRender(container: HTMLElement) {
     ...withSource(`first${esc}[Ksecond${esc}[2Jthird`),
     ...withSource(`cursor ${esc}[3Amovement, private ${esc}[?25lCSI, ${esc}]0;title${esc}\\titles, ${esc}Pquery${esc}\\strings, truncated${esc}[38;5;`),
     ...withSource('Reading... 10%\b\b\b100%'),
-    ...withSource('<script>alert(1)</script> & "quotes", and a bare url https://example.com'),
+    ...withSource('<script>alert(1)</script> & "quotes", and a bare url https://example.com'), // eslint-disable-line gitea/unescaped-html-literal -- plain text that the console must escape
     ' ',
     `${esc}[31man unterminated color`,
     'carries into the following lines',

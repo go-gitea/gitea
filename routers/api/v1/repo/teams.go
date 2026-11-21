@@ -35,8 +35,8 @@ func ListTeams(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if !ctx.Repo.Owner.IsOrganization() {
 		ctx.APIError(http.StatusMethodNotAllowed, "repo is not owned by an organization")
@@ -84,9 +84,7 @@ func IsTeam(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Team"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "405":
+	//   default:
 	//     "$ref": "#/responses/error"
 
 	if !ctx.Repo.Owner.IsOrganization() {
@@ -138,14 +136,8 @@ func AddTeam(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "405":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	changeRepoTeam(ctx, true)
 }
@@ -176,14 +168,8 @@ func DeleteTeam(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "405":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	changeRepoTeam(ctx, false)
 }

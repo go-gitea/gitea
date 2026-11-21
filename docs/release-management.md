@@ -24,6 +24,8 @@ Now, that's not a requirement anymore as our [backport bot](https://github.com/G
 
 The `backport/manual` label signifies either that you want to backport the change yourself, or that there were conflicts when backporting, thus you **must** do it yourself.
 
+The bot labels open PRs targeting `main` that have a `backport/<version>` label with `backport/conflict-free` when they would cherry-pick onto the latest release branch without conflicts.
+
 ### Format of backport PRs
 
 The title of backport PRs should be

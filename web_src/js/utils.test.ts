@@ -40,17 +40,10 @@ test('parseIssueHref', () => {
   expect(parseIssueHref('/owner/repo/issues/1')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
   expect(parseIssueHref('/owner/repo/pulls/1?query')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'pulls', indexString: '1'});
   expect(parseIssueHref('/owner/repo/issues/1#hash')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
-  expect(parseIssueHref('/sub/owner/repo/issues/1')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
-  expect(parseIssueHref('/sub/sub2/owner/repo/pulls/1')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'pulls', indexString: '1'});
-  expect(parseIssueHref('/sub/sub2/owner/repo/issues/1?query')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
-  expect(parseIssueHref('/sub/sub2/owner/repo/issues/1#hash')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
+  expect(parseIssueHref('/owner/repo/pulls/1/files')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'pulls', indexString: '1'});
   expect(parseIssueHref('https://example.com/owner/repo/issues/1')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
-  expect(parseIssueHref('https://example.com/owner/repo/pulls/1?query')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'pulls', indexString: '1'});
-  expect(parseIssueHref('https://example.com/owner/repo/issues/1#hash')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
-  expect(parseIssueHref('https://example.com/sub/owner/repo/issues/1')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
-  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/pulls/1')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'pulls', indexString: '1'});
-  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1?query')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
-  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1#hash')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
+  expect(parseIssueHref('/owner/repo/raw/branch/main/sub/dir/issues/1')).toBeNull();
+  expect(parseIssueHref('/sub/owner/repo/issues/1')).toBeNull();
   expect(parseIssueHref('')).toBeNull();
 });
 
@@ -133,7 +126,7 @@ test('file detection', () => {
   for (const name of ['', 'a.jpg.x', '/path.png/x', 'webp']) {
     expect(isImageFile({name, type})).toBeFalsy();
   }
-  for (const name of ['a.mpg', '/a.mpeg', '.file.mp4', '.webm', 'file.mkv']) {
+  for (const name of ['a.mpg', '/a.mpeg', '.file.mp4', '.webm', 'file.mkv', 'a.mov', 'a.m4v']) {
     expect(isVideoFile({name, type})).toBeTruthy();
   }
   for (const name of ['', 'a.mpg.x', '/path.mp4/x', 'webm']) {

@@ -160,8 +160,8 @@ type IntrospectTokenForm struct {
 // UpdateProfileForm form for updating profile
 type UpdateProfileForm struct {
 	middleware.FormDefaultValidator
-	Name                string `binding:"Username;MaxSize(40)"`
-	FullName            string `binding:"MaxSize(100)"`
+	Name                string  `binding:"Username;MaxSize(40)"`
+	FullName            *string `binding:"MaxSize(100)"`
 	KeepEmailPrivate    bool
 	Website             string `binding:"ValidSiteUrl;MaxSize(255)"`
 	Location            string `binding:"MaxSize(50)"`
@@ -204,12 +204,6 @@ type ChangePasswordForm struct {
 	OldPassword string `form:"old_password" binding:"MaxSize(255)"`
 	Password    string `form:"password" binding:"Required;MaxSize(255)"`
 	Retype      string `form:"retype"`
-}
-
-// AddOpenIDForm is for changing openid uri
-type AddOpenIDForm struct {
-	middleware.FormDefaultValidator
-	Openid string `binding:"Required;MaxSize(256)"`
 }
 
 // AddKeyForm form for adding SSH/GPG key

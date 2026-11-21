@@ -8,6 +8,7 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -32,6 +33,9 @@ func IsFollowing(ctx context.Context, userID, followID int64) bool {
 
 // FollowUser marks someone be another's follower.
 func FollowUser(ctx context.Context, user, follow *User) (err error) {
+	if !follow.IsFollowable() {
+		return util.NewInvalidArgumentErrorf("user %d can not be followed", follow.ID)
+	}
 	if user.ID == follow.ID || IsFollowing(ctx, user.ID, follow.ID) {
 		return nil
 	}

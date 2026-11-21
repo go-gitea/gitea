@@ -20,18 +20,20 @@ import (
 	"gitea.dev/modules/util"
 	actions_service "gitea.dev/services/actions"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
 
 func NewRunnerServiceHandler() (string, http.Handler) {
-	return runnerv1connect.NewRunnerServiceHandler(
-		&Service{},
-		connect.WithCompressMinBytes(1024),
-		withRunner,
-	)
+	server := connect.NewServer(withErrorMessages, withRunner)
+	runnerv1connect.RegisterRunnerServiceHandler(server, &Service{})
+	mux := http.NewServeMux()
+	// runners send all pending log rows in one UpdateLog, so keep v1's unlimited message size
+	connecthttp.Mount(mux, server, connecthttp.WithCompressMinBytes(1024), connecthttp.WithReadMaxBytes(0))
+	return "/" + runnerv1connect.RunnerServiceName + "/", mux
 }
 
 var _ runnerv1connect.RunnerServiceClient = (*Service)(nil)
@@ -41,13 +43,13 @@ type Service struct{}
 // Register for new runner.
 func (s *Service) Register(
 	ctx context.Context,
-	req *connect.Request[runnerv1.RegisterRequest],
-) (*connect.Response[runnerv1.RegisterResponse], error) {
-	if req.Msg.Token == "" || req.Msg.Name == "" {
+	req *runnerv1.RegisterRequest,
+) (*runnerv1.RegisterResponse, error) {
+	if req.Token == "" || req.Name == "" {
 		return nil, errors.New("missing runner token, name")
 	}
 
-	runnerToken, err := actions_model.GetRunnerToken(ctx, req.Msg.Token)
+	runnerToken, err := actions_model.GetRunnerToken(ctx, req.Token)
 	if err != nil {
 		return nil, errors.New("runner registration token not found")
 	}
@@ -68,19 +70,19 @@ func (s *Service) Register(
 		}
 	}
 
-	labels := req.Msg.Labels
-	hasCancellingSupport := slices.Contains(req.Msg.GetCapabilities(), runnerCapabilityCancelling)
+	labels := req.Labels
+	hasCancellingSupport := slices.Contains(req.GetCapabilities(), runnerCapabilityCancelling)
 
 	// create new runner
-	name := util.EllipsisDisplayString(req.Msg.Name, 255)
+	name := util.EllipsisDisplayString(req.Name, 255)
 	runner := &actions_model.ActionRunner{
 		UUID:                 uuid.New().String(),
 		Name:                 name,
 		OwnerID:              runnerToken.OwnerID,
 		RepoID:               runnerToken.RepoID,
-		Version:              req.Msg.Version,
+		Version:              req.Version,
 		AgentLabels:          labels,
-		Ephemeral:            req.Msg.Ephemeral,
+		Ephemeral:            req.Ephemeral,
 		HasCancellingSupport: hasCancellingSupport,
 	}
 	runner.GenerateAndFillToken()
@@ -96,7 +98,7 @@ func (s *Service) Register(
 		return nil, errors.New("can't update runner token status")
 	}
 
-	res := connect.NewResponse(&runnerv1.RegisterResponse{
+	res := &runnerv1.RegisterResponse{
 		Runner: &runnerv1.Runner{
 			Id:        runner.ID,
 			Uuid:      runner.UUID,
@@ -106,7 +108,7 @@ func (s *Service) Register(
 			Labels:    runner.AgentLabels,
 			Ephemeral: runner.Ephemeral,
 		},
-	})
+	}
 
 	return res, nil
 }
@@ -139,14 +141,18 @@ func applyDeclareRequestToRunner(runner *actions_model.ActionRunner, req declare
 
 func (s *Service) Declare(
 	ctx context.Context,
-	req *connect.Request[runnerv1.DeclareRequest],
-) (*connect.Response[runnerv1.DeclareResponse], error) {
+	req *runnerv1.DeclareRequest,
+) (*runnerv1.DeclareResponse, error) {
 	runner := GetRunner(ctx)
-	if err := actions_model.UpdateRunner(ctx, runner, applyDeclareRequestToRunner(runner, req.Msg)...); err != nil {
+	if err := actions_model.UpdateRunner(ctx, runner, applyDeclareRequestToRunner(runner, req)...); err != nil {
 		return nil, status.Errorf(codes.Internal, "update runner: %v", err)
 	}
 
-	resp := connect.NewResponse(&runnerv1.DeclareResponse{
+	// Capabilities are communicated via headers to avoid a hard dependency on a proto bump.
+	// Older runners ignore unknown headers; newer runners can use this for feature negotiation.
+	info, _ := connect.CallInfoForServerContext(ctx)
+	info.ResponseHeader().Set("X-Gitea-Actions-Capabilities", actions_model.RunnerCapabilities())
+	return &runnerv1.DeclareResponse{
 		Runner: &runnerv1.Runner{
 			Id:      runner.ID,
 			Uuid:    runner.UUID,
@@ -155,22 +161,18 @@ func (s *Service) Declare(
 			Version: runner.Version,
 			Labels:  runner.AgentLabels,
 		},
-	})
-	// Capabilities are communicated via headers to avoid a hard dependency on a proto bump.
-	// Older runners ignore unknown headers; newer runners can use this for feature negotiation.
-	resp.Header().Set("X-Gitea-Actions-Capabilities", actions_model.RunnerCapabilities())
-	return resp, nil
+	}, nil
 }
 
 // FetchTask assigns a task to the runner
 func (s *Service) FetchTask(
 	ctx context.Context,
-	req *connect.Request[runnerv1.FetchTaskRequest],
-) (*connect.Response[runnerv1.FetchTaskResponse], error) {
+	req *runnerv1.FetchTaskRequest,
+) (*runnerv1.FetchTaskResponse, error) {
 	runner := GetRunner(ctx)
 
 	var task *runnerv1.Task
-	tasksVersion := req.Msg.TasksVersion // task version from runner
+	tasksVersion := req.TasksVersion // task version from runner
 	latestVersion, err := actions_model.GetTasksVersionByScope(ctx, runner.OwnerID, runner.RepoID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "query tasks version failed: %v", err)
@@ -207,26 +209,26 @@ func (s *Service) FetchTask(
 			task = t
 		}
 	}
-	res := connect.NewResponse(&runnerv1.FetchTaskResponse{
+	res := &runnerv1.FetchTaskResponse{
 		Task:         task,
 		TasksVersion: latestVersion,
-	})
+	}
 	return res, nil
 }
 
 // UpdateTask updates the task status.
 func (s *Service) UpdateTask(
 	ctx context.Context,
-	req *connect.Request[runnerv1.UpdateTaskRequest],
-) (*connect.Response[runnerv1.UpdateTaskResponse], error) {
+	req *runnerv1.UpdateTaskRequest,
+) (*runnerv1.UpdateTaskResponse, error) {
 	runner := GetRunner(ctx)
 
-	task, err := actions_model.UpdateTaskByState(ctx, runner.ID, req.Msg.State)
+	task, err := actions_model.UpdateTaskByState(ctx, runner.ID, req.State)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "update task: %v", err)
 	}
 
-	for k, v := range req.Msg.Outputs {
+	for k, v := range req.Outputs {
 		if len(k) > 255 {
 			log.Warn("Ignore the output of task %d because the key is too long: %q", task.ID, k)
 			continue
@@ -264,7 +266,7 @@ func (s *Service) UpdateTask(
 		actions_service.NotifyWorkflowJobStatusUpdateWithTask(ctx, task.Job, task)
 	}
 
-	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
+	if req.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 		if err := actions_service.EmitJobsIfReadyByRun(task.Job.RunID); err != nil {
 			log.Error("Emit ready jobs of run %d: %v", task.Job.RunID, err)
 		}
@@ -273,25 +275,25 @@ func (s *Service) UpdateTask(
 		}
 	}
 
-	return connect.NewResponse(&runnerv1.UpdateTaskResponse{
+	return &runnerv1.UpdateTaskResponse{
 		State: &runnerv1.TaskState{
-			Id:     req.Msg.State.Id,
+			Id:     req.State.Id,
 			Result: task.Status.AsResult(),
 		},
 		SentOutputs: sentOutputs,
-	}), nil
+	}, nil
 }
 
 // UpdateLog uploads log of the task.
 func (s *Service) UpdateLog(
 	ctx context.Context,
-	req *connect.Request[runnerv1.UpdateLogRequest],
-) (*connect.Response[runnerv1.UpdateLogResponse], error) {
+	req *runnerv1.UpdateLogRequest,
+) (*runnerv1.UpdateLogResponse, error) {
 	runner := GetRunner(ctx)
 
-	res := connect.NewResponse(&runnerv1.UpdateLogResponse{})
+	res := &runnerv1.UpdateLogResponse{}
 
-	task, err := actions_model.GetTaskByID(ctx, req.Msg.TaskId)
+	task, err := actions_model.GetTaskByID(ctx, req.TaskId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "get task: %v", err)
 	} else if runner.ID != task.RunnerID {
@@ -301,8 +303,8 @@ func (s *Service) UpdateLog(
 
 	// Trim rows the runner already had acked.
 	var rows []*runnerv1.LogRow
-	if req.Msg.Index <= ack && int64(len(req.Msg.Rows))+req.Msg.Index > ack {
-		rows = req.Msg.Rows[ack-req.Msg.Index:]
+	if req.Index <= ack && int64(len(req.Rows))+req.Index > ack {
+		rows = req.Rows[ack-req.Index:]
 	}
 
 	// Ack a re-sent finalize idempotently. Appending new rows past the seal errors.
@@ -310,15 +312,15 @@ func (s *Service) UpdateLog(
 		if len(rows) > 0 {
 			return nil, status.Errorf(codes.AlreadyExists, "log file has been archived")
 		}
-		res.Msg.AckIndex = ack
+		res.AckIndex = ack
 		return res, nil
 	}
 
 	// Bail unless we have new rows or a NoMore to finalize. Even with
 	// NoMore, bail when the runner has outrun the server — archiving a
 	// log with a gap is worse than asking it to retry.
-	if len(rows) == 0 && (!req.Msg.NoMore || req.Msg.Index > ack) {
-		res.Msg.AckIndex = ack
+	if len(rows) == 0 && (!req.NoMore || req.Index > ack) {
+		res.AckIndex = ack
 		return res, nil
 	}
 
@@ -335,10 +337,10 @@ func (s *Service) UpdateLog(
 		task.LogSize += int64(n)
 	}
 
-	res.Msg.AckIndex = task.LogLength
+	res.AckIndex = task.LogLength
 
 	var remove func()
-	if req.Msg.NoMore {
+	if req.NoMore {
 		task.LogInStorage = true
 		remove, err = actions.TransferLogs(ctx, task.LogFilename)
 		if err != nil {

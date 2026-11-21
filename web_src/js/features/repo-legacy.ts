@@ -16,7 +16,7 @@ import {initRepoMilestone} from './repo-milestone.ts';
 import {initRepoNew} from './repo-new.ts';
 import {createApp} from 'vue';
 import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
-import {initRepoPullMergeBox, initRepoPullRequestUpdate} from './repo-issue-pull.ts';
+import {initRepoPullMergeBox} from './repo-issue-pull.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 
 function initRepoBranchTagSelector() {
@@ -39,8 +39,8 @@ export function initBranchSelectorTabs() {
 
 export function initRepository() {
   registerGlobalInitFunc('initRepoPullMergeBox', initRepoPullMergeBox);
-  registerGlobalInitFunc('initRepoPullRequestUpdate', initRepoPullRequestUpdate);
   registerGlobalInitFunc('initRepoCitationPanel', initRepoCitationPanel);
+  registerGlobalInitFunc('initRepoNew', initRepoNew);
 
   // TODO: need to refactor more legacy if-querySelector-based "init" code to "data-global-xxx" framework in the future.
   const pageContent = document.querySelector('.page-content.repository');
@@ -51,7 +51,6 @@ export function initRepository() {
   initRepoCommentForm();
 
   initRepoMilestone();
-  initRepoNew();
 
   initRepoCloneButtons();
   initRepoSettings();

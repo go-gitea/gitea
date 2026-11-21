@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"unicode"
 
 	packages_model "gitea.dev/models/packages"
@@ -23,20 +24,25 @@ import (
 )
 
 // https://peps.python.org/pep-0426/#name
-var (
-	normalizer  = strings.NewReplacer(".", "-", "_", "-")
-	nameMatcher = regexp.MustCompile(`\A(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\.\-_]*[a-zA-Z0-9])\z`)
-)
+var globalVars = sync.OnceValue(func() (ret struct {
+	nameMatcher    *regexp.Regexp
+	versionMatcher *regexp.Regexp
+},
+) {
+	ret.nameMatcher = regexp.MustCompile(`\A(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\.\-_]*[a-zA-Z0-9])\z`)
+	// https://peps.python.org/pep-0440/#appendix-b-parsing-version-strings-with-regular-expressions
+	ret.versionMatcher = regexp.MustCompile(`\Av?` +
+		`(?:[0-9]+!)?` + // epoch
+		`[0-9]+(?:\.[0-9]+)*` + // release segment
+		`(?:[-_\.]?(?:a|b|c|rc|alpha|beta|pre|preview)[-_\.]?[0-9]*)?` + // pre-release
+		`(?:-[0-9]+|[-_\.]?(?:post|rev|r)[-_\.]?[0-9]*)?` + // post release
+		`(?:[-_\.]?dev[-_\.]?[0-9]*)?` + // dev release
+		`(?:\+[a-z0-9]+(?:[-_\.][a-z0-9]+)*)?` + // local version
+		`\z`)
+	return ret
+})
 
-// https://peps.python.org/pep-0440/#appendix-b-parsing-version-strings-with-regular-expressions
-var versionMatcher = regexp.MustCompile(`\Av?` +
-	`(?:[0-9]+!)?` + // epoch
-	`[0-9]+(?:\.[0-9]+)*` + // release segment
-	`(?:[-_\.]?(?:a|b|c|rc|alpha|beta|pre|preview)[-_\.]?[0-9]*)?` + // pre-release
-	`(?:-[0-9]+|[-_\.]?(?:post|rev|r)[-_\.]?[0-9]*)?` + // post release
-	`(?:[-_\.]?dev[-_\.]?[0-9]*)?` + // dev release
-	`(?:\+[a-z0-9]+(?:[-_\.][a-z0-9]+)*)?` + // local version
-	`\z`)
+var normalizer = strings.NewReplacer(".", "-", "_", "-")
 
 func apiError(ctx *context.Context, status int, obj any) {
 	message := helper.ProcessErrorForUser(ctx, status, obj)
@@ -225,5 +231,5 @@ func normalizeLabel(label string) string {
 }
 
 func isValidNameAndVersion(packageName, packageVersion string) bool {
-	return nameMatcher.MatchString(packageName) && versionMatcher.MatchString(packageVersion)
+	return globalVars().nameMatcher.MatchString(packageName) && globalVars().versionMatcher.MatchString(packageVersion)
 }

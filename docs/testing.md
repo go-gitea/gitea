@@ -48,6 +48,10 @@ Run a single integration test with the `#` selector:
 make test-integration#TestName
 ```
 
+Each run gets its own work directory under `tests/integration/` and random ports, so SQLite runs
+can execute in parallel. Runs against other databases still share the database and object storage.
+The work directory is removed after a passing run and kept after a failure.
+
 If you hit errors such as a mismatched database version or SSH push failures, try a
 clean rebuild first:
 
