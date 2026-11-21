@@ -16,6 +16,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/json"
 )
@@ -31,7 +32,9 @@ type emoji struct {
 	description string
 }
 
-var slugRe = regexp.MustCompile(`[^a-z0-9]+`)
+var slugRe = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`[^a-z0-9]+`)
+})
 
 func main() {
 	if err := generate(); err != nil {
@@ -108,7 +111,7 @@ func fetchEmojis(existingAliases map[string][]string) ([]*emoji, error) {
 	for _, e := range emojis {
 		e.Aliases = existingAliases[e.Emoji]
 		if e.Aliases == nil {
-			e.Aliases = []string{strings.Trim(slugRe.ReplaceAllString(strings.ReplaceAll(strings.ToLower(e.description), "’", ""), "_"), "_")}
+			e.Aliases = []string{strings.Trim(slugRe().ReplaceAllString(strings.ReplaceAll(strings.ToLower(e.description), "’", ""), "_"), "_")}
 		}
 		delete(existingAliases, e.Emoji)
 		for _, alias := range e.Aliases {

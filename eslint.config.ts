@@ -211,7 +211,7 @@ export default defineConfig([
       '@typescript-eslint/no-magic-numbers': [0],
       '@typescript-eslint/no-meaningless-void-operator': [0],
       '@typescript-eslint/no-misused-new': [2],
-      '@typescript-eslint/no-misused-promises': [2, {checksVoidReturn: {attributes: false, arguments: false}}],
+      '@typescript-eslint/no-misused-promises': [2, {checksVoidReturn: {attributes: false, arguments: false, properties: false}}],
       '@typescript-eslint/no-misused-spread': [2],
       '@typescript-eslint/no-mixed-enums': [0],
       '@typescript-eslint/no-namespace': [2],
@@ -1036,7 +1036,7 @@ export default defineConfig([
       'unicorn/prefer-single-call': [2],
       'unicorn/prefer-single-object-destructuring': [2],
       'unicorn/prefer-single-replace': [2],
-      'unicorn/prefer-smaller-scope': [2],
+      'unicorn/prefer-smaller-scope': [0],
       'unicorn/prefer-split-limit': [0], // too opinionated
       'unicorn/prefer-spread': [0],
       'unicorn/prefer-string-match-all': [2],

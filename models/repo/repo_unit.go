@@ -56,12 +56,11 @@ func init() {
 // UnitConfig describes common unit config
 type UnitConfig struct{}
 
-// FromDB fills up a UnitConfig from serialized format.
 func (cfg *UnitConfig) FromDB(bs []byte) error {
-	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
+	db.UnmarshalFromDB(bs, cfg)
+	return nil
 }
 
-// ToDB exports a UnitConfig to a serialized format.
 func (cfg *UnitConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
@@ -71,12 +70,11 @@ type ExternalWikiConfig struct {
 	ExternalWikiURL string
 }
 
-// FromDB fills up a ExternalWikiConfig from serialized format.
 func (cfg *ExternalWikiConfig) FromDB(bs []byte) error {
-	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
+	db.UnmarshalFromDB(bs, cfg)
+	return nil
 }
 
-// ToDB exports a ExternalWikiConfig to a serialized format.
 func (cfg *ExternalWikiConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
@@ -89,29 +87,48 @@ type ExternalTrackerConfig struct {
 	ExternalTrackerRegexpPattern string
 }
 
-// FromDB fills up a ExternalTrackerConfig from serialized format.
 func (cfg *ExternalTrackerConfig) FromDB(bs []byte) error {
-	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
+	db.UnmarshalFromDB(bs, cfg)
+	return nil
 }
 
-// ToDB exports a ExternalTrackerConfig to a serialized format.
 func (cfg *ExternalTrackerConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
+
+const (
+	// CreationRestrictionReader allows any user with read access to the unit to create issues/pull requests (default, legacy behavior)
+	CreationRestrictionReader = "reader"
+	// CreationRestrictionMember restricts creation to effective collaborators (owner, team members, explicit collaborators) with at least read access
+	CreationRestrictionMember = "member"
+	// CreationRestrictionWriter restricts creation to users with at least write access
+	CreationRestrictionWriter = "writer"
+)
 
 // IssuesConfig describes issues config
 type IssuesConfig struct {
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 	EnableDependencies               bool
+	CreationRestriction              string
 }
 
-// FromDB fills up a IssuesConfig from serialized format.
+func DefaultIssuesConfig() *IssuesConfig {
+	return &IssuesConfig{
+		EnableTimetracker:                setting.Service.DefaultEnableTimetracking,
+		AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime,
+		EnableDependencies:               setting.Service.DefaultEnableDependencies,
+		CreationRestriction:              CreationRestrictionReader,
+	}
+}
+
 func (cfg *IssuesConfig) FromDB(bs []byte) error {
-	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
+	*cfg = *DefaultIssuesConfig()
+	db.UnmarshalFromDB(bs, cfg)
+	cfg.CreationRestriction = util.IfZero(cfg.CreationRestriction, CreationRestrictionReader)
+	return nil
 }
 
-// ToDB exports a IssuesConfig to a serialized format.
 func (cfg *IssuesConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
@@ -134,6 +151,7 @@ type PullRequestsConfig struct {
 	DefaultSquashMergeMessage     SquashMergeMessage
 	DefaultAllowMaintainerEdit    bool
 	DefaultTargetBranch           string
+	CreationRestriction           string
 }
 
 func DefaultPullRequestsConfig() *PullRequestsConfig {
@@ -147,6 +165,7 @@ func DefaultPullRequestsConfig() *PullRequestsConfig {
 		AllowRebaseUpdate:          true,
 		DefaultUpdateStyle:         UpdateStyleMerge,
 		DefaultAllowMaintainerEdit: true,
+		CreationRestriction:        CreationRestrictionReader,
 	}
 	cfg.DefaultDeleteBranchAfterMerge = setting.Repository.PullRequest.DefaultDeleteBranchAfterMerge
 	cfg.DefaultMergeStyle = MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle)
@@ -155,16 +174,15 @@ func DefaultPullRequestsConfig() *PullRequestsConfig {
 	return cfg
 }
 
-// FromDB fills up a PullRequestsConfig from serialized format.
 func (cfg *PullRequestsConfig) FromDB(bs []byte) error {
 	// set default values for existing PullRequestConfig in DB
 	*cfg = *DefaultPullRequestsConfig()
-	_ = json.UnmarshalHandleDoubleEncode(bs, &cfg) // don't let corrupted database value cause unnecessary 500 error
+	db.UnmarshalFromDB(bs, cfg)
 	cfg.DefaultUpdateStyle = util.IfZero(cfg.DefaultUpdateStyle, UpdateStyleMerge)
+	cfg.CreationRestriction = util.IfZero(cfg.CreationRestriction, CreationRestrictionReader)
 	return nil
 }
 
-// ToDB exports a PullRequestsConfig to a serialized format.
 func (cfg *PullRequestsConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
@@ -228,34 +246,18 @@ type ProjectsConfig struct {
 	ProjectsMode ProjectsMode
 }
 
-// FromDB fills up a ProjectsConfig from serialized format.
 func (cfg *ProjectsConfig) FromDB(bs []byte) error {
-	// TODO: remove GetProjectsMode, only use ProjectsMode
-	cfg.ProjectsMode = ProjectsModeAll
-	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
+	db.UnmarshalFromDB(bs, cfg)
+	cfg.ProjectsMode = util.IfZero(cfg.ProjectsMode, ProjectsModeAll)
+	return nil
 }
 
-// ToDB exports a ProjectsConfig to a serialized format.
 func (cfg *ProjectsConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
-func (cfg *ProjectsConfig) GetProjectsMode() ProjectsMode {
-	if cfg.ProjectsMode != "" {
-		return cfg.ProjectsMode
-	}
-
-	return ProjectsModeAll
-}
-
 func (cfg *ProjectsConfig) IsProjectsAllowed(m ProjectsMode) bool {
-	projectsMode := cfg.GetProjectsMode()
-
-	if m == ProjectsModeNone {
-		return true
-	}
-
-	return projectsMode == m || projectsMode == ProjectsModeAll
+	return m == ProjectsModeNone || cfg.ProjectsMode == m || cfg.ProjectsMode == ProjectsModeAll
 }
 
 // BeforeSet is invoked from XORM before setting the value of a field of this object.

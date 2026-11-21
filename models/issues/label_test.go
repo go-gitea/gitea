@@ -264,6 +264,9 @@ func TestNewLabels(t *testing.T) {
 	for _, label := range labels {
 		unittest.AssertExistsAndLoadBean(t, label, unittest.Cond("id = ?", label.ID))
 	}
+	assert.NoError(t, issues_model.NewLabel(t.Context(), &issues_model.Label{RepoID: 2, Name: "labelName2", Color: "#000000"}))
+	_, err := issues_model.GetLabelInRepoByName(t.Context(), 2, "labelName2")
+	assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	unittest.CheckConsistencyFor(t, &issues_model.Label{}, &repo_model.Repository{})
 }
 

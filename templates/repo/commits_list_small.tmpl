@@ -8,7 +8,7 @@
 		<span class="badge badge-commit">{{svg "octicon-git-commit"}}</span>
 		{{ctx.RenderUtils.AvatarStack $commit.AvatarStackData}}
 
-		{{$commitBaseLink := printf "%s/commit" $.comment.Issue.PullRequest.BaseRepo.Link}}
+		{{$commitBaseLink := printf "%s/commits" $.comment.Issue.Link}}{{/* "/owner/repo/pulls/{idx}/commits" */}}
 		{{$commitLink:= printf "%s/%s" $commitBaseLink (PathEscape $gitCommit.ID.String)}}
 
 		<span class="tw-flex-1 tw-font-mono gt-ellipsis" title="{{$gitCommit.MessageTitle}}">

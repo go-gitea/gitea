@@ -185,9 +185,16 @@ func TestDetectMatched(t *testing.T) {
 		{
 			desc:         "HookEventPullRequest(pull_request) `label_updated` action matches GithubEventPullRequest(pull_request) with `label` activity type",
 			triggedEvent: webhook_module.HookEventPullRequest,
-			payload:      &api.PullRequestPayload{Action: api.HookIssueLabelUpdated},
+			payload:      &api.PullRequestPayload{Action: api.HookIssueLabelUpdated, Changes: &api.ChangesPayload{AddedLabels: []*api.Label{{ID: 1, Name: "label"}}}},
 			yamlOn:       "on:\n  pull_request:\n    types: [labeled]",
 			expected:     detectMatched,
+		},
+		{
+			desc:         "HookEventPullRequestLabel(pull_request_label) label removal doesn't match GithubEventPullRequest(pull_request) with `labeled` activity type",
+			triggedEvent: webhook_module.HookEventPullRequestLabel,
+			payload:      &api.PullRequestPayload{Action: api.HookIssueLabelUpdated, Changes: &api.ChangesPayload{RemovedLabels: []*api.Label{{ID: 1}}}},
+			yamlOn:       "on:\n  pull_request:\n    types: [labeled]",
+			expected:     detectNotApplicable,
 		},
 		{
 			desc:         "HookEventPullRequestReviewComment(pull_request_review_comment) matches GithubEventPullRequestReviewComment(pull_request_review_comment)",

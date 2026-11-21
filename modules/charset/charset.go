@@ -22,15 +22,14 @@ import (
 	"golang.org/x/text/transform"
 )
 
-var globalVars = sync.OnceValue(func() (ret struct {
-	utf8Bom []byte
+const utf8Bom = "\xef\xbb\xbf"
 
+var globalVars = sync.OnceValue(func() (ret struct {
 	defaultWordRegexp   *regexp.Regexp
 	ambiguousTableMap   map[string]*AmbiguousTable
 	invisibleRangeTable *unicode.RangeTable
 },
 ) {
-	ret.utf8Bom = []byte("\xef\xbb\xbf")
 	ret.ambiguousTableMap = newAmbiguousTableMap()
 	ret.invisibleRangeTable = newInvisibleRangeTable()
 	return ret
@@ -139,7 +138,7 @@ func maybeRemoveBOM(content []byte, opts ConvertOpts) []byte {
 	if opts.KeepBOM {
 		return content
 	}
-	return bytes.TrimPrefix(content, globalVars().utf8Bom)
+	return bytes.TrimPrefix(content, []byte(utf8Bom))
 }
 
 // DetectEncoding detect the encoding of content

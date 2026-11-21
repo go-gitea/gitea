@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
@@ -27,6 +28,7 @@ func TestAPIStar(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	t.Run("PublicOnly", func(t *testing.T) {
+		require.NoError(t, db.Insert(t.Context(), &repo_model.LanguageStat{RepoID: 4, IsPrimary: true, Language: "Go", Size: 1}))
 		token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopePublicOnly)
 		req := NewRequest(t, "GET", "/api/v1/user/starred").
 			AddTokenAuth(token)
@@ -35,6 +37,7 @@ func TestAPIStar(t *testing.T) {
 		repos := DecodeJSON(t, resp, []api.Repository{})
 		if assert.Len(t, repos, 1) {
 			assert.Equal(t, "user5/repo4", repos[0].FullName)
+			assert.Equal(t, "Go", repos[0].Language)
 		}
 
 		req = NewRequest(t, "GET", "/api/v1/users/user2/starred").

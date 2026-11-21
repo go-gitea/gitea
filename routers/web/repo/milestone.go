@@ -50,20 +50,20 @@ func Milestones(ctx *context.Context) {
 		Name:     keyword,
 	})
 	if err != nil {
-		ctx.ServerError("GetMilestones", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	stats, err := issues_model.GetMilestonesStatsByRepoCondAndKw(ctx, builder.And(builder.Eq{"id": ctx.Repo.Repository.ID}), keyword)
 	if err != nil {
-		ctx.ServerError("GetMilestoneStats", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["OpenCount"] = stats.OpenCount
 	ctx.Data["ClosedCount"] = stats.ClosedCount
 	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		if err := issues_model.MilestoneList(miles).LoadTotalTrackedTimes(ctx); err != nil {
-			ctx.ServerError("LoadTotalTrackedTimes", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -71,7 +71,7 @@ func Milestones(ctx *context.Context) {
 		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
 		m.RenderedContent, err = markdown.RenderString(rctx, m.Content)
 		if err != nil {
-			ctx.ServerError("RenderString", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -126,7 +126,7 @@ func NewMilestonePost(ctx *context.Context) {
 		Content:      form.Content,
 		DeadlineUnix: deadlineUnix,
 	}); err != nil {
-		ctx.ServerError("NewMilestone", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -142,11 +142,7 @@ func EditMilestone(ctx *context.Context) {
 
 	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
-		if issues_model.IsErrMilestoneNotExist(err) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("GetMilestoneByRepoID", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["title"] = m.Name
@@ -178,18 +174,14 @@ func EditMilestonePost(ctx *context.Context) {
 
 	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
-		if issues_model.IsErrMilestoneNotExist(err) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("GetMilestoneByRepoID", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	m.Name = form.Title
 	m.Content = form.Content
 	m.DeadlineUnix = deadlineUnix
 	if err = issues_model.UpdateMilestone(ctx, m, m.IsClosed); err != nil {
-		ctx.ServerError("UpdateMilestone", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -212,11 +204,7 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 	id := ctx.PathParamInt64("id")
 
 	if err := issues_model.ChangeMilestoneStatusByRepoIDAndID(ctx, ctx.Repo.Repository.ID, id, toClose); err != nil {
-		if issues_model.IsErrMilestoneNotExist(err) {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("ChangeMilestoneStatusByIDAndRepoID", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones?state=" + url.QueryEscape(ctx.PathParam("action")))
@@ -239,26 +227,26 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	projectIDs := parseProjectIDsFromQuery(ctx)
 	milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 	if err != nil {
-		if issues_model.IsErrMilestoneNotExist(err) {
-			ctx.NotFound(err)
-			return
-		}
-
-		ctx.ServerError("GetMilestoneByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
 	milestone.RenderedContent, err = markdown.RenderString(rctx, milestone.Content)
 	if err != nil {
-		ctx.ServerError("RenderString", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone
 
-	prepareIssueFilterAndList(ctx, milestoneID, projectIDs, optional.None[bool]())
+	isPull, ok := common.ParseIssueFilterTypeIsPullWithPermission(ctx.Repo.Permission, ctx.FormString("type"))
+	if !ok {
+		ctx.HTTPError(http.StatusForbidden, "no permission to read issues or pulls")
+		return
+	}
+	prepareIssueFilterAndList(ctx, milestoneID, projectIDs, isPull)
 
 	ctx.Data["CanWriteIssues"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(false)
 	ctx.Data["CanWritePulls"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(true)
