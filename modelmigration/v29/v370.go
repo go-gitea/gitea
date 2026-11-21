@@ -8,27 +8,17 @@ import (
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
-
-	"xorm.io/builder"
+	"gitea.dev/modules/setting"
 )
 
-func MoveLatestReleaseIDToReleasesUnit(ctx context.Context, x base.EngineMigration) error {
-	exists, err := x.Dialect().IsColumnExist(x.DB(), ctx, "repository", "latest_release_id")
-	if err != nil || !exists {
-		return err
+func ChangeActionsRawConcurrencyToText(_ context.Context, x base.EngineMigration) error {
+	if !setting.Database.Type.IsMSSQL() { // startup sync widens VARCHAR to TEXT on MySQL and PostgreSQL
+		return nil
 	}
-
-	type Repository struct {
-		ID              int64
-		LatestReleaseID int64
-	}
-	return base.EngineTransaction(x, func(sess base.Session) error {
-		if err := base.IterateTableByColumn(ctx, x, sess, "id", builder.Neq{"latest_release_id": 0}, func(_ctx context.Context, repo *Repository) error {
-			_, err := sess.Table("repo_unit").Where(builder.Eq{"repo_id": repo.ID, "type": 4}).Update(map[string]any{"config": fmt.Sprintf(`{"LatestReleaseID":%d}`, repo.LatestReleaseID)})
-			return err
-		}); err != nil {
-			return err
+	for _, table := range []string{"action_run", "action_run_job"} {
+		if _, err := x.Exec("ALTER TABLE " + table + " ALTER COLUMN raw_concurrency NVARCHAR(MAX) NULL"); err != nil {
+			return fmt.Errorf("ChangeActionsRawConcurrencyToText: %s: %w", table, err)
 		}
-		return base.DropTableColumns(sess, "repository", "latest_release_id")
-	})
+	}
+	return nil
 }

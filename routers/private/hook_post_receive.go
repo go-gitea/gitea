@@ -57,7 +57,7 @@ func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts
 		}
 		branchNames = append(branchNames, update.RefFullName.BranchName())
 		if !update.IsDelRef() {
-			pull_service.UpdatePullsRefs(ctx, repo, update)
+			pull_service.UpdatePullsRefs(ctx, ctx.Doer, repo, update.RefFullName.BranchName(), opts.PullRequestID)
 		}
 	}
 
@@ -81,6 +81,9 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	opts := web.GetForm[*private.HookOptions](ctx)
 	if opts.IsWiki {
 		setting.PanicInDevOrTesting("wiki hook-post-receive is not supported")
+		return
+	}
+	if !loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) {
 		return
 	}
 
@@ -109,10 +112,6 @@ func hookPostReceiveUpdateRepoByOptions(ctx *gitea_context.PrivateContext, opts 
 	isTemplate := opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate)
 	// Handle Push Options
 	if !isPrivate.Has() && !isTemplate.Has() {
-		return
-	}
-
-	if !loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) {
 		return
 	}
 

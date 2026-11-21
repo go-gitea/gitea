@@ -5,7 +5,9 @@ package actions
 
 import (
 	"strconv"
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	act_model "gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
@@ -49,6 +51,19 @@ func TestEvaluateRunConcurrency_RunIDFallback(t *testing.T) {
 	assert.Contains(t, attemptA.ConcurrencyGroup, "791")
 	assert.Contains(t, attemptB.ConcurrencyGroup, "792")
 	assert.NotEqual(t, attemptA.ConcurrencyGroup, attemptB.ConcurrencyGroup)
+
+	t.Run("preserves 255 runes and bounds longer groups", func(t *testing.T) {
+		evaluateGroup := func(group string) string {
+			require.NoError(t, EvaluateRunConcurrencyFillModel(ctx, runA, attemptA, &act_model.RawConcurrency{Group: group}, nil, nil))
+			return attemptA.ConcurrencyGroup
+		}
+		group := strings.Repeat("界", 255)
+		assert.Equal(t, group, evaluateGroup(group))
+		boundedGroup := evaluateGroup(group + "a")
+		assert.LessOrEqual(t, utf8.RuneCountInString(boundedGroup), 255)
+		assert.Equal(t, boundedGroup, evaluateGroup(group+"a"))
+		assert.NotEqual(t, boundedGroup, evaluateGroup(group+"b"))
+	})
 }
 
 func TestPrepareRunAndInsert_ExpressionsSeeRunID(t *testing.T) {

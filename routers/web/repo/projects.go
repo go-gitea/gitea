@@ -173,10 +173,16 @@ func ChangeProjectStatus(ctx *context.Context) {
 	}
 	id := ctx.PathParamInt64("id")
 
-	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, ctx.Repo.Repository.ID, id, toClose); err != nil {
+	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, id)
+	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}
+	if err := project_model.ChangeProjectStatus(ctx, project, toClose); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	audit.Record(ctx, audit_model.ProjectUpdate, ctx.Repo.Repository, "project", project.Title, "project_id", project.ID)
 	ctx.JSONRedirect(project_model.ProjectLinkForRepo(ctx.Repo.Repository, id))
 }
 

@@ -158,59 +158,23 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		return
 	}
 
-	isForcePush := false
-
 	// 2. Disallow force pushes to protected branches
-	if oldCommitID != objectFormat.EmptyObjectID().String() {
-		output, _, err := gitcmd.NewCommand("rev-list", "--max-count=1").
-			AddDynamicArguments(oldCommitID, "^"+newCommitID).
-			WithEnv(ctx.env).WithRepo(repo).RunStdString(ctx)
-		if err != nil {
-			ctx.PrivateInternalErrorf("Unable to detect force push between %s and %s in %s: %v", oldCommitID, newCommitID, repo.FullName(), err)
-			return
-		} else if len(output) > 0 {
-			if protectBranch.CanForcePush {
-				isForcePush = true
-			} else {
-				ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from force push", branchName)
-				return
-			}
-		}
+	isForcePush, ok := checkForcePush(ctx, protectBranch, branchName, oldCommitID, newCommitID)
+	if !ok {
+		return
 	}
 
 	// 3. Enforce require signed commits
-	if protectBranch.RequireSignedCommits {
-		err := verifyCommits(ctx, oldCommitID, newCommitID, gitRepo, ctx.env)
-		if err != nil {
-			errUnverified, ok := err.(*errUnverifiedCommit)
-			if !ok {
-				ctx.PrivateInternalErrorf("Unable to check commits from %s to %s: %v", oldCommitID, newCommitID, err)
-				return
-			}
-			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from unverified commit %s", branchName, errUnverified.sha)
-			return
-		}
+	if !checkSignedCommits(ctx, protectBranch, branchName, oldCommitID, newCommitID) {
+		return
 	}
 
 	// Now there are several tests which can be overridden:
 	//
 	// 4. Check protected file patterns - this is overridable from the UI
-	changedProtectedFiles := false
-	protectedFilePath := ""
-
-	globs := protectBranch.GetProtectedFilePatterns()
-	if len(globs) > 0 {
-		_, err := pull_service.CheckFileProtection(ctx, gitRepo, branchName, oldCommitID, newCommitID, globs, 1, ctx.env)
-		if err != nil {
-			errFilePathProtected, ok := errors.AsType[pull_service.ErrFilePathProtected](err)
-			if !ok {
-				ctx.PrivateInternalErrorf("Unable to check file protection for commits from %s to %s: %v", oldCommitID, newCommitID, err)
-				return
-			}
-
-			changedProtectedFiles = true
-			protectedFilePath = errFilePathProtected.Path
-		}
+	changedProtectedFiles, protectedFilePath, ok := checkProtectedFiles(ctx, protectBranch, branchName, oldCommitID, newCommitID)
+	if !ok {
+		return
 	}
 
 	// 5. Check if the doer is allowed to push (and force-push if the incoming push is a force-push)
@@ -298,6 +262,73 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			return
 		}
 	}
+}
+
+// checkProtectedFiles reports whether the push changes a file that matches the
+// branch's protected file patterns, and the first such path. It does not reject
+// the push for that, since step 6 decides; ok is false only if the check failed.
+func checkProtectedFiles(ctx *preReceiveContext, protectBranch *git_model.ProtectedBranch, branchName, oldCommitID, newCommitID string) (changed bool, path string, ok bool) {
+	globs := protectBranch.GetProtectedFilePatterns()
+	if len(globs) == 0 {
+		return false, "", true
+	}
+
+	_, err := pull_service.CheckFileProtection(ctx, ctx.Repo.GitRepo, branchName, oldCommitID, newCommitID, globs, 1, ctx.env)
+	if err == nil {
+		return false, "", true
+	}
+	errFilePathProtected, isProtected := errors.AsType[pull_service.ErrFilePathProtected](err)
+	if !isProtected {
+		ctx.PrivateInternalErrorf("Unable to check file protection for commits from %s to %s: %v", oldCommitID, newCommitID, err)
+		return false, "", false
+	}
+	return true, errFilePathProtected.Path, true
+}
+
+// checkForcePush reports whether the push rewrites the branch history. It
+// rejects the push when the branch does not allow force pushes; ok is false
+// if the push was rejected.
+func checkForcePush(ctx *preReceiveContext, protectBranch *git_model.ProtectedBranch, branchName, oldCommitID, newCommitID string) (isForcePush, ok bool) {
+	// A new branch has no history to rewrite.
+	if oldCommitID == ctx.Repo.GetObjectFormat().EmptyObjectID().String() {
+		return false, true
+	}
+
+	repo := ctx.Repo.Repository
+	output, _, err := gitcmd.NewCommand("rev-list", "--max-count=1").
+		AddDynamicArguments(oldCommitID, "^"+newCommitID).
+		WithEnv(ctx.env).WithRepo(repo).RunStdString(ctx)
+	if err != nil {
+		ctx.PrivateInternalErrorf("Unable to detect force push between %s and %s in %s: %v", oldCommitID, newCommitID, repo.FullName(), err)
+		return false, false
+	}
+	if len(output) == 0 {
+		return false, true
+	}
+	if !protectBranch.CanForcePush {
+		ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from force push", branchName)
+		return false, false
+	}
+	return true, true
+}
+
+// checkSignedCommits rejects the push when the branch requires signed commits
+// and a new commit is not verified. It returns false if the push was rejected.
+func checkSignedCommits(ctx *preReceiveContext, protectBranch *git_model.ProtectedBranch, branchName, oldCommitID, newCommitID string) bool {
+	if !protectBranch.RequireSignedCommits {
+		return true
+	}
+	err := verifyCommits(ctx, oldCommitID, newCommitID, ctx.Repo.GitRepo, ctx.env)
+	if err != nil {
+		errUnverified, ok := err.(*errUnverifiedCommit)
+		if !ok {
+			ctx.PrivateInternalErrorf("Unable to check commits from %s to %s: %v", oldCommitID, newCommitID, err)
+			return false
+		}
+		ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from unverified commit %s", branchName, errUnverified.sha)
+		return false
+	}
+	return true
 }
 
 func preReceiveTag(ctx *preReceiveContext, refFullName git.RefName) {

@@ -23,7 +23,6 @@ import (
 	packages_cleanup_service "gitea.dev/services/packages/cleanup"
 	"gitea.dev/tests"
 
-	"github.com/blakesmith/ar"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,15 +49,7 @@ func TestPackageDebian(t *testing.T) {
 		zw.Close()
 
 		var buf bytes.Buffer
-		aw := ar.NewWriter(&buf)
-		aw.WriteGlobalHeader()
-		hdr := &ar.Header{
-			Name: "control.tar.gz",
-			Mode: 0o600,
-			Size: int64(cbuf.Len()),
-		}
-		aw.WriteHeader(hdr)
-		aw.Write(cbuf.Bytes())
+		fmt.Fprintf(&buf, "!<arch>\n%-48s%-10d`\n%s%s", "control.tar.gz", cbuf.Len(), cbuf.Bytes(), strings.Repeat("\n", cbuf.Len()%2))
 
 		// if you'd like to do some tests manually, uncomment the WriteFile line, then you will get some "deb" package files:
 		// OWNER= PASS= DIST= COMP= ; curl -X PUT "http://$OWNER:$PASS@localhost:3000/api/packages/$OWNER/debian/pool/$DIST/$COMP/upload" -T /tmp/gitea_test_debian_gitea_1.0.3_amd64.deb
