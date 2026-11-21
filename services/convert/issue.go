@@ -134,6 +134,19 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 	return apiIssue
 }
 
+// ToIssueMetaList never returns nil, so an issue without dependencies serializes them as []
+func ToIssueMetaList(issues []*issues_model.Issue) []*api.IssueMeta {
+	result := make([]*api.IssueMeta, 0, len(issues))
+	for _, issue := range issues {
+		result = append(result, &api.IssueMeta{
+			Owner: issue.Repo.OwnerName,
+			Name:  issue.Repo.Name,
+			Index: issue.Index,
+		})
+	}
+	return result
+}
+
 // ToIssueList converts an IssueList to API format
 func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList) []*api.Issue {
 	result := make([]*api.Issue, len(il))

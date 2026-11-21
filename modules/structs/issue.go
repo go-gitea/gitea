@@ -84,6 +84,11 @@ type Issue struct {
 	PinOrder int `json:"pin_order"`
 	// The version of the issue content for optimistic locking
 	ContentVersion int `json:"content_version"`
+
+	// Set only when the request includes "dependencies"; issues blocking this one that the caller may read
+	BlockedBy []*IssueMeta `json:"blocked_by,omitzero"`
+	// Set only when the request includes "dependencies"; issues this one blocks that the caller may read
+	Blocking []*IssueMeta `json:"blocking,omitzero"`
 }
 
 // CreateIssueOption options to create one issue
