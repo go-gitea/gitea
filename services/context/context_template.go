@@ -93,7 +93,7 @@ func (c TemplateContext) CurrentWebBanner() *setting.WebBannerType {
 // AppFullLink returns a full URL link with AppSubURL for the given app link
 // If no link is given, it returns the current app full URL with sub-path but without trailing slash (that's why it is not named as AppURL)
 func (c TemplateContext) AppFullLink(link ...string) template.URL {
-	s := httplib.GuessCurrentAppURL(c.parentContext())
+	s := httplib.GuessCurrentRootURL(c.parentContext())
 	s = strings.TrimSuffix(s, "/")
 	if len(link) == 0 {
 		return template.URL(s)
@@ -107,7 +107,7 @@ func (c TemplateContext) SiteManifestURL() template.URL {
 	manifest, _ := json.Marshal(map[string]any{
 		"name":       setting.AppName,
 		"short_name": setting.AppName,
-		"start_url":  httplib.GuessCurrentAppURL(ctx),
+		"start_url":  httplib.GuessCurrentRootURL(ctx),
 		"icons": []map[string]string{
 			{"src": absoluteAssetURL + "/assets/img/logo.png", "type": "image/png", "sizes": "512x512"},
 			{"src": absoluteAssetURL + "/assets/img/logo.svg", "type": "image/svg+xml", "sizes": "512x512"},

@@ -69,7 +69,7 @@ func writeVarSelect(w *htmlutil.HTMLBuilder, varName string, varItems []string) 
 func (s Specialization) RenderSetupManual(ctx context.Context, pkg *packages_model.PackageDescriptor, viewDataAny any) template.HTML {
 	viewData := viewDataAny.(debianViewData) //nolint:forcetypeassert // must be valid
 	const nl = "\n"
-	appFullLink := strings.TrimSuffix(httplib.GuessCurrentAppURL(ctx), "/")
+	appFullLink := strings.TrimSuffix(httplib.GuessCurrentRootURL(ctx), "/")
 
 	w := &htmlutil.HTMLBuilder{}
 	w.WriteHTML(`<div data-global-init="initPackagesManualVars">`)

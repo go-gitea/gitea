@@ -39,9 +39,6 @@ func (source *Source) Callback(request *http.Request, response http.ResponseWrit
 	defer gothRWMutex.RUnlock()
 
 	user, err := gothic.CompleteUserAuth(response, request)
-	if err != nil {
-		return user, err
-	}
-
-	return user, nil
+	user.Provider = source.AuthSource.Name // alternative root providers have other names
+	return user, err
 }

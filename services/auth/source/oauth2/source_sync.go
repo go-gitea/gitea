@@ -12,6 +12,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
 	"gitea.dev/services/audit"
 	user_service "gitea.dev/services/user"
 
@@ -28,7 +29,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		return nil
 	}
 
-	provider, err := createProvider(source.AuthSource.Name, source)
+	provider, err := createProvider(source.AuthSource.Name, setting.AppURL, source)
 	if err != nil {
 		return err
 	}

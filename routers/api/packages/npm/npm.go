@@ -54,7 +54,7 @@ func packageNameFromParams(ctx *context.Context) string {
 }
 
 func buildNpmRegistryURL(ctx std_ctx.Context, owner *user_model.User) string {
-	return httplib.GuessCurrentAppURL(ctx) + "api/packages/" + url.PathEscape(owner.Name) + "/npm"
+	return httplib.GuessCurrentRootURL(ctx) + "api/packages/" + url.PathEscape(owner.Name) + "/npm"
 }
 
 func packageMetadata(ctx *context.Context) *npm_module.PackageMetadata {
