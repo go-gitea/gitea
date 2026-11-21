@@ -679,8 +679,6 @@ func Issues(ctx *context.Context) {
 		}
 		ctx.Data["Title"] = ctx.Tr("repo.issues")
 		ctx.Data["PageIsIssueList"] = true
-		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
-
 		restriction := ctx.Repo.Repository.MustGetUnit(ctx, unit_model.TypeIssues).IssuesConfig().CreationRestriction
 		err := issue_service.CheckCreationRestriction(ctx.Repo.Permission, unit_model.TypeIssues, restriction)
 		ctx.Data["ShowNewIssueButton"] = !ctx.Repo.Repository.IsArchived && err == nil
