@@ -7,6 +7,7 @@ package repo
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -333,10 +334,34 @@ func ListIssues(ctx *context.APIContext) {
 
 	var labelIDs []int64
 	if labelsParam := ctx.FormTrim("labels"); labelsParam != "" {
-		labelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, strings.Split(labelsParam, ","))
+		labelNames := strings.Split(labelsParam, ",")
+		labelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, labelNames)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
+		}
+		if ctx.Repo.Owner.IsOrganization() {
+			repoLabels, err := issues_model.GetLabelsByIDs(ctx, labelIDs, "name")
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+			orgLabelNames := container.SetOf(labelNames...)
+			for _, label := range repoLabels {
+				orgLabelNames.Remove(label.Name)
+			}
+			if len(orgLabelNames) > 0 {
+				orgLabelIDs, err := issues_model.GetLabelIDsInOrgByNames(ctx, ctx.Repo.Owner.ID, orgLabelNames.Values())
+				if err != nil {
+					ctx.APIErrorInternal(err)
+					return
+				}
+				labelIDs = append(labelIDs, orgLabelIDs...)
+			}
+		}
+		if len(labelIDs) == 0 {
+			// Keep an unmatched filter from being treated as no filter.
+			labelIDs = []int64{math.MaxInt64}
 		}
 	}
 
