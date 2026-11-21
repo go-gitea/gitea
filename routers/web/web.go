@@ -709,6 +709,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addWebhookAddRoutes()
 			m.Group("/{id}", func() {
 				m.Get("", repo_setting.WebHooksEdit)
+				m.Get("/history", repo_setting.WebhookHistory)
 				m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 			})
 			addWebhookEditRoutes()
@@ -831,6 +832,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/delete", admin.DeleteDefaultOrSystemWebhook)
 			m.Group("/{id}", func() {
 				m.Get("", repo_setting.WebHooksEdit)
+				m.Get("/history", repo_setting.WebhookHistory)
 				m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 			})
 			addWebhookEditRoutes()
@@ -1009,6 +1011,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					addWebhookAddRoutes()
 					m.Group("/{id}", func() {
 						m.Get("", repo_setting.WebHooksEdit)
+						m.Get("/history", repo_setting.WebhookHistory)
 						m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 					})
 					addWebhookEditRoutes()
@@ -1207,6 +1210,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addWebhookAddRoutes()
 			m.Group("/{id}", func() {
 				m.Get("", repo_setting.WebHooksEdit)
+				m.Get("/history", repo_setting.WebhookHistory)
 				m.Post("/test", repo_setting.TestWebhook)
 				m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 			})
