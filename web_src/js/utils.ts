@@ -20,6 +20,11 @@ export function extname(path: string): string {
   return path.substring(lastPointIndex);
 }
 
+/** join a parent path and a name, the parent is empty at root level */
+export function joinPath(parent: string, name: string): string {
+  return parent ? `${parent}/${name}` : name;
+}
+
 /** test whether a variable is an object */
 export function isObject(obj: unknown): obj is Record<string, unknown> {
   return Object.prototype.toString.call(obj) === '[object Object]';
