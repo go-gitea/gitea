@@ -4,6 +4,7 @@
 package vagrant
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	packages_module "gitea.dev/modules/packages"
 	vagrant_module "gitea.dev/modules/packages/vagrant"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 	"gitea.dev/routers/api/packages/helper"
 	"gitea.dev/services/context"
 	packages_service "gitea.dev/services/packages"
@@ -166,7 +168,11 @@ func UploadPackageFile(ctx *context.Context) {
 
 	metadata, err := vagrant_module.ParseMetadataFromBox(buf)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 

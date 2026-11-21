@@ -24,17 +24,26 @@ func TestRepository_AddCollaborator(t *testing.T) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-	testSuccess := func(repo *repo_model.Repository, user *user_model.User) {
+	for _, repo := range []*repo_model.Repository{repo1, repo1, repo3} {
 		assert.NoError(t, repo.LoadOwner(t.Context()))
-		assert.NoError(t, AddOrUpdateCollaborator(t.Context(), repo, user, perm.AccessModeWrite))
-		unittest.CheckConsistencyFor(t, repo, user)
+		assert.NoError(t, AddOrUpdateCollaborator(t.Context(), repo, user4, perm.AccessModeWrite))
+		unittest.CheckConsistencyFor(t, repo, user4)
 	}
-	testSuccess(repo1, user4)
-	testSuccess(repo1, user4)
-	testSuccess(repo3, user4)
 
 	assert.Error(t, AddOrUpdateCollaborator(t.Context(), repo1, user4, perm.AccessModeOwner))
 	assert.NoError(t, AddOrUpdateCollaborator(t.Context(), repo1, user4, perm.AccessModeAdmin))
+
+	repo8 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 8})
+	repo38 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 38})
+	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29})
+	for _, collab := range []struct {
+		repo *repo_model.Repository
+		user *user_model.User
+	}{{repo8, user29}, {repo38, user4}} {
+		assert.NoError(t, db.Insert(t.Context(), &repo_model.Collaboration{RepoID: collab.repo.ID, UserID: collab.user.ID, Mode: perm.AccessModeRead}))
+		assert.NoError(t, AddOrUpdateCollaborator(t.Context(), collab.repo, collab.user, perm.AccessModeRead))
+		unittest.AssertExistsAndLoadBean(t, &access_model.Access{RepoID: collab.repo.ID, UserID: collab.user.ID, Mode: perm.AccessModeRead})
+	}
 }
 
 func TestRepository_DeleteCollaboration(t *testing.T) {
@@ -44,11 +53,10 @@ func TestRepository_DeleteCollaboration(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 22})
 
 	assert.NoError(t, repo.LoadOwner(t.Context()))
-	assert.NoError(t, DeleteCollaboration(t.Context(), repo, user))
-	unittest.AssertNotExistsBean(t, &repo_model.Collaboration{RepoID: repo.ID, UserID: user.ID})
-
-	assert.NoError(t, DeleteCollaboration(t.Context(), repo, user))
-	unittest.AssertNotExistsBean(t, &repo_model.Collaboration{RepoID: repo.ID, UserID: user.ID})
+	for range 2 {
+		assert.NoError(t, DeleteCollaboration(t.Context(), repo, user))
+		unittest.AssertNotExistsBean(t, &repo_model.Collaboration{RepoID: repo.ID, UserID: user.ID})
+	}
 
 	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repo.ID})
 }

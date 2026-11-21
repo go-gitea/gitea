@@ -9,7 +9,6 @@ import "time"
 // Commentable can be commented upon
 type Commentable interface {
 	Reviewable
-	GetContext() DownloaderContext
 }
 
 // Comment is a standard comment information

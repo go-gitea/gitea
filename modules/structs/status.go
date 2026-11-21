@@ -13,7 +13,7 @@ import (
 type CommitStatus struct {
 	// ID is the unique identifier for the commit status
 	ID int64 `json:"id"`
-	// State represents the status state (pending, success, error, failure)
+	// State represents the status state (pending, running, success, error, failure, warning, skipped)
 	State commitstatus.CommitStatusState `json:"status"`
 	// TargetURL is the URL to link to for more details
 	TargetURL string `json:"target_url"`
@@ -51,7 +51,7 @@ type CombinedStatus struct {
 
 // CreateStatusOption holds the information needed to create a new CommitStatus for a Commit
 type CreateStatusOption struct {
-	// State represents the status state to set (pending, success, error, failure)
+	// State represents the status state to set (pending, running, success, error, failure, warning, skipped)
 	State commitstatus.CommitStatusState `json:"state"`
 	// TargetURL is the URL to link to for more details
 	TargetURL string `json:"target_url"`

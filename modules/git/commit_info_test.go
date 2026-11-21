@@ -166,6 +166,15 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 		// since there is no refURL, it means that the submodule info doesn't exist, so it won't have a web link
 		assert.Nil(t, cisf.SubmoduleWebLinkTree(t.Context()))
 	})
+
+	t.Run("SubsetOfTreePathEntries", func(t *testing.T) {
+		commit, err := bareRepo1.GetCommit(t.Context(), "37991dec2c8e592043f47155ce4808d4580f9123")
+		require.NoError(t, err)
+		revs, err := GetLastCommitForPaths(t.Context(), bareRepo1, commit, "foo", []string{"bar"})
+		require.NoError(t, err)
+		assert.Equal(t, "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0", revs["bar"].ID.String())
+		assert.NotContains(t, revs, "link_short")
+	})
 }
 
 func TestEntries_GetCommitsInfo_ContextErr(t *testing.T) {
@@ -173,6 +182,8 @@ func TestEntries_GetCommitsInfo_ContextErr(t *testing.T) {
 	repo, err := OpenRepository(t.Context(), gitrepo.RepositoryManaged("dummy", repoPath))
 	require.NoError(t, err)
 	defer repo.Close()
+
+	repo.LastCommitCache.ttlFn = func() int64 { return -1 }
 
 	commit, err := repo.GetCommit(t.Context(), "feaf4ba6bc635fec442f46ddd4512416ec43c2c2")
 	require.NoError(t, err)

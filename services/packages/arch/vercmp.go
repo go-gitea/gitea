@@ -4,6 +4,7 @@
 package arch
 
 import (
+	"cmp"
 	"strconv"
 	"strings"
 	"unicode"
@@ -30,19 +31,12 @@ func parseEVR(evr string) (epoch, version, release string) {
 }
 
 func compareSegments(a, b []string) int {
-	lenA, lenB := len(a), len(b)
-	l := min(lenA, lenB)
-	for i := range l {
+	for i := range min(len(a), len(b)) {
 		if r := compare(a[i], b[i]); r != 0 {
 			return r
 		}
 	}
-	if lenA == lenB {
-		return 0
-	} else if l == lenA {
-		return -1
-	}
-	return 1
+	return cmp.Compare(len(a), len(b))
 }
 
 func compare(a, b string) int {
@@ -56,14 +50,7 @@ func compare(a, b string) int {
 	if aNumeric && bNumeric {
 		aInt, _ := strconv.Atoi(a)
 		bInt, _ := strconv.Atoi(b)
-		switch {
-		case aInt < bInt:
-			return -1
-		case aInt > bInt:
-			return 1
-		default:
-			return 0
-		}
+		return cmp.Compare(aInt, bInt)
 	}
 
 	if aNumeric {

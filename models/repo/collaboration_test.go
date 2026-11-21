@@ -15,107 +15,100 @@ import (
 
 func TestRepository_GetCollaborators(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	test := func(repoID int64) {
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
-		collaborators, _, err := repo_model.GetCollaborators(t.Context(), &repo_model.FindCollaborationOptions{RepoID: repo.ID})
-		assert.NoError(t, err)
-		expectedLen, err := db.GetEngine(t.Context()).Count(&repo_model.Collaboration{RepoID: repoID})
-		assert.NoError(t, err)
-		assert.Len(t, collaborators, int(expectedLen))
-		for _, collaborator := range collaborators {
-			assert.Equal(t, collaborator.User.ID, collaborator.Collaboration.UserID)
-			assert.Equal(t, repoID, collaborator.Collaboration.RepoID)
+
+	t.Run("Repository_GetCollaborators", func(t *testing.T) {
+		for _, repoID := range []int64{1, 2, 3, 4} {
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
+			collaborators, _, err := repo_model.GetCollaborators(t.Context(), &repo_model.FindCollaborationOptions{RepoID: repo.ID})
+			assert.NoError(t, err)
+			expectedLen, err := db.GetEngine(t.Context()).Count(&repo_model.Collaboration{RepoID: repoID})
+			assert.NoError(t, err)
+			assert.Len(t, collaborators, int(expectedLen))
+			for _, collaborator := range collaborators {
+				assert.Equal(t, collaborator.User.ID, collaborator.Collaboration.UserID)
+				assert.Equal(t, repoID, collaborator.Collaboration.RepoID)
+			}
 		}
-	}
-	test(1)
-	test(2)
-	test(3)
-	test(4)
 
-	// Test db.ListOptions
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 22})
+		// Test db.ListOptions
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 22})
 
-	collaborators1, _, err := repo_model.GetCollaborators(t.Context(), &repo_model.FindCollaborationOptions{
-		ListOptions: db.ListOptions{PageSize: 1, Page: 1},
-		RepoID:      repo.ID,
-	})
-	assert.NoError(t, err)
-	assert.Len(t, collaborators1, 1)
-
-	collaborators2, _, err := repo_model.GetCollaborators(t.Context(), &repo_model.FindCollaborationOptions{
-		ListOptions: db.ListOptions{PageSize: 1, Page: 2},
-		RepoID:      repo.ID,
-	})
-	assert.NoError(t, err)
-	assert.Len(t, collaborators2, 1)
-
-	assert.NotEqual(t, collaborators1[0].ID, collaborators2[0].ID)
-}
-
-func TestRepository_IsCollaborator(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	test := func(repoID, userID int64, expected bool) {
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
-		actual, err := repo_model.IsCollaborator(t.Context(), repo.ID, userID)
+		collaborators1, _, err := repo_model.GetCollaborators(t.Context(), &repo_model.FindCollaborationOptions{
+			ListOptions: db.ListOptions{PageSize: 1, Page: 1},
+			RepoID:      repo.ID,
+		})
 		assert.NoError(t, err)
-		assert.Equal(t, expected, actual)
-	}
-	test(3, 2, true)
-	test(3, unittest.NonexistentID, false)
-	test(4, 2, false)
-	test(4, 4, true)
-}
+		assert.Len(t, collaborators1, 1)
 
-func TestRepository_IsOwnerMemberCollaborator(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+		collaborators2, _, err := repo_model.GetCollaborators(t.Context(), &repo_model.FindCollaborationOptions{
+			ListOptions: db.ListOptions{PageSize: 1, Page: 2},
+			RepoID:      repo.ID,
+		})
+		assert.NoError(t, err)
+		assert.Len(t, collaborators2, 1)
 
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+		assert.NotEqual(t, collaborators1[0].ID, collaborators2[0].ID)
+	})
 
-	// Organisation owner.
-	actual, err := repo_model.HasAccessToRepoCodeUnit(t.Context(), repo1, 2)
-	assert.NoError(t, err)
-	assert.True(t, actual)
+	t.Run("Repository_IsCollaborator", func(t *testing.T) {
+		test := func(repoID, userID int64, expected bool) {
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
+			actual, err := repo_model.IsCollaborator(t.Context(), repo.ID, userID)
+			assert.NoError(t, err)
+			assert.Equal(t, expected, actual)
+		}
+		test(3, 2, true)
+		test(3, unittest.NonexistentID, false)
+		test(4, 2, false)
+		test(4, 4, true)
+	})
 
-	// Team member.
-	actual, err = repo_model.HasAccessToRepoCodeUnit(t.Context(), repo1, 4)
-	assert.NoError(t, err)
-	assert.True(t, actual)
+	t.Run("Repository_IsOwnerMemberCollaborator", func(t *testing.T) {
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 
-	// Normal user.
-	actual, err = repo_model.HasAccessToRepoCodeUnit(t.Context(), repo1, 1)
-	assert.NoError(t, err)
-	assert.False(t, actual)
+		// Organisation owner.
+		actual, err := repo_model.HasAccessToRepoCodeUnit(t.Context(), repo1, 2)
+		assert.NoError(t, err)
+		assert.True(t, actual)
 
-	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+		// Team member.
+		actual, err = repo_model.HasAccessToRepoCodeUnit(t.Context(), repo1, 4)
+		assert.NoError(t, err)
+		assert.True(t, actual)
 
-	// Collaborator.
-	actual, err = repo_model.HasAccessToRepoCodeUnit(t.Context(), repo2, 4)
-	assert.NoError(t, err)
-	assert.True(t, actual)
+		// Normal user.
+		actual, err = repo_model.HasAccessToRepoCodeUnit(t.Context(), repo1, 1)
+		assert.NoError(t, err)
+		assert.False(t, actual)
 
-	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 15})
+		repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 
-	// Repository owner.
-	actual, err = repo_model.HasAccessToRepoCodeUnit(t.Context(), repo3, 2)
-	assert.NoError(t, err)
-	assert.True(t, actual)
-}
+		// Collaborator.
+		actual, err = repo_model.HasAccessToRepoCodeUnit(t.Context(), repo2, 4)
+		assert.NoError(t, err)
+		assert.True(t, actual)
 
-func TestRepo_GetCollaboration(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+		repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 15})
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+		// Repository owner.
+		actual, err = repo_model.HasAccessToRepoCodeUnit(t.Context(), repo3, 2)
+		assert.NoError(t, err)
+		assert.True(t, actual)
+	})
 
-	// Existing collaboration.
-	collab, err := repo_model.GetCollaboration(t.Context(), repo.ID, 4)
-	assert.NoError(t, err)
-	assert.NotNil(t, collab)
-	assert.EqualValues(t, 4, collab.UserID)
-	assert.EqualValues(t, 4, collab.RepoID)
+	t.Run("Repo_GetCollaboration", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 
-	// Non-existing collaboration.
-	collab, err = repo_model.GetCollaboration(t.Context(), repo.ID, 1)
-	assert.NoError(t, err)
-	assert.Nil(t, collab)
+		// Existing collaboration.
+		collab, err := repo_model.GetCollaboration(t.Context(), repo.ID, 4)
+		assert.NoError(t, err)
+		assert.NotNil(t, collab)
+		assert.EqualValues(t, 4, collab.UserID)
+		assert.EqualValues(t, 4, collab.RepoID)
+
+		// Non-existing collaboration.
+		collab, err = repo_model.GetCollaboration(t.Context(), repo.ID, 1)
+		assert.NoError(t, err)
+		assert.Nil(t, collab)
+	})
 }

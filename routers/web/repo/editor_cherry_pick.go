@@ -24,7 +24,7 @@ func CherryPick(ctx *context.Context) {
 	ctx.Data["FromCommitID"] = fromCommitID
 	cherryPickCommit, err := ctx.Repo.GitRepo.GetCommit(ctx, fromCommitID)
 	if err != nil {
-		HandleGitError(ctx, "GetCommit", err)
+		HandleGitError(ctx, err)
 		return
 	}
 
@@ -79,5 +79,5 @@ func CherryPickPost(ctx *context.Context) {
 			return
 		}
 	}
-	redirectForCommitChoice(ctx, parsed, parsed.form.TreePath)
+	redirectForCommitChoice(ctx, parsed, "")
 }

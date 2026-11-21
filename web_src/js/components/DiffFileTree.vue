@@ -7,6 +7,7 @@ import {diffTreeStore, filterDiffTree, applyFiltersToFileBoxes, extensionFilterT
 import {setFileFolding} from '../features/file-fold.ts';
 import {onMounted, onUnmounted, computed, watch} from 'vue';
 import {localUserSettings} from '../modules/user-settings.ts';
+import {registerAsyncHashChangeListener, removeAsyncHashChangeListener} from '../modules/hashchange.ts';
 
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
 
@@ -28,13 +29,12 @@ onMounted(() => {
   // while the tree is hidden there is no control to clear a filter restored from the URL
   if (store.fileTreeIsVisible) applyFiltersToFileBoxes(store); else store.activeExtensions = 'all';
   document.querySelector('.diff-toggle-file-tree-button')!.addEventListener('click', toggleVisibility);
-  hashChangeListener();
-  window.addEventListener('hashchange', hashChangeListener);
+  registerAsyncHashChangeListener(hashChangeListener);
 });
 
 onUnmounted(() => {
   document.querySelector('.diff-toggle-file-tree-button')!.removeEventListener('click', toggleVisibility);
-  window.removeEventListener('hashchange', hashChangeListener);
+  removeAsyncHashChangeListener(hashChangeListener);
 });
 
 function hashChangeListener() {

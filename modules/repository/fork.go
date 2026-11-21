@@ -35,7 +35,7 @@ func CanUserForkRepo(ctx context.Context, user *user_model.User, repo *repo_mode
 		return false, err
 	}
 	for _, org := range ownedOrgs {
-		if repo.OwnerID != org.ID && !repo_model.HasForkedRepo(ctx, org.ID, repo.ID) {
+		if CanUserForkBetweenOwners(repo.OwnerID, org.ID) && !repo_model.HasForkedRepo(ctx, org.ID, repo.ID) {
 			return true, nil
 		}
 	}

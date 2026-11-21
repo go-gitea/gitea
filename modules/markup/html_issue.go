@@ -31,24 +31,35 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 	if ctx.RenderOptions.Metas == nil {
 		return
 	}
+	start := 0
 	next := node.NextSibling
-	for node != nil && node != next {
-		m := globalVars().issueFullPattern.FindStringSubmatchIndex(node.Data)
+	for node != nil && node != next && start < len(node.Data) {
+		m := globalVars().issueFullPattern.FindStringSubmatchIndex(node.Data[start:])
 		if m == nil {
 			return
 		}
+		for idx := range m {
+			if m[idx] != -1 {
+				m[idx] += start
+			}
+		}
 
-		mDiffView := globalVars().filesChangedFullPattern.FindStringSubmatchIndex(node.Data)
-		// leave it as it is if the link is from "Files Changed" tab in PR Diff View https://domain/org/repo/pulls/27/files
-		if mDiffView != nil {
-			return
+		// leave links to sub-pages like https://domain/org/repo/pulls/27/files or .../pulls/27/commits/{sha} to the other processors
+		if m[1] < len(node.Data) && node.Data[m[1]] == '/' {
+			start = m[1]
+			continue
 		}
 
 		link := node.Data[m[0]:m[1]]
-		if !httplib.IsCurrentGiteaSiteURL(ctx, link) {
+		siteURL := httplib.ParseGiteaSiteURL(ctx, link)
+		if siteURL == nil {
 			return
 		}
-		text := "#" + node.Data[m[2]:m[3]]
+		isSameRepo := siteURL.OwnerName == ctx.RenderOptions.Metas["user"] && siteURL.RepoName == ctx.RenderOptions.Metas["repo"]
+
+		// external trackers reference local pull requests as "!N", like merge messages
+		_, hasExternalTracker := ctx.RenderOptions.Metas["externalTrackerLinkFormat"]
+		text := util.Iif(isSameRepo && hasExternalTracker && strings.HasPrefix(siteURL.RepoSubPath, "/pulls/"), "!", "#") + node.Data[m[2]:m[3]]
 		// if m[4] and m[5] is not -1, then link is to a comment
 		// indicate that in the text by appending (comment)
 		if m[4] != -1 && m[5] != -1 {
@@ -59,18 +70,11 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 			}
 		}
 
-		// extract repo and org name from matched link like
-		// http://localhost:3000/gituser/myrepo/issues/1
-		linkParts := strings.Split(link, "/")
-		matchOrg := linkParts[len(linkParts)-4]
-		matchRepo := linkParts[len(linkParts)-3]
-
-		if matchOrg == ctx.RenderOptions.Metas["user"] && matchRepo == ctx.RenderOptions.Metas["repo"] {
-			replaceContent(node, m[0], m[1], createLink(ctx, link, text, "ref-issue"))
-		} else {
-			text = matchOrg + "/" + matchRepo + text
-			replaceContent(node, m[0], m[1], createLink(ctx, link, text, "ref-issue"))
+		if !isSameRepo {
+			text = siteURL.OwnerName + "/" + siteURL.RepoName + text
 		}
+		replaceContent(node, m[0], m[1], createLink(ctx, link, text, "ref-issue"))
+		start = 0
 		node = node.NextSibling.NextSibling
 	}
 }

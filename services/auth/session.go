@@ -61,14 +61,9 @@ func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataSto
 }
 
 func ClearSessionKeysForSignIn(sess SessionStore) {
-	_ = sess.Delete("openid_verified_uri")
-	_ = sess.Delete("openid_signin_remember")
-	_ = sess.Delete("openid_determined_email")
-	_ = sess.Delete("openid_determined_username")
 	_ = sess.Delete("twofaUid")
 	_ = sess.Delete("twofaRemember")
 	_ = sess.Delete("webauthnAssertion")
 	_ = sess.Delete("linkAccount")
 	_ = sess.Delete("linkAccountData")
-	_ = sess.Delete("openidPendingURI")
 }

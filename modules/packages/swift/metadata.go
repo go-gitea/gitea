@@ -10,22 +10,31 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
 	"github.com/hashicorp/go-version"
 )
 
+var globalVars = sync.OnceValue(func() (ret struct {
+	manifestPattern     *regexp.Regexp
+	toolsVersionPattern *regexp.Regexp
+},
+) {
+	ret.manifestPattern = regexp.MustCompile(`\APackage(?:@swift-(\d+(?:\.\d+)?(?:\.\d+)?))?\.swift\z`)
+	ret.toolsVersionPattern = regexp.MustCompile(`\A// swift-tools-version:(\d+(?:\.\d+)?(?:\.\d+)?)`)
+	return ret
+})
+
 var (
 	ErrMissingManifestFile    = util.NewInvalidArgumentErrorf("Package.swift file is missing")
 	ErrManifestFileTooLarge   = util.NewInvalidArgumentErrorf("Package.swift file is too large")
 	ErrManifestFilesTooLarge  = util.NewInvalidArgumentErrorf("Package.swift files are too large")
 	ErrInvalidManifestVersion = util.NewInvalidArgumentErrorf("manifest version is invalid")
-
-	manifestPattern     = regexp.MustCompile(`\APackage(?:@swift-(\d+(?:\.\d+)?(?:\.\d+)?))?\.swift\z`)
-	toolsVersionPattern = regexp.MustCompile(`\A// swift-tools-version:(\d+(?:\.\d+)?(?:\.\d+)?)`)
 )
 
 const (
@@ -132,7 +141,7 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 	var manifestFiles []*zip.File
 	manifestDir, manifestDepth := "", 0
 	for _, file := range zr.File {
-		if strings.HasSuffix(file.Name, "/") || !manifestPattern.MatchString(path.Base(file.Name)) {
+		if strings.HasSuffix(file.Name, "/") || !globalVars().manifestPattern.MatchString(path.Base(file.Name)) {
 			continue
 		}
 		dir, depth := path.Dir(file.Name), strings.Count(file.Name, "/")
@@ -155,13 +164,13 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 	}
 
 	for _, file := range manifestFiles {
-		manifestMatch := manifestPattern.FindStringSubmatch(path.Base(file.Name))
+		manifestMatch := globalVars().manifestPattern.FindStringSubmatch(path.Base(file.Name))
 
 		if file.UncompressedSize64 > maxManifestFileSize {
 			return nil, ErrManifestFileTooLarge
 		}
 
-		f, err := zr.Open(file.Name)
+		f, err := file.Open()
 		if err != nil {
 			return nil, err
 		}
@@ -189,7 +198,7 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 			Content: string(content),
 		}
 
-		toolsMatch := toolsVersionPattern.FindStringSubmatch(manifest.Content)
+		toolsMatch := globalVars().toolsVersionPattern.FindStringSubmatch(manifest.Content)
 		if len(toolsMatch) == 2 {
 			v, err := version.NewSemver(toolsMatch[1])
 			if err != nil {
@@ -208,7 +217,7 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 
 	if mr != nil {
 		var ssc *SoftwareSourceCode
-		if err := json.NewDecoder(mr).Decode(&ssc); err != nil {
+		if err := json.NewDecoder(packages.NewLimitedReader(mr, packages.MaxMetadataSize)).Decode(&ssc); err != nil {
 			return nil, err
 		}
 		p.Metadata.Description = ssc.Description
