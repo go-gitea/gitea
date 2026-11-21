@@ -2676,6 +2676,11 @@
             "type": "string",
             "x-go-name": "Created"
           },
+          "digest": {
+            "description": "Digest is the SHA-256 of the content as \"sha256:{hex}\", omitted when not recorded at upload",
+            "type": "string",
+            "x-go-name": "Digest"
+          },
           "download_count": {
             "description": "DownloadCount is the number of times the attachment has been downloaded",
             "format": "int64",
@@ -3556,7 +3561,7 @@
                 "$ref": "#/components/schemas/CommitStatusState"
               }
             ],
-            "description": "State represents the status state (pending, success, error, failure)"
+            "description": "State represents the status state (pending, running, success, error, failure, warning, skipped)"
           },
           "target_url": {
             "description": "TargetURL is the URL to link to for more details",
@@ -3582,6 +3587,7 @@
       "CommitStatusState": {
         "enum": [
           "pending",
+          "running",
           "success",
           "error",
           "failure",
@@ -4929,7 +4935,7 @@
                 "$ref": "#/components/schemas/CommitStatusState"
               }
             ],
-            "description": "State represents the status state to set (pending, success, error, failure)"
+            "description": "State represents the status state to set (pending, running, success, error, failure, warning, skipped)"
           },
           "target_url": {
             "description": "TargetURL is the URL to link to for more details",
@@ -9164,6 +9170,9 @@
             "type": "array",
             "x-go-name": "Assignees"
           },
+          "auto_merge": {
+            "$ref": "#/components/schemas/PullRequestAutoMerge"
+          },
           "base": {
             "$ref": "#/components/schemas/PRBranchInfo"
           },
@@ -9347,6 +9356,31 @@
           },
           "user": {
             "$ref": "#/components/schemas/User"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PullRequestAutoMerge": {
+        "description": "PullRequestAutoMerge represents a pull request scheduled to auto merge when all checks succeed",
+        "properties": {
+          "commit_message": {
+            "description": "The message of the resulting merge commit",
+            "type": "string",
+            "x-go-name": "CommitMessage"
+          },
+          "commit_title": {
+            "description": "The title of the resulting merge commit",
+            "type": "string",
+            "x-go-name": "CommitTitle"
+          },
+          "enabled_by": {
+            "$ref": "#/components/schemas/User"
+          },
+          "merge_method": {
+            "description": "The merge method that will be used, eg: \"merge\", \"rebase\", \"rebase-merge\", \"squash\", \"fast-forward-only\"",
+            "type": "string",
+            "x-go-name": "MergeMethod"
           }
         },
         "type": "object",
@@ -29744,6 +29778,9 @@
         },
         "responses": {
           "200": {
+            "$ref": "#/components/responses/empty"
+          },
+          "201": {
             "$ref": "#/components/responses/empty"
           },
           "default": {

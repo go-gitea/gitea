@@ -1620,14 +1620,13 @@ tbody.commit-list {
 }
 
 .commit-status-list {
-  max-height: 240px; /* fit exactly 6 items, commit-status-item.height * 6 */
+  max-height: 228px; /* fit exactly 6 items, commit-status-item.height * 6 */
   overflow-x: hidden;
-  transition: max-height .2s;
   width: 100%;
 }
 
-.commit-status-item { /* the item is used in the PR merge box and the commit status popup, both are commit-status-list */
-  height: 40px;
+.commit-status-item { /* the item is used in the PR merge box and the commit status popup */
+  height: 38px;
   padding-top: 0 !important; /* use "height" + "align items center", don't use padding-y (from the list container) to layout */
   padding-bottom: 0 !important;
   display: flex;

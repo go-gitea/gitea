@@ -10,7 +10,9 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 // AutoMerge represents a pull request scheduled for merging when checks succeed
@@ -42,6 +44,10 @@ type ErrAlreadyScheduledToAutoMerge struct {
 
 func (err ErrAlreadyScheduledToAutoMerge) Error() string {
 	return fmt.Sprintf("pull request is already scheduled to auto merge when checks succeed [pull_id: %d]", err.PullID)
+}
+
+func (err ErrAlreadyScheduledToAutoMerge) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // IsErrAlreadyScheduledToAutoMerge checks if an error is a ErrAlreadyScheduledToAutoMerge.
@@ -79,6 +85,29 @@ func GetScheduledMergeByPullID(ctx context.Context, pullID int64) (bool, *AutoMe
 
 	scheduledPRM.DoerID, scheduledPRM.Doer, err = user_model.GetPossibleUserByID(ctx, scheduledPRM.DoerID)
 	return true, scheduledPRM, err
+}
+
+// GetScheduledMergeByPullIDs returns scheduled auto merges with doers loaded, keyed by pull ID
+func GetScheduledMergeByPullIDs(ctx context.Context, pullIDs []int64) (map[int64]*AutoMerge, error) {
+	if len(pullIDs) == 0 {
+		return map[int64]*AutoMerge{}, nil
+	}
+	var merges []*AutoMerge
+	if err := db.GetEngine(ctx).In("pull_id", pullIDs).Find(&merges); err != nil {
+		return nil, err
+	}
+	doers, err := user_model.GetUsersMapByIDs(ctx, container.FilterSlice(merges, func(autoMerge *AutoMerge) (int64, bool) {
+		return autoMerge.DoerID, true
+	}))
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[int64]*AutoMerge, len(merges))
+	for _, autoMerge := range merges {
+		autoMerge.Doer = user_model.GetPossibleUserFromMap(autoMerge.DoerID, doers)
+		result[autoMerge.PullID] = autoMerge
+	}
+	return result, nil
 }
 
 func GetScheduledMergePullIDsSince(ctx context.Context, since timeutil.TimeStamp) ([]int64, error) {
