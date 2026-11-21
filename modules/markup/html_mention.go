@@ -46,7 +46,8 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 
 		if DefaultRenderHelperFuncs != nil && DefaultRenderHelperFuncs.IsUsernameMentionable(ctx, mentionedUsername) {
 			link := "/:root/" + url.PathEscape(mentionedUsername)
-			replaceContent(node, loc.Start, loc.End, createLink(ctx, link, mention, "" /*mention*/))
+			isCurrentUser := DefaultRenderHelperFuncs.IsCurrentUsername != nil && DefaultRenderHelperFuncs.IsCurrentUsername(ctx, mentionedUsername)
+			replaceContent(node, loc.Start, loc.End, createLink(ctx, link, mention, "user-mention"+util.Iif(isCurrentUser, " current-user", "")))
 			node = node.NextSibling.NextSibling
 			start = 0
 		} else {

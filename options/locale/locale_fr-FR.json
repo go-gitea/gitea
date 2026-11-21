@@ -2638,7 +2638,7 @@
   "repo.release.tag_name_invalid": "Le nom de l'étiquette est invalide.",
   "repo.release.tag_name_protected": "Ce nom d'étiquette est protégé.",
   "repo.release.tag_already_exist": "Ce nom d'étiquette existe déjà.",
-  "repo.release.downloads": "Téléchargements",
+  "repo.release.assets": "Ressources",
   "repo.release.download_count": "Télécharger: %s",
   "repo.release.add_tag_msg": "Utiliser le titre et le contenu de la publication comme message d’étiquette.",
   "repo.release.add_tag": "Créer uniquement l'étiquette",

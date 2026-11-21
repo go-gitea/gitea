@@ -1906,7 +1906,7 @@
   "repo.release.tag_name_invalid": "El nombre de la etiqueta no es válido.",
   "repo.release.tag_name_protected": "El nombre de la etiqueta está protegido.",
   "repo.release.tag_already_exist": "Este nombre de etiqueta ya existe.",
-  "repo.release.downloads": "Descargas",
+  "repo.release.assets": "Activos",
   "repo.release.download_count": "Descargas: %s",
   "repo.release.add_tag_msg": "Utilice el título y el contenido de la liberación como mensaje de etiqueta.",
   "repo.release.add_tag": "Crear solo etiqueta",

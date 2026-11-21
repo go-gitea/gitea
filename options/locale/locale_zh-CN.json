@@ -2645,7 +2645,7 @@
   "repo.release.tag_name_invalid": "Git 标签名称无效。",
   "repo.release.tag_name_protected": "Git 标签名已受保护。",
   "repo.release.tag_already_exist": "此 Git 标签名已存在。",
-  "repo.release.downloads": "下载附件",
+  "repo.release.assets": "文件",
   "repo.release.download_count": "下载：%s",
   "repo.release.add_tag_msg": "使用发布的标题和内容作为 Git 标签消息。",
   "repo.release.add_tag": "仅创建 Git 标签",
