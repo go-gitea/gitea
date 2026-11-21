@@ -18,6 +18,21 @@ import (
 
 func TestDiscordPayload(t *testing.T) {
 	dc := discordConvertor{}
+	assertPayload := func(t *testing.T, pl DiscordPayload, sender *api.User, title, description, link string) {
+		assert.Len(t, pl.Embeds, 1)
+		assert.Equal(t, title, pl.Embeds[0].Title)
+		if description == "" {
+			assert.Empty(t, pl.Embeds[0].Description)
+		} else {
+			assert.Equal(t, description, pl.Embeds[0].Description)
+		}
+		if link != "" {
+			assert.Equal(t, link, pl.Embeds[0].URL)
+		}
+		assert.Equal(t, sender.UserName, pl.Embeds[0].Author.Name)
+		assert.Equal(t, setting.AppURL+sender.UserName, pl.Embeds[0].Author.URL)
+		assert.Equal(t, sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+	}
 
 	t.Run("Create", func(t *testing.T) {
 		p := createTestPayload()
@@ -25,13 +40,7 @@ func TestDiscordPayload(t *testing.T) {
 		pl, err := dc.Create(p)
 		require.NoError(t, err)
 
-		assert.Len(t, pl.Embeds, 1)
-		assert.Equal(t, "[test/repo] branch test created", pl.Embeds[0].Title)
-		assert.Empty(t, pl.Embeds[0].Description)
-		assert.Equal(t, "http://localhost:3000/test/repo/src/test", pl.Embeds[0].URL)
-		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
-		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
-		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+		assertPayload(t, pl, p.Sender, "[test/repo] branch test created", "", "http://localhost:3000/test/repo/src/test")
 	})
 
 	t.Run("Delete", func(t *testing.T) {
@@ -40,13 +49,7 @@ func TestDiscordPayload(t *testing.T) {
 		pl, err := dc.Delete(p)
 		require.NoError(t, err)
 
-		assert.Len(t, pl.Embeds, 1)
-		assert.Equal(t, "[test/repo] branch test deleted", pl.Embeds[0].Title)
-		assert.Empty(t, pl.Embeds[0].Description)
-		assert.Equal(t, "http://localhost:3000/test/repo/src/test", pl.Embeds[0].URL)
-		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
-		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
-		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+		assertPayload(t, pl, p.Sender, "[test/repo] branch test deleted", "", "http://localhost:3000/test/repo/src/test")
 	})
 
 	t.Run("Fork", func(t *testing.T) {
@@ -55,13 +58,7 @@ func TestDiscordPayload(t *testing.T) {
 		pl, err := dc.Fork(p)
 		require.NoError(t, err)
 
-		assert.Len(t, pl.Embeds, 1)
-		assert.Equal(t, "test/repo2 is forked to test/repo", pl.Embeds[0].Title)
-		assert.Empty(t, pl.Embeds[0].Description)
-		assert.Equal(t, "http://localhost:3000/test/repo", pl.Embeds[0].URL)
-		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
-		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
-		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+		assertPayload(t, pl, p.Sender, "test/repo2 is forked to test/repo", "", "http://localhost:3000/test/repo")
 	})
 
 	t.Run("Push", func(t *testing.T) {
@@ -70,13 +67,7 @@ func TestDiscordPayload(t *testing.T) {
 		pl, err := dc.Push(p)
 		require.NoError(t, err)
 
-		assert.Len(t, pl.Embeds, 1)
-		assert.Equal(t, "[test/repo:test] 2 new commits", pl.Embeds[0].Title)
-		assert.Equal(t, "[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1", pl.Embeds[0].Description)
-		assert.Equal(t, "http://localhost:3000/test/repo/src/test", pl.Embeds[0].URL)
-		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
-		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
-		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+		assertPayload(t, pl, p.Sender, "[test/repo:test] 2 new commits", "[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1", "http://localhost:3000/test/repo/src/test")
 	})
 
 	t.Run("PushWithMultilineCommitMessage", func(t *testing.T) {
@@ -85,12 +76,7 @@ func TestDiscordPayload(t *testing.T) {
 		pl, err := dc.Push(p)
 		require.NoError(t, err)
 
-		assert.Len(t, pl.Embeds, 1)
-		assert.Equal(t, "[test/repo:test] 2 new commits", pl.Embeds[0].Title)
-		assert.Equal(t, "[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) chore: This is a commit summary - user1\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) chore: This is a commit summary - user1", pl.Embeds[0].Description)
-		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
-		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
-		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+		assertPayload(t, pl, p.Sender, "[test/repo:test] 2 new commits", "[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) chore: This is a commit summary - user1\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) chore: This is a commit summary - user1", "")
 	})
 
 	t.Run("PushWithLongCommitSummary", func(t *testing.T) {
@@ -99,12 +85,7 @@ func TestDiscordPayload(t *testing.T) {
 		pl, err := dc.Push(p)
 		require.NoError(t, err)
 
-		assert.Len(t, pl.Embeds, 1)
-		assert.Equal(t, "[test/repo:test] 2 new commits", pl.Embeds[0].Title)
-		assert.Equal(t, "[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) This is a commit summary ⚠️⚠️⚠️⚠️ containing 你好... - user1\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) This is a commit summary ⚠️⚠️⚠️⚠️ containing 你好... - user1", pl.Embeds[0].Description)
-		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
-		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
-		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+		assertPayload(t, pl, p.Sender, "[test/repo:test] 2 new commits", "[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) This is a commit summary ⚠️⚠️⚠️⚠️ containing 你好... - user1\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) This is a commit summary ⚠️⚠️⚠️⚠️ containing 你好... - user1", "")
 	})
 
 	t.Run("Issue", func(t *testing.T) {
@@ -114,25 +95,13 @@ func TestDiscordPayload(t *testing.T) {
 		pl, err := dc.Issue(p)
 		require.NoError(t, err)
 
-		assert.Len(t, pl.Embeds, 1)
-		assert.Equal(t, "[test/repo] Issue opened: #2 crash", pl.Embeds[0].Title)
-		assert.Equal(t, "issue body", pl.Embeds[0].Description)
-		assert.Equal(t, "http://localhost:3000/test/repo/issues/2", pl.Embeds[0].URL)
-		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
-		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
-		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+		assertPayload(t, pl, p.Sender, "[test/repo] Issue opened: #2 crash", "issue body", "http://localhost:3000/test/repo/issues/2")
 
 		p.Action = api.HookIssueClosed
 		pl, err = dc.Issue(p)
 		require.NoError(t, err)
 
-		assert.Len(t, pl.Embeds, 1)
-		assert.Equal(t, "[test/repo] Issue closed: #2 crash", pl.Embeds[0].Title)
-		assert.Empty(t, pl.Embeds[0].Description)
-		assert.Equal(t, "http://localhost:3000/test/repo/issues/2", pl.Embeds[0].URL)
-		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
-		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
-		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+		assertPayload(t, pl, p.Sender, "[test/repo] Issue closed: #2 crash", "", "http://localhost:3000/test/repo/issues/2")
 	})
 
 	t.Run("IssueComment", func(t *testing.T) {
@@ -141,13 +110,7 @@ func TestDiscordPayload(t *testing.T) {
 		pl, err := dc.IssueComment(p)
 		require.NoError(t, err)
 
-		assert.Len(t, pl.Embeds, 1)
-		assert.Equal(t, "[test/repo] New comment on issue #2 crash", pl.Embeds[0].Title)
-		assert.Equal(t, "more info needed", pl.Embeds[0].Description)
-		assert.Equal(t, "http://localhost:3000/test/repo/issues/2#issuecomment-4", pl.Embeds[0].URL)
-		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
-		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
-		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+		assertPayload(t, pl, p.Sender, "[test/repo] New comment on issue #2 crash", "more info needed", "http://localhost:3000/test/repo/issues/2#issuecomment-4")
 	})
 
 	t.Run("PullRequest", func(t *testing.T) {
@@ -156,13 +119,7 @@ func TestDiscordPayload(t *testing.T) {
 		pl, err := dc.PullRequest(p)
 		require.NoError(t, err)
 
-		assert.Len(t, pl.Embeds, 1)
-		assert.Equal(t, "[test/repo] Pull request opened: #12 Fix bug", pl.Embeds[0].Title)
-		assert.Equal(t, "fixes bug #2", pl.Embeds[0].Description)
-		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12", pl.Embeds[0].URL)
-		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
-		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
-		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+		assertPayload(t, pl, p.Sender, "[test/repo] Pull request opened: #12 Fix bug", "fixes bug #2", "http://localhost:3000/test/repo/pulls/12")
 	})
 
 	t.Run("PullRequestComment", func(t *testing.T) {
@@ -171,13 +128,7 @@ func TestDiscordPayload(t *testing.T) {
 		pl, err := dc.IssueComment(p)
 		require.NoError(t, err)
 
-		assert.Len(t, pl.Embeds, 1)
-		assert.Equal(t, "[test/repo] New comment on pull request #12 Fix bug", pl.Embeds[0].Title)
-		assert.Equal(t, "changes requested", pl.Embeds[0].Description)
-		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12#issuecomment-4", pl.Embeds[0].URL)
-		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
-		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
-		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+		assertPayload(t, pl, p.Sender, "[test/repo] New comment on pull request #12 Fix bug", "changes requested", "http://localhost:3000/test/repo/pulls/12#issuecomment-4")
 	})
 
 	t.Run("Review", func(t *testing.T) {
@@ -187,13 +138,7 @@ func TestDiscordPayload(t *testing.T) {
 		pl, err := dc.Review(p, webhook_module.HookEventPullRequestReviewApproved)
 		require.NoError(t, err)
 
-		assert.Len(t, pl.Embeds, 1)
-		assert.Equal(t, "[test/repo] Pull request review approved: #12 Fix bug", pl.Embeds[0].Title)
-		assert.Equal(t, "good job", pl.Embeds[0].Description)
-		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12", pl.Embeds[0].URL)
-		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
-		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
-		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+		assertPayload(t, pl, p.Sender, "[test/repo] Pull request review approved: #12 Fix bug", "good job", "http://localhost:3000/test/repo/pulls/12")
 	})
 
 	t.Run("Repository", func(t *testing.T) {
@@ -202,13 +147,7 @@ func TestDiscordPayload(t *testing.T) {
 		pl, err := dc.Repository(p)
 		require.NoError(t, err)
 
-		assert.Len(t, pl.Embeds, 1)
-		assert.Equal(t, "[test/repo] Repository created", pl.Embeds[0].Title)
-		assert.Empty(t, pl.Embeds[0].Description)
-		assert.Equal(t, "http://localhost:3000/test/repo", pl.Embeds[0].URL)
-		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
-		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
-		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+		assertPayload(t, pl, p.Sender, "[test/repo] Repository created", "", "http://localhost:3000/test/repo")
 	})
 
 	t.Run("Package", func(t *testing.T) {
@@ -217,13 +156,7 @@ func TestDiscordPayload(t *testing.T) {
 		pl, err := dc.Package(p)
 		require.NoError(t, err)
 
-		assert.Len(t, pl.Embeds, 1)
-		assert.Equal(t, "Package created: GiteaContainer:latest", pl.Embeds[0].Title)
-		assert.Empty(t, pl.Embeds[0].Description)
-		assert.Equal(t, "http://localhost:3000/user1/-/packages/container/GiteaContainer/latest", pl.Embeds[0].URL)
-		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
-		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
-		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+		assertPayload(t, pl, p.Sender, "Package created: GiteaContainer:latest", "", "http://localhost:3000/user1/-/packages/container/GiteaContainer/latest")
 	})
 
 	t.Run("Wiki", func(t *testing.T) {
@@ -233,37 +166,19 @@ func TestDiscordPayload(t *testing.T) {
 		pl, err := dc.Wiki(p)
 		require.NoError(t, err)
 
-		assert.Len(t, pl.Embeds, 1)
-		assert.Equal(t, "[test/repo] New wiki page 'index' (Wiki change comment)", pl.Embeds[0].Title)
-		assert.Equal(t, "Wiki change comment", pl.Embeds[0].Description)
-		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", pl.Embeds[0].URL)
-		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
-		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
-		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+		assertPayload(t, pl, p.Sender, "[test/repo] New wiki page 'index' (Wiki change comment)", "Wiki change comment", "http://localhost:3000/test/repo/wiki/index")
 
 		p.Action = api.HookWikiEdited
 		pl, err = dc.Wiki(p)
 		require.NoError(t, err)
 
-		assert.Len(t, pl.Embeds, 1)
-		assert.Equal(t, "[test/repo] Wiki page 'index' edited (Wiki change comment)", pl.Embeds[0].Title)
-		assert.Equal(t, "Wiki change comment", pl.Embeds[0].Description)
-		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", pl.Embeds[0].URL)
-		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
-		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
-		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+		assertPayload(t, pl, p.Sender, "[test/repo] Wiki page 'index' edited (Wiki change comment)", "Wiki change comment", "http://localhost:3000/test/repo/wiki/index")
 
 		p.Action = api.HookWikiDeleted
 		pl, err = dc.Wiki(p)
 		require.NoError(t, err)
 
-		assert.Len(t, pl.Embeds, 1)
-		assert.Equal(t, "[test/repo] Wiki page 'index' deleted", pl.Embeds[0].Title)
-		assert.Empty(t, pl.Embeds[0].Description)
-		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", pl.Embeds[0].URL)
-		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
-		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
-		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+		assertPayload(t, pl, p.Sender, "[test/repo] Wiki page 'index' deleted", "", "http://localhost:3000/test/repo/wiki/index")
 	})
 
 	t.Run("Release", func(t *testing.T) {
@@ -272,13 +187,7 @@ func TestDiscordPayload(t *testing.T) {
 		pl, err := dc.Release(p)
 		require.NoError(t, err)
 
-		assert.Len(t, pl.Embeds, 1)
-		assert.Equal(t, "[test/repo] Release created: v1.0", pl.Embeds[0].Title)
-		assert.Equal(t, "Note of first stable release", pl.Embeds[0].Description)
-		assert.Equal(t, "http://localhost:3000/test/repo/releases/tag/v1.0", pl.Embeds[0].URL)
-		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
-		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
-		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+		assertPayload(t, pl, p.Sender, "[test/repo] Release created: v1.0", "Note of first stable release", "http://localhost:3000/test/repo/releases/tag/v1.0")
 	})
 }
 

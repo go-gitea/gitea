@@ -31,6 +31,7 @@ type FloatingElementProps = {
   showOnCreate?: boolean;
   getReferenceClientRect?: (() => DOMRect) | null;
   onShow?: (instance: FloatingElement) => void | false;
+  onShown?: (instance: FloatingElement) => void;
   onHide?: (instance: FloatingElement) => void | false;
   onHidden?: (instance: FloatingElement) => void;
   onDestroy?: (instance: FloatingElement) => void;
@@ -93,8 +94,8 @@ if (typeof document !== 'undefined') {
     if (!inMenu && focused !== menuInstance.reference && focused !== document.body) return;
     if (e.key === 'Escape') {
       menuInstance.hide();
-    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      focusMenuItem(menuInstance, e.key === 'ArrowDown' ? 1 : -1);
+    } else if (['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft'].includes(e.key)) {
+      focusMenuItem(menuInstance, e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : -1);
     } else if ((e.key === 'Enter' || e.key === ' ') && inMenu) {
       focused.click();
     } else {
@@ -329,6 +330,7 @@ export function createFloatingElement(target: Element, opts: FloatingElementProp
     startAutoUpdate();
     if (props.followCursor) acquireCursorTracking(cursorUpdateHandler);
     if (needsDismissTracking) acquireDismissTracking(onDocDismiss);
+    props.onShown?.(instance);
   }
 
   function doHide(force = false): void {
@@ -464,7 +466,7 @@ function attachTooltip(target: Element, content: FloatingContent | null = null):
   const followCursorAttr = target.getAttribute('data-tooltip-follow-cursor') as FollowCursor || false;
   let allowHTML = target.getAttribute('data-tooltip-render') === 'html';
   if (!allowHTML && typeof content === 'string') {
-    content = htmlEscape(content).replace(/\n/g, '<br>');
+    content = htmlEscape(content).split('\n').join(html`<br>`);
     allowHTML = true;
   }
 
@@ -581,6 +583,10 @@ export function showTemporaryTooltip(target: Element, content: FloatingContent):
 
 export function getFloatingElement(el: Element): FloatingElement | null {
   return instances.get(el) ?? null;
+}
+
+export function hideAllFloatingElements(): void {
+  for (const instance of visibleInstances) instance.hide();
 }
 
 type FloatingDelegateProps = Omit<FloatingElementProps, 'content' | 'trigger' | 'getReferenceClientRect'> & {

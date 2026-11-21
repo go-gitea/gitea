@@ -4,11 +4,13 @@
 package container
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/packages/container/helm"
 	"gitea.dev/modules/validation"
 
@@ -83,8 +85,11 @@ func IsMediaTypeImageIndex(mt string) bool {
 	return strings.EqualFold(mt, oci.MediaTypeImageIndex) || strings.EqualFold(mt, "application/vnd.docker.distribution.manifest.list.v2+json")
 }
 
+const maxImageConfigSize = 8 * 1024 * 1024
+
 // ParseImageConfig parses the metadata of an image config
 func ParseImageConfig(mediaType string, r io.Reader) (*Metadata, error) {
+	r = packages.NewLimitedReader(r, maxImageConfigSize)
 	if strings.EqualFold(mediaType, helm.ConfigMediaType) {
 		return parseHelmConfig(r)
 	}
@@ -93,7 +98,7 @@ func ParseImageConfig(mediaType string, r io.Reader) (*Metadata, error) {
 	// FIXME: this fallback is not right, we should strictly check the media type in the future
 	metadata, err := parseOCIImageConfig(r)
 	if err != nil {
-		if !IsMediaTypeImageManifest(mediaType) {
+		if !IsMediaTypeImageManifest(mediaType) && !errors.Is(err, packages.ErrContentTooLarge) {
 			return &Metadata{Platform: "unknown/unknown"}, nil
 		}
 		return nil, err

@@ -71,7 +71,12 @@ func LinkAccountToUser(ctx context.Context, authSourceID int64, user *user_model
 // EnsureLinkExternalToUser link the gothUser to the user
 func EnsureLinkExternalToUser(ctx context.Context, authSourceID int64, user *user_model.User, gothUser goth.User) error {
 	externalLoginUser := toExternalLoginUser(authSourceID, user, gothUser)
-	return user_model.EnsureLinkExternalToUser(ctx, externalLoginUser)
+	inserted, err := user_model.EnsureLinkExternalToUser(ctx, externalLoginUser)
+	if inserted {
+		audit.RecordAs(ctx, user, audit_model.UserExternalLoginAdd, user,
+			"external_id", externalLoginUser.ExternalID, "provider", externalLoginUser.Provider)
+	}
+	return err
 }
 
 // UpdateMigrationsByType updates all migrated repositories' posterid from gitServiceType to replace originalAuthorID to posterID

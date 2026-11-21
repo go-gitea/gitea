@@ -20,11 +20,11 @@ func BlockedUsers(ctx *context.Context, blocker *user_model.User) {
 		BlockerID: blocker.ID,
 	})
 	if err != nil {
-		ctx.ServerError("FindBlockings", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if err := user_model.BlockingList(blocks).LoadAttributes(ctx); err != nil {
-		ctx.ServerError("LoadAttributes", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["UserBlocks"] = blocks
@@ -70,11 +70,7 @@ func BlockedUsersPost(ctx *context.Context, blocker *user_model.User, redirect s
 	err := blockedUsersPost(ctx, form, blocker)
 	if err == nil {
 		ctx.JSONRedirect(redirect)
-	} else if errTr := util.ErrorAsTranslatable(err); errTr != nil {
-		ctx.JSONError(errTr.Translate(ctx.Locale))
-	} else if errors.Is(err, util.ErrNotExist) {
-		ctx.JSONError(ctx.Locale.Tr("error.not_found"))
 	} else {
-		ctx.ServerError("BlockedUsersPost", err)
+		ctx.JSONErrorAuto(err)
 	}
 }

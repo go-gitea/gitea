@@ -267,3 +267,12 @@ func IsClientOrNetworkError(ctx context.Context, err error) bool {
 	}
 	return false
 }
+
+func ClientAcceptHTML(req *http.Request) bool {
+	for _, part := range req.Header["Accept"] {
+		if strings.Contains(part, "text/html") {
+			return true
+		}
+	}
+	return false
+}

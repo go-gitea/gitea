@@ -15,6 +15,8 @@ func TestSanitizer(t *testing.T) {
 		// Regular
 		`<a onblur="alert(secret)" href="http://www.google.com">Google</a>`, `<a href="http://www.google.com" rel="nofollow">Google</a>`,
 		"<scrİpt>&lt;script&gt;alert(document.domain)&lt;/script&gt;</scrİpt>", "&lt;script&gt;alert(document.domain)&lt;/script&gt;",
+		`<details>unclosed`, `<details>unclosed`,
+		`<div>unclosed</`, `<div>unclosed&lt;/`,
 
 		// Code highlighting class
 		`<code class="random string"></code>`, `<code></code>`,
@@ -48,6 +50,8 @@ func TestSanitizer(t *testing.T) {
 		`<span style="bad-color: red">Hello World</span>`, `<span>Hello World</span>`,
 		`<p style="bad-color: red">Hello World</p>`, `<p>Hello World</p>`,
 		`<code style="bad-color: red">Hello World</code>`, `<code>Hello World</code>`,
+
+		`<table data-paste-markdown-skip><tr><td>1</td></tr></table>`, `<table data-paste-markdown-skip=""><tr><td>1</td></tr></table>`,
 
 		// Org mode status of list items.
 		`<li class="checked"></li>`, `<li class="checked"></li>`,

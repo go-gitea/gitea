@@ -1,5 +1,5 @@
 import {userEvent} from 'vitest/browser';
-import {createFloatingElement, getFloatingElement, initGlobalTooltips, showTemporaryTooltip} from './floating.ts';
+import {createFloatingElement, getFloatingElement, hideAllFloatingElements, initGlobalTooltips, showTemporaryTooltip} from './floating.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import '../../css/modules/floating.css';
 
@@ -23,12 +23,12 @@ describe('floating', () => {
     expect(instance.element.isConnected).toBe(false);
   });
 
-  test('show/hide', () => {
+  test('show and hideAllFloatingElements', () => {
     const instance = createFloatingElement(makeTarget(), {content: 'x', trigger: 'manual'});
     instance.show();
     expect(instance.state.isShown).toBe(true);
     expect(instance.element.parentElement).toBe(document.body);
-    instance.hide();
+    hideAllFloatingElements();
     expect(instance.state.isShown).toBe(false);
     expect(instance.element.parentElement).toBeNull();
     expect(instance.reference.getAttribute('aria-controls')).toBe(instance.element.id);

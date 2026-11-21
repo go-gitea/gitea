@@ -14,7 +14,7 @@ import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} fr
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {showFomanticModal} from '../modules/fomantic/modal.ts';
+import {showModal} from '../modules/modal.ts';
 import {ignoreAreYouSure} from '../modules/are-you-sure.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
 import type {FomanticApiResponse} from '../types.ts';
@@ -325,10 +325,10 @@ export function initRepoIssueReferenceIssue() {
     const poster = el.getAttribute('data-poster-username');
     const reference = el.getAttribute('data-reference')!;
     const modalSelector = el.getAttribute('data-modal')!;
-    const modal = document.querySelector(modalSelector)!;
+    const modal = document.querySelector<HTMLDialogElement>(modalSelector)!;
     const textarea = modal.querySelector<HTMLTextAreaElement>('textarea[name="content"]')!;
     textarea.value = `${content}\n\n_Originally posted by @${poster} in ${reference}_`;
-    showFomanticModal(modal);
+    showModal(modal);
   });
 }
 
@@ -352,18 +352,14 @@ export function initRepoIssueWipToggle() {
   // Toggle WIP for existing PR
   registerGlobalInitFunc('initPullRequestWipToggle', (toggleWip) => toggleWip.addEventListener('click', async (e) => {
     e.preventDefault();
-    const title = toggleWip.getAttribute('data-title');
+    const title = toggleWip.getAttribute('data-title')!;
     const wipPrefix = toggleWip.getAttribute('data-wip-prefix')!;
-    const updateUrl = toggleWip.getAttribute('data-update-url')!;
-
-    const params = new URLSearchParams();
-    params.append('title', title?.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`);
-    const response = await POST(updateUrl, {data: params});
-    if (!response.ok) {
-      showErrorToast(`Failed to toggle 'work in progress' status`);
-      return;
-    }
-    window.location.reload();
+    if (await performFetchActionRequest(toggleWip, {
+      method: 'POST',
+      url: toggleWip.getAttribute('data-update-url')!,
+      data: new URLSearchParams({title: title.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`}),
+      loadingIndicator: '$this',
+    })) window.location.reload();
   }));
 }
 

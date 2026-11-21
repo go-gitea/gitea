@@ -34,23 +34,24 @@ func TestHeatmapEndpoints(t *testing.T) {
 		assert.Positive(t, result["totalContributions"])
 	})
 
-	t.Run("OrgDashboard", func(t *testing.T) {
+	t.Run("PrivateUserProfileAnonymous", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		req := NewRequest(t, "GET", "/org/org3/dashboard/-/heatmap")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-
-		result := DecodeJSON(t, resp, map[string]any{})
-		assert.Contains(t, result, "heatmapData")
-		assert.Contains(t, result, "totalContributions")
+		req := NewRequest(t, "GET", "/user31/-/heatmap")
+		MakeRequest(t, req, http.StatusNotFound)
 	})
 
-	t.Run("OrgTeamDashboard", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-		req := NewRequest(t, "GET", "/org/org3/dashboard/-/heatmap/team1")
-		resp := session.MakeRequest(t, req, http.StatusOK)
+	for _, testCase := range []struct{ name, url string }{
+		{"OrgDashboard", "/org/org3/dashboard/-/heatmap"},
+		{"OrgTeamDashboard", "/org/org3/dashboard/-/heatmap/team1"},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+			req := NewRequest(t, "GET", testCase.url)
+			resp := session.MakeRequest(t, req, http.StatusOK)
 
-		result := DecodeJSON(t, resp, map[string]any{})
-		assert.Contains(t, result, "heatmapData")
-		assert.Contains(t, result, "totalContributions")
-	})
+			result := DecodeJSON(t, resp, map[string]any{})
+			assert.Contains(t, result, "heatmapData")
+			assert.Contains(t, result, "totalContributions")
+		})
+	}
 }

@@ -307,6 +307,7 @@ func TestGuessDelimiter(t *testing.T) {
 	cases := []struct {
 		csv               string
 		expectedDelimiter rune
+		checkQuotes       bool
 	}{
 		// case 0 - single cell, comma delmited
 		{
@@ -373,12 +374,14 @@ quoted,
 quoted,
 text,"	d`,
 			expectedDelimiter: '\t',
+			checkQuotes:       true,
 		},
 		// case 10 - semicolon delmited with quotes and semicolon in value
 		{
 			csv: `col1;col2
 "this has a literal "" in the text";"and an ; in the text"`,
 			expectedDelimiter: ';',
+			checkQuotes:       true,
 		},
 		// case 11 - pipe delimited with quotes
 		{
@@ -389,6 +392,7 @@ World"|123
 |
 f" | 4.56 | 789`,
 			expectedDelimiter: '|',
+			checkQuotes:       true,
 		},
 		// case 12 - a tab delimited 6 column CSV, but the values are not quoted and have lots of commas.
 		// In the previous bestScore algorithm, this would have picked comma as the delimiter, but now it should guess tab
@@ -455,6 +459,10 @@ jkl`,
 	for n, c := range cases {
 		delimiter := guessDelimiter([]byte(decodeSlashes(t, c.csv)))
 		assert.Equal(t, c.expectedDelimiter, delimiter, "case %d: delimiter should be equal, expected '%c' got '%c'", n, c.expectedDelimiter, delimiter)
+		if c.checkQuotes {
+			delimiter = guessFromBeforeAfterQuotes([]byte(decodeSlashes(t, c.csv)))
+			assert.Equal(t, c.expectedDelimiter, delimiter, "case %d: delimiter should be equal, expected '%c' got '%c'", n, c.expectedDelimiter, delimiter)
+		}
 	}
 }
 
@@ -463,39 +471,6 @@ func TestGuessFromBeforeAfterQuotes(t *testing.T) {
 		csv               string
 		expectedDelimiter rune
 	}{
-		// case 0 - tab delimited with new lines in values, commas in values
-		{
-			csv: `1	"some,""more
-""
-	quoted,
-text,"	a
-2	"some,
-quoted,\t
-	text,"	b
-3	"some,
-quoted,
-	text"	c
-4	"some,
-quoted,
-text,"	d`,
-			expectedDelimiter: '\t',
-		},
-		// case 1 - semicolon delmited with quotes and semicolon in value
-		{
-			csv: `col1;col2
-"this has a literal "" in the text";"and an ; in the text"`,
-			expectedDelimiter: ';',
-		},
-		// case 2 - pipe delimited with quotes
-		{
-			csv: `Col1 | Col2 | Col3
-abc   | "Hello
-World"|123
-"de
-|
-f" | 4.56 | 789`,
-			expectedDelimiter: '|',
-		},
 		// case 3 - a complicated quoted CSV that is semicolon delmiited
 		{
 			csv: `he; she

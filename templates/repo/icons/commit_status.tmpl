@@ -1,19 +1,18 @@
-<!-- make sure this matches the color logic in web_src/js/components/DashboardRepoList.vue -->
+<!-- make sure the combined states match the color logic in web_src/js/components/DashboardRepoList.vue -->
 {{if eq .State "pending"}}
 	{{svg "octicon-dot-fill" 18 "commit-status icon tw-text-yellow"}}
-{{end}}
-{{if eq .State "success"}}
+{{else if eq .State "running"}}
+	{{svg "gitea-running" 18 "commit-status icon tw-text-yellow rotate-clockwise"}}
+{{else if eq .State "success"}}
 	{{svg "octicon-check" 18 "commit-status icon tw-text-green"}}
-{{end}}
-{{if eq .State "error"}}
+{{else if eq .State "error"}}
 	{{svg "gitea-exclamation" 18 "commit-status icon tw-text-red"}}
-{{end}}
-{{if eq .State "failure"}}
+{{else if eq .State "failure"}}
 	{{svg "octicon-x" 18 "commit-status icon tw-text-red"}}
-{{end}}
-{{if eq .State "warning"}}
+{{else if eq .State "warning"}}
 	{{svg "gitea-exclamation" 18 "commit-status icon tw-text-yellow"}}
-{{end}}
-{{if eq .State "skipped"}}
+{{else if eq .State "skipped"}}
 	{{svg "octicon-skip" 18 "commit-status icon tw-text-text-light"}}
+{{else}}{{/* external CI may report any state */}}
+	{{svg "octicon-question" 18 "commit-status icon tw-text-text-light"}}
 {{end}}

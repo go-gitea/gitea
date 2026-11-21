@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"runtime/pprof"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -59,9 +60,8 @@ func init() {
 	globalIndexer.Store(dummyIndexer)
 }
 
-// InitIssueIndexer initialize issue indexer, syncReindex is true then reindex until
-// all issue index done.
-func InitIssueIndexer(syncReindex bool) {
+// InitIssueIndexer initialize issue indexer
+func InitIssueIndexer(startup *sync.WaitGroup) {
 	ctx, _, finished := process.GetManager().AddTypedContext(context.Background(), "Service: IssueIndexer", process.SystemProcessType, false)
 
 	indexerInitWaitChannel := make(chan time.Duration, 1)
@@ -72,7 +72,7 @@ func InitIssueIndexer(syncReindex bool) {
 	graceful.GetManager().RunAtTerminate(finished)
 
 	// Create the Indexer
-	go func() {
+	startup.Go(func() {
 		pprof.SetGoroutineLabels(ctx)
 		start := time.Now()
 		log.Info("PID %d: Initializing Issue Indexer: %s", os.Getpid(), setting.Indexer.IssueType)
@@ -127,23 +127,14 @@ func InitIssueIndexer(syncReindex bool) {
 
 		// Populate the index
 		if !existed {
-			if syncReindex {
-				graceful.GetManager().RunWithShutdownContext(populateIssueIndexer)
-			} else {
-				go graceful.GetManager().RunWithShutdownContext(populateIssueIndexer)
-			}
+			startup.Go(func() { graceful.GetManager().RunWithShutdownContext(populateIssueIndexer) })
 		}
 
 		indexerInitWaitChannel <- time.Since(start)
 		close(indexerInitWaitChannel)
-	}()
+	})
 
-	if syncReindex {
-		select {
-		case <-indexerInitWaitChannel:
-		case <-graceful.GetManager().IsShutdown():
-		}
-	} else if setting.Indexer.StartupTimeout > 0 {
+	if setting.Indexer.StartupTimeout > 0 {
 		go func() {
 			pprof.SetGoroutineLabels(ctx)
 			timeout := setting.Indexer.StartupTimeout

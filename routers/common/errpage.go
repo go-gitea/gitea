@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/httpcache"
+	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
@@ -28,20 +28,12 @@ const (
 )
 
 func renderServerErrorPage(w http.ResponseWriter, req *http.Request, respCode int, tmpl templates.TplName, ctxData map[string]any, plainMsg string) {
-	acceptsHTML := false
-	for _, part := range req.Header["Accept"] {
-		if strings.Contains(part, "text/html") {
-			acceptsHTML = true
-			break
-		}
-	}
-
 	httpcache.SetCacheControlInHeader(w.Header(), &httpcache.CacheControlOptions{})
 	tmplCtx := context.NewTemplateContextForWeb(reqctx.FromContext(req.Context()), req, middleware.Locale(w, req))
 	w.WriteHeader(respCode)
 
 	outBuf := &bytes.Buffer{}
-	if acceptsHTML {
+	if httplib.ClientAcceptHTML(req) {
 		err := templates.PageRenderer().HTML(outBuf, respCode, tmpl, ctxData, tmplCtx)
 		if err != nil {
 			log.Error("Failed to render error page template %s: %v", tmpl, err)

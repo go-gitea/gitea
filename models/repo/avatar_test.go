@@ -25,3 +25,19 @@ func TestRepoAvatarLink(t *testing.T) {
 	link = repo.AvatarLink(t.Context())
 	assert.Equal(t, "https://localhost/sub-path/repo-avatars/avatar.png", link)
 }
+
+func TestArchiveType(t *testing.T) {
+	for _, tc := range []struct {
+		input, name, archiveType string
+	}{
+		{"test.tar.gz", "test", "tar.gz"},
+		{"a/b/test.zip", "a/b/test", "zip"},
+		{"1234.bundle", "1234", "bundle"},
+		{"test", "test", "unknown"},
+		{"test.xz", "test.xz", "unknown"},
+	} {
+		name, archiveType := SplitArchiveNameType(tc.input)
+		assert.Equal(t, tc.name, name)
+		assert.Equal(t, tc.archiveType, archiveType.String())
+	}
+}

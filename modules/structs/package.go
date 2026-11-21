@@ -46,4 +46,6 @@ type PackageFile struct {
 	HashSHA256 string `json:"sha256"`
 	// The SHA512 hash of the package file
 	HashSHA512 string `json:"sha512"`
+	// The type specific properties locating the package file, e.g. the distribution and component of a Debian package
+	Properties map[string]string `json:"properties,omitempty"`
 }

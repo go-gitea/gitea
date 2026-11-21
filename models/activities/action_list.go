@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -162,12 +161,7 @@ func (actions ActionList) LoadIssues(ctx context.Context) error {
 	issueNum := 0
 	for _, action := range actions {
 		if action.IsIssueEvent() {
-			infos := action.GetIssueInfos()
-			if len(infos) == 0 {
-				continue
-			}
-			index, _ := strconv.ParseInt(infos[0], 10, 64)
-			if index > 0 {
+			if index := action.getIssueIndex(); index > 0 {
 				conditions = conditions.Or(builder.Eq{
 					"repo_id": action.RepoID,
 					"`index`": index,
@@ -212,7 +206,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	var err error
 	var cond builder.Cond
 	// if the actor is the requested user or is an administrator, we can skip the ActivityQueryCondition
-	if opts.Actor != nil && opts.RequestedUser != nil && (opts.Actor.IsAdmin || opts.Actor.ID == opts.RequestedUser.ID) {
+	if opts.RequestedUser != nil && user_model.DoerCanViewPrivate(opts.Actor) && (user_model.DoerIsSiteAdminFullAccess(opts.Actor) || opts.Actor.ID == opts.RequestedUser.ID) {
 		cond = builder.Eq{
 			"user_id": opts.RequestedUser.ID,
 		}.And(

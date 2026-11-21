@@ -39,20 +39,22 @@ func isRoutePathExpensive(routePattern string) bool {
 		return false
 	}
 
+	// an endpoint is expensive if crawlers could consume a lot of resources by accessing it
 	expensivePaths := []string{
 		// code related
+		// media and raw endpoints are for single file accesses and useful for rendering README images, not that expensive
+		// the single file endpoints won't be accessed by crawlers as long as the commits/files endpoints are protected from crawlers
 		"/{username}/{reponame}/archive/",
 		"/{username}/{reponame}/blame/",
 		"/{username}/{reponame}/commit/",
 		"/{username}/{reponame}/commits/",
 		"/{username}/{reponame}/compare/",
 		"/{username}/{reponame}/graph",
-		"/{username}/{reponame}/media/",
-		"/{username}/{reponame}/raw/",
 		"/{username}/{reponame}/rss/branch/",
 		"/{username}/{reponame}/src/",
 
 		// issue & PR related (no trailing slash)
+		// because it would cause heavy database queries, and PR pages need to load a lot of git data
 		"/{username}/{reponame}/issues",
 		"/{username}/{reponame}/{type:issues}",
 		"/{username}/{reponame}/pulls",

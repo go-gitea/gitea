@@ -9,7 +9,6 @@ import (
 	"html/template"
 	"math"
 	"net/url"
-	"regexp"
 	"slices"
 	"strings"
 
@@ -78,12 +77,9 @@ func (ut *RenderUtils) RenderCommitBody(msg string, repo *repo.Repository) templ
 	return renderedMessage
 }
 
-// Match text that is between back ticks.
-var codeMatcher = regexp.MustCompile("`([^`]+)`")
-
 // renderCodeBlock renders "`…`" as highlighted "<code>" block, intended for issue and PR titles
 func renderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
-	htmlWithCodeTags := codeMatcher.ReplaceAllString(string(htmlEscapedTextToRender), `<code class="inline-code-block">$1</code>`) // replace with HTML <code> tags
+	htmlWithCodeTags := globalVars().codeMatcher.ReplaceAllString(string(htmlEscapedTextToRender), `<code class="inline-code-block">$1</code>`) // replace with HTML <code> tags
 	return template.HTML(htmlWithCodeTags)
 }
 
@@ -407,7 +403,7 @@ func (ut *RenderUtils) AvatarStackWithNames(data *user_model.AvatarStackData) te
 	default:
 		b.WriteFormatf(`<button type="button" class="avatar-stack-popup-trigger" data-global-init="initAvatarStackPopup">%s</button>`,
 			locale.Tr("repo.commits.avatar_stack_people", len(participants)))
-		b.WriteHTML(`<div class="tippy-target"><div class="avatar-stack-popup">`)
+		b.WriteHTML(`<div class="floating-target"><div class="avatar-stack-popup">`)
 		for _, participant := range participants {
 			b.WriteHTML(ut.participantPopupRow(data, participant))
 		}

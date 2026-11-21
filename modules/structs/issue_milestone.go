@@ -5,9 +5,11 @@ package structs
 
 import (
 	"time"
+
+	"gitea.dev/modules/optional"
 )
 
-// Milestone milestone is a collection of issues on one repository
+// Milestone is a collection of issues on one repository
 type Milestone struct {
 	// ID is the unique identifier for the milestone
 	ID int64 `json:"id"`
@@ -39,7 +41,7 @@ type CreateMilestoneOption struct {
 	Description string `json:"description"`
 	// swagger:strfmt date-time
 	// Deadline is the due date for the milestone
-	Deadline *time.Time `json:"due_on"`
+	Deadline optional.Option[*string] `json:"due_on,omitzero"`
 	// enum: ["open","closed"]
 	// State indicates the initial state of the milestone
 	State string `json:"state"`
@@ -54,6 +56,7 @@ type EditMilestoneOption struct {
 	// State indicates the updated state of the milestone
 	// enum: ["open","closed"]
 	State *string `json:"state"`
-	// Deadline is the updated due date for the milestone
-	Deadline *time.Time `json:"due_on"`
+	// Deadline is the due date for the milestone, use null or empty string to remove the deadline
+	// swagger:strfmt date-time
+	Deadline optional.Option[*string] `json:"due_on,omitzero"`
 }
