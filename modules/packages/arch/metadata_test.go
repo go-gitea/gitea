@@ -95,9 +95,7 @@ func TestParsePackage(t *testing.T) {
 
 			t.Run("DecompressionLimit", func(t *testing.T) {
 				defer test.MockVariableValue(&packages.ArchiveDecompressionFloor, 0)()
-				data := createPackage(c, map[string][]byte{"dummy.txt": make([]byte, 1024*1024)})
-
-				pp, err := ParsePackage(data)
+				pp, err := ParsePackage(createPackage(c, map[string][]byte{"dummy.txt": make([]byte, 1024*1024)}))
 				assert.Nil(t, pp)
 				assert.ErrorIs(t, err, packages.ErrContentTooLarge)
 			})

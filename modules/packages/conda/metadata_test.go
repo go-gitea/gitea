@@ -5,9 +5,9 @@ package conda
 
 import (
 	"archive/tar"
-	"archive/zip"
 	"bytes"
 	"io"
+	"strings"
 	"testing"
 
 	"gitea.dev/modules/packages"
@@ -42,6 +42,20 @@ func TestParsePackage(t *testing.T) {
 		}
 		tw.Close()
 		return &buf
+	}
+
+	createBZ2 := func(files map[string]string) *bytes.Reader {
+		return bytes.NewReader(test.WriteTarCompression(func(w io.Writer) io.WriteCloser {
+			bw, _ := bzip2.NewWriter(w, nil)
+			return bw
+		}, files).Bytes())
+	}
+
+	createConda := func(files map[string]string) *bytes.Reader {
+		return bytes.NewReader(test.WriteZipArchive(map[string]string{"info-x.tar.zst": test.WriteTarCompression(func(w io.Writer) io.WriteCloser {
+			zw, _ := zstd.NewWriter(w)
+			return zw
+		}, files).String()}).Bytes())
 	}
 
 	t.Run("MissingIndexFile", func(t *testing.T) {
@@ -105,41 +119,20 @@ func TestParsePackage(t *testing.T) {
 
 	t.Run("DecompressionLimit", func(t *testing.T) {
 		defer test.MockVariableValue(&packages.ArchiveDecompressionFloor, 0)()
-		tarArchive := createArchive(map[string][]byte{"dummy.txt": make([]byte, 1024*1024)}).Bytes()
+		files := map[string]string{"dummy.txt": strings.Repeat("\x00", 1024*1024)}
 
-		var bz2Buf bytes.Buffer
-		bw, _ := bzip2.NewWriter(&bz2Buf, nil)
-		bw.Write(tarArchive)
-		bw.Close()
-		_, err := ParsePackageBZ2(bytes.NewReader(bz2Buf.Bytes()))
+		_, err := ParsePackageBZ2(createBZ2(files))
 		assert.ErrorIs(t, err, packages.ErrContentTooLarge)
 
-		var infoBuf bytes.Buffer
-		zsw, _ := zstd.NewWriter(&infoBuf)
-		zsw.Write(tarArchive)
-		zsw.Close()
-		var zipBuf bytes.Buffer
-		zpw := zip.NewWriter(&zipBuf)
-		w, _ := zpw.Create("info-x.tar.zst")
-		w.Write(infoBuf.Bytes())
-		zpw.Close()
-		_, err = ParsePackageConda(bytes.NewReader(zipBuf.Bytes()), int64(zipBuf.Len()))
+		br := createConda(files)
+		_, err = ParsePackageConda(br, br.Size())
 		assert.ErrorIs(t, err, packages.ErrContentTooLarge)
 	})
 
 	t.Run(".tar.bz2", func(t *testing.T) {
-		tarArchive := createArchive(map[string][]byte{
-			"info/index.json": []byte(`{"name":"` + packageName + `","version":"` + packageVersion + `"}`),
-		})
-
-		var buf bytes.Buffer
-		bw, _ := bzip2.NewWriter(&buf, nil)
-		io.Copy(bw, tarArchive)
-		bw.Close()
-
-		br := bytes.NewReader(buf.Bytes())
-
-		p, err := ParsePackageBZ2(br)
+		p, err := ParsePackageBZ2(createBZ2(map[string]string{
+			"info/index.json": `{"name":"` + packageName + `","version":"` + packageVersion + `"}`,
+		}))
 		assert.NotNil(t, p)
 		assert.NoError(t, err)
 
@@ -149,24 +142,11 @@ func TestParsePackage(t *testing.T) {
 	})
 
 	t.Run(".conda", func(t *testing.T) {
-		tarArchive := createArchive(map[string][]byte{
-			"info/index.json": []byte(`{"name":"` + packageName + `","version":"` + packageVersion + `"}`),
+		br := createConda(map[string]string{
+			"info/index.json": `{"name":"` + packageName + `","version":"` + packageVersion + `"}`,
 		})
 
-		var infoBuf bytes.Buffer
-		zsw, _ := zstd.NewWriter(&infoBuf)
-		io.Copy(zsw, tarArchive)
-		zsw.Close()
-
-		var buf bytes.Buffer
-		zpw := zip.NewWriter(&buf)
-		w, _ := zpw.Create("info-x.tar.zst")
-		w.Write(infoBuf.Bytes())
-		zpw.Close()
-
-		br := bytes.NewReader(buf.Bytes())
-
-		p, err := ParsePackageConda(br, int64(br.Len()))
+		p, err := ParsePackageConda(br, br.Size())
 		assert.NotNil(t, p)
 		assert.NoError(t, err)
 
