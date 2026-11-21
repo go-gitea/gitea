@@ -50,7 +50,7 @@ func TestProjectWorkflowsWeb(t *testing.T) {
 	assert.Equal(t, workflow.Actions, updated.Actions)
 
 	req = NewRequestWithJSON(t, "POST", link, &api.CreateProjectWorkflowOption{Event: "item_closed"})
-	resp := session.MakeRequest(t, req, http.StatusBadRequest)
+	resp := session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 	assert.Equal(t, "At least one action must be configured", DecodeJSON(t, resp, map[string]any{})["errorMessage"])
 
 	loginUser(t, "user4").MakeRequest(t, NewRequest(t, "POST", workflowLink+"/delete"), http.StatusNotFound)
@@ -84,7 +84,7 @@ func TestProjectWorkflowsWeb(t *testing.T) {
 		assert.Contains(t, NewHTMLParser(t, resp.Body).Find(".timeline-item.event .comment-text-line").Text(), "Project workflow Item added to project")
 
 		req = NewRequestWithJSON(t, "POST", link+"/3/move", map[string]any{
-			"issues": []map[string]any{{"issueID": created.ID, "sorting": 0}},
+			"issueID": created.ID, "prevIssueID": 0,
 		})
 		session.MakeRequest(t, req, http.StatusOK)
 

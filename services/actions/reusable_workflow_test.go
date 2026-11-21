@@ -245,6 +245,18 @@ func TestLoadReusableWorkflowSourceFailsAlikeForMissingAndPrivateRepo(t *testing
 	}
 }
 
+func TestValidateCalledWorkflowsRejectsCrossSourceSelfRepoExpressions(t *testing.T) {
+	content := []byte("on: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: $/${{ vars.ACTION }}\n")
+	require.NoError(t, validateCalledWorkflows(t.Context(), &actions_model.ActionRun{RepoID: 1, WorkflowRepoID: 1, WorkflowCommitSHA: "abc", CommitSHA: "abc"}, content))
+	for _, run := range []*actions_model.ActionRun{
+		{RepoID: 1, WorkflowRepoID: 2, WorkflowCommitSHA: "abc", CommitSHA: "abc"},
+		{RepoID: 1, WorkflowRepoID: 1, WorkflowCommitSHA: "abc", CommitSHA: "def", IsScopedRun: true}, // a scoped source triggering itself off its default branch
+	} {
+		assert.EqualError(t, validateCalledWorkflows(t.Context(), run, content),
+			"job build: `uses: $/${{ vars.ACTION }}` cannot use expressions in a workflow from another repository or commit")
+	}
+}
+
 func TestCheckRunJobLimit(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
@@ -401,4 +413,23 @@ func TestQualifyRef(t *testing.T) {
 	assert.Equal(t, masterSHA, qualifyRef(t.Context(), repo, gitRepo, masterSHA, masterSHA))
 	assert.Equal(t, masterSHA, qualifyRef(t.Context(), repo, gitRepo, "refs/heads/master~0", masterSHA))
 	assert.Equal(t, "other-sha", qualifyRef(t.Context(), repo, gitRepo, "master", "other-sha"))
+}
+
+func TestChildCacheMode(t *testing.T) {
+	for _, tc := range []struct {
+		caller, workflow, job, want string
+		denied                      bool
+	}{
+		{"", "read", "write", "write", false},
+		{"", "read", "", "read", false},
+		{"write", "read", "", "read", false},
+		{"read", "read", "none", "none", false},
+		{"none", "", "read", "", true},
+		{"read", "", "write", "", true},
+		{"write-only", "", "read", "", true},
+	} {
+		got, err := childCacheMode(tc.caller, tc.workflow, "build", tc.job)
+		assert.Equal(t, tc.want, got, tc)
+		assert.Equal(t, tc.denied, err != nil, tc)
+	}
 }

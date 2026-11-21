@@ -180,11 +180,11 @@ export function sleep(ms: number): Promise<void> {
 }
 
 export function isImageFile({name, type}: {name: string | null, type: string | null}): boolean {
-  return Boolean(/\.(avif|jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/'));
+  return Boolean(/\.(avif|jpeg|jpg|jxl|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/'));
 }
 
 export function isVideoFile({name, type}: {name: string | null, type: string | null}): boolean {
-  return Boolean(/\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/'));
+  return Boolean(/\.(mpg|mpeg|mp4|m4v|mkv|mov|webm)$/i.test(name || '') || type?.startsWith('video/'));
 }
 
 const byteUnits = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB'];

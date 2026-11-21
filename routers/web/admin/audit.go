@@ -40,7 +40,7 @@ func ExportAuditLogs(ctx *context.Context) {
 	// the first page is fetched before any header is written so a failing query still results in a proper error page
 	events, total, err := findPage()
 	if err != nil {
-		ctx.ServerError("FindEvents", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
@@ -17,6 +18,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	issue_service "gitea.dev/services/issue"
@@ -429,7 +431,7 @@ func DeletePullReview(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 
-	review, _, statusSet := prepareSingleReview(ctx)
+	review, pr, statusSet := prepareSingleReview(ctx)
 	if statusSet {
 		return
 	}
@@ -447,6 +449,7 @@ func DeletePullReview(ctx *context.APIContext) {
 		ctx.APIErrorInternal(fmt.Errorf("can not delete ReviewID: %d", review.ID))
 		return
 	}
+	audit.Record(ctx, audit_model.PullRequestReviewDelete, ctx.Repo.Repository, "pull_request", fmt.Sprintf("#%d", pr.Index), "review_id", review.ID)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -487,6 +490,13 @@ func CreatePullReview(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	opts := web.GetForm[*api.CreatePullReviewOptions](ctx)
+	for _, comment := range opts.Comments {
+		if comment.Path == "" || (comment.NewLineNum <= 0 && comment.OldLineNum <= 0) {
+			ctx.APIError(http.StatusUnprocessableEntity, "review comments require a path and a positive new_position or old_position")
+			return
+		}
+	}
+
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		ctx.APIErrorAuto(err)

@@ -156,7 +156,7 @@ func Test_Projects(t *testing.T) {
 		// move the issue into a non-default column of the first project only
 		targetColumn := &project_model.Column{Title: "target", ProjectID: projects[0].ID}
 		assert.NoError(t, project_model.NewColumn(t.Context(), targetColumn))
-		assert.NoError(t, MoveIssuesOnProjectColumn(t.Context(), user2, targetColumn, map[int64]int64{0: issue11.ID}))
+		assert.NoError(t, MoveIssueAfter(t.Context(), user2, targetColumn, issue11, 0))
 
 		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{
 			IssueID: issue11.ID, ProjectID: projects[0].ID, ProjectColumnID: targetColumn.ID,
@@ -164,6 +164,44 @@ func Test_Projects(t *testing.T) {
 		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{
 			IssueID: issue11.ID, ProjectID: projects[1].ID, ProjectColumnID: otherColumn.ID,
 		})
+	})
+
+	t.Run("Moving an issue never moves other cards", func(t *testing.T) {
+		project := &project_model.Project{Title: "incremental move", RepoID: 1, Type: project_model.TypeRepository}
+		assert.NoError(t, project_model.NewProject(t.Context(), project))
+		defer func() {
+			assert.NoError(t, project_model.DeleteProjectByID(t.Context(), project.ID))
+		}()
+		colA := &project_model.Column{Title: "A", ProjectID: project.ID}
+		colB := &project_model.Column{Title: "B", ProjectID: project.ID}
+		assert.NoError(t, project_model.NewColumn(t.Context(), colA))
+		assert.NoError(t, project_model.NewColumn(t.Context(), colB))
+		for i, id := range []int64{1, 2, 3, 5} {
+			assert.NoError(t, db.Insert(t.Context(), &project_model.ProjectIssue{IssueID: id, ProjectID: project.ID, ProjectColumnID: colA.ID, Sorting: int64(i)}))
+		}
+		issue := func(id int64) *issues_model.Issue {
+			return unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: id})
+		}
+		order := func(col *project_model.Column) (ids []int64) {
+			rows, err := project_model.GetColumnIssueSortings(t.Context(), col, 0)
+			assert.NoError(t, err)
+			for i, row := range rows {
+				assert.EqualValues(t, i, row.Sorting)
+				ids = append(ids, row.IssueID)
+			}
+			return ids
+		}
+
+		assert.NoError(t, MoveIssueAfter(t.Context(), user2, colB, issue(1), 0))
+		assert.NoError(t, MoveIssueAfter(t.Context(), user2, colA, issue(2), 1))
+		assert.Equal(t, []int64{3, 5, 2}, order(colA))
+		assert.NoError(t, MoveIssueAfter(t.Context(), user2, colA, issue(5), 0))
+		assert.Equal(t, []int64{5, 3, 2}, order(colA))
+		assert.NoError(t, MoveIssueAfter(t.Context(), user2, colA, issue(5), 3))
+		assert.Equal(t, []int64{3, 5, 2}, order(colA))
+		assert.Equal(t, []int64{1}, order(colB))
+		assert.NoError(t, project_model.SetIssueSorting(t.Context(), colA, 1, 99))
+		assert.Equal(t, []int64{1}, order(colB))
 	})
 
 	t.Run("Repository projects", func(t *testing.T) {

@@ -459,17 +459,11 @@ func DeleteProjectByRepoID(ctx context.Context, repoID int64) error {
 		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_board WHERE project_board.id IN (SELECT project_board.id FROM project_board INNER JOIN project WHERE project.id = project_board.project_id AND project.repo_id = ?)", repoID); err != nil {
 			return err
 		}
-		if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Project{}); err != nil {
-			return err
-		}
 	case setting.Database.Type.IsPostgreSQL():
 		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_issue USING project WHERE project.id = project_issue.project_id AND project.repo_id = ? ", repoID); err != nil {
 			return err
 		}
 		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_board USING project WHERE project.id = project_board.project_id AND project.repo_id = ? ", repoID); err != nil {
-			return err
-		}
-		if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Project{}); err != nil {
 			return err
 		}
 	default:
@@ -479,10 +473,10 @@ func DeleteProjectByRepoID(ctx context.Context, repoID int64) error {
 		if _, err := db.GetEngine(ctx).Exec("DELETE project_board FROM project_board INNER JOIN project ON project.id = project_board.project_id WHERE project.repo_id = ? ", repoID); err != nil {
 			return err
 		}
-		if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Project{}); err != nil {
-			return err
-		}
 	}
 
+	if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Project{}); err != nil {
+		return err
+	}
 	return updateRepositoryProjectCount(ctx, repoID)
 }

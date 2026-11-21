@@ -33,13 +33,16 @@ import (
 	"xorm.io/builder"
 )
 
+// CommitStatusStateMaxLength must match the size of the CommitStatus.State column
+const CommitStatusStateMaxLength = 7
+
 // CommitStatus holds a single Status of a single Commit
 type CommitStatus struct {
 	ID     int64                          `xorm:"pk autoincr"`
 	RepoID int64                          `xorm:"UNIQUE(repo_sha_index)"`
 	SHA    string                         `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
 	Index  int64                          `xorm:"INDEX UNIQUE(repo_sha_index)"`
-	Repo   *repo_model.Repository         `xorm:"-"`
+	Repo   *repo_model.Repository         `xorm:"-" json:"-"`
 	State  commitstatus.CommitStatusState `xorm:"VARCHAR(7) NOT NULL"`
 
 	// TargetURL points to the commit status page reported by a CI system
@@ -49,7 +52,7 @@ type CommitStatus struct {
 	Description string           `xorm:"TEXT"`
 	ContextHash string           `xorm:"VARCHAR(64) index"`
 	Context     string           `xorm:"TEXT"`
-	Creator     *user_model.User `xorm:"-"`
+	Creator     *user_model.User `xorm:"-" json:"-"`
 	CreatorID   int64
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
