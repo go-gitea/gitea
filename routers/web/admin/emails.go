@@ -80,7 +80,7 @@ func Emails(ctx *context.Context) {
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
 		baseEmails, count, err = user_model.SearchEmails(ctx, opts)
 		if err != nil {
-			ctx.ServerError("SearchEmails", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		emails = make([]ActiveEmail, len(baseEmails))
@@ -164,13 +164,13 @@ func ActivateEmail(ctx *context.Context) {
 func DeleteEmail(ctx *context.Context) {
 	u, err := user_model.GetUserByID(ctx, ctx.FormInt64("uid"))
 	if err != nil || u == nil {
-		ctx.ServerError("GetUserByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	email, err := user_model.GetEmailAddressByID(ctx, u.ID, ctx.FormInt64("id"))
 	if err != nil || email == nil {
-		ctx.ServerError("GetEmailAddressByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -180,7 +180,7 @@ func DeleteEmail(ctx *context.Context) {
 			ctx.JSONRedirect("")
 			return
 		}
-		ctx.ServerError("DeleteEmailAddresses", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	log.Trace("Email address deleted: %s %s", u.Name, email.Email)

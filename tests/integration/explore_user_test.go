@@ -15,30 +15,42 @@ import (
 func TestExploreUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	cases := []struct{ sortOrder, expected string }{
-		{"", "?sort=newest&q="},
-		{"newest", "?sort=newest&q="},
-		{"oldest", "?sort=oldest&q="},
-		{"alphabetically", "?sort=alphabetically&q="},
-		{"reversealphabetically", "?sort=reversealphabetically&q="},
-	}
-	for _, c := range cases {
-		req := NewRequest(t, "GET", "/explore/users?sort="+c.sortOrder)
+	t.Run("Repos", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/explore/repos?q=TheKeyword&topic=1&language=TheLang")
 		resp := MakeRequest(t, req, http.StatusOK)
-		h := NewHTMLParser(t, resp.Body)
-		href, _ := h.Find(`.ui.dropdown .menu a.active.item[href^="?sort="]`).Attr("href")
-		assert.Equal(t, c.expected, href)
-	}
+		respStr := resp.Body.String()
 
-	// these sort orders shouldn't be supported, to avoid leaking user activity
-	cases404 := []string{
-		"/explore/users?sort=lastlogin",
-		"/explore/users?sort=reverselastlogin",
-		"/explore/users?sort=leastupdate",
-		"/explore/users?sort=reverseleastupdate",
-	}
-	for _, c := range cases404 {
-		req := NewRequest(t, "GET", c).SetHeader("Accept", "text/html")
-		MakeRequest(t, req, http.StatusNotFound)
-	}
+		assert.Contains(t, respStr, `<input type="hidden" name="topic" value="true">`)
+		assert.Contains(t, respStr, `<input type="hidden" name="language" value="TheLang">`)
+		assert.Contains(t, respStr, `<input type="search" name="q" value="TheKeyword"`)
+	})
+
+	t.Run("Users", func(t *testing.T) {
+		cases := []struct{ sortOrder, expected string }{
+			{"", "?sort=newest&q="},
+			{"newest", "?sort=newest&q="},
+			{"oldest", "?sort=oldest&q="},
+			{"alphabetically", "?sort=alphabetically&q="},
+			{"reversealphabetically", "?sort=reversealphabetically&q="},
+		}
+		for _, c := range cases {
+			req := NewRequest(t, "GET", "/explore/users?sort="+c.sortOrder)
+			resp := MakeRequest(t, req, http.StatusOK)
+			h := NewHTMLParser(t, resp.Body)
+			href, _ := h.Find(`.ui.dropdown .menu a.active.item[href^="?sort="]`).Attr("href")
+			assert.Equal(t, c.expected, href)
+		}
+
+		// these sort orders shouldn't be supported, to avoid leaking user activity
+		cases404 := []string{
+			"/explore/users?sort=lastlogin",
+			"/explore/users?sort=reverselastlogin",
+			"/explore/users?sort=leastupdate",
+			"/explore/users?sort=reverseleastupdate",
+		}
+		for _, c := range cases404 {
+			req := NewRequest(t, "GET", c).SetHeader("Accept", "text/html")
+			MakeRequest(t, req, http.StatusNotFound)
+		}
+	})
 }

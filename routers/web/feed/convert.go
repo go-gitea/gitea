@@ -15,6 +15,7 @@ import (
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/renderhelper"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
@@ -259,44 +260,49 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 	return items, err
 }
 
+const (
+	ExtNameRss         = ".rss"
+	ExtNameAtom        = ".atom"
+	ContentTypeRssXml  = "application/rss+xml"
+	ContentTypeAtomXml = "application/atom+xml"
+)
+
 // GetFeedType return if it is a feed request and altered name and feed type.
 func GetFeedType(name string, req *http.Request) (showFeed bool, feedType string) {
-	if strings.HasSuffix(name, ".rss") ||
-		strings.Contains(req.Header.Get("Accept"), "application/rss+xml") {
+	if strings.HasSuffix(name, ExtNameRss) || strings.Contains(req.Header.Get("Accept"), ContentTypeRssXml) {
 		return true, "rss"
 	}
-
-	if strings.HasSuffix(name, ".atom") ||
-		strings.Contains(req.Header.Get("Accept"), "application/atom+xml") {
+	if strings.HasSuffix(name, ExtNameAtom) || strings.Contains(req.Header.Get("Accept"), ContentTypeAtomXml) {
 		return true, "atom"
 	}
-
 	return false, ""
 }
 
 // feedActionsToFeedItems convert gitea's Repo's Releases to feeds Item
 func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (items []*feeds.Item, err error) {
+	canReadReleases := ctx.Repo.Permission.CanRead(unit.TypeReleases)
 	for _, rel := range releases {
 		err := rel.LoadAttributes(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		var title string
 		var content template.HTML
-
-		if rel.IsTag {
-			title = rel.TagName
-		} else {
-			title = rel.Title
-		}
-
+		title := rel.TagName
 		link := &feeds.Link{Href: rel.HTMLURL()}
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, rel.Repo).WithUseAbsoluteLink(true)
-		content, err = markdown.RenderString(rctx,
-			rel.Note)
-		if err != nil {
-			return nil, err
+
+		if !canReadReleases {
+			// the tags feed only requires code access, so list releases as plain tags like the tags page does
+			link.Href = rel.Repo.HTMLURL() + "/src/tag/" + util.PathEscapeSegments(rel.TagName)
+		} else {
+			if !rel.IsTag {
+				title = rel.Title
+			}
+			rctx := renderhelper.NewRenderContextRepoComment(ctx, rel.Repo).WithUseAbsoluteLink(true)
+			content, err = markdown.RenderString(rctx, rel.Note)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		items = append(items, &feeds.Item{

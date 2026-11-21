@@ -34,7 +34,7 @@ func TestRenderHelperCodePreview(t *testing.T) {
 		<a href="http://full" class="tw-font-semibold" rel="nofollow">repo1/README.md</a>
 		repo.code_preview_line_from_to:1,2,<a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" class="muted tw-font-mono tw-text-text" rel="nofollow">65f1bf27bc</a>
 	</div>
-	<table class="file-view">
+	<table class="file-view" data-paste-markdown-skip>
 		<tbody><tr>
 				<td class="lines-num"><span data-line-number="1"></span></td>
 				<td class="lines-code chroma"><div class="code-inner"><span class="gh"># repo1
@@ -63,7 +63,7 @@ func TestRenderHelperCodePreview(t *testing.T) {
 		<a href="http://full" class="tw-font-semibold" rel="nofollow">repo1/README.md</a>
 		repo.code_preview_line_in:1,<a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" class="muted tw-font-mono tw-text-text" rel="nofollow">65f1bf27bc</a>
 	</div>
-	<table class="file-view">
+	<table class="file-view" data-paste-markdown-skip>
 		<tbody><tr>
 				<td class="lines-num"><span data-line-number="1"></span></td>
 				<td class="lines-code chroma"><div class="code-inner"><span class="gh"># repo1

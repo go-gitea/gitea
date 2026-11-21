@@ -19,34 +19,31 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPIPinIssue(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	assert.NoError(t, unittest.LoadFixtures())
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID})
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-
-	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-
-	// Pin the Issue
-	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue.Index)).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
-
-	// Check if the Issue is pinned
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Index))
-	resp := MakeRequest(t, req, http.StatusOK)
-	issueAPI := DecodeJSON(t, resp, &api.Issue{})
-	assert.Equal(t, 1, issueAPI.PinOrder)
-}
-
 func TestAPIUnpinIssue(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	assert.NoError(t, unittest.LoadFixtures())
+	t.Run("ListPinnedPullRequests", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/pulls/pinned", repo.OwnerName, repo.Name))
+		resp := MakeRequest(t, req, http.StatusOK)
+		prList := DecodeJSON(t, resp, []api.PullRequest{})
+
+		assert.Empty(t, prList)
+	})
+
+	t.Run("NewPinAllowed", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/new_pin_allowed", owner.Name, repo.Name))
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		newPinsAllowed := DecodeJSON(t, resp, &api.NewIssuePinsAllowed{})
+
+		assert.True(t, newPinsAllowed.Issues)
+		assert.True(t, newPinsAllowed.PullRequests)
+	})
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID})
@@ -65,6 +62,14 @@ func TestAPIUnpinIssue(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	issueAPI := DecodeJSON(t, resp, &api.Issue{})
 	assert.Equal(t, 1, issueAPI.PinOrder)
+
+	// Check if the Issue is in the List
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/pinned", repo.OwnerName, repo.Name))
+	resp = MakeRequest(t, req, http.StatusOK)
+	issueList := DecodeJSON(t, resp, []api.Issue{})
+
+	assert.Len(t, issueList, 1)
+	assert.Equal(t, issue.ID, issueList[0].ID)
 
 	// Unpin the Issue
 	req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue.Index)).
@@ -80,8 +85,6 @@ func TestAPIUnpinIssue(t *testing.T) {
 
 func TestAPIMoveIssuePin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	assert.NoError(t, unittest.LoadFixtures())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID})
@@ -123,59 +126,4 @@ func TestAPIMoveIssuePin(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	issueAPI4 := DecodeJSON(t, resp, &api.Issue{})
 	assert.Equal(t, 1, issueAPI4.PinOrder)
-}
-
-func TestAPIListPinnedIssues(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	assert.NoError(t, unittest.LoadFixtures())
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID})
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-
-	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-
-	// Pin the Issue
-	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue.Index)).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
-
-	// Check if the Issue is in the List
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/pinned", repo.OwnerName, repo.Name))
-	resp := MakeRequest(t, req, http.StatusOK)
-	issueList := DecodeJSON(t, resp, []api.Issue{})
-
-	assert.Len(t, issueList, 1)
-	assert.Equal(t, issue.ID, issueList[0].ID)
-}
-
-func TestAPIListPinnedPullrequests(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	assert.NoError(t, unittest.LoadFixtures())
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/pulls/pinned", repo.OwnerName, repo.Name))
-	resp := MakeRequest(t, req, http.StatusOK)
-	prList := DecodeJSON(t, resp, []api.PullRequest{})
-
-	assert.Empty(t, prList)
-}
-
-func TestAPINewPinAllowed(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/new_pin_allowed", owner.Name, repo.Name))
-	resp := MakeRequest(t, req, http.StatusOK)
-
-	newPinsAllowed := DecodeJSON(t, resp, &api.NewIssuePinsAllowed{})
-
-	assert.True(t, newPinsAllowed.Issues)
-	assert.True(t, newPinsAllowed.PullRequests)
 }

@@ -21,7 +21,7 @@ func TestUserHeatmap(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	normalUsername := "user2"
-	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeReadUser)
+	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeAll)
 
 	fakeNow := time.Date(2011, 10, 20, 0, 0, 0, 0, time.Local)
 	timeutil.MockSet(fakeNow)

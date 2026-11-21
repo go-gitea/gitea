@@ -61,30 +61,20 @@ func TestRenderInternalAttrs(t *testing.T) {
 }
 
 func TestRenderInternalExtraHead(t *testing.T) {
-	t.Run("HeadExists", func(t *testing.T) {
-		out := &bytes.Buffer{}
-		var r RenderInternal
-		in := r.init("sec", out, `<MY-TAG>`)
-		_, _ = io.WriteString(in, `<head>any</head>`)
-		_ = in.Close()
-		assert.Equal(t, `<head><MY-TAG>any</head>`, out.String())
-	})
-
-	t.Run("HeadNotExists", func(t *testing.T) {
-		out := &bytes.Buffer{}
-		var r RenderInternal
-		in := r.init("sec", out, `<MY-TAG>`)
-		_, _ = io.WriteString(in, `<div></div>`)
-		_ = in.Close()
-		assert.Equal(t, `<MY-TAG><div></div>`, out.String())
-	})
-
-	t.Run("NotHTML", func(t *testing.T) {
-		out := &bytes.Buffer{}
-		var r RenderInternal
-		in := r.init("sec", out, `<MY-TAG>`)
-		_, _ = io.WriteString(in, `<any>`)
-		_ = in.Close()
-		assert.Equal(t, `<any>`, out.String())
-	})
+	for _, test := range []struct {
+		name, input, expected string
+	}{
+		{"HeadExists", `<head>any</head>`, `<head><MY-TAG>any</head>`},
+		{"HeadNotExists", `<div></div>`, `<MY-TAG><div></div>`},
+		{"NotHTML", `<any>`, `<any>`},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			out := &bytes.Buffer{}
+			var r RenderInternal
+			in := r.init("sec", out, `<MY-TAG>`)
+			_, _ = io.WriteString(in, test.input)
+			_ = in.Close()
+			assert.Equal(t, test.expected, out.String())
+		})
+	}
 }

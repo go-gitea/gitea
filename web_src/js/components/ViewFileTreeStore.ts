@@ -1,6 +1,6 @@
 import {reactive} from 'vue';
 import {GET} from '../modules/fetch.ts';
-import {pathEscapeSegments} from '../utils/url.ts';
+import {pathEscapeSegments, pathWithQuery} from '../utils/url.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
 
@@ -18,6 +18,7 @@ export function createViewFileTreeStore(props: {repoLink: string, treePath: stri
   const store = reactive({
     rootFiles: [] as Array<FileTreeItem>,
     selectedItem: props.treePath,
+    viewContentUrl: pathWithQuery(window.location),
 
     async loadChildren(treePath: string, subPath: string = '') {
       // there is no git ref if no commits were made yet (an empty repo)
@@ -39,6 +40,7 @@ export function createViewFileTreeStore(props: {repoLink: string, treePath: stri
 
     async loadViewContent(url: string) {
       const u = new URL(url, window.origin);
+      store.viewContentUrl = pathWithQuery(u);
       u.searchParams.set('only_content', 'true');
       const response = await GET(u.href);
       const elViewContent = document.querySelector('.repo-view-content')!;
