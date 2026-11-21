@@ -93,9 +93,6 @@ func newFuncMapWebPage() template.FuncMap {
 		"ShowFooterPoweredBy": func() bool {
 			return setting.Other.ShowFooterPoweredBy
 		},
-		"AllowedReactions": func() []string {
-			return setting.UI.Reactions
-		},
 		"MetaAuthor": func() string {
 			return setting.UI.Meta.Author
 		},

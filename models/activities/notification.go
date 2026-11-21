@@ -115,7 +115,7 @@ func init() {
 	db.RegisterModel(new(Notification))
 }
 
-// CreateRepoTransferNotification creates  notification for the user a repository was transferred to
+// CreateRepoTransferNotification creates a notification for the user a repository was transferred to
 func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		var notify []*Notification
@@ -125,19 +125,16 @@ func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_mo
 			if err != nil || len(users) == 0 {
 				return err
 			}
-			for i, user := range users {
-				if user.IsTypeBot() {
-					continue
-				}
+			for userID := range users {
 				notify = append(notify, &Notification{
-					UserID:    i,
+					UserID:    userID,
 					RepoID:    repo.ID,
 					Status:    NotificationStatusUnread,
 					UpdatedBy: doer.ID,
 					Source:    NotificationSourceRepository,
 				})
 			}
-		} else if !newOwner.IsTypeBot() {
+		} else {
 			notify = []*Notification{{
 				UserID:    newOwner.ID,
 				RepoID:    repo.ID,
@@ -147,9 +144,6 @@ func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_mo
 			}}
 		}
 
-		if len(notify) == 0 {
-			return nil
-		}
 		return db.Insert(ctx, notify)
 	})
 }
@@ -180,15 +174,14 @@ func updateIssueNotification(ctx context.Context, userID, issueID, commentID, up
 	}
 
 	// NOTICE: Only update comment id when the before notification on this issue is read, otherwise you may miss some old comments.
-	// But we need update update_by so that the notification will be reorder
-	var cols []string
+	// Always update so that updated_unix moves the notification to the top of the list
+	// Actually, it's unclear what UpdatedBy is used for, or maybe not used at all, or maybe it should just be dropped.
+	notification.UpdatedBy = updatedByID
+	cols := []string{"updated_by"}
 	if notification.Status == NotificationStatusRead {
 		notification.Status = NotificationStatusUnread
 		notification.CommentID = commentID
-		cols = []string{"status", "update_by", "comment_id"}
-	} else {
-		notification.UpdatedBy = updatedByID
-		cols = []string{"update_by"}
+		cols = append(cols, "status", "comment_id")
 	}
 
 	_, err = db.GetEngine(ctx).ID(notification.ID).Cols(cols...).Update(notification)

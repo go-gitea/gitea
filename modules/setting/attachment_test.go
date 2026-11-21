@@ -10,7 +10,10 @@ import (
 )
 
 func Test_getStorageCustomType(t *testing.T) {
-	iniStr := `
+	for _, tc := range []struct {
+		iniStr, endpoint, bucket string
+	}{
+		{`
 [attachment]
 STORAGE_TYPE = my_s3
 S3_BUCKET = gitea-attachment
@@ -18,20 +21,8 @@ S3_BUCKET = gitea-attachment
 [storage.my_s3]
 STORAGE_TYPE = s3
 S3_ENDPOINT = my_s3:9000
-`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-
-	assert.NoError(t, loadAttachmentFrom(cfg))
-
-	assert.EqualValues(t, "s3", Attachment.Storage.Type)
-	assert.Equal(t, "my_s3:9000", Attachment.Storage.S3Config.Endpoint)
-	assert.Equal(t, "gitea-attachment", Attachment.Storage.S3Config.Bucket)
-	assert.Equal(t, "attachments/", Attachment.Storage.S3Config.BasePath)
-}
-
-func Test_getStorageTypeSectionOverridesStorageSection(t *testing.T) {
-	iniStr := `
+`, "my_s3:9000", "gitea-attachment"},
+		{`
 [attachment]
 STORAGE_TYPE = s3
 
@@ -40,19 +31,8 @@ S3_BUCKET = gitea-s3
 
 [storage]
 S3_BUCKET = gitea
-`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-
-	assert.NoError(t, loadAttachmentFrom(cfg))
-
-	assert.EqualValues(t, "s3", Attachment.Storage.Type)
-	assert.Equal(t, "gitea-s3", Attachment.Storage.S3Config.Bucket)
-	assert.Equal(t, "attachments/", Attachment.Storage.S3Config.BasePath)
-}
-
-func Test_getStorageSpecificOverridesStorage(t *testing.T) {
-	iniStr := `
+`, "", "gitea-s3"},
+		{`
 [attachment]
 STORAGE_TYPE = s3
 S3_BUCKET = gitea-attachment
@@ -62,15 +42,19 @@ S3_BUCKET = gitea
 
 [storage]
 STORAGE_TYPE = local
-`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
+`, "", "gitea-attachment"},
+	} {
+		cfg, err := NewConfigProviderFromData(tc.iniStr)
+		assert.NoError(t, err)
+		assert.NoError(t, loadAttachmentFrom(cfg))
 
-	assert.NoError(t, loadAttachmentFrom(cfg))
-
-	assert.EqualValues(t, "s3", Attachment.Storage.Type)
-	assert.Equal(t, "gitea-attachment", Attachment.Storage.S3Config.Bucket)
-	assert.Equal(t, "attachments/", Attachment.Storage.S3Config.BasePath)
+		assert.EqualValues(t, "s3", Attachment.Storage.Type)
+		if tc.endpoint != "" {
+			assert.Equal(t, tc.endpoint, Attachment.Storage.S3Config.Endpoint)
+		}
+		assert.Equal(t, tc.bucket, Attachment.Storage.S3Config.Bucket)
+		assert.Equal(t, "attachments/", Attachment.Storage.S3Config.BasePath)
+	}
 }
 
 func Test_getStorageGetDefaults(t *testing.T) {

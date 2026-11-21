@@ -11,7 +11,6 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/log"
 )
 
@@ -36,19 +35,11 @@ func GetCommitActionsStatusMap(ctx context.Context, statuses []*git_model.Commit
 		return nil
 	}
 	statusByJobID := make(map[int64]*git_model.CommitStatus)
-	repoByID := make(map[int64]*repo_model.Repository)
 	for _, status := range statuses {
 		if status == nil || status.TargetURL == "" {
 			continue
 		}
-		if status.Repo == nil {
-			status.Repo = repoByID[status.RepoID]
-		}
-		// ParseGiteaActionsTargetURL lazy-loads status.Repo on miss; cache the
-		// outcome so later entries with the same RepoID skip that load.
-		_, jobID, ok := status.ParseGiteaActionsTargetURL(ctx)
-		repoByID[status.RepoID] = status.Repo
-		if ok {
+		if _, jobID, ok := status.ParseGiteaActionsTargetURL(ctx); ok {
 			statusByJobID[jobID] = status
 		}
 	}

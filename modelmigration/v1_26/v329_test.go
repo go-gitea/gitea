@@ -43,13 +43,11 @@ func Test_AddUniqueIndexForUserBadge(t *testing.T) {
 	}
 
 	// check that we have duplicates
-	count, err := x.Where("user_id = ? AND badge_id = ?", 1, 1).Count(&UserBadgeBefore{})
-	assert.NoError(t, err)
-	assert.Equal(t, int64(2), count)
-
-	count, err = x.Where("user_id = ? AND badge_id = ?", 3, 3).Count(&UserBadgeBefore{})
-	assert.NoError(t, err)
-	assert.Equal(t, int64(2), count)
+	for _, userID := range []int{1, 3} {
+		count, err := x.Where("user_id = ? AND badge_id = ?", userID, userID).Count(&UserBadgeBefore{})
+		assert.NoError(t, err)
+		assert.Equal(t, int64(2), count)
+	}
 
 	totalCount, err := x.Count(&UserBadgeBefore{})
 	assert.NoError(t, err)
@@ -62,13 +60,11 @@ func Test_AddUniqueIndexForUserBadge(t *testing.T) {
 	}
 
 	// verify the duplicates were removed
-	count, err = x.Where("user_id = ? AND badge_id = ?", 1, 1).Count(&UserBadgeBefore{})
-	assert.NoError(t, err)
-	assert.Equal(t, int64(1), count)
-
-	count, err = x.Where("user_id = ? AND badge_id = ?", 3, 3).Count(&UserBadgeBefore{})
-	assert.NoError(t, err)
-	assert.Equal(t, int64(1), count)
+	for _, userID := range []int{1, 3} {
+		count, err := x.Where("user_id = ? AND badge_id = ?", userID, userID).Count(&UserBadgeBefore{})
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), count)
+	}
 
 	// check total count
 	totalCount, err = x.Count(&UserBadgeBefore{})

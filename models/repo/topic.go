@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/container"
@@ -22,7 +23,9 @@ func init() {
 	db.RegisterModel(new(RepoTopic))
 }
 
-var topicPattern = regexp.MustCompile(`^[a-z0-9][-.a-z0-9]*$`)
+var topicPattern = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`^[a-z0-9][-.a-z0-9]*$`)
+})
 
 // Topic represents a topic of repositories
 type Topic struct {
@@ -55,7 +58,7 @@ func (err ErrTopicNotExist) Unwrap() error {
 
 // ValidateTopic checks a topic by length and match pattern rules
 func ValidateTopic(topic string) bool {
-	return len(topic) <= 35 && topicPattern.MatchString(topic)
+	return len(topic) <= 35 && topicPattern().MatchString(topic)
 }
 
 // SanitizeAndValidateTopics sanitizes and checks an array or topics

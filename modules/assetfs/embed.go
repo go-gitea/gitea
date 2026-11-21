@@ -6,6 +6,7 @@ package assetfs
 import (
 	"bytes"
 	"compress/gzip"
+	"errors"
 	"io"
 	"io/fs"
 	"os"
@@ -301,12 +302,12 @@ var GetExecutableModTime = sync.OnceValue(func() (modTime time.Time) {
 	return st.ModTime()
 })
 
-func GenerateEmbedBindata(fsRootPath, outputFile string) error {
+func GenerateEmbedBindata(fsRootPath, outputFile string) (err error) {
 	output, err := os.OpenFile(outputFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		return err
 	}
-	defer output.Close()
+	defer func() { err = errors.Join(err, output.Close()) }()
 
 	meta := &EmbeddedMeta{}
 	meta.Root = &embeddedFileInfo{}

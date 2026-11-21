@@ -27,6 +27,7 @@ a.b = 1
 	loadGitFrom(cfg)
 	assert.Equal(t, "1", GitConfig.Options["a.b"])
 	assert.Equal(t, "histogram", GitConfig.Options["diff.algorithm"])
+	assert.Equal(t, "gc", GitConfig.Options["maintenance.strategy"])
 
 	cfg, err = NewConfigProviderFromData(`
 [git.config]
@@ -56,6 +57,7 @@ ENABLED = false
 EXPIRATION = 123
 `)
 	assert.NoError(t, err)
+	applyDeprecatedKeys(cfg)
 	loadGitFrom(cfg)
 
 	assert.Equal(t, "false", GitConfig.GetOption("core.logAllRefUpdates"))

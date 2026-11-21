@@ -31,168 +31,98 @@ func TestMustBytes(t *testing.T) {
 }
 
 func Test_getStorageInheritNameSectionTypeForPackages(t *testing.T) {
-	// packages storage inherits from storage if nothing configured
-	iniStr := `
+	for _, testcase := range []struct {
+		iniStr, basePath string
+	}{
+		// packages storage inherits from storage if nothing configured
+		{`
 [storage]
 STORAGE_TYPE = s3
-`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadPackagesFrom(cfg))
-
-	assert.EqualValues(t, "s3", Packages.Storage.Type)
-	assert.Equal(t, "packages/", Packages.Storage.S3Config.BasePath)
-
-	// we can also configure packages storage directly
-	iniStr = `
+`, "packages/"},
+		// we can also configure packages storage directly
+		{`
 [storage.packages]
 STORAGE_TYPE = s3
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadPackagesFrom(cfg))
-
-	assert.EqualValues(t, "s3", Packages.Storage.Type)
-	assert.Equal(t, "packages/", Packages.Storage.S3Config.BasePath)
-
-	// or we can indicate the storage type in the packages section
-	iniStr = `
+`, "packages/"},
+		// or we can indicate the storage type in the packages section
+		{`
 [packages]
 STORAGE_TYPE = my_s3
 
 [storage.my_s3]
 STORAGE_TYPE = s3
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadPackagesFrom(cfg))
-
-	assert.EqualValues(t, "s3", Packages.Storage.Type)
-	assert.Equal(t, "packages/", Packages.Storage.S3Config.BasePath)
-
-	// or we can indicate the storage type and S3 base path in the packages section
-	iniStr = `
+`, "packages/"},
+		// or we can indicate the storage type and S3 base path in the packages section
+		{`
 [packages]
 STORAGE_TYPE = my_s3
 S3_BASE_PATH = my_packages/
 
 [storage.my_s3]
 STORAGE_TYPE = s3
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadPackagesFrom(cfg))
+`, "my_packages/"},
+	} {
+		cfg, err := NewConfigProviderFromData(testcase.iniStr)
+		assert.NoError(t, err)
+		assert.NoError(t, loadPackagesFrom(cfg))
 
-	assert.EqualValues(t, "s3", Packages.Storage.Type)
-	assert.Equal(t, "my_packages/", Packages.Storage.S3Config.BasePath)
+		assert.EqualValues(t, "s3", Packages.Storage.Type)
+		assert.Equal(t, testcase.basePath, Packages.Storage.S3Config.BasePath)
+	}
 }
 
-func Test_PackageStorage1(t *testing.T) {
-	iniStr := `
+func Test_PackageStorage(t *testing.T) {
+	const storageConfig = `STORAGE_TYPE            = s3
+S3_ENDPOINT = s3.my-domain.net
+S3_BUCKET = gitea
+S3_LOCATION = homenet
+S3_USE_SSL = true
+S3_ACCESS_KEY_ID = correct_key
+S3_SECRET_ACCESS_KEY = correct_key
+`
+	for _, testcase := range []struct {
+		iniStr, basePath string
+	}{
+		{`
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [packages]
 S3_BASE_PATH = packages/
 SERVE_DIRECT = true
 [storage]
-STORAGE_TYPE            = s3
-S3_ENDPOINT = s3.my-domain.net
-S3_BUCKET = gitea
-S3_LOCATION = homenet
-S3_USE_SSL = true
-S3_ACCESS_KEY_ID = correct_key
-S3_SECRET_ACCESS_KEY = correct_key
-`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-
-	assert.NoError(t, loadPackagesFrom(cfg))
-	storage := Packages.Storage
-
-	assert.EqualValues(t, "s3", storage.Type)
-	assert.Equal(t, "gitea", storage.S3Config.Bucket)
-	assert.Equal(t, "packages/", storage.S3Config.BasePath)
-	assert.True(t, storage.S3Config.ServeDirect)
-}
-
-func Test_PackageStorage2(t *testing.T) {
-	iniStr := `
+`, "packages/"},
+		{`
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [storage.packages]
 S3_BASE_PATH = packages/
 SERVE_DIRECT = true
 [storage]
-STORAGE_TYPE            = s3
-S3_ENDPOINT = s3.my-domain.net
-S3_BUCKET = gitea
-S3_LOCATION = homenet
-S3_USE_SSL = true
-S3_ACCESS_KEY_ID = correct_key
-S3_SECRET_ACCESS_KEY = correct_key
-`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-
-	assert.NoError(t, loadPackagesFrom(cfg))
-	storage := Packages.Storage
-
-	assert.EqualValues(t, "s3", storage.Type)
-	assert.Equal(t, "gitea", storage.S3Config.Bucket)
-	assert.Equal(t, "packages/", storage.S3Config.BasePath)
-	assert.True(t, storage.S3Config.ServeDirect)
-}
-
-func Test_PackageStorage3(t *testing.T) {
-	iniStr := `
+`, "packages/"},
+		{`
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [packages]
 STORAGE_TYPE            = my_cfg
 S3_BASE_PATH = my_packages/
 SERVE_DIRECT = true
 [storage.my_cfg]
-STORAGE_TYPE            = s3
-S3_ENDPOINT = s3.my-domain.net
-S3_BUCKET = gitea
-S3_LOCATION = homenet
-S3_USE_SSL = true
-S3_ACCESS_KEY_ID = correct_key
-S3_SECRET_ACCESS_KEY = correct_key
-`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-
-	assert.NoError(t, loadPackagesFrom(cfg))
-	storage := Packages.Storage
-
-	assert.EqualValues(t, "s3", storage.Type)
-	assert.Equal(t, "gitea", storage.S3Config.Bucket)
-	assert.Equal(t, "my_packages/", storage.S3Config.BasePath)
-	assert.True(t, storage.S3Config.ServeDirect)
-}
-
-func Test_PackageStorage4(t *testing.T) {
-	iniStr := `
+`, "my_packages/"},
+		{`
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [storage.packages]
 STORAGE_TYPE            = my_cfg
 S3_BASE_PATH = my_packages/
 SERVE_DIRECT = true
 [storage.my_cfg]
-STORAGE_TYPE            = s3
-S3_ENDPOINT = s3.my-domain.net
-S3_BUCKET = gitea
-S3_LOCATION = homenet
-S3_USE_SSL = true
-S3_ACCESS_KEY_ID = correct_key
-S3_SECRET_ACCESS_KEY = correct_key
-`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
+`, "my_packages/"},
+	} {
+		cfg, err := NewConfigProviderFromData(testcase.iniStr + storageConfig)
+		assert.NoError(t, err)
 
-	assert.NoError(t, loadPackagesFrom(cfg))
-	storage := Packages.Storage
+		assert.NoError(t, loadPackagesFrom(cfg))
+		storage := Packages.Storage
 
-	assert.EqualValues(t, "s3", storage.Type)
-	assert.Equal(t, "gitea", storage.S3Config.Bucket)
-	assert.Equal(t, "my_packages/", storage.S3Config.BasePath)
-	assert.True(t, storage.S3Config.ServeDirect)
+		assert.EqualValues(t, "s3", storage.Type)
+		assert.Equal(t, "gitea", storage.S3Config.Bucket)
+		assert.Equal(t, testcase.basePath, storage.S3Config.BasePath)
+		assert.True(t, storage.S3Config.ServeDirect)
+	}
 }

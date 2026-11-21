@@ -8,10 +8,14 @@ import (
 	"errors"
 	"strconv"
 
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	pull_model "gitea.dev/models/pull"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/queue"
+
+	"xorm.io/builder"
 )
 
 // AutoMergeItem is for the unique queue, so the item type can't be JSON which doesn't have deterministic key order.
@@ -31,6 +35,13 @@ func StartAutoMergeCheckByPullCommit(pullID int64, commitID string) {
 }
 
 func StartAutoMergeCheckByPullHead(ctx context.Context, pull *issues_model.PullRequest) {
+	if scheduled, err := db.Exist[pull_model.AutoMerge](ctx, builder.Eq{"pull_id": pull.ID}); !scheduled {
+		if err != nil {
+			log.Error("Exist AutoMerge: %v", err)
+		}
+		return
+	}
+
 	if err := pull.LoadBaseRepo(ctx); err != nil {
 		log.Error("LoadBaseRepo: %v", err)
 		return

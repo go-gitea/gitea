@@ -9,6 +9,7 @@ import (
 	"io"
 	"regexp"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
@@ -24,7 +25,9 @@ var (
 	ErrInvalidVersion      = util.NewInvalidArgumentErrorf("package version is invalid")
 )
 
-var namePattern = regexp.MustCompile(`\A[a-zA-Z_][a-zA-Z0-9_]*\z`)
+var namePattern = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`\A[a-zA-Z_][a-zA-Z0-9_]*\z`)
+})
 
 // https://github.com/dart-lang/pub-dev/blob/4d582302a8d10152a5cd6129f65bf4f4dbca239d/pkg/pub_package_reader/lib/pub_package_reader.dart#L143
 const maxPubspecFileSize = 128 * 1024
@@ -118,7 +121,7 @@ func ParsePubspecMetadata(r io.Reader) (*Package, error) {
 		return nil, err
 	}
 
-	if !namePattern.MatchString(p.Name) {
+	if !namePattern().MatchString(p.Name) {
 		return nil, ErrInvalidName
 	}
 

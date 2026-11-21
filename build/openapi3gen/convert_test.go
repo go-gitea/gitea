@@ -42,27 +42,19 @@ func TestDeriveEnumName_miss(t *testing.T) {
 func TestExtractSharedEnums_usesASTMap(t *testing.T) {
 	doc := &openapi3.T{
 		Components: &openapi3.Components{
-			Schemas: openapi3.Schemas{
-				"A": {Value: &openapi3.Schema{
-					Type: &openapi3.Types{"object"},
-					Properties: openapi3.Schemas{
-						"color": {Value: &openapi3.Schema{
-							Type: &openapi3.Types{"string"},
-							Enum: []any{"red", "green", "blue"},
-						}},
-					},
-				}},
-				"B": {Value: &openapi3.Schema{
-					Type: &openapi3.Types{"object"},
-					Properties: openapi3.Schemas{
-						"color": {Value: &openapi3.Schema{
-							Type: &openapi3.Types{"string"},
-							Enum: []any{"red", "green", "blue"},
-						}},
-					},
+			Schemas: openapi3.Schemas{},
+		},
+	}
+	for _, name := range []string{"A", "B"} {
+		doc.Components.Schemas[name] = &openapi3.SchemaRef{Value: &openapi3.Schema{
+			Type: &openapi3.Types{"object"},
+			Properties: openapi3.Schemas{
+				"color": {Value: &openapi3.Schema{
+					Type: &openapi3.Types{"string"},
+					Enum: []any{"red", "green", "blue"},
 				}},
 			},
-		},
+		}}
 	}
 	astMap := map[string][]string{EnumKey([]any{"red", "green", "blue"}): {"Color"}}
 	if err := extractSharedEnums(doc, astMap); err != nil {
@@ -190,27 +182,19 @@ func TestExtractEnumTypeName_rejectsIncidentalPrefix(t *testing.T) {
 func TestExtractSharedEnums_missReturnsError(t *testing.T) {
 	doc := &openapi3.T{
 		Components: &openapi3.Components{
-			Schemas: openapi3.Schemas{
-				"A": {Value: &openapi3.Schema{
-					Type: &openapi3.Types{"object"},
-					Properties: openapi3.Schemas{
-						"color": {Value: &openapi3.Schema{
-							Type: &openapi3.Types{"string"},
-							Enum: []any{"red", "green"},
-						}},
-					},
-				}},
-				"B": {Value: &openapi3.Schema{
-					Type: &openapi3.Types{"object"},
-					Properties: openapi3.Schemas{
-						"color": {Value: &openapi3.Schema{
-							Type: &openapi3.Types{"string"},
-							Enum: []any{"red", "green"},
-						}},
-					},
+			Schemas: openapi3.Schemas{},
+		},
+	}
+	for _, name := range []string{"A", "B"} {
+		doc.Components.Schemas[name] = &openapi3.SchemaRef{Value: &openapi3.Schema{
+			Type: &openapi3.Types{"object"},
+			Properties: openapi3.Schemas{
+				"color": {Value: &openapi3.Schema{
+					Type: &openapi3.Types{"string"},
+					Enum: []any{"red", "green"},
 				}},
 			},
-		},
+		}}
 	}
 	if err := extractSharedEnums(doc, map[string][]string{}); err == nil {
 		t.Fatal("expected miss error")

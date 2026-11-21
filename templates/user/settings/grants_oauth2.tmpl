@@ -27,7 +27,7 @@
 		{{end}}
 	</div>
 
-	<div class="ui small modal" id="revoke-gitea-oauth2-grant">
+	<dialog class="modal-dialog" id="revoke-gitea-oauth2-grant">
 		<div class="header">
 			{{svg "octicon-shield" 16 "tw-mr-1"}}
 			{{ctx.Locale.Tr "settings.revoke_oauth2_grant"}}
@@ -36,5 +36,5 @@
 			<p>{{ctx.Locale.Tr "settings.revoke_oauth2_grant_description"}}</p>
 		</div>
 		{{template "base/modal_actions_confirm" .}}
-	</div>
+	</dialog>
 </div>
