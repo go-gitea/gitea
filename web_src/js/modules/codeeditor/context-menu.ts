@@ -1,8 +1,8 @@
-import {createTippy} from '../tippy.ts';
+import {createFloatingElement} from '../floating.ts';
 import {copyToClipboard} from '../clipboard.ts';
 import {keySymbols} from '../../utils.ts';
 import {goToDefinitionAt} from './utils.ts';
-import type {Instance} from 'tippy.js';
+import type {FloatingElement} from '../floating.ts';
 import type {EditorView} from '@codemirror/view';
 import type {CodemirrorModules} from './main.ts';
 
@@ -155,7 +155,7 @@ function createMenuElement(items: MenuItem[], view: EditorView, onAction: () => 
 }
 
 export function contextMenu(cm: CodemirrorModules, togglePalette: (view: EditorView) => boolean, goToSymbol: (view: EditorView) => void) {
-  let instance: Instance | null = null;
+  let instance: FloatingElement | null = null;
 
   function hideMenu() {
     if (instance) {
@@ -187,14 +187,13 @@ export function contextMenu(cm: CodemirrorModules, togglePalette: (view: EditorV
       const menuItems = buildMenuItems(cm, view, togglePalette, goToSymbol);
       const {el: menuEl, actions} = createMenuElement(menuItems, view, dismiss);
 
-      // Create a virtual anchor at mouse position for tippy
       const anchor = document.createElement('div');
       anchor.style.position = 'fixed';
       anchor.style.left = `${event.clientX}px`;
       anchor.style.top = `${event.clientY}px`;
       document.body.append(anchor);
 
-      instance = createTippy(anchor, {
+      instance = createFloatingElement(anchor, {
         content: menuEl,
         theme: 'menu',
         trigger: 'manual',

@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import {computed, shallowRef, useId, useTemplateRef, watch} from 'vue';
 import SvgIcon from './SvgIcon.vue';
-import {createTippy} from '../modules/tippy.ts';
+import {createFloatingElement, getFloatingElement} from '../modules/floating.ts';
 
 type Value = string | number;
 type Option = {value: Value; text: string; html?: string};
@@ -30,7 +30,7 @@ const elMenu = useTemplateRef<HTMLDivElement>('elMenu');
 const elFilter = useTemplateRef<HTMLInputElement>('elFilter');
 watch(elTrigger, (el, _oldEl, onCleanup) => {
   if (!el) return;
-  const tippy = createTippy(el, {
+  const menuPopup = createFloatingElement(el, {
     content: elMenu.value!,
     trigger: 'click',
     interactive: true,
@@ -39,16 +39,16 @@ watch(elTrigger, (el, _oldEl, onCleanup) => {
     theme: 'menu',
     arrow: false,
     limitSizeToViewport: {vertical: true},
-    onMount: () => elFilter.value?.focus(), // onShown only fires with animations
+    onShown: () => elFilter.value?.focus(),
     onHidden: () => { filter.value = '' },
   });
-  onCleanup(() => tippy.destroy());
+  onCleanup(() => menuPopup.destroy());
 }, {flush: 'post'});
 
 function choose(option: Option) {
   if (!multiple.value) {
     model.value = option.value;
-    elTrigger.value!._tippy.hide();
+    getFloatingElement(elTrigger.value!)!.hide();
     return;
   }
   const values = model.value as Value[];
@@ -81,7 +81,7 @@ const clear = () => { model.value = [] };
         </span>
         <SvgIcon name="octicon-triangle-down" :size="14" class="dropdown icon"/>
       </button>
-      <!-- not .tippy-target: its "display: unset" puts the menu in an inline box, which Chromium can hit-test instead of the items -->
+      <!-- not .floating-target: its "display: unset" puts the menu in an inline box, which Chromium can hit-test instead of the items -->
       <div class="tw-hidden">
         <div ref="elMenu">
           <div v-if="multiple" class="tw-px-2 tw-pt-1 tw-pb-2">

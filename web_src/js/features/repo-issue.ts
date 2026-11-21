@@ -1,6 +1,6 @@
 import {errorMessage} from '../modules/errors.ts';
 import {html, htmlEscape, htmlRaw} from '../utils/html.ts';
-import {createTippy} from '../modules/tippy.ts';
+import {createFloatingElement} from '../modules/floating.ts';
 import {
   addDelegatedEventListener,
   createElementFromHTML,
@@ -244,9 +244,9 @@ export function initRepoPullRequestReview() {
 
   registerGlobalInitFunc('initPullReviewBox', (el) => {
     const elReviewBtn = el.querySelector('.review-box-button')!;
-    const elReviewPanel = el.querySelector('.review-box-panel.tippy-target');
+    const elReviewPanel = el.querySelector('.review-box-panel.floating-target');
     if (!elReviewPanel) return;
-    const tippy = createTippy(elReviewBtn, {
+    const floating = createFloatingElement(elReviewBtn, {
       content: elReviewPanel,
       theme: 'default',
       placement: 'bottom',
@@ -255,7 +255,7 @@ export function initRepoPullRequestReview() {
       interactive: true,
       hideOnClick: true,
     });
-    elReviewPanel.querySelector('.close-review-panel')!.addEventListener('click', () => tippy.hide());
+    elReviewPanel.querySelector('.close-review-panel')!.addEventListener('click', () => floating.hide());
   });
 
   addDelegatedEventListener(document, 'click', '.add-code-comment', async (el, e) => {

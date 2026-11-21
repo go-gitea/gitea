@@ -1,6 +1,6 @@
 import {createApp, type App, type Component} from 'vue';
 import {GET} from '../modules/fetch.ts';
-import {createTippy, getAttachedTippyInstance} from '../modules/tippy.ts';
+import {createFloatingElement, getFloatingElement} from '../modules/floating.ts';
 import {addDelegatedEventListener, createElementFromHTML, activePageTimerRefresh} from '../utils/dom.ts';
 
 const reloadingIntervalAttr = 'data-pull-merge-box-reloading-interval';
@@ -46,7 +46,7 @@ class PullMergeBox {
     if (!elButtons) return;
     const [elButton, elTrigger] = elButtons.querySelectorAll<HTMLButtonElement>(':scope > button');
     const menu = this.el.querySelector('[data-pull-update-menu]')!;
-    const menuTippy = createTippy(elTrigger, {
+    const menuPopup = createFloatingElement(elTrigger, {
       content: menu,
       getReferenceClientRect: () => elButtons.getBoundingClientRect(),
       theme: 'menu',
@@ -65,7 +65,7 @@ class PullMergeBox {
     };
     addDelegatedEventListener(menu, 'click', '.item', (choice) => {
       choose(choice);
-      menuTippy.hide();
+      menuPopup.hide();
     });
     const chosen = [...menu.querySelectorAll('.item')].find((item) => item.getAttribute('data-update-url') === this.chosenUpdateUrl);
     if (chosen) choose(chosen);
@@ -95,7 +95,7 @@ class PullMergeBox {
     const oldElements = this.el.querySelectorAll('*');
     this.mergeFormApp?.unmount();
     this.mergeFormApp = undefined;
-    for (const oldElement of oldElements) getAttachedTippyInstance(oldElement)?.destroy();
+    for (const oldElement of oldElements) getFloatingElement(oldElement)?.destroy();
     this.el.replaceChildren(...newEl.childNodes); // don't morph, so data-global-init and Vue components are re-initialized
     focusedToggle?.focus({preventScroll: true});
     this.el.setAttribute(reloadingIntervalAttr, newEl.getAttribute(reloadingIntervalAttr) ?? '0');

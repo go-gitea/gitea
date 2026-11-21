@@ -11,10 +11,6 @@ interface JQueryStatic {
   api: any, // fomantic
 }
 
-interface Element {
-  _tippy: import('tippy.js').Instance;
-}
-
 interface Window {
   config: {
     appUrl: string,

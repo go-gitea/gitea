@@ -10,7 +10,7 @@
 			</span>
 		</button>
 		{{if not $activeStopwatch}}{{$activeStopwatch = dict}}{{end}}{{/* mock an empty stopwatch */}}
-		<div class="tippy-target">
+		<div class="floating-target">
 			<div class="flex-text-block tw-p-3">
 				<a class="stopwatch-link flex-text-block muted" href="{{$activeStopwatch.IssueLink}}">
 					{{svg "octicon-issue-opened" 16}}

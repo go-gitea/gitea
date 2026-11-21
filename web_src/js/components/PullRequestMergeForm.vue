@@ -1,8 +1,7 @@
 <script lang="ts" setup>
 import {computed, nextTick, onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch} from 'vue';
 import SvgIcon from './SvgIcon.vue';
-import {createTippy} from '../modules/tippy.ts';
-import type {Instance} from 'tippy.js';
+import {createFloatingElement, type FloatingElement} from '../modules/floating.ts';
 
 type MergeStyle = {
   name: string,
@@ -71,10 +70,10 @@ watch(mergeStyle, (val) => {
   emit('mergeStyleChange', val);
 });
 
-let menuTippy: Instance | undefined;
+let menuPopup: FloatingElement | undefined;
 onMounted(() => {
   if (!menuTrigger.value) return;
-  menuTippy = createTippy(menuTrigger.value, {
+  menuPopup = createFloatingElement(menuTrigger.value, {
     content: menuPanel.value!,
     getReferenceClientRect: () => menuTrigger.value!.parentElement!.getBoundingClientRect(),
     theme: 'menu',
@@ -87,10 +86,10 @@ onMounted(() => {
     hideOnClick: true,
   });
 });
-onBeforeUnmount(() => menuTippy?.destroy());
+onBeforeUnmount(() => menuPopup?.destroy());
 
 async function toggleActionForm(show: boolean) {
-  menuTippy?.hide();
+  menuPopup?.hide();
   showActionForm.value = show;
   await nextTick();
   (show ? actionForm.value!.querySelector<HTMLElement>('input:not([type="hidden"]), button[type="submit"]')! : mergeButton.value!).focus();
@@ -141,7 +140,7 @@ async function toggleActionForm(show: boolean) {
         <svg-icon name="octicon-triangle-down" :size="14"/>
       </button>
     </div>
-    <div v-if="mergeForm.mergeStyles.length > 1" ref="menuPanel" class="tippy-target merge-box-menu" @click="menuTippy!.hide()">
+    <div v-if="mergeForm.mergeStyles.length > 1" ref="menuPanel" class="floating-target merge-box-menu" @click="menuPopup!.hide()">
       <button v-for="msd in mergeForm.mergeStyles" :key="msd.name" type="button" class="item" role="menuitemradio" :aria-checked="msd.name === mergeStyle" @click="mergeStyle = msd.name">
         <svg-icon name="octicon-check"/>
         <div><strong>{{ msd.textDoMerge }}</strong><small>{{ msd.textDescription }}</small></div>

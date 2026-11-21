@@ -403,7 +403,7 @@ func (ut *RenderUtils) AvatarStackWithNames(data *user_model.AvatarStackData) te
 	default:
 		b.WriteFormatf(`<button type="button" class="avatar-stack-popup-trigger" data-global-init="initAvatarStackPopup">%s</button>`,
 			locale.Tr("repo.commits.avatar_stack_people", len(participants)))
-		b.WriteHTML(`<div class="tippy-target"><div class="avatar-stack-popup">`)
+		b.WriteHTML(`<div class="floating-target"><div class="avatar-stack-popup">`)
 		for _, participant := range participants {
 			b.WriteHTML(ut.participantPopupRow(data, participant))
 		}

@@ -42,7 +42,7 @@ import {initRepoWiki} from './features/repo-wiki.ts';
 import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
 import {initCaptcha} from './features/captcha.ts';
 import {initRepositoryActions} from './features/repo-actions.ts';
-import {initGlobalTooltips} from './modules/tippy.ts';
+import {initGlobalTooltips} from './modules/floating.ts';
 import {initGiteaFomantic} from './modules/fomantic.ts';
 import {initRepoIssueList} from './features/repo-issue-list.ts';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.ts';

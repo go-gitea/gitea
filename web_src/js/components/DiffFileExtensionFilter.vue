@@ -1,9 +1,8 @@
 <script lang="ts" setup>
 import {computed, onMounted, onUnmounted, useTemplateRef} from 'vue';
-import type {Instance} from 'tippy.js';
 import SvgIcon from './SvgIcon.vue';
 import type {SvgName} from '../svg.ts';
-import {createTippy} from '../modules/tippy.ts';
+import {createFloatingElement, type FloatingElement} from '../modules/floating.ts';
 import {diffTreeStore, extDotfile, getDiffTreeExtensionStats, type DiffExtensionFilterLocale} from '../modules/diff-file.ts';
 
 const props = defineProps<{locale: DiffExtensionFilterLocale}>();
@@ -11,7 +10,7 @@ const props = defineProps<{locale: DiffExtensionFilterLocale}>();
 const store = diffTreeStore();
 const triggerEl = useTemplateRef<HTMLButtonElement>('triggerEl');
 const panelEl = useTemplateRef<HTMLDivElement>('panelEl');
-let tippyInstance: Instance;
+let floatingElement: FloatingElement;
 
 const allExtensions = computed(() => getDiffTreeExtensionStats(store));
 const isFiltering = computed(() => store.activeExtensions !== 'all' || Boolean(store.filenameFilterQuery));
@@ -41,7 +40,7 @@ function toggleAll() {
 }
 
 onMounted(() => {
-  tippyInstance = createTippy(triggerEl.value!, {
+  floatingElement = createFloatingElement(triggerEl.value!, {
     content: panelEl.value!,
     trigger: 'click',
     interactive: true,
@@ -54,7 +53,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  tippyInstance.destroy();
+  floatingElement.destroy();
 });
 </script>
 
@@ -68,7 +67,7 @@ onUnmounted(() => {
   >
     <SvgIcon name="octicon-filter"/>
   </button>
-  <div ref="panelEl" class="tippy-target">
+  <div ref="panelEl" class="floating-target">
     <div class="diff-ext-filter-menu" role="menu" :aria-label="props.locale.fileExtensions">
       <div class="diff-ext-filter-header">{{ props.locale.fileExtensions }}</div>
       <button

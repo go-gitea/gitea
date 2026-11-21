@@ -1,5 +1,5 @@
-import {hideAll as hideTippyAll} from 'tippy.js';
 import {generateElemId, queryElems} from '../utils/dom.ts';
+import {hideAllFloatingElements} from './floating.ts';
 import {hideToastsAll} from './toast.ts';
 
 type ModalOpts = {
@@ -90,7 +90,7 @@ export function showModal(elModal: HTMLDialogElement, opts: ModalOpts = {}) {
   queryElems(elModal, 'form button.cancel:not([type])', (button) => button.setAttribute('type', 'button'));
 
   hideToastsAll();
-  hideTippyAll();
+  hideAllFloatingElements();
   blockPage(elBackdrop);
 
   elBackdrop.classList.add('active');

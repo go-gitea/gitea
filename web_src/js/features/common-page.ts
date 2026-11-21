@@ -6,6 +6,7 @@ import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
+import {getFloatingElement} from '../modules/floating.ts';
 import {initRepoSwitcher} from './repo-switcher.ts';
 import {initScopedWorkflowRequired} from './comp/ScopedWorkflows.ts';
 
@@ -65,22 +66,18 @@ export function initGlobalDropdown() {
     if (el.classList.contains('jump')) {
       // The "jump" means this dropdown is mainly used for "menu" purpose,
       // clicking an item will jump to somewhere else or trigger an action/function.
-      // When a dropdown is used for non-refresh actions with tippy,
-      // it must have this "jump" class to hide the tippy when dropdown is closed.
       $dropdown.dropdown('setting', {
         action: 'hide',
         onShow() {
           // hide associated tooltip while dropdown is open
-          el._tippy?.hide();
-          el._tippy?.disable();
+          getFloatingElement(el)?.hide();
+          getFloatingElement(el)?.disable();
         },
         onHide() {
-          el._tippy?.enable();
-
-          // hide all tippy elements of items after a while, in case some items have tooltip popup.
+          getFloatingElement(el)?.enable();
           setTimeout(() => {
             if ($dropdown.dropdown('is hidden')) {
-              queryElems(el, '.menu > .item', (item) => item._tippy?.hide());
+              queryElems(el, '.menu > .item', (item) => getFloatingElement(item)?.hide());
             }
           }, 2000);
         },

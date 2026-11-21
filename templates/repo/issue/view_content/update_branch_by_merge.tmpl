@@ -9,7 +9,7 @@
 	{{end}}
 </div>
 {{if $hasStyleMenu}}
-<div class="tippy-target merge-box-menu" data-pull-update-menu>
+<div class="floating-target merge-box-menu" data-pull-update-menu>
 	{{range $updateOption := $.UpdateStyleOptions}}
 		<button type="button" class="item" role="menuitemradio" aria-checked="{{$updateOption.Selected}}" data-update-url="{{$updateOption.URL}}" data-update-text="{{$updateOption.StyleButtonText}}">
 			{{svg "octicon-check"}}
