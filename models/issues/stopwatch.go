@@ -75,7 +75,7 @@ func GetUIDsAndStopwatch(ctx context.Context) ([]*UserStopwatch, error) {
 // GetUserStopwatches return list of the user's all stopwatches
 func GetUserStopwatches(ctx context.Context, userID int64, listOptions db.ListOptions) ([]*Stopwatch, error) {
 	sws := make([]*Stopwatch, 0, 8)
-	sess := db.GetEngine(ctx).Where("stopwatch.user_id = ?", userID)
+	sess := db.GetEngine(ctx).Where("stopwatch.user_id = ?", userID).Asc("stopwatch.id")
 	if listOptions.Page > 0 {
 		db.SetSessionPagination(sess, &listOptions)
 	}
