@@ -18,6 +18,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
@@ -460,6 +461,33 @@ func FeedDateCond(opts GetFeedsOptions) builder.Cond {
 	return cond
 }
 
+// actionUnits lists the action types that show content of a repository unit
+var actionUnits = []struct {
+	unitType unit.Type
+	opTypes  []ActionType
+}{
+	{unit.TypeCode, []ActionType{ActionCommitRepo, ActionPushTag, ActionDeleteTag, ActionDeleteBranch, ActionMirrorSyncPush, ActionMirrorSyncCreate, ActionMirrorSyncDelete}},
+	{unit.TypeIssues, []ActionType{ActionCreateIssue, ActionCommentIssue, ActionCloseIssue, ActionReopenIssue}},
+	{unit.TypePullRequests, []ActionType{
+		ActionCreatePullRequest, ActionCommentPull, ActionMergePullRequest, ActionClosePullRequest, ActionReopenPullRequest, ActionAutoMergePullRequest,
+		ActionApprovePullRequest, ActionRejectPullRequest, ActionPullReviewDismissed, ActionPullRequestReadyForReview,
+	}},
+	{unit.TypeReleases, []ActionType{ActionPublishRelease}},
+}
+
+// readableActionCond matches the actions whose repository unit the actor can read, other actions only need access to the repository
+func readableActionCond(actor *user_model.User) builder.Cond {
+	cond := builder.NewCond()
+	var unitOpTypes []ActionType
+	for _, u := range actionUnits {
+		cond = cond.Or(builder.In("`action`.op_type", u.opTypes).And(repo_model.AccessibleRepositoryCondition(actor, u.unitType)))
+		unitOpTypes = append(unitOpTypes, u.opTypes...)
+	}
+	cond = cond.Or(builder.NotIn("`action`.op_type", unitOpTypes).And(repo_model.AccessibleRepositoryCondition(actor, unit.TypeInvalid)))
+	return builder.Exists(builder.Select("1").From("repository").
+		Where(builder.Expr("`repository`.id = `action`.repo_id").And(cond)))
+}
+
 func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.Cond, error) {
 	cond := builder.NewCond()
 
@@ -478,7 +506,7 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 				builder.Eq{"keep_activity_private": false, "visibility": structs.VisibleTypePublic},
 			).From("`user`"),
 		))
-	} else if !user_model.DoerIsSiteAdminFullAccess(opts.Actor) {
+	} else if !user_model.DoerIsSiteAdminFullAccess(opts.Actor) && (opts.RequestedUser == nil || opts.Actor.ID != opts.RequestedUser.ID) {
 		uidCond := builder.Select("`user`.id").From("`user`").Where(
 			builder.Eq{"keep_activity_private": false}.
 				And(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))).
@@ -504,7 +532,7 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 
 	// check readable repositories by doer/actor
 	if !user_model.DoerIsSiteAdminFullAccess(opts.Actor) {
-		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))
+		cond = cond.And(readableActionCond(opts.Actor))
 	}
 
 	if opts.RequestedRepo != nil {
