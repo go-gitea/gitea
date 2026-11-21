@@ -52,11 +52,8 @@ func insertTasksVersion(ctx context.Context, ownerID, repoID int64) (*ActionTask
 }
 
 func increaseTasksVersionByScope(ctx context.Context, ownerID, repoID int64) error {
-	result, err := db.GetEngine(ctx).Exec("UPDATE action_tasks_version SET version = version + 1 WHERE owner_id = ? AND repo_id = ?", ownerID, repoID)
-	if err != nil {
-		return err
-	}
-	affected, err := result.RowsAffected()
+	affected, err := db.GetEngine(ctx).Where("owner_id = ? AND repo_id = ?", ownerID, repoID).
+		Cols("version").Incr("version").NoAutoTime().Update(&ActionTasksVersion{OwnerID: ownerID, RepoID: repoID})
 	if err != nil {
 		return err
 	}

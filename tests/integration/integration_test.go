@@ -52,6 +52,7 @@ func testMain(m *testing.M) int {
 	if err != nil {
 		return testlogger.MainErrorf("InitTest error: %v", err)
 	}
+	setting.Actions.RunnerLongPollTimeout = 0
 	testWebRoutes = routers.NormalRoutes()
 
 	err = unittest.InitFixtures(
