@@ -18,9 +18,23 @@ func initActionsTasks() {
 	registerStopZombieTasks()
 	registerStopEndlessTasks()
 	registerCancelAbandonedJobs()
+	registerReEmitUnresolvedJobs()
 	registerScheduleTasks()
 	registerActionsCleanup()
 	registerCleanupActionRuns()
+}
+
+// registerReEmitUnresolvedJobs registers a task that re-queues the job-emitter check for runs
+// whose jobs are still pending/blocked, repairing the runs a lost emitter transition strands.
+// RunAtStart is essential: a restart does not otherwise un-stall such runs.
+func registerReEmitUnresolvedJobs() {
+	RegisterTaskFatal("reemit_unresolved_jobs", &BaseConfig{
+		Enabled:    true,
+		RunAtStart: true,
+		Schedule:   "@every 15m",
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
+		return actions_service.ReEmitUnresolvedJobs(ctx)
+	})
 }
 
 func registerStopZombieTasks() {
