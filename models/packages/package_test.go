@@ -43,9 +43,9 @@ func TestHasOwnerPackages(t *testing.T) {
 		assertHasPackages assert.BoolAssertionFunc
 	}{
 		// A package with an internal package version gets automatically cleaned up and should return false
-		{packages_model.PackageVersion{PackageID: p.ID, LowerVersion: "internal", IsInternal: true}, assert.False},
+		{packages_model.PackageVersion{PackageID: p.ID, Version: "internal", LowerVersion: "internal", IsInternal: true}, assert.False},
 		// A package with a normal package version should return true
-		{packages_model.PackageVersion{PackageID: p.ID, LowerVersion: "normal", IsInternal: false}, assert.True},
+		{packages_model.PackageVersion{PackageID: p.ID, Version: "normal", LowerVersion: "normal", IsInternal: false}, assert.True},
 	} {
 		pv, err := packages_model.GetOrInsertVersion(t.Context(), &testCase.version)
 		assert.NotNil(t, pv)

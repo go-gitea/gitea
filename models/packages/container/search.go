@@ -41,7 +41,9 @@ func (opts *BlobSearchOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"package.lower_name": strings.ToLower(opts.Image)})
 	}
 	if opts.Tag != "" {
-		cond = cond.And(builder.Eq{"package_version.lower_version": strings.ToLower(opts.Tag)})
+		// OCI distribution spec: tags are case-sensitive ("v1.0.0-RC1" and "v1.0.0-rc1" are different tags),
+		// so match the version exactly, not by its lower-case form.
+		cond = cond.And(builder.Eq{"package_version.version": opts.Tag})
 	}
 	if opts.IsManifest {
 		cond = cond.And(builder.Eq{"package_file.lower_name": container_module.ManifestFilename})
@@ -141,15 +143,15 @@ func GetImageTags(ctx context.Context, ownerID int64, image string, n int, last 
 	cond = cond.And(builder.In("package_version.id", builder.Select("package_property.ref_id").Where(propsCond).From("package_property")))
 
 	if last != "" {
-		cond = cond.And(builder.Gt{"package_version.lower_version": strings.ToLower(last)})
+		cond = cond.And(builder.Gt{"package_version.version": last})
 	}
 
 	sess := db.GetEngine(ctx).
 		Table("package_version").
-		Select("package_version.lower_version").
+		Select("package_version.version").
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Where(cond).
-		Asc("package_version.lower_version")
+		Asc("package_version.version")
 
 	var tags []string
 	if n > 0 {
