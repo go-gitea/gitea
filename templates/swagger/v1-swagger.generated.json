@@ -26841,6 +26841,13 @@
           "x-go-name": "Exclusive",
           "example": false
         },
+        "exclusive_order": {
+          "description": "ExclusiveOrder sorts exclusive labels within their scope, 0 means unordered",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ExclusiveOrder",
+          "example": 0
+        },
         "is_archived": {
           "type": "boolean",
           "x-go-name": "IsArchived",
@@ -28295,6 +28302,13 @@
           "type": "boolean",
           "x-go-name": "Exclusive",
           "example": false
+        },
+        "exclusive_order": {
+          "description": "ExclusiveOrder sorts exclusive labels within their scope, 0 means unordered",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ExclusiveOrder",
+          "example": 0
         },
         "is_archived": {
           "type": "boolean",
@@ -30293,6 +30307,13 @@
           "type": "boolean",
           "x-go-name": "Exclusive",
           "example": false
+        },
+        "exclusive_order": {
+          "description": "ExclusiveOrder sorts exclusive labels within their scope, 0 means unordered",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ExclusiveOrder",
+          "example": 0
         },
         "id": {
           "description": "ID is the unique identifier for the label",
