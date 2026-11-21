@@ -2071,7 +2071,7 @@
   "repo.release.tag_name_invalid": "Назва мітки недійсна.",
   "repo.release.tag_name_protected": "Назва мітки захищена.",
   "repo.release.tag_already_exist": "Назва мітки вже існує.",
-  "repo.release.downloads": "Завантаження",
+  "repo.release.assets": "Ресурси",
   "repo.release.download_count": "Завантаження: %s",
   "repo.release.add_tag_msg": "Використовуйте заголовок і зміст релізу як повідомлення мітки.",
   "repo.release.add_tag": "Створити тільки мітку",

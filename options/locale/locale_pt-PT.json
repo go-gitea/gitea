@@ -2645,7 +2645,7 @@
   "repo.release.tag_name_invalid": "A etiqueta não é válida.",
   "repo.release.tag_name_protected": "O nome da etiqueta está protegido.",
   "repo.release.tag_already_exist": "Este nome de etiqueta já existe.",
-  "repo.release.downloads": "Descargas",
+  "repo.release.assets": "Recursos",
   "repo.release.download_count": "Descargas: %s",
   "repo.release.add_tag_msg": "Usar o título e o conteúdo do lançamento como mensagem da etiqueta.",
   "repo.release.add_tag": "Criar apenas a etiqueta",

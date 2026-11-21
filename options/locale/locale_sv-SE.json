@@ -1186,7 +1186,6 @@
   "repo.release.deletion_success": "Releasen har blivit raderad.",
   "repo.release.tag_name_already_exist": "En release med denna tagg existerar redan.",
   "repo.release.tag_name_invalid": "Taggnamnet är inte giltigt.",
-  "repo.release.downloads": "Nedladdningar",
   "repo.release.download_count": "Nedladdningar: %s",
   "repo.branch.name": "Branch namn",
   "repo.branch.delete_head": "Radera",

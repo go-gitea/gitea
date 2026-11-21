@@ -2151,7 +2151,7 @@
   "repo.release.tag_name_invalid": "Název štítku není platný.",
   "repo.release.tag_name_protected": "Název značky je chráněn.",
   "repo.release.tag_already_exist": "Tato značka již existuje.",
-  "repo.release.downloads": "Soubory ke stažení",
+  "repo.release.assets": "Prostředky",
   "repo.release.download_count": "Stažení: %s",
   "repo.release.add_tag_msg": "Použít název a obsah vydání jako zprávu značky.",
   "repo.release.add_tag": "Vytvořit pouze značku",

@@ -2270,6 +2270,7 @@
   "repo.release.tag_name_invalid": "O nome da tag não é válido.",
   "repo.release.tag_name_protected": "O nome da tag está protegido.",
   "repo.release.tag_already_exist": "Este nome de tag já existe.",
+  "repo.release.assets": "Recursos",
   "repo.release.add_tag_msg": "Use o título e o conteúdo do lançamento como mensagem da tag.",
   "repo.release.add_tag": "Criar Apenas a Tag",
   "repo.release.releases_for": "Versões para %s",

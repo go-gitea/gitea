@@ -2152,7 +2152,7 @@
   "repo.release.tag_name_invalid": "標籤名稱無效。",
   "repo.release.tag_name_protected": "標籤名稱已受保護。",
   "repo.release.tag_already_exist": "此標籤名稱已存在。",
-  "repo.release.downloads": "下載附件",
+  "repo.release.assets": "檔案",
   "repo.release.download_count": "下載次數：%s",
   "repo.release.add_tag_msg": "使用此版本的標題和內容作為標籤訊息。",
   "repo.release.add_tag": "只建立標籤",
