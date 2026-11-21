@@ -56,6 +56,8 @@
 									<a class="{{if eq .SortType "leastcomment"}}active {{end}}item" href="?sort=leastcomment&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
 									<a class="{{if eq .SortType "nearduedate"}}active {{end}}item" href="?sort=nearduedate&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
 									<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="?sort=farduedate&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
+									<a class="{{if eq .SortType "name"}}active {{end}}item" href="?sort=name&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.name"}}</a>
+									<a class="{{if eq .SortType "namedesc"}}active {{end}}item" href="?sort=namedesc&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{ctx.Locale.Tr "repo.issues.filter_sort.namedesc"}}</a>
 								</div>
 							</div>
 						</div>
