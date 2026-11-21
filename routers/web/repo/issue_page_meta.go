@@ -342,6 +342,7 @@ func (d *IssuePageMetaData) retrieveProjectsDataForIssueWriter(ctx *context.Cont
 type repoReviewerSelection struct {
 	IsTeam         bool
 	Team           *organization.Team
+	TeamOrgName    string
 	User           *user_model.User
 	Review         *issues_model.Review
 	CanBeDismissed bool
@@ -476,6 +477,14 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 					return
 				}
 				item.Team = item.Review.ReviewerTeam
+				if item.Team.OrgID != repo.OwnerID { // CODEOWNERS can request teams of other organizations
+					_, org, err := user_model.GetPossibleUserByID(ctx, item.Team.OrgID)
+					if err != nil {
+						ctx.ServerErrorAuto(err)
+						return
+					}
+					item.TeamOrgName = org.Name
+				}
 			} else {
 				continue
 			}

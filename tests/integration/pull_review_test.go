@@ -38,6 +38,16 @@ func TestPullReview(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	t.Run("ReviewerMissed", testPullReviewReviewerMissed)
 	t.Run("LockedOrBlocked", testPullReviewLockedOrBlocked)
+	t.Run("TeamReviewerFromOtherOrg", testPullReviewTeamReviewerFromOtherOrg)
+}
+
+func testPullReviewTeamReviewerFromOtherOrg(t *testing.T) {
+	// org17/test_team requested on a pull request of org3/repo3, as CODEOWNERS can do
+	require.NoError(t, db.Insert(t.Context(), &issues_model.Review{Type: issues_model.ReviewTypeRequest, IssueID: 12, ReviewerTeamID: 8}))
+
+	resp := loginUser(t, "user2").MakeRequest(t, NewRequest(t, "GET", "/org3/repo3/pulls/2"), http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
+	assert.Contains(t, doc.Find(".issue-sidebar-combo .list").Text(), "org17/test_team")
 }
 
 func testPullReviewReviewerMissed(t *testing.T) {
