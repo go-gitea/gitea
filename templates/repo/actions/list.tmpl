@@ -29,7 +29,7 @@
 								</a>
 								{{range .Actors}}
 									<a class="item{{if eq .ID $.CurActor}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&actor={{.ID}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
-										{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}
+										{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}{{template "shared/user/user_type_label" .}}
 									</a>
 								{{end}}
 							</div>

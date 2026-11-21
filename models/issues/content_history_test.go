@@ -9,6 +9,7 @@ import (
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -77,6 +78,11 @@ func TestContentHistory(t *testing.T) {
 	assert.EqualValues(t, 8, list2[0].HistoryID)
 	assert.EqualValues(t, 7, list2[1].HistoryID)
 	assert.EqualValues(t, 4, list2[2].HistoryID)
+
+	_ = issues_model.SaveIssueContentHistory(dbCtx, user_model.ActionsUserID, 10, 200, timeStampNow, "a-a", true)
+	list3, _ := issues_model.FetchIssueContentHistoryList(dbCtx, 10, 200)
+	assert.Equal(t, "gitea-actions", list3[0].UserName)
+	assert.Equal(t, user_model.UserTypeBot, list3[0].UserType)
 }
 
 func TestHasIssueContentHistoryForCommentOnly(t *testing.T) {

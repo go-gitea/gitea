@@ -386,13 +386,13 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 				rel.Title = title
 				rel.Note = note
 				rel.PublishedUnix = publishedUnix
+				rel.PublisherID = pusher.ID
 			} else {
 				rel.IsDraft = false
 				if rel.PublishedUnix.IsZero() {
 					rel.PublishedUnix = timeutil.TimeStampNow()
 				}
 			}
-			rel.PublisherID = pusher.ID
 			if err = repo_model.UpdateRelease(ctx, rel); err != nil {
 				return fmt.Errorf("Update: %w", err)
 			}

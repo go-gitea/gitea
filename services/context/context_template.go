@@ -199,6 +199,7 @@ func (c TemplateContext) WindowConfig() map[string]any {
 			"more_items":       locale.Tr("more_items"),
 			"copy_success":     locale.Tr("copy_success"),
 			"copy_error":       locale.Tr("copy_error"),
+			"bot":              locale.Tr("concept_user_bot"),
 		},
 	}
 }

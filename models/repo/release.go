@@ -114,13 +114,8 @@ func (r *Release) LoadAttributes(ctx context.Context) (err error) {
 	}
 
 	if r.Publisher == nil {
-		r.Publisher, err = user_model.GetUserByID(ctx, r.PublisherID)
-		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				r.Publisher = user_model.NewGhostUser()
-			} else {
-				return err
-			}
+		if _, r.Publisher, err = user_model.GetPossibleUserByID(ctx, r.PublisherID); err != nil {
+			return err
 		}
 	}
 	return GetReleaseAttachments(ctx, r)

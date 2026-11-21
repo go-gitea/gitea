@@ -43,7 +43,7 @@
 						{{if $mergeBoxData.CanCancelAutoMerge}}
 							<button type="button" class="ui button link-action tw-shrink-0" data-url="{{$issue.Link}}/cancel_auto_merge">{{ctx.Locale.Tr "repo.pulls.auto_merge_cancel_schedule"}}</button>
 						{{end}}
-						<span class="merge-box-auto-merge-desc">{{ctx.Locale.Tr "repo.pulls.auto_merge_enabled_desc" $mergeBoxData.AutoMerge.Doer.GetDisplayName $mergeBoxData.AutoMergeStyleName}}</span>
+						<span class="merge-box-auto-merge-desc">{{ctx.Locale.Tr "repo.pulls.auto_merge_enabled_desc" (ctx.RenderUtils.UserDisplayName $mergeBoxData.AutoMerge.Doer) $mergeBoxData.AutoMergeStyleName}}</span>
 					{{else if $mergeBoxData.MergeFormProps}}
 						{{/* The merge form is a Vue component, these invisible copies of its initial rows avoid layout shifting until it is mounted */}}
 						<div class="tw-flex-auto tw-min-w-0" data-merge-form-props="{{JsonUtils.EncodeToString $mergeBoxData.MergeFormProps}}">

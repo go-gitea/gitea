@@ -5,7 +5,6 @@ package packages
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 
@@ -35,7 +34,6 @@ import (
 	"gitea.dev/modules/packages/swift"
 	"gitea.dev/modules/packages/terraform_module"
 	"gitea.dev/modules/packages/vagrant"
-	"gitea.dev/modules/util"
 
 	"github.com/hashicorp/go-version"
 )
@@ -132,13 +130,12 @@ func GetPackageDescriptorWithCache(ctx context.Context, pv *PackageVersion, c *c
 			return nil, err
 		}
 	}
-	creator, err := cache.GetWithEphemeralCache(ctx, c, "user", pv.CreatorID, user_model.GetUserByID)
+	creator, err := cache.GetWithEphemeralCache(ctx, c, "user", pv.CreatorID, func(ctx context.Context, id int64) (*user_model.User, error) {
+		_, u, err := user_model.GetPossibleUserByID(ctx, id)
+		return u, err
+	})
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			creator = user_model.NewGhostUser()
-		} else {
-			return nil, err
-		}
+		return nil, err
 	}
 	var semVer *version.Version
 	if p.SemverCompatible {

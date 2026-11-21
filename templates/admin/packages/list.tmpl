@@ -58,7 +58,7 @@
 							<td>{{.Package.Type.Name}}</td>
 							<td class="gt-ellipsis tw-max-w-48">{{.Package.Name}}</td>
 							<td class="gt-ellipsis tw-max-w-48"><a href="{{.VersionWebLink}}">{{.Version.Version}}</a></td>
-							<td><a href="{{.Creator.HomeLink}}">{{.Creator.Name}}</a></td>
+							<td>{{template "shared/user/namelink" .Creator}}</td>
 							<td>
 							{{if .Repository}}
 								<a href="{{.Repository.Link}}">{{.Repository.Name}}</a>

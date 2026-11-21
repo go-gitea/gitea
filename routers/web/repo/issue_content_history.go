@@ -10,6 +10,7 @@ import (
 
 	"gitea.dev/models/avatars"
 	issues_model "gitea.dev/models/issues"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/templates"
@@ -71,7 +72,7 @@ func GetContentHistoryList(ctx *context.Context) {
 		avatarHTML := templates.AvatarHTML(item.UserAvatarLink, 24, avatars.DefaultAvatarClass+" tw-mr-2", userName)
 		timeSinceHTML := templates.TimeSince(item.EditedUnix)
 		results = append(results, map[string]any{
-			"name":  htmlutil.HTMLFormat("%s <strong>%s</strong>%s %s %s", avatarHTML, userName, fullNameHTML, actionHTML, timeSinceHTML),
+			"name":  htmlutil.HTMLFormat("%s <strong>%s</strong>%s%s %s %s", avatarHTML, userName, fullNameHTML, templates.NewRenderUtils(ctx).UserTypeLabel(&user_model.User{Type: item.UserType}), actionHTML, timeSinceHTML),
 			"value": item.HistoryID,
 		})
 	}

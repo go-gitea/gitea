@@ -47,22 +47,11 @@ func (l *LFSLock) LoadAttributes(ctx context.Context) error {
 }
 
 // LoadOwner loads owner of the lock.
-func (l *LFSLock) LoadOwner(ctx context.Context) error {
-	if l.Owner != nil {
-		return nil
+func (l *LFSLock) LoadOwner(ctx context.Context) (err error) {
+	if l.Owner == nil {
+		_, l.Owner, err = user_model.GetPossibleUserByID(ctx, l.OwnerID)
 	}
-
-	owner, err := user_model.GetUserByID(ctx, l.OwnerID)
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			l.Owner = user_model.NewGhostUser()
-			return nil
-		}
-		return err
-	}
-	l.Owner = owner
-
-	return nil
+	return err
 }
 
 // CreateLFSLock creates a new lock.

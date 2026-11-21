@@ -1,6 +1,7 @@
 import {emojiKeys, emojiHTML, emojiString} from './emoji.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import {fetchMentions} from '../utils/match.ts';
+import {createUserLabel} from '../utils/dom.ts';
 import Tribute, {type TributeCollection} from 'tributejs';
 import type {Mention} from '../types.ts';
 
@@ -42,6 +43,7 @@ export function attachTribute(element: HTMLElement) {
           <img alt src="${item.original.avatar}" width="21" height="21"/>
           <span class="name">${item.original.name}</span>
           ${htmlRaw(fullNameHtml)}
+          ${htmlRaw(item.original.is_bot ? createUserLabel().outerHTML : '')}
         </div>
       `;
     },

@@ -16,7 +16,7 @@
 			<div class="resolved-placeholder">
 				<div class="flex-text-block tw-flex-wrap tw-text-text-light">
 					{{svg "octicon-check"}}
-					<b>{{$resolveDoer.Name}}</b> {{ctx.Locale.Tr "repo.issues.review.resolved_by"}}
+					<b>{{$resolveDoer.Name}}</b>{{template "shared/user/user_type_label" $resolveDoer}} {{ctx.Locale.Tr "repo.issues.review.resolved_by"}}
 					{{if $invalid}}
 						<!--
 						We only handle the case $resolved=true and $invalid=true in this template because if the comment is not resolved it has the outdated label in the comments area (not the header above).

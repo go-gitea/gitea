@@ -151,6 +151,7 @@ export function createEmptyActionsRun(): ActionsRun {
         displayName: '',
         link: '',
         avatarLink: '',
+        isBot: false,
       },
       branch: {
         name: '',

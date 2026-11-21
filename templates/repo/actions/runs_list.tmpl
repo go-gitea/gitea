@@ -31,7 +31,7 @@
 						{{ctx.Locale.Tr "actions.runs.commit"}}
 						<a href="{{$run.Repo.Link}}/commit/{{$run.CommitSHA}}">{{ShortSha $run.CommitSHA}}</a>
 						{{ctx.Locale.Tr "actions.runs.pushed_by"}}
-						<a href="{{$run.TriggerUser.HomeLink}}">{{$run.TriggerUser.GetDisplayName}}</a>
+						{{template "shared/user/namelink" $run.TriggerUser}}
 					{{- end -}}
 
 					{{$errMsg := index $data.RunErrors $run.ID}}

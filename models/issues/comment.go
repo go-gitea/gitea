@@ -714,13 +714,7 @@ func (c *Comment) LoadResolveDoer(ctx context.Context) (err error) {
 	if c.ResolveDoerID == 0 || c.Type != CommentTypeCode {
 		return nil
 	}
-	c.ResolveDoer, err = user_model.GetUserByID(ctx, c.ResolveDoerID)
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			c.ResolveDoer = user_model.NewGhostUser()
-			err = nil
-		}
-	}
+	_, c.ResolveDoer, err = user_model.GetPossibleUserByID(ctx, c.ResolveDoerID)
 	return err
 }
 
@@ -828,15 +822,15 @@ func (c *Comment) MetaSpecialDoerTr(locale translation.Locale) template.HTML {
 	}
 }
 
-func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdStr template.HTML) template.HTML {
+func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdStr, assigneeName template.HTML) template.HTML {
 	if c.Assignee != nil {
 		if c.RemovedAssignee {
 			if c.PosterID == c.AssigneeID {
 				return locale.Tr("repo.issues.review.remove_review_request_self", createdStr)
 			}
-			return locale.Tr("repo.issues.review.remove_review_request", c.Assignee.GetDisplayName(), createdStr)
+			return locale.Tr("repo.issues.review.remove_review_request", assigneeName, createdStr)
 		}
-		return locale.Tr("repo.issues.review.add_review_request", c.Assignee.GetDisplayName(), createdStr)
+		return locale.Tr("repo.issues.review.add_review_request", assigneeName, createdStr)
 	}
 	if c.AssigneeTeam != nil {
 		if c.RemovedAssignee {

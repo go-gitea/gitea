@@ -389,11 +389,7 @@ func (comments CommentList) loadResolveDoers(ctx context.Context) error {
 		if comment.ResolveDoerID == 0 || comment.Type != CommentTypeCode {
 			continue
 		}
-		if u, ok := userMaps[comment.ResolveDoerID]; ok {
-			comment.ResolveDoer = u
-		} else {
-			comment.ResolveDoer = user_model.NewGhostUser()
-		}
+		comment.ResolveDoer = user_model.GetPossibleUserFromMap(comment.ResolveDoerID, userMaps)
 	}
 	return nil
 }
