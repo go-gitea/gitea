@@ -267,28 +267,31 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 	// {"type":"oci","is_tagged":true,"manifests":[{"platform":"linux/amd64","digest":"sha256:72bb73e706c0dec424d00a1febb21deaf1175a70ead009ad8b159729cfcf5769","size":2819478},{"platform":"linux/arm64","digest":"sha256:9e1426dd084a3221663b85ca1ee99d140c50b153917a5c5604c1f9b78229fd24","size":2716499},{"platform":"unknown/unknown","digest":"sha256:b93f03d0ae11b988243e1b2cd8d29accf5b9670547b7bd8c7d96abecc7283e6e","size":1798},{"platform":"unknown/unknown","digest":"sha256:f034b182ba66366c63a5d195c6dfcd3333c027409c0ac98e55ade36aaa3b2963","size":1798}]}
 
 	_pv := &packages_model.PackageVersion{
-		PackageID:    p.ID,
-		CreatorID:    mci.Creator.ID,
-		Version:      strings.ToLower(mci.Reference),
+		PackageID: p.ID,
+		CreatorID: mci.Creator.ID,
+		// OCI distribution spec: tags are case-sensitive, keep the pushed case ("v1.0.0-RC1" and
+		// "v1.0.0-rc1" are different tags). "lower_version" keeps the lower-case form for lookups
+		// that don't need to distinguish case (cleanup rules, search, sorting).
+		Version:      mci.Reference,
 		LowerVersion: strings.ToLower(mci.Reference),
 		MetadataJSON: string(metadataJSON),
 	}
-	pv, err := packages_model.GetOrInsertVersion(ctx, _pv)
+	pv, err := packages_model.GetOrInsertVersionExact(ctx, _pv)
 	if err != nil {
 		if !errors.Is(err, packages_model.ErrDuplicatePackageVersion) {
-			log.Error("Error GetOrInsertVersion (first try) package: %v", err)
-			return nil, fmt.Errorf("GetOrInsertVersion: first try: %w", err)
+			log.Error("Error GetOrInsertVersionExact (first try) package: %v", err)
+			return nil, fmt.Errorf("GetOrInsertVersionExact: first try: %w", err)
 		}
 		if err = packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
 			return nil, fmt.Errorf("DeletePackageVersionAndReferences: %w", err)
 		}
 		// keep download count on overwriting
 		_pv.DownloadCount = pv.DownloadCount
-		pv, err = packages_model.GetOrInsertVersion(ctx, _pv)
+		pv, err = packages_model.GetOrInsertVersionExact(ctx, _pv)
 		if err != nil {
 			if !errors.Is(err, packages_model.ErrDuplicatePackageVersion) {
-				log.Error("Error GetOrInsertVersion (second try) package: %v", err)
-				return nil, fmt.Errorf("GetOrInsertVersion: second try: %w", err)
+				log.Error("Error GetOrInsertVersionExact (second try) package: %v", err)
+				return nil, fmt.Errorf("GetOrInsertVersionExact: second try: %w", err)
 			}
 		}
 	}

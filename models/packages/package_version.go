@@ -28,8 +28,8 @@ type PackageVersion struct {
 	ID            int64              `xorm:"pk autoincr"`
 	PackageID     int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	CreatorID     int64              `xorm:"NOT NULL DEFAULT 0"`
-	Version       string             `xorm:"NOT NULL"`
-	LowerVersion  string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Version       string             `xorm:"UNIQUE(s) NOT NULL"`
+	LowerVersion  string             `xorm:"INDEX NOT NULL"`
 	CreatedUnix   timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 	IsInternal    bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	MetadataJSON  string             `xorm:"metadata_json LONGTEXT"`
@@ -53,6 +53,31 @@ func GetOrInsertVersion(ctx context.Context, pv *PackageVersion) (*PackageVersio
 	has, err := e.Where(builder.Eq{
 		"package_id":    pv.PackageID,
 		"lower_version": pv.LowerVersion,
+	}).Get(existing)
+	if err != nil {
+		return nil, err
+	}
+	if has {
+		return existing, ErrDuplicatePackageVersion
+	}
+	if _, err = e.Insert(pv); err != nil {
+		return nil, err
+	}
+	return pv, nil
+}
+
+// GetOrInsertVersionExact is like GetOrInsertVersion, but it matches the version case-sensitively.
+// It is used by package types whose versions are case-sensitive per their specs, like container tags.
+// Note: the actual case-sensitivity also depends on the database collation, SQLite and PostgreSQL
+// (and MySQL/MSSQL with case-sensitive collation) treat "v1" and "V1" as different versions.
+func GetOrInsertVersionExact(ctx context.Context, pv *PackageVersion) (*PackageVersion, error) {
+	e := db.GetEngine(ctx)
+
+	existing := &PackageVersion{}
+
+	has, err := e.Where(builder.Eq{
+		"package_id": pv.PackageID,
+		"version":    pv.Version,
 	}).Get(existing)
 	if err != nil {
 		return nil, err

@@ -796,4 +796,106 @@ func TestPackageContainer(t *testing.T) {
 		})
 		session.MakeRequest(t, req, http.StatusOK)
 	})
+
+	// https://github.com/go-gitea/gitea/issues/40359
+	t.Run("TagCaseSensitivity", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		image := "tag-case"
+		url := fmt.Sprintf("%sv2/%s/%s", setting.AppURL, user.Name, image)
+
+		for _, blob := range []struct {
+			content []byte
+			digest  string
+		}{{[]byte(configContent), configDigest}, {blobContent, blobDigest}} {
+			req := NewRequestWithBody(t, "POST", fmt.Sprintf("%s/blobs/uploads?digest=%s", url, blob.digest), bytes.NewReader(blob.content)).
+				AddTokenAuth(userToken)
+			MakeRequest(t, req, http.StatusCreated)
+		}
+
+		newManifest := func(name string) ([]byte, string) {
+			content := fmt.Sprintf(`{"schemaVersion":2,"mediaType":"`+oci.MediaTypeImageManifest+`","artifactType":"application/vnd.example.tag-case","config":{"mediaType":"application/vnd.docker.container.image.v1+json","digest":"%s","size":%d},"layers":[{"mediaType":"application/vnd.docker.image.rootfs.diff.tar.gzip","digest":"%s","size":%d}],"annotations":{"name":"%s"}}`,
+				configDigest, len(configContent), blobDigest, len(blobContent), name)
+			return []byte(content), fmt.Sprintf("sha256:%x", sha256.Sum256([]byte(content)))
+		}
+
+		pushManifest := func(tag string, content []byte) string {
+			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/manifests/%s", url, tag), bytes.NewReader(content)).
+				AddTokenAuth(userToken).
+				SetHeader("Content-Type", oci.MediaTypeImageManifest)
+			resp := MakeRequest(t, req, http.StatusCreated)
+			return resp.Header().Get("Docker-Content-Digest")
+		}
+
+		getTags := func() []string {
+			req := NewRequest(t, "GET", url+"/tags/list").
+				AddTokenAuth(userToken)
+			resp := MakeRequest(t, req, http.StatusOK)
+
+			type TagList struct {
+				Tags []string `json:"tags"`
+			}
+			return DecodeJSON(t, resp, &TagList{}).Tags
+		}
+
+		manifestA, digestA := newManifest("A")
+		manifestB, digestB := newManifest("B")
+		manifestC, digestC := newManifest("C")
+
+		// a manifest pushed with an upper-case tag is listed with its case preserved
+		assert.Equal(t, digestA, pushManifest("v1.0.0-RC1", manifestA))
+		assert.Equal(t, []string{"v1.0.0-RC1"}, getTags())
+
+		req := NewRequest(t, "GET", url+"/manifests/v1.0.0-RC1").
+			AddTokenAuth(userToken)
+		resp := MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, digestA, resp.Header().Get("Docker-Content-Digest"))
+		assert.Equal(t, string(manifestA), resp.Body.String())
+
+		// a tag that differs only in case was never pushed: it must not resolve
+		req = NewRequest(t, "GET", url+"/manifests/v1.0.0-rc1").
+			AddTokenAuth(userToken)
+		MakeRequest(t, req, http.StatusNotFound)
+
+		// pushing the lower-case tag creates a second tag instead of re-pointing the upper-case one
+		assert.Equal(t, digestB, pushManifest("v1.0.0-rc1", manifestB))
+		assert.Equal(t, []string{"v1.0.0-RC1", "v1.0.0-rc1"}, getTags())
+
+		req = NewRequest(t, "GET", url+"/manifests/v1.0.0-RC1").
+			AddTokenAuth(userToken)
+		resp = MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, digestA, resp.Header().Get("Docker-Content-Digest"))
+
+		req = NewRequest(t, "GET", url+"/manifests/v1.0.0-rc1").
+			AddTokenAuth(userToken)
+		resp = MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, digestB, resp.Header().Get("Docker-Content-Digest"))
+
+		// manifest A is still reachable by its digest: pushing B must not have deleted it
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/manifests/%s", url, digestA)).
+			AddTokenAuth(userToken)
+		resp = MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, digestA, resp.Header().Get("Docker-Content-Digest"))
+
+		// overwriting a tag (exact case match) keeps the replace semantics
+		assert.Equal(t, digestC, pushManifest("v1.0.0-RC1", manifestC))
+		req = NewRequest(t, "GET", url+"/manifests/v1.0.0-RC1").
+			AddTokenAuth(userToken)
+		resp = MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, digestC, resp.Header().Get("Docker-Content-Digest"))
+		assert.Equal(t, []string{"v1.0.0-RC1", "v1.0.0-rc1"}, getTags())
+
+		// deleting a tag is case-sensitive too
+		req = NewRequest(t, "DELETE", url+"/manifests/v1.0.0-RC1").
+			AddTokenAuth(userToken)
+		MakeRequest(t, req, http.StatusAccepted)
+
+		req = NewRequest(t, "HEAD", url+"/manifests/v1.0.0-RC1").
+			AddTokenAuth(userToken)
+		MakeRequest(t, req, http.StatusNotFound)
+
+		req = NewRequest(t, "HEAD", url+"/manifests/v1.0.0-rc1").
+			AddTokenAuth(userToken)
+		MakeRequest(t, req, http.StatusOK)
+	})
 }
