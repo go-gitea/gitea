@@ -46,21 +46,21 @@ var (
 
 // GetManager returns the Manager
 func GetManager() *Manager {
-	initManager(context.Background())
+	initManager()
 	return manager
 }
 
-// InitManager creates the graceful manager in the provided context
-func InitManager(ctx context.Context) {
+// InitManager creates the graceful manager, which uses its own contexts and signal handling
+func InitManager() {
 	if manager != nil {
 		log.Error("graceful.InitManager called more than once")
 	}
-	initManager(ctx) // FIXME: this design is not right, it conflicts with the "Background" context used in GetManager
+	initManager()
 }
 
-func initManager(ctx context.Context) {
+func initManager() {
 	initOnce.Do(func() {
-		manager = newGracefulManager(ctx)
+		manager = newGracefulManager(context.Background())
 	})
 }
 

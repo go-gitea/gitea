@@ -5,7 +5,6 @@ package integration
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
 	"flag"
 	"fmt"
@@ -44,9 +43,7 @@ var testWebRoutes *web.Router
 func testMain(m *testing.M) int {
 	defer log.GetManager().Close()
 
-	managerCtx, cancel := context.WithCancel(context.Background())
-	graceful.InitManager(managerCtx)
-	defer cancel()
+	graceful.InitManager()
 
 	workPath, err := tests.InitIntegrationTest()
 	if err != nil {
