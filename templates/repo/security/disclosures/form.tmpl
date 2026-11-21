@@ -1,0 +1,94 @@
+{{template "base/alert" .}}
+<form class="issue-content ui comment form" method="post" action="{{.FormAction}}">
+	<div class="issue-content-left">
+		<div class="ui comments">
+			<div class="comment">
+				<div class="tw-mr-4 not-mobile">{{ctx.AvatarUtils.Avatar .SignedUser 40}}</div>
+				<div class="ui segment content tw-my-0 avatar-content-left-arrow">
+					<div class="field {{if .Err_Title}}error{{end}}">
+						<input name="title" id="disclosure-title" data-global-init="autoFocusEnd" required maxlength="255" placeholder="{{ctx.Locale.Tr "repo.security.title"}}" value="{{.title}}">
+					</div>
+					<div class="field">
+						<input name="summary" id="disclosure-summary" maxlength="4096" value="{{.summary}}" placeholder="{{ctx.Locale.Tr "repo.security.summary_placeholder"}}">
+					</div>
+					<div class="field">
+						{{$markdownEditorContext := ctx.MiscUtils.MarkdownEditorComment $.Repository}}
+						{{template "shared/combomarkdowneditor" (dict
+							"MarkdownEditorContext" $markdownEditorContext
+							"TextareaName" "content"
+							"TextareaContent" .content
+							"TextareaPlaceholder" (ctx.Locale.Tr "repo.security.description_placeholder")
+						)}}
+					</div>
+					<div class="flex-text-block tw-justify-end">
+						<a class="ui button tw-mr-2" href="{{.CancelLink}}">{{ctx.Locale.Tr "repo.security.cancel"}}</a>
+						<button type="submit" class="ui primary button">{{.SubmitText}}</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="issue-content-right ui segment">
+		{{if not .IsNew}}
+			<div class="field">
+				<label for="disclosure-status">{{ctx.Locale.Tr "repo.security.status"}}</label>
+				<select id="disclosure-status" class="ui selection dropdown" name="status" required>
+					<option value="draft" {{if eq .status "draft"}}selected{{end}}>{{ctx.Locale.Tr "repo.security.status_draft"}}</option>
+					<option value="published" {{if eq .status "published"}}selected{{end}}>{{ctx.Locale.Tr "repo.security.status_published"}}</option>
+					{{if eq .status "withdrawn"}}<option value="withdrawn" selected>{{ctx.Locale.Tr "repo.security.status_withdrawn"}}</option>{{end}}
+				</select>
+			</div>
+			<div class="divider"></div>
+		{{end}}
+		<div class="field">
+			<label for="disclosure-severity">{{ctx.Locale.Tr "repo.security.severity"}}</label>
+			<select id="disclosure-severity" class="ui selection dropdown" name="severity" required>
+				{{range .AllSeverities}}
+					<option value="{{.}}" {{if eq (printf "%s" .) (or $.severity "moderate")}}selected{{end}}>{{ctx.Locale.Tr (print "repo.security.severity_" .)}}</option>
+				{{end}}
+			</select>
+		</div>
+		<div class="divider"></div>
+		<div class="field">
+			<label for="disclosure-cvss">{{ctx.Locale.Tr "repo.security.cvss_vector"}}</label>
+			<input id="disclosure-cvss" name="cvss_vector" value="{{.cvss_vector}}" maxlength="128" placeholder="CVSS:3.1/AV:N/...">
+			<p class="help">{{ctx.Locale.Tr "repo.security.cvss_vector_help"}}</p>
+		</div>
+		<div class="divider"></div>
+		<div class="field">
+			<label for="disclosure-cweids">{{ctx.Locale.Tr "repo.security.cwe_ids"}}</label>
+			<input id="disclosure-cweids" name="cwe_ids" value="{{.cwe_ids}}" placeholder="CWE-79, CWE-120">
+		</div>
+		<div class="divider"></div>
+		<div class="field">
+			<label for="disclosure-cveid">{{ctx.Locale.Tr "repo.security.cve_id"}}</label>
+			<input id="disclosure-cveid" name="cve_id" value="{{.cve_id}}" maxlength="64" placeholder="CVE-2026-0000">
+		</div>
+		<div class="divider"></div>
+		<div class="field">
+			<label for="disclosure-references">{{ctx.Locale.Tr "repo.security.references"}}</label>
+			<textarea id="disclosure-references" name="references" rows="2" placeholder="{{ctx.Locale.Tr "repo.security.references_placeholder"}}">{{.references}}</textarea>
+		</div>
+		<div class="divider"></div>
+		<div class="field">
+			<label for="disclosure-affected">{{ctx.Locale.Tr "repo.security.affected_versions"}}</label>
+			<textarea id="disclosure-affected" name="affected_versions" rows="2" placeholder="{{ctx.Locale.Tr "repo.security.versions_placeholder"}}">{{.affected_versions}}</textarea>
+			<p class="help">{{ctx.Locale.Tr "repo.security.affected_versions_help"}}</p>
+		</div>
+		<div class="divider"></div>
+		<div class="field">
+			<label for="disclosure-fixed">{{ctx.Locale.Tr "repo.security.fixed_versions"}}</label>
+			<textarea id="disclosure-fixed" name="fixed_versions" rows="2" placeholder="{{ctx.Locale.Tr "repo.security.versions_placeholder"}}">{{.fixed_versions}}</textarea>
+		</div>
+		{{if .IsNew}}
+			<div class="divider"></div>
+			<div class="field">
+				<div class="ui checkbox">
+					<input id="disclosure-publish" name="publish" type="checkbox" {{if .publish}}checked{{end}}>
+					<label for="disclosure-publish">{{ctx.Locale.Tr "repo.security.publish_immediately"}}</label>
+				</div>
+			</div>
+		{{end}}
+	</div>
+</form>

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"gitea.dev/models/db"
 	disclosure_model "gitea.dev/models/disclosure"
@@ -44,6 +45,14 @@ func prepareDisclosurePage(ctx *context.Context) {
 	ctx.Data["AllSeverities"] = AllSeverities
 	// only maintainers may manage disclosures
 	ctx.Data["CanManageDisclosures"] = ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Repository.IsArchived
+}
+
+// prepareDisclosureFormData sets the shared data for the new/edit form template
+func prepareDisclosureFormData(ctx *context.Context, isNew bool, action, cancelLink, submitText string) {
+	ctx.Data["IsNew"] = isNew
+	ctx.Data["FormAction"] = action
+	ctx.Data["CancelLink"] = cancelLink
+	ctx.Data["SubmitText"] = submitText
 }
 
 // SecurityHome renders the landing page of the repository security section
@@ -176,6 +185,7 @@ func NewDisclosure(ctx *context.Context) {
 	prepareDisclosurePage(ctx)
 	ctx.Data["PageIsSecurityNew"] = true
 	ctx.Data["Title"] = ctx.Tr("repo.security.new_disclosure")
+	prepareDisclosureFormData(ctx, true, ctx.Repo.RepoLink+"/security/disclosures/new", ctx.Repo.RepoLink+"/security/disclosures", ctx.Locale.TrString("repo.security.create"))
 	ctx.HTML(http.StatusOK, tplDisclosureNew)
 }
 
@@ -184,6 +194,7 @@ func NewDisclosurePost(ctx *context.Context) {
 	prepareDisclosurePage(ctx)
 	ctx.Data["PageIsSecurityNew"] = true
 	ctx.Data["Title"] = ctx.Tr("repo.security.new_disclosure")
+	prepareDisclosureFormData(ctx, true, ctx.Repo.RepoLink+"/security/disclosures/new", ctx.Repo.RepoLink+"/security/disclosures", ctx.Locale.TrString("repo.security.create"))
 
 	form := web.GetForm[*forms.NewDisclosureForm](ctx)
 	if ctx.HasError() {
@@ -219,7 +230,20 @@ func EditDisclosure(ctx *context.Context) {
 	}
 	ctx.Data["Disclosure"] = d
 	ctx.Data["Title"] = ctx.Tr("repo.security.edit_disclosure", d.Identifier())
-	ctx.Data["FormStatus"] = d.Status
+	link := ctx.Repo.RepoLink + "/security/disclosures/" + strconv.FormatInt(d.ID, 10)
+	prepareDisclosureFormData(ctx, false, link+"/edit", link, ctx.Locale.TrString("repo.security.save"))
+	// prefill the form fields, POST binding overwrites them on error re-render
+	ctx.Data["title"] = d.Title
+	ctx.Data["summary"] = d.Summary
+	ctx.Data["content"] = d.Content
+	ctx.Data["severity"] = string(d.Severity)
+	ctx.Data["cvss_vector"] = d.CVSSVector
+	ctx.Data["cwe_ids"] = strings.Join(d.CweIds, ", ")
+	ctx.Data["cve_id"] = d.CveID
+	ctx.Data["references"] = strings.Join(d.References, "\n")
+	ctx.Data["affected_versions"] = strings.Join(d.AffectedVersions(), "\n")
+	ctx.Data["fixed_versions"] = strings.Join(d.FixedVersions(), "\n")
+	ctx.Data["status"] = string(d.Status)
 	ctx.HTML(http.StatusOK, tplDisclosureEdit)
 }
 
@@ -234,10 +258,11 @@ func EditDisclosurePost(ctx *context.Context) {
 	}
 	ctx.Data["Disclosure"] = d
 	ctx.Data["Title"] = ctx.Tr("repo.security.edit_disclosure", d.Identifier())
+	link := ctx.Repo.RepoLink + "/security/disclosures/" + strconv.FormatInt(d.ID, 10)
+	prepareDisclosureFormData(ctx, false, link+"/edit", link, ctx.Locale.TrString("repo.security.save"))
 
 	form := web.GetForm[*forms.EditDisclosureForm](ctx)
 	if ctx.HasError() {
-		ctx.Data["FormStatus"] = form.Status
 		ctx.HTML(http.StatusOK, tplDisclosureEdit)
 		return
 	}
@@ -246,7 +271,6 @@ func EditDisclosurePost(ctx *context.Context) {
 	if err := disclosure_service.UpdateDisclosure(ctx, d, ctx.Doer, input); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Flash.Error(err.Error(), true)
-			ctx.Data["FormStatus"] = form.Status
 			ctx.HTML(http.StatusOK, tplDisclosureEdit)
 			return
 		}

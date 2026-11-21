@@ -4,73 +4,7 @@
 	{{$d := .Disclosure}}
 	<div class="ui container">
 		<h2 class="ui dividing header">{{ctx.Locale.Tr "repo.security.edit_disclosure" $d.Identifier}}</h2>
-		{{template "base/alert" .}}
-		<form class="ui form" method="post" action="{{.RepoLink}}/security/disclosures/{{$d.ID}}/edit">
-			<div class="field {{if .Err_Title}}error{{end}}">
-				<label for="disclosure-title">{{ctx.Locale.Tr "repo.security.title"}}</label>
-				<input id="disclosure-title" name="title" value="{{$d.Title}}" required maxlength="255" autofocus>
-			</div>
-			<div class="field">
-				<label for="disclosure-summary">{{ctx.Locale.Tr "repo.security.summary"}}</label>
-				<input id="disclosure-summary" name="summary" value="{{$d.Summary}}" maxlength="4096" placeholder="{{ctx.Locale.Tr "repo.security.summary_placeholder"}}">
-			</div>
-			<div class="field">
-				<label>{{ctx.Locale.Tr "repo.security.description"}}</label>
-				{{$markdownEditorContext := ctx.MiscUtils.MarkdownEditorComment $.Repository}}
-				{{template "shared/combomarkdowneditor" (dict
-					"MarkdownEditorContext" $markdownEditorContext
-					"TextareaName" "content"
-					"TextareaContent" $d.Content
-					"TextareaPlaceholder" (ctx.Locale.Tr "repo.security.description_placeholder")
-				)}}
-			</div>
-			<div class="field">
-				<label for="disclosure-severity">{{ctx.Locale.Tr "repo.security.severity"}}</label>
-				<select id="disclosure-severity" class="ui selection dropdown" name="severity" required>
-					{{range .AllSeverities}}
-						<option value="{{.}}" {{if eq (printf "%s" .) (printf "%s" $d.Severity)}}selected{{end}}>{{ctx.Locale.Tr (print "repo.security.severity_" .)}}</option>
-					{{end}}
-				</select>
-			</div>
-			<div class="field">
-				<label for="disclosure-cvss">{{ctx.Locale.Tr "repo.security.cvss_vector"}}</label>
-				<input id="disclosure-cvss" name="cvss_vector" value="{{$d.CVSSVector}}" maxlength="128" placeholder="CVSS:3.1/AV:N/...">
-				<p class="help">{{ctx.Locale.Tr "repo.security.cvss_vector_help"}}</p>
-			</div>
-			<div class="field">
-				<label for="disclosure-cweids">{{ctx.Locale.Tr "repo.security.cwe_ids"}}</label>
-				<input id="disclosure-cweids" name="cwe_ids" value="{{StringUtils.Join $d.CweIds ", "}}" placeholder="CWE-79, CWE-120">
-			</div>
-			<div class="field">
-				<label for="disclosure-cveid">{{ctx.Locale.Tr "repo.security.cve_id"}}</label>
-				<input id="disclosure-cveid" name="cve_id" value="{{$d.CveID}}" maxlength="64" placeholder="CVE-2026-0000">
-			</div>
-			<div class="field">
-				<label for="disclosure-references">{{ctx.Locale.Tr "repo.security.references"}}</label>
-				<textarea id="disclosure-references" name="references" rows="2" placeholder="{{ctx.Locale.Tr "repo.security.references_placeholder"}}">{{StringUtils.Join $d.References "\n"}}</textarea>
-			</div>
-			<div class="field">
-				<label for="disclosure-affected">{{ctx.Locale.Tr "repo.security.affected_versions"}}</label>
-				<textarea id="disclosure-affected" name="affected_versions" rows="2" placeholder="{{ctx.Locale.Tr "repo.security.versions_placeholder"}}">{{StringUtils.Join $d.AffectedVersions "\n"}}</textarea>
-				<p class="help">{{ctx.Locale.Tr "repo.security.affected_versions_help"}}</p>
-			</div>
-			<div class="field">
-				<label for="disclosure-fixed">{{ctx.Locale.Tr "repo.security.fixed_versions"}}</label>
-				<textarea id="disclosure-fixed" name="fixed_versions" rows="2" placeholder="{{ctx.Locale.Tr "repo.security.versions_placeholder"}}">{{StringUtils.Join $d.FixedVersions "\n"}}</textarea>
-			</div>
-			<div class="field">
-				<label for="disclosure-status">{{ctx.Locale.Tr "repo.security.status"}}</label>
-				<select id="disclosure-status" class="ui selection dropdown" name="status" required>
-					<option value="draft" {{if eq (printf "%s" $.FormStatus) "draft"}}selected{{end}}>{{ctx.Locale.Tr "repo.security.status_draft"}}</option>
-					<option value="published" {{if eq (printf "%s" $.FormStatus) "published"}}selected{{end}}>{{ctx.Locale.Tr "repo.security.status_published"}}</option>
-					{{if eq (printf "%s" $.FormStatus) "withdrawn"}}<option value="withdrawn" selected>{{ctx.Locale.Tr "repo.security.status_withdrawn"}}</option>{{end}}
-				</select>
-			</div>
-			<div class="field">
-				<button class="ui primary button" type="submit">{{ctx.Locale.Tr "repo.security.save"}}</button>
-				<a class="ui button" href="{{.RepoLink}}/security/disclosures/{{$d.ID}}">{{ctx.Locale.Tr "repo.security.cancel"}}</a>
-			</div>
-		</form>
+		{{template "repo/security/disclosures/form" .}}
 	</div>
 </div>
 {{template "base/footer" .}}
