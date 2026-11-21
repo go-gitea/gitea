@@ -8,7 +8,6 @@ import (
 	"archive/zip"
 	"bufio"
 	"cmp"
-	"compress/gzip"
 	"io"
 	"path"
 	"regexp"
@@ -85,19 +84,16 @@ func ParsePackage(r ReaderReaderAt, size int64) (*Package, error) {
 	}
 
 	if magicBytes[0] == 0x1F && magicBytes[1] == 0x8B {
-		return parsePackageTarGz(r)
+		return parsePackageTarGz(r, size)
 	}
 	return parsePackageZip(r, size)
 }
 
-func parsePackageTarGz(r io.Reader) (*Package, error) {
-	gzr, err := gzip.NewReader(r)
+func parsePackageTarGz(r io.Reader, size int64) (*Package, error) {
+	tr, err := packages.NewArchiveTarGzReader(r, size)
 	if err != nil {
 		return nil, err
 	}
-	defer gzr.Close()
-
-	tr := tar.NewReader(gzr)
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {

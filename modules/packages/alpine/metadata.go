@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 )
@@ -74,7 +75,7 @@ type FileMetadata struct {
 }
 
 // ParsePackage parses the Alpine package file
-func ParsePackage(r io.Reader) (*Package, error) {
+func ParsePackage(r packages.SizedReader) (*Package, error) {
 	// Alpine packages are concated .tar.gz streams. Usually the first stream contains the package metadata.
 
 	br := bufio.NewReader(r) // needed for gzip Multistream
@@ -87,10 +88,11 @@ func ParsePackage(r io.Reader) (*Package, error) {
 	}
 	defer gzr.Close()
 
+	limited := packages.NewArchiveLimitedReader(gzr, r.Size())
 	for {
 		gzr.Multistream(false)
 
-		tr := tar.NewReader(gzr)
+		tr := tar.NewReader(limited)
 		for {
 			hd, err := tr.Next()
 			if err == io.EOF {

@@ -4,12 +4,14 @@
 package cran
 
 import (
-	"archive/tar"
-	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"strings"
 	"testing"
+
+	"gitea.dev/modules/packages"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -42,27 +44,10 @@ func TestParsePackage(t *testing.T) {
 		create    func(string, []byte) *bytes.Reader
 	}{
 		{".tar.gz", func(filename string, content []byte) *bytes.Reader {
-			var buf bytes.Buffer
-			gw := gzip.NewWriter(&buf)
-			tw := tar.NewWriter(gw)
-			hdr := &tar.Header{
-				Name: filename,
-				Mode: 0o600,
-				Size: int64(len(content)),
-			}
-			tw.WriteHeader(hdr)
-			tw.Write(content)
-			tw.Close()
-			gw.Close()
-			return bytes.NewReader(buf.Bytes())
+			return bytes.NewReader(test.WriteTarCompression(gzip.NewWriter, map[string]string{filename: string(content)}).Bytes())
 		}},
 		{".zip", func(filename string, content []byte) *bytes.Reader {
-			var buf bytes.Buffer
-			archive := zip.NewWriter(&buf)
-			w, _ := archive.Create(filename)
-			w.Write(content)
-			archive.Close()
-			return bytes.NewReader(buf.Bytes())
+			return bytes.NewReader(test.WriteZipArchive(map[string]string{filename: string(content)}).Bytes())
 		}},
 	} {
 		t.Run(archive.extension, func(t *testing.T) {
@@ -92,6 +77,14 @@ func TestParsePackage(t *testing.T) {
 			})
 		})
 	}
+
+	t.Run("DecompressionLimit", func(t *testing.T) {
+		defer test.MockVariableValue(&packages.ArchiveDecompressionFloor, 0)()
+		buf := bytes.NewReader(test.WriteTarCompression(gzip.NewWriter, map[string]string{"dummy.txt": strings.Repeat("\x00", 1024*1024)}).Bytes())
+
+		_, err := ParsePackage(buf, buf.Size())
+		assert.ErrorIs(t, err, packages.ErrContentTooLarge)
+	})
 }
 
 func TestParseDescription(t *testing.T) {
