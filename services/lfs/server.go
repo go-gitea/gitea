@@ -5,9 +5,7 @@ package lfs
 
 import (
 	stdCtx "context"
-	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -345,18 +343,8 @@ func UploadHandler(ctx *context.Context) {
 				// Keep in mind: here the file might be incomplete due to concurrent uploading, so the verification might fail.
 				// ATTENTION: it's impossible to handle corrupted file on server-side at the moment,
 				// we don't know whether a file is really corrupted, or it is being uploaded.
-				hash := sha256.New()
-				written, err := io.Copy(hash, ctx.Req.Body)
-				if err != nil {
-					log.Error("Error creating hash. Error: %v", err)
+				if err := lfs_module.VerifyContent(p, ctx.Req.Body); err != nil {
 					return err
-				}
-
-				if written != p.Size {
-					return lfs_module.ErrSizeMismatch
-				}
-				if hex.EncodeToString(hash.Sum(nil)) != p.Oid {
-					return lfs_module.ErrHashMismatch
 				}
 			}
 		} else if errors.Is(err, fs.ErrNotExist) {

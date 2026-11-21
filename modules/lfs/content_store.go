@@ -50,6 +50,11 @@ func (s *ContentStore) Put(pointer Pointer, r io.Reader) error {
 
 	// Wrap the provided reader with an inline hashing and size checker
 	wrappedRd := newHashingReader(pointer.Size, pointer.Oid, r)
+	if pointer.Size == 0 { // MinIO never reads a zero-size stream
+		if _, err := io.Copy(io.Discard, wrappedRd); err != nil {
+			return err
+		}
+	}
 
 	// now pass the wrapped reader to Save - if there is a size mismatch or hash mismatch then
 	// the errors returned by the newHashingReader should percolate up to here
@@ -103,6 +108,11 @@ func (s *ContentStore) Verify(pointer Pointer) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func VerifyContent(pointer Pointer, r io.Reader) error {
+	_, err := io.Copy(io.Discard, newHashingReader(pointer.Size, pointer.Oid, r))
+	return err
 }
 
 // ReadMetaObject will read a git_model.LFSMetaObject and return a reader
