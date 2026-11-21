@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
+	repo_service "gitea.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,6 +31,7 @@ func TestGitSmartHTTP(t *testing.T) {
 		testGitArchiveRemote(t, u)
 		t.Run("AnonymousAccess-Repo", func(t *testing.T) { testGitSmartHTTPPrivateRepoAnonymousAccess(t, false) })
 		t.Run("AnonymousAccess-Wiki", func(t *testing.T) { testGitSmartHTTPPrivateRepoAnonymousAccess(t, true) })
+		t.Run("CodeUnitDisabled", testGitSmartHTTPCodeUnitDisabled)
 		t.Run("BeingCreated", func(t *testing.T) {
 			require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), &repo_model.Repository{ID: 1, Status: repo_model.RepositoryBeingMigrated}, "status"))
 			MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/info/refs?service=git-receive-pack").AddBasicAuth("user2"), http.StatusForbidden)
@@ -190,4 +192,15 @@ func testGitSmartHTTPPrivateRepoAnonymousAccess(t *testing.T, isWiki bool) {
 	// RequireSignInViewStrict must override anonymous access
 	defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
 	MakeRequest(t, NewRequest(t, "GET", gitPullPath), http.StatusUnauthorized)
+}
+
+func testGitSmartHTTPCodeUnitDisabled(t *testing.T) {
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4, OwnerName: "user5", Name: "repo4"})
+	require.False(t, repo.IsPrivate)
+	path := "/user5/repo4/info/refs?service=git-upload-pack"
+	MakeRequest(t, NewRequest(t, "GET", path), http.StatusOK)
+
+	require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, nil, []unit.Type{unit.TypeCode}))
+	MakeRequest(t, NewRequest(t, "GET", path), http.StatusUnauthorized)
+	MakeRequest(t, NewRequest(t, "GET", path).AddBasicAuth("user2"), http.StatusNotFound)
 }
