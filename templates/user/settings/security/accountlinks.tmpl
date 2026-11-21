@@ -27,9 +27,8 @@
 		</div>
 		{{range $loginSource, $provider := .AccountLinks}}
 			<div class="item">
-				{{$providerData := index $.OAuth2Providers $loginSource.Name}}
 				<div class="item-leading">
-					{{$providerData.IconHTML 20}}
+					{{with index $.OAuth2Providers $loginSource.Name}}{{.IconHTML 20}}{{end}}
 				</div>
 				<div class="item-main">
 					<span class="item-title" data-tooltip-content="{{$provider}}">
