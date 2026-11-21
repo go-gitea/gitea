@@ -53,7 +53,7 @@ func TestActionsListFilters(t *testing.T) {
 	})
 
 	t.Run("PaginationPreservesFilters", func(t *testing.T) {
-		req := NewRequest(t, "GET", actionsURL+"?branch=master&limit=1")
+		req := NewRequest(t, "GET", actionsURL+"?branch=master&limit=1&sort=oldest")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
@@ -63,6 +63,34 @@ func TestActionsListFilters(t *testing.T) {
 			u, err := url.Parse(a.AttrOr("href", ""))
 			require.NoError(t, err)
 			assert.Equal(t, "master", u.Query().Get("branch"), "pagination link must preserve branch filter")
+			assert.Equal(t, "oldest", u.Query().Get("sort"), "pagination link must preserve sorting")
 		})
+	})
+	t.Run("SortingLinksPreserveFilters", func(t *testing.T) {
+		resp := session.MakeRequest(t, NewRequest(t, "GET", actionsURL+"?workflow=artifact.yaml&actor=1&status=1&branch=master&sort=oldest&limit=1&page=2"), http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+		control := doc.doc.Find(`[data-test-id="sort-runs"]`)
+		assert.Contains(t, control.Find(".text").Text(), "Oldest first")
+		links := control.Find(".menu a.item")
+		assert.Equal(t, 7, links.Length())
+		links.Each(func(_ int, a *goquery.Selection) {
+			u, err := url.Parse(a.AttrOr("href", ""))
+			require.NoError(t, err)
+			for key, value := range map[string]string{"workflow": "artifact.yaml", "actor": "1", "status": "1", "branch": "master", "limit": "1"} {
+				assert.Equal(t, value, u.Query().Get(key))
+			}
+			assert.Empty(t, u.Query().Get("page"))
+		})
+		doc.doc.Find(`.filter.menu a.item, .flex-container-nav a[href*="/actions?"]`).Each(func(_ int, a *goquery.Selection) {
+			if a.ParentsFiltered(`[data-test-id="sort-runs"]`).Length() > 0 {
+				return
+			}
+			u, err := url.Parse(a.AttrOr("href", ""))
+			require.NoError(t, err)
+			assert.Equal(t, "oldest", u.Query().Get("sort"))
+		})
+		refresh, err := url.Parse(doc.doc.Find(".run-list").AttrOr("data-action-runs-refresh-link", ""))
+		require.NoError(t, err)
+		assert.Equal(t, "oldest", refresh.Query().Get("sort"))
 	})
 }

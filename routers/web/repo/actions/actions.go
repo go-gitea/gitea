@@ -491,6 +491,7 @@ func (data *actionRunListData) prepareFullPageRuns(ctx *context.Context, otherWo
 		WorkflowID:     data.workflowID,
 		WorkflowRepoID: data.scopedWorkflowSourceRepoID,
 		TriggerUserID:  data.actorID,
+		Sort:           data.sort,
 	}
 
 	// Constrain scoped vs repo-level only for a listed workflow, whose link carries scoped_workflow_source_repo_id.
@@ -516,6 +517,16 @@ func (data *actionRunListData) prepareFullPageRuns(ctx *context.Context, otherWo
 	return true
 }
 
+var actionRunSortOptions = []struct{ Value, Label string }{
+	{"", "actions.runs.sort.default"},
+	{"newest", "actions.runs.sort.newest"},
+	{"oldest", "actions.runs.sort.oldest"},
+	{"status", "actions.runs.sort.status"},
+	{"reverse_status", "actions.runs.sort.reverse_status"},
+	{"ref", "actions.runs.sort.ref"},
+	{"reverse_ref", "actions.runs.sort.reverse_ref"},
+}
+
 type actionRunListData struct {
 	actorID                    int64
 	status                     actions_model.Status
@@ -523,6 +534,7 @@ type actionRunListData struct {
 	workflowDisplayName        string
 	scopedWorkflowSourceRepoID int64
 	branch                     string
+	sort                       string
 	refreshRunIDs              []int64
 	partialRefresh             bool
 	pager                      *context.Pagination
@@ -635,6 +647,10 @@ func prepareWorkflowList(ctx *context.Context, curWorkflowID string) *actionRunL
 	data.workflowID = ctx.FormString("workflow")
 	data.scopedWorkflowSourceRepoID = ctx.FormInt64("scoped_workflow_source_repo_id")
 	data.branch = ctx.FormString("branch")
+	data.sort = ctx.FormString("sort")
+	if _, ok := actions_model.RunOrderByMap[data.sort]; !ok {
+		data.sort = ""
+	}
 	data.refreshRunIDs = ctx.FormStringInt64s("run_ids")
 	data.partialRefresh = ctx.Req.Form.Has("run_ids")
 
@@ -711,6 +727,15 @@ func (data *actionRunListData) prepareFullPageTemplate(ctx *context.Context) boo
 	ctx.Data["RunBranches"] = runBranches
 
 	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx, ctx.Locale)
+	ctx.Data["SortType"] = data.sort
+	ctx.Data["RunSortOptions"] = actionRunSortOptions
+	ctx.Data["RunSortLink"] = templates.QueryBuild(setting.AppSubURL+ctx.Req.RequestURI, "page", "", "run_ids", "")
+	for _, option := range actionRunSortOptions {
+		if option.Value == data.sort {
+			ctx.Data["RunSortLabel"] = option.Label
+			break
+		}
+	}
 	ctx.Data["CurActor"] = data.actorID
 	ctx.Data["CurStatus"] = int(data.status) // don't make template use its "String" method, otherwise the query parameter would be wrong
 	ctx.Data["CurBranch"] = data.branch
