@@ -25,6 +25,9 @@ type SizedReader interface {
 
 // NewArchiveLimitedReader bounds inflation while locating metadata, scaled to the compressed size so large packages still pass
 func NewArchiveLimitedReader(r io.Reader, archiveSize int64) io.Reader {
+	if setting.Packages.MaxDecompressionRatio < 0 {
+		return r
+	}
 	return NewLimitedReader(r, max(ArchiveDecompressionFloor, setting.Packages.MaxDecompressionRatio*archiveSize))
 }
 
