@@ -12,6 +12,7 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
@@ -19,6 +20,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
 	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
@@ -30,6 +32,7 @@ func TestPreReceive(t *testing.T) {
 	t.Run("Branch", testPreReceiveActionsBranch)
 	t.Run("Tag", testPreReceiveSystemUserTag)
 	t.Run("CanWrite", testPreReceiveCanWriteCodePerBranch)
+	t.Run("QueuedMergeProtectsFiles", testPreReceiveQueuedMergeProtectsFiles)
 	t.Run("ProcReceiveNeedsPullRequests", func(t *testing.T) {
 		ctx, resp := contexttest.MockPrivateContext(t, "/")
 		ctx.SetPathParam("owner", "user2")
@@ -45,6 +48,36 @@ func TestPreReceive(t *testing.T) {
 		HookProcReceive(ctx)
 		assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
 	})
+}
+
+func testPreReceiveQueuedMergeProtectsFiles(t *testing.T) {
+	ctx, resp := contexttest.MockPrivateContext(t, "/")
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "branch2"})
+	gitRepo, err := git.OpenRepository(ctx, repo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+	baseSHA, err := gitRepo.GetBranchCommitID(ctx, pr.BaseBranch)
+	require.NoError(t, err)
+	groupSHA, err := gitRepo.GetBranchCommitID(ctx, pr.HeadBranch)
+	require.NoError(t, err)
+	require.NoError(t, db.Insert(ctx, &pull_model.MergeQueueEntry{
+		RepoID: repo.ID, PullID: pr.ID, BaseBranch: pr.BaseBranch,
+		GroupHeadSHA: groupSHA, State: pull_model.MergeQueueStateMergeable,
+	}, &git_model.ProtectedBranch{
+		RepoID: repo.ID, RuleName: pr.BaseBranch,
+		ProtectedBranchConfig: git_model.ProtectedBranchConfig{
+			CanPush: true, RequireMergeQueue: true, ProtectedFilePatterns: "README.md", BlockAdminMergeOverride: true,
+		},
+	}))
+	ctx.Repo = &context.Repository{Repository: repo, GitRepo: gitRepo}
+	web.SetForm(ctx, &private.HookOptions{
+		UserID: repo.OwnerID, PullRequestID: pr.ID, RefFullNames: []git.RefName{git.RefNameFromBranch(pr.BaseBranch)},
+		OldCommitIDs: []string{baseSHA}, NewCommitIDs: []string{groupSHA},
+	})
+	HookPreReceive(ctx)
+	assert.Equal(t, http.StatusForbidden, resp.Code)
+	assert.Contains(t, resp.Body.String(), "protected from changing file readme.md")
 }
 
 func testPreReceiveActionsBranch(t *testing.T) {

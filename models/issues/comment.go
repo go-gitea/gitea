@@ -121,6 +121,9 @@ const (
 	CommentTypeUnpin // 37 unpin Issue/PullRequest
 
 	CommentTypeChangeTimeEstimate // 38 Change time estimate
+
+	CommentTypePRAddedToMergeQueue
+	CommentTypePRRemovedFromMergeQueue
 )
 
 var commentStrings = []string{
@@ -163,6 +166,8 @@ var commentStrings = []string{
 	"pin",
 	"unpin",
 	"change_time_estimate",
+	"added_to_merge_queue",
+	"removed_from_merge_queue",
 }
 
 func (t CommentType) String() string {
@@ -1268,28 +1273,45 @@ func UpdateCommentsMigrationsByType(ctx context.Context, tp structs.GitServiceTy
 	return err
 }
 
-// CreateAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
-func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User, content string) (comment *Comment, err error) {
-	if typ != CommentTypePRScheduledToAutoMerge && typ != CommentTypePRUnScheduledToAutoMerge {
-		return nil, fmt.Errorf("comment type %d cannot be used to create an auto merge comment", typ)
-	}
-	if err = pr.LoadIssue(ctx); err != nil {
+func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User, content string) (*Comment, error) {
+	if err := pr.LoadIssue(ctx); err != nil {
 		return nil, err
 	}
-
-	if err = pr.LoadBaseRepo(ctx); err != nil {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, err
 	}
-
-	comment, err = CreateComment(ctx, &CreateCommentOptions{
-		Type:  typ,
-		Doer:  doer,
-		Repo:  pr.BaseRepo,
-		Issue: pr.Issue,
-
+	return CreateComment(ctx, &CreateCommentOptions{
+		Type:    typ,
+		Doer:    doer,
+		Repo:    pr.BaseRepo,
+		Issue:   pr.Issue,
 		Content: content,
 	})
-	return comment, err
+}
+
+type MergeQueueRemovalReason string
+
+const (
+	MergeQueueRemovedByUser        MergeQueueRemovalReason = "dequeued"
+	MergeQueueRemovedChecksFailed  MergeQueueRemovalReason = "checks_failed"
+	MergeQueueRemovedChecksTimeout MergeQueueRemovalReason = "checks_timeout"
+	MergeQueueRemovedConflict      MergeQueueRemovalReason = "conflict"
+	MergeQueueRemovedHeadChanged   MergeQueueRemovalReason = "head_changed"
+	MergeQueueRemovedNotMergeable  MergeQueueRemovalReason = "not_mergeable"
+	MergeQueueRemovedClosed        MergeQueueRemovalReason = "closed"
+	MergeQueueRemovedMerged        MergeQueueRemovalReason = "merged"
+	MergeQueueRemovedAlreadyMerged MergeQueueRemovalReason = "already_merged"
+	MergeQueueRemovedBaseChanged   MergeQueueRemovalReason = "base_changed"
+	MergeQueueRemovedBaseDeleted   MergeQueueRemovalReason = "base_deleted"
+	MergeQueueRemovedCleared       MergeQueueRemovalReason = "queue_cleared"
+)
+
+func CreateMergeQueueComment(ctx context.Context, pr *PullRequest, doer *user_model.User, reason MergeQueueRemovalReason) error {
+	if reason == MergeQueueRemovedMerged || reason == MergeQueueRemovedAlreadyMerged {
+		return nil
+	}
+	_, err := CreateAutoMergeComment(ctx, util.Iif(reason == "", CommentTypePRAddedToMergeQueue, CommentTypePRRemovedFromMergeQueue), pr, doer, string(reason))
+	return err
 }
 
 // RemapExternalUser ExternalUserRemappable interface

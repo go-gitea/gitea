@@ -8,6 +8,7 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -29,8 +30,7 @@ func TestWebhookService(t *testing.T) {
 	t.Run("GetSlackHook", testWebhookGetSlackHook)
 	t.Run("PrepareWebhooks", testWebhookPrepare)
 	t.Run("AssigneeChanges", testWebhookAssigneeChanges)
-	t.Run("PrepareBranchFilterMatch", testWebhookPrepareBranchFilterMatch)
-	t.Run("PrepareBranchFilterNoMatch", testWebhookPrepareBranchFilterNoMatch)
+	t.Run("PrepareBranchFilter", testWebhookPrepareBranchFilter)
 	t.Run("WebhookUserMail", testWebhookUserMail)
 	t.Run("CheckBranchFilter", testWebhookCheckBranchFilter)
 	t.Run("PrepareTestWebhookIgnoresGates", testPrepareTestWebhookIgnoresGates)
@@ -103,53 +103,44 @@ func testWebhookPrepare(t *testing.T) {
 		RepoID:      repo.ID,
 		URL:         "http://localhost/gitea-webhook-test-prepare_webhooks",
 		ContentType: webhook_model.ContentTypeJSON,
-		Events:      `{"push_only":true}`,
+		Events:      `{"send_everything":true}`,
 		IsActive:    true,
 	}
 	require.NoError(t, db.Insert(t.Context(), hook))
 
-	hookTask := &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventPush}
-	unittest.AssertNotExistsBean(t, hookTask)
-	err := PrepareWebhooks(t.Context(), EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{Commits: []*api.PayloadCommit{{}}})
+	headSHA, err := git.GetBranchCommitID(t.Context(), repo, repo.DefaultBranch)
 	require.NoError(t, err)
-	unittest.AssertExistsAndLoadBean(t, hookTask)
+	new(webhookNotifier).MergeGroupChanged(t.Context(), repo.MustOwner(t.Context()), repo, &pull_model.MergeQueueEntry{
+		BaseBranch:   repo.DefaultBranch,
+		GroupRef:     "refs/heads/gitea-merge-queue/master/pr-1",
+		GroupHeadSHA: headSHA,
+	}, api.HookMergeGroupChecksRequested, "")
+	var events []webhook_module.HookEventType
+	require.NoError(t, db.GetEngine(t.Context()).Table(&webhook_model.HookTask{}).Where("hook_id = ?", hook.ID).Asc("id").Cols("event_type").Find(&events))
+	assert.Equal(t, []webhook_module.HookEventType{webhook_module.HookEventPush, webhook_module.HookEventCreate, webhook_module.HookEventMergeGroup}, events)
 }
 
-func testWebhookPrepareBranchFilterMatch(t *testing.T) {
+func testWebhookPrepareBranchFilter(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	hook := &webhook_model.Webhook{
-		RepoID:      repo.ID,
-		URL:         "http://localhost/gitea-webhook-test-branch_filter_match",
-		ContentType: webhook_model.ContentTypeJSON,
-		Events:      `{"push_only":true,"branch_filter":"{master,feature*}"}`,
-		IsActive:    true,
+		RepoID: repo.ID, Type: webhook_module.GITEA, IsActive: true,
+		Events: `{"send_everything":true,"branch_filter":"{master,feature*}"}`,
 	}
 	require.NoError(t, db.Insert(t.Context(), hook))
 
-	hookTask := &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventPush}
-	unittest.AssertNotExistsBean(t, hookTask)
-	// this test also ensures that * doesn't handle / in any special way (like shell would)
-	err := PrepareWebhooks(t.Context(), EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{Ref: "refs/heads/feature/7791", Commits: []*api.PayloadCommit{{}}})
-	require.NoError(t, err)
-	unittest.AssertExistsAndLoadBean(t, hookTask)
-}
-
-func testWebhookPrepareBranchFilterNoMatch(t *testing.T) {
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	hook := &webhook_model.Webhook{
-		RepoID:      repo.ID,
-		URL:         "http://localhost/gitea-webhook-test-branch_filter_no_match",
-		ContentType: webhook_model.ContentTypeJSON,
-		Events:      `{"push_only":true,"branch_filter":"{master,feature*}"}`,
-		IsActive:    true,
+	for _, tc := range []struct {
+		event     webhook_module.HookEventType
+		payload   api.Payloader
+		wantTasks int
+	}{
+		{webhook_module.HookEventPush, &api.PushPayload{Ref: "refs/heads/fix"}, 0},
+		{webhook_module.HookEventPush, &api.PushPayload{Ref: "refs/heads/feature/7791"}, 1},
+		{webhook_module.HookEventMergeGroup, &api.MergeGroupPayload{MergeGroup: &api.MergeGroup{BaseRef: "refs/heads/main", HeadRef: "refs/heads/master"}}, 0},
+		{webhook_module.HookEventMergeGroup, &api.MergeGroupPayload{MergeGroup: &api.MergeGroup{BaseRef: "refs/heads/master", HeadRef: "refs/heads/queue"}}, 1},
+	} {
+		require.NoError(t, PrepareWebhooks(t.Context(), EventSource{Repository: repo}, tc.event, tc.payload))
+		unittest.AssertCount(t, &webhook_model.HookTask{HookID: hook.ID, EventType: tc.event}, tc.wantTasks)
 	}
-	require.NoError(t, db.Insert(t.Context(), hook))
-
-	hookTask := &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventPush}
-	unittest.AssertNotExistsBean(t, hookTask)
-	err := PrepareWebhooks(t.Context(), EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{Ref: "refs/heads/fix_weird_bug"})
-	require.NoError(t, err)
-	unittest.AssertNotExistsBean(t, hookTask)
 }
 
 func testWebhookUserMail(t *testing.T) {

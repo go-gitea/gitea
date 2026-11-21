@@ -1,15 +1,17 @@
 {{$mergeBoxData := $.PullMergeBoxData}}
 {{$issue := $.Issue}}
+{{$queued := $mergeBoxData.IsQueued}}
 <div class="timeline-item comment pull-merge-box"
 	data-global-init="initRepoPullMergeBox"
+	{{if $queued}}data-pull-merge-queued{{end}}
 	{{if $mergeBoxData.ReloadingInterval}}
 		data-pull-merge-box-reloading-interval="{{$mergeBoxData.ReloadingInterval}}"
 		data-pull-link="{{$issue.Link}}"
 	{{end}}
 >
-	<div class="timeline-avatar merge-box-icon{{if $issue.PullRequest.HasMerged}} tw-bg-purple{{else if $mergeBoxData.IsMergeStateClean}} tw-bg-green{{end}}">{{svg "octicon-git-merge" 24}}</div>
+	<div class="timeline-avatar merge-box-icon{{if $issue.PullRequest.HasMerged}} tw-bg-purple{{else if $queued}} tw-bg-yellow{{else if $mergeBoxData.IsMergeStateClean}} tw-bg-green{{end}}">{{svg (Iif $queued "octicon-git-merge-queue" "octicon-git-merge") 24}}</div>
 	<div class="content">
-		<div class="ui segment fitted tw-overflow-hidden{{if $issue.PullRequest.HasMerged}} tw-border-purple{{else if $mergeBoxData.IsMergeStateClean}} tw-border-green{{end}}">
+		<div class="ui segment fitted tw-overflow-hidden{{if $issue.PullRequest.HasMerged}} tw-border-purple{{else if $queued}} tw-border-yellow{{else if $mergeBoxData.IsMergeStateClean}} tw-border-green{{end}}">
 			<div class="merge-section flex-divided-list items-with-main">
 			{{if $mergeBoxData.ReviewSection}}
 				<div class="item">{{template "repo/issue/view_content/pull_merge_section" (dict "MergeBoxSection" $mergeBoxData.ReviewSection)}}</div>
@@ -22,6 +24,12 @@
 				{{if and $mergeBoxData.ShowUpdatePullInfo $mergeBoxData.UpdatePrimaryAction}}{{template "repo/issue/view_content/update_branch_by_merge" (dict "UpdatePrimaryAction" $mergeBoxData.UpdatePrimaryAction "UpdateStyleOptions" $mergeBoxData.UpdateStyleOptions)}}{{end}}
 				{{if $mergeBoxData.IsPullBranchDeletable}}
 					<button type="button" class="ui button link-action delete-branch-after-merge tw-shrink-0" data-url="{{$.DeleteBranchLink}}">{{ctx.Locale.Tr "repo.branch.delete_html"}}</button>
+				{{end}}
+				{{if $mergeBoxData.CanDequeue}}
+					<button type="button" class="ui button link-action tw-shrink-0" data-url="{{$issue.Link}}/merge_queue/remove"
+						data-modal-confirm-header="{{ctx.Locale.Tr "repo.pulls.merge_queue.remove_confirm_title"}}"
+						data-modal-confirm-content="{{ctx.Locale.Tr "repo.pulls.merge_queue.remove_confirm_desc"}}"
+					>{{ctx.Locale.Tr "repo.pulls.merge_queue.remove"}}</button>
 				{{end}}
 			</div>
 			{{if $mergeBoxData.BlockedSection}}
@@ -43,7 +51,10 @@
 						{{if $mergeBoxData.CanCancelAutoMerge}}
 							<button type="button" class="ui button link-action tw-shrink-0" data-url="{{$issue.Link}}/cancel_auto_merge">{{ctx.Locale.Tr "repo.pulls.auto_merge_cancel_schedule"}}</button>
 						{{end}}
-						<span class="merge-box-auto-merge-desc">{{ctx.Locale.Tr "repo.pulls.auto_merge_enabled_desc" $mergeBoxData.AutoMerge.Doer.GetDisplayName $mergeBoxData.AutoMergeStyleName}}</span>
+						<span class="merge-box-auto-merge-desc">
+							{{if $mergeBoxData.MergeQueueLink}}{{ctx.Locale.Tr "repo.pulls.merge_queue.auto_merge_desc" $mergeBoxData.AutoMerge.Doer.GetDisplayName}}
+							{{else}}{{ctx.Locale.Tr "repo.pulls.auto_merge_enabled_desc" $mergeBoxData.AutoMerge.Doer.GetDisplayName $mergeBoxData.AutoMergeStyleName}}{{end}}
+						</span>
 					{{else if $mergeBoxData.MergeFormProps}}
 						{{/* The merge form is a Vue component, these invisible copies of its initial rows avoid layout shifting until it is mounted */}}
 						<div class="tw-flex-auto tw-min-w-0" data-merge-form-props="{{JsonUtils.EncodeToString $mergeBoxData.MergeFormProps}}">

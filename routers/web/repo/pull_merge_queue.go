@@ -1,0 +1,147 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package repo
+
+import (
+	"errors"
+	"html/template"
+	"net/http"
+	"slices"
+
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	pull_model "gitea.dev/models/pull"
+	"gitea.dev/services/context"
+	"gitea.dev/services/mergequeue"
+	pull_service "gitea.dev/services/pull"
+)
+
+func (prInfo *pullRequestViewInfo) prepareQueuedMergeBox(ctx *context.Context) {
+	position, err := pull_model.GetMergeQueuePosition(ctx, prInfo.queueEntry)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	data := prInfo.MergeBoxData
+	data.IsQueued = true
+	data.CanDequeue = ctx.Doer != nil && (ctx.Doer.ID == prInfo.queueEntry.EnqueuerID || data.hasPermToMerge)
+	detail := ctx.Tr("repo.pulls.merge_queue.next_up", data.MergeQueueLink)
+	if ahead := position - 1; ahead > 0 {
+		detail = ctx.TrN(ahead, "repo.pulls.merge_queue.ahead_1", "repo.pulls.merge_queue.ahead_n", ahead, data.MergeQueueLink)
+	}
+	data.MergeSection = &pullMergeBoxSection{
+		StatusIcon: "octicon-git-merge-queue", StatusIconClass: "tw-bg-yellow",
+		SectionTitle: ctx.Tr("repo.pulls.merge_queue.queued_title"), SectionDetails: []template.HTML{detail},
+	}
+	data.ReloadingInterval = 15000
+}
+
+func RemoveFromMergeQueue(ctx *context.Context) {
+	issue, ok := getPullInfo(ctx)
+	if !ok {
+		return
+	}
+	if err := mergequeue.Dequeue(ctx, ctx.Doer, ctx.Repo.Permission, issue.PullRequest); err != nil && !errors.Is(err, mergequeue.ErrNotQueued) {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	ctx.Flash.Success(ctx.Tr("repo.pulls.merge_queue.removed"))
+	ctx.JSONOK()
+}
+
+func JumpMergeQueue(ctx *context.Context) {
+	issue, ok := getPullInfo(ctx)
+	if !ok {
+		return
+	}
+	if err := mergequeue.Jump(ctx, issue.PullRequest); err != nil && !errors.Is(err, mergequeue.ErrNotQueued) {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	ctx.JSONOK()
+}
+
+func ClearMergeQueue(ctx *context.Context) {
+	if err := mergequeue.Clear(ctx, ctx.Doer, ctx.Repo.Repository, ctx.PathParam("*")); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	ctx.JSONOK()
+}
+
+type mergeQueueEntryView struct {
+	*mergequeue.QueueEntry
+	CanRemove  bool
+	Status     *git_model.CommitStatus
+	Statuses   []*git_model.CommitStatus
+	WaitingFor []string
+}
+
+func MergeQueue(ctx *context.Context) {
+	branch := ctx.PathParam("*")
+	rule, err := mergequeue.GetEnabledRule(ctx, ctx.Repo.Repository, branch)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	} else if rule == nil {
+		ctx.NotFound()
+		return
+	}
+	entries, err := mergeQueueEntryViews(ctx, rule, branch)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	ctx.Data["Title"] = ctx.Tr("repo.pulls.merge_queue.title")
+	ctx.Data["PageIsPullList"] = true
+	ctx.Data["MergeQueueBranch"] = branch
+	ctx.Data["MergeQueueEntries"] = entries
+	ctx.HTML(http.StatusOK, "repo/pulls/merge_queue")
+}
+
+func mergeQueueEntryViews(ctx *context.Context, rule *git_model.ProtectedBranch, branch string) ([]*mergeQueueEntryView, error) {
+	queue, err := mergequeue.GetQueue(ctx, ctx.Repo.Repository, branch)
+	if err != nil || len(queue) == 0 {
+		return nil, err
+	}
+	issues := make(issues_model.IssueList, len(queue))
+	for i, entry := range queue {
+		issues[i] = entry.PullRequest.Issue
+	}
+	if err := issues.LoadPosters(ctx); err != nil {
+		return nil, err
+	}
+	canMerge, err := pull_service.IsUserAllowedToMerge(ctx, queue[0].PullRequest, ctx.Repo.Permission, ctx.Doer)
+	if err != nil {
+		return nil, err
+	}
+	required, err := pull_service.EffectiveRequiredContexts(ctx, ctx.Repo.Repository, rule)
+	if err != nil {
+		return nil, err
+	}
+	required = pull_service.MergeQueueRequiredContexts(required)
+	views := make([]*mergeQueueEntryView, len(queue))
+	for i, entry := range queue {
+		view := &mergeQueueEntryView{QueueEntry: entry, CanRemove: canMerge || ctx.Doer != nil && ctx.Doer.ID == entry.EnqueuerID}
+		views[i] = view
+		if !entry.IsBuilt() {
+			continue
+		}
+		if view.Statuses, err = pull_service.GetLatestPullCommitStatuses(ctx, ctx.Repo.Repository.ID, entry.GroupHeadSHA); err != nil {
+			return nil, err
+		}
+		git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, view.Statuses)
+		view.Status = git_model.CalcCommitStatus(view.Statuses)
+		if entry.State != pull_model.MergeQueueStateAwaitingChecks {
+			continue
+		}
+		for _, name := range required {
+			matches := createRequiredContextMatcher(name)
+			if !slices.ContainsFunc(view.Statuses, func(status *git_model.CommitStatus) bool { return matches(status.Context) }) {
+				view.WaitingFor = append(view.WaitingFor, name)
+			}
+		}
+	}
+	return views, nil
+}

@@ -118,6 +118,10 @@ func (pc packagistConvertor) WorkflowRun(_ *api.WorkflowRunPayload) (PackagistPa
 	return PackagistPayload{}, nil
 }
 
+func (pc packagistConvertor) MergeGroup(_payload *api.MergeGroupPayload) (PackagistPayload, error) {
+	return PackagistPayload{}, nil
+}
+
 func (pc packagistConvertor) WorkflowJob(_ *api.WorkflowJobPayload) (PackagistPayload, error) {
 	return PackagistPayload{}, nil
 }

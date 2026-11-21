@@ -608,6 +608,23 @@ func TestGetReleasePayloadInfo(t *testing.T) {
 	}
 }
 
+func TestGetMergeGroupPayloadInfo(t *testing.T) {
+	payload := &api.MergeGroupPayload{
+		Action:     api.HookMergeGroupChecksRequested,
+		MergeGroup: &api.MergeGroup{HeadSHA: "2020558fe2e34debb818a514715839cabd25e778", BaseRef: "refs/heads/main"},
+		Repo:       &api.Repository{FullName: "test/repo"},
+		Sender:     &api.User{UserName: "user1"},
+	}
+	text, color, _ := getMergeGroupPayloadInfo(payload, noneLinkFormatter, true)
+	assert.Equal(t, "[test/repo:main] Merge group checks requested: 2020558fe2 by user1", text)
+	assert.Equal(t, orangeColor, color)
+
+	payload.Action, payload.Reason = api.HookMergeGroupDestroyed, "merged"
+	text, color, _ = getMergeGroupPayloadInfo(payload, noneLinkFormatter, false)
+	assert.Equal(t, "[test/repo:main] Merge group merged: 2020558fe2", text)
+	assert.Equal(t, greenColor, color)
+}
+
 func TestGetIssueCommentPayloadInfo(t *testing.T) {
 	p := pullRequestCommentTestPayload()
 

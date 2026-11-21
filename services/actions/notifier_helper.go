@@ -182,13 +182,11 @@ func notify(ctx context.Context, input *notifyInput) error {
 		ref = git.RefNameFromBranch(input.Repo.DefaultBranch)
 	}
 
-	commitID, err := gitRepo.GetRefCommitID(ctx, ref.String())
-	if err != nil {
-		return fmt.Errorf("gitRepo.GetRefCommitID: %w", err)
+	commitRef := ref.String()
+	if payload, ok := input.Payload.(*api.MergeGroupPayload); ok {
+		commitRef = payload.MergeGroup.HeadSHA
 	}
-
-	// Get the commit object for the ref
-	commit, err := gitRepo.GetCommit(ctx, commitID)
+	commit, err := gitRepo.GetCommit(ctx, commitRef)
 	if err != nil {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
@@ -201,7 +199,9 @@ func notify(ctx context.Context, input *notifyInput) error {
 	var baseCommit *git.Commit
 	if input.PullRequest != nil {
 		baseCommit, err = gitRepo.GetCommit(ctx, git.BranchPrefix+input.PullRequest.BaseBranch)
-		if err != nil {
+		if git.IsErrNotExist(err) {
+			return nil
+		} else if err != nil {
 			return fmt.Errorf("gitRepo.GetCommit: %w", err)
 		}
 		workflowCommit, err = preparePullRequestMerge(ctx, input, gitRepo, commit, baseCommit)

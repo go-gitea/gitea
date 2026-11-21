@@ -13,6 +13,7 @@ import (
 	packages_model "gitea.dev/models/packages"
 	perm_model "gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -518,29 +519,7 @@ func (n *actionsNotifier) PushCommits(ctx context.Context, pusher *user_model.Us
 		return
 	}
 
-	ctx = withMethod(ctx, "PushCommits")
-
-	apiPusher := convert.ToUser(ctx, pusher, nil)
-	apiCommits, apiHeadCommit, err := commits.ToAPIPayloadCommits(ctx, repo)
-	if err != nil {
-		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
-		return
-	}
-
-	newNotifyInput(repo, pusher, webhook_module.HookEventPush).
-		WithRef(opts.RefFullName.String()).
-		WithPayload(&api.PushPayload{
-			Ref:        opts.RefFullName.String(),
-			Before:     opts.OldCommitID,
-			After:      opts.NewCommitID,
-			CompareURL: setting.AppURL + commits.CompareURL,
-			Commits:    apiCommits,
-			HeadCommit: apiHeadCommit,
-			Repo:       convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm_model.AccessModeOwner}),
-			Pusher:     apiPusher,
-			Sender:     apiPusher,
-		}).
-		Notify(ctx)
+	n.SyncPushCommits(withMethod(ctx, "PushCommits"), pusher, repo, opts, commits)
 }
 
 func (n *actionsNotifier) CreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
@@ -650,8 +629,18 @@ func (n *actionsNotifier) AutoMergePullRequest(ctx context.Context, doer *user_m
 }
 
 func (n *actionsNotifier) PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, before, after string) {
-	ctx = withMethod(ctx, "PullRequestSynchronized")
+	notifyPullRequestChange(withMethod(ctx, "PullRequestSynchronized"), doer, pr, webhook_module.HookEventPullRequestSync, "", &api.PullRequestPayload{
+		Action: api.HookIssueSynchronized, Before: before, After: after,
+	})
+}
 
+func (n *actionsNotifier) PullRequestMergeQueueChanged(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, enqueued bool, reason string) {
+	notifyPullRequestChange(withMethod(ctx, "PullRequestMergeQueueChanged"), doer, pr, webhook_module.HookEventPullRequest, util.Iif(pr.HasMerged, pr.MergedCommitID, ""), &api.PullRequestPayload{
+		Action: util.Iif(enqueued, api.HookIssueEnqueued, api.HookIssueDequeued), Reason: reason,
+	})
+}
+
+func notifyPullRequestChange(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, event webhook_module.HookEventType, ref string, payload *api.PullRequestPayload) {
 	if err := pr.LoadIssue(ctx); err != nil {
 		log.Error("pr.LoadIssue: %v", err)
 		return
@@ -662,17 +651,32 @@ func (n *actionsNotifier) PullRequestSynchronized(ctx context.Context, doer *use
 		return
 	}
 
-	newNotifyInput(pr.Issue.Repo, doer, webhook_module.HookEventPullRequestSync).
-		WithPayload(&api.PullRequestPayload{
-			Action:      api.HookIssueSynchronized,
-			Before:      before,
-			After:       after,
-			Index:       pr.Issue.Index,
-			PullRequest: convert.ToPayloadPullRequest(ctx, pr, nil),
-			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
-			Sender:      convert.ToUser(ctx, doer, nil),
-		}).
-		WithPullRequest(pr).
+	payload.Index = pr.Issue.Index
+	payload.PullRequest = convert.ToPayloadPullRequest(ctx, pr, nil)
+	payload.Repository = convert.ToRepo(ctx, pr.Issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone})
+	payload.Sender = convert.ToUser(ctx, doer, nil)
+	newNotifyInput(pr.Issue.Repo, doer, event).WithRef(ref).WithPayload(payload).WithPullRequest(pr).Notify(ctx)
+}
+
+func (n *actionsNotifier) MergeGroupChanged(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, entry *pull_model.MergeQueueEntry, action api.HookMergeGroupAction, reason string) {
+	if action == api.HookMergeGroupDestroyed {
+		defer n.DeleteRef(ctx, doer, repo, git.RefName(entry.GroupRef)) // the queue branch is removed without hooks
+	}
+	ctx = withMethod(ctx, "MergeGroupChanged")
+
+	payload, commit, err := convert.ToMergeGroupPayload(ctx, doer, repo, entry, action, reason)
+	if err != nil || commit == nil {
+		log.Error("ToMergeGroupPayload %s: %v", entry.GroupRef, err)
+		return
+	}
+	if action == api.HookMergeGroupChecksRequested {
+		opts, commits := convert.ToMergeGroupPush(repo, entry, commit)
+		n.PushCommits(ctx, doer, repo, opts, commits)
+		n.CreateRef(ctx, doer, repo, opts.RefFullName, opts.NewCommitID)
+	}
+	newNotifyInput(repo, doer, webhook_module.HookEventMergeGroup).
+		WithRef(entry.GroupRef).
+		WithPayload(payload).
 		Notify(ctx)
 }
 

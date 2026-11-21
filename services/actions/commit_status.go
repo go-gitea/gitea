@@ -19,6 +19,7 @@ import (
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/glob"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
 	webhook_module "gitea.dev/modules/webhook"
@@ -83,6 +84,9 @@ func GetRunsFromCommitStatuses(ctx context.Context, repoID int64, statuses []*gi
 }
 
 func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, commitID string, _ error) {
+	if skipMergeGroupCommitStatus(run) {
+		return "", "", nil
+	}
 	switch run.Event {
 	case webhook_module.HookEventPush:
 		event = "push"
@@ -121,12 +125,26 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 		webhook_module.HookEventPullRequestReviewComment:
 		event = run.TriggerEvent
 		commitID = run.CommitSHA
-	case webhook_module.HookEventRelease, webhook_module.HookEventWorkflowDispatch:
+	case webhook_module.HookEventRelease, webhook_module.HookEventWorkflowDispatch, webhook_module.HookEventMergeGroup:
 		event = string(run.Event)
 		commitID = run.CommitSHA
 	default: // do nothing, return empty
 	}
 	return event, commitID, nil
+}
+
+func skipMergeGroupCommitStatus(run *actions_model.ActionRun) bool {
+	if run.Event != webhook_module.HookEventMergeGroup {
+		return false
+	}
+	var payload struct {
+		Action api.HookMergeGroupAction `json:"action"`
+	}
+	if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
+		log.Error("decode merge_group payload for run %d: %v", run.ID, err)
+		return true
+	}
+	return payload.Action != api.HookMergeGroupChecksRequested
 }
 
 func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID, scopedPrefix string, run *actions_model.ActionRun, job *actions_model.ActionRunJob, pendingFilter *pendingJobFilter) error {
@@ -184,6 +202,7 @@ func requiredStatusContextGlobs(ctx context.Context, repo *repo_model.Repository
 	if err != nil {
 		return nil, fmt.Errorf("EffectiveRequiredContexts: %w", err)
 	}
+	required = append(required, pull_service.MergeQueueRequiredContexts(required)...)
 	globs := make([]glob.Glob, 0, len(required))
 	for _, c := range required {
 		if gp, err := glob.Compile(c); err != nil {
@@ -229,6 +248,10 @@ func CreateSkippedCommitStatusForFilteredWorkflow(ctx context.Context, repo *rep
 			if triggerEvent == actions_module.GithubEventPullRequestTarget {
 				statusEvent = "pull_request_target"
 			}
+		}
+	case webhook_module.HookEventMergeGroup:
+		if group, ok := payload.(*api.MergeGroupPayload); ok && group.Action == api.HookMergeGroupChecksRequested && group.MergeGroup != nil {
+			statusEvent, commitID = string(event), group.MergeGroup.HeadSHA
 		}
 	}
 	if statusEvent == "" || commitID == "" {

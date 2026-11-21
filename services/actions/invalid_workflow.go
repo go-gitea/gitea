@@ -68,9 +68,11 @@ func insertInvalidWorkflowRun(ctx context.Context, run *actions_model.ActionRun,
 		log.Error("insert run for invalid workflow %q: %v", run.WorkflowID, err)
 		return
 	}
-	if err := createWorkflowCommitStatus(ctx, run.Repo, run.CommitSHA, run.WorkflowID+" ("+run.TriggerEvent+")", run.WorkflowID,
-		commitstatus.CommitStatusFailure, run.Link(), "Invalid workflow file", false); err != nil {
-		log.Error("create commit status for invalid workflow %q: %v", run.WorkflowID, err)
+	if !skipMergeGroupCommitStatus(run) {
+		if err := createWorkflowCommitStatus(ctx, run.Repo, run.CommitSHA, run.WorkflowID+" ("+run.TriggerEvent+")", run.WorkflowID,
+			commitstatus.CommitStatusFailure, run.Link(), "Invalid workflow file", false); err != nil {
+			log.Error("create commit status for invalid workflow %q: %v", run.WorkflowID, err)
+		}
 	}
 	NotifyWorkflowRunStatusUpdate(ctx, run)
 }

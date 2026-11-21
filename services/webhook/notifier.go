@@ -14,6 +14,7 @@ import (
 	packages_model "gitea.dev/models/packages"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -850,6 +851,18 @@ func (m *webhookNotifier) CreateRef(ctx context.Context, pusher *user_model.User
 }
 
 func (m *webhookNotifier) PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, before, after string) {
+	notifyPullRequestChange(ctx, doer, pr, webhook_module.HookEventPullRequestSync, &api.PullRequestPayload{
+		Action: api.HookIssueSynchronized, Before: before, After: after,
+	})
+}
+
+func (m *webhookNotifier) PullRequestMergeQueueChanged(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, enqueued bool, reason string) {
+	notifyPullRequestChange(ctx, doer, pr, webhook_module.HookEventPullRequest, &api.PullRequestPayload{
+		Action: util.Iif(enqueued, api.HookIssueEnqueued, api.HookIssueDequeued), Reason: reason,
+	})
+}
+
+func notifyPullRequestChange(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, event webhook_module.HookEventType, payload *api.PullRequestPayload) {
 	if err := pr.LoadIssue(ctx); err != nil {
 		log.Error("LoadIssue: %v", err)
 		return
@@ -858,17 +871,32 @@ func (m *webhookNotifier) PullRequestSynchronized(ctx context.Context, doer *use
 		log.Error("LoadAttributes: %v", err)
 		return
 	}
-
-	if err := PrepareWebhooks(ctx, EventSource{Repository: pr.Issue.Repo}, webhook_module.HookEventPullRequestSync, &api.PullRequestPayload{
-		Action:      api.HookIssueSynchronized,
-		Before:      before,
-		After:       after,
-		Index:       pr.Issue.Index,
-		PullRequest: convert.ToPayloadPullRequest(ctx, pr, doer),
-		Repository:  convert.ToRepo(ctx, pr.Issue.Repo, access_model.Permission{AccessMode: perm.AccessModeOwner}),
-		Sender:      convert.ToUser(ctx, doer, nil),
-	}); err != nil {
+	payload.Index = pr.Issue.Index
+	payload.PullRequest = convert.ToPayloadPullRequest(ctx, pr, doer)
+	payload.Repository = convert.ToRepo(ctx, pr.Issue.Repo, access_model.Permission{AccessMode: perm.AccessModeOwner})
+	payload.Sender = convert.ToUser(ctx, doer, nil)
+	if err := PrepareWebhooks(ctx, EventSource{Repository: pr.Issue.Repo}, event, payload); err != nil {
 		log.Error("PrepareWebhooks [pull_id: %v]: %v", pr.ID, err)
+	}
+}
+
+func (m *webhookNotifier) MergeGroupChanged(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, entry *pull_model.MergeQueueEntry, action api.HookMergeGroupAction, reason string) {
+	payload, commit, err := convert.ToMergeGroupPayload(ctx, doer, repo, entry, action, reason)
+	if err != nil {
+		log.Error("ToMergeGroupPayload: %v", err)
+		return
+	}
+	if action == api.HookMergeGroupDestroyed {
+		defer m.DeleteRef(ctx, doer, repo, git.RefName(entry.GroupRef))
+	} else if commit == nil {
+		log.Error("MergeGroupChanged: queue commit of %s is missing", entry.GroupRef)
+	} else {
+		opts, commits := convert.ToMergeGroupPush(repo, entry, commit)
+		m.PushCommits(ctx, doer, repo, opts, commits)
+		m.CreateRef(ctx, doer, repo, opts.RefFullName, opts.NewCommitID)
+	}
+	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventMergeGroup, payload); err != nil {
+		log.Error("PrepareWebhooks [merge_group %s]: %v", entry.GroupRef, err)
 	}
 }
 

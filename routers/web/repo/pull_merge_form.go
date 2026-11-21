@@ -6,6 +6,7 @@ package repo
 import (
 	"errors"
 	"html/template"
+	"strings"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
@@ -175,11 +176,21 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		"isMergeStateClean":            data.IsMergeStateClean,
 		"canMergeNow":                  canMergeNow,
 		"showAutoMerge":                canAutoMerge && (!canMergeNow || data.hasOverridableBlockers),
-		"canBypassMerge":               canMergeNow && data.hasOverridableBlockers,
+		"canBypassMerge":               canMergeNow && (data.hasOverridableBlockers || data.MergeQueueLink != "" && data.canBypassProtection),
 		"textBypassRules":              ctx.Locale.Tr("repo.pulls.merge_bypass_rules"),
 		"pullHeadCommitID":             prInfo.CompareInfo.HeadCommitID,
 		"defaultMergeStyle":            mergeStyle,
 		"mergeStyles":                  mergeStyles,
 		"mergeMessageFieldPlaceHolder": ctx.Locale.Tr("repo.editor.commit_message_desc"),
+	}
+	if data.MergeQueueLink != "" {
+		data.MergeFormProps["queue"] = map[string]any{
+			"style":    prInfo.ProtectedBranchRule.MergeQueue.WithDefaults().MergeMethod,
+			"button":   ctx.Tr("repo.pulls.merge_queue.merge_when_ready"),
+			"confirm":  ctx.Tr("repo.pulls.merge_queue.confirm_merge_when_ready"),
+			"link":     data.MergeQueueLink,
+			"linkText": ctx.Locale.TrString("repo.pulls.merge_queue.name"),
+			"help":     strings.SplitN(ctx.Locale.TrString("repo.pulls.merge_queue.help", "%s", pull.BaseBranch), "%s", 2),
+		}
 	}
 }

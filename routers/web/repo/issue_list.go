@@ -16,6 +16,7 @@ import (
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -579,6 +580,17 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 	}
 
 	if err := issues.LoadAttributes(ctx); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+
+	var pullIDs []int64
+	for _, issue := range issues {
+		if issue.PullRequest != nil {
+			pullIDs = append(pullIDs, issue.PullRequest.ID)
+		}
+	}
+	if ctx.Data["QueuedPulls"], err = pull_model.GetQueuedPullIDs(ctx, pullIDs); err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}

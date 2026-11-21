@@ -11,11 +11,13 @@ import (
 	issues_model "gitea.dev/models/issues"
 	packages_model "gitea.dev/models/packages"
 	project_model "gitea.dev/models/project"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/repository"
+	api "gitea.dev/modules/structs"
 )
 
 var notifiers []Notifier
@@ -118,6 +120,39 @@ func MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_mod
 
 	for _, notifier := range notifiers {
 		notifier.MergePullRequest(ctx, doer, pr)
+	}
+}
+
+var dequeueReasons = map[issues_model.MergeQueueRemovalReason]string{
+	issues_model.MergeQueueRemovedByUser:        "MANUAL",
+	issues_model.MergeQueueRemovedClosed:        "MANUAL",
+	issues_model.MergeQueueRemovedMerged:        "MERGE",
+	issues_model.MergeQueueRemovedAlreadyMerged: "ALREADY_MERGED",
+	issues_model.MergeQueueRemovedChecksFailed:  "CI_FAILURE",
+	issues_model.MergeQueueRemovedChecksTimeout: "CI_TIMEOUT",
+	issues_model.MergeQueueRemovedConflict:      "MERGE_CONFLICT",
+	issues_model.MergeQueueRemovedNotMergeable:  "BRANCH_PROTECTIONS",
+	issues_model.MergeQueueRemovedBaseDeleted:   "QUEUE_CLEARED",
+	issues_model.MergeQueueRemovedCleared:       "QUEUE_CLEARED",
+}
+
+func PullRequestMergeQueueChanged(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, reason issues_model.MergeQueueRemovalReason) {
+	defer recoverPanic()
+
+	hookReason := dequeueReasons[reason]
+	if reason != "" && hookReason == "" {
+		hookReason = "UNKNOWN_REMOVAL_REASON"
+	}
+	for _, notifier := range notifiers {
+		notifier.PullRequestMergeQueueChanged(ctx, doer, pr, reason == "", hookReason)
+	}
+}
+
+func MergeGroupChanged(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, entry *pull_model.MergeQueueEntry, action api.HookMergeGroupAction, reason string) {
+	defer recoverPanic()
+
+	for _, notifier := range notifiers {
+		notifier.MergeGroupChanged(ctx, doer, repo, entry, action, reason)
 	}
 }
 

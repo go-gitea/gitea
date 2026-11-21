@@ -1476,6 +1476,9 @@ func Routes() *web.Router {
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
 							Post(reqToken(), mustNotBeArchived, bind(forms.MergePullRequestForm{}), repo.MergePullRequest).
 							Delete(reqToken(), mustNotBeArchived, repo.CancelScheduledAutoMerge)
+						m.Combo("/merge-queue", reqToken(), mustNotBeArchived).
+							Post(bind(api.AddToMergeQueueOption{}), repo.AddPullRequestToMergeQueue).
+							Delete(repo.RemovePullRequestFromMergeQueue)
 						m.Group("/reviews", func() {
 							m.Combo("").
 								Get(repo.ListPullReviews).
@@ -1498,6 +1501,7 @@ func Routes() *web.Router {
 					})
 					m.Get("/{base}/*", repo.GetPullRequestByBaseHead)
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
+				m.Get("/merge-queue/*", mustAllowPulls, reqRepoReader(unit.TypeCode), repo.ListMergeQueue)
 				m.Group("/commits", func() {
 					m.Group("", func() {
 						m.Get("", repo.GetAllCommits)
