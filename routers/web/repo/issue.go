@@ -247,7 +247,7 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)) {
+	if !issue_service.CanEditIssue(ctx.Doer, ctx.Repo.Permission, issue) {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
@@ -275,7 +275,7 @@ func UpdateIssueRef(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)) || issue.IsPull {
+	if issue.IsPull || !issue_service.CanEditIssue(ctx.Doer, ctx.Repo.Permission, issue) {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
@@ -299,7 +299,7 @@ func UpdateIssueContent(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)) {
+	if !issue_service.CanEditIssue(ctx.Doer, ctx.Repo.Permission, issue) {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}

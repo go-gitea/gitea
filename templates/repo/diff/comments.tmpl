@@ -59,8 +59,7 @@
 			</div>
 		</div>
 		<div class="ui attached segment comment-body">
-			{{$doerIsPoster := eq $signedUserID $comment.PosterID}}
-			<div class="render-content markup" {{if or $canWrite $doerIsPoster}}data-can-edit="true"{{end}}>
+			<div class="render-content markup" {{if or $canWrite (and (eq $signedUserID $comment.PosterID) (not $issue.IsLocked))}}data-can-edit="true"{{end}}>
 			{{if $comment.RenderedContent}}
 				{{$comment.RenderedContent}}
 			{{else}}

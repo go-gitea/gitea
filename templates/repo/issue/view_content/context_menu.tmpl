@@ -7,8 +7,8 @@
 {{$issueHTMLURL := ctx.RootData.Issue.HTMLURL ctx -}}
 {{$referenceHTMLURL := printf "%s%s#%s" $issueHTMLURL (Iif $isPagePrFiles "/files" "") $item.HashTag -}}
 
-{{$isCommentPoster := and ctx.RootData.IsSigned (eq ctx.RootData.SignedUserID $item.PosterID) -}}
-{{$canEditContent := or ctx.RootData.Permission.IsAdmin ctx.RootData.HasIssuesOrPullsWritePermission $isCommentPoster -}}
+{{$isCommentPoster := Iif (eq $type "issue_main") ctx.RootData.IsIssuePoster (and ctx.RootData.IsSigned (eq ctx.RootData.SignedUserID $item.PosterID)) -}}
+{{$canEditContent := or ctx.RootData.HasIssuesOrPullsWritePermission (and $isCommentPoster (not ctx.RootData.Issue.IsLocked)) -}}
 
 <div class="item action ui dropdown jump pointing top right">
 	{{svg "octicon-kebab-horizontal"}}
