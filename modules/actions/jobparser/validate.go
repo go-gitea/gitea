@@ -194,14 +194,19 @@ func runsOnLabelsProblem(node *yaml.Node) string {
 	return ""
 }
 
+// RunsOnGroupScopes maps github.com's runs-on group prefixes to whether they pin an owner-level group
+var RunsOnGroupScopes = map[string]bool{"org": true, "organization": true, "ent": false, "enterprise": false}
+
 func runsOnGroupProblem(node *yaml.Node) string {
 	if problem := nonEmptyStringProblem(node); problem != "" || hasExpression(node.Value) {
 		return problem
 	}
-	switch prefix, name, found := strings.Cut(node.Value, "/"); {
+	prefix, name, found := strings.Cut(node.Value, "/")
+	_, knownPrefix := RunsOnGroupScopes[prefix]
+	switch {
 	case found && name == "":
 		return fmt.Sprintf("Invalid runs-on group name '%s'.", node.Value)
-	case found && (strings.Contains(name, "/") || !slices.Contains([]string{"org", "organization", "ent", "enterprise"}, prefix)):
+	case found && (strings.Contains(name, "/") || !knownPrefix):
 		return fmt.Sprintf("Invalid runs-on group name '%s'. Please use 'organization/' or 'enterprise/' prefix to target a single runner group.", node.Value)
 	}
 	return ""

@@ -9,6 +9,7 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
@@ -45,10 +46,14 @@ func TestTransferOwnership(t *testing.T) {
 	assert.NoError(t, sourceRepo.LoadOwner(t.Context()))
 	repoTransfer := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoTransfer{ID: 1})
 	assert.NoError(t, repoTransfer.LoadAttributes(t.Context()))
+	oldOwnerGroup, groupErr := actions_model.CreateRunnerGroup(t.Context(), sourceRepo.OwnerID, "gpu")
+	require.NoError(t, groupErr)
+	require.NoError(t, db.Insert(t.Context(), &actions_model.ActionRunnerAccess{GroupID: oldOwnerGroup.ID, RepoID: sourceRepo.ID}))
 	for _, ownerID := range []int64{0, sourceRepo.OwnerID, 1} {
 		require.NoError(t, actions_model.AddScopedWorkflowSource(t.Context(), ownerID, sourceRepo.ID))
 	}
 	assert.NoError(t, AcceptTransferOwnership(t.Context(), sourceRepo, doer))
+	unittest.AssertNotExistsBean(t, &actions_model.ActionRunnerAccess{GroupID: oldOwnerGroup.ID, RepoID: sourceRepo.ID})
 
 	transferredRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	assert.EqualValues(t, 1, transferredRepo.OwnerID) // repo_transfer.yml id=1
