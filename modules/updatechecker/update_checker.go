@@ -5,6 +5,7 @@ package updatechecker
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -25,6 +26,10 @@ func (CheckerState) StateName() string {
 	return "update-checker"
 }
 
+// maxUpdateCheckerResponseSize bounds the version-check response body.
+// A normal response is only a few dozen bytes.
+const maxUpdateCheckerResponseSize = 16 * 1024
+
 // GiteaUpdateChecker returns error when new version of Gitea is available
 func GiteaUpdateChecker(httpEndpoint string) error {
 	httpClient := &http.Client{
@@ -42,9 +47,12 @@ func GiteaUpdateChecker(httpEndpoint string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxUpdateCheckerResponseSize+1))
 	if err != nil {
 		return err
+	}
+	if len(body) > maxUpdateCheckerResponseSize {
+		return fmt.Errorf("GiteaUpdateChecker: response from update server exceeds %d bytes", maxUpdateCheckerResponseSize)
 	}
 
 	type respType struct {
