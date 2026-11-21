@@ -81,3 +81,12 @@ func TestMinutesToFriendly(t *testing.T) {
 	test("1 hour, 2 minutes", 62)
 	test("2 hours", 120)
 }
+
+func TestIsValidYear(t *testing.T) {
+	assert.False(t, IsValidYear(0))
+	assert.False(t, IsValidYear(1969))
+	assert.True(t, IsValidYear(1970))
+	assert.True(t, IsValidYear(2026))
+	assert.True(t, IsValidYear(9999))
+	assert.False(t, IsValidYear(10000))
+}
