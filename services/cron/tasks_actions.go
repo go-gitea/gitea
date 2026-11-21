@@ -73,7 +73,7 @@ func registerActionsCleanup() {
 		Schedule:   "@midnight",
 	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return actions_service.Cleanup(ctx)
-	})
+	}, WithGroup(cronGroupCleanup))
 }
 
 func registerCleanupActionRuns() {
@@ -83,5 +83,5 @@ func registerCleanupActionRuns() {
 		Schedule:   "@midnight",
 	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return actions_service.CleanupOldRuns(ctx)
-	})
+	}, WithGroup(cronGroupCleanup))
 }
