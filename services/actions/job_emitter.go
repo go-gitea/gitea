@@ -51,6 +51,36 @@ func EmitJobsIfReadyByJobs(jobs []*actions_model.ActionRunJob) {
 	}
 }
 
+// ReEmitUnresolvedJobs re-derives the job-emitter emissions for every run whose latest attempt
+// still has unresolved jobs. It repairs the runs a lost emitter transition strands (#40279):
+// a job's completion is persisted first, and the check that resolves its dependents is only
+// queued afterwards, so a process that dies in between — or a queued check lost before its
+// handler commits — leaves the run's pending and blocked jobs un-evaluated forever. The other
+// sweeps only inspect running tasks and jobs, so they cannot see the stall. Re-checking a run
+// is idempotent (a consistent run resolves to a no-op pass), so it is safe at startup and on
+// a schedule.
+func ReEmitUnresolvedJobs(ctx context.Context) error {
+	// Pending (needs unfinished) and blocked (needs done, held by concurrency or a deferred
+	// expansion) are the statuses only an emitter pass resolves. Waiting jobs are ready and
+	// dispatched through the task queue, and a run awaiting approval is emitted by ApproveRuns.
+	// The join restricts the check to the run's latest attempt, like checkJobsByRunID does.
+	var runIDs []int64
+	if err := db.GetEngine(ctx).Table("action_run_job").
+		Join("INNER", "action_run", "action_run.id = action_run_job.run_id AND action_run.latest_attempt_id = action_run_job.run_attempt_id").
+		Where("`action_run_job`.`status` IN (?, ?)", actions_model.StatusPending, actions_model.StatusBlocked).
+		And("`action_run`.`need_approval` = ?", false).
+		Distinct("`action_run_job`.`run_id`").
+		Find(&runIDs); err != nil {
+		return fmt.Errorf("find runs with unresolved jobs: %w", err)
+	}
+	for _, runID := range runIDs {
+		if err := EmitJobsIfReadyByRun(runID); err != nil {
+			log.Error("re-emit unresolved jobs of run %d: %v", runID, err)
+		}
+	}
+	return nil
+}
+
 func jobEmitterQueueHandler(items ...*jobUpdate) []*jobUpdate {
 	ctx := graceful.GetManager().ShutdownContext()
 	var ret []*jobUpdate

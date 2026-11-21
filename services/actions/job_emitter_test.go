@@ -894,3 +894,120 @@ func Test_jobEmitterQueueHandler_DeletedRunIsNotRequeued(t *testing.T) {
 	assert.Empty(t, jobEmitterQueueHandler(&jobUpdate{RunID: unittest.NonexistentID}),
 		"an update for a deleted run must be dropped, not returned as unhandled")
 }
+
+// Test_ReEmitUnresolvedJobs covers go-gitea/gitea#40279: when a job-completion transition is
+// lost (the emitter pass for the run never ran), its dependent jobs stay pending/blocked
+// forever, because every sweep only inspects running tasks and jobs. The re-emit sweep must
+// find such runs from persisted state and queue their check again. Runs whose check would be
+// a no-op must not be re-emitted.
+func Test_ReEmitUnresolvedJobs(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	// seedStalledRun creates the state a lost transition leaves behind: a finished job whose
+	// dependents were never resolved, with no queued emitter pass anymore.
+	seedStalledRun := func(t *testing.T, index int64) (*actions_model.ActionRun, *actions_model.ActionRunJob) {
+		t.Helper()
+		run, attempt := createRunAttempt(t, index, "", actions_model.StatusRunning)
+		_, err := db.Exec(ctx, "UPDATE `action_run` SET latest_attempt_id = ? WHERE id = ?", attempt.ID, run.ID)
+		require.NoError(t, err)
+		run.LatestAttemptID = attempt.ID
+		require.NoError(t, db.Insert(ctx, &actions_model.ActionRunJob{
+			RunID: run.ID, RunAttemptID: attempt.ID, AttemptJobID: 1,
+			RepoID: run.RepoID, OwnerID: run.OwnerID,
+			JobID: "build", Name: "build", Status: actions_model.StatusSuccess,
+		}))
+		dependent := &actions_model.ActionRunJob{
+			RunID: run.ID, RunAttemptID: attempt.ID, AttemptJobID: 2,
+			RepoID: run.RepoID, OwnerID: run.OwnerID,
+			JobID: "deploy", Name: "deploy", Status: actions_model.StatusPending, Needs: []string{"build"},
+			WorkflowPayload: minimalWorkflowPayload("deploy"),
+		}
+		require.NoError(t, db.Insert(ctx, dependent))
+		return run, dependent
+	}
+
+	captureEmits := func(t *testing.T) *[]int64 {
+		t.Helper()
+		emitted := &[]int64{}
+		prev := EmitJobsIfReadyByRun
+		EmitJobsIfReadyByRun = func(runID int64) error {
+			*emitted = append(*emitted, runID)
+			return nil
+		}
+		t.Cleanup(func() { EmitJobsIfReadyByRun = prev })
+		return emitted
+	}
+
+	t.Run("a run stranded by a lost transition is re-emitted and its dependents resolve", func(t *testing.T) {
+		run, dependent := seedStalledRun(t, 93001)
+		emitted := captureEmits(t)
+
+		require.NoError(t, ReEmitUnresolvedJobs(ctx))
+		assert.Contains(t, *emitted, run.ID, "a run with unresolved jobs must be re-emitted")
+
+		// the re-queued check resolves the dependent, exactly like the lost pass would have
+		require.NoError(t, checkJobsByRunID(ctx, run.ID))
+		assert.Equal(t, actions_model.StatusWaiting,
+			unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: dependent.ID}).Status)
+	})
+
+	t.Run("runs whose check would be a no-op are not re-emitted", func(t *testing.T) {
+		emitted := captureEmits(t)
+
+		// a run whose jobs are all done
+		runDone, attemptDone := createRunAttempt(t, 93002, "", actions_model.StatusSuccess)
+		require.NoError(t, db.Insert(ctx, &actions_model.ActionRunJob{
+			RunID: runDone.ID, RunAttemptID: attemptDone.ID, AttemptJobID: 1,
+			RepoID: runDone.RepoID, OwnerID: runDone.OwnerID,
+			JobID: "ok", Name: "ok", Status: actions_model.StatusSuccess,
+		}))
+
+		// a ready (waiting) job is dispatched through the task queue, not the emitter
+		runWaiting, attemptWaiting := createRunAttempt(t, 93003, "", actions_model.StatusRunning)
+		require.NoError(t, db.Insert(ctx, &actions_model.ActionRunJob{
+			RunID: runWaiting.ID, RunAttemptID: attemptWaiting.ID, AttemptJobID: 1,
+			RepoID: runWaiting.RepoID, OwnerID: runWaiting.OwnerID,
+			JobID: "ready", Name: "ready", Status: actions_model.StatusWaiting,
+		}))
+
+		// a run awaiting approval is emitted once approved
+		runApproval := &actions_model.ActionRun{
+			RepoID: 1, OwnerID: 2, TriggerUserID: 2, WorkflowID: "test.yml",
+			Index: 93004, Ref: "refs/heads/main", Status: actions_model.StatusBlocked, NeedApproval: true,
+		}
+		require.NoError(t, db.Insert(ctx, runApproval))
+		attemptApproval := &actions_model.ActionRunAttempt{RepoID: 1, RunID: runApproval.ID, Attempt: 1, Status: actions_model.StatusBlocked}
+		require.NoError(t, db.Insert(ctx, attemptApproval))
+		_, err := db.Exec(ctx, "UPDATE `action_run` SET latest_attempt_id = ? WHERE id = ?", attemptApproval.ID, runApproval.ID)
+		require.NoError(t, err)
+		require.NoError(t, db.Insert(ctx, &actions_model.ActionRunJob{
+			RunID: runApproval.ID, RunAttemptID: attemptApproval.ID, AttemptJobID: 1,
+			RepoID: runApproval.RepoID, OwnerID: runApproval.OwnerID,
+			JobID: "gated", Name: "gated", Status: actions_model.StatusBlocked,
+		}))
+
+		// a pending job of a superseded attempt never blocks the latest one
+		runRerun := &actions_model.ActionRun{
+			RepoID: 1, OwnerID: 2, TriggerUserID: 2, WorkflowID: "test.yml",
+			Index: 93005, Ref: "refs/heads/main", Status: actions_model.StatusRunning,
+		}
+		require.NoError(t, db.Insert(ctx, runRerun))
+		attemptRerunOld := &actions_model.ActionRunAttempt{RepoID: 1, RunID: runRerun.ID, Attempt: 1, Status: actions_model.StatusFailure}
+		require.NoError(t, db.Insert(ctx, attemptRerunOld))
+		attemptRerunNew := &actions_model.ActionRunAttempt{RepoID: 1, RunID: runRerun.ID, Attempt: 2, Status: actions_model.StatusRunning}
+		require.NoError(t, db.Insert(ctx, attemptRerunNew))
+		_, err = db.Exec(ctx, "UPDATE `action_run` SET latest_attempt_id = ? WHERE id = ?", attemptRerunNew.ID, runRerun.ID)
+		require.NoError(t, err)
+		require.NoError(t, db.Insert(ctx, &actions_model.ActionRunJob{
+			RunID: runRerun.ID, RunAttemptID: attemptRerunOld.ID, AttemptJobID: 1,
+			RepoID: runRerun.RepoID, OwnerID: runRerun.OwnerID,
+			JobID: "stale", Name: "stale", Status: actions_model.StatusPending,
+		}))
+
+		require.NoError(t, ReEmitUnresolvedJobs(ctx))
+		for _, run := range []*actions_model.ActionRun{runDone, runWaiting, runApproval, runRerun} {
+			assert.NotContains(t, *emitted, run.ID)
+		}
+	})
+}
