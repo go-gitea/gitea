@@ -48,6 +48,10 @@ func SearchIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: Comma-separated list of label names. Fetch only issues that have any of these labels. Non existent labels are discarded.
 	//   type: string
+	// - name: exclude_labels
+	//   in: query
+	//   description: Comma-separated list of label names. Fetch only issues that have none of these labels. Non existent labels are discarded.
+	//   type: string
 	// - name: milestones
 	//   in: query
 	//   description: Comma-separated list of milestone names. Fetch only issues that have any of these milestones. Non existent milestones are discarded.
@@ -164,6 +168,15 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 	}
 
+	var excludedLabels []int64
+	if names := ctx.FormTrim("exclude_labels"); names != "" {
+		excludedLabels, err = issues_model.GetLabelIDsByNames(ctx, strings.Split(names, ","))
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+
 	var includedMilestones []int64
 	{
 		milestones := ctx.FormTrim("milestones")
@@ -191,6 +204,7 @@ func SearchIssues(ctx *context.APIContext) {
 		IsPull:              isPull,
 		IsClosed:            isClosed,
 		IncludedAnyLabelIDs: includedAnyLabels,
+		ExcludedLabelIDs:    excludedLabels,
 		MilestoneIDs:        includedMilestones,
 		SortBy:              issue_indexer.SortByCreatedDesc,
 	}
@@ -272,6 +286,10 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: comma separated list of label names. Fetch only issues that have any of this label names. Non existent labels are discarded.
 	//   type: string
+	// - name: exclude_labels
+	//   in: query
+	//   description: Comma-separated list of label names. Fetch only issues that have none of these labels. Non existent labels are discarded.
+	//   type: string
 	// - name: q
 	//   in: query
 	//   description: search string
@@ -334,6 +352,15 @@ func ListIssues(ctx *context.APIContext) {
 	var labelIDs []int64
 	if labelsParam := ctx.FormTrim("labels"); labelsParam != "" {
 		labelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, strings.Split(labelsParam, ","))
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+
+	var excludedLabelIDs []int64
+	if names := ctx.FormTrim("exclude_labels"); names != "" {
+		excludedLabelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, strings.Split(names, ","))
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -416,6 +443,7 @@ func ListIssues(ctx *context.APIContext) {
 				searchOpt.ExcludedLabelIDs = append(searchOpt.ExcludedLabelIDs, -labelID)
 			}
 		}
+		searchOpt.ExcludedLabelIDs = append(searchOpt.ExcludedLabelIDs, excludedLabelIDs...)
 	}
 
 	if len(mileIDs) == 1 && mileIDs[0] == db.NoConditionID {
