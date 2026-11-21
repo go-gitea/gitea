@@ -43,16 +43,17 @@
 		{{end}}
 		<div class="field">
 			<label for="disclosure-severity">{{ctx.Locale.Tr "repo.security.severity"}}</label>
-			<select id="disclosure-severity" class="ui selection dropdown" name="severity" required>
+			<select id="disclosure-severity" class="ui selection dropdown" name="severity">
 				{{range .AllSeverities}}
 					<option value="{{.}}" {{if eq (printf "%s" .) (or $.severity "moderate")}}selected{{end}}>{{ctx.Locale.Tr (print "repo.security.severity_" .)}}</option>
 				{{end}}
 			</select>
+			<p class="help">{{ctx.Locale.Tr "repo.security.severity_help"}}</p>
 		</div>
 		<div class="divider"></div>
 		<div class="field">
 			<label for="disclosure-cvss">{{ctx.Locale.Tr "repo.security.cvss_vector"}}</label>
-			<input id="disclosure-cvss" name="cvss_vector" value="{{.cvss_vector}}" maxlength="128" placeholder="CVSS:3.1/AV:N/...">
+			<input id="disclosure-cvss" name="cvss_vector" value="{{.cvss_vector}}" maxlength="128" placeholder="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H">
 			<p class="help">{{ctx.Locale.Tr "repo.security.cvss_vector_help"}}</p>
 		</div>
 		<div class="divider"></div>

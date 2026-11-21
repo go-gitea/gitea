@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"html/template"
 	"slices"
-	"strings"
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cvss"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
@@ -105,10 +105,7 @@ func (l StringList) ToDB() ([]byte, error) {
 	return json.Marshal(l)
 }
 
-// cvssVectorPrefixes are the accepted CVSS vector prefixes, they encode the CVSS version
-var cvssVectorPrefixes = []string{"CVSS:3.0/", "CVSS:3.1/", "CVSS:4.0/"}
-
-// ValidateCVSSVector checks that a CVSS vector string carries a known CVSS version prefix
+// ValidateCVSSVector checks that a CVSS vector string is a well-formed CVSS 3.0/3.1/4.0 vector
 func ValidateCVSSVector(v string) error {
 	if v == "" {
 		return nil
@@ -116,22 +113,34 @@ func ValidateCVSSVector(v string) error {
 	if len(v) > 128 {
 		return util.NewInvalidArgumentErrorf("CVSS vector too long")
 	}
-	for _, prefix := range cvssVectorPrefixes {
-		if strings.HasPrefix(v, prefix) {
-			return nil
-		}
+	if _, err := cvss.Parse(v); err != nil {
+		return util.NewInvalidArgumentErrorf("invalid CVSS vector: %s", err.Error())
 	}
-	return util.NewInvalidArgumentErrorf("invalid CVSS vector, must start with one of %s", strings.Join(cvssVectorPrefixes, ", "))
+	return nil
 }
 
 // CVSSVersion returns the CVSS version ("3.0", "3.1" or "4.0") encoded in the vector prefix, or ""
 func CVSSVersion(v string) string {
-	for _, prefix := range cvssVectorPrefixes {
-		if strings.HasPrefix(v, prefix) {
-			return strings.TrimSuffix(strings.TrimPrefix(prefix, "CVSS:"), "/")
-		}
+	if vec, err := cvss.Parse(v); err == nil {
+		return vec.Version
 	}
 	return ""
+}
+
+// SeverityFromCVSS maps a CVSS qualitative severity rating to a disclosure severity
+func SeverityFromCVSS(s cvss.Severity) Severity {
+	switch s {
+	case cvss.SeverityNone:
+		return SeverityInformative
+	case cvss.SeverityLow:
+		return SeverityLow
+	case cvss.SeverityMedium:
+		return SeverityModerate
+	case cvss.SeverityHigh:
+		return SeverityHigh
+	default:
+		return SeverityCritical
+	}
 }
 
 // Disclosure represents a security disclosure of a repository.
@@ -286,6 +295,24 @@ func DeleteDisclosureByID(ctx context.Context, repoID, id int64) error {
 		_, err = db.GetEngine(ctx).Where(builder.Eq{"disclosure_id": id}).Delete(new(Version))
 		return err
 	})
+}
+
+// ParseCVSS parses the disclosure's CVSS vector, returning nil if there is none
+// (vectors are validated on write, so a stored vector always parses)
+func (d *Disclosure) ParseCVSS() *cvss.Vector {
+	vec, err := cvss.Parse(d.CVSSVector)
+	if err != nil {
+		return nil
+	}
+	return vec
+}
+
+// CVSSScore returns the CVSS base score of the disclosure's vector, or 0 if there is none
+func (d *Disclosure) CVSSScore() float64 {
+	if vec := d.ParseCVSS(); vec != nil {
+		return vec.BaseScore()
+	}
+	return 0
 }
 
 // LoadAttributes loads the relations of the disclosure

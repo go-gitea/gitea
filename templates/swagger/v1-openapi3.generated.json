@@ -4956,7 +4956,7 @@
             "x-go-name": "CveID"
           },
           "cvss_vector": {
-            "description": "Optional CVSS vector, must start with CVSS:3.0/, CVSS:3.1/ or CVSS:4.0/",
+            "description": "Optional CVSS vector, e.g. \"CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H\" (CVSS 3.0/3.1/4.0)",
             "type": "string",
             "x-go-name": "CVSSVector"
           },
@@ -4995,15 +4995,12 @@
             "x-go-name": "References"
           },
           "severity": {
-            "enum": [
-              "informative",
-              "low",
-              "moderate",
-              "high",
-              "critical"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SecurityDisclosureSeverity"
+              }
             ],
-            "type": "string",
-            "x-go-name": "Severity"
+            "description": "Required when cvss_vector is not set; when a CVSS vector is set, the severity is derived from it"
           },
           "summary": {
             "description": "A short plain-text summary",
@@ -5016,8 +5013,7 @@
           }
         },
         "required": [
-          "title",
-          "severity"
+          "title"
         ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
@@ -6447,8 +6443,12 @@
             "x-go-name": "References"
           },
           "severity": {
-            "type": "string",
-            "x-go-name": "Severity"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SecurityDisclosureSeverity"
+              }
+            ],
+            "description": "When cvss_vector is set, the severity is derived from it instead"
           },
           "status": {
             "enum": [
@@ -10693,6 +10693,12 @@
       "SecurityDisclosureCVSS": {
         "description": "with the CVSS version encoded in the vector prefix",
         "properties": {
+          "score": {
+            "description": "The CVSS base score computed from the vector (0.0 - 10.0)",
+            "format": "double",
+            "type": "number",
+            "x-go-name": "Score"
+          },
           "vector": {
             "description": "The CVSS vector string, e.g. \"CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H\"",
             "type": "string",
@@ -10707,6 +10713,16 @@
         "title": "SecurityDisclosureCVSS is the optional CVSS vector of a security disclosure,",
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
+      },
+      "SecurityDisclosureSeverity": {
+        "enum": [
+          "informative",
+          "low",
+          "moderate",
+          "high",
+          "critical"
+        ],
+        "type": "string"
       },
       "ServerVersion": {
         "description": "ServerVersion wraps the version of the server",

@@ -10,8 +10,11 @@ import (
 )
 
 func validateDisclosureSeverity(severity string, ctx *middleware.ValidateContext, errs validation.BindingErrors) validation.BindingErrors {
-	if _, err := disclosure_model.ParseSeverity(severity); err != nil {
-		errs = validation.AddValidationError(errs, "Severity", ctx.Locale.TrString("repo.security.invalid_severity"))
+	// empty severity is fine when a CVSS vector is set, the service derives it then
+	if severity != "" {
+		if _, err := disclosure_model.ParseSeverity(severity); err != nil {
+			errs = validation.AddValidationError(errs, "Severity", ctx.Locale.TrString("repo.security.invalid_severity"))
+		}
 	}
 	return errs
 }
@@ -22,7 +25,7 @@ type NewDisclosureForm struct {
 	Title            string `binding:"Required;MaxSize(255)"`
 	Summary          string `binding:"MaxSize(4096)"`
 	Content          string
-	Severity         string `binding:"Required"`
+	Severity         string
 	CVSSVector       string `binding:"MaxSize(128)"`
 	CweIds           string
 	CveID            string `binding:"MaxSize(64)"`
@@ -43,7 +46,7 @@ type EditDisclosureForm struct {
 	Title            string `binding:"Required;MaxSize(255)"`
 	Summary          string `binding:"MaxSize(4096)"`
 	Content          string
-	Severity         string `binding:"Required"`
+	Severity         string
 	CVSSVector       string `binding:"MaxSize(128)"`
 	CweIds           string
 	CveID            string `binding:"MaxSize(64)"`

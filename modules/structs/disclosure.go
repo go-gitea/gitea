@@ -7,6 +7,20 @@ import (
 	"time"
 )
 
+// SecurityDisclosureSeverity is the severity of a security disclosure, set manually
+// or derived from the CVSS base score when a CVSS vector is provided
+//
+// swagger:enum SecurityDisclosureSeverity
+type SecurityDisclosureSeverity string
+
+const (
+	SecurityDisclosureSeverityInformative SecurityDisclosureSeverity = "informative"
+	SecurityDisclosureSeverityLow         SecurityDisclosureSeverity = "low"
+	SecurityDisclosureSeverityModerate    SecurityDisclosureSeverity = "moderate"
+	SecurityDisclosureSeverityHigh        SecurityDisclosureSeverity = "high"
+	SecurityDisclosureSeverityCritical    SecurityDisclosureSeverity = "critical"
+)
+
 // SecurityDisclosureCVSS is the optional CVSS vector of a security disclosure,
 // with the CVSS version encoded in the vector prefix
 type SecurityDisclosureCVSS struct {
@@ -14,6 +28,8 @@ type SecurityDisclosureCVSS struct {
 	Version string `json:"version"`
 	// The CVSS vector string, e.g. "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
 	Vector string `json:"vector"`
+	// The CVSS base score computed from the vector (0.0 - 10.0)
+	Score float64 `json:"score"`
 }
 
 // SecurityDisclosure represents a repository security disclosure
@@ -70,10 +86,9 @@ type CreateSecurityDisclosureOption struct {
 	Summary string `json:"summary"`
 	// The full description, in markdown
 	Description string `json:"description"`
-	// required: true
-	// enum: informative,low,moderate,high,critical
-	Severity string `json:"severity" binding:"Required"`
-	// Optional CVSS vector, must start with CVSS:3.0/, CVSS:3.1/ or CVSS:4.0/
+	// Required when cvss_vector is not set; when a CVSS vector is set, the severity is derived from it
+	Severity SecurityDisclosureSeverity `json:"severity"`
+	// Optional CVSS vector, e.g. "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H" (CVSS 3.0/3.1/4.0)
 	CVSSVector string `json:"cvss_vector"`
 	// CWE identifiers, e.g. ["CWE-79"]
 	CweIds []string `json:"cwe_ids"`
@@ -91,16 +106,17 @@ type CreateSecurityDisclosureOption struct {
 
 // EditSecurityDisclosureOption options for editing a security disclosure; empty fields are left unchanged
 type EditSecurityDisclosureOption struct {
-	Title            string   `json:"title"`
-	Summary          string   `json:"summary"`
-	Description      string   `json:"description"`
-	Severity         string   `json:"severity"` // enum: informative,low,moderate,high,critical
-	CVSSVector       string   `json:"cvss_vector"`
-	CweIds           []string `json:"cwe_ids"`
-	CveID            string   `json:"cve_id"`
-	References       []string `json:"references"`
-	AffectedVersions []string `json:"affected_versions"` // null keeps, [] clears
-	FixedVersions    []string `json:"fixed_versions"`    // null keeps, [] clears
+	Title       string `json:"title"`
+	Summary     string `json:"summary"`
+	Description string `json:"description"`
+	// When cvss_vector is set, the severity is derived from it instead
+	Severity         SecurityDisclosureSeverity `json:"severity"`
+	CVSSVector       string                     `json:"cvss_vector"`
+	CweIds           []string                   `json:"cwe_ids"`
+	CveID            string                     `json:"cve_id"`
+	References       []string                   `json:"references"`
+	AffectedVersions []string                   `json:"affected_versions"` // null keeps, [] clears
+	FixedVersions    []string                   `json:"fixed_versions"`    // null keeps, [] clears
 	// enum: draft,published,withdrawn
 	Status string `json:"status"`
 	// The reason for withdrawing the disclosure, required when status is set to "withdrawn"

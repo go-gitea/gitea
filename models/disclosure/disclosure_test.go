@@ -39,12 +39,14 @@ func TestParseStatus(t *testing.T) {
 func TestValidateCVSSVector(t *testing.T) {
 	assert.NoError(t, ValidateCVSSVector(""))
 	assert.NoError(t, ValidateCVSSVector("CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"))
+	assert.NoError(t, ValidateCVSSVector("CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"))
 	assert.NoError(t, ValidateCVSSVector("CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:H/SI:H/SA:H"))
-	assert.NoError(t, ValidateCVSSVector("CVSS:3.0/AV:N"))
+	assert.Error(t, ValidateCVSSVector("CVSS:3.0/AV:N"))                                // missing mandatory metrics
+	assert.Error(t, ValidateCVSSVector("CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:X")) // invalid value
 	assert.Error(t, ValidateCVSSVector("AV:N/AC:L"))
-	assert.Error(t, ValidateCVSSVector("CVSS:2.0/AV:N"))
-	assert.Equal(t, "3.1", CVSSVersion("CVSS:3.1/AV:N"))
-	assert.Equal(t, "4.0", CVSSVersion("CVSS:4.0/AV:N"))
+	assert.Error(t, ValidateCVSSVector("CVSS:2.0/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"))
+	assert.Equal(t, "3.1", CVSSVersion("CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"))
+	assert.Equal(t, "4.0", CVSSVersion("CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:H/SI:H/SA:H"))
 	assert.Equal(t, "", CVSSVersion("bogus"))
 }
 

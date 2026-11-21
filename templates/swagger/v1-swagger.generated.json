@@ -27654,8 +27654,7 @@
       "description": "CreateSecurityDisclosureOption options for creating a security disclosure",
       "type": "object",
       "required": [
-        "title",
-        "severity"
+        "title"
       ],
       "properties": {
         "affected_versions": {
@@ -27672,7 +27671,7 @@
           "x-go-name": "CveID"
         },
         "cvss_vector": {
-          "description": "Optional CVSS vector, must start with CVSS:3.0/, CVSS:3.1/ or CVSS:4.0/",
+          "description": "Optional CVSS vector, e.g. \"CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H\" (CVSS 3.0/3.1/4.0)",
           "type": "string",
           "x-go-name": "CVSSVector"
         },
@@ -27711,6 +27710,7 @@
           "x-go-name": "References"
         },
         "severity": {
+          "description": "Required when cvss_vector is not set; when a CVSS vector is set, the severity is derived from it",
           "type": "string",
           "enum": [
             "informative",
@@ -27719,6 +27719,7 @@
             "high",
             "critical"
           ],
+          "x-go-enum-desc": "informative SecurityDisclosureSeverityInformative\nlow SecurityDisclosureSeverityLow\nmoderate SecurityDisclosureSeverityModerate\nhigh SecurityDisclosureSeverityHigh\ncritical SecurityDisclosureSeverityCritical",
           "x-go-name": "Severity"
         },
         "summary": {
@@ -29184,7 +29185,16 @@
           "x-go-name": "References"
         },
         "severity": {
+          "description": "When cvss_vector is set, the severity is derived from it instead",
           "type": "string",
+          "enum": [
+            "informative",
+            "low",
+            "moderate",
+            "high",
+            "critical"
+          ],
+          "x-go-enum-desc": "informative SecurityDisclosureSeverityInformative\nlow SecurityDisclosureSeverityLow\nmoderate SecurityDisclosureSeverityModerate\nhigh SecurityDisclosureSeverityHigh\ncritical SecurityDisclosureSeverityCritical",
           "x-go-name": "Severity"
         },
         "status": {
@@ -33386,6 +33396,12 @@
       "type": "object",
       "title": "SecurityDisclosureCVSS is the optional CVSS vector of a security disclosure,",
       "properties": {
+        "score": {
+          "description": "The CVSS base score computed from the vector (0.0 - 10.0)",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "Score"
+        },
         "vector": {
           "description": "The CVSS vector string, e.g. \"CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H\"",
           "type": "string",

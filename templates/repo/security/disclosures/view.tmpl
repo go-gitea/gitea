@@ -84,7 +84,7 @@
 				{{if $d.CVSSVector}}
 					<div class="divider"></div>
 					<span class="text"><strong>{{ctx.Locale.Tr "repo.security.cvss"}}</strong></span>
-					<div class="tw-mt-1"><code class="tw-break-all">{{$d.CVSSVector}}</code></div>
+					<div class="tw-mt-1"><strong>{{printf "%.1f" $d.CVSSScore}}</strong> · <code class="tw-break-all">{{$d.CVSSVector}}</code></div>
 				{{end}}
 				{{if $d.CveID}}
 					<div class="divider"></div>

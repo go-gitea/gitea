@@ -41,6 +41,7 @@ func ToSecurityDisclosure(ctx context.Context, repo *repo_model.Repository, d *d
 		result.CVSS = &api.SecurityDisclosureCVSS{
 			Version: disclosure_model.CVSSVersion(d.CVSSVector),
 			Vector:  d.CVSSVector,
+			Score:   d.CVSSScore(),
 		}
 	}
 	return result

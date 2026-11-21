@@ -11,6 +11,7 @@ import (
 	disclosure_model "gitea.dev/models/disclosure"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cvss"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 )
@@ -77,11 +78,21 @@ func validateInput(in *Input) error {
 	if len(in.Summary) > SummaryMaxLength {
 		return util.NewInvalidArgumentErrorf("summary too long")
 	}
-	if _, err := disclosure_model.ParseSeverity(string(in.Severity)); err != nil {
-		return err
-	}
-	if err := disclosure_model.ValidateCVSSVector(in.CVSSVector); err != nil {
-		return err
+	// severity and CVSS vector are mutually exclusive: when a CVSS vector is set,
+	// the severity is derived from its base score server-side
+	if in.CVSSVector != "" {
+		vec, err := cvss.Parse(in.CVSSVector)
+		if err != nil {
+			return util.NewInvalidArgumentErrorf("invalid CVSS vector: %s", err.Error())
+		}
+		in.Severity = disclosure_model.SeverityFromCVSS(vec.Severity())
+	} else {
+		if in.Severity == "" {
+			return util.NewInvalidArgumentErrorf("severity is required when no CVSS vector is set")
+		}
+		if _, err := disclosure_model.ParseSeverity(string(in.Severity)); err != nil {
+			return err
+		}
 	}
 	if len(in.CveID) > CveIDMaxLength {
 		return util.NewInvalidArgumentErrorf("CVE ID too long")

@@ -48,6 +48,7 @@ func TestAPIDisclosures(t *testing.T) {
 		assert.Equal(t, []string{"CWE-120"}, d.CweIds)
 		require.NotNil(t, d.CVSS)
 		assert.Equal(t, "3.1", d.CVSS.Version)
+		assert.InDelta(t, 9.8, d.CVSS.Score, 0.001)
 		require.NotNil(t, d.PublishedAt)
 		require.NotNil(t, d.Author)
 		assert.Equal(t, "user2", d.Author.UserName)
@@ -111,8 +112,37 @@ func TestAPIDisclosures(t *testing.T) {
 		}
 		post(&api.CreateSecurityDisclosureOption{Title: "x", Severity: "bogus"})
 		post(&api.CreateSecurityDisclosureOption{Title: "x", Severity: "low", CVSSVector: "AV:N/AC:L"})
+		post(&api.CreateSecurityDisclosureOption{Title: "x", Severity: "low", CVSSVector: "CVSS:3.1/AV:N"}) // incomplete vector
+		post(&api.CreateSecurityDisclosureOption{Title: "x"})                                               // neither severity nor CVSS vector
 		post(&api.CreateSecurityDisclosureOption{Title: "x", Severity: "low", AffectedVersions: []string{">= broken"}})
 		post(&api.CreateSecurityDisclosureOption{Title: "x", Severity: "low", FixedVersions: []string{">= 1.0.0"}})
+	})
+
+	t.Run("CreateDerivesSeverityFromCVSS", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		// no severity given: it is derived from the CVSS base score (7.5 -> high)
+		req := NewRequestWithJSON(t, "POST", baseURL, &api.CreateSecurityDisclosureOption{
+			Title:      "CVSS-derived severity",
+			CVSSVector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+		}).AddTokenAuth(adminToken)
+		resp := MakeRequest(t, req, http.StatusCreated)
+		var created api.SecurityDisclosure
+		DecodeJSON(t, resp, &created)
+		assert.Equal(t, "high", created.Severity)
+		require.NotNil(t, created.CVSS)
+		assert.Equal(t, "3.1", created.CVSS.Version)
+		assert.InDelta(t, 7.5, created.CVSS.Score, 0.001)
+
+		// a CVSS vector wins over a conflicting manual severity (9.8 -> critical, not low)
+		req = NewRequestWithJSON(t, "POST", baseURL, &api.CreateSecurityDisclosureOption{
+			Title:      "CVSS wins over severity",
+			Severity:   "low",
+			CVSSVector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+		}).AddTokenAuth(adminToken)
+		resp = MakeRequest(t, req, http.StatusCreated)
+		DecodeJSON(t, resp, &created)
+		assert.Equal(t, "critical", created.Severity)
+		assert.InDelta(t, 9.8, created.CVSS.Score, 0.001)
 	})
 
 	t.Run("CreateEditPublishDeleteAsMaintainer", func(t *testing.T) {
@@ -133,7 +163,7 @@ func TestAPIDisclosures(t *testing.T) {
 		var created api.SecurityDisclosure
 		DecodeJSON(t, resp, &created)
 		assert.Equal(t, "draft", created.Status)
-		assert.Equal(t, "SD-0003", created.Identifier)
+		assert.Equal(t, "SD-0005", created.Identifier) // two disclosures were created by the CVSS derivation subtest above
 		assert.Nil(t, created.PublishedAt)
 		require.NotNil(t, created.CVSS)
 		assert.Equal(t, "4.0", created.CVSS.Version)
