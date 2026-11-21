@@ -2,6 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository security">
 	{{template "repo/header" .}}
 	{{$d := .Disclosure}}
+	{{$createdStr := DateUtils.TimeSince $d.CreatedUnix}}
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<div class="tw-mb-4">
@@ -12,16 +13,9 @@
 				<span class="muted tw-font-mono tw-mr-1">{{$d.Identifier}}</span>
 				{{$d.Title}}
 			</h2>
-			<div class="tw-flex tw-gap-2">
-				<span class="ui small {{$d.Severity.LabelClass}} label">{{ctx.Locale.Tr (print "repo.security.severity_" $d.Severity)}}</span>
-				{{if $d.IsDraft}}
-					<span class="ui small orange label">{{ctx.Locale.Tr "repo.security.status_draft"}}</span>
-				{{else if eq $d.Status "withdrawn"}}
-					<span class="ui small label">{{ctx.Locale.Tr "repo.security.status_withdrawn"}}</span>
-				{{else}}
-					<span class="ui small green label">{{ctx.Locale.Tr "repo.security.status_published"}}</span>
-				{{end}}
-			</div>
+			{{if .CanManageDisclosures}}
+				<a class="ui small primary button" href="{{.RepoLink}}/security/disclosures/new">{{svg "octicon-plus" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.new_disclosure"}}</a>
+			{{end}}
 		</div>
 		{{if $d.Summary}}<p class="tw-text-text-light">{{$d.Summary}}</p>{{end}}
 		{{if eq $d.Status "withdrawn"}}
@@ -31,67 +25,111 @@
 			</div>
 		{{end}}
 
-		<div class="tw-flex tw-gap-4 tw-flex-col md:tw-flex-row">
-			<div class="tw-flex-1 tw-min-w-0">
-				<div class="ui segment markup">
-					{{if $d.Content}}{{$d.RenderedContent}}{{else}}<p class="tw-text-text-light">{{ctx.Locale.Tr "repo.security.no_description"}}</p>{{end}}
+		<div class="issue-content tw-mt-4">
+			<div class="issue-content-left">
+				<div class="comment-list">
+					<div class="timeline-item comment issue-content-comment">
+						{{if $d.Author}}
+							<a class="timeline-avatar" href="{{$d.Author.HomeLink}}">{{ctx.AvatarUtils.Avatar $d.Author 40}}</a>
+						{{else}}
+							<span class="timeline-avatar">{{ctx.AvatarUtils.Avatar nil 40}}</span>
+						{{end}}
+						<div class="content comment-container">
+							<div class="comment-header avatar-content-left-arrow" role="heading" aria-level="3">
+								<div class="comment-header-left">
+									{{if $d.Author}}
+										<a class="inline-timeline-avatar" href="{{$d.Author.HomeLink}}">{{ctx.AvatarUtils.Avatar $d.Author 24}}</a>
+										<span class="tw-text-text-light muted-links">
+											{{template "shared/user/authorlink" $d.Author}}
+											{{ctx.Locale.Tr "repo.security.opened_at" $createdStr}}
+										</span>
+									{{else}}
+										<span class="tw-text-text tw-font-semibold">Ghost</span>
+										<span class="tw-text-text-light muted-links">{{ctx.Locale.Tr "repo.security.opened_at" $createdStr}}</span>
+									{{end}}
+								</div>
+							</div>
+							<div class="ui attached segment comment-body" role="article">
+								<div class="render-content markup">
+									{{if $d.Content}}{{$d.RenderedContent}}{{else}}<span class="no-content">{{ctx.Locale.Tr "repo.security.no_description"}}</span>{{end}}
+								</div>
+							</div>
+						</div>
+					</div>
 				</div>
 			</div>
-			<div class="tw-w-full md:tw-w-80 tw-shrink-0">
-				<div class="ui segment">
-					<h4 class="tw-mt-0">{{ctx.Locale.Tr "repo.security.details"}}</h4>
-					<div class="tw-mb-2">
-						<strong>{{ctx.Locale.Tr "repo.security.author"}}:</strong>
-						{{if $d.Author}}{{ctx.AvatarUtils.Avatar $d.Author 20 "tw-mr-1"}}<a href="{{$d.Author.HomeLink}}">{{$d.Author.GetDisplayName}}</a>{{else}}Ghost{{end}}
-					</div>
-					<div class="tw-mb-2"><strong>{{ctx.Locale.Tr "repo.security.created"}}:</strong> {{DateUtils.TimeSince $d.CreatedUnix}}</div>
-					{{if $d.PublishedAt}}
-						<div class="tw-mb-2"><strong>{{ctx.Locale.Tr "repo.security.published"}}:</strong> {{DateUtils.TimeSince $d.PublishedAt}}{{if $d.Publisher}} {{ctx.Locale.Tr "repo.security.published_by" $d.Publisher.GetDisplayName}}{{end}}</div>
-					{{end}}
-					{{if $d.CVSSVector}}
-						<div class="tw-mb-2"><strong>CVSS:</strong> <code class="tw-break-all">{{$d.CVSSVector}}</code></div>
-					{{end}}
-					{{if $d.CveID}}
-						<div class="tw-mb-2"><strong>{{ctx.Locale.Tr "repo.security.cve_id"}}:</strong> <code>{{$d.CveID}}</code></div>
-					{{end}}
-					{{if $d.CweIds}}
-						<div class="tw-mb-2"><strong>{{ctx.Locale.Tr "repo.security.cwe_ids"}}:</strong> {{range $i, $c := $d.CweIds}}{{if $i}}, {{end}}<code>{{$c}}</code>{{end}}</div>
-					{{end}}
-					{{if $d.References}}
-						<div class="tw-mb-2">
-							<strong>{{ctx.Locale.Tr "repo.security.references"}}:</strong>
-							<ul class="tw-mt-1 tw-pl-4">
-								{{range $d.References}}<li><a href="{{.}}" target="_blank" rel="noopener noreferrer" class="tw-break-all">{{.}}</a></li>{{end}}
-							</ul>
-						</div>
-					{{end}}
-					{{$affected := $d.AffectedVersions}}{{$fixed := $d.FixedVersions}}
-					{{if $affected}}
-						<div class="tw-mb-2">
-							<strong>{{ctx.Locale.Tr "repo.security.affected_versions"}}:</strong>
-							{{range $affected}}<span class="ui tiny red label tw-mt-1">{{.}}</span>{{end}}
-						</div>
-					{{end}}
-					{{if $fixed}}
-						<div class="tw-mb-2">
-							<strong>{{ctx.Locale.Tr "repo.security.fixed_versions"}}:</strong>
-							{{range $fixed}}<span class="ui tiny green label tw-mt-1">{{.}}</span>{{end}}
-						</div>
-					{{end}}
+			<div class="issue-content-right ui segment">
+				<span class="text"><strong>{{ctx.Locale.Tr "repo.security.severity"}}</strong></span>
+				<div class="ui list">
+					<span class="item"><span class="ui small {{$d.Severity.LabelClass}} label">{{ctx.Locale.Tr (print "repo.security.severity_" $d.Severity)}}</span></span>
 				</div>
+				<div class="divider"></div>
+				<span class="text"><strong>{{ctx.Locale.Tr "repo.security.status"}}</strong></span>
+				<div class="ui list">
+					<span class="item">
+						{{if $d.IsDraft}}
+							<span class="ui small orange label">{{ctx.Locale.Tr "repo.security.status_draft"}}</span>
+						{{else if eq $d.Status "withdrawn"}}
+							<span class="ui small label">{{ctx.Locale.Tr "repo.security.status_withdrawn"}}</span>
+						{{else}}
+							<span class="ui small green label">{{ctx.Locale.Tr "repo.security.status_published"}}</span>
+						{{end}}
+					</span>
+				</div>
+				{{if $d.PublishedAt}}
+					<div class="divider"></div>
+					<span class="text"><strong>{{ctx.Locale.Tr "repo.security.published"}}</strong></span>
+					<div class="tw-mt-1">{{DateUtils.TimeSince $d.PublishedAt}}{{if $d.Publisher}} {{ctx.Locale.Tr "repo.security.published_by" $d.Publisher.GetDisplayName}}{{end}}</div>
+				{{end}}
+				{{if $d.CVSSVector}}
+					<div class="divider"></div>
+					<span class="text"><strong>{{ctx.Locale.Tr "repo.security.cvss"}}</strong></span>
+					<div class="tw-mt-1"><code class="tw-break-all">{{$d.CVSSVector}}</code></div>
+				{{end}}
+				{{if $d.CveID}}
+					<div class="divider"></div>
+					<span class="text"><strong>{{ctx.Locale.Tr "repo.security.cve_id"}}</strong></span>
+					<div class="tw-mt-1"><code>{{$d.CveID}}</code></div>
+				{{end}}
+				{{if $d.CweIds}}
+					<div class="divider"></div>
+					<span class="text"><strong>{{ctx.Locale.Tr "repo.security.cwe_ids"}}</strong></span>
+					<div class="tw-mt-1">{{range $i, $c := $d.CweIds}}{{if $i}}, {{end}}<code>{{$c}}</code>{{end}}</div>
+				{{end}}
+				{{$affected := $d.AffectedVersions}}{{$fixed := $d.FixedVersions}}
+				{{if $affected}}
+					<div class="divider"></div>
+					<span class="text"><strong>{{ctx.Locale.Tr "repo.security.affected_versions"}}</strong></span>
+					<div class="ui list">
+						{{range $affected}}<span class="item"><span class="ui tiny red label">{{.}}</span></span>{{end}}
+					</div>
+				{{end}}
+				{{if $fixed}}
+					<div class="divider"></div>
+					<span class="text"><strong>{{ctx.Locale.Tr "repo.security.fixed_versions"}}</strong></span>
+					<div class="ui list">
+						{{range $fixed}}<span class="item"><span class="ui tiny green label">{{.}}</span></span>{{end}}
+					</div>
+				{{end}}
+				{{if $d.References}}
+					<div class="divider"></div>
+					<span class="text"><strong>{{ctx.Locale.Tr "repo.security.references"}}</strong></span>
+					<div class="ui list">
+						{{range $d.References}}<span class="item"><a href="{{.}}" target="_blank" rel="noopener noreferrer" class="tw-break-all">{{.}}</a></span>{{end}}
+					</div>
+				{{end}}
 
 				{{if .CanManageDisclosures}}
-					<div class="ui segment tw-flex tw-flex-col tw-gap-2">
+					<div class="divider"></div>
+					<div class="tw-flex tw-flex-col tw-gap-2">
 						<a class="ui small button" href="{{$.RepoLink}}/security/disclosures/{{$d.ID}}/edit">{{svg "octicon-pencil" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.edit"}}</a>
 						{{if $d.IsDraft}}
-							<form method="post" action="{{$.RepoLink}}/security/disclosures/{{$d.ID}}/publish">
+							<form method="post" action="{{$.RepoLink}}/security/disclosures/{{$d.ID}}/publish" class="single-button-form">
 								<button class="ui small primary button" type="submit">{{svg "octicon-rocket" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.publish"}}</button>
 							</form>
+							<button type="button" class="ui small red button link-action" data-modal-confirm="#disclosure-delete-modal" data-url="{{$.RepoLink}}/security/disclosures/{{$d.ID}}/delete">{{svg "octicon-trash" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.delete"}}</button>
 						{{else if eq $d.Status "published"}}
 							<button type="button" class="ui small button show-modal" data-modal="#disclosure-withdraw-modal">{{ctx.Locale.Tr "repo.security.withdraw"}}</button>
-						{{end}}
-						{{if $d.IsDraft}}
-							<button type="button" class="ui small red button link-action" data-modal-confirm="#disclosure-delete-modal" data-url="{{$.RepoLink}}/security/disclosures/{{$d.ID}}/delete">{{svg "octicon-trash" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.delete"}}</button>
 						{{end}}
 					</div>
 				{{end}}
