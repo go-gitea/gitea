@@ -1,5 +1,5 @@
 {{/* Template Attributes:
-* CustomInit: do not initialize the editor automatically
+* CustomInit: do not add data-global-init, the caller initializes the editor itself
 * ContainerId: id attribute for the container element
 * ContainerClasses: additional classes for the container element
 * MarkdownEditorContext: the context data for the editor, see backend MarkdownEditorContext
@@ -19,7 +19,8 @@
 {{$mentionsLink := or $editorContext.MentionsLink ""}}
 {{/* don't try to remove it, there are still many users who like it: https://github.com/go-gitea/gitea/issues/38228#issuecomment-4809312561 */}}
 {{$supportEasyMDE := or (eq $previewMode "comment") (eq $previewMode "wiki")}}
-<div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="combo-markdown-editor {{if .CustomInit}}custom-init{{end}} {{.ContainerClasses}}"
+<div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="combo-markdown-editor {{.ContainerClasses}}"
+		{{if not .CustomInit}}data-global-init="initComboMarkdownEditor"{{end}}
 		data-dropzone-parent-container="{{.DropzoneParentContainer}}"
 		data-content-mode="{{$previewMode}}"
 		data-support-easy-mde="{{$supportEasyMDE}}"
