@@ -86,7 +86,7 @@ var globalVars = sync.OnceValue(func() (ret struct {
 	// It was just copied from legacy code, it is not exactly the same as how Git parses the trailer and not quite right in some cases.
 	// For the key characters: it follows RFC 822 field name syntax (or RFC 2822/RFC 5322): printable ASCII characters between 33 and 126 except the colon (:),
 	// but maybe we don't want to make it that complicated, so here we only support some common "symbol-like" characters.
-	ret.commitMessageTrailerSplit = regexp.MustCompile(`(?s)^(?P<content>.*?)(?P<sep>^|^\n|^-{3,}\n+|\n+-{3,}\n+|\n{2,})(?P<trailer>(?:[A-Za-z0-9][-\w]*:[^\n]*(\n\s+[^\n]*)*\n?)*\n*)$`)
+	ret.commitMessageTrailerSplit = regexp.MustCompile(`(?s)^(?P<content>.*?)(?P<sep>^|^\n|^-{3,}\n+|\n+-{3,}\n+|\n{2,})(?P<trailer>(?:[A-Za-z0-9][-\w]*:[^\n]*(\n[ \t]+[^\n]*)*\n?)*\n*)$`)
 	// Example: @@ -1,8 +1,9 @@ => [..., 1, 8, 1, 9]
 	ret.hunkRegex = regexp.MustCompile(`^@@ -(?P<beginOld>[0-9]+)(,(?P<endOld>[0-9]+))? \+(?P<beginNew>[0-9]+)(,(?P<endNew>[0-9]+))? @@`)
 	// refNamePatternInvalid is regular expression with unallowed characters in git reference name
@@ -155,14 +155,20 @@ func CommitMessageMerge(m1, m2 string) string {
 
 func CommitMessageParseTrailer(s string) CommitMessageTrailerValues {
 	ret := CommitMessageTrailerValues{}
+	var lastKey string
 	for line := range strings.SplitSeq(util.NormalizeStringEOL(s), "\n") {
+		if values := ret[lastKey]; len(values) > 0 && strings.IndexAny(line, " \t") == 0 && strings.TrimSpace(line) != "" {
+			values[len(values)-1] += " " + strings.TrimSpace(line) // continuation line of the previous trailer
+			continue
+		}
 		k, v, ok := strings.Cut(line, ":")
 		if !ok {
+			lastKey = ""
 			continue
 		}
 		k, v = strings.TrimSpace(k), strings.TrimSpace(v)
-		kLower := strings.ToLower(k)
-		ret[kLower] = append(ret[kLower], v)
+		lastKey = strings.ToLower(k)
+		ret[lastKey] = append(ret[lastKey], v)
 	}
 	return ret
 }

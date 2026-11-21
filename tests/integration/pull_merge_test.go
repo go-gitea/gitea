@@ -1398,8 +1398,7 @@ Commit description.
 
 ---------
 
-Co-authored-by: user4 <user4@example.com>
-`,
+Co-authored-by: user4 <user4@example.com>`,
 			},
 		}
 
@@ -1434,14 +1433,14 @@ Co-authored-by: user4 <user4@example.com>
 		}
 
 		t.Run("Repository default squash merge message", func(t *testing.T) {
-			pullRequest := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: 1})
+			pullRequest := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: 4})
 			require.NoError(t, pullRequest.LoadIssue(t.Context()))
 			pullRequest.Issue.Content = "PR description"
 			pullRequest.BaseRepo = repo
 
 			for style, expected := range map[repo_model.SquashMergeMessage]string{
-				repo_model.SquashMergeMessageBlank:  "",
-				repo_model.SquashMergeMessagePRBody: "PR description",
+				repo_model.SquashMergeMessageBlank:  "Co-authored-by: user4 <user4@example.com>",
+				repo_model.SquashMergeMessagePRBody: "PR description\n\n---------\n\nCo-authored-by: user4 <user4@example.com>",
 			} {
 				prUnit.PullRequestsConfig().DefaultSquashMergeMessage = style
 				msg, err := pull_service.GetSquashMergeCommitMessages(t.Context(), pullRequest)
