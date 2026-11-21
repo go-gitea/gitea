@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, nextTick, onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch} from 'vue';
+import {computed, nextTick, onBeforeUnmount, shallowRef, useTemplateRef, watch} from 'vue';
 import SvgIcon from './SvgIcon.vue';
 import {createTippy} from '../modules/tippy.ts';
 import type {Instance} from 'tippy.js';
@@ -75,9 +75,9 @@ watch(mergeStyle, (val) => {
 });
 
 let menuTippy: Instance | undefined;
-onMounted(() => {
-  if (!menuTrigger.value) return;
-  menuTippy = createTippy(menuTrigger.value, {
+watch(menuTrigger, (trigger) => {
+  menuTippy?.destroy();
+  menuTippy = trigger ? createTippy(trigger, {
     content: menuPanel.value!,
     getReferenceClientRect: () => menuTrigger.value!.parentElement!.getBoundingClientRect(),
     theme: 'menu',
@@ -88,7 +88,7 @@ onMounted(() => {
     trigger: 'click',
     interactive: true,
     hideOnClick: true,
-  });
+  }) : undefined;
 });
 onBeforeUnmount(() => menuTippy?.destroy());
 
@@ -141,7 +141,7 @@ async function toggleActionForm(show: boolean) {
         <button ref="mergeButton" class="ui button" type="button" :disabled="actionDisabled" @click="toggleActionForm(true)">
           {{ buttonTexts.button }}
         </button>
-        <button v-if="mergeForm.mergeStyles.length > 1" v-show="!queue" ref="menuTrigger" class="ui icon button" type="button" :aria-label="mergeForm.textSelectMergeStyle">
+        <button v-if="mergeForm.mergeStyles.length > 1 && !queue" ref="menuTrigger" class="ui icon button" type="button" :aria-label="mergeForm.textSelectMergeStyle">
           <svg-icon name="octicon-triangle-down" :size="14"/>
         </button>
       </div>
