@@ -65,10 +65,10 @@
 		{{end}}
 	</div>
 
-<div class="ui small modal" id="repo-branch-protection-delete-modal">
+<dialog class="modal-dialog" id="repo-branch-protection-delete-modal">
 	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.settings.protected_branch_deletion"}}</div>
 	<div class="content"><p>{{ctx.Locale.Tr "repo.settings.protected_branch_deletion_desc"}}</p></div>
 	{{template "base/modal_actions_confirm" .}}
-</div>
+</dialog>
 
 {{template "repo/settings/layout_footer" .}}

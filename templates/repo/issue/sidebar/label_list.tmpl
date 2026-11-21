@@ -6,9 +6,9 @@
 >
 	<input class="combo-value" name="label_ids" type="hidden" value="{{$data.SelectedLabelIDs}}">
 	<div class="ui dropdown full-width {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}">
-		<a class="fixed-text muted">
+		<span class="interact-fg fixed-text">
 			<strong>{{ctx.Locale.Tr "repo.issues.new.labels"}}</strong> {{if $pageMeta.CanModifyIssueOrPull}}{{svg "octicon-gear"}}{{end}}
-		</a>
+		</span>
 		<div class="menu">
 			{{if not $data.AllLabels}}
 				<div class="item disabled">{{ctx.Locale.Tr "repo.issues.new.no_items"}}</div>

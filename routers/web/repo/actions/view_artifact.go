@@ -340,7 +340,7 @@ func ServeArtifactPreviewContent(ctx *context_module.Base, filePath string, read
 
 func ArtifactsPreviewView(ctx *context_module.Context) {
 	if setting.Actions.ArtifactPreviewMaxSize == 0 {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	artifacts, err := loadUploadedArtifactsByID(ctx, ctx.PathParamInt64("artifact_id"))
@@ -348,13 +348,13 @@ func ArtifactsPreviewView(ctx *context_module.Context) {
 		err = util.ErrNotExist
 	}
 	if err != nil {
-		ctx.ServerError("loadUploadedArtifactsByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	artifact := artifacts[0]
 	run, err := actions_model.GetRunByRepoAndID(ctx, artifact.RepoID, artifact.RunID)
 	if err != nil {
-		ctx.ServerError("GetRunByRepoAndID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	run.Repo = ctx.Repo.Repository
@@ -369,7 +369,7 @@ func ArtifactsPreviewView(ctx *context_module.Context) {
 	if artifact.RunAttemptID > 0 {
 		attempt, err := actions_model.GetRunAttemptByRepoAndID(ctx, artifact.RepoID, artifact.RunAttemptID)
 		if err != nil {
-			ctx.ServerError("GetRunAttemptByRepoAndID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		data.RunAttempt = attempt.Attempt
@@ -380,7 +380,7 @@ func ArtifactsPreviewView(ctx *context_module.Context) {
 	var list artifactPreviewList
 	if !data.PreviewTooLarge {
 		if list, err = listPreview(artifacts); err != nil {
-			ctx.ServerError("listPreview", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}

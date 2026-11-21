@@ -308,50 +308,41 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 				continue
 			}
 
+			if status.IsDone() {
+				result.UpdatedJobs = append(result.UpdatedJobs, job)
+				continue
+			}
+
 			if job.IsReusableCaller {
-				switch status {
-				case actions_model.StatusWaiting:
-					if err := expandReusableWorkflowCaller(ctx, run, attempt, job, vars); err != nil {
-						// Terminal expansion failure (an invalid/unresolvable reusable workflow): fail this caller.
-						log.Warn("caller %d cannot be expanded: %v", job.ID, err)
-						job.Status = actions_model.StatusFailure
-						job.Stopped = timeutil.TimeStampNow()
-						if n, uerr := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked, "is_expanded": false}, "status", "stopped"); uerr != nil {
-							return fmt.Errorf("mark unexpandable caller %d failed: %w", job.ID, uerr)
-						} else if n == 1 {
-							if err := upsertJobErrorSummary(ctx, job, "uses", err); err != nil {
-								return err
-							}
-							log.Warn("unexpandable caller %d has been marked as failed", job.ID)
-							result.UpdatedJobs = append(result.UpdatedJobs, job)
-							// Re-emit so the failed caller's dependents get resolved on the next pass.
-							expandedAnyCaller = true
-						} else {
-							// A concurrent writer advanced the caller; restore the in-memory state.
-							log.Warn("unexpandable caller %d has been advanced by a concurrent writer, not marking it failed", job.ID)
-							job.Status = actions_model.StatusBlocked
-							job.Stopped = 0
-						}
-					} else {
-						expandedAnyCaller = true
-					}
-				case actions_model.StatusSkipped, actions_model.StatusFailure:
-					job.Status = status
-					if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status"); err != nil {
-						return err
+				if err := expandReusableWorkflowCaller(ctx, run, attempt, job, vars); err != nil {
+					// Terminal expansion failure (an invalid/unresolvable reusable workflow): fail this caller.
+					log.Warn("caller %d cannot be expanded: %v", job.ID, err)
+					job.Status = actions_model.StatusFailure
+					job.Stopped = timeutil.TimeStampNow()
+					if n, uerr := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked, "is_expanded": false}, "status", "stopped"); uerr != nil {
+						return fmt.Errorf("mark unexpandable caller %d failed: %w", job.ID, uerr)
 					} else if n == 1 {
+						if err := upsertJobErrorSummary(ctx, job, "uses", err); err != nil {
+							return err
+						}
+						log.Warn("unexpandable caller %d has been marked as failed", job.ID)
 						result.UpdatedJobs = append(result.UpdatedJobs, job)
+						// Re-emit so the failed caller's dependents get resolved on the next pass.
+						expandedAnyCaller = true
+					} else {
+						// A concurrent writer advanced the caller; restore the in-memory state.
+						log.Warn("unexpandable caller %d has been advanced by a concurrent writer, not marking it failed", job.ID)
+						job.Status = actions_model.StatusBlocked
+						job.Stopped = 0
 					}
+				} else {
+					expandedAnyCaller = true
 				}
 				continue
 			}
 
-			// Non-caller: standard status update.
-			job.Status = status
-			if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status"); err != nil {
+			if err := updateBlockedJobStatus(ctx, job, status); err != nil {
 				return err
-			} else if n != 1 {
-				return fmt.Errorf("no affected for updating blocked job %v", job.ID)
 			}
 			result.UpdatedJobs = append(result.UpdatedJobs, job)
 		}
@@ -496,9 +487,14 @@ func (r *jobStatusResolver) Resolve(ctx context.Context) (map[int64]actions_mode
 		if len(updated) == 0 {
 			return ret, nil
 		}
-		for k, v := range updated {
-			ret[k] = v
-			r.statuses[k] = v
+		for id, status := range updated {
+			if status.IsDone() { // later rounds evaluate `if:` against needs read from the database
+				if err := updateBlockedJobStatus(ctx, r.jobMap[id], status); err != nil {
+					return nil, err
+				}
+			}
+			ret[id] = status
+			r.statuses[id] = status
 		}
 		if r.matrixInserted {
 			// Matrix expansion inserted sibling rows this round. They are not in statuses/needs, so
@@ -529,6 +525,16 @@ func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed boo
 		}
 	}
 	return allDone, allSucceed
+}
+
+func updateBlockedJobStatus(ctx context.Context, job *actions_model.ActionRunJob, status actions_model.Status) error {
+	job.Status = status
+	if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status"); err != nil {
+		return err
+	} else if n != 1 {
+		return fmt.Errorf("no affected for updating blocked job %v", job.ID)
+	}
+	return nil
 }
 
 func (r *jobStatusResolver) updateStatus(ctx context.Context, job *actions_model.ActionRunJob, status actions_model.Status) error {

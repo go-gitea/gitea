@@ -1,0 +1,7 @@
+Cache-Control: max-age=0, private, must-revalidate
+Content-Length: 115
+Content-Type: application/json;charset=utf-8
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+
+{"max_response_items":3,"default_paging_num":3,"default_git_trees_per_page":1000,"default_max_blob_size":10485760}

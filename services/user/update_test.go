@@ -58,44 +58,33 @@ func TestUpdateUser(t *testing.T) {
 	}
 	assert.NoError(t, UpdateUser(t.Context(), user, opts))
 
-	assert.Equal(t, opts.KeepEmailPrivate.Value(), user.KeepEmailPrivate)
-	assert.Equal(t, opts.FullName.Value(), user.FullName)
-	assert.Equal(t, opts.Website.Value(), user.Website)
-	assert.Equal(t, opts.Location.Value(), user.Location)
-	assert.Equal(t, opts.Description.Value(), user.Description)
-	assert.Equal(t, opts.AllowGitHook.Value(), user.AllowGitHook)
-	assert.Equal(t, opts.AllowImportLocal.Value(), user.AllowImportLocal)
-	assert.Equal(t, opts.MaxRepoCreation.Value(), user.MaxRepoCreation)
-	assert.Equal(t, opts.IsRestricted.Value(), user.IsRestricted)
-	assert.Equal(t, opts.IsActive.Value(), user.IsActive)
-	assert.Equal(t, opts.IsAdmin.Value().FieldValue, user.IsAdmin)
-	assert.Equal(t, opts.Visibility.Value(), user.Visibility)
-	assert.Equal(t, opts.KeepActivityPrivate.Value(), user.KeepActivityPrivate)
-	assert.Equal(t, opts.Language.Value(), user.Language)
-	assert.Equal(t, opts.Theme.Value(), user.Theme)
-	assert.Equal(t, opts.DiffViewStyle.Value(), user.DiffViewStyle)
-	assert.Equal(t, opts.AllowCreateOrganization.Value(), user.AllowCreateOrganization)
-	assert.Equal(t, opts.EmailNotificationsPreference.Value(), user.EmailNotificationsPreference)
+	assertUpdatedUser := func(user *user_model.User) {
+		assert.Equal(t, opts.KeepEmailPrivate.Value(), user.KeepEmailPrivate)
+		assert.Equal(t, opts.FullName.Value(), user.FullName)
+		assert.Equal(t, opts.Website.Value(), user.Website)
+		assert.Equal(t, opts.Location.Value(), user.Location)
+		assert.Equal(t, opts.Description.Value(), user.Description)
+		assert.Equal(t, opts.AllowGitHook.Value(), user.AllowGitHook)
+		assert.Equal(t, opts.AllowImportLocal.Value(), user.AllowImportLocal)
+		assert.Equal(t, opts.MaxRepoCreation.Value(), user.MaxRepoCreation)
+		assert.Equal(t, opts.IsRestricted.Value(), user.IsRestricted)
+		assert.Equal(t, opts.IsActive.Value(), user.IsActive)
+		assert.Equal(t, opts.IsAdmin.Value().FieldValue, user.IsAdmin)
+		assert.Equal(t, opts.Visibility.Value(), user.Visibility)
+		assert.Equal(t, opts.KeepActivityPrivate.Value(), user.KeepActivityPrivate)
+		assert.Equal(t, opts.Language.Value(), user.Language)
+		assert.Equal(t, opts.Theme.Value(), user.Theme)
+		assert.Equal(t, opts.DiffViewStyle.Value(), user.DiffViewStyle)
+		assert.Equal(t, opts.AllowCreateOrganization.Value(), user.AllowCreateOrganization)
+		assert.Equal(t, opts.EmailNotificationsPreference.Value(), user.EmailNotificationsPreference)
+	}
+	assertUpdatedUser(user)
+	assertUpdatedUser(unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28}))
 
-	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
-	assert.Equal(t, opts.KeepEmailPrivate.Value(), user.KeepEmailPrivate)
-	assert.Equal(t, opts.FullName.Value(), user.FullName)
-	assert.Equal(t, opts.Website.Value(), user.Website)
-	assert.Equal(t, opts.Location.Value(), user.Location)
-	assert.Equal(t, opts.Description.Value(), user.Description)
-	assert.Equal(t, opts.AllowGitHook.Value(), user.AllowGitHook)
-	assert.Equal(t, opts.AllowImportLocal.Value(), user.AllowImportLocal)
-	assert.Equal(t, opts.MaxRepoCreation.Value(), user.MaxRepoCreation)
-	assert.Equal(t, opts.IsRestricted.Value(), user.IsRestricted)
-	assert.Equal(t, opts.IsActive.Value(), user.IsActive)
-	assert.Equal(t, opts.IsAdmin.Value().FieldValue, user.IsAdmin)
-	assert.Equal(t, opts.Visibility.Value(), user.Visibility)
-	assert.Equal(t, opts.KeepActivityPrivate.Value(), user.KeepActivityPrivate)
-	assert.Equal(t, opts.Language.Value(), user.Language)
-	assert.Equal(t, opts.Theme.Value(), user.Theme)
-	assert.Equal(t, opts.DiffViewStyle.Value(), user.DiffViewStyle)
-	assert.Equal(t, opts.AllowCreateOrganization.Value(), user.AllowCreateOrganization)
-	assert.Equal(t, opts.EmailNotificationsPreference.Value(), user.EmailNotificationsPreference)
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	assert.NoError(t, UpdateUser(t.Context(), org, &UpdateOptions{RepoAdminChangeTeamAccess: optional.Some(!org.RepoAdminChangeTeamAccess)}))
+	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.OrganizationTeamAccess, ScopeType: audit_model.ScopeOrganization, ScopeID: org.ID})
 }
 
 func TestUpdateAuth(t *testing.T) {
@@ -117,10 +106,12 @@ func TestUpdateAuth(t *testing.T) {
 	assert.NotEqual(t, userCopy.Passwd, user.Passwd)
 	assert.NotEqual(t, userCopy.Salt, user.Salt)
 
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 	assert.NoError(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{
 		ProhibitLogin: optional.Some(true),
 	}))
 	assert.True(t, user.ProhibitLogin)
+	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.UserProhibitLogin, ScopeType: audit_model.ScopeUser, ScopeID: user.ID})
 
 	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{
 		Password: optional.Some("aaaa"),

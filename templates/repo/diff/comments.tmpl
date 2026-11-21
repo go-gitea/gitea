@@ -55,9 +55,6 @@
 						</div>
 					{{end}}
 				{{end}}
-				{{if not $repo.IsArchived}}
-					{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $repoLink $comment.ID)}}
-				{{end}}
 				{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_comment" "ConvContentPage" "pr-files" "ConvContentItem" $comment}}
 			</div>
 		</div>
@@ -76,10 +73,11 @@
 				{{template "repo/issue/view_content/attachments" dict "Attachments" $comment.Attachments "RenderedContent" $comment.RenderedContent}}
 			{{end}}
 		</div>
-		{{$reactions := $comment.Reactions.GroupByType}}
-		{{if $reactions}}
-			{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $repoLink $comment.ID) "Reactions" $reactions}}
-		{{end}}
+		{{template "shared/reactions" dict
+			"AllowedReactions" $root.AllowedIssueReactions
+			"ActionURL" (printf "%s/comments/%d/reactions" $repoLink $comment.ID)
+			"Reactions" $comment.Reactions.GroupByType
+		}}
 	</div>
 </div>
 {{end}}

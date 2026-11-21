@@ -21,4 +21,5 @@ test('convertHtmlToMarkdown', () => {
 
   expect(convertHtmlToMarkdown(h(`<ol><li>a<ul><li>b</li></ul></li></ol>`))).toBe('1. a\n    * b\n\n');
   expect(convertHtmlToMarkdown(h(`<ol><li><input checked>a</li></ol>`))).toBe('1. [x] a\n');
+  expect(convertHtmlToMarkdown(h(`<ul><li><strong>a</strong></li><li><a href="link">b</a></li><li>c</li></ul>`))).toBe('* **a**\n* [b](link)\n* c\n');
 });

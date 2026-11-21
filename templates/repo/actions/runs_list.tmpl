@@ -6,7 +6,7 @@
 	{{if not $data.ActionRuns}}
 	<div class="empty-placeholder">
 		{{svg "octicon-no-entry" 48}}
-		<h2>{{if $data.IsFiltered}}{{ctx.Locale.Tr "actions.runs.no_results"}}{{else}}{{ctx.Locale.Tr "actions.runs.no_runs"}}{{end}}</h2>
+		<h2>{{if $data.IsFiltered}}{{ctx.Locale.Tr "actions.runs.no_results"}}{{else if $.CurWorkflowIsReusable}}{{ctx.Locale.Tr "actions.runs.reusable_workflow_no_runs"}}{{else}}{{ctx.Locale.Tr "actions.runs.no_runs"}}{{end}}</h2>
 	</div>
 	{{end}}
 	{{range $run := $data.ActionRuns}}

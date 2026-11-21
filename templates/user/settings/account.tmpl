@@ -127,7 +127,7 @@
 					</button>
 				</div>
 			</form>
-			<div class="ui small modal" id="delete-account">
+			<dialog class="modal-dialog" id="delete-account">
 				<div class="header">
 					{{svg "octicon-trash"}}
 					{{ctx.Locale.Tr "settings.delete_account_title"}}
@@ -136,12 +136,12 @@
 					<p>{{ctx.Locale.Tr "settings.delete_account_desc"}}</p>
 				</div>
 				{{template "base/modal_actions_confirm" .}}
-			</div>
+			</dialog>
 		</div>
 		{{end}}
 	</div>
 
-<div class="ui small modal" id="delete-email">
+<dialog class="modal-dialog" id="delete-email">
 	<div class="header">
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "settings.email_deletion"}}
@@ -150,6 +150,6 @@
 		<p>{{ctx.Locale.Tr "settings.email_deletion_desc"}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
-</div>
+</dialog>
 
 {{template "user/settings/layout_footer" .}}

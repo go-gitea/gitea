@@ -54,6 +54,7 @@
 @import "./features/console.css";
 @import "./features/captcha.css";
 
+@import "./markup/attention.css";
 @import "./markup/content.css";
 @import "./markup/codeblock.css";
 @import "./markup/codepreview.css";
@@ -78,6 +79,7 @@
 @import "./repo/reactions.css";
 @import "./repo/clone.css";
 @import "./repo/commit-sign.css";
+@import "./repo/merge-box.css";
 @import "./repo/packages.css";
 
 @import "./editor/combomarkdowneditor.css";

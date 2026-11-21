@@ -53,9 +53,6 @@
 						</div>
 						<div class="comment-header-right">
 							{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
-							{{if not $.Repository.IsArchived}}
-								{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
-							{{end}}
 							{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_comment" "ConvContentItem" $comment}}
 						</div>
 					</div>
@@ -73,18 +70,17 @@
 							{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 						{{end}}
 					</div>
-					{{$reactions := .Reactions.GroupByType}}
-					{{if $reactions}}
-						{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
-					{{end}}
+					{{template "shared/reactions" dict
+						"AllowedReactions" $.AllowedIssueReactions
+						"ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)
+						"Reactions" .Reactions.GroupByType
+					}}
 				</div>
 			</div>
 		{{else if eq .Type 1}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge bg-green text-white">{{svg "octicon-dot-fill"}}</span>
-				{{if not .OriginalAuthor}}
-					{{template "shared/user/avatarlink" dict "user" .Poster}}
-				{{end}}
+				{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
 				<span class="comment-text-line">
 					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
 					{{if .Issue.IsPull}}
@@ -97,9 +93,7 @@
 		{{else if eq .Type 2}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge bg-red text-white">{{svg "octicon-issue-closed"}}</span>
-				{{if not .OriginalAuthor}}
-					{{template "shared/user/avatarlink" dict "user" .Poster}}
-				{{end}}
+				{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
 				<span class="comment-text-line">
 					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
 					{{if .Issue.IsPull}}
@@ -112,9 +106,7 @@
 		{{else if eq .Type 28}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge bg-purple text-white">{{svg "octicon-git-merge"}}</span>
-				{{if not .OriginalAuthor}}
-					{{template "shared/user/avatarlink" dict "user" .Poster}}
-				{{end}}
+				{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
 				<span class="comment-text-line">
 					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
 					{{$link := printf "%s/commit/%s" $.Repository.Link ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
@@ -171,9 +163,9 @@
 			{{if or .AddedLabels .RemovedLabels}}
 				<div class="timeline-item event" id="{{.HashTag}}">
 					<span class="badge">{{svg "octicon-tag"}}</span>
-					{{template "shared/user/avatarlink" dict "user" .Poster}}
+					{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
 					<span class="comment-text-line">
-						{{template "shared/user/authorlink" .Poster}}
+						{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
 						{{if and .AddedLabels (not .RemovedLabels)}}
 							{{ctx.Locale.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (ctx.RenderUtils.RenderLabels .AddedLabels $.RepoLink .Issue) $createdStr}}
 						{{else if and (not .AddedLabels) .RemovedLabels}}
@@ -187,9 +179,9 @@
 		{{else if eq .Type 8}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-milestone"}}</span>
-				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
 				<span class="comment-text-line">
-					{{template "shared/user/authorlink" .Poster}}
+					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
 					{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{ctx.Locale.Tr "repo.issues.change_milestone_at" .OldMilestone.Name .Milestone.Name $createdStr}}{{else}}{{ctx.Locale.Tr "repo.issues.remove_milestone_at" .OldMilestone.Name $createdStr}}{{end}}{{else if gt .MilestoneID 0}}{{ctx.Locale.Tr "repo.issues.add_milestone_at" .Milestone.Name $createdStr}}{{end}}
 				</span>
 			</div>
@@ -221,21 +213,24 @@
 		{{else if eq .Type 10}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{ctx.RenderUtils.RenderTimelineEventBadge $comment}}</span>
-				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
 				<span class="comment-text-line">
-					{{template "shared/user/authorlink" .Poster}}
+					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
 					{{ctx.RenderUtils.RenderTimelineEventComment $comment $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 11}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-git-branch"}}</span>
-				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
 				<span class="comment-text-line">
-					{{template "shared/user/authorlink" .Poster}}
+					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
 					{{$oldRef := HTMLFormat `<span class="line-through">%s</span>` .OldRef}}
 					{{ctx.Locale.Tr "repo.issues.delete_branch_at" $oldRef $createdStr}}
 				</span>
+				{{if and $.RestoreBranchLink (eq .ID $.RestoreBranchCommentID)}}
+					<button type="button" class="ui tiny basic button link-action ml-auto" data-url="{{$.RestoreBranchLink}}">{{ctx.Locale.Tr "repo.pulls.restore_branch"}}</button>
+				{{end}}
 			</div>
 		{{else if eq .Type 12}}
 			<div class="timeline-item event" id="{{.HashTag}}">
@@ -423,7 +418,6 @@
 							<div class="comment-header-right">
 								{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 								{{if not $.Repository.IsArchived}}
-									{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
 									{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "pull_review" "ConvContentItem" $comment}}
 								{{end}}
 							</div>
@@ -442,10 +436,11 @@
 								{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 							{{end}}
 						</div>
-						{{$reactions := .Reactions.GroupByType}}
-						{{if $reactions}}
-							{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
-						{{end}}
+						{{template "shared/reactions" dict
+							"AllowedReactions" $.AllowedIssueReactions
+							"ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)
+							"Reactions" .Reactions.GroupByType
+						}}
 					</div>
 				</div>
 				{{end}}
@@ -463,15 +458,15 @@
 		{{else if eq .Type 23}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-lock"}}</span>
-				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
 				{{if .Content}}
 					<span class="comment-text-line">
-						{{template "shared/user/authorlink" .Poster}}
+						{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
 						{{ctx.Locale.Tr "repo.issues.lock_with_reason" .Content $createdStr}}
 					</span>
 				{{else}}
 					<span class="comment-text-line">
-						{{template "shared/user/authorlink" .Poster}}
+						{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
 						{{ctx.Locale.Tr "repo.issues.lock_no_reason" $createdStr}}
 					</span>
 				{{end}}
@@ -479,18 +474,16 @@
 		{{else if eq .Type 24}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-key"}}</span>
-				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
 				<span class="comment-text-line">
-					{{template "shared/user/authorlink" .Poster}}
+					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
 					{{ctx.Locale.Tr "repo.issues.unlock_comment" $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 25}}
 			<div class="timeline-item event">
 				<span class="badge">{{svg "octicon-git-branch"}}</span>
-				{{if not .OriginalAuthor}}
-					{{template "shared/user/avatarlink" dict "user" .Poster}}
-				{{end}}
+				{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
 				<span class="comment-text-line">
 					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
 					{{ctx.Locale.Tr "repo.pulls.change_target_branch_at" .OldRef .NewRef $createdStr}}
@@ -592,7 +585,7 @@
 				<span class="badge">{{svg "octicon-project"}}</span>
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="comment-text-line">
-					{{template "shared/user/authorlink" .Poster}}
+					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
 					{{$newProjectDisplay := .CommentMetaData.ProjectTitle}}
 					{{if .Project}}
 						{{$trKey := printf "projects.type-%d.display_name" .Project.Type}}
@@ -663,21 +656,38 @@
 					{{end}}
 				</span>
 			</div>
-		{{else if or (eq .Type 34) (eq .Type 35)}}
+		{{else if eq .Type 34}}{{/* auto merge scheduled, Content is the merge style (empty for old comments) */}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
+				{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
 				<span class="comment-text-line">
 					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
-					{{if eq .Type 34}}{{ctx.Locale.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr}}
-					{{else}}{{ctx.Locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr}}{{end}}
+					{{if .RenderedContent}}{{ctx.Locale.Tr "repo.pulls.auto_merge_enabled_style_comment" .RenderedContent $createdStr}}
+					{{else}}{{ctx.Locale.Tr "repo.pulls.auto_merge_enabled_comment" $createdStr}}{{end}}
 				</span>
+			</div>
+		{{else if eq .Type 35}}{{/* auto merge canceled, Content is the reason when it was disabled automatically */}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
+				{{if .RenderedContent}}
+					<span class="comment-text-line">{{ctx.Locale.Tr "repo.pulls.auto_merge_automatically_disabled_comment" $createdStr}}</span>
+					<div class="detail flex-text-block">
+						<span class="comment-text-line">{{.RenderedContent}}</span>
+					</div>
+				{{else}}
+					{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
+					<span class="comment-text-line">
+						{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
+						{{ctx.Locale.Tr "repo.pulls.auto_merge_disabled_comment" $createdStr}}
+					</span>
+				{{end}}
 			</div>
 		{{else if or (eq .Type 36) (eq .Type 37)}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-pin" 16}}</span>
-				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
 				<span class="comment-text-line">
-					{{template "shared/user/authorlink" .Poster}}
+					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
 					{{if eq .Type 36}}{{ctx.Locale.Tr "repo.issues.pin_comment" $createdStr}}
 					{{else}}{{ctx.Locale.Tr "repo.issues.unpin_comment" $createdStr}}{{end}}
 				</span>

@@ -196,6 +196,14 @@ func Compile(pattern string, separators ...rune) (Glob, error) {
 	return initGlobCompiler(&globCompiler{}, pattern, separators)
 }
 
+func CompileToRegexp(pattern string, separators ...rune) (*regexp.Regexp, error) {
+	compiler := &globCompiler{}
+	if _, err := initGlobCompiler(compiler, pattern, separators); err != nil {
+		return nil, err
+	}
+	return compiler.regexp, nil
+}
+
 func CompileWorkflow(pattern string) (Glob, error) {
 	return initGlobCompiler(&globCompiler{
 		regexpQuestion:     true,

@@ -74,9 +74,9 @@ export function processWindowErrorEvent({error, reason, message, type, filename,
     if (windowConfig()?.runModeIsProd) return;
   }
 
-  // Don't show network errors, happens on ref-issue when clicking on the
+  // Don't show network errors and aborts, happens on ref-issue when clicking on the
   // issue link while the fetch request is still running.
-  if (isNetworkError(err)) return;
+  if (isNetworkError(err) || errorName(err) === 'AbortError') return;
 
   // Filter out errors from browser extensions or other non-Gitea scripts.
   if (!isGiteaError(filename ?? '', err?.stack ?? '')) return;

@@ -17,10 +17,11 @@ import (
 )
 
 type RouterPathGroup struct {
-	r         *Router
-	pathParam string
-	matchers  []*routerPathMatcher
-	unescape  bool
+	r           *Router
+	pathParam   string
+	matchers    []*routerPathMatcher
+	unescape    bool
+	middlewares []any
 }
 
 func (g *RouterPathGroup) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
@@ -55,7 +56,7 @@ func (g *RouterPathGroup) MatchPath(methods, pattern string, h ...any) {
 }
 
 func (g *RouterPathGroup) MatchPattern(methods string, pattern *RouterPathGroupPattern, h ...any) {
-	g.matchers = append(g.matchers, newRouterPathMatcher(methods, pattern, h...))
+	g.matchers = append(g.matchers, newRouterPathMatcher(methods, pattern, g.middlewares, h...))
 }
 
 func (g *RouterPathGroup) UseUnescapedPath() {
@@ -127,8 +128,8 @@ func isValidMethod(name string) bool {
 	return false
 }
 
-func newRouterPathMatcher(methods string, patternRegexp *RouterPathGroupPattern, h ...any) *routerPathMatcher {
-	middlewares, handlerFunc, hasPreMiddlewares := wrapMiddlewareAndHandler(nil, patternRegexp.middlewares, h)
+func newRouterPathMatcher(methods string, patternRegexp *RouterPathGroupPattern, uses []any, h ...any) *routerPathMatcher {
+	middlewares, handlerFunc, hasPreMiddlewares := wrapMiddlewareAndHandler(uses, patternRegexp.middlewares, h)
 	if hasPreMiddlewares {
 		panic("pre-middlewares are not supported in router path matcher")
 	}

@@ -37,11 +37,16 @@
 					<button type="button" class="ui basic green button">Basic Green</button>
 				</li>
 				<li class="sample-group">
-					<h2>Inline / Plain:</h2>
+					<h2>Button reset and interact</h2>
 					<div class="my-1">
-						<button type="button" class="btn p-2">Plain button</button>
-						<button type="button" class="btn interact-fg p-2">Plain button with interact fg</button>
-						<button type="button" class="btn interact-bg p-2">Plain button with interact bg</button>
+						<button type="button" class="btn">btn reset</button>
+						<button type="button" class="btn interact-fg p-2">btn interact-fg</button>
+						<button type="button" class="btn interact-link p-2">btn interact-link</button>
+						<button type="button" class="btn interact-bg p-2">btn interact-bg</button>
+					</div>
+					<div class="my-1">
+						<button type="button" class="interact-fg">interact-fg</button>
+						<button type="button" class="interact-link">interact-link</button>
 					</div>
 				</li>
 			</ul>
@@ -54,6 +59,9 @@
 		<div class="ui buttons"><button type="button" class="ui button active">1</button><button type="button" class="ui button">2</button><button type="button" class="ui button">3</button></div>
 		<div class="ui buttons"><button type="button" class="ui button">1</button><button type="button" class="ui button active">2</button><button type="button" class="ui button">3</button></div>
 		<div class="ui buttons"><button type="button" class="ui button">1</button><button type="button" class="ui button">2</button><button type="button" class="ui button active">3</button></div>
+		<div class="ui primary buttons"><button type="button" class="ui button">1</button><button type="button" class="ui button">2</button><button type="button" class="ui button">3</button></div>
+		<div class="ui red buttons"><button type="button" class="ui button">1</button><button type="button" class="ui button">2</button><button type="button" class="ui button">3</button></div>
+		<div class="ui green buttons"><button type="button" class="ui button">1</button><button type="button" class="ui button">2</button><button type="button" class="ui button">3</button></div>
 	</div>
 
 	<div>
@@ -143,16 +151,6 @@
 				<input type="text" placeholder="place holder">
 			</div>
 		</div>
-	</div>
-
-	<div>
-		<h1>ComboMarkdownEditor</h1>
-		{{template "shared/combomarkdowneditor" dict "MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorGeneral nil)}}
-	</div>
-
-	<h1>Tailwind CSS Demo</h1>
-	<div>
-		<button type="button" class="{{if true}}bg-red{{end}} p-5 border rounded hover:bg-blue active:bg-yellow">Button</button>
 	</div>
 </div>
 {{template "devtest/devtest-footer"}}

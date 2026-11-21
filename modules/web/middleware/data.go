@@ -16,8 +16,6 @@ const (
 	ContextDataKeySignedUser = "SignedUser"
 	// ContextDataKeyImpersonator holds the admin acting as the signed-in user, if any.
 	ContextDataKeyImpersonator = "Impersonator"
-	// ContextDataKeyAuthCredential names the credential the request authenticated with, e.g. "access-token:42".
-	ContextDataKeyAuthCredential = "AuthCredential"
 )
 
 func GetContextData(c context.Context) reqctx.ContextData {
@@ -38,9 +36,8 @@ func CommonTemplateContextData() reqctx.ContextData {
 		"ShowFooterVersion":             setting.Other.ShowFooterVersion,
 		"DisableDownloadSourceArchives": setting.Repository.DisableDownloadSourceArchives,
 
-		"EnableSwagger":      setting.API.EnableSwagger,
-		"EnableOpenIDSignIn": setting.Service.EnableOpenIDSignIn,
-		"PageStartTime":      time.Now(),
+		"EnableSwagger": setting.API.EnableSwagger,
+		"PageStartTime": time.Now(),
 
 		"RunModeIsProd": setting.IsProd,
 		"ViteModeIsDev": public.IsViteDevMode(),

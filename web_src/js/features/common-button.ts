@@ -1,5 +1,5 @@
 import {addDelegatedEventListener, hideElem, isElemVisible, showElem, toggleElem} from '../utils/dom.ts';
-import {showFomanticModal} from '../modules/fomantic/modal.ts';
+import {showModal} from '../modules/modal.ts';
 import {camelize} from 'vue';
 import {applyAutoFocus} from './common-page.ts';
 
@@ -90,7 +90,13 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
   // to make the template variables get correctly escaped in the URL.
   e.preventDefault();
   const modalSelector = el.getAttribute('data-modal')!;
-  const elModal = document.querySelector(modalSelector);
+  const elTarget = document.querySelector(modalSelector);
+  let elModal: HTMLDialogElement | null = null;
+  if (elTarget instanceof HTMLDialogElement) {
+    elModal = elTarget;
+  } else if (elTarget instanceof HTMLTemplateElement) {
+    elModal = elTarget.content.querySelector('dialog.modal-dialog')?.cloneNode(true) as HTMLDialogElement;
+  }
   if (!elModal) throw new Error('no modal for this action');
 
   const modalAttrPrefix = 'data-modal-';
@@ -123,11 +129,11 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
     }
   }
 
-  showFomanticModal(elModal);
+  showModal(elModal);
 }
 
 export function initGlobalButtons(): void {
-  // There are many "cancel button" elements in modal dialogs, Fomantic UI expects they are button-like elements but never submit a form.
+  // There are many "cancel button" elements in modal dialogs, they are expected to be button-like elements but never submit a form.
   // However, Gitea misuses the modal dialog and put the cancel buttons inside forms, so we must prevent the form submission.
   // There are a few cancel buttons in non-modal forms, and there are some dynamically created forms (eg: the "Edit Issue Content")
   addDelegatedEventListener(document, 'click', 'form button.ui.cancel.button', (_ /* el */, e) => e.preventDefault());

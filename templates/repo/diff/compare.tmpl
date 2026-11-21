@@ -168,12 +168,11 @@
 			</div>
 		</div>
 
-		{{$showDiffBox := and .CommitCount (not .IsNothingToCompare)}}
+		{{$showDiffBox := or .CommitCount .DiffShortStat.NumFiles}}
 		{{if and .IsSigned .PageIsComparePull}}
-			{{$allowCreatePR := and ($.CompareInfo.BaseRef.IsBranch) ($.CompareInfo.HeadRef.IsBranch) (not $.CompareInfo.DirectComparison) (or $.AllowEmptyPr (not .IsNothingToCompare))}}
 			{{if .IsNothingToCompare}}
 				<div class="ui segment">
-					{{if $allowCreatePR}}
+					{{if .CanCreatePullRequest}}
 						{{ctx.Locale.Tr "repo.pulls.nothing_to_compare_and_allow_empty_pr"}}
 					{{else if and $.CompareInfo.BaseRef.IsBranch $.CompareInfo.HeadRef.IsBranch}}
 						{{ctx.Locale.Tr "repo.pulls.nothing_to_compare"}}
@@ -201,17 +200,17 @@
 						{{ctx.Locale.Tr "repo.archive.title_date" (DateUtils.AbsoluteLong .Repository.ArchivedUnix)}}
 					{{end}}
 				</div>
-			{{else if $allowCreatePR}}
+			{{else if .CanCreatePullRequest}}
 				<div class="ui info message flex-text-block pullrequest-form-toggle {{if .ExpandNewPrForm}}hidden{{end}}">
 					<span class="flex-1">{{ctx.Locale.Tr "repo.pulls.new.description"}}</span>
-					<a class="ui button primary show-panel toggle" data-panel=".pullrequest-form-toggle, .pullrequest-form">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
+					<button type="button" class="ui button primary show-panel toggle" data-panel=".pullrequest-form-toggle, .pullrequest-form">{{ctx.Locale.Tr "repo.pulls.new"}}</button>
 				</div>
 				<div class="pullrequest-form {{if not .ExpandNewPrForm}}hidden{{end}}">
 					{{template "repo/issue/new_form" .}}
 				</div>
 			{{end}}
 		{{else}}{{/* not signed-in or not for pull-request */}}
-			{{if and (not .CommitCount) $.CompareInfo.CompareBase}}
+			{{if and (not $showDiffBox) $.CompareInfo.CompareBase}}
 				<div class="ui segment">{{ctx.Locale.Tr "repo.commits.nothing_to_compare"}}</div>
 			{{end}}
 		{{end}}

@@ -4,13 +4,32 @@
 package runner
 
 import (
+	"errors"
+	"net/http/httptest"
 	"testing"
 
 	runnerv1 "gitea.dev/actionslib/runner/v1"
+	"gitea.dev/actionslib/runner/v1/runnerv1connect"
 	actions_model "gitea.dev/models/actions"
 
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestPlainErrorReachesRunnerAsUnknownWithMessage(t *testing.T) {
+	_, handler := NewRunnerServiceHandler()
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	client := runnerv1connect.NewRunnerServiceClient(connect.NewClient(connecthttp.NewTransport(server.Client(), server.URL)))
+	_, err := client.Register(t.Context(), &runnerv1.RegisterRequest{})
+	connectErr, ok := errors.AsType[*connect.Error](err)
+	require.True(t, ok)
+	assert.Equal(t, connect.CodeUnknown, connectErr.Code())
+	assert.Equal(t, "missing runner token, name", connectErr.Message())
+}
 
 func TestApplyDeclareRequestToRunnerAdvertisedCapabilityEnablesCancelling(t *testing.T) {
 	runner := &actions_model.ActionRunner{}
