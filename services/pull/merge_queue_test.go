@@ -20,8 +20,8 @@ import (
 
 func TestMergeQueueRequiredContexts(t *testing.T) {
 	assert.Equal(t,
-		[]string{"CI / test (merge_group)", "CI / lint (merge_group)", "CI (pull_request) / *"},
-		MergeQueueRequiredContexts([]string{"CI / test (pull_request)", "CI / lint (pull_request_target)", "CI (pull_request) / *"}),
+		[]string{"CI / test (merge_group)", "CI / lint (merge_group)", "CI / build (merge_group)", "CI (pull_request) / *"},
+		MergeQueueRequiredContexts([]string{"CI / test (pull_request)", "CI / lint (pull_request_target)", "CI / build (push)", "CI (pull_request) / *"}),
 	)
 }
 

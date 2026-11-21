@@ -724,6 +724,10 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 		return util.ErrorWrap(ErrNotReadyToMerge, "The head branch is behind the base branch")
 	}
 
+	if !issue_service.HasAllRequiredCodeownerReviews(ctx, pb, pr) {
+		return util.ErrorWrap(ErrNotReadyToMerge, "There are missing code owner reviews")
+	}
+
 	if skipProtectedFilesCheck {
 		return nil
 	}
@@ -744,9 +748,6 @@ func checkPullReviews(ctx context.Context, pb *git_model.ProtectedBranch, pr *is
 	}
 	if issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pr) {
 		return util.ErrorWrap(ErrNotReadyToMerge, "There are official review requests")
-	}
-	if !issue_service.HasAllRequiredCodeownerReviews(ctx, pb, pr) {
-		return util.ErrorWrap(ErrNotReadyToMerge, "There are missing code owner reviews")
 	}
 	return nil
 }

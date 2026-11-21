@@ -124,9 +124,9 @@ func UpdateMergeQueueEntry(ctx context.Context, entry *MergeQueueEntry) error {
 }
 
 func NextJumpUnix(ctx context.Context, repoID int64, baseBranch string) (timeutil.TimeStamp, error) {
-	var last timeutil.TimeStamp
-	_, err := mergeQueueForBranch(ctx, repoID, baseBranch).Select("COALESCE(MAX(jump_unix), 0)").Get(&last)
-	return max(timeutil.TimeStampNow(), last+1), err // Keep jumps in order within the same second.
+	var last MergeQueueEntry
+	_, err := mergeQueueForBranch(ctx, repoID, baseBranch).Cols("jump_unix").Desc("jump_unix").Get(&last)
+	return max(timeutil.TimeStampNow(), last.JumpUnix+1), err // Keep jumps in order within the same second.
 }
 
 func JumpMergeQueueEntry(ctx context.Context, entry *MergeQueueEntry) (err error) {

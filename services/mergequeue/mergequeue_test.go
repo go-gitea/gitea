@@ -34,6 +34,7 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/services/agit"
 	notify_service "gitea.dev/services/notify"
+	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
@@ -297,10 +298,11 @@ func TestProcessQueueMissingHeads(t *testing.T) {
 		require.Error(t, processQueue(ctx, repo.ID, missingRepo.BaseBranch))
 		unittest.AssertCount(t, &pull_model.MergeQueueEntry{BaseBranch: missingRepo.BaseBranch}, 2)
 	})
-	t.Run("queued head rejects rename and AGit update", func(t *testing.T) {
+	t.Run("queued head rejects rename, update and AGit update", func(t *testing.T) {
 		doer := repo.MustOwner(ctx)
 		_, err := repo_service.RenameBranch(ctx, repo, doer, missingRepo.HeadBranch, "new-head")
 		require.ErrorIs(t, err, issues_model.ErrQueuedPullHead)
+		require.ErrorIs(t, pull_service.Update(missingRepo, doer, "", false), issues_model.ErrQueuedPullHead)
 		missingRepo.Flow, missingRepo.HeadBranch = issues_model.PullRequestFlowAGit, doer.LowerName+"/topic"
 		require.NoError(t, missingRepo.UpdateCols(ctx, "flow", "head_branch"))
 		gitRepo, err := git.OpenRepository(ctx, repo)

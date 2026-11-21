@@ -22,6 +22,7 @@ import (
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
+	issue_service "gitea.dev/services/issue"
 )
 
 func MergesThroughQueue(ctx context.Context, pb *git_model.ProtectedBranch, repo *repo_model.Repository, doer *user_model.User, force bool) bool {
@@ -70,7 +71,7 @@ func (entry *MergeQueueEntry) IsBlocked(ctx context.Context, rule *git_model.Pro
 	if noDeps, err := issues_model.IssueNoDependenciesLeft(ctx, pr.Issue); err != nil || !noDeps {
 		return !noDeps, err
 	}
-	return pr.IsWorkInProgress(ctx) || checkPullReviews(ctx, rule, pr) != nil, nil
+	return pr.IsWorkInProgress(ctx) || checkPullReviews(ctx, rule, pr) != nil || !issue_service.HasAllRequiredCodeownerReviews(ctx, rule, pr), nil
 }
 
 func (entry *MergeQueueEntry) CreateMergeQueueCommit(ctx context.Context, gitRepo *git.Repository, rule *git_model.ProtectedBranch, base string) (issues_model.MergeQueueRemovalReason, error) {
@@ -132,7 +133,7 @@ func (entry *MergeQueueEntry) CreateMergeQueueCommit(ctx context.Context, gitRep
 func MergeQueueRequiredContexts(required []string) []string {
 	adapted := make([]string, len(required))
 	for i, name := range required {
-		if prefix, event, _ := strings.CutLast(name, " "); event == "(pull_request)" || event == "(pull_request_target)" {
+		if prefix, event, _ := strings.CutLast(name, " "); event == "(pull_request)" || event == "(pull_request_target)" || event == "(push)" {
 			name = prefix + " (merge_group)"
 		}
 		adapted[i] = name

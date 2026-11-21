@@ -1001,6 +1001,9 @@ func UpdatePullRequest(ctx *context.Context) {
 			}
 			ctx.JSONError(flashError)
 			return
+		} else if errors.Is(err, issues_model.ErrQueuedPullHead) {
+			ctx.JSONErrorAuto(err)
+			return
 		}
 		log.Error("Update pull request failed: %v", err)
 		ctx.JSONError("Unable to update pull request")
