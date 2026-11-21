@@ -8,6 +8,8 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -105,6 +107,10 @@ func TestFindJobQueueJobs(t *testing.T) {
 
 	ids, _ = find(StatusUnknown, 99, 3)
 	assert.Equal(t, []int64{queuedA, queuedB}, ids)
+
+	defer test.MockVariableValue(&setting.Actions.JobQueueOrder, "created")()
+	ids, _ = find(StatusUnknown, 1, 10)
+	assert.Equal(t, []int64{running, cancelling, queuedA, queuedB, queuedC}, ids)
 
 	repoIDs, err := JobQueueFilterRepoIDs(ctx, 1000)
 	require.NoError(t, err)

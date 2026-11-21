@@ -67,6 +67,8 @@ func releaseTaskForRunnerCleanup(t *actions_model.ActionTask) {
 	}
 }
 
+const maxSkippedJobsPerPick = 3
+
 func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv1.Task, bool, error) {
 	var (
 		task       *runnerv1.Task
@@ -98,24 +100,32 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		}
 	}
 
-	t, cancelledJobs, err := actions_model.CreateTaskForRunner(ctx, runner)
-	notifyAndEmitFinishedJobs(context.WithoutCancel(ctx), cancelledJobs) // the cancellations are committed even if the runner went away
-	if err != nil {
-		return nil, false, fmt.Errorf("CreateTaskForRunner: %w", err)
-	}
-	if t == nil {
-		return nil, false, nil
-	}
+	// A claimed job whose payload cannot be assembled is released and skipped, so it does not block the jobs behind it.
+	// The number of skips is bounded, a failure that hits every job must not churn through the whole queue.
+	var skipJobIDs []int64
+	var buildErr error
+	for {
+		t, cancelledJobs, err := actions_model.CreateTaskForRunner(ctx, runner, skipJobIDs...)
+		notifyAndEmitFinishedJobs(context.WithoutCancel(ctx), cancelledJobs) // the cancellations are committed even if the runner went away
+		if err != nil {
+			return nil, false, fmt.Errorf("CreateTaskForRunner: %w", err)
+		}
+		if t == nil {
+			return nil, false, buildErr // report a skipped job, so the runner polls again instead of waiting for the next tasks version
+		}
 
-	task, job, err = buildRunnerTask(ctx, t)
-	if err != nil {
-		// The job was already claimed but assembling its payload failed; release the
-		// claim so the job returns to the waiting queue instead of being stranded in
-		// running state with no runner ever executing it.
+		task, job, buildErr = buildRunnerTask(ctx, t)
+		if buildErr == nil {
+			actionTask = t
+			break
+		}
 		releaseTaskForRunnerCleanup(t)
-		return nil, false, err
+		log.Error("PickTask: build task for job %d: %v", t.JobID, buildErr)
+		skipJobIDs = append(skipJobIDs, t.JobID)
+		if ctx.Err() != nil || len(skipJobIDs) == maxSkippedJobsPerPick {
+			return nil, false, buildErr
+		}
 	}
-	actionTask = t
 
 	CreateCommitStatusForRunJobs(ctx, job.Run, job)
 	NotifyWorkflowJobStatusUpdateWithTask(ctx, job, actionTask)
@@ -128,7 +138,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 	// The job is claimed and its payload assembled, but if the request context was cancelled meanwhile, response can no longer reach the runner.
 	// Release the claim so another runner can pick the job up.
 	if err := ctx.Err(); err != nil {
-		releaseTaskForRunnerCleanup(t)
+		releaseTaskForRunnerCleanup(actionTask)
 		return nil, false, err
 	}
 
