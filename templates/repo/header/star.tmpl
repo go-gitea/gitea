@@ -1,5 +1,5 @@
 {{$buttonText := ctx.Locale.Tr (Iif $.IsStaringRepo "repo.unstar" "repo.star")}}
-<a role="button" class="ui compact small basic button" aria-label="{{$buttonText}}"
+<a role="button" class="ui compact small basic button" aria-label="{{$buttonText}} {{CountFmt .Repository.NumStars}}"
 	{{if $.IsSigned}}
 		data-fetch-method="post"
 		data-fetch-url="{{$.RepoLink}}/action/{{Iif $.IsStaringRepo "unstar" "star"}}"

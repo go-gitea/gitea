@@ -95,7 +95,7 @@
 						<div class="diff-file-header sticky-2nd-row ui top attached header">
 							<div class="diff-file-name tw-flex tw-flex-1 tw-items-center tw-gap-1 tw-flex-wrap">
 								<div class="flex-text-block">
-									<button type="button" class="fold-file btn interact-bg tw-flex-shrink-0 tw-p-1" data-global-click="diffFileViewFold">
+									<button type="button" class="fold-file btn interact-bg tw-flex-shrink-0 tw-p-1" data-global-click="diffFileViewFold" aria-label="{{ctx.Locale.Tr "repo.diff.toggle_file"}}">
 										{{if $file.ShouldBeHidden}}
 											{{svg "octicon-chevron-right" 18}}
 										{{else}}
@@ -146,7 +146,7 @@
 									</label>
 								{{end}}
 								{{if not $file.IsSubmodule}}
-									<button type="button" class="btn tw-p-1" data-global-init="initDiffHeaderPopupMenu">{{svg "octicon-kebab-horizontal" 18}}</button>
+									<button type="button" class="btn tw-p-1" data-global-init="initDiffHeaderPopupMenu" aria-label="{{ctx.Locale.Tr "repo.diff.file_options"}}">{{svg "octicon-kebab-horizontal" 18}}</button>
 									<div class="tippy-target">
 										{{if not (or $file.IsIncomplete $file.IsBin)}}
 											<button type="button" class="unescape-button item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>

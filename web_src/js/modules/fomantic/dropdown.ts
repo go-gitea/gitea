@@ -156,8 +156,9 @@ function attachStaticElements(dropdown: AriaDropdownElement, focusable: HTMLElem
   }
 
   // make the primary element (focusable) aria-friendly
-  focusable.setAttribute('role', focusable.getAttribute('role') ?? dropdown[ariaPatchKey].focusableRole);
-  focusable.setAttribute('aria-haspopup', dropdown[ariaPatchKey].listPopupRole);
+  const {focusableRole, listPopupRole} = dropdown[ariaPatchKey];
+  focusable.setAttribute('role', focusable.getAttribute('role') ?? focusableRole);
+  focusable.setAttribute('aria-haspopup', listPopupRole);
   focusable.setAttribute('aria-controls', menu.id);
   focusable.setAttribute('aria-expanded', 'false');
 
@@ -165,6 +166,20 @@ function attachStaticElements(dropdown: AriaDropdownElement, focusable: HTMLElem
   const tooltipContent = dropdown.getAttribute('data-tooltip-content');
   if (tooltipContent && !dropdown.getAttribute('aria-label')) {
     dropdown.setAttribute('aria-label', tooltipContent);
+  }
+  // aria-label isn't allowed on a role-less container, so the label of a search dropdown belongs to its input
+  if (focusable !== dropdown) {
+    const label = dropdown.getAttribute('aria-label');
+    dropdown.removeAttribute('aria-label');
+    if (label && !focusable.getAttribute('aria-label') && !focusable.getAttribute('aria-labelledby')) focusable.setAttribute('aria-label', label);
+  }
+  // a combobox is named by its field label, falling back to the placeholder text
+  if (focusableRole === 'combobox' && !focusable.getAttribute('aria-label') && !focusable.getAttribute('aria-labelledby')) {
+    const labelElem = dropdown.closest('.field')?.querySelector('label') ?? dropdown.querySelector(':scope > .default.text');
+    if (labelElem) {
+      if (!labelElem.id) labelElem.id = generateElemId('_aria_dropdown_label_');
+      focusable.setAttribute('aria-labelledby', labelElem.id);
+    }
   }
   // a selection dropdown's text is its value, other dropdowns are button-like and named by their visible text
   if (!dropdown.classList.contains('selection') && !focusable.getAttribute('aria-label') && !focusable.getAttribute('aria-labelledby')) {

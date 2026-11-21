@@ -367,7 +367,7 @@ func (ut *RenderUtils) AvatarStack(data *user_model.AvatarStackData) template.HT
 func (ut *RenderUtils) writeAvatarStackItem(b *htmlutil.HTMLBuilder, data *user_model.AvatarStackData, participant *user_model.CommitParticipant) {
 	avatar := ut.participantAvatar(participant)
 	if href := ut.participantHref(data, participant); href != "" {
-		b.WriteFormatf(`<a href="%s">%s</a>`, href, avatar)
+		b.WriteFormatf(`<a href="%s" aria-label="%s">%s</a>`, href, participantName(participant), avatar)
 	} else {
 		b.WriteFormatf(`<span>%s</span>`, avatar)
 	}
