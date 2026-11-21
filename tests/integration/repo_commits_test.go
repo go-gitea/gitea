@@ -123,6 +123,7 @@ func TestRepoCommits(t *testing.T) {
 		req := NewRequest(t, "GET", "/user2/repo1/commit/"+commitID)
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		assert.Contains(t, resp.Body.String(), "non-author-committer")
+		testDiffFileOnly(t, session, "/user2/repo1/commit/"+commitID, NewHTMLParser(t, resp.Body), "dummy-file.txt")
 	})
 }
 

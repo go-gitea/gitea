@@ -452,22 +452,22 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ci.HeadGitRepo, &diffCommonOptions)
-	if err != nil {
-		ctx.ServerErrorAuto(err)
-		return
-	}
-	ctx.Data["DiffShortStat"] = diffShortStat
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffBlobExcerptData"] = &gitdiff.DiffBlobExcerptData{
 		BaseLink:      ci.HeadRepo.Link() + "/blob_excerpt",
 		DiffStyle:     GetDiffViewStyle(ctx),
 		AfterCommitID: headCommitID,
 	}
-	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
-	ctx.Data["ShowDiffSummaryInToolbar"] = diffShortStat.NumFiles != 0
-
 	if !fileOnly {
+		diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ci.HeadGitRepo, &diffCommonOptions)
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+		ctx.Data["DiffShortStat"] = diffShortStat
+		ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
+		ctx.Data["ShowDiffSummaryInToolbar"] = diffShortStat.NumFiles != 0
+
 		diffTree, err := gitdiff.GetDiffTree(ctx, ci.HeadGitRepo, false, beforeCommitID, headCommitID)
 		if err != nil {
 			ctx.ServerErrorAuto(err)
@@ -552,18 +552,18 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
+	fileOnly := ctx.FormBool("file-only")
+	if fileOnly {
+		ctx.HTML(http.StatusOK, tplDiffBox)
+		return
+	}
+
 	baseTags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Tags"] = baseTags
-
-	fileOnly := ctx.FormBool("file-only")
-	if fileOnly {
-		ctx.HTML(http.StatusOK, tplDiffBox)
-		return
-	}
 
 	headBranches, headTags, err := getBranchesAndTagsForRepo(ctx, ci.HeadRepo)
 	if err != nil {
