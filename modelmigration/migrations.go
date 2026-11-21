@@ -448,6 +448,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(369, "Add runner_name to action_task", v29.AddRunnerNameToActionTask),
 		newMigration(370, "Change raw_concurrency of action_run and action_run_job to TEXT on MSSQL", v29.ChangeActionsRawConcurrencyToText),
 		newMigration(371, "Add hash_sha256 column to attachment", v29.AddHashSHA256ToAttachment),
+		newMigration(372, "Move latest_release_id into the releases unit config", v29.MoveLatestReleaseIDToReleasesUnit),
 	}
 	return preparedMigrations
 }

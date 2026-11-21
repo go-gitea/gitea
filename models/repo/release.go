@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"gitea.dev/models/db"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/optional"
@@ -342,9 +343,13 @@ func latestReleaseCond(repoID int64) builder.Cond {
 	return FindReleasesOptions{RepoID: repoID, IsPreRelease: optional.Some(false)}.ToConds()
 }
 
+func GetLatestReleaseID(ctx context.Context, repo *Repository) int64 {
+	return repo.MustGetUnit(ctx, unit.TypeReleases).ReleasesConfig().LatestReleaseID
+}
+
 func GetLatestRelease(ctx context.Context, repo *Repository) (*Release, error) {
-	if repo.LatestReleaseID != 0 {
-		rel, has, err := db.Get[Release](ctx, latestReleaseCond(repo.ID).And(builder.Eq{"id": repo.LatestReleaseID}))
+	if latestReleaseID := GetLatestReleaseID(ctx, repo); latestReleaseID != 0 {
+		rel, has, err := db.Get[Release](ctx, latestReleaseCond(repo.ID).And(builder.Eq{"id": latestReleaseID}))
 		if err != nil {
 			return nil, err
 		} else if has {
@@ -371,24 +376,21 @@ func GetLatestReleaseByRepoID(ctx context.Context, repoID int64) (*Release, erro
 }
 
 func SetLatestReleaseID(ctx context.Context, repo *Repository, releaseID int64) error {
-	repo.LatestReleaseID = releaseID
-	_, err := db.GetEngine(ctx).ID(repo.ID).Where(builder.Neq{"latest_release_id": releaseID}).
-		Cols("latest_release_id").NoAutoTime().Update(repo)
-	return err
+	return setLatestReleaseID(ctx, repo, releaseID, builder.NewCond())
 }
 
 func UnsetLatestReleaseID(ctx context.Context, repo *Repository, releaseID int64) error {
 	if releaseID == 0 {
 		return nil
 	}
-	if _, err := db.GetEngine(ctx).Where(builder.Eq{"id": repo.ID, "latest_release_id": releaseID}).
-		Cols("latest_release_id").NoAutoTime().Update(&Repository{LatestReleaseID: 0}); err != nil {
-		return err
-	}
-	if repo.LatestReleaseID == releaseID {
-		repo.LatestReleaseID = 0
-	}
-	return nil
+	return setLatestReleaseID(ctx, repo, 0, builder.Like{"config", fmt.Sprintf(`"LatestReleaseID":%d}`, releaseID)})
+}
+
+func setLatestReleaseID(ctx context.Context, repo *Repository, releaseID int64, cond builder.Cond) error {
+	repo.Units = nil
+	_, err := db.GetEngine(ctx).Where(builder.Eq{"repo_id": repo.ID, "type": unit.TypeReleases}.And(cond)).
+		Cols("config").Update(&RepoUnit{Config: &ReleasesConfig{LatestReleaseID: releaseID}}) // the config holds only the pin, so it is written whole
+	return err
 }
 
 type releaseMetaSearch struct {

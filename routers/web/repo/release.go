@@ -573,7 +573,7 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["title"] = rel.Title
 	ctx.Data["content"] = rel.Note
 	ctx.Data["prerelease"] = rel.IsPrerelease
-	ctx.Data["make_latest"] = ctx.Repo.Repository.LatestReleaseID == rel.ID && rel.CanBeLatest()
+	ctx.Data["make_latest"] = repo_model.GetLatestReleaseID(ctx, ctx.Repo.Repository) == rel.ID && rel.CanBeLatest()
 	ctx.Data["IsDraft"] = rel.IsDraft
 
 	rel.Repo = ctx.Repo.Repository
@@ -638,7 +638,7 @@ func EditReleasePost(ctx *context.Context) {
 	switch {
 	case form.MakeLatest:
 		makeLatest = api.MakeLatestTrue
-	case ctx.Repo.Repository.LatestReleaseID == rel.ID:
+	case repo_model.GetLatestReleaseID(ctx, ctx.Repo.Repository) == rel.ID:
 		makeLatest = api.MakeLatestLegacy
 	}
 	if err = release_service.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo,

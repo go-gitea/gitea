@@ -95,6 +95,16 @@ conditional `UPDATE` or a lock.
 - If git command stderr output is not handled by the caller, then it needs to use RunWithStderr
   to make sure the git error message is included in the returned error and displayed in the logs.
 
+### Repository units
+
+Units (`models/unit`) are a repository's features, such as issues, releases or actions. Each
+enabled unit has a `repo_unit` row with its access modes and a JSON `config` typed per unit in
+`models/repo/repo_unit.go`.
+
+Unit-specific settings and state live in that config, not in `repository` columns, so they need
+no migration and go away with the unit. Data queried across repositories or growing with use
+belongs in its own table.
+
 ## Dependencies
 
 Go dependencies are managed with [Go Modules](https://go.dev/ref/mod).
