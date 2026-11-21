@@ -6,6 +6,8 @@ export function makeCodeCopyButton(attrs: Record<string, string> = {}): HTMLButt
   const btn = createElementFromAttrs<HTMLButtonElement>('button', {
     class: 'ui compact icon button code-copy auto-hide-control',
     type: 'button',
+    'data-tooltip-content': window.config.i18n.copy,
+    'aria-label': window.config.i18n.copy,
     ...attrs,
   });
   btn.innerHTML = svg('octicon-copy');

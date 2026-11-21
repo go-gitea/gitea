@@ -6,6 +6,7 @@ import giteaEmptyCheckbox from '../../public/assets/img/svg/gitea-empty-checkbox
 import giteaExclamation from '../../public/assets/img/svg/gitea-exclamation.svg';
 import giteaFavicon from '../../public/assets/img/favicon.svg';
 import giteaRunning from '../../public/assets/img/svg/gitea-running.svg';
+import materialWrapText from '../../public/assets/img/svg/material-wrap-text.svg';
 import octiconArchive from '../../public/assets/img/svg/octicon-archive.svg';
 import octiconArrowLeft from '../../public/assets/img/svg/octicon-arrow-left.svg';
 import octiconArrowSwitch from '../../public/assets/img/svg/octicon-arrow-switch.svg';
@@ -99,6 +100,7 @@ const svgs = {
   'gitea-exclamation': giteaExclamation,
   'gitea-favicon': giteaFavicon,
   'gitea-running': giteaRunning,
+  'material-wrap-text': materialWrapText,
   'octicon-archive': octiconArchive,
   'octicon-arrow-left': octiconArrowLeft,
   'octicon-arrow-switch': octiconArrowSwitch,
