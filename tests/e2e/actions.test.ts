@@ -39,7 +39,7 @@ test('workflow graph opens a job and steps expand by click or log permalink', as
   await expect(page.getByRole('link', {name: '23', exact: true})).toBeInViewport();
 });
 
-test('run workflow dispatches a queued run with an input', async ({page, request}) => {
+test('dispatch with an input, cancel, rerun and view the first attempt', async ({page, request}) => {
   const owner = env.GITEA_TEST_E2E_USER;
   const repo = `e2e-dispatch-${randomString(8)}`;
   await Promise.all([
@@ -68,5 +68,17 @@ jobs:
   const dispatchDialog = page.getByRole('dialog');
   await dispatchDialog.getByLabel('Run message').fill('from UI');
   await dispatchDialog.getByRole('button', {name: 'Run Workflow', exact: true}).click();
-  await expect(page.getByRole('link', {name: 'Dispatch from UI', exact: true})).toBeVisible();
+  await page.getByRole('link', {name: 'Dispatch from UI', exact: true}).click();
+
+  const cancelButton = page.getByRole('button', {name: 'Cancel workflow run', exact: true});
+  await cancelButton.click();
+  await page.getByRole('button', {name: 'Re-run failed jobs', exact: true}).click();
+  await expect(page.getByText('Waiting', {exact: true}).filter({visible: true}).first()).toBeVisible();
+  await expect(cancelButton).toBeVisible();
+
+  await page.getByRole('menu').getByText('Latest #2', {exact: true}).click();
+  await page.getByRole('menuitem', {name: /^Attempt #1\b/}).click();
+  await page.waitForURL('**/attempts/1');
+  await expect(page.getByText('Canceled', {exact: true}).filter({visible: true}).first()).toBeVisible();
+  await expect(page.getByRole('button', {name: /^Re-run\b/})).toBeHidden();
 });

@@ -69,26 +69,22 @@ function getShortcutTextContent(elem: Element): string {
 }
 
 function showShortcutHelp() {
-  let modal = document.querySelector<HTMLDialogElement>('#global-shortcut-help');
-  if (!modal) {
-    modal = createElementFromHTML<HTMLDialogElement>(html`
-      <dialog id="global-shortcut-help" class="modal-dialog">
-        <div class="header">
-          Keyboard Shortcuts
-          <button type="button" class="close-modal"></button>
-        </div>
-        <div class="scrolling content">
-          <table class="ui very basic compact unstackable table">
-            <tbody class="shortcut-list"></tbody>
-          </table>
-        </div>
-      </dialog>
-    `);
-  }
+  const modal = createElementFromHTML<HTMLDialogElement>(html`
+    <dialog id="global-shortcut-help" class="modal-dialog">
+      <div class="header">
+        Keyboard Shortcuts
+        <button type="button" class="close-modal"></button>
+      </div>
+      <div class="scrolling content">
+        <table class="ui very basic compact unstackable table">
+          <tbody class="shortcut-list"><tr><td><kbd>?</kbd></td><td>Keyboard Shortcuts</td></tr></tbody>
+        </table>
+      </div>
+    </dialog>
+  `);
 
   const seenShortcuts = new Set<string>();
   const list = modal.querySelector<HTMLElement>('.shortcut-list')!;
-  list.replaceChildren(createElementFromHTML(html`<tr><td><kbd>?</kbd></td><td>Keyboard Shortcuts</td></tr>`));
   for (const elem of document.querySelectorAll<HTMLElement>('[data-shortcut-keys]')) {
     const target = elem.matches('kbd') ? elemFromKbd(elem) : elem;
 

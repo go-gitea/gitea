@@ -33,6 +33,9 @@ import (
 	"xorm.io/builder"
 )
 
+// CommitStatusStateMaxLength must match the size of the CommitStatus.State column
+const CommitStatusStateMaxLength = 7
+
 // CommitStatus holds a single Status of a single Commit
 type CommitStatus struct {
 	ID     int64                          `xorm:"pk autoincr"`

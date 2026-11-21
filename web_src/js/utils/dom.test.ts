@@ -6,6 +6,7 @@ import {
 } from './dom.ts';
 
 test('createElementFromHTML', () => {
+  expect(createElementFromHTML('<div></div>').ownerDocument).toBe(document);
   expect(createElementFromHTML('<a>foo<span>bar</span></a>').outerHTML).toEqual('<a>foo<span>bar</span></a>');
   expect(createElementFromHTML('<tr data-x="1"><td>foo</td></tr>').outerHTML).toEqual('<tr data-x="1"><td>foo</td></tr>');
   expect(createElementFromHTML('<TR data-x="1"><td>foo</td></TR>').outerHTML).toEqual('<tr data-x="1"><td>foo</td></tr>');

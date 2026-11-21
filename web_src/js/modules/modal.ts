@@ -1,4 +1,4 @@
-import {hideAll} from 'tippy.js';
+import {hideAll as hideTippyAll} from 'tippy.js';
 import {generateElemId, queryElems} from '../utils/dom.ts';
 import {hideToastsAll} from './toast.ts';
 
@@ -8,7 +8,7 @@ type ModalOpts = {
   onHidden?: () => void,
 };
 
-const modalStates = new WeakMap<Element, {opts: ModalOpts, opener: Element | null}>();
+const modalStates = new WeakMap<Element, {opts: ModalOpts, opener: Element | null, wasInDocument: boolean}>();
 
 const topModal = () => Array.from(document.querySelectorAll<HTMLDialogElement>('.modal-dialog[open]')).at(-1);
 
@@ -76,14 +76,17 @@ function createModalBackdrop(elModal: HTMLDialogElement): HTMLElement {
   return elBackdrop;
 }
 
+// ATTENTION: showModal will move the document-connected modal element (or adapt the node) to "body" level.
+// If there will be changes to the original modal element (e.g.: morph),
+// caller must guarantee that there is no duplicate/conflict by wrapping the modal with a "template" element.
 export function showModal(elModal: HTMLDialogElement, opts: ModalOpts = {}) {
   if (elModal.open) return;
 
   hideToastsAll();
-  hideAll(); // before remembering the opener, a hidden popup returns the focus to its trigger
+  hideTippyAll(); // before remembering the opener, a hidden popup returns the focus to its trigger
 
+  modalStates.set(elModal, {opts, opener: document.activeElement, wasInDocument: elModal.isConnected && document.contains(elModal)});
   const elBackdrop = elModal.parentElement?.matches('.modal-backdrop') ? elModal.parentElement : createModalBackdrop(elModal);
-  modalStates.set(elModal, {opts, opener: document.activeElement});
   elModal.querySelector('.close-modal')?.setAttribute('aria-label', 'Close');
 
   // Avoid "cancel" buttons submitting the form, otherwise "Enter" in the form clicks this "cancel" button before the "ok" button
@@ -91,16 +94,18 @@ export function showModal(elModal: HTMLDialogElement, opts: ModalOpts = {}) {
 
   blockPage(elBackdrop);
 
+  elBackdrop.classList.add('active');
   elModal.show(); // not showModal: popups and toasts mounted on body must stay usable above it, see https://github.com/whatwg/html/issues/9936
   opts.onShow?.();
 }
 
 export function hideModal(elModal: HTMLDialogElement) {
   if (!elModal.open) return;
-  const {opts, opener} = modalStates.get(elModal)!;
+  const {opts, opener, wasInDocument} = modalStates.get(elModal)!;
   const elBackdrop = elModal.parentElement!;
-  hideAll();
+  hideTippyAll();
   elModal.close();
+  elBackdrop.classList.remove('active');
   blockPage(topModal()?.parentElement);
 
   // don't leave the focus in the closed dialog when the opener is gone
@@ -110,5 +115,6 @@ export function hideModal(elModal: HTMLDialogElement) {
   hideToastsAll();
   queryElems(elModal, 'form', (form: HTMLFormElement) => form.reset());
   opts.onHidden?.();
+  if (!wasInDocument) elModal.remove();
   if (!elBackdrop.contains(elModal)) elBackdrop.remove();
 }
