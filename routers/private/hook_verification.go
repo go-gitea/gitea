@@ -34,10 +34,12 @@ func verifyCommits(ctx context.Context, oldCommitID, newCommitID string, repo *g
 	err := command.WithEnv(env).
 		WithRepo(repo).
 		WithPipelineFunc(func(gitCtx gitcmd.Context) error {
-			err := readAndVerifyCommitsFromShaReader(ctx, stdoutReader, repo, env)
-			return gitCtx.CancelPipeline(err)
+			if err := readAndVerifyCommitsFromShaReader(ctx, stdoutReader, repo, env); err != nil {
+				return gitCtx.CancelPipeline(err)
+			}
+			return nil
 		}).
-		Run(ctx)
+		RunWithStderr(ctx)
 	if err != nil && !isErrUnverifiedCommit(err) {
 		log.Error("Unable to check commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.LogString(), err)
 	}
@@ -75,7 +77,7 @@ func readAndVerifyCommit(ctx context.Context, sha string, repo *git.Repository, 
 			}
 			return nil
 		}).
-		Run(ctx)
+		RunWithStderr(ctx)
 }
 
 type errUnverifiedCommit struct {

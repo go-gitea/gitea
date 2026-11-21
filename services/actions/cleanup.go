@@ -10,8 +10,10 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
@@ -243,9 +245,27 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 		if err := CleanupEphemeralRunners(ctx); err != nil {
 			return err
 		}
-		return db.DeleteBeans(ctx, recordsToDelete...)
+		if err := db.DeleteBeans(ctx, recordsToDelete...); err != nil {
+			return err
+		}
+		_, commitID, _ := getCommitStatusEventNameAndCommitID(run) // no statuses were created if this fails
+		cond := builder.Eq{"repo_id": repoID, "sha": commitID}.And(builder.Like{"target_url", fmt.Sprintf("/actions/runs/%d/jobs/", run.ID)})
+		for _, bean := range []any{&git_model.CommitStatus{}, &git_model.CommitStatusSummary{}} {
+			if _, err := db.GetEngine(ctx).Where(cond).Cols("target_url").Update(bean); err != nil {
+				return err
+			}
+		}
+		return nil
 	}); err != nil {
 		return err
+	}
+
+	if run.TriggerEvent == actions_module.GithubEventPullRequest {
+		if err := run.LoadRepo(ctx); err != nil {
+			log.Error("LoadRepo for run %d: %v", run.ID, err)
+		} else if err := git.RemoveRef(ctx, run.Repo, git.RunRefNameFromRunID(run.ID).String()); err != nil {
+			log.Error("RemoveRef for run %d: %v", run.ID, err)
+		}
 	}
 
 	actions_model.UpdateRepoRunsNumbers(ctx, repoID)

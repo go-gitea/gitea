@@ -151,7 +151,7 @@ func UpdateLanguageStats(ctx context.Context, repo *Repository, commitID string,
 		var topLang string
 		var s int64
 		for lang, size := range stats {
-			if size > s {
+			if size > s || (size == s && lang < topLang) {
 				s = size
 				topLang = lang
 			}

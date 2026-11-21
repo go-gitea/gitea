@@ -16,6 +16,12 @@ import (
 
 func TestRender(t *testing.T) {
 	r := renderer{}
+	render := func(t *testing.T, ctx *markup.RenderContext, input string) string {
+		var output strings.Builder
+		err := r.Render(ctx, strings.NewReader(input), &output)
+		assert.NoError(t, err)
+		return output.String()
+	}
 
 	t.Run("Basic notebook", func(t *testing.T) {
 		input := `{
@@ -37,12 +43,7 @@ func TestRender(t *testing.T) {
 			"nbformat": 4
 		}`
 
-		var output strings.Builder
-		ctx := &markup.RenderContext{}
-		err := r.Render(ctx, strings.NewReader(input), &output)
-
-		assert.NoError(t, err)
-		result := output.String()
+		result := render(t, &markup.RenderContext{}, input)
 		assert.Contains(t, result, `<div class="jupyter-notebook">`)
 		assert.Contains(t, result, `<div class="notebook-cell cell-type-code">`)
 		assert.Contains(t, result, `In [1]:`)
@@ -68,12 +69,7 @@ func TestRender(t *testing.T) {
 			"nbformat": 4
 		}`
 
-		var output strings.Builder
-		ctx := markup.NewRenderContext(t.Context())
-		err := r.Render(ctx, strings.NewReader(input), &output)
-
-		assert.NoError(t, err)
-		result := output.String()
+		result := render(t, markup.NewRenderContext(t.Context()), input)
 
 		// Assert normal markup still renders correctly
 		assert.Contains(t, result, `<div class="notebook-cell cell-type-markdown">`)
@@ -94,12 +90,7 @@ func TestRender(t *testing.T) {
 		}
 		input := fmt.Sprintf(`{"cells": [%s], "metadata": {}, "nbformat": 4}`, strings.Join(cellBlocks, ","))
 
-		var output strings.Builder
-		ctx := markup.NewRenderContext(t.Context())
-		err := r.Render(ctx, strings.NewReader(input), &output)
-
-		assert.NoError(t, err)
-		result := output.String()
+		result := render(t, markup.NewRenderContext(t.Context()), input)
 
 		// Verify it halts rendering gracefully and shows the truncation warning
 		assert.Contains(t, result, "Output truncated.")
@@ -130,12 +121,7 @@ func TestRender(t *testing.T) {
 			"nbformat": 4
 		}`
 
-		var output strings.Builder
-		ctx := markup.NewRenderContext(t.Context())
-		err := r.Render(ctx, strings.NewReader(input), &output)
-
-		assert.NoError(t, err)
-		result := output.String()
+		result := render(t, markup.NewRenderContext(t.Context()), input)
 		assert.Contains(t, result, `<img src="data:image/png;base64,`)
 		assert.Contains(t, result, `iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==`)
 	})
@@ -161,12 +147,7 @@ func TestRender(t *testing.T) {
 			"nbformat": 4
 		}`
 
-		var output strings.Builder
-		ctx := markup.NewRenderContext(t.Context())
-		err := r.Render(ctx, strings.NewReader(input), &output)
-
-		assert.NoError(t, err)
-		result := output.String()
+		result := render(t, markup.NewRenderContext(t.Context()), input)
 		assert.NotContains(t, result, `<style scoped>`)
 		assert.Contains(t, result, `<table><tr><td>1</td></tr></table>`)
 		assert.Contains(t, result, `<td>1</td>`)
@@ -193,12 +174,7 @@ func TestRender(t *testing.T) {
 			"nbformat": 4
 		}`
 
-		var output strings.Builder
-		ctx := markup.NewRenderContext(t.Context())
-		err := r.Render(ctx, strings.NewReader(input), &output)
-
-		assert.NoError(t, err)
-		result := output.String()
+		result := render(t, markup.NewRenderContext(t.Context()), input)
 		assert.Contains(t, result, `ValueError: test error`)
 		assert.Contains(t, result, `cell-output-error`)
 	})
@@ -210,12 +186,8 @@ func TestRender(t *testing.T) {
 			"nbformat": 3
 		}`
 
-		var output strings.Builder
-		ctx := markup.NewRenderContext(t.Context())
-		err := r.Render(ctx, strings.NewReader(input), &output)
-
-		assert.NoError(t, err)
-		assert.Regexp(t, `<div class="file-not-rendered-prompt">This notebook uses an older format.*</div>`, output.String())
+		result := render(t, markup.NewRenderContext(t.Context()), input)
+		assert.Regexp(t, `<div class="file-not-rendered-prompt">This notebook uses an older format.*</div>`, result)
 	})
 }
 

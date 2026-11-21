@@ -16,31 +16,32 @@ var (
 		Storage *Storage
 		Enabled bool
 
-		LimitTotalOwnerCount    int64
-		LimitTotalOwnerSize     int64
-		LimitSizeAlpine         int64
-		LimitSizeArch           int64
-		LimitSizeCargo          int64
-		LimitSizeChef           int64
-		LimitSizeComposer       int64
-		LimitSizeConan          int64
-		LimitSizeConda          int64
-		LimitSizeContainer      int64
-		LimitSizeCran           int64
-		LimitSizeDebian         int64
-		LimitSizeGeneric        int64
-		LimitSizeGo             int64
-		LimitSizeHelm           int64
-		LimitSizeMaven          int64
-		LimitSizeNpm            int64
-		LimitSizeNuGet          int64
-		LimitSizePub            int64
-		LimitSizePyPI           int64
-		LimitSizeRpm            int64
-		LimitSizeRubyGems       int64
-		LimitSizeSwift          int64
-		LimitSizeTerraformState int64
-		LimitSizeVagrant        int64
+		LimitTotalOwnerCount     int64
+		LimitTotalOwnerSize      int64
+		LimitSizeAlpine          int64
+		LimitSizeArch            int64
+		LimitSizeCargo           int64
+		LimitSizeChef            int64
+		LimitSizeComposer        int64
+		LimitSizeConan           int64
+		LimitSizeConda           int64
+		LimitSizeContainer       int64
+		LimitSizeCran            int64
+		LimitSizeDebian          int64
+		LimitSizeGeneric         int64
+		LimitSizeGo              int64
+		LimitSizeHelm            int64
+		LimitSizeMaven           int64
+		LimitSizeNpm             int64
+		LimitSizeNuGet           int64
+		LimitSizePub             int64
+		LimitSizePyPI            int64
+		LimitSizeRpm             int64
+		LimitSizeRubyGems        int64
+		LimitSizeSwift           int64
+		LimitSizeTerraformModule int64
+		LimitSizeTerraformState  int64
+		LimitSizeVagrant         int64
 
 		DefaultRPMSignEnabled bool
 	}{
@@ -87,6 +88,7 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 	Packages.LimitSizeRpm = mustBytes(sec, "LIMIT_SIZE_RPM")
 	Packages.LimitSizeRubyGems = mustBytes(sec, "LIMIT_SIZE_RUBYGEMS")
 	Packages.LimitSizeSwift = mustBytes(sec, "LIMIT_SIZE_SWIFT")
+	Packages.LimitSizeTerraformModule = mustBytes(sec, "LIMIT_SIZE_TERRAFORM_MODULE")
 	Packages.LimitSizeTerraformState = mustBytes(sec, "LIMIT_SIZE_TERRAFORM_STATE")
 	Packages.LimitSizeVagrant = mustBytes(sec, "LIMIT_SIZE_VAGRANT")
 	Packages.DefaultRPMSignEnabled = sec.Key("DEFAULT_RPM_SIGN_ENABLED").MustBool(false)

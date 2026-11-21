@@ -6,7 +6,6 @@ package devtest
 import (
 	"fmt"
 	"maps"
-	mathRand "math/rand/v2"
 	"net/http"
 	"net/url"
 	"slices"
@@ -597,7 +596,7 @@ func fillViewRunResponseCurrentJob(ctx *context.Context, resp *actions.ViewRespo
 	mockLogOptions = append(mockLogOptions, generateMockStepsLogOptions{mockCountFirst: 30, mockCountGeneral: 3, groupRepeat: 20})
 
 	resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &actions.ViewJobStep{
-		Summary:  "step 2 (mock error)",
+		Summary:  "step 2",
 		Duration: time.Hour.String(),
 		Status:   actions_model.StatusRunning.String(),
 	})
@@ -609,20 +608,16 @@ func fillViewRunResponseCurrentJob(ctx *context.Context, resp *actions.ViewRespo
 
 	resp.Logs.StepsLog = []*actions.ViewStepLog{}
 	doSlowResponse := false
-	doErrorResponse := false
 	for _, logCur := range req.LogCursors {
 		if !logCur.Expanded {
 			continue
 		}
 		doSlowResponse = doSlowResponse || logCur.Step == 0
-		doErrorResponse = doErrorResponse || logCur.Step == 2
 		resp.Logs.StepsLog = append(resp.Logs.StepsLog, generateMockStepsLog(logCur, mockLogOptions[logCur.Step])...)
 	}
-	if doErrorResponse {
-		if mathRand.Float64() > 0.5 {
-			ctx.HTTPError(http.StatusInternalServerError, "devtest mock error response")
-			return
-		}
+	if ctx.PathParamInt64("run") == 50 && len(resp.Logs.StepsLog) > 0 {
+		ctx.HTTPError(http.StatusInternalServerError, "devtest mock error response")
+		return
 	}
 	if doSlowResponse {
 		time.Sleep(time.Duration(3000) * time.Millisecond)

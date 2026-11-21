@@ -117,18 +117,18 @@ description: ` + packageDescription,
 		uploadFile(t, result.URL, buildPackage(packageVersionLatest), http.StatusNoContent)
 	})
 
+	type VersionMetadata struct {
+		Version    string    `json:"version"`
+		ArchiveURL string    `json:"archive_url"`
+		Published  time.Time `json:"published"`
+		Pubspec    any       `json:"pubspec,omitempty"`
+	}
+
 	t.Run("Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/api/packages/%s/%s", root, packageName, packageVersion))
 		resp := MakeRequest(t, req, http.StatusOK)
-
-		type VersionMetadata struct {
-			Version    string    `json:"version"`
-			ArchiveURL string    `json:"archive_url"`
-			Published  time.Time `json:"published"`
-			Pubspec    any       `json:"pubspec,omitempty"`
-		}
 
 		result := DecodeJSON(t, resp, &VersionMetadata{})
 
@@ -146,13 +146,6 @@ description: ` + packageDescription,
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/api/packages/%s", root, packageName))
 		resp := MakeRequest(t, req, http.StatusOK)
-
-		type VersionMetadata struct {
-			Version    string    `json:"version"`
-			ArchiveURL string    `json:"archive_url"`
-			Published  time.Time `json:"published"`
-			Pubspec    any       `json:"pubspec,omitempty"`
-		}
 
 		type PackageVersions struct {
 			Name     string             `json:"name"`

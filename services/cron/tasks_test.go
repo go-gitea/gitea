@@ -19,34 +19,27 @@ func TestAddTaskToScheduler(t *testing.T) {
 		}
 	}()
 
-	// no seconds
-	err := addTaskToScheduler(&Task{
-		Name: "task 1",
-		config: &BaseConfig{
-			Schedule: "5 4 * * *",
-		},
-	})
-	assert.NoError(t, err)
-	jobs := scheduler.Jobs()
-	assert.Len(t, jobs, 1)
-	assert.Equal(t, "task 1", jobs[0].Tags()[0])
-	assert.Equal(t, "5 4 * * *", jobs[0].Tags()[1])
-
-	// with seconds
-	err = addTaskToScheduler(&Task{
-		Name: "task 2",
-		config: &BaseConfig{
-			Schedule: "30 5 4 * * *",
-		},
-	})
-	assert.NoError(t, err)
-	jobs = scheduler.Jobs() // the item order is not guaranteed, so we need to sort it before "assert"
-	sort.Slice(jobs, func(i, j int) bool {
-		return jobs[i].Tags()[0] < jobs[j].Tags()[0]
-	})
-	assert.Len(t, jobs, 2)
-	assert.Equal(t, "task 2", jobs[1].Tags()[0])
-	assert.Equal(t, "30 5 4 * * *", jobs[1].Tags()[1])
+	for i, task := range []struct {
+		name, schedule string
+	}{
+		{"task 1", "5 4 * * *"},    // no seconds
+		{"task 2", "30 5 4 * * *"}, // with seconds
+	} {
+		assert.NoError(t, addTaskToScheduler(&Task{
+			Name:   task.name,
+			config: &BaseConfig{Schedule: task.schedule},
+		}))
+		jobs := scheduler.Jobs()
+		if i > 0 {
+			// the item order is not guaranteed, so we need to sort it before "assert"
+			sort.Slice(jobs, func(i, j int) bool {
+				return jobs[i].Tags()[0] < jobs[j].Tags()[0]
+			})
+		}
+		assert.Len(t, jobs, i+1)
+		assert.Equal(t, task.name, jobs[i].Tags()[0])
+		assert.Equal(t, task.schedule, jobs[i].Tags()[1])
+	}
 }
 
 func TestScheduleHasSeconds(t *testing.T) {
@@ -56,7 +49,6 @@ func TestScheduleHasSeconds(t *testing.T) {
 	}{
 		{"* * * * * *", true},
 		{"* * * * *", false},
-		{"5 4 * * *", false},
 		{"5 4 * * *", false},
 		{"5,8 4 * * *", false},
 		{"*   *   *  * * *", true},

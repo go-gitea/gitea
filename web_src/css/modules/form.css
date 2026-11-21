@@ -211,21 +211,12 @@ textarea:focus,
 }
 
 .ui.form .required.field > label::after,
-.ui.form .required.field > .checkbox::after,
 .ui.form label.required::after {
   margin: -0.2em 0 0 0.2em;
   content: "*";
   color: var(--color-red);
-}
-.ui.form .required.field > label::after,
-.ui.form label.required::after {
   display: inline-block;
   vertical-align: top;
-}
-.ui.form .required.field > .checkbox::after {
-  position: absolute;
-  top: 0;
-  left: 100%;
 }
 
 .ui.form .grouped.fields {
@@ -291,8 +282,7 @@ textarea:focus,
   margin: 0.035714em 1em 0 0;
 }
 
-.ui.form .inline.field > input,
-.ui.form .inline.field > select {
+.ui.form .inline.field > input {
   display: inline-block;
   width: auto;
   margin-top: 0;

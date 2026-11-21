@@ -9,12 +9,14 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
@@ -139,9 +141,9 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 		return "", fmt.Errorf("LoadBaseRepo: %w", err)
 	}
 
-	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
+	commitStatuses, err := GetLatestPullCommitStatuses(ctx, pr.BaseRepo.ID, sha)
 	if err != nil {
-		return "", fmt.Errorf("GetLatestCommitStatus: %w", err)
+		return "", fmt.Errorf("GetLatestPullCommitStatuses: %w", err)
 	}
 
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
@@ -154,6 +156,14 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 	}
 
 	return MergeRequiredContextsCommitStatus(commitStatuses, requiredContexts), nil
+}
+
+// GetLatestPullCommitStatuses returns a pull request head commit's latest statuses without workflow_dispatch runs', which don't count for pull requests
+func GetLatestPullCommitStatuses(ctx context.Context, repoID int64, sha string) ([]*git_model.CommitStatus, error) {
+	statuses, err := git_model.GetLatestCommitStatus(ctx, repoID, sha, db.ListOptionsAll)
+	return slices.DeleteFunc(statuses, func(status *git_model.CommitStatus) bool {
+		return status.CreatorID == user_model.ActionsUserID && strings.HasSuffix(status.Context, " (workflow_dispatch)")
+	}), err
 }
 
 // EffectiveRequiredContexts returns the required status-check contexts to enforce, drawn from:
