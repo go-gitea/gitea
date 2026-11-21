@@ -6,6 +6,7 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
@@ -114,6 +115,14 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 57, OwnerName: "user2", LowerName: "repo-release"})
+	for tagName, note := range map[string]string{
+		"v1.0": "thanks @user5, @user2, @user31, @User5, @user9, @user37, @org3 and @no-such-user",
+		"v1.1": "thanks @user4",
+	} {
+		release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{RepoID: repo.ID, TagName: tagName})
+		release.Note = note
+		assert.NoError(t, repo_model.UpdateRelease(t.Context(), release))
+	}
 
 	link := repo.Link() + "/releases"
 
@@ -126,6 +135,7 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 
 	links := make([]string, 0, 5)
 	commitsToMain := make([]string, 0, 5)
+	contributors := make([]string, 0, 5)
 	releases.Each(func(i int, s *goquery.Selection) {
 		link, exist := s.Find(".release-list-title a").Attr("href")
 		if !exist {
@@ -134,6 +144,9 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 		links = append(links, link)
 
 		commitsToMain = append(commitsToMain, s.Find(".ahead > a").Text())
+		contributors = append(contributors, strings.Join(s.Find(".release-contributors a").Map(func(_idx int, anchor *goquery.Selection) string {
+			return anchor.AttrOr("href", "")
+		}), " "))
 	})
 
 	assert.Equal(t, []string{
@@ -150,6 +163,7 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 		"1 commits", // should be 3 commits ahead and 2 commits behind, but not implemented yet
 		"3 commits",
 	}, commitsToMain)
+	assert.Equal(t, []string{"", "", "", "/user4", "/user5 /user2"}, contributors)
 }
 
 func TestViewSingleRelease(t *testing.T) {

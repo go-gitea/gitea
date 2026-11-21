@@ -55,8 +55,8 @@ func TestMain(m *testing.M) {
 	setting.SetupGiteaTestEnv()
 	setting.Markdown.RenderOptionsComment.ShortIssuePattern = true
 	markup.Init(&markup.RenderHelperFuncs{
-		ResolveUserMention: func(ctx context.Context, username string) (bool, string) {
-			return username == "mention-user", setting.AppSubURL + "/avatars/mention-user"
+		IsUsernameMentionable: func(ctx context.Context, username string) bool {
+			return username == "mention-user"
 		},
 	})
 	os.Exit(m.Run())
@@ -215,7 +215,7 @@ func TestRenderIssueTitleCodeSpan(t *testing.T) {
 
 func TestRenderMarkdownToHtml(t *testing.T) {
 	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
-	expected := `<p>space <a href="/mention-user" rel="nofollow"><img class="ui avatar mention-avatar" src="/avatars/mention-user" alt="" width="20" height="20"/>@mention-user</a><br/>
+	expected := `<p>space <a href="/mention-user" rel="nofollow">@mention-user</a><br/>
 /just/a/path.bin
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a>
 <a href="/file.bin" rel="nofollow">local link</a>
@@ -232,7 +232,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a582
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <span class="emoji" data-alias="+1">👍</span>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a>
-<a href="/mention-user" rel="nofollow"><img class="ui avatar mention-avatar" src="/avatars/mention-user" alt="" width="20" height="20"/>@mention-user</a> test
+<a href="/mention-user" rel="nofollow">@mention-user</a> test
 #123
 space</p>
 `
@@ -315,12 +315,8 @@ func TestRenderLabels(t *testing.T) {
 
 func TestUserMention(t *testing.T) {
 	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
-	rendered := newTestRenderUtils(t).MarkdownToHtml("@no-such-user @mention-user")
-	assert.Equal(t, `<p>@no-such-user <a href="/mention-user" rel="nofollow"><img class="ui avatar mention-avatar" src="/avatars/mention-user" alt="" width="20" height="20"/>@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
-
-	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
-	rendered = newTestRenderUtils(t).MarkdownToHtml("@mention-user")
-	assert.Equal(t, `<p><a href="/sub/mention-user" rel="nofollow"><img class="ui avatar mention-avatar" src="/sub/avatars/mention-user" alt="" width="20" height="20"/>@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
+	rendered := newTestRenderUtils(t).MarkdownToHtml("@no-such-user @mention-user @mention-user")
+	assert.Equal(t, `<p>@no-such-user <a href="/mention-user" rel="nofollow">@mention-user</a> <a href="/mention-user" rel="nofollow">@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
 }
 
 func TestAvatarStack(t *testing.T) {

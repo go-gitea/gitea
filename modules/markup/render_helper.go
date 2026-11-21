@@ -34,7 +34,7 @@ type RenderHelper interface {
 // models/renderhelper: need to access models and git repo, and models/issues needs it
 // services/markup: some real helper functions could only be provided here because it needs to access various services & templates
 type RenderHelperFuncs struct {
-	ResolveUserMention        func(ctx context.Context, username string) (mentionable bool, avatarLink string)
+	IsUsernameMentionable     func(ctx context.Context, username string) bool
 	RenderRepoFileCodePreview func(ctx context.Context, options RenderCodePreviewOptions) (template.HTML, error)
 	RenderRepoIssueIconTitle  func(ctx context.Context, options RenderIssueIconTitleOptions) (template.HTML, error)
 }
