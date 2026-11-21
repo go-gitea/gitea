@@ -8,7 +8,6 @@ import (
 
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/highlight"
-	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/internal"
 	"gitea.dev/modules/markup/markdown/math"
@@ -145,23 +144,29 @@ func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(KindSummary, r.renderSummary)
 	reg.Register(ast.KindCodeSpan, r.renderCodeSpan)
 	reg.Register(ast.KindCodeBlock, r.renderCodeBlock)
+	reg.Register(ast.KindFencedCodeBlock, r.renderCodeBlock)
 	reg.Register(KindAttention, r.renderAttention)
 	reg.Register(east.KindTaskCheckBox, r.renderTaskCheckBox)
 	reg.Register(KindRawHTML, r.renderRawHTML)
 }
 
-// renderCodeBlock wraps indented code blocks like the fenced renderer
 func (r *HTMLRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		preAttrs, codeAttrs := highlight.CodeBlockAttributes("") // no language
-		opening := r.renderInternal.ProtectSafeAttrs(htmlutil.HTMLFormat(`<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs))
-		if _, err := w.WriteString(string(opening)); err != nil {
+		var language string
+		if fenced, ok := n.(*ast.FencedCodeBlock); ok {
+			language = string(fenced.Language(source))
+		}
+		preAttrs, codeAttrs := highlight.CodeBlockAttributes(language)
+		err := r.renderInternal.FormatWithSafeAttrsf(w, `<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs)
+		if err != nil {
 			return ast.WalkStop, err
 		}
-		lines := n.Lines()
-		for i := 0; i < lines.Len(); i++ {
-			line := lines.At(i)
-			r.Writer.RawWrite(w, line.Value(source))
+
+		code := n.Lines().Value(source)
+		lexer := highlight.DetectChromaLexerByFileName("", language)
+		renderedHTML := highlight.RenderCodeByLexer(lexer, string(code))
+		if _, err = w.WriteString(string(renderedHTML)); err != nil {
+			return ast.WalkStop, err
 		}
 	} else {
 		if _, err := w.WriteString("</code></pre></div>"); err != nil {

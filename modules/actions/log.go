@@ -16,6 +16,7 @@ import (
 	"gitea.dev/models/dbfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/storage"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/zstd"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -213,10 +214,7 @@ func OpenLogs(ctx context.Context, inStorage bool, filename string) (io.ReadSeek
 func FormatLog(timestamp time.Time, content string) string {
 	// Content shouldn't contain new line, it will break log indexes, other control chars are safe.
 	content = strings.ReplaceAll(content, "\n", `\n`)
-	if len(content) > MaxLineSize {
-		content = content[:MaxLineSize]
-	}
-	return fmt.Sprintf("%s %s", timestamp.UTC().Format(timeFormat), content)
+	return fmt.Sprintf("%s %s", timestamp.UTC().Format(timeFormat), util.TruncateStringBytes(content, MaxLineSize))
 }
 
 func ParseLog(in string) (time.Time, string, error) {

@@ -42,6 +42,8 @@ func UpdateUserSettings(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserSettings"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.UserSettingsOptions](ctx)
 

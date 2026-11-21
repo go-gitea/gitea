@@ -182,11 +182,11 @@ func PullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, c
 }
 
 // PullRequestChangeTargetBranch notifies when a pull request's target branch was changed
-func PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch string) {
+func PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch, oldSHA string) {
 	defer recoverPanic()
 
 	for _, notifier := range notifiers {
-		notifier.PullRequestChangeTargetBranch(ctx, doer, pr, oldBranch)
+		notifier.PullRequestChangeTargetBranch(ctx, doer, pr, oldBranch, oldSHA)
 	}
 }
 
@@ -235,7 +235,7 @@ func DeleteComment(ctx context.Context, doer *user_model.User, c *issues_model.C
 }
 
 // NewRelease notifies new release to notifiers
-func NewRelease(ctx context.Context, rel *repo_model.Release) {
+func NewRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
 	defer recoverPanic()
 
 	if err := rel.LoadAttributes(ctx); err != nil {
@@ -243,16 +243,16 @@ func NewRelease(ctx context.Context, rel *repo_model.Release) {
 		return
 	}
 	for _, notifier := range notifiers {
-		notifier.NewRelease(ctx, rel)
+		notifier.NewRelease(ctx, doer, rel)
 	}
 }
 
 // UpdateRelease notifies update release to notifiers
-func UpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+func UpdateRelease(ctx context.Context, doer *user_model.User, rel, oldRelease *repo_model.Release) {
 	defer recoverPanic()
 
 	for _, notifier := range notifiers {
-		notifier.UpdateRelease(ctx, doer, rel)
+		notifier.UpdateRelease(ctx, doer, rel, oldRelease)
 	}
 }
 
@@ -364,15 +364,6 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 	}
 }
 
-// AdoptRepository notifies the adoption of a repository to notifiers
-func AdoptRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
-	defer recoverPanic()
-
-	for _, notifier := range notifiers {
-		notifier.AdoptRepository(ctx, doer, u, repo)
-	}
-}
-
 // MigrateRepository notifies create repository to notifiers
 func MigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 	defer recoverPanic()
@@ -383,11 +374,11 @@ func MigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo
 }
 
 // TransferRepository notifies create repository to notifiers
-func TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
+func TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwner *user_model.User) {
 	defer recoverPanic()
 
 	for _, notifier := range notifiers {
-		notifier.TransferRepository(ctx, doer, repo, oldOwnerName)
+		notifier.TransferRepository(ctx, doer, repo, oldOwner)
 	}
 }
 

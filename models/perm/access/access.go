@@ -224,30 +224,32 @@ func RecalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, i
 
 // RecalculateUserAccess recalculates new access for a single user
 // Usable if we know access only affected one user
-func RecalculateUserAccess(ctx context.Context, repo *repo_model.Repository, uid int64) (err error) {
+func RecalculateUserAccess(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (err error) {
+	if err = repo.LoadOwner(ctx); err != nil {
+		return err
+	}
+
 	minMode := perm.AccessModeRead
-	if !repo.IsPrivate {
+	if !repo.IsPrivate && !repo.Owner.IsOrganization() && !user.IsRestricted {
 		minMode = perm.AccessModeWrite
 	}
 
 	accessMode := perm.AccessModeNone
 	e := db.GetEngine(ctx)
-	collaborator, err := repo_model.GetCollaboration(ctx, repo.ID, uid)
+	collaborator, err := repo_model.GetCollaboration(ctx, repo.ID, user.ID)
 	if err != nil {
 		return err
 	} else if collaborator != nil {
 		accessMode = collaborator.Mode
 	}
 
-	if err = repo.LoadOwner(ctx); err != nil {
-		return err
-	} else if repo.Owner.IsOrganization() {
+	if repo.Owner.IsOrganization() {
 		var teams []organization.Team
 		if err := e.Join("INNER", "team_repo", "team_repo.team_id = team.id").
 			Join("INNER", "team_user", "team_user.team_id = team.id").
 			Where("team.org_id = ?", repo.OwnerID).
 			And("team_repo.repo_id=?", repo.ID).
-			And("team_user.uid=?", uid).
+			And("team_user.uid=?", user.ID).
 			Find(&teams); err != nil {
 			return err
 		}
@@ -262,10 +264,10 @@ func RecalculateUserAccess(ctx context.Context, repo *repo_model.Repository, uid
 	}
 
 	// Delete old user accesses and insert new one for repository.
-	if _, err = e.Delete(&Access{RepoID: repo.ID, UserID: uid}); err != nil {
+	if _, err = e.Delete(&Access{RepoID: repo.ID, UserID: user.ID}); err != nil {
 		return fmt.Errorf("delete old user accesses: %w", err)
 	} else if accessMode >= minMode {
-		if err = db.Insert(ctx, &Access{RepoID: repo.ID, UserID: uid, Mode: accessMode}); err != nil {
+		if err = db.Insert(ctx, &Access{RepoID: repo.ID, UserID: user.ID, Mode: accessMode}); err != nil {
 			return fmt.Errorf("insert new user accesses: %w", err)
 		}
 	}

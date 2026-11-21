@@ -2,6 +2,7 @@
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  vertical-align: middle; /* align buttons with/without svg icon */
   min-width: 0;
   outline: none;
   font-family: var(--fonts-regular);
@@ -50,6 +51,8 @@
   color: var(--color-text);
 }
 
+button:disabled,
+.btn:disabled,
 .ui.buttons .disabled.button:not(.basic),
 .ui.disabled.button,
 .ui.button:disabled,
@@ -306,6 +309,12 @@
   border: none;
 }
 
+.btn.disabled {
+  cursor: default;
+  opacity: var(--opacity-disabled);
+}
+
+/* sometimes, we'd like to make "<a href>" look like a button */
 a.btn,
 a.btn:hover {
   color: inherit;

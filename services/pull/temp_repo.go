@@ -7,6 +7,7 @@ package pull
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -37,8 +38,7 @@ type prTmpRepoContext struct {
 }
 
 // PrepareGitCmd prepares a git command with the correct directory, environment, and output buffers
-// This function can only be called with gitcmd.Run()
-// Do NOT use it with gitcmd.RunStd*() functions, otherwise it will panic
+// Use RunWithStderr because this already configures a stdout buffer.
 func (ctx *prTmpRepoContext) PrepareGitCmd(cmd *gitcmd.Command) *gitcmd.Command {
 	ctx.outbuf.Reset()
 	return cmd.WithRepo(ctx.tmpRepo).WithStdoutBuffer(ctx.outbuf)
@@ -103,8 +103,8 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 		if err != nil {
 			return fmt.Errorf("unable to open %s file in %s: %w", altFileRelPath, filepath.Base(repoPath), err)
 		}
-		defer f.Close()
-		if _, err := fmt.Fprintln(f, newAltLine); err != nil {
+		_, err = fmt.Fprintln(f, newAltLine)
+		if err = errors.Join(err, f.Close()); err != nil {
 			return fmt.Errorf("unable to write %s file in %s: %w", altFileRelPath, filepath.Base(repoPath), err)
 		}
 		return nil

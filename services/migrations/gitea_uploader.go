@@ -7,6 +7,8 @@ package migrations
 import (
 	"cmp"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -55,6 +57,7 @@ type GiteaLocalUploader struct {
 	userMap        map[int64]int64 // external user id mapping to user id
 	prCache        map[int64]*issues_model.PullRequest
 	gitServiceType structs.GitServiceType
+	latestRelease  *repo_model.Release
 }
 
 // NewGiteaLocalUploader creates a gitea Uploader via gitea API v1
@@ -108,7 +111,6 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 			GitServiceType: opts.GitServiceType,
 			IsPrivate:      opts.Private || setting.Repository.ForcePrivate,
 			IsMirror:       opts.Mirror,
-			Status:         repo_model.RepositoryBeingMigrated,
 		}, false)
 	} else {
 		r, err = repo_model.GetRepositoryByID(ctx, opts.MigrateToRepoID)
@@ -315,6 +317,7 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 				if err != nil {
 					return fmt.Errorf("CommitsCount: %w", err)
 				}
+				rel.CreatedUnix = timeutil.TimeStamp(commit.Committer.When.Unix()) // dated by its commit like createTag, which re-dates it on every edit anyway
 			}
 		}
 
@@ -355,17 +358,22 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 				continue
 			}
 			if rc != nil {
-				attach.Size, err = storage.Attachments.Save(attach.RelativePath(), rc, util.Iif(*asset.Size > 0, int64(*asset.Size), -1)) // GitLab links and Forgejo external links report no size
+				hasher := sha256.New()
+				attach.Size, err = storage.Attachments.Save(attach.RelativePath(), io.TeeReader(rc, hasher), util.Iif(*asset.Size > 0, int64(*asset.Size), -1)) // GitLab links and Forgejo external links report no size
 				rc.Close()
 				if err != nil {
 					return fmt.Errorf("release %s asset %s: %w", release.TagName, asset.Name, err)
 				}
+				attach.HashSHA256 = hex.EncodeToString(hasher.Sum(nil))
 			}
 
 			rel.Attachments = append(rel.Attachments, &attach)
 		}
 
 		rels = append(rels, &rel)
+		if release.Latest {
+			g.latestRelease = &rel
+		}
 	}
 
 	return repo_model.InsertReleases(ctx, rels...)
@@ -373,8 +381,16 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 
 // SyncTags syncs releases with tags in the database
 func (g *GiteaLocalUploader) SyncTags(ctx context.Context) error {
-	_, err := repo_module.SyncReleasesWithTags(ctx, g.repo, g.gitRepo)
-	return err
+	if _, err := repo_module.SyncReleasesWithTags(ctx, g.repo, g.gitRepo); err != nil || g.latestRelease == nil {
+		return err
+	}
+	newest, err := repo_model.GetLatestReleaseByRepoID(ctx, g.repo.ID)
+	if repo_model.IsErrReleaseNotExist(err) {
+		return nil
+	} else if err != nil || newest.ID == g.latestRelease.ID { // pin only where the synced dates disagree, so a source picking by date stays automatic
+		return err
+	}
+	return repo_model.SetLatestReleaseID(ctx, g.repo, g.latestRelease.ID)
 }
 
 func (g *GiteaLocalUploader) SyncBranches(ctx context.Context) error {
