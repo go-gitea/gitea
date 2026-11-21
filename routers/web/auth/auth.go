@@ -126,6 +126,7 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 
 	if err := regenerateSession(ctx, map[string]any{
 		session.KeyUID:                  u.ID,
+		session.KeySessionGeneration:    u.SessionGeneration,
 		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 	}); err != nil {
 		return false, fmt.Errorf("unable to updateSession: %w", err)
@@ -396,6 +397,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 	auth_service.ClearSessionKeysForSignIn(ctx.Session)
 	if err := regenerateSession(ctx, map[string]any{
 		session.KeyUID:                  u.ID,
+		session.KeySessionGeneration:    u.SessionGeneration,
 		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 	}); err != nil {
 		ctx.ServerErrorAuto(err)
@@ -893,7 +895,10 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 	audit.RecordAs(ctx, user, audit_model.UserActive, user, "active", true)
 	log.Trace("User activated: %s", user.Name)
 
-	if err := regenerateSession(ctx, map[string]any{session.KeyUID: user.ID}); err != nil {
+	if err := regenerateSession(ctx, map[string]any{
+		session.KeyUID:               user.ID,
+		session.KeySessionGeneration: user.SessionGeneration,
+	}); err != nil {
 		log.Error("Unable to regenerate session for user: %-v with email: %s: %v", user, user.Email, err)
 		ctx.ServerErrorAuto(err)
 		return

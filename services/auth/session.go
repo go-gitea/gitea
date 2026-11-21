@@ -56,6 +56,21 @@ func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataSto
 		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
+	storedGeneration := sess.Get(session.KeySessionGeneration)
+	if storedGeneration == nil {
+		if user.SessionGeneration != 0 {
+			_ = sess.Delete(session.KeyUID)
+			return nil, nil //nolint:nilnil // the auth method is not applicable
+		}
+	} else {
+		generation, ok := storedGeneration.(int64)
+		if !ok || generation != user.SessionGeneration {
+			_ = sess.Delete(session.KeyUID)
+			_ = sess.Delete(session.KeySessionGeneration)
+			return nil, nil //nolint:nilnil // the auth method is not applicable
+		}
+	}
+
 	log.Trace("Session Authorization: Logged in user %-v", user)
 	return user, nil
 }

@@ -19,6 +19,7 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	auth_service "gitea.dev/services/auth"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -286,6 +287,40 @@ func TestAPIEditUser(t *testing.T) {
 	MakeRequest(t, req, http.StatusOK)
 	user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"})
 	assert.True(t, user2.IsRestricted)
+}
+
+func TestAPIAdminRevokeUserSessions(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	target := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	otherSession := loginUser(t, "user4")
+	firstSession := loginUser(t, target.Name)
+	secondSession := loginUser(t, target.Name)
+	firstSession.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusOK)
+	secondSession.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusOK)
+	otherSession.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusOK)
+
+	rememberToken, rememberValue, err := auth_service.CreateAuthTokenForUserID(t.Context(), target.ID)
+	require.NoError(t, err)
+	_, err = auth_service.CheckAuthToken(t.Context(), rememberToken.ID+":"+rememberValue)
+	require.NoError(t, err)
+
+	adminToken := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteAdmin)
+	request := NewRequest(t, "DELETE", "/api/v1/admin/users/"+target.Name+"/sessions").AddTokenAuth(adminToken)
+	MakeRequest(t, request, http.StatusNoContent)
+
+	target = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: target.ID})
+	assert.Equal(t, int64(1), target.SessionGeneration)
+	_, err = auth_service.CheckAuthToken(t.Context(), rememberToken.ID+":"+rememberValue)
+	assert.ErrorIs(t, err, auth_service.ErrAuthTokenExpired)
+
+	firstSession.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusSeeOther)
+	secondSession.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusSeeOther)
+	otherSession.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusOK)
+
+	MakeRequest(t, NewRequest(t, "GET", "/api/v1/admin/users?limit=1").AddTokenAuth(adminToken), http.StatusOK)
+	MakeRequest(t, NewRequest(t, "DELETE", "/api/v1/admin/users/3/sessions").AddTokenAuth(getUserToken(t, "user2", auth_model.AccessTokenScopeAll)), http.StatusForbidden)
+	MakeRequest(t, NewRequest(t, "DELETE", "/api/v1/admin/users/3/sessions"), http.StatusUnauthorized)
 }
 
 func TestAPICreateRepoForUser(t *testing.T) {

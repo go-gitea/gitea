@@ -1172,6 +1172,35 @@
         }
       }
     },
+    "/admin/users/{username}/sessions": {
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Revoke a user's web sessions",
+        "operationId": "adminRevokeUserSessions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of the user whose sessions should be revoked",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/gitignore/templates": {
       "get": {
         "produces": [

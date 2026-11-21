@@ -112,7 +112,8 @@ type User struct {
 
 	// MustChangePassword is an attribute that determines if a user
 	// is to change their password after registration.
-	MustChangePassword bool `xorm:"NOT NULL DEFAULT false"`
+	MustChangePassword bool  `xorm:"NOT NULL DEFAULT false"`
+	SessionGeneration  int64 `xorm:"NOT NULL DEFAULT 0"`
 
 	LoginType   auth.Type
 	LoginSource int64 `xorm:"NOT NULL DEFAULT 0"`
@@ -1009,6 +1010,11 @@ func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
 	}
 
 	_, err := db.GetEngine(ctx).ID(u.ID).Cols(cols...).Update(u)
+	return err
+}
+
+func IncrementSessionGeneration(ctx context.Context, userID int64) error {
+	_, err := db.GetEngine(ctx).Incr("session_generation").ID(userID).Update(new(User))
 	return err
 }
 
