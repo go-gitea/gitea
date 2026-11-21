@@ -502,6 +502,22 @@ func testAPISearchIssuesWithLabels(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
 	assert.Len(t, apiIssues, 2)
+
+	// a label name that matches nothing must not turn the filter into "no filter"
+	query.Set("labels", "does-not-exist")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
+	assert.Empty(t, apiIssues)
+
+	// known labels still apply when the requested list also contains an unknown name
+	query.Set("labels", "label1,does-not-exist")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
+	assert.Len(t, apiIssues, 2)
 }
 
 func testAPIIssueContentVersion(t *testing.T) {
