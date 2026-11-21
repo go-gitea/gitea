@@ -90,6 +90,8 @@ type swaggerParameterBodies struct {
 	CreateReleaseOption api.CreateReleaseOption
 	// in:body
 	EditReleaseOption api.EditReleaseOption
+	// in:body
+	GenerateReleaseNotesOption api.GenerateReleaseNotesOption
 
 	// in:body
 	CreateRepoOption api.CreateRepoOption
