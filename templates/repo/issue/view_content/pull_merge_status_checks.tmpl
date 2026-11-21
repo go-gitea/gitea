@@ -2,33 +2,42 @@
 * StatusCheckData: see backend pullCommitStatusCheckData struct
 */}}
 {{$statusCheckData := $.StatusCheckData}}
-{{if $statusCheckData}}
-	{{$commitStatuses := $statusCheckData.PullCommitStatuses}}
-	<div class="item flex-left-right commit-status-toggle">
-		<div>{{$statusCheckData.CommitStatusCheckPrompt ctx.Locale}}</div>
-		<button type="button" data-global-click="onCommitStatusChecksToggle" class="btn interact-fg"
-						data-show-all="{{ctx.Locale.Tr "repo.pulls.status_checks_show_all"}}"
-						data-hide-all="{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}"
-		>{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}</button>
+{{$section := $statusCheckData.StatusChecksSection ctx.Locale}}
+<div class="item merge-box-checks">
+	<div class="merge-box-checks-header flex-text-block tw-items-start hover:tw-bg-hover">
+		<button type="button" class="btn merge-box-checks-toggle" data-kind="checks" aria-expanded="{{not $statusCheckData.AllPassed}}" aria-label="{{$section.SectionTitle}}"></button>
+		{{template "repo/issue/view_content/pull_merge_section" (dict "MergeBoxSection" $section)}}
+		{{svg "octicon-chevron-right" 16 "merge-box-chevron tw-mt-2 tw-mr-2"}}
 	</div>
-
-	{{if $statusCheckData.RequireApprovalRunCount}}
-	<div class="item flex-left-right" id="approve-status-checks">
-		<div>
-			<strong>{{ctx.Locale.Tr "repo.pulls.status_checks_need_approvals" $statusCheckData.RequireApprovalRunCount}}</strong>
-			<p>{{ctx.Locale.Tr "repo.pulls.status_checks_need_approvals_helper"}}</p>
-		</div>
-		{{if $statusCheckData.CanApprove}}
-		<button type="button" class="ui basic button link-action" data-url="{{$statusCheckData.ApproveLink}}">
-			{{ctx.Locale.Tr "repo.pulls.status_checks_approve_all"}}
-		</button>
+	<div class="merge-box-checks-body tw-overflow-y-auto tw-border-t tw-border-secondary">
+		{{if and $statusCheckData.RequireApprovalRunCount $statusCheckData.CanApprove}}
+			<div id="approve-status-checks" class="tw-p-2">
+				<button type="button" class="ui basic button link-action" data-url="{{$statusCheckData.ApproveLink}}">
+					{{ctx.Locale.Tr "repo.pulls.status_checks_approve_all"}}
+				</button>
+			</div>
+		{{end}}
+		{{range $group := $statusCheckData.StatusCheckGroups}}
+		<section class="merge-box-checks-group">
+			<button type="button" class="btn interact-bg tw-text-12 tw-font-medium tw-text-text-light-2" data-kind="{{$group.CheckKind.KindName}}" aria-expanded="true">{{$group.GroupTitle ctx.Locale}}{{svg "octicon-chevron-right" 12 "merge-box-chevron"}}</button>
+			<div class="flex-divided-list">
+				{{range $check := $group.StatusChecks}}
+				<div class="item commit-status-item">
+					<div class="flex-text-block tw-flex-1">
+						{{if $check.ActionStatus}}
+							{{template "repo/icons/action_status" (dict "Status" $check.ActionStatus "Size" 18 "ClassName" "commit-status icon")}}
+						{{else}}
+							{{template "repo/icons/commit_status" (dict "State" $check.StatusState)}}
+						{{end}}
+						<span class="gt-ellipsis" title="{{$check.StatusContext}} {{$check.StatusDescription}}">{{if $check.StatusTargetURL}}<a class="muted" href="{{$check.StatusTargetURL}}">{{$check.StatusContext}}</a>{{else}}{{$check.StatusContext}}{{end}} <span class="tw-text-12 tw-text-text-light-2">{{$check.StatusDescription}}</span></span>
+					</div>
+					{{if $check.IsRequired}}
+						<div class="ui basic label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>
+					{{end}}
+				</div>
+				{{end}}
+			</div>
+		</section>
 		{{end}}
 	</div>
-	{{end}}
-
-	<div class="item tw-p-0">
-		<div class="commit-status-list flex-divided-list items-px-default">
-			{{template "repo/pulls/status_items" (dict "CommitStatuses" $commitStatuses "StatusCheckData" $statusCheckData)}}
-		</div>
-	</div>
-{{end}}
+</div>
