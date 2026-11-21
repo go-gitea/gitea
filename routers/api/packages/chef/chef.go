@@ -26,6 +26,7 @@ import (
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
+	status = helper.ErrorStatus(status, obj)
 	type Error struct {
 		ErrorMessages []string `json:"error_messages"`
 	}

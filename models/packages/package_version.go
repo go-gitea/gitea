@@ -46,6 +46,9 @@ func (pv *PackageVersion) IsPrerelease() bool {
 
 // GetOrInsertVersion inserts a version. If the same version exist already ErrDuplicatePackageVersion is returned
 func GetOrInsertVersion(ctx context.Context, pv *PackageVersion) (*PackageVersion, error) {
+	if err := checkActionsPackageAccess(ctx, pv.PackageID); err != nil {
+		return nil, err
+	}
 	e := db.GetEngine(ctx)
 
 	existing := &PackageVersion{}
@@ -68,6 +71,14 @@ func GetOrInsertVersion(ctx context.Context, pv *PackageVersion) (*PackageVersio
 
 // UpdateVersion updates a version
 func UpdateVersion(ctx context.Context, pv *PackageVersion) error {
+	if err := checkActionsVersionAccess(ctx, pv.ID); err != nil {
+		return err
+	}
+	if pv.PackageID != 0 {
+		if err := checkActionsPackageAccess(ctx, pv.PackageID); err != nil {
+			return err
+		}
+	}
 	_, err := db.GetEngine(ctx).ID(pv.ID).Update(pv)
 	return err
 }
@@ -152,12 +163,18 @@ func GetVersionsByPackageName(ctx context.Context, ownerID int64, packageType Ty
 
 // DeleteVersionByID deletes a version by id
 func DeleteVersionByID(ctx context.Context, versionID int64) error {
+	if err := checkActionsVersionAccess(ctx, versionID); err != nil {
+		return err
+	}
 	_, err := db.GetEngine(ctx).ID(versionID).Delete(&PackageVersion{})
 	return err
 }
 
 // DeleteVersionsByPackageID deletes all versions of a specific package
 func DeleteVersionsByPackageID(ctx context.Context, packageID int64) error {
+	if err := checkActionsPackageAccess(ctx, packageID); err != nil {
+		return err
+	}
 	_, err := db.GetEngine(ctx).Where(builder.Eq{"package_id": packageID}).Delete(&PackageVersion{})
 	return err
 }
