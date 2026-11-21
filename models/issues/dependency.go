@@ -187,6 +187,19 @@ func issueDepExists(ctx context.Context, issueID, depID int64) (bool, error) {
 	return db.GetEngine(ctx).Where("(issue_id = ? AND dependency_id = ?)", issueID, depID).Exist(&IssueDependency{})
 }
 
+// GetLinkedDependencyIssueIDs returns the IDs of the issues that block or are blocked by the issue
+func GetLinkedDependencyIssueIDs(ctx context.Context, issueID int64) ([]int64, error) {
+	var deps []*IssueDependency
+	if err := db.GetEngine(ctx).Where("issue_id = ? OR dependency_id = ?", issueID, issueID).Find(&deps); err != nil {
+		return nil, err
+	}
+	ids := make([]int64, 0, len(deps))
+	for _, dep := range deps {
+		ids = append(ids, util.Iif(dep.IssueID == issueID, dep.DependencyID, dep.IssueID))
+	}
+	return ids, nil
+}
+
 // IssueNoDependenciesLeft checks if issue can be closed
 func IssueNoDependenciesLeft(ctx context.Context, issue *Issue) (bool, error) {
 	exists, err := db.GetEngine(ctx).

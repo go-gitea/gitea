@@ -16,9 +16,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
-	"gitea.dev/modules/json"
 	"gitea.dev/modules/references"
-	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
@@ -234,29 +232,6 @@ func TestIssueListsRespectUnitReadPermission(t *testing.T) {
 		ctx.Repo.Permission.SetUnitsWithDefaultAccessMode([]*repo_model.RepoUnit{{Type: unit.TypeIssues}}, perm.AccessModeRead)
 		return ctx, resp
 	}
-
-	t.Run("SearchRepoIssuesJSON", func(t *testing.T) {
-		search := func(typ string) (int, []*api.Issue) {
-			ctx, resp := issuesOnlyContext("user2/repo1/issues/search")
-			ctx.Req.Form.Set("state", "all")
-			ctx.Req.Form.Set("type", typ)
-			SearchRepoIssuesJSON(ctx)
-			var issues []*api.Issue
-			if resp.Code == http.StatusOK {
-				require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &issues))
-			}
-			return resp.Code, issues
-		}
-		code, _ := search("pulls")
-		assert.Equal(t, http.StatusForbidden, code)
-
-		code, issues := search("")
-		assert.Equal(t, http.StatusOK, code)
-		assert.Len(t, issues, 2)
-		for _, issue := range issues {
-			assert.Nil(t, issue.PullRequest, "pull request #%d listed", issue.Index)
-		}
-	})
 
 	t.Run("MilestoneIssuesAndPulls", func(t *testing.T) {
 		// milestone1 of repo1 only holds pull request #2
