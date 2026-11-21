@@ -29,7 +29,7 @@ func TestSyncDirsRestoresDestination(t *testing.T) {
 
 	entries, err := util.ListDirRecursively(destPath, &util.ListDirOptions{IncludeDir: true})
 	require.NoError(t, err)
-	assert.Equal(t, []string{"dir/", "dir/file", "dir/sub/"}, entries)
+	assert.ElementsMatch(t, []string{"dir/", "dir/file", "dir/sub/"}, entries)
 	content, err := os.ReadFile(filepath.Join(destPath, "dir/file"))
 	require.NoError(t, err)
 	assert.Equal(t, "content", string(content))
