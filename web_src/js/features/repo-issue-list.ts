@@ -93,7 +93,7 @@ function initDropdownUserRemoteSearch(el: Element) {
 
   const selectUsername = (username: string) => {
     queryElems(elMenu, '.item.active, .item.selected', (el) => el.classList.remove('active', 'selected'));
-    elMenu.querySelector(`.item[data-value="${CSS.escape(username)}"]`)?.classList.add('selected');
+    elMenu.querySelector(`.item[data-value="${CSS.escape(username)}"]`)?.classList.add('active');
   };
 
   const processedResults: ProcessedIssuePoster[] = []; // to be used by dropdown to generate menu items
@@ -109,6 +109,7 @@ function initDropdownUserRemoteSearch(el: Element) {
   elSearchInput.value = selectedUsername;
   if (!searchUrl) {
     elSearchInput.addEventListener('input', syncItemFromInput);
+    syncItemFromInput();
     return;
   }
 
@@ -144,7 +145,7 @@ function initPinRemoveButton() {
       const response = await DELETE(el.getAttribute('data-unpin-url')!);
       if (response.ok) {
         // Delete the tooltip
-        el._tippy.destroy();
+        el._tippy?.destroy();
         // Remove the Card
         el.closest(`div.issue-card[data-issue-id="${CSS.escape(String(id))}"]`)!.remove();
       }

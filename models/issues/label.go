@@ -244,13 +244,7 @@ func NewLabel(ctx context.Context, l *Label) error {
 func NewLabels(ctx context.Context, labels ...*Label) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		for _, l := range labels {
-			color, err := label.NormalizeColor(l.Color)
-			if err != nil {
-				return err
-			}
-			l.Color = color
-
-			if err := db.Insert(ctx, l); err != nil {
+			if err := NewLabel(ctx, l); err != nil {
 				return err
 			}
 		}

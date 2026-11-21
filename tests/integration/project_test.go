@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -17,6 +18,7 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	issue_indexer "gitea.dev/modules/indexer/issues"
 	project "gitea.dev/services/projects"
 	"gitea.dev/tests"
 
@@ -97,20 +99,6 @@ func TestUpdateIssueProject(t *testing.T) {
 
 	sess := loginUser(t, "user2")
 
-	t.Run("AssignAndRemove", func(t *testing.T) {
-		req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{
-			"id": "1",
-		})
-		sess.MakeRequest(t, req, http.StatusOK)
-		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
-
-		req = NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{
-			"id": "",
-		})
-		sess.MakeRequest(t, req, http.StatusOK)
-		unittest.AssertNotExistsBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
-	})
-
 	t.Run("AssignOnCreationNeedsWriter", func(t *testing.T) {
 		newIssue := func(session *TestSession, title string, status int) {
 			req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/new", map[string]string{"title": title, "project_ids": "1"})
@@ -121,6 +109,27 @@ func TestUpdateIssueProject(t *testing.T) {
 		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issue.ID, ProjectID: 1})
 		newIssue(loginUser(t, "user4"), "reader issue", http.StatusNotFound)
 		unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: 1, Title: "reader issue"})
+	})
+
+	t.Run("SearchFollowsProjectChanges", func(t *testing.T) {
+		assertIssue2Found := func(opts issue_indexer.SearchOptions) {
+			t.Helper()
+			opts.Keyword, opts.RepoIDs = "second", []int64{1}
+			assert.EventuallyWithT(t, func(c *assert.CollectT) {
+				ids, _, err := issue_indexer.SearchIssues(t.Context(), &opts)
+				assert.NoError(c, err)
+				assert.Contains(c, ids, int64(2))
+			}, 10*time.Second, 10*time.Millisecond)
+		}
+
+		sess.MakeRequest(t, NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{"id": ""}), http.StatusOK)
+		assertIssue2Found(issue_indexer.SearchOptions{NoProjectOnly: true})
+
+		sess.MakeRequest(t, NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{"id": "1"}), http.StatusOK)
+		assertIssue2Found(issue_indexer.SearchOptions{ProjectIDs: []int64{1}})
+
+		sess.MakeRequest(t, NewRequest(t, "POST", "/user2/repo1/projects/1/delete"), http.StatusOK)
+		assertIssue2Found(issue_indexer.SearchOptions{NoProjectOnly: true})
 	})
 }
 
@@ -395,18 +404,18 @@ func TestProjects(t *testing.T) {
 		assert.Contains(t, resp.Body.String(), linkedPR)
 	})
 	t.Run("LoadIssuesAssigneesForProject", func(t *testing.T) {
-		_ = db.TruncateBeans(t.Context(), "project_issue", "issue_assignees")
-		_ = db.Insert(t.Context(),
+		require.NoError(t, db.TruncateBeans(t.Context(), &project_model.ProjectIssue{}, &issues_model.IssueAssignees{}))
+		require.NoError(t, db.Insert(t.Context(),
 			&project_model.ProjectIssue{ProjectID: 1, IssueID: 1},
 			&project_model.ProjectIssue{ProjectID: 1, IssueID: 6},
-		)
-		_ = db.Insert(t.Context(),
+		))
+		require.NoError(t, db.Insert(t.Context(),
 			&issues_model.IssueAssignees{IssueID: 1, AssigneeID: 1},
 			&issues_model.IssueAssignees{IssueID: 1, AssigneeID: 10},
 			&issues_model.IssueAssignees{IssueID: 1, AssigneeID: 2},
 			&issues_model.IssueAssignees{IssueID: 6, AssigneeID: 2},
 			&issues_model.IssueAssignees{IssueID: 6, AssigneeID: 4},
-		)
+		))
 		assignees, err := project.LoadIssuesAssigneesForProject(t.Context(), 1)
 		require.NoError(t, err)
 		require.Len(t, assignees, 4)

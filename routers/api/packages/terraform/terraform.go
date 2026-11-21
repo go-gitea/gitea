@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode"
 
 	packages_model "gitea.dev/models/packages"
@@ -24,7 +25,9 @@ import (
 	packages_service "gitea.dev/services/packages"
 )
 
-var packageNameRegex = regexp.MustCompile(`\A[-_+.\w]+\z`)
+var packageNameRegex = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`\A[-_+.\w]+\z`)
+})
 
 const (
 	stateFilename = "tfstate"
@@ -81,7 +84,7 @@ func isValidPackageName(packageName string) bool {
 	if len(packageName) == 1 && !unicode.IsLetter(rune(packageName[0])) && !unicode.IsNumber(rune(packageName[0])) {
 		return false
 	}
-	return packageNameRegex.MatchString(packageName) && packageName != ".."
+	return packageNameRegex().MatchString(packageName) && packageName != ".."
 }
 
 // UploadState uploads the specific terraform package.
@@ -266,29 +269,7 @@ func DeleteState(ctx *context.Context) {
 		return
 	}
 
-	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-		PackageID:  p.ID,
-		IsInternal: optional.None[bool](),
-	})
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	err = packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypePackage, p.ID)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	for _, pv := range pvs {
-		if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-	}
-
-	if err := packages_model.DeletePackageByID(ctx, p.ID); err != nil {
+	if err := packages_service.RemovePackage(ctx, ctx.Doer, p); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}

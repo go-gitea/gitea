@@ -17,28 +17,16 @@ type languageResponse []*repo_model.LanguageStat
 
 func (l languageResponse) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
-	if _, err := buf.WriteString("{"); err != nil {
-		return nil, err
-	}
+	buf.WriteString("{")
 	for i, lang := range l {
 		if i > 0 {
-			if _, err := buf.WriteString(","); err != nil {
-				return nil, err
-			}
+			buf.WriteString(",")
 		}
-		if _, err := buf.WriteString(strconv.Quote(lang.Language)); err != nil {
-			return nil, err
-		}
-		if _, err := buf.WriteString(":"); err != nil {
-			return nil, err
-		}
-		if _, err := buf.WriteString(strconv.FormatInt(lang.Size, 10)); err != nil {
-			return nil, err
-		}
+		buf.WriteString(strconv.Quote(lang.Language))
+		buf.WriteString(":")
+		buf.WriteString(strconv.FormatInt(lang.Size, 10))
 	}
-	if _, err := buf.WriteString("}"); err != nil {
-		return nil, err
-	}
+	buf.WriteString("}")
 
 	return buf.Bytes(), nil
 }

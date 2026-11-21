@@ -15,14 +15,18 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git/gitcmd"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testPullCreate(t *testing.T, session *TestSession, user, repo string, toSelf bool, targetBranch, sourceBranch, title string) *httptest.ResponseRecorder {
@@ -111,7 +115,7 @@ func testPullCreateDirectly(t *testing.T, session *TestSession, opts createPullR
 	return resp
 }
 
-func testPullCreateFailure(t *testing.T, session *TestSession, baseRepoOwner, baseRepoName, baseBranch, headRepoOwner, headRepoName, headBranch, title string) *httptest.ResponseRecorder {
+func testPullCreateForbidden(t *testing.T, session *TestSession, baseRepoOwner, baseRepoName, baseBranch, headRepoOwner, headRepoName, headBranch, title string) *httptest.ResponseRecorder {
 	headCompare := headBranch
 	if headRepoOwner != "" {
 		if headRepoName != "" {
@@ -130,7 +134,7 @@ func testPullCreateFailure(t *testing.T, session *TestSession, baseRepoOwner, ba
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"title": title,
 	})
-	resp = session.MakeRequest(t, req, http.StatusBadRequest)
+	resp = session.MakeRequest(t, req, http.StatusForbidden)
 	return resp
 }
 
@@ -251,8 +255,7 @@ func TestPullCreatePrFromBaseToFork(t *testing.T) {
 			Title:         "This is a pull title",
 		})
 		// check the redirected URL
-		url := test.RedirectURL(resp)
-		assert.Regexp(t, "^/user1/repo1/pulls/[0-9]*$", url)
+		assert.Regexp(t, "^/user1/repo1/pulls/[0-9]*$", test.RedirectURL(resp))
 	})
 }
 
@@ -318,27 +321,57 @@ func TestCreatePullRequestFromNestedOrgForks(t *testing.T) {
 		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
-		prPayload := map[string]string{
-			"head":  fmt.Sprintf("%s:%s", leafForkOrg, patchBranch),
-			"base":  "main",
-			"title": "test creating pull from test-fork-org3 to test-fork-org1",
-		}
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/pulls", baseOrg, repoName), prPayload).AddTokenAuth(token)
-		resp = MakeRequest(t, req, http.StatusCreated)
-		pr := DecodeJSON(t, resp, &api.PullRequest{})
-		assert.Equal(t, prPayload["title"], pr.Title)
-		if assert.NotNil(t, pr.Head) {
-			assert.Equal(t, patchBranch, pr.Head.Ref)
-			if assert.NotNil(t, pr.Head.Repository) {
-				assert.Equal(t, fmt.Sprintf("%s/%s", leafForkOrg, repoName), pr.Head.Repository.FullName)
+		contributor := loginUser(t, "user4")
+		contributorToken := getTokenForLoggedInUser(t, contributor, auth_model.AccessTokenScopeWriteRepository)
+		req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/collaborators/user4", leafForkOrg, repoName), api.AddCollaboratorOption{
+			Permission: new(api.RepoWritePermissionWrite),
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		base := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: baseRepo.ID})
+		permission, err := access_model.GetDoerRepoPermission(t.Context(), base, user)
+		require.NoError(t, err)
+		require.False(t, permission.CanWrite(unit_model.TypeCode))
+		require.False(t, repo_model.HasForkedRepo(t.Context(), user.ID, base.ID))
+
+		t.Run("Reader can create pull request from nested fork", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/compare/main...%s:%s", baseOrg, repoName, leafForkOrg, patchBranch))
+			resp := contributor.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, 1, NewHTMLParser(t, resp.Body).doc.Find("form#new-issue").Length())
+		})
+
+		t.Run("Member restriction hides pull request creation form from reader", func(t *testing.T) {
+			updateRepoPullRequestConfig(t, base.ID, func(c *repo_model.PullRequestsConfig) { c.CreationRestriction = repo_model.CreationRestrictionMember })
+			defer updateRepoPullRequestConfig(t, base.ID, func(c *repo_model.PullRequestsConfig) { c.CreationRestriction = repo_model.CreationRestrictionReader })
+
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/compare/main...%s:%s", baseOrg, repoName, leafForkOrg, patchBranch))
+			resp := contributor.MakeRequest(t, req, http.StatusOK)
+			assert.Zero(t, NewHTMLParser(t, resp.Body).doc.Find("form#new-issue").Length())
+		})
+
+		t.Run("Reader can create pull request from nested fork via API", func(t *testing.T) {
+			prPayload := map[string]string{
+				"head":  fmt.Sprintf("%s:%s", leafForkOrg, patchBranch),
+				"base":  "main",
+				"title": "test creating pull from test-fork-org3 to test-fork-org1",
 			}
-		}
-		if assert.NotNil(t, pr.Base) {
-			assert.Equal(t, "main", pr.Base.Ref)
-			if assert.NotNil(t, pr.Base.Repository) {
-				assert.Equal(t, fmt.Sprintf("%s/%s", baseOrg, repoName), pr.Base.Repository.FullName)
+			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/pulls", baseOrg, repoName), prPayload).AddTokenAuth(contributorToken)
+			resp := MakeRequest(t, req, http.StatusCreated)
+			pr := DecodeJSON(t, resp, &api.PullRequest{})
+			assert.Equal(t, prPayload["title"], pr.Title)
+			if assert.NotNil(t, pr.Head) {
+				assert.Equal(t, patchBranch, pr.Head.Ref)
+				if assert.NotNil(t, pr.Head.Repository) {
+					assert.Equal(t, fmt.Sprintf("%s/%s", leafForkOrg, repoName), pr.Head.Repository.FullName)
+				}
 			}
-		}
+			if assert.NotNil(t, pr.Base) {
+				assert.Equal(t, "main", pr.Base.Ref)
+				if assert.NotNil(t, pr.Base.Repository) {
+					assert.Equal(t, fmt.Sprintf("%s/%s", baseOrg, repoName), pr.Base.Repository.FullName)
+				}
+			}
+		})
 	})
 }
 
@@ -402,7 +435,7 @@ func TestCreateAgitPullWithReadPermission(t *testing.T) {
 		err := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
 			AddDynamicArguments("topic=test-topic").
 			WithDir(dstPath).
-			Run(t.Context())
+			RunWithStderr(t.Context())
 		assert.NoError(t, err)
 
 		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
@@ -444,7 +477,8 @@ func TestCreatePullWhenBlocked(t *testing.T) {
 		testEditFile(t, sessionFork, ForkOwner, "forkrepo1", "master", "README.md", "Hello, World (Edited)\n")
 
 		// 3. User1 attempts to create a pull request
-		testPullCreateFailure(t, sessionFork, RepoOwner, "repo1", "master", ForkOwner, "forkrepo1", "master", "This is a pull title")
+		resp := testPullCreateForbidden(t, sessionFork, RepoOwner, "repo1", "master", ForkOwner, "forkrepo1", "master", "This is a pull title")
+		assert.Equal(t, "Cannot create an issue or pull request because you are blocked by the repository owner.", test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 
 		// Teardown
 		// Unblock user

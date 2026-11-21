@@ -1,10 +1,14 @@
 - Never assume, verify before claiming
 - List development targets with `make help`
 - Before working on code, read the `docs` guides for every area touched: `guidelines-backend.md` for Go, `guidelines-frontend.md` for TS, CSS and Vue, both for templates, `testing.md` for tests, `development.md` for config options and migrations, `guidelines-refactoring.md` for refactors
-- PR descriptions: minimal, only what and why, no task or file listings. Include screenshots for UI changes, before and after when modifying existing UI. Aim for less than 1000 characters
+- Before designing a feature or behavior, check prior art in GitHub and GitLab
+- Don't add code for theoretical edge cases, only for ones that can realistically occur. Ask humans to make decisions if the edge case matters, comment the edge case for why it can be ignored if it doesn't matter
+- Write docs concisely and user-facing, skip implementation details
+- PR descriptions: minimal, only what and why, no task or file listings, no headings. Aim for less than 1000 characters. References go at the end of the description like `Fixes: <url>`.
+- PR descriptions and update comments: Include screenshots for UI changes, before and after side by side. Take them at 4x scale in dark theme, cropped to the changes with some padding, and embed them at half CSS size
 - Reference issues and PRs by full URL, not by number
 - Use Conventional Commits for commit messages and PR titles, plus Gitea's `enhance` type for user-facing enhancements
-- Add an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer to commit messages, never `Co-Authored-By` or `Signed-off-by`
+- Add an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer to commit messages and PR descriptions, never `Co-Authored-By` or `Signed-off-by`
 - Attribute agent authorship on one trailing line in issue and PR comments, never as a PR description section
 - Never rewrite git history unless asked, update PRs with new commits and normal push
 - Comments: write almost none, short and preferably same-line, explaining why for a future reader. Never narrate code, the change or the prompt. Preserve existing ones that still apply. If you need to write a paragraph-long comment, rethink your implementation, it is likely too complicated

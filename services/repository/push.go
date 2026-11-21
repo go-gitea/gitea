@@ -254,17 +254,9 @@ func getCompareURL(ctx context.Context, repo *repo_model.Repository, gitRepo *gi
 }
 
 func pushNewBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
-	if repo.IsEmpty { // Change default branch and empty status only if pushed ref is non-empty branch.
-		repo.DefaultBranch = opts.RefName()
-		repo.IsEmpty = false
-		if repo.DefaultBranch != setting.Repository.DefaultBranch {
-			if err := git.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
-				return nil, err
-			}
-		}
-		// Update the is empty and default_branch columns
-		if err := repo_model.UpdateRepositoryColsWithAutoTime(ctx, repo, "default_branch", "is_empty"); err != nil {
-			return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
+	if repo.IsEmpty {
+		if err := SyncBranchesToDB(ctx, repo, pusher.ID, gitRepo, []string{opts.RefName()}); err != nil {
+			return nil, fmt.Errorf("pushNewBranch: %w", err)
 		}
 	}
 

@@ -21,6 +21,10 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
+func canKeepRune(r rune) bool {
+	return r == '-' || unicode.In(r, unicode.L, unicode.M, unicode.Nd, unicode.Nl, unicode.Pc, unicode.Other_Alphabetic)
+}
+
 // CleanValue will clean a value to make it safe to be an id
 // This function is quite different from the original goldmark function
 // and more closely matches the output from the shurcooL sanitizer
@@ -30,7 +34,7 @@ func CleanValue(value []byte) []byte {
 		switch {
 		case r == ' ':
 			return '-'
-		case r == '-' || unicode.In(r, unicode.L, unicode.M, unicode.Nd, unicode.Nl, unicode.Pc, unicode.Other_Alphabetic):
+		case canKeepRune(r):
 			return unicode.ToLower(r)
 		}
 		return -1

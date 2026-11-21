@@ -4,7 +4,6 @@
 package pull
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -33,8 +32,7 @@ type mergeContext struct {
 }
 
 // PrepareGitCmd prepares a git command with the correct directory, environment, and output buffers
-// This function can only be called with gitcmd.Run()
-// Do NOT use it with gitcmd.RunStd*() functions, otherwise it will panic
+// Use RunWithStderr because this already configures a stdout buffer.
 func (ctx *mergeContext) PrepareGitCmd(cmd *gitcmd.Command) *gitcmd.Command {
 	ctx.outbuf.Reset()
 	return cmd.WithEnv(ctx.env).
@@ -152,16 +150,16 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 		log.Error("%-v Unable to write .git/info/sparse-checkout file in %s: %v", ctx.pr, ctx.tmpBasePath, err)
 		return fmt.Errorf("Unable to write .git/info/sparse-checkout file in tmpBasePath: %w", err)
 	}
-	defer sparseCheckoutListFile.Close() // we will close it earlier but we need to ensure it is closed if there is an error
 
-	if err := getDiffTree(ctx, ctx.tmpRepo, tmpRepoBaseBranch, tmpRepoTrackingBranch, sparseCheckoutListFile); err != nil {
-		log.Error("%-v getDiffTree(%s, %s, %s): %v", ctx.pr, ctx.tmpBasePath, tmpRepoBaseBranch, tmpRepoTrackingBranch, err)
-		return fmt.Errorf("getDiffTree: %w", err)
+	diffErr := getDiffTree(ctx, ctx.tmpRepo, tmpRepoBaseBranch, tmpRepoTrackingBranch, sparseCheckoutListFile)
+	closeErr := sparseCheckoutListFile.Close()
+	if diffErr != nil {
+		log.Error("%-v getDiffTree(%s, %s, %s): %v", ctx.pr, ctx.tmpBasePath, tmpRepoBaseBranch, tmpRepoTrackingBranch, diffErr)
+		return fmt.Errorf("getDiffTree: %w", diffErr)
 	}
-
-	if err := sparseCheckoutListFile.Close(); err != nil {
-		log.Error("%-v Unable to close .git/info/sparse-checkout file in %s: %v", ctx.pr, ctx.tmpBasePath, err)
-		return fmt.Errorf("Unable to close .git/info/sparse-checkout file in tmpBasePath: %w", err)
+	if closeErr != nil {
+		log.Error("%-v Unable to close .git/info/sparse-checkout file in %s: %v", ctx.pr, ctx.tmpBasePath, closeErr)
+		return fmt.Errorf("Unable to close .git/info/sparse-checkout file in tmpBasePath: %w", closeErr)
 	}
 
 	setConfig := func(key, value string) error {
@@ -208,28 +206,21 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 // getDiffTree returns a string containing all the files that were changed between headBranch and baseBranch
 // the filenames are escaped to fit the format required for .git/info/sparse-checkout
 func getDiffTree(ctx context.Context, repo git.RepositoryFacade, baseBranch, headBranch string, out io.Writer) error {
-	cmd := gitcmd.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "-r", "-z", "--root")
-	diffOutReader, diffOutReaderClose := cmd.MakeStdoutPipe()
-	defer diffOutReaderClose()
-	err := cmd.AddDynamicArguments(baseBranch, headBranch).
-		WithRepo(repo).
-		WithPipelineFunc(func(ctx gitcmd.Context) error {
-			// Now scan the output from the command
-			scanner := bufio.NewScanner(diffOutReader)
-			scanner.Split(util.BufioScannerSplit(0))
-			for scanner.Scan() {
-				treePath := scanner.Text()
-				// escape '*', '?', '[', spaces and '!' prefix
-				treePath = escapedSymbols.ReplaceAllString(treePath, `\$1`)
-				// no necessary to escape the first '#' symbol because the first symbol is '/'
-				if _, err := fmt.Fprintf(out, "/%s\n", treePath); err != nil {
-					return err
-				}
-			}
-			return scanner.Err()
-		}).
-		Run(ctx)
-	return err
+	cmd := gitcmd.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "-z", "--root").WithRepo(repo).
+		AddDynamicArguments(baseBranch, headBranch)
+	return gitcmd.RunWithScannerSplit(ctx, cmd, util.BufioScannerSplit(0), func(ctx gitcmd.Context, chunk []byte) error {
+		if len(chunk) == 0 {
+			return nil
+		}
+		treePath := string(chunk)
+		// escape '*', '?', '[', spaces and '!' prefix
+		treePath = escapedSymbols().ReplaceAllString(treePath, `\$1`)
+		// no necessary to escape the first '#' symbol because the first symbol is '/'
+		if _, err := fmt.Fprintf(out, "/%s\n", treePath); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // ErrRebaseConflicts represents an error if rebase fails with a conflict

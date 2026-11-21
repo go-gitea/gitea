@@ -4,20 +4,36 @@
 package conan
 
 import (
+	"fmt"
 	"io"
 	"regexp"
 	"strings"
+	"sync"
 )
 
-var (
-	patternAuthor      = compilePattern("author")
-	patternHomepage    = compilePattern("homepage")
-	patternURL         = compilePattern("url")
-	patternLicense     = compilePattern("license")
-	patternDescription = compilePattern("description")
-	patternTopics      = regexp.MustCompile(`(?im)^\s*topics\s*=\s*\((.+)\)`)
-	patternTopicList   = regexp.MustCompile(`\s*['"](.+?)['"]\s*,?`)
-)
+var globalVars = sync.OnceValue(func() (ret struct {
+	patternAuthor      *regexp.Regexp
+	patternHomepage    *regexp.Regexp
+	patternURL         *regexp.Regexp
+	patternLicense     *regexp.Regexp
+	patternDescription *regexp.Regexp
+	patternTopics      *regexp.Regexp
+	patternTopicList   *regexp.Regexp
+	namePattern        *regexp.Regexp
+	revisionPattern    *regexp.Regexp
+},
+) {
+	ret.patternAuthor = compilePattern("author")
+	ret.patternHomepage = compilePattern("homepage")
+	ret.patternURL = compilePattern("url")
+	ret.patternLicense = compilePattern("license")
+	ret.patternDescription = compilePattern("description")
+	ret.patternTopics = regexp.MustCompile(`(?im)^\s*topics\s*=\s*\((.+)\)`)
+	ret.patternTopicList = regexp.MustCompile(`\s*['"](.+?)['"]\s*,?`)
+	ret.namePattern = regexp.MustCompile(fmt.Sprintf(`^[a-zA-Z0-9_][a-zA-Z0-9_\+\.-]{%d,%d}$`, minChars-1, maxChars-1))
+	ret.revisionPattern = regexp.MustCompile(fmt.Sprintf(`^[a-zA-Z0-9]{1,%d}$`, maxChars))
+	return ret
+})
 
 func compilePattern(name string) *regexp.Regexp {
 	return regexp.MustCompile(`(?im)^\s*` + name + `\s*=\s*['"\(](.+)['"\)]`)
@@ -31,29 +47,29 @@ func ParseConanfile(r io.Reader) (*Metadata, error) {
 
 	metadata := &Metadata{}
 
-	m := patternAuthor.FindSubmatch(buf)
+	m := globalVars().patternAuthor.FindSubmatch(buf)
 	if len(m) > 1 && len(m[1]) > 0 {
 		metadata.Author = string(m[1])
 	}
-	m = patternHomepage.FindSubmatch(buf)
+	m = globalVars().patternHomepage.FindSubmatch(buf)
 	if len(m) > 1 && len(m[1]) > 0 {
 		metadata.ProjectURL = string(m[1])
 	}
-	m = patternURL.FindSubmatch(buf)
+	m = globalVars().patternURL.FindSubmatch(buf)
 	if len(m) > 1 && len(m[1]) > 0 {
 		metadata.RepositoryURL = string(m[1])
 	}
-	m = patternLicense.FindSubmatch(buf)
+	m = globalVars().patternLicense.FindSubmatch(buf)
 	if len(m) > 1 && len(m[1]) > 0 {
 		metadata.License = strings.ReplaceAll(strings.ReplaceAll(string(m[1]), "'", ""), "\"", "")
 	}
-	m = patternDescription.FindSubmatch(buf)
+	m = globalVars().patternDescription.FindSubmatch(buf)
 	if len(m) > 1 && len(m[1]) > 0 {
 		metadata.Description = string(m[1])
 	}
-	m = patternTopics.FindSubmatch(buf)
+	m = globalVars().patternTopics.FindSubmatch(buf)
 	if len(m) > 1 && len(m[1]) > 0 {
-		m2 := patternTopicList.FindAllSubmatch(m[1], -1)
+		m2 := globalVars().patternTopicList.FindAllSubmatch(m[1], -1)
 		if len(m2) > 0 {
 			metadata.Keywords = make([]string, 0, len(m2))
 			for _, g := range m2 {

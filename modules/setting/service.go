@@ -27,6 +27,7 @@ var Service = struct {
 	DefaultUserVisibilityMode               structs.VisibleType `ini:"-"`
 	AllowedUserVisibilityModesSlice         AllowedVisibility   `ini:"-"`
 	DefaultOrgVisibilityMode                structs.VisibleType `ini:"-"`
+	DefaultTeamVisibilityMode               structs.VisibleType `ini:"-"`
 	ActiveCodeLives                         int
 	ResetPwdCodeLives                       int
 	RegisterEmailConfirm                    bool
@@ -65,6 +66,7 @@ var Service = struct {
 	McaptchaSitekey                         string
 	McaptchaURL                             string
 	DefaultKeepEmailPrivate                 bool
+	ForceUserActivityVisibility             string
 	DefaultAllowCreateOrganization          bool
 	DefaultUserIsRestricted                 bool
 	EnableTimetracking                      bool
@@ -193,6 +195,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.McaptchaSecret = sec.Key("MCAPTCHA_SECRET").MustString("")
 	Service.McaptchaSitekey = sec.Key("MCAPTCHA_SITEKEY").MustString("")
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
+	Service.ForceUserActivityVisibility = sec.Key("FORCE_USER_ACTIVITY_VISIBILITY").In("", []string{"public", "private"})
 	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
 	Service.DefaultUserIsRestricted = sec.Key("DEFAULT_USER_IS_RESTRICTED").MustBool(false)
 	Service.EnableTimetracking = sec.Key("ENABLE_TIMETRACKING").MustBool(true)
@@ -235,6 +238,9 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	defaultOrgVisibility := structs.VisibilityString(sec.Key("DEFAULT_ORG_VISIBILITY").In("public", structs.VisibilityModeKeys()))
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[defaultOrgVisibility]
 	Service.DefaultOrgMemberVisible = sec.Key("DEFAULT_ORG_MEMBER_VISIBLE").MustBool()
+
+	defaultTeamVisibility := structs.VisibilityString(sec.Key("DEFAULT_TEAM_VISIBILITY").In("private", structs.VisibilityModeKeys()))
+	Service.DefaultTeamVisibilityMode = structs.VisibilityModes[defaultTeamVisibility]
 
 	Service.UserDeleteWithCommentsMaxTime = sec.Key("USER_DELETE_WITH_COMMENTS_MAX_TIME").MustDuration(0)
 	sec.Key("VALID_SITE_URL_SCHEMES").MustString("http,https") // FIXME: INI-MUST-SIDE-EFFECT
