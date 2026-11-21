@@ -63,7 +63,7 @@
 				{{if .Summary}}<p class="tw-mb-0 tw-text-text-light">{{.Summary}}</p>{{end}}
 				<div class="tw-text-sm tw-text-text-light">
 					{{if .Author}}{{ctx.Locale.Tr "repo.security.published_by" .Author.GetDisplayName}}{{end}}
-					{{range .Versions}}{{if eq .Kind "affected"}}<span class="ui tiny label">{{ctx.Locale.Tr "repo.security.affected"}}: {{.Version}}</span>{{end}}{{end}}
+					{{range .Versions}}{{if eq .Kind "affected"}}<span class="ui tiny label">{{ctx.Locale.Tr "repo.security.affected" .Version}}</span>{{end}}{{end}}
 				</div>
 			</div>
 		{{else}}

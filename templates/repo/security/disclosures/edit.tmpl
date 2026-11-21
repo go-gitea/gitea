@@ -63,7 +63,7 @@
 				<select id="disclosure-status" class="ui selection dropdown" name="status" required>
 					<option value="draft" {{if eq (printf "%s" $.FormStatus) "draft"}}selected{{end}}>{{ctx.Locale.Tr "repo.security.status_draft"}}</option>
 					<option value="published" {{if eq (printf "%s" $.FormStatus) "published"}}selected{{end}}>{{ctx.Locale.Tr "repo.security.status_published"}}</option>
-					<option value="withdrawn" {{if eq (printf "%s" $.FormStatus) "withdrawn"}}selected{{end}}>{{ctx.Locale.Tr "repo.security.status_withdrawn"}}</option>
+					{{if eq (printf "%s" $.FormStatus) "withdrawn"}}<option value="withdrawn" selected>{{ctx.Locale.Tr "repo.security.status_withdrawn"}}</option>{{end}}
 				</select>
 			</div>
 			<div class="field">

@@ -164,13 +164,13 @@ func UpdateDisclosure(ctx context.Context, d *disclosure_model.Disclosure, doer 
 			d.PublishedAt = timeutil.TimeStampNow()
 			d.PublishedByID = doer.ID
 		}
-		if in.Status == disclosure_model.StatusWithdrawn {
+		if in.Status == disclosure_model.StatusWithdrawn && d.Status != disclosure_model.StatusWithdrawn {
 			// withdrawing always requires a reason, which is displayed on the disclosure
 			if strings.TrimSpace(in.WithdrawReason) == "" {
 				return util.NewInvalidArgumentErrorf("a reason is required when withdrawing a disclosure")
 			}
 			d.WithdrawReason = strings.TrimSpace(in.WithdrawReason)
-		} else {
+		} else if in.Status != disclosure_model.StatusWithdrawn {
 			d.WithdrawReason = ""
 		}
 		d.Status = in.Status
