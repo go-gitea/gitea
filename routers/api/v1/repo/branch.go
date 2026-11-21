@@ -1319,9 +1319,5 @@ func applyMergeQueueOption(ctx *context.APIContext, pb *git_model.ProtectedBranc
 		cfg.GroupingStrategy = git_model.MergeQueueGroupingStrategy(optional.FromPtr(opt.GroupingStrategy).ValueOrDefault(string(cfg.GroupingStrategy)))
 		cfg.CheckResponseTimeoutMinutes = optional.FromPtr(opt.CheckResponseTimeoutMinutes).ValueOrDefault(cfg.CheckResponseTimeoutMinutes)
 	}
-	var prConfig *repo_model.PullRequestsConfig
-	if prUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypePullRequests); err == nil {
-		prConfig = prUnit.PullRequestsConfig()
-	}
-	return pb.SetMergeQueue(optional.FromPtr(require).ValueOrDefault(pb.RequireMergeQueue), cfg, prConfig)
+	return pb.SetMergeQueue(optional.FromPtr(require).ValueOrDefault(pb.RequireMergeQueue), cfg, ctx.Repo.Repository.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig())
 }

@@ -18,6 +18,7 @@ import (
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/globallock"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
@@ -65,14 +66,15 @@ func Enqueue(ctx context.Context, doer *user_model.User, pr *issues_model.PullRe
 			if _, err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil {
 				return err
 			}
-			return issues_model.CreateMergeQueueComment(ctx, pr, doer, "")
+			_, err := issues_model.CreatePullRequestComment(ctx, issues_model.CommentTypePRAddedToMergeQueue, pr, doer, "")
+			return err
 		})
 	})
 	if err != nil {
 		return nil, err
 	}
 	if added {
-		notify_service.PullRequestMergeQueueChanged(ctx, doer, pr, "")
+		notify_service.PullRequestMergeQueueChanged(ctx, doer, pr, api.HookIssueEnqueued, "")
 	}
 	addToQueue(pr.BaseRepoID, pr.BaseBranch)
 	return entry, nil

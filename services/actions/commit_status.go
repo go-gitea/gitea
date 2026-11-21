@@ -202,9 +202,10 @@ func requiredStatusContextGlobs(ctx context.Context, repo *repo_model.Repository
 	if err != nil {
 		return nil, fmt.Errorf("EffectiveRequiredContexts: %w", err)
 	}
-	required = append(required, pull_service.MergeQueueRequiredContexts(required)...)
-	globs := make([]glob.Glob, 0, len(required))
-	for _, c := range required {
+	contexts := container.SetOf(required...)
+	contexts.AddMultiple(pull_service.MergeQueueRequiredContexts(required)...)
+	globs := make([]glob.Glob, 0, len(contexts))
+	for c := range contexts {
 		if gp, err := glob.Compile(c); err != nil {
 			log.Error("glob.Compile %q: %v", c, err)
 		} else {

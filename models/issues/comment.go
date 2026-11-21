@@ -1273,20 +1273,32 @@ func UpdateCommentsMigrationsByType(ctx context.Context, tp structs.GitServiceTy
 	return err
 }
 
-func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User, content string) (*Comment, error) {
-	if err := pr.LoadIssue(ctx); err != nil {
+// CreateAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
+func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User, content string) (comment *Comment, err error) {
+	if typ != CommentTypePRScheduledToAutoMerge && typ != CommentTypePRUnScheduledToAutoMerge {
+		return nil, fmt.Errorf("comment type %d cannot be used to create an auto merge comment", typ)
+	}
+	return CreatePullRequestComment(ctx, typ, pr, doer, content)
+}
+
+func CreatePullRequestComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User, content string) (comment *Comment, err error) {
+	if err = pr.LoadIssue(ctx); err != nil {
 		return nil, err
 	}
-	if err := pr.LoadBaseRepo(ctx); err != nil {
+
+	if err = pr.LoadBaseRepo(ctx); err != nil {
 		return nil, err
 	}
-	return CreateComment(ctx, &CreateCommentOptions{
-		Type:    typ,
-		Doer:    doer,
-		Repo:    pr.BaseRepo,
-		Issue:   pr.Issue,
+
+	comment, err = CreateComment(ctx, &CreateCommentOptions{
+		Type:  typ,
+		Doer:  doer,
+		Repo:  pr.BaseRepo,
+		Issue: pr.Issue,
+
 		Content: content,
 	})
+	return comment, err
 }
 
 type MergeQueueRemovalReason string
@@ -1305,14 +1317,6 @@ const (
 	MergeQueueRemovedBaseDeleted   MergeQueueRemovalReason = "base_deleted"
 	MergeQueueRemovedCleared       MergeQueueRemovalReason = "queue_cleared"
 )
-
-func CreateMergeQueueComment(ctx context.Context, pr *PullRequest, doer *user_model.User, reason MergeQueueRemovalReason) error {
-	if reason == MergeQueueRemovedMerged || reason == MergeQueueRemovedAlreadyMerged {
-		return nil
-	}
-	_, err := CreateAutoMergeComment(ctx, util.Iif(reason == "", CommentTypePRAddedToMergeQueue, CommentTypePRRemovedFromMergeQueue), pr, doer, string(reason))
-	return err
-}
 
 // RemapExternalUser ExternalUserRemappable interface
 func (c *Comment) RemapExternalUser(externalName string, externalID, userID int64) error {

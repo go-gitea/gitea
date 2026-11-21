@@ -112,9 +112,8 @@ func SettingsProtectedBranch(c *context.Context) {
 		repo_model.MergeStyleRebaseMerge: "repo.pulls.rebase_merge_commit_pull_request",
 		repo_model.MergeStyleSquash:      "repo.pulls.squash_merge_pull_request",
 	}
-	if config := pullRequestsConfig(c); config != nil {
-		maps.DeleteFunc(queueMethods, func(style repo_model.MergeStyle, _label string) bool { return !config.IsMergeStyleAllowed(style) })
-	}
+	prConfig := c.Repo.Repository.MustGetUnit(c, unit.TypePullRequests).PullRequestsConfig()
+	maps.DeleteFunc(queueMethods, func(style repo_model.MergeStyle, _label string) bool { return !prConfig.IsMergeStyleAllowed(style) })
 	c.Data["MergeQueueMethods"] = queueMethods
 	c.Data["MergeQueueBranchPrefix"] = setting.Repository.PullRequest.MergeQueueBranchPrefix
 	contexts, _ := git_model.FindRepoRecentCommitStatusContexts(c, c.Repo.Repository.ID, 7*24*time.Hour) // Find last week status check contexts
@@ -327,7 +326,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 			MinEntriesToMergeWaitMinutes: f.MergeQueueMinEntriesToMergeWaitMinutes,
 			GroupingStrategy:             util.Iif(f.MergeQueueGroupingStrategy == string(git_model.MergeQueueGroupingAllGreen), git_model.MergeQueueGroupingAllGreen, git_model.MergeQueueGroupingHeadGreen),
 			CheckResponseTimeoutMinutes:  f.MergeQueueCheckResponseTimeoutMinutes,
-		}, pullRequestsConfig(ctx)); err != nil {
+		}, ctx.Repo.Repository.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()); err != nil {
 			errKey := util.Iif(errors.Is(err, git_model.ErrMergeQueueMethodNotAllowed), "repo.settings.merge_queue.merge_method_not_allowed", "repo.settings.merge_queue.invalid_settings")
 			ctx.JSONErrorWithField(ctx.Tr(errKey), "require_merge_queue")
 			return
@@ -460,11 +459,4 @@ func RenameBranchPost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.rename_branch_success", form.From, form.To))
 	ctx.Redirect(ctx.Repo.RepoLink + "/branches")
-}
-
-func pullRequestsConfig(ctx *context.Context) *repo_model.PullRequestsConfig {
-	if prUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypePullRequests); err == nil {
-		return prUnit.PullRequestsConfig()
-	}
-	return nil
 }

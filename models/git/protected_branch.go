@@ -120,7 +120,7 @@ var ErrMergeQueueMethodNotAllowed = util.NewInvalidArgumentErrorf("the merge que
 func (protectBranch *ProtectedBranch) SetMergeQueue(require bool, cfg MergeQueueConfig, prConfig *repo_model.PullRequestsConfig) error {
 	outOfRange := func(value, low, high int) bool { return value < low || value > high }
 	switch {
-	case require && prConfig != nil && !prConfig.IsMergeStyleAllowed(cfg.MergeMethod):
+	case require && !prConfig.IsMergeStyleAllowed(cfg.MergeMethod):
 		return ErrMergeQueueMethodNotAllowed
 	case !slices.Contains([]repo_model.MergeStyle{repo_model.MergeStyleMerge, repo_model.MergeStyleRebase, repo_model.MergeStyleRebaseMerge, repo_model.MergeStyleSquash}, cfg.MergeMethod):
 		return util.NewInvalidArgumentErrorf("merge queue merge method %q is not supported", cfg.MergeMethod)

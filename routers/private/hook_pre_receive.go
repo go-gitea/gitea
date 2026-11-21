@@ -305,6 +305,12 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			return
 		}
 
+		// Now if we're not an admin - we can't overwrite protected files so fail now
+		if changedProtectedFiles {
+			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from changing file %s", branchName, protectedFilePath)
+			return
+		}
+
 		if protectBranch.RequireMergeQueue {
 			entry, err := pull_model.GetMergeQueueEntryByPullID(ctx, pr.ID)
 			if err != nil {
@@ -313,17 +319,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			}
 			if entry == nil || entry.BaseBranch != branchName || entry.GroupHeadSHA != newCommitID || entry.State != pull_model.MergeQueueStateMergeable {
 				ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s requires pull requests to be merged through the merge queue", branchName)
-				return
 			}
-		}
-
-		// Now if we're not an admin - we can't overwrite protected files so fail now
-		if changedProtectedFiles {
-			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from changing file %s", branchName, protectedFilePath)
-			return
-		}
-
-		if protectBranch.RequireMergeQueue {
 			return
 		}
 

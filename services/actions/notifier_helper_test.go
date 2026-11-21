@@ -174,15 +174,15 @@ func TestMergeQueueWorkflowEvents(t *testing.T) {
 
 	entry := &pull_model.MergeQueueEntry{GroupRef: groupRef, GroupHeadSHA: headSHA, BaseBranch: repo.DefaultBranch}
 	notifier.MergeGroupChanged(ctx, doer, repo, entry, api.HookMergeGroupChecksRequested, "")
-	var runs []actions_model.ActionRun
-	require.NoError(t, db.GetEngine(ctx).Where("ref = ?", groupRef).Asc("id").Find(&runs))
+	runs, err := db.Find[actions_model.ActionRun](ctx, actions_model.FindRunOptions{RepoID: repo.ID, Ref: groupRef})
+	require.NoError(t, err)
 	require.Len(t, runs, 3)
-	assert.Equal(t, webhook_module.HookEventPush, runs[0].Event)
+	assert.Equal(t, webhook_module.HookEventMergeGroup, runs[0].Event)
 	assert.Equal(t, webhook_module.HookEventCreate, runs[1].Event)
-	assert.Equal(t, webhook_module.HookEventMergeGroup, runs[2].Event)
-	assert.Equal(t, actions_model.StatusCancelled, runs[0].Status)
-	assert.Equal(t, actions_model.StatusWaiting, runs[2].Status)
-	push, err := runs[0].GetPushEventPayload()
+	assert.Equal(t, webhook_module.HookEventPush, runs[2].Event)
+	assert.Equal(t, actions_model.StatusWaiting, runs[0].Status)
+	assert.Equal(t, actions_model.StatusCancelled, runs[2].Status)
+	push, err := runs[2].GetPushEventPayload()
 	require.NoError(t, err)
 	assert.Equal(t, 1, push.TotalCommits)
 	unittest.AssertExistsAndLoadBean(t, &git_model.CommitStatus{RepoID: repo.ID, SHA: headSHA, Context: "default.yml / cleanup (merge_group)"})
@@ -214,7 +214,7 @@ func TestMergeQueueWorkflowEvents(t *testing.T) {
 
 	pr.BaseBranch = repo.DefaultBranch
 	pr.HasMerged, pr.Issue.IsClosed, pr.MergedCommitID = true, true, headSHA
-	notifier.PullRequestMergeQueueChanged(ctx, doer, pr, false, "MERGE")
+	notifier.PullRequestMergeQueueChanged(ctx, doer, pr, api.HookIssueDequeued, issues_model.MergeQueueRemovedMerged)
 	unittest.AssertCount(t, &actions_model.ActionRun{
 		RepoID: repo.ID, WorkflowID: "cleanup.yml", Event: webhook_module.HookEventPullRequest,
 		Ref: headSHA, CommitSHA: headSHA, WorkflowCommitSHA: headSHA,

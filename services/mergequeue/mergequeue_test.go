@@ -220,8 +220,8 @@ type mergeQueueEvents struct {
 	log    []string
 }
 
-func (events *mergeQueueEvents) PullRequestMergeQueueChanged(_ctx context.Context, _doer *user_model.User, pr *issues_model.PullRequest, enqueued bool, reason string) {
-	if pr.BaseBranch == events.branch && !enqueued {
+func (events *mergeQueueEvents) PullRequestMergeQueueChanged(_ctx context.Context, _doer *user_model.User, pr *issues_model.PullRequest, action api.HookIssueAction, reason issues_model.MergeQueueRemovalReason) {
+	if pr.BaseBranch == events.branch && action == api.HookIssueDequeued {
 		events.log = append(events.log, fmt.Sprintf("%d %s merged=%t closed=%t", pr.ID, reason, pr.HasMerged, pr.Issue.IsClosed))
 	}
 }
@@ -279,7 +279,7 @@ func TestProcessQueueRestoresInterruptedMerge(t *testing.T) {
 	require.NoError(t, git.UpdateRef(ctx, repo, git.BranchPrefix+branch, entries[1].GroupHeadSHA))
 	require.NoError(t, git_model.DeleteProtectedBranch(ctx, repo, rule.ID))
 	require.NoError(t, processQueue(ctx, repo.ID, branch))
-	assert.Equal(t, []string{"2 merged", "2 MERGE merged=true closed=true", "5 merged", "5 MERGE merged=true closed=true"}, events.log)
+	assert.Equal(t, []string{"2 merged", "2 merged merged=true closed=true", "5 merged", "5 merged merged=true closed=true"}, events.log)
 	unittest.AssertNotExistsBean(t, &pull_model.MergeQueueEntry{BaseBranch: branch})
 	for _, entry := range entries {
 		assert.False(t, git.IsReferenceExist(ctx, repo, entry.GroupRef))

@@ -99,14 +99,9 @@ func testWebhookGetSlackHook(t *testing.T) {
 
 func testWebhookPrepare(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	hook := &webhook_model.Webhook{
-		RepoID:      repo.ID,
-		URL:         "http://localhost/gitea-webhook-test-prepare_webhooks",
-		ContentType: webhook_model.ContentTypeJSON,
-		Events:      `{"send_everything":true}`,
-		IsActive:    true,
-	}
-	require.NoError(t, db.Insert(t.Context(), hook))
+	pushOnly := &webhook_model.Webhook{RepoID: repo.ID, ContentType: webhook_model.ContentTypeJSON, Events: `{"push_only":true}`, IsActive: true}
+	everything := &webhook_model.Webhook{RepoID: repo.ID, ContentType: webhook_model.ContentTypeJSON, Events: `{"send_everything":true}`, IsActive: true}
+	require.NoError(t, db.Insert(t.Context(), pushOnly, everything))
 
 	headSHA, err := git.GetBranchCommitID(t.Context(), repo, repo.DefaultBranch)
 	require.NoError(t, err)
@@ -115,9 +110,18 @@ func testWebhookPrepare(t *testing.T) {
 		GroupRef:     "refs/heads/gitea-merge-queue/master/pr-1",
 		GroupHeadSHA: headSHA,
 	}, api.HookMergeGroupChecksRequested, "")
-	var events []webhook_module.HookEventType
-	require.NoError(t, db.GetEngine(t.Context()).Table(&webhook_model.HookTask{}).Where("hook_id = ?", hook.ID).Asc("id").Cols("event_type").Find(&events))
-	assert.Equal(t, []webhook_module.HookEventType{webhook_module.HookEventPush, webhook_module.HookEventCreate, webhook_module.HookEventMergeGroup}, events)
+	for hook, want := range map[*webhook_model.Webhook][]webhook_module.HookEventType{
+		pushOnly:   {webhook_module.HookEventPush},
+		everything: {webhook_module.HookEventMergeGroup, webhook_module.HookEventCreate, webhook_module.HookEventPush},
+	} {
+		tasks, err := hook.History(t.Context(), 1)
+		require.NoError(t, err)
+		events := make([]webhook_module.HookEventType, len(tasks))
+		for i, task := range tasks {
+			events[i] = task.EventType
+		}
+		assert.Equal(t, want, events)
+	}
 }
 
 func testWebhookPrepareBranchFilter(t *testing.T) {

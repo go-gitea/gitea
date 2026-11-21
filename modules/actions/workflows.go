@@ -401,15 +401,14 @@ func matchMergeGroupEvent(payload *api.MergeGroupPayload, evt *jobparser.Event) 
 
 	branch := git.RefName(payload.MergeGroup.BaseRef).ShortName()
 	for cond, vals := range acts {
-		patterns, err := workflowpattern.CompilePatterns(vals...)
 		switch cond {
 		case "types":
 		case "branches":
-			if err != nil || workflowpattern.Skip(patterns, []string{branch}) {
+			if patterns, err := workflowpattern.CompilePatterns(vals...); err != nil || workflowpattern.Skip(patterns, []string{branch}) {
 				return detectFilteredOut
 			}
 		case "branches-ignore":
-			if err != nil || workflowpattern.Filter(patterns, []string{branch}) {
+			if patterns, err := workflowpattern.CompilePatterns(vals...); err != nil || workflowpattern.Filter(patterns, []string{branch}) {
 				return detectFilteredOut
 			}
 		default:

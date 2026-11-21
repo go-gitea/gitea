@@ -43,7 +43,7 @@ func RemoveFromMergeQueue(ctx *context.Context) {
 		return
 	}
 	if err := mergequeue.Dequeue(ctx, ctx.Doer, ctx.Repo.Permission, issue.PullRequest); err != nil && !errors.Is(err, mergequeue.ErrNotQueued) {
-		ctx.ServerErrorAuto(err)
+		ctx.JSONErrorAuto(err)
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("repo.pulls.merge_queue.removed"))
@@ -56,7 +56,7 @@ func JumpMergeQueue(ctx *context.Context) {
 		return
 	}
 	if err := mergequeue.Jump(ctx, issue.PullRequest); err != nil && !errors.Is(err, mergequeue.ErrNotQueued) {
-		ctx.ServerErrorAuto(err)
+		ctx.JSONErrorAuto(err)
 		return
 	}
 	ctx.JSONOK()
@@ -64,7 +64,7 @@ func JumpMergeQueue(ctx *context.Context) {
 
 func ClearMergeQueue(ctx *context.Context) {
 	if err := mergequeue.Clear(ctx, ctx.Doer, ctx.Repo.Repository, ctx.PathParam("*")); err != nil {
-		ctx.ServerErrorAuto(err)
+		ctx.JSONErrorAuto(err)
 		return
 	}
 	ctx.JSONOK()
@@ -112,15 +112,16 @@ func mergeQueueEntryViews(ctx *context.Context, rule *git_model.ProtectedBranch,
 	if err := issues.LoadPosters(ctx); err != nil {
 		return nil, err
 	}
-	canMerge, err := pull_service.IsUserAllowedToMerge(ctx, queue[0].PullRequest, ctx.Repo.Permission, ctx.Doer)
-	if err != nil {
-		return nil, err
-	}
+	canMerge := ctx.Doer != nil && git_model.IsUserMergeWhitelisted(ctx, rule, ctx.Doer.ID, ctx.Repo.Permission)
 	required, err := pull_service.EffectiveRequiredContexts(ctx, ctx.Repo.Repository, rule)
 	if err != nil {
 		return nil, err
 	}
 	required = pull_service.MergeQueueRequiredContexts(required)
+	matchers := make([]func(string) bool, len(required))
+	for i, name := range required {
+		matchers[i] = createRequiredContextMatcher(name)
+	}
 	views := make([]*mergeQueueEntryView, len(queue))
 	for i, entry := range queue {
 		view := &mergeQueueEntryView{QueueEntry: entry, CanRemove: canMerge || ctx.Doer != nil && ctx.Doer.ID == entry.EnqueuerID}
@@ -136,10 +137,9 @@ func mergeQueueEntryViews(ctx *context.Context, rule *git_model.ProtectedBranch,
 		if entry.State != pull_model.MergeQueueStateAwaitingChecks {
 			continue
 		}
-		for _, name := range required {
-			matches := createRequiredContextMatcher(name)
+		for i, matches := range matchers {
 			if !slices.ContainsFunc(view.Statuses, func(status *git_model.CommitStatus) bool { return matches(status.Context) }) {
-				view.WaitingFor = append(view.WaitingFor, name)
+				view.WaitingFor = append(view.WaitingFor, required[i])
 			}
 		}
 	}

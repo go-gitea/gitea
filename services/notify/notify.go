@@ -123,28 +123,11 @@ func MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_mod
 	}
 }
 
-var dequeueReasons = map[issues_model.MergeQueueRemovalReason]string{
-	issues_model.MergeQueueRemovedByUser:        "MANUAL",
-	issues_model.MergeQueueRemovedClosed:        "MANUAL",
-	issues_model.MergeQueueRemovedMerged:        "MERGE",
-	issues_model.MergeQueueRemovedAlreadyMerged: "ALREADY_MERGED",
-	issues_model.MergeQueueRemovedChecksFailed:  "CI_FAILURE",
-	issues_model.MergeQueueRemovedChecksTimeout: "CI_TIMEOUT",
-	issues_model.MergeQueueRemovedConflict:      "MERGE_CONFLICT",
-	issues_model.MergeQueueRemovedNotMergeable:  "BRANCH_PROTECTIONS",
-	issues_model.MergeQueueRemovedBaseDeleted:   "QUEUE_CLEARED",
-	issues_model.MergeQueueRemovedCleared:       "QUEUE_CLEARED",
-}
-
-func PullRequestMergeQueueChanged(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, reason issues_model.MergeQueueRemovalReason) {
+func PullRequestMergeQueueChanged(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, action api.HookIssueAction, reason issues_model.MergeQueueRemovalReason) {
 	defer recoverPanic()
 
-	hookReason := dequeueReasons[reason]
-	if reason != "" && hookReason == "" {
-		hookReason = "UNKNOWN_REMOVAL_REASON"
-	}
 	for _, notifier := range notifiers {
-		notifier.PullRequestMergeQueueChanged(ctx, doer, pr, reason == "", hookReason)
+		notifier.PullRequestMergeQueueChanged(ctx, doer, pr, action, reason)
 	}
 }
 

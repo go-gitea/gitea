@@ -65,7 +65,7 @@ func (*NullNotifier) MergePullRequest(ctx context.Context, doer *user_model.User
 func (*NullNotifier) AutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 }
 
-func (*NullNotifier) PullRequestMergeQueueChanged(_ctx context.Context, _doer *user_model.User, _pr *issues_model.PullRequest, _enqueued bool, _reason string) {
+func (*NullNotifier) PullRequestMergeQueueChanged(_ctx context.Context, _doer *user_model.User, _pr *issues_model.PullRequest, _action api.HookIssueAction, _reason issues_model.MergeQueueRemovalReason) {
 }
 
 func (*NullNotifier) MergeGroupChanged(_ctx context.Context, _doer *user_model.User, _repo *repo_model.Repository, _entry *pull_model.MergeQueueEntry, _action api.HookMergeGroupAction, _reason string) {

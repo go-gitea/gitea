@@ -634,9 +634,9 @@ func (n *actionsNotifier) PullRequestSynchronized(ctx context.Context, doer *use
 	})
 }
 
-func (n *actionsNotifier) PullRequestMergeQueueChanged(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, enqueued bool, reason string) {
+func (n *actionsNotifier) PullRequestMergeQueueChanged(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, action api.HookIssueAction, reason issues_model.MergeQueueRemovalReason) {
 	notifyPullRequestChange(withMethod(ctx, "PullRequestMergeQueueChanged"), doer, pr, webhook_module.HookEventPullRequest, util.Iif(pr.HasMerged, pr.MergedCommitID, ""), &api.PullRequestPayload{
-		Action: util.Iif(enqueued, api.HookIssueEnqueued, api.HookIssueDequeued), Reason: reason,
+		Action: action, Reason: convert.ToMergeQueueRemovalReason(reason),
 	})
 }
 
@@ -665,8 +665,11 @@ func (n *actionsNotifier) MergeGroupChanged(ctx context.Context, doer *user_mode
 	ctx = withMethod(ctx, "MergeGroupChanged")
 
 	payload, commit, err := convert.ToMergeGroupPayload(ctx, doer, repo, entry, action, reason)
-	if err != nil || commit == nil {
+	if err != nil {
 		log.Error("ToMergeGroupPayload %s: %v", entry.GroupRef, err)
+		return
+	} else if commit == nil {
+		log.Error("MergeGroupChanged: queue commit of %s is missing", entry.GroupRef)
 		return
 	}
 	if action == api.HookMergeGroupChecksRequested {

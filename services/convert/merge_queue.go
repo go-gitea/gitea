@@ -6,6 +6,7 @@ package convert
 import (
 	"context"
 
+	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	pull_model "gitea.dev/models/pull"
@@ -14,7 +15,28 @@ import (
 	"gitea.dev/modules/git"
 	repo_module "gitea.dev/modules/repository"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 )
+
+var mergeQueueRemovalReasons = map[issues_model.MergeQueueRemovalReason]string{
+	issues_model.MergeQueueRemovedByUser:        "MANUAL",
+	issues_model.MergeQueueRemovedClosed:        "MANUAL",
+	issues_model.MergeQueueRemovedMerged:        "MERGE",
+	issues_model.MergeQueueRemovedAlreadyMerged: "ALREADY_MERGED",
+	issues_model.MergeQueueRemovedChecksFailed:  "CI_FAILURE",
+	issues_model.MergeQueueRemovedChecksTimeout: "CI_TIMEOUT",
+	issues_model.MergeQueueRemovedConflict:      "MERGE_CONFLICT",
+	issues_model.MergeQueueRemovedNotMergeable:  "BRANCH_PROTECTIONS",
+	issues_model.MergeQueueRemovedBaseDeleted:   "QUEUE_CLEARED",
+	issues_model.MergeQueueRemovedCleared:       "QUEUE_CLEARED",
+}
+
+func ToMergeQueueRemovalReason(reason issues_model.MergeQueueRemovalReason) string {
+	if reason == "" {
+		return ""
+	}
+	return util.IfZero(mergeQueueRemovalReasons[reason], "UNKNOWN_REMOVAL_REASON")
+}
 
 func ToMergeGroupPayload(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, entry *pull_model.MergeQueueEntry, action api.HookMergeGroupAction, reason string) (*api.MergeGroupPayload, *git.Commit, error) {
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo)
@@ -29,7 +51,10 @@ func ToMergeGroupPayload(ctx context.Context, doer *user_model.User, repo *repo_
 		BaseSHA: entry.BaseSHA,
 		BaseRef: git.RefNameFromBranch(entry.BaseBranch).String(),
 	}
-	commit, _ := gitRepo.GetCommit(ctx, entry.GroupHeadSHA) // A destroyed group's commit may have been pruned.
+	commit, err := gitRepo.GetCommit(ctx, entry.GroupHeadSHA)
+	if err != nil && !git.IsErrNotExist(err) { // a destroyed group's commit may have been pruned
+		return nil, nil, err
+	}
 	if commit != nil {
 		group.HeadCommit = ToPayloadCommit(ctx, repo, commit)
 	}

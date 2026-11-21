@@ -8,9 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -36,7 +34,12 @@ import (
 	repo_service "gitea.dev/services/repository"
 )
 
-var branchQueue atomic.Pointer[queue.WorkerPoolQueue[string]]
+type queueBranch struct {
+	RepoID int64
+	Branch string
+}
+
+var branchQueue atomic.Pointer[queue.WorkerPoolQueue[queueBranch]]
 
 func Init() error {
 	notify_service.RegisterNotifier(&notifier{})
@@ -68,35 +71,26 @@ func addToQueue(repoID int64, branch string) {
 	if worker == nil {
 		return
 	}
-	if err := worker.Push(fmt.Sprintf("%d:%s", repoID, branch)); err != nil && !errors.Is(err, queue.ErrAlreadyInQueue) {
+	if err := worker.Push(queueBranch{RepoID: repoID, Branch: branch}); err != nil && !errors.Is(err, queue.ErrAlreadyInQueue) {
 		log.Error("Unable to push merge queue of repo %d branch %s: %v", repoID, branch, err)
 	}
 }
 
-func handleBranches(items ...string) []string {
-	var wg sync.WaitGroup
+func handleBranches(items ...queueBranch) []queueBranch {
 	for _, item := range items {
-		wg.Go(func() { handleBranch(item) })
+		handleBranch(item)
 	}
-	wg.Wait()
 	return nil
 }
 
-func handleBranch(item string) {
-	defer func() {
-		if err := recover(); err != nil {
-			log.Error("Recovered from panic in merge queue branch %q: %v\n%s", item, err, log.Stack(2))
-		}
-	}()
-	idStr, branch, _ := strings.Cut(item, ":")
-	repoID, _ := strconv.ParseInt(idStr, 10, 64)
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), "merge queue "+item)
+func handleBranch(item queueBranch) {
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("merge queue of repo %d branch %s", item.RepoID, item.Branch))
 	defer finished()
-	err := globallock.LockAndDo(ctx, lockKey(repoID, branch), func(ctx context.Context) error {
-		return processQueue(ctx, repoID, branch)
+	err := globallock.LockAndDo(ctx, lockKey(item.RepoID, item.Branch), func(ctx context.Context) error {
+		return processQueue(ctx, item.RepoID, item.Branch)
 	})
 	if err != nil {
-		log.Error("Merge queue of repo %d branch %s: %v", repoID, branch, err)
+		log.Error("Merge queue of repo %d branch %s: %v", item.RepoID, item.Branch, err)
 	}
 }
 
@@ -389,10 +383,11 @@ func (s *queueState) removeEntries(ctx context.Context, reason issues_model.Merg
 func removeEntry(ctx context.Context, repo *repo_model.Repository, entry *pull_model.MergeQueueEntry, pr *issues_model.PullRequest, doer *user_model.User, reason issues_model.MergeQueueRemovalReason) error {
 	deleted, err := db.WithTx2(ctx, func(ctx context.Context) (bool, error) {
 		deleted, err := pull_model.DeleteMergeQueueEntry(ctx, entry.PullID)
-		if err != nil || !deleted || pr == nil {
+		if err != nil || !deleted || pr == nil || reason == issues_model.MergeQueueRemovedMerged || reason == issues_model.MergeQueueRemovedAlreadyMerged {
 			return deleted, err
 		}
-		return true, issues_model.CreateMergeQueueComment(ctx, pr, doer, reason)
+		_, err = issues_model.CreatePullRequestComment(ctx, issues_model.CommentTypePRRemovedFromMergeQueue, pr, doer, string(reason))
+		return true, err
 	})
 	if err != nil || !deleted {
 		return err
@@ -401,7 +396,7 @@ func removeEntry(ctx context.Context, repo *repo_model.Repository, entry *pull_m
 		destroyGroup(ctx, repo, doer, entry, util.Iif(reason == issues_model.MergeQueueRemovedMerged, "merged", "dequeued"))
 	}
 	if pr != nil {
-		notify_service.PullRequestMergeQueueChanged(ctx, doer, pr, reason)
+		notify_service.PullRequestMergeQueueChanged(ctx, doer, pr, api.HookIssueDequeued, reason)
 	}
 	if reason == issues_model.MergeQueueRemovedMerged {
 		repo_service.DeleteBranchAfterMergeIfNeeded(ctx, doer, repo, pr, nil)

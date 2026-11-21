@@ -384,12 +384,14 @@ func getMergeGroupPayloadInfo(payload *api.MergeGroupPayload, linkFormatter link
 	commitURL = payload.Repo.HTMLURL + "/commit/" + payload.MergeGroup.HeadSHA
 	repoLink := linkFormatter(payload.Repo.HTMLURL, payload.Repo.FullName)
 	commitLink := linkFormatter(commitURL, base.ShortSha(payload.MergeGroup.HeadSHA))
+	branch := git.RefName(payload.MergeGroup.BaseRef).ShortName()
+	branchLink := linkFormatter(payload.Repo.HTMLURL+"/src/branch/"+util.PathEscapeSegments(branch), branch)
 	description := payload.Reason
 	color = util.Iif(description == "merged", greenColor, greyColor)
 	if payload.Action == api.HookMergeGroupChecksRequested {
 		description, color = "checks requested", orangeColor
 	}
-	text = fmt.Sprintf("[%s:%s] Merge group %s: %s", repoLink, git.RefName(payload.MergeGroup.BaseRef).ShortName(), description, commitLink)
+	text = fmt.Sprintf("[%s:%s] Merge group %s: %s", repoLink, branchLink, description, commitLink)
 	if withSender {
 		text += " by " + linkFormatter(setting.AppURL+url.PathEscape(payload.Sender.UserName), payload.Sender.UserName)
 	}

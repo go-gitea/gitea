@@ -154,7 +154,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
-	performPush := func(storageRepo gitrepo.RepositoryFacade, excludeRef string) error {
+	performPush := func(storageRepo gitrepo.RepositoryFacade, excludeRefs []string) error {
 		remoteURL, err := git.ParseRemoteAddressURL(ctx, storageRepo, m.RemoteName)
 		if err != nil {
 			return fmt.Errorf("ParseRemoteAddressURL failed: %w", err)
@@ -191,7 +191,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			Remote:        m.RemoteName,
 			Force:         true,
 			Mirror:        true,
-			MirrorExclude: excludeRef,
+			MirrorExclude: excludeRefs,
 			Timeout:       timeout,
 		}); err != nil {
 			return fmt.Errorf("PushToExternal failed: %w", err)
@@ -200,13 +200,17 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		return nil
 	}
 
-	err := performPush(m.Repo.CodeStorageRepo(), pull_model.MergeQueueRefPrefix()+"*")
+	queueRefs, err := pull_model.GetMergeQueueGroupRefs(ctx, m.Repo.ID)
+	if err != nil {
+		return fmt.Errorf("GetMergeQueueGroupRefs failed: %w", err)
+	}
+	err = performPush(m.Repo.CodeStorageRepo(), queueRefs)
 	if err != nil {
 		return fmt.Errorf("performPush(code) failed: %w", err)
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		err := performPush(m.Repo.WikiStorageRepo(), "")
+		err := performPush(m.Repo.WikiStorageRepo(), nil)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			return fmt.Errorf("performPush(wiki) failed: %w", err)
 		}

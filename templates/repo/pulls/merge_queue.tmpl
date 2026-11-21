@@ -2,6 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository merge-queue">
 	{{template "repo/header" .}}
 	<div class="ui container">
+		{{template "base/alert" .}}
 		<div class="flex-text-block tw-mb-4">
 			<h2 class="flex-text-inline tw-m-0">
 				{{.Title}}
@@ -49,9 +50,9 @@
 						<div class="item-trailing">
 							{{template "repo/commit_statuses" dict "Status" $entry.Status "Statuses" $entry.Statuses}}
 							{{if or $.Permission.IsAdmin $entry.CanRemove}}
-								<div class="ui dropdown tw-p-1" aria-label="{{ctx.Locale.Tr "repo.pulls.merge_queue.entry_actions"}}">
+								<div class="ui dropdown jump tw-p-2" aria-label="{{ctx.Locale.Tr "repo.pulls.merge_queue.entry_actions"}}">
 									{{svg "octicon-kebab-horizontal"}}
-									<div class="menu">
+									<div class="menu flex-items-menu">
 										{{if $.Permission.IsAdmin}}
 											{{template "repo/pulls/merge_queue_action" dict "link" $issue.Link "action" "jump" "icon" "octicon-move-to-top"}}
 										{{end}}
@@ -81,5 +82,5 @@
 	<a class="item link-action" data-url="{{.link}}/merge_queue/{{.action}}"
 		data-modal-confirm-header="{{ctx.Locale.Tr (print $label "_confirm_title")}}"
 		data-modal-confirm-content="{{ctx.Locale.Tr (print $label "_confirm_desc")}}"
-	>{{svg .icon}} {{ctx.Locale.Tr $label}}</a>
+	>{{svg .icon}}{{ctx.Locale.Tr $label}}</a>
 {{end}}

@@ -856,9 +856,9 @@ func (m *webhookNotifier) PullRequestSynchronized(ctx context.Context, doer *use
 	})
 }
 
-func (m *webhookNotifier) PullRequestMergeQueueChanged(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, enqueued bool, reason string) {
+func (m *webhookNotifier) PullRequestMergeQueueChanged(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, action api.HookIssueAction, reason issues_model.MergeQueueRemovalReason) {
 	notifyPullRequestChange(ctx, doer, pr, webhook_module.HookEventPullRequest, &api.PullRequestPayload{
-		Action: util.Iif(enqueued, api.HookIssueEnqueued, api.HookIssueDequeued), Reason: reason,
+		Action: action, Reason: convert.ToMergeQueueRemovalReason(reason),
 	})
 }
 
