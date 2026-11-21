@@ -25,6 +25,7 @@ func newAdminCommand() *cli.Command {
 		Commands: []*cli.Command{
 			newUserCommand(),
 			newRepoSyncReleasesCommand(),
+			newRepoConvertToMirrorCommand(),
 			newRegenerateCommand(),
 			newAuthCommand(),
 			newSendMailCommand(),
