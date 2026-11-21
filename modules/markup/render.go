@@ -330,8 +330,13 @@ type TestRenderHelper struct {
 
 func (r *TestRenderHelper) CleanUp() {}
 
-func (r *TestRenderHelper) IsCommitIDExisting(commitID string) bool {
-	return strings.HasPrefix(commitID, "65f1bf2") //|| strings.HasPrefix(commitID, "88fc37a")
+func (r *TestRenderHelper) ResolveCommitID(commitID string) string {
+	for _, fullID := range []string{"65f1bf27bc3bf70f64657658635e66094edbcb4d", "4a357436d925b5c974181ff12a994538ddc5a269"} {
+		if strings.HasPrefix(fullID, commitID) {
+			return fullID
+		}
+	}
+	return ""
 }
 
 func (r *TestRenderHelper) ResolveLink(link, preferLinkType string) string {

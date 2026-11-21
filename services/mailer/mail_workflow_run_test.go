@@ -71,7 +71,7 @@ func TestWorkflowRunMail(t *testing.T) {
 		require.NoError(t, composeAndSendActionsWorkflowRunStatusEmail(t.Context(), repo, run, recipient))
 		require.Len(t, messages, 1)
 		message := messages[0]
-		assert.Equal(t, "[user2/repo2] Failure: test.yaml (test - c2d72f5484)", message.Subject)
+		assert.Equal(t, "[user2/repo2] Failure: test.yaml (test - c2d72f5)", message.Subject)
 		assert.Equal(t, []string{"<user2/repo2/actions/runs/191@localhost>"}, message.Headers["Message-ID"])
 		assert.NotContains(t, message.Body, "Some jobs were not successful")
 		require.Contains(t, message.Body, ">job_1</a>")

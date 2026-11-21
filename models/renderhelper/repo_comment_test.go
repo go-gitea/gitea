@@ -8,9 +8,11 @@ import (
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/markup/markdown"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRepoComment(t *testing.T) {
@@ -19,15 +21,18 @@ func TestRepoComment(t *testing.T) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	t.Run("AutoLink", func(t *testing.T) {
+		require.NoError(t, git.UpdateRef(t.Context(), repo1, "refs/heads/deadbee1", "65f1bf27bc3bf70f64657658635e66094edbcb4d"))
 		rctx := NewRenderContextRepoComment(t.Context(), repo1).WithMarkupType(markdown.MarkupName)
 		rendered, err := testRenderString(rctx, `
-65f1bf27bc3bf70f64657658635e66094edbcb4d
+65f1bf2
+65f1bf2...4a35743 0851b61 deadbee1 65f1bf27bc3bf70f64657658635e66094edbcb4da
 #1
 @user2
 `)
 		assert.NoError(t, err)
 		assert.Equal(t,
-			`<p><a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" rel="nofollow"><code>65f1bf27bc</code></a><br/>
+			`<p><a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" rel="nofollow"><code>65f1bf2</code></a><br/>
+<a href="/user2/repo1/compare/65f1bf27bc3bf70f64657658635e66094edbcb4d...4a357436d925b5c974181ff12a994538ddc5a269" rel="nofollow"><code>65f1bf2...4a35743</code></a> 0851b61 deadbee1 65f1bf27bc3bf70f64657658635e66094edbcb4da<br/>
 <a href="/user2/repo1/issues/1" class="ref-issue" rel="nofollow">#1</a><br/>
 <a href="/user2" rel="nofollow">@user2</a></p>
 `, rendered)

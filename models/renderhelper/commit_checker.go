@@ -6,6 +6,7 @@ package renderhelper
 import (
 	"context"
 	"io"
+	"strings"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
@@ -14,7 +15,7 @@ import (
 
 type commitChecker struct {
 	ctx          context.Context
-	commitCache  map[string]bool
+	commitCache  map[string]string
 	repoOptional *repo_model.Repository
 
 	gitRepo       *git.Repository
@@ -22,7 +23,7 @@ type commitChecker struct {
 }
 
 func newCommitChecker(ctx context.Context, repo *repo_model.Repository) *commitChecker {
-	return &commitChecker{ctx: ctx, commitCache: make(map[string]bool), repoOptional: repo}
+	return &commitChecker{ctx: ctx, commitCache: make(map[string]string), repoOptional: repo}
 }
 
 func (c *commitChecker) Close() error {
@@ -32,25 +33,27 @@ func (c *commitChecker) Close() error {
 	return nil
 }
 
-func (c *commitChecker) IsCommitIDExisting(commitID string) bool {
+func (c *commitChecker) ResolveCommitID(commitID string) string {
 	if c.repoOptional == nil {
-		return false
+		return ""
 	}
-	exist, inCache := c.commitCache[commitID]
+	fullID, inCache := c.commitCache[commitID]
 	if inCache {
-		return exist
+		return fullID
 	}
 
 	if c.gitRepo == nil {
 		r, closer, err := git.RepositoryFromContextOrOpen(c.ctx, c.repoOptional)
 		if err != nil {
 			log.Error("Unable to open repository: %s, error: %v", c.repoOptional.FullName(), err)
-			return false
+			return ""
 		}
 		c.gitRepo, c.gitRepoCloser = r, closer
 	}
 
-	exist = c.gitRepo.IsReferenceExist(c.ctx, commitID)
-	c.commitCache[commitID] = exist
-	return exist
+	if commit, err := c.gitRepo.GetCommit(c.ctx, commitID); err == nil && strings.HasPrefix(commit.ID.String(), commitID) { // GetCommit resolves refs and peels tags too
+		fullID = commit.ID.String()
+	}
+	c.commitCache[commitID] = fullID
+	return fullID
 }
