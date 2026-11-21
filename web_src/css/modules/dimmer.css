@@ -13,12 +13,6 @@
   user-select: none;
 }
 
-.modal-backdrop:has(> [open]) {
+.modal-backdrop.active {
   display: flex;
-}
-
-.modal-backdrop > .modal-dialog {
-  position: static;
-  margin-top: auto;
-  margin-bottom: auto;
 }
