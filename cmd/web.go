@@ -263,7 +263,7 @@ func runWeb(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("unknown command: %s", subCmdName)
 	}
 
-	managerCtx, cancel := context.WithCancel(context.WithoutCancel(ctx))
+	managerCtx, cancel := context.WithCancel(context.WithoutCancel(ctx)) // installSignals cancels ctx on the first signal, which would skip the graceful shutdown stages
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
