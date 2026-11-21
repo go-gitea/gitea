@@ -10,9 +10,11 @@ import (
 	"io"
 	"math/big"
 	"net/http"
+	"slices"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
@@ -250,6 +252,33 @@ func Appearance(ctx *context.Context) {
 		return forms.IsUserHiddenCommentTypeGroupChecked(commentTypeGroup, hiddenCommentTypes)
 	}
 
+	hiddenFeedRepoIDs, err := user_model.GetUserSettingJSON(ctx, ctx.Doer.ID, user_model.SettingsKeyDashboardHiddenFeedRepos, []int64{})
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	reposMap, err := repo_model.GetRepositoriesMapByIDs(ctx, hiddenFeedRepoIDs)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	hiddenFeedRepos := make([]*repo_model.Repository, 0, len(reposMap))
+	for _, id := range hiddenFeedRepoIDs {
+		repo := reposMap[id]
+		if repo == nil {
+			continue
+		}
+		perm, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+		if perm.HasAnyUnitAccess() {
+			hiddenFeedRepos = append(hiddenFeedRepos, repo)
+		}
+	}
+	ctx.Data["HiddenFeedRepos"] = hiddenFeedRepos
+
 	ctx.HTML(http.StatusOK, tplSettingsAppearance)
 }
 
@@ -324,4 +353,37 @@ func UpdateUserHiddenComments(ctx *context.Context) {
 	log.Trace("User settings updated: %s", ctx.Doer.Name)
 	ctx.Flash.Success(ctx.Tr("settings.saved_successfully"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
+}
+
+// UpdateUserHiddenFeedRepos hides or shows again a repository's activity in the user's dashboard feed
+func UpdateUserHiddenFeedRepos(ctx *context.Context) {
+	repo, err := repo_model.GetRepositoryByID(ctx, ctx.FormInt64("repo_id"))
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	perm, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	if !perm.HasAnyUnitAccess() {
+		ctx.NotFound()
+		return
+	}
+
+	ids, err := user_model.GetUserSettingJSON(ctx, ctx.Doer.ID, user_model.SettingsKeyDashboardHiddenFeedRepos, []int64{})
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	ids = slices.DeleteFunc(ids, func(id int64) bool { return id == repo.ID })
+	if ctx.FormString("action") == "hide" {
+		ids = append(ids, repo.ID)
+	}
+	if err := user_model.SetUserSettingJSON(ctx, ctx.Doer.ID, user_model.SettingsKeyDashboardHiddenFeedRepos, ids); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	ctx.JSONOK()
 }

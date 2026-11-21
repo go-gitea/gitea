@@ -123,6 +123,9 @@
 				{{end}}
 			</div>
 			<div class="item-trailing">
+				{{if $.PageIsDashboard}}
+					<button type="button" class="btn interact-fg link-action" data-url="{{AppSubUrl}}/user/settings/appearance/hidden_feed_repos?action=hide&repo_id={{.RepoID}}" data-tooltip-content="{{ctx.Locale.Tr "dashboard.hide_repo_activity"}}" aria-label="{{ctx.Locale.Tr "dashboard.hide_repo_activity"}}">{{svg "octicon-eye-closed"}}</button>
+				{{end}}
 				{{svg (printf "octicon-%s" (ActionIcon .GetOpType)) 32 "tw-text-text-light tw-mr-1"}}
 			</div>
 		</div>

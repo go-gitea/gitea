@@ -112,6 +112,13 @@ func Dashboard(ctx *context.Context) {
 
 	prepareHeatmapURL(ctx)
 
+	hiddenFeedRepoIDs, err := user_model.GetUserSettingJSON(ctx, ctx.Doer.ID, user_model.SettingsKeyDashboardHiddenFeedRepos, []int64{})
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	ctx.Data["HasHiddenFeedRepos"] = len(hiddenFeedRepoIDs) > 0
+
 	pageSize := setting.UI.FeedPagingNum
 	feeds, count, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctxUser,
@@ -122,6 +129,7 @@ func Dashboard(ctx *context.Context) {
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
 		ListOptions:     db.ListOptions{Page: page, PageSize: pageSize},
+		ExcludeRepoIDs:  hiddenFeedRepoIDs,
 	})
 	if err != nil {
 		ctx.ServerErrorAuto(err)
