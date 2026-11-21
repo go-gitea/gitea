@@ -414,6 +414,7 @@ func buildApproveAndInsertRun(
 		Status:            actions_model.StatusWaiting,
 		WorkflowRepoID:    workflowRepoID,
 		WorkflowCommitSHA: dwf.SourceCommitSHA,
+		WorkflowRef:       util.Iif(!isScopedRun && dwf.TriggerEvent.Name == actions_module.GithubEventPullRequestTarget, git.BranchPrefix+input.Repo.DefaultBranch, ""),
 		IsScopedRun:       isScopedRun,
 	}
 

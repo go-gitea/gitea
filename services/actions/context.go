@@ -144,11 +144,10 @@ func runRefs(run *actions_model.ActionRun) (baseRef, headRef, ref, sha string) {
 		pr := pullPayload.PullRequest
 		baseRef, headRef = pr.Base.Ref, pr.Head.Ref
 		if run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
-			// scoped runs lack the default branch commit, older runs ran at the base and recorded none, its or the head commit
-			if run.IsScopedRun || slices.Contains([]string{"", pr.Base.Sha, run.CommitSHA}, run.WorkflowCommitSHA) {
+			if run.WorkflowRef == "" { // scoped and older runs keep the base
 				ref, sha = git.BranchPrefix+baseRef, pr.Base.Sha
 			} else {
-				ref, sha = git.BranchPrefix+pullPayload.Repository.DefaultBranch, run.WorkflowCommitSHA
+				ref, sha = run.WorkflowRef, run.WorkflowCommitSHA
 			}
 		} else if run.TriggerEvent == actions_module.GithubEventPullRequest && !pr.HasMerged && pr.MergedCommitID != nil {
 			ref, sha = git.MergeRefNameFromPullIndex(pr.Index).String(), *pr.MergedCommitID

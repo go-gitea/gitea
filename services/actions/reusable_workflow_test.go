@@ -333,13 +333,13 @@ func TestResolveSameRepoWorkflowSourceCommit(t *testing.T) {
 			RepoID:            1,
 			Event:             webhook_module.HookEventPullRequest,
 			TriggerEvent:      actions_module.GithubEventPullRequestTarget,
-			EventPayload:      `{"pull_request":{"base":{"sha":"base-sha"},"head":{"sha":"head-sha"}},"repository":{"default_branch":"main"}}`,
+			EventPayload:      `{"pull_request":{"base":{"sha":"base-sha"},"head":{"sha":"head-sha"}}}`,
 			CommitSHA:         "head-sha",
 			WorkflowCommitSHA: workflowSHA,
 		}
 	}
-	scopedRun, payloadlessRun := prtRun("head-sha"), prtRun("default-sha")
-	scopedRun.IsScopedRun, payloadlessRun.EventPayload = true, "{}"
+	scopedRun, payloadlessRun, defaultRun := prtRun("head-sha"), prtRun("default-sha"), prtRun("default-sha")
+	scopedRun.IsScopedRun, payloadlessRun.EventPayload, defaultRun.WorkflowRef = true, "{}", "refs/heads/main"
 	for _, tc := range []struct {
 		name               string
 		run                *actions_model.ActionRun
@@ -347,7 +347,7 @@ func TestResolveSameRepoWorkflowSourceCommit(t *testing.T) {
 		sourceCommit, want string
 	}{
 		{"legacy pull_request_target recording the head resolves at the base", prtRun("head-sha"), 1, "head-sha", "base-sha"},
-		{"pull_request_target resolves at its default branch commit", prtRun("default-sha"), 1, "default-sha", "default-sha"},
+		{"pull_request_target resolves at its default branch commit", defaultRun, 1, "default-sha", "default-sha"},
 		{"pull_request_target without a pull request payload resolves nowhere", payloadlessRun, 1, "default-sha", ""},
 		{"non pull_request_target keeps stored SHA", &actions_model.ActionRun{RepoID: 1, TriggerEvent: "push", WorkflowCommitSHA: "head-sha"}, 1, "head-sha", "head-sha"},
 		{"scoped run keeps stored SHA", scopedRun, 1, "head-sha", "head-sha"},

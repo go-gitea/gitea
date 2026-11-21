@@ -407,7 +407,6 @@ func TestGenerateGiteaContext(t *testing.T) {
 			Base: &api.PRBranchInfo{Ref: "release", Sha: "base-sha"},
 			Head: &api.PRBranchInfo{Sha: "head-sha"},
 		},
-		Repository: &api.Repository{DefaultBranch: "main"},
 	}
 	payloadBytes, err := json.Marshal(payload)
 	assert.NoError(t, err)
@@ -420,6 +419,7 @@ func TestGenerateGiteaContext(t *testing.T) {
 		Repo:              &repo_model.Repository{Name: "test-repo", OwnerName: "test-owner"},
 		CommitSHA:         "head-sha",
 		WorkflowCommitSHA: "default-sha",
+		WorkflowRef:       "refs/heads/main",
 	}
 
 	giteaCtx := GenerateGiteaContext(t.Context(), run, nil, nil)
@@ -428,14 +428,9 @@ func TestGenerateGiteaContext(t *testing.T) {
 	assert.Equal(t, "default-sha", giteaCtx["sha"])
 	assert.Equal(t, "release", giteaCtx["base_ref"])
 
-	for _, legacy := range []struct {
-		scoped      bool
-		workflowSHA string
-	}{{false, ""}, {false, "base-sha"}, {false, "head-sha"}, {true, "source-sha"}} {
-		run.IsScopedRun, run.WorkflowCommitSHA = legacy.scoped, legacy.workflowSHA
-		_, _, ref, sha := runRefs(run)
-		assert.Equal(t, [2]string{"refs/heads/release", "base-sha"}, [2]string{ref, sha}, legacy)
-	}
+	run.WorkflowRef = ""
+	_, _, ref, sha := runRefs(run)
+	assert.Equal(t, [2]string{"refs/heads/release", "base-sha"}, [2]string{ref, sha})
 
 	run.TriggerEvent, run.Ref = actions_module.GithubEventPullRequest, "refs/pull/1/head"
 	assert.Equal(t, "branch", GenerateGiteaContext(t.Context(), run, nil, nil)["ref_type"])
