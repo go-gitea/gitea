@@ -56,7 +56,10 @@ func TestMain(m *testing.M) {
 	setting.Markdown.RenderOptionsComment.ShortIssuePattern = true
 	markup.Init(&markup.RenderHelperFuncs{
 		IsUsernameMentionable: func(ctx context.Context, username string) bool {
-			return username == "mention-user"
+			return username == "mention-user" || username == "current-user"
+		},
+		IsCurrentUsername: func(_ctx context.Context, username string) bool {
+			return username == "current-user"
 		},
 	})
 	os.Exit(m.Run())
@@ -108,19 +111,19 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a582
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <span class="emoji" data-alias="+1">👍</span>
 <a href="mailto:mail@domain.com">mail@domain.com</a>
-<a href="/mention-user">@mention-user</a> test
+<a href="/mention-user" class="user-mention">@mention-user</a> test
 <a href="/user13/repo11/issues/123" class="ref-issue">#123</a>
   space`
 		assert.Equal(t, expected, string(newTestRenderUtils(t).RenderCommitBody(testInput(), mockRepo)))
 	})
 
 	t.Run("RenderCommitMessage", func(t *testing.T) {
-		expected := `space <a href="/mention-user" data-markdown-generated-content="">@mention-user</a>`
+		expected := `space <a href="/mention-user" data-markdown-generated-content="" class="user-mention">@mention-user</a>`
 		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessage(testInput(), mockRepo))
 	})
 
 	t.Run("RenderCommitMessageLinkSubject", func(t *testing.T) {
-		expected := `<span class="title-full-link-hover"><a href="https://example.com/link" class="muted title-full-link">space </a><a href="/mention-user" data-markdown-generated-content="">@mention-user</a></span>`
+		expected := `<span class="title-full-link-hover"><a href="https://example.com/link" class="muted title-full-link">space </a><a href="/mention-user" data-markdown-generated-content="" class="user-mention">@mention-user</a></span>`
 		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject(testInput(), "https://example.com/link", mockRepo))
 	})
 
@@ -215,7 +218,7 @@ func TestRenderIssueTitleCodeSpan(t *testing.T) {
 
 func TestRenderMarkdownToHtml(t *testing.T) {
 	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
-	expected := `<p>space <a href="/mention-user" rel="nofollow">@mention-user</a><br/>
+	expected := `<p>space <a href="/mention-user" class="user-mention" rel="nofollow">@mention-user</a><br/>
 /just/a/path.bin
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a>
 <a href="/file.bin" rel="nofollow">local link</a>
@@ -232,7 +235,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a582
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <span class="emoji" data-alias="+1">👍</span>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a>
-<a href="/mention-user" rel="nofollow">@mention-user</a> test
+<a href="/mention-user" class="user-mention" rel="nofollow">@mention-user</a> test
 #123
 space</p>
 `
@@ -315,8 +318,8 @@ func TestRenderLabels(t *testing.T) {
 
 func TestUserMention(t *testing.T) {
 	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
-	rendered := newTestRenderUtils(t).MarkdownToHtml("@no-such-user @mention-user @mention-user")
-	assert.Equal(t, `<p>@no-such-user <a href="/mention-user" rel="nofollow">@mention-user</a> <a href="/mention-user" rel="nofollow">@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
+	rendered := newTestRenderUtils(t).MarkdownToHtml("@no-such-user @mention-user @mention-user @current-user")
+	assert.Equal(t, `<p>@no-such-user <a href="/mention-user" class="user-mention" rel="nofollow">@mention-user</a> <a href="/mention-user" class="user-mention" rel="nofollow">@mention-user</a> <a href="/current-user" class="user-mention current-user" rel="nofollow">@current-user</a></p>`, strings.TrimSpace(string(rendered)))
 }
 
 func TestAvatarStack(t *testing.T) {
