@@ -6,6 +6,7 @@ package migration
 import (
 	"context"
 	"net/url"
+	"time"
 )
 
 // NullDownloader implements a blank downloader
@@ -82,4 +83,44 @@ func (n NullDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr string) (
 // SupportGetRepoComments return true if it supports get repo comments
 func (n NullDownloader) SupportGetRepoComments() bool {
 	return false
+}
+
+// SupportSyncing returns true if it supports syncing an already-migrated repository
+func (n NullDownloader) SupportSyncing() bool {
+	return false
+}
+
+// GetNewIssues returns issues updated after the given time, paginated
+func (n NullDownloader) GetNewIssues(_ context.Context, page, perPage int, updatedAfter time.Time) ([]*Issue, bool, error) {
+	return nil, false, ErrNotSupported{Entity: "NewIssues"}
+}
+
+// GetPullRequestUpdates lists the pull requests updated after the given time
+func (n NullDownloader) GetPullRequestUpdates(_ context.Context, updatedAfter time.Time) ([]PullRequestUpdate, error) {
+	return nil, ErrNotSupported{Entity: "PullRequestUpdates"}
+}
+
+// GetPullRequestsByNumber returns the given pull requests
+func (n NullDownloader) GetPullRequestsByNumber(_ context.Context, numbers []int64) ([]*PullRequest, error) {
+	return nil, ErrNotSupported{Entity: "PullRequestsByNumber"}
+}
+
+// GetCommentedEntities lists the issues and pull requests with comments updated after the given time
+func (n NullDownloader) GetCommentedEntities(_ context.Context, updatedAfter time.Time) ([]CommentedEntity, error) {
+	return nil, ErrNotSupported{Entity: "CommentedEntities"}
+}
+
+// GetIssuesByNumber returns the given issues
+func (n NullDownloader) GetIssuesByNumber(_ context.Context, numbers []int64) ([]*Issue, error) {
+	return nil, ErrNotSupported{Entity: "IssuesByNumber"}
+}
+
+// GetNewComments returns an issue's or pull request's comments updated after the given time
+func (n NullDownloader) GetNewComments(_ context.Context, commentable Commentable, updatedAfter time.Time) ([]*Comment, bool, error) {
+	return nil, false, ErrNotSupported{Entity: "NewComments"}
+}
+
+// GetNewReviews returns a pull request's reviews updated after the given time
+func (n NullDownloader) GetNewReviews(_ context.Context, reviewable Reviewable, updatedAfter time.Time) ([]*Review, error) {
+	return nil, ErrNotSupported{Entity: "NewReviews"}
 }

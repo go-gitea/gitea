@@ -1,6 +1,6 @@
 {{$file := $.file -}}
 {{$diffBlobExcerptData := ctx.RootData.DiffBlobExcerptData -}}
-{{$canAddComment := and ctx.RootData.SignedUserID $diffBlobExcerptData.PullIssueIndex -}}
+{{$canAddComment := and ctx.RootData.SignedUserID $diffBlobExcerptData.PullIssueIndex (not ctx.RootData.IsReadOnlyMirror) -}}
 <colgroup>
 	<col width="50">
 	<col width="10">

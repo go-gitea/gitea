@@ -1,5 +1,5 @@
 {{$allowedReactions := $.AllowedReactions}}
-{{$canReact := and $allowedReactions ctx.RootData.IsSigned (not ctx.RootData.Repository.IsArchived)}}
+{{$canReact := and $allowedReactions ctx.RootData.IsSigned (not ctx.RootData.Repository.IsArchived) (not ctx.RootData.IsReadOnlyMirror)}}
 {{if or .Reactions $canReact}}
 <div class="bottom-reactions" data-action-url="{{$.ActionURL}}" role="group" aria-label="{{ctx.Locale.Tr "repo.reactions"}}">
 {{if $canReact}}

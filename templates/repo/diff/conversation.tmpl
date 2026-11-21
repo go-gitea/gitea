@@ -8,8 +8,8 @@
 	{{$hasReview := and $firstComment.Review}}
 	{{$isReviewPending := and $hasReview (eq $firstComment.Review.Type 0)}}
 	{{$referenceUrl := printf "%s#%s" $root.Issue.Link $firstComment.HashTag}}
-	{{$canAddComment := and $root.SignedUserID (not $root.Repository.IsArchived)}}
-	{{$canMarkAsResolved := and $root.CanMarkConversation $hasReview (not $isReviewPending)}}
+	{{$canAddComment := and $root.SignedUserID (not $root.Repository.IsArchived) (not $root.IsReadOnlyMirror)}}
+	{{$canMarkAsResolved := and $root.CanMarkConversation $hasReview (not $isReviewPending) (not $root.IsReadOnlyMirror)}}
 	{{$repoLink := $root.RepoLink}}
 	<div class="conversation-holder" data-path="{{$firstComment.TreePath}}" data-side="{{if lt $firstComment.Line 0}}left{{else}}right{{end}}" data-idx="{{$firstComment.UnsignedLine}}">
 		{{if $resolved}}
@@ -63,6 +63,7 @@
 				{{end}}
 				{{if $canAddComment}}
 					<button type="button" class="comment-form-reply ui primary icon tiny button">
+
 						{{svg "octicon-reply" 12}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
 					</button>
 				{{end}}

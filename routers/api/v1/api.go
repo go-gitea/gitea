@@ -708,7 +708,12 @@ func mustEnableIssues(ctx *context.APIContext) {
 }
 
 func mustAllowPulls(ctx *context.APIContext) {
-	if !(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.Permission.CanRead(unit.TypePullRequests)) {
+	canShowPulls, err := ctx.Repo.Repository.CanShowPulls(ctx)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if !(canShowPulls && ctx.Repo.Permission.CanRead(unit.TypePullRequests)) {
 		if ctx.Repo.Repository.CanEnablePulls() && log.IsTrace() {
 			if ctx.IsSigned {
 				log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
@@ -731,8 +736,13 @@ func mustAllowPulls(ctx *context.APIContext) {
 }
 
 func mustEnableIssuesOrPulls(ctx *context.APIContext) {
+	canShowPulls, err := ctx.Repo.Repository.CanShowPulls(ctx)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
 	if !ctx.Repo.Permission.CanRead(unit.TypeIssues) &&
-		!(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.Permission.CanRead(unit.TypePullRequests)) {
+		!(canShowPulls && ctx.Repo.Permission.CanRead(unit.TypePullRequests)) {
 		if ctx.Repo.Repository.CanEnablePulls() && log.IsTrace() {
 			if ctx.IsSigned {
 				log.Trace("Permission Denied: User %-v cannot read %-v and %-v in Repo %-v\n"+
@@ -834,6 +844,25 @@ func mustNotBeArchived(ctx *context.APIContext) {
 	if ctx.Repo.Repository.IsArchived {
 		ctx.APIError(http.StatusLocked, "repo is archived")
 		return
+	}
+}
+
+// mustNotBeReadOnlyMirror rejects writes to the issues and pull requests a mirror syncs from its remote
+var mustNotBeReadOnlyMirror = mustNotBeSyncedByMirror((*repo_model.Mirror).SyncsIssuesOrPulls)
+
+func mustNotBeSyncedByMirror(syncs func(*repo_model.Mirror) bool) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if ctx.Req.Method == http.MethodGet || ctx.Req.Method == http.MethodHead || repo_model.IsPersonalIssueState(ctx.Req.URL.Path) {
+			return
+		}
+		readOnly, err := ctx.Repo.Repository.IsMirrorSyncing(ctx, syncs)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if readOnly {
+			ctx.APIError(http.StatusLocked, "repo is a read-only mirror")
+		}
 	}
 }
 
@@ -1497,7 +1526,7 @@ func Routes() *web.Router {
 						m.Post("/comments/{id}/replies", reqToken(), mustNotBeArchived, bind(api.CreatePullReviewCommentReplyOptions{}), repo.CreatePullReviewCommentReply)
 					})
 					m.Get("/{base}/*", repo.GetPullRequestByBaseHead)
-				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
+				}, mustAllowPulls, reqRepoReader(unit.TypeCode), mustNotBeReadOnlyMirror, context.ReferencesGitRepo())
 				m.Group("/commits", func() {
 					m.Group("", func() {
 						m.Get("", repo.GetAllCommits)
@@ -1548,7 +1577,7 @@ func Routes() *web.Router {
 						m.Combo("").Put(reqToken(), mustNotBeArchived, repo.AddTopic).
 							Delete(reqToken(), mustNotBeArchived, repo.DeleteTopic)
 					}, reqAdmin())
-				}, reqAnyRepoReader())
+				}, reqAnyRepoReader(), mustNotBeSyncedByMirror(func(m *repo_model.Mirror) bool { return m.SyncTopics }))
 				m.Get("/issue_templates", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), repo.GetIssueTemplates)
 				m.Get("/issue_config", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), repo.GetIssueConfig)
 				m.Get("/issue_config/validate", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), repo.ValidateIssueConfig)
@@ -1701,21 +1730,21 @@ func Routes() *web.Router {
 								Delete(repo.UnlockIssue)
 						}, reqToken(), reqAdmin())
 					})
-				}, mustEnableIssuesOrPulls)
+				}, mustEnableIssuesOrPulls, mustNotBeReadOnlyMirror)
 				m.Group("/labels", func() {
 					m.Combo("").Get(repo.ListLabels).
 						Post(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.CreateLabelOption{}), repo.CreateLabel)
 					m.Combo("/{id}").Get(repo.GetLabel).
 						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditLabelOption{}), repo.EditLabel).
 						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteLabel)
-				})
+				}, mustNotBeReadOnlyMirror)
 				m.Group("/milestones", func() {
 					m.Combo("").Get(repo.ListMilestones).
 						Post(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.CreateMilestoneOption{}), repo.CreateMilestone)
 					m.Combo("/{id}").Get(repo.GetMilestone).
 						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditMilestoneOption{}), repo.EditMilestone).
 						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteMilestone)
-				})
+				}, mustNotBeReadOnlyMirror)
 				m.Group("/projects", func() {
 					addProjectRoutes(m, reqToken(), reqRepoWriter(unit.TypeProjects))
 				}, reqRepoReader(unit.TypeProjects), mustEnableRepoProjects)

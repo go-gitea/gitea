@@ -6,6 +6,7 @@ package repo
 
 import (
 	"context"
+	"regexp"
 	"time"
 
 	"gitea.dev/models/db"
@@ -19,6 +20,18 @@ import (
 // ErrMirrorNotExist mirror does not exist error
 var ErrMirrorNotExist = util.NewNotExistErrorf("Mirror does not exist")
 
+var ErrReadOnlyMirror = util.NewPermissionDeniedErrorf("the repository is a read-only mirror")
+
+// personal issue state routes: web watch and viewed-files, and the API issue subscriptions; anchored on the
+// route shape so repo or topic names like "subscriptions-mirror" or "watch" can't match
+var personalIssueStateRe = regexp.MustCompile(`/(?:issues|pulls)/[0-9]+/(?:watch|viewed-files)$|/repos/[^/]+/[^/]+/issues/[0-9]+/subscriptions(?:/[^/]+)?$`)
+
+// IsPersonalIssueState reports whether a request path only changes the doer's own state on an issue,
+// like watching it or marking files viewed, which stays allowed on a read-only mirror
+func IsPersonalIssueState(path string) bool {
+	return personalIssueStateRe.MatchString(path)
+}
+
 // Mirror represents mirror information of a repository.
 type Mirror struct {
 	ID          int64       `xorm:"pk autoincr"`
@@ -26,6 +39,10 @@ type Mirror struct {
 	Repo        *Repository `xorm:"-"`
 	Interval    time.Duration
 	EnablePrune bool `xorm:"NOT NULL DEFAULT true"`
+
+	SyncIssues       bool `xorm:"NOT NULL DEFAULT false"`
+	SyncPullRequests bool `xorm:"NOT NULL DEFAULT false"`
+	SyncTopics       bool `xorm:"NOT NULL DEFAULT false"`
 
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX"`
 	NextUpdateUnix timeutil.TimeStamp `xorm:"INDEX"`
@@ -35,6 +52,16 @@ type Mirror struct {
 	LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
 
 	RemoteAddress string `xorm:"VARCHAR(2048)"`
+}
+
+// SyncsMetadata reports whether this mirror syncs anything on top of git
+func (m *Mirror) SyncsMetadata() bool {
+	return m.SyncIssues || m.SyncPullRequests || m.SyncTopics
+}
+
+// SyncsIssuesOrPulls reports whether this mirror's issues and pull requests are read-only
+func (m *Mirror) SyncsIssuesOrPulls() bool {
+	return m.SyncIssues || m.SyncPullRequests
 }
 
 func init() {

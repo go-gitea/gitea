@@ -5,6 +5,7 @@ package migrations
 
 import (
 	"context"
+	"hash/fnv"
 	"maps"
 	"slices"
 	"strings"
@@ -87,8 +88,16 @@ type gqlTimelineItem struct {
 	LockReason     string `json:"lockReason"`
 }
 
+// timeline events carry no databaseId; the upsert keys comments by remote id, so hash the node id to a stable one
+func timelineEventID(nodeID string) int64 {
+	h := fnv.New64a()
+	_, _ = h.Write([]byte(nodeID))
+	return int64(h.Sum64() & 0x7FFFFFFFFFFFFFFF)
+}
+
 func convertTimelineItem(it *gqlTimelineItem) *base.Comment {
 	comment := &base.Comment{
+		Index:      timelineEventID(it.ID),
 		PosterID:   it.Actor.DatabaseID,
 		PosterName: it.Actor.Login,
 		Created:    it.CreatedAt,

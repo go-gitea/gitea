@@ -605,7 +605,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 		ok                   bool
 		marked               = make(map[int64]issues_model.RoleDescriptor)
 		comment              *issues_model.Comment
-		participants         = make([]*user_model.User, 1, 10)
+		participants         []*user_model.User
 		latestCloseCommentID int64
 		err                  error
 	)
@@ -613,7 +613,9 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 	marked[issue.PosterID] = issue.ShowRole
 
 	// Render comments and fetch participants.
-	participants[0] = issue.Poster
+	if !issue.HasOriginalAuthor() {
+		participants = append(participants, issue.Poster)
+	}
 
 	if err := issue.Comments.LoadAttachmentsByIssue(ctx); err != nil {
 		ctx.ServerErrorAuto(err)
@@ -651,7 +653,9 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				return
 			}
 			marked[comment.PosterID] = comment.ShowRole
-			participants = addParticipant(comment.Poster, participants)
+			if !comment.HasOriginalAuthor() {
+				participants = addParticipant(comment.Poster, participants)
+			}
 		} else if comment.Type == issues_model.CommentTypeLabel {
 			if err = comment.LoadLabel(ctx); err != nil {
 				ctx.ServerErrorAuto(err)
@@ -713,7 +717,9 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				ctx.ServerErrorAuto(err)
 				return
 			}
-			participants = addParticipant(comment.Poster, participants)
+			if !comment.HasOriginalAuthor() {
+				participants = addParticipant(comment.Poster, participants)
+			}
 			if comment.Review == nil {
 				continue
 			}
@@ -744,7 +750,9 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 							return
 						}
 						marked[c.PosterID] = c.ShowRole
-						participants = addParticipant(c.Poster, participants)
+						if !c.HasOriginalAuthor() {
+							participants = addParticipant(c.Poster, participants)
+						}
 					}
 				}
 			}
@@ -753,7 +761,9 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				return
 			}
 		} else if comment.Type == issues_model.CommentTypePullRequestPush {
-			participants = addParticipant(comment.Poster, participants)
+			if !comment.HasOriginalAuthor() {
+				participants = addParticipant(comment.Poster, participants)
+			}
 			if err = issue_service.LoadCommentPushCommits(ctx, comment); err != nil {
 				ctx.ServerErrorAuto(err)
 				return

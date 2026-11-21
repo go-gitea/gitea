@@ -114,7 +114,9 @@ func retrieveRepoIssueMetaData(ctx *context.Context, repo *repo_model.Repository
 	// A reader(creator) could update some meta (eg: target branch), but can't change assignees anymore.
 	// For non-creator users, only writers could update some meta (eg: assignees, milestone, project)
 	// Need to clarify the logic and add some tests in the future
-	data.CanModifyIssueOrPull = ctx.Repo.Permission.CanWriteIssuesOrPulls(isPull) && !ctx.Repo.Repository.IsArchived
+	// a read-only mirror syncs its issue/PR metadata from the remote, so local edits are rejected
+	isReadOnlyMirror, _ := ctx.Data["IsReadOnlyMirror"].(bool)
+	data.CanModifyIssueOrPull = ctx.Repo.Permission.CanWriteIssuesOrPulls(isPull) && !ctx.Repo.Repository.IsArchived && !isReadOnlyMirror
 	if !data.CanModifyIssueOrPull {
 		return data
 	}
@@ -362,7 +364,8 @@ type issueSidebarReviewersData struct {
 func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 	data := d.ReviewersData
 	repo := d.Repository
-	if ctx.Doer != nil && ctx.IsSigned {
+	isReadOnlyMirror, _ := ctx.Data["IsReadOnlyMirror"].(bool)
+	if ctx.Doer != nil && ctx.IsSigned && !isReadOnlyMirror {
 		if d.Issue == nil {
 			data.CanChooseReviewer = true
 		} else {

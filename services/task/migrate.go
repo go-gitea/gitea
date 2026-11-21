@@ -23,6 +23,7 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/migrations"
+	mirror_service "gitea.dev/services/mirror"
 	notify_service "gitea.dev/services/notify"
 )
 
@@ -136,6 +137,12 @@ func runMigrateTask(ctx context.Context, t *admin_model.Task) (err error) {
 
 	if err == nil {
 		log.Trace("Repository migrated [%d]: %s/%s", t.Repo.ID, t.Owner.Name, t.Repo.Name)
+		// the initial migrate only clones git, so sync a metadata mirror now instead of on the next mirror update;
+		// check the options, the returned repo does not reliably carry the mirror flag
+		if opts.Mirror && (opts.SyncIssues || opts.SyncPullRequests || opts.SyncTopics) {
+			log.Info("migrate: initiating immediate metadata sync for mirror [%d] %s/%s", t.Repo.ID, t.Owner.Name, t.Repo.Name)
+			mirror_service.AddPullMirrorToQueue(t.Repo.ID)
+		}
 		return nil
 	}
 

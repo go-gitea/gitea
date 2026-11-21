@@ -665,7 +665,8 @@ func Issues(ctx *context.Context) {
 		}
 		ctx.Data["Title"] = ctx.Tr("repo.pulls")
 		ctx.Data["PageIsPullList"] = true
-		canCreatePull := ctx.Repo.PullRequestCtx.CanCreateNewPull()
+		// metadata mirrors list their remote's pull requests without a pull request context
+		canCreatePull := ctx.Repo.PullRequestCtx != nil && ctx.Repo.PullRequestCtx.CanCreateNewPull()
 		ctx.Data["ShowNewPullButton"] = canCreatePull
 		ctx.Data["ShowCompareBranchButton"] = !canCreatePull
 		prepareRecentlyPushedNewBranches(ctx)

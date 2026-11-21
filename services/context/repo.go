@@ -160,6 +160,28 @@ func RepoMustNotBeArchived() func(ctx *Context) {
 	}
 }
 
+// RepoMustNotBeReadOnlyMirror rejects writes to the issues and pull requests a mirror syncs from its remote
+func RepoMustNotBeReadOnlyMirror() func(ctx *Context) {
+	return RepoMustNotBeSyncedByMirror((*repo_model.Mirror).SyncsIssuesOrPulls)
+}
+
+// RepoMustNotBeSyncedByMirror rejects writes to what a mirror syncs from its remote, as reported by syncs
+func RepoMustNotBeSyncedByMirror(syncs func(*repo_model.Mirror) bool) func(ctx *Context) {
+	return func(ctx *Context) {
+		if ctx.Req.Method == http.MethodGet || ctx.Req.Method == http.MethodHead || repo_model.IsPersonalIssueState(ctx.Req.URL.Path) {
+			return
+		}
+		readOnly, err := ctx.Repo.Repository.IsMirrorSyncing(ctx, syncs)
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+		if readOnly {
+			ctx.NotFound()
+		}
+	}
+}
+
 type CommitFormOptions struct {
 	NeedFork bool
 
@@ -494,6 +516,8 @@ func repoAssignmentLegacy(ctx *Context, data *repoAssignmentPrepareDataStruct) {
 		pullMirror, err := repo_model.GetMirrorByRepoID(ctx, repo.ID)
 		if err == nil {
 			ctx.Data["PullMirror"] = pullMirror
+			ctx.Data["IsReadOnlyMirror"] = pullMirror.SyncsIssuesOrPulls()
+			ctx.Data["IsTopicSyncMirror"] = pullMirror.SyncTopics
 		} else if err != repo_model.ErrMirrorNotExist {
 			ctx.ServerErrorAuto(err)
 			return

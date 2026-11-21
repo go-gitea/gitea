@@ -11,6 +11,15 @@ type Commentable interface {
 	Reviewable
 }
 
+// CommentedEntity is an issue or pull request with comments updated in a time range, found through its comments
+// because a new comment does not always move the entity itself in its host's updated order
+type CommentedEntity struct {
+	Number int64
+	IsPull bool
+	Since  time.Time // oldest new comment
+	Until  time.Time // newest new comment
+}
+
 // Comment is a standard comment information
 type Comment struct {
 	IssueIndex  int64 `yaml:"issue_index"`
