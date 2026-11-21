@@ -78,7 +78,7 @@ type ReleaseInfo struct {
 	CommitStatus   *git_model.CommitStatus
 	CommitStatuses []*git_model.CommitStatus
 	Reactions      issues_model.ReactionList
-	Contributors   []*user_model.User // like GitHub, the users mentioned in the release notes
+	Contributors   []*user_model.User
 }
 
 func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions) ([]*ReleaseInfo, error) {
