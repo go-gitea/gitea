@@ -1283,12 +1283,7 @@ func ApproveAllChecks(ctx *context_module.Context) {
 	repo := ctx.Repo.Repository
 	commitID := ctx.FormString("commit_id")
 
-	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commitID, db.ListOptionsAll)
-	if err != nil {
-		ctx.ServerErrorAuto(err)
-		return
-	}
-	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, repo.ID, commitStatuses)
+	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, repo.ID, commitID)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return

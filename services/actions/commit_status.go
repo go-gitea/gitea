@@ -71,7 +71,12 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 	}
 }
 
-func GetRunsFromCommitStatuses(ctx context.Context, repoID int64, statuses []*git_model.CommitStatus) (runs []*actions_model.ActionRun, _ error) {
+// GetRunsFromCommitStatuses reads all statuses of the commit, not just the latest, because a stale run's update can shadow a newer run's status
+func GetRunsFromCommitStatuses(ctx context.Context, repoID int64, sha string) (runs []*actions_model.ActionRun, _ error) {
+	statuses, err := db.Find[git_model.CommitStatus](ctx, &git_model.CommitStatusOptions{ListOptions: db.ListOptionsAll, RepoID: repoID, SHA: sha})
+	if err != nil {
+		return nil, err
+	}
 	runIDs := container.Set[int64]{}
 	for _, status := range statuses {
 		runID, _, ok := status.ParseGiteaActionsTargetURL(ctx)
