@@ -599,73 +599,40 @@ func TestNoteToComment(t *testing.T) {
 	downloader := &GitlabDownloader{}
 
 	now := time.Now()
-	makeTestNote := func(id int64, body string, system bool) gitlab.Note {
-		return gitlab.Note{
-			ID: id,
+	for _, testCase := range []struct {
+		id          int64
+		body        string
+		system      bool
+		commentType string
+		meta        map[string]any
+	}{
+		{1, "This is a regular comment", false, "", map[string]any{}},
+		{2, "enabled an automatic merge for abcd1234", true, "pull_scheduled_merge", map[string]any{}},
+		{3, "changed target branch from `master` to `main`", true, "change_target_branch", map[string]any{"OldRef": "master", "NewRef": "main"}},
+		{4, "canceled the automatic merge", true, "pull_cancel_scheduled_merge", map[string]any{}},
+	} {
+		note := gitlab.Note{
+			ID: testCase.id,
 			Author: gitlab.NoteAuthor{
 				ID:       72,
 				Email:    "test@example.com",
 				Username: "test",
 			},
-			Body:      body,
+			Body:      testCase.body,
 			CreatedAt: &now,
-			System:    system,
+			System:    testCase.system,
 		}
-	}
-	notes := []gitlab.Note{
-		makeTestNote(1, "This is a regular comment", false),
-		makeTestNote(2, "enabled an automatic merge for abcd1234", true),
-		makeTestNote(3, "changed target branch from `master` to `main`", true),
-		makeTestNote(4, "canceled the automatic merge", true),
-	}
-	comments := []base.Comment{{
-		IssueIndex:  17,
-		Index:       1,
-		PosterID:    72,
-		PosterName:  "test",
-		PosterEmail: "test@example.com",
-		CommentType: "",
-		Content:     "This is a regular comment",
-		Created:     now,
-		Meta:        map[string]any{},
-	}, {
-		IssueIndex:  17,
-		Index:       2,
-		PosterID:    72,
-		PosterName:  "test",
-		PosterEmail: "test@example.com",
-		CommentType: "pull_scheduled_merge",
-		Content:     "enabled an automatic merge for abcd1234",
-		Created:     now,
-		Meta:        map[string]any{},
-	}, {
-		IssueIndex:  17,
-		Index:       3,
-		PosterID:    72,
-		PosterName:  "test",
-		PosterEmail: "test@example.com",
-		CommentType: "change_target_branch",
-		Content:     "changed target branch from `master` to `main`",
-		Created:     now,
-		Meta: map[string]any{
-			"OldRef": "master",
-			"NewRef": "main",
-		},
-	}, {
-		IssueIndex:  17,
-		Index:       4,
-		PosterID:    72,
-		PosterName:  "test",
-		PosterEmail: "test@example.com",
-		CommentType: "pull_cancel_scheduled_merge",
-		Content:     "canceled the automatic merge",
-		Created:     now,
-		Meta:        map[string]any{},
-	}}
-
-	for i, note := range notes {
-		actualComment := *downloader.convertNoteToComment(17, &note)
-		assert.Equal(t, actualComment, comments[i])
+		assert.Equal(t, base.Comment{
+			IssueIndex:  17,
+			Index:       testCase.id,
+			PosterID:    72,
+			PosterName:  "test",
+			PosterEmail: "test@example.com",
+			CommentType: testCase.commentType,
+			Content:     testCase.body,
+			Created:     now,
+			Meta:        testCase.meta,
+		}, *downloader.convertNoteToComment(17, &note))
 	}
 }
 

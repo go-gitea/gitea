@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/log"
 )
@@ -20,7 +21,15 @@ const (
 
 const escapeRegexpString = "_0[xX](([0-9a-fA-F][0-9a-fA-F])+)_"
 
-var escapeRegex = regexp.MustCompile(escapeRegexpString)
+var globalVars = sync.OnceValue(func() (ret struct {
+	escapeRegex  *regexp.Regexp
+	extensionReg *regexp.Regexp
+},
+) {
+	ret.escapeRegex = regexp.MustCompile(escapeRegexpString)
+	ret.extensionReg = regexp.MustCompile(`^(\.[-\w]+)+$`)
+	return ret
+})
 
 func CollectEnvConfigKeys() (keys []string) {
 	for _, env := range os.Environ() {
@@ -47,7 +56,7 @@ func ClearEnvConfigKeys() {
 func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 	inKey := false
 	last := 0
-	escapeStringIndices := escapeRegex.FindAllStringIndex(encoded, -1)
+	escapeStringIndices := globalVars().escapeRegex.FindAllStringIndex(encoded, -1)
 	for _, unescapeIdx := range escapeStringIndices {
 		preceding := encoded[last:unescapeIdx[0]]
 		if !inKey {

@@ -104,19 +104,14 @@ func TestConsistencyUpdateAction(t *testing.T) {
 	//
 	// Get rid of incorrectly set created_unix
 	//
-	count, err := activities_model.CountActionCreatedUnixString(t.Context())
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, count)
-	count, err = activities_model.FixActionCreatedUnixString(t.Context())
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, count)
-
-	count, err = activities_model.CountActionCreatedUnixString(t.Context())
-	assert.NoError(t, err)
-	assert.EqualValues(t, 0, count)
-	count, err = activities_model.FixActionCreatedUnixString(t.Context())
-	assert.NoError(t, err)
-	assert.EqualValues(t, 0, count)
+	for _, wantCount := range []int{1, 0} {
+		count, err := activities_model.CountActionCreatedUnixString(t.Context())
+		assert.NoError(t, err)
+		assert.EqualValues(t, wantCount, count)
+		count, err = activities_model.FixActionCreatedUnixString(t.Context())
+		assert.NoError(t, err)
+		assert.EqualValues(t, wantCount, count)
+	}
 
 	//
 	// XORM must be happy now

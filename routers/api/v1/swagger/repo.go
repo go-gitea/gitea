@@ -303,13 +303,6 @@ type swaggerNote struct {
 	Body api.Note `json:"body"`
 }
 
-// EmptyRepository
-// swagger:response EmptyRepository
-type swaggerEmptyRepository struct {
-	// in: body
-	Body api.APIError `json:"body"`
-}
-
 // FileResponse
 // swagger:response FileResponse
 type swaggerFileResponse struct {
@@ -522,4 +515,11 @@ type swaggerCompare struct {
 type swaggerMergeUpstreamResponse struct {
 	// in:body
 	Body api.MergeUpstreamResponse `json:"body"`
+}
+
+// CodeSearchResults
+// swagger:response CodeSearchResults
+type swaggerResponseCodeSearchResults struct {
+	// in:body
+	Body api.CodeSearchResults `json:"body"`
 }

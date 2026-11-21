@@ -16,11 +16,18 @@ import (
 
 // ClearLabels clears all of an issue's labels
 func ClearLabels(ctx context.Context, issue *issues_model.Issue, doer *user_model.User) error {
+	if err := issue.LoadLabels(ctx); err != nil {
+		return err
+	}
+	hadLabels := len(issue.Labels) > 0
+
 	if err := issues_model.ClearIssueLabels(ctx, issue, doer); err != nil {
 		return err
 	}
 
-	notify_service.IssueClearLabels(ctx, doer, issue)
+	if hadLabels {
+		notify_service.IssueClearLabels(ctx, doer, issue)
+	}
 
 	return nil
 }
@@ -83,7 +90,7 @@ func ReplaceLabels(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 		return err
 	}
 
-	notify_service.IssueChangeLabels(ctx, doer, issue, labels, old)
+	notifyLabelChanges(ctx, doer, issue, old)
 	return nil
 }
 
@@ -107,6 +114,11 @@ func AddRemoveLabels(ctx context.Context, issue *issues_model.Issue, doer *user_
 		return err
 	}
 
+	notifyLabelChanges(ctx, doer, issue, oldLabels)
+	return nil
+}
+
+func notifyLabelChanges(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldLabels []*issues_model.Label) {
 	var added, removed []*issues_model.Label
 	for _, label := range issue.Labels {
 		if !slices.ContainsFunc(oldLabels, func(old *issues_model.Label) bool { return old.ID == label.ID }) {
@@ -121,5 +133,4 @@ func AddRemoveLabels(ctx context.Context, issue *issues_model.Issue, doer *user_
 	if len(added) > 0 || len(removed) > 0 {
 		notify_service.IssueChangeLabels(ctx, doer, issue, added, removed)
 	}
-	return nil
 }

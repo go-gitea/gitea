@@ -96,49 +96,38 @@ func TestToNotificationThread(t *testing.T) {
 		assert.True(t, thread.Pinned)
 	})
 
-	t.Run("merged pull request returns merged state", func(t *testing.T) {
+	for _, test := range []struct {
+		name           string
+		issueID        int64
+		notificationID int64
+		state          api.NotifySubjectStateType
+	}{
 		// Issue 2 is a pull request; pull_request 1 has has_merged=true.
-		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
-
-		n := &activities_model.Notification{
-			ID:         999,
-			UserID:     2,
-			RepoID:     repo.ID,
-			Status:     activities_model.NotificationStatusUnread,
-			Source:     activities_model.NotificationSourcePullRequest,
-			IssueID:    issue.ID,
-			Issue:      issue,
-			Repository: repo,
-		}
-
-		thread := ToNotificationThread(t.Context(), n)
-		require.NotNil(t, thread.Subject)
-		assert.Equal(t, api.NotifySubjectPull, thread.Subject.Type)
-		assert.Equal(t, api.NotifySubjectStateMerged, thread.Subject.State)
-	})
-
-	t.Run("open pull request returns open state", func(t *testing.T) {
+		{"merged pull request returns merged state", 2, 999, api.NotifySubjectStateMerged},
 		// Issue 3 is a pull request; pull_request 2 has has_merged=false.
-		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+		{"open pull request returns open state", 3, 998, api.NotifySubjectStateOpen},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: test.issueID})
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 
-		n := &activities_model.Notification{
-			ID:         998,
-			UserID:     2,
-			RepoID:     repo.ID,
-			Status:     activities_model.NotificationStatusUnread,
-			Source:     activities_model.NotificationSourcePullRequest,
-			IssueID:    issue.ID,
-			Issue:      issue,
-			Repository: repo,
-		}
+			n := &activities_model.Notification{
+				ID:         test.notificationID,
+				UserID:     2,
+				RepoID:     repo.ID,
+				Status:     activities_model.NotificationStatusUnread,
+				Source:     activities_model.NotificationSourcePullRequest,
+				IssueID:    issue.ID,
+				Issue:      issue,
+				Repository: repo,
+			}
 
-		thread := ToNotificationThread(t.Context(), n)
-		require.NotNil(t, thread.Subject)
-		assert.Equal(t, api.NotifySubjectPull, thread.Subject.Type)
-		assert.Equal(t, api.NotifySubjectStateOpen, thread.Subject.State)
-	})
+			thread := ToNotificationThread(t.Context(), n)
+			require.NotNil(t, thread.Subject)
+			assert.Equal(t, api.NotifySubjectPull, thread.Subject.Type)
+			assert.Equal(t, test.state, thread.Subject.State)
+		})
+	}
 }
 
 func newRepoNotification(t *testing.T, repoID, userID int64) *activities_model.Notification {

@@ -74,6 +74,10 @@ func (r *labelChangeRecorder) IssueChangeLabels(_ctx context.Context, _doer *use
 	r.added, r.removed = labelIDs(added), labelIDs(removed)
 }
 
+func (r *labelChangeRecorder) IssueClearLabels(_ctx context.Context, _doer *user_model.User, _issue *issues_model.Issue) {
+	r.calls++
+}
+
 func labelIDs(labels []*issues_model.Label) (ids []int64) {
 	for _, label := range labels {
 		ids = append(ids, label.ID)
@@ -81,7 +85,7 @@ func labelIDs(labels []*issues_model.Label) (ids []int64) {
 	return ids
 }
 
-func TestIssue_AddRemoveLabels(t *testing.T) {
+func TestIssue_LabelChanges(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -100,6 +104,17 @@ func TestIssue_AddRemoveLabels(t *testing.T) {
 	require.NoError(t, AddRemoveLabels(ctx, issue, doer, labels(2), labels(1)))
 	assert.Equal(t, []int64{2}, labelIDs(issue.Labels))
 	assert.Equal(t, labelChangeRecorder{calls: 1, added: []int64{2}, removed: []int64{1}}, *labelChanges)
+
+	*labelChanges = labelChangeRecorder{}
+	require.NoError(t, ReplaceLabels(ctx, issue, doer, labels(1, 2)))
+	require.NoError(t, ReplaceLabels(ctx, issue, doer, labels(1, 2)))
+	assert.Equal(t, []int64{1, 2}, labelIDs(issue.Labels))
+	assert.Equal(t, labelChangeRecorder{calls: 1, added: []int64{1}}, *labelChanges)
+
+	require.NoError(t, ClearLabels(ctx, issue, doer))
+	require.NoError(t, ClearLabels(ctx, issue, doer))
+	assert.Empty(t, issue.Labels)
+	assert.Equal(t, 2, labelChanges.calls)
 
 	exclusive := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 18})
 	require.NoError(t, AddRemoveLabels(ctx, exclusive, doer, labels(7), nil))

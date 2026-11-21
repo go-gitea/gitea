@@ -260,18 +260,21 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 	return items, err
 }
 
+const (
+	ExtNameRss         = ".rss"
+	ExtNameAtom        = ".atom"
+	ContentTypeRssXml  = "application/rss+xml"
+	ContentTypeAtomXml = "application/atom+xml"
+)
+
 // GetFeedType return if it is a feed request and altered name and feed type.
 func GetFeedType(name string, req *http.Request) (showFeed bool, feedType string) {
-	if strings.HasSuffix(name, ".rss") ||
-		strings.Contains(req.Header.Get("Accept"), "application/rss+xml") {
+	if strings.HasSuffix(name, ExtNameRss) || strings.Contains(req.Header.Get("Accept"), ContentTypeRssXml) {
 		return true, "rss"
 	}
-
-	if strings.HasSuffix(name, ".atom") ||
-		strings.Contains(req.Header.Get("Accept"), "application/atom+xml") {
+	if strings.HasSuffix(name, ExtNameAtom) || strings.Contains(req.Header.Get("Accept"), ContentTypeAtomXml) {
 		return true, "atom"
 	}
-
 	return false, ""
 }
 

@@ -5,32 +5,38 @@ package system
 
 import (
 	"context"
+	"fmt"
 
 	"gitea.dev/models/system"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/util"
 )
 
-// DBStore can be used to store app state items in local filesystem
 type DBStore struct{}
 
-// Get reads the state item
 func (f *DBStore) Get(ctx context.Context, item StateItem) error {
-	content, err := system.GetAppStateContent(ctx, item.Name())
+	content, err := system.GetAppStateContent(ctx, item.StateName())
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get app state item %s: %w", item.StateName(), err)
 	}
 	if content == "" {
 		return nil
 	}
-	return json.Unmarshal(util.UnsafeStringToBytes(content), item)
+	err = json.Unmarshal(util.UnsafeStringToBytes(content), item)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal app state item %s: %w", item.StateName(), err)
+	}
+	return nil
 }
 
-// Set saves the state item
 func (f *DBStore) Set(ctx context.Context, item StateItem) error {
 	b, err := json.Marshal(item)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal app state item %s: %w", item.StateName(), err)
 	}
-	return system.SaveAppStateContent(ctx, item.Name(), util.UnsafeBytesToString(b))
+	err = system.SaveAppStateContent(ctx, item.StateName(), util.UnsafeBytesToString(b))
+	if err != nil {
+		return fmt.Errorf("failed to save app state item %s: %w", item.StateName(), err)
+	}
+	return nil
 }

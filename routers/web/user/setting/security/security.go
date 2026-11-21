@@ -36,11 +36,6 @@ func Security(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.security")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
-	if ctx.FormString("openid.return_to") != "" {
-		settingsOpenIDVerify(ctx)
-		return
-	}
-
 	loadSecurityData(ctx)
 
 	ctx.HTML(http.StatusOK, tplSettingsSecurity)
@@ -72,21 +67,21 @@ func DeleteAccountLink(ctx *context.Context) {
 func loadSecurityData(ctx *context.Context) {
 	enrolled, err := auth_model.HasTwoFactorByUID(ctx, ctx.Doer.ID)
 	if err != nil {
-		ctx.ServerError("SettingsTwoFactor", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["TOTPEnrolled"] = enrolled
 
 	credentials, err := auth_model.GetWebAuthnCredentialsByUID(ctx, ctx.Doer.ID)
 	if err != nil {
-		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["WebAuthnCredentials"] = credentials
 
 	tokens, err := db.Find[auth_model.AccessToken](ctx, auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID})
 	if err != nil {
-		ctx.ServerError("ListAccessTokens", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Tokens"] = tokens
@@ -96,7 +91,7 @@ func loadSecurityData(ctx *context.Context) {
 		OrderBy: "login_source_id DESC",
 	})
 	if err != nil {
-		ctx.ServerError("ListAccountLinks", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -131,7 +126,7 @@ func loadSecurityData(ctx *context.Context) {
 		LoginType: auth_model.OAuth2,
 	})
 	if err != nil {
-		ctx.ServerError("FindSources", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -140,7 +135,7 @@ func loadSecurityData(ctx *context.Context) {
 	for _, source := range authSources {
 		provider, err := oauth2.CreateProviderFromSource(source)
 		if err != nil {
-			ctx.ServerError("CreateProviderFromSource", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		oauth2Providers[source.Name] = provider
@@ -153,11 +148,4 @@ func loadSecurityData(ctx *context.Context) {
 
 	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
 	ctx.Data["OAuth2Providers"] = oauth2Providers
-
-	openid, err := user_model.GetUserOpenIDs(ctx, ctx.Doer.ID)
-	if err != nil {
-		ctx.ServerError("GetUserOpenIDs", err)
-		return
-	}
-	ctx.Data["OpenIDs"] = openid
 }

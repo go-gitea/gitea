@@ -85,7 +85,7 @@ func (opts FindGPGKeyOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Eq{"primary_key_id": ""})
 	}
 
-	if opts.OwnerID > 0 {
+	if opts.OwnerID != 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	}
 	if opts.KeyID != "" {

@@ -44,8 +44,8 @@
 				</div>
 				<div class="repo-button-row">
 					{{if .EscapeStatus.Escaped}}
-						<a class="ui small button unescape-button tw-hidden" data-unicode-content-selector=".wiki-content-parts">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</a>
-						<a class="ui small button escape-button" data-unicode-content-selector=".wiki-content-parts">{{ctx.Locale.Tr "repo.escape_control_characters"}}</a>
+						<button type="button" class="ui small button unescape-button tw-hidden" data-unicode-content-selector=".wiki-content-parts">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
+						<button type="button" class="ui small button escape-button" data-unicode-content-selector=".wiki-content-parts">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 					{{end}}
 					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 						<a class="ui small button" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_edit">{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}</a>

@@ -83,7 +83,7 @@ func RenderUserSearch(ctx *context.Context, opts user_model.SearchUserOptions, t
 	}
 
 	if opts.SupportedSortOrders != nil && !opts.SupportedSortOrders.Contains(sortOrder) {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -92,7 +92,7 @@ func RenderUserSearch(ctx *context.Context, opts user_model.SearchUserOptions, t
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
 		users, count, err = user_model.SearchUsers(ctx, opts)
 		if err != nil {
-			ctx.ServerError("SearchUsers", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}

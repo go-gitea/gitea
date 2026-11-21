@@ -15,7 +15,6 @@ import (
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
 
-	"github.com/alecthomas/chroma/v2"
 	"github.com/niklasfasching/go-org/org"
 )
 
@@ -58,10 +57,8 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 
 		preAttrs, codeAttrs := highlight.CodeBlockAttributes(lang)
 		lexer := highlight.DetectChromaLexerByFileName("", lang) // don't use content to detect, it is too slow
-		lexer = chroma.Coalesce(lexer)
-
 		sb := &strings.Builder{}
-		_ = ctx.RenderInternal.FormatWithSafeAttrs(sb, `<pre %s><code %s>`, preAttrs, codeAttrs)
+		_ = ctx.RenderInternal.FormatWithSafeAttrsf(sb, `<pre %s><code %s>`, preAttrs, codeAttrs)
 		_, _ = sb.WriteString(string(highlight.RenderCodeByLexer(lexer, source)))
 		_, _ = sb.WriteString("</code></pre>")
 		return sb.String()

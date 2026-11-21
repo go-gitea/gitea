@@ -24,6 +24,10 @@ type Specialization struct {
 
 var _ packages_service.Specialization = (*Specialization)(nil)
 
+func (s Specialization) OnAfterRemovePackage(ctx context.Context, pkg *packages_model.Package) error {
+	return BuildAllRepositoryFiles(ctx, pkg.OwnerID)
+}
+
 type debianViewData struct {
 	Distributions []string
 	Components    []string
@@ -84,4 +88,8 @@ func (s Specialization) RenderSetupManual(ctx context.Context, pkg *packages_mod
 	}
 	w.WriteHTML(`</div>`)
 	return w.HTMLString()
+}
+
+func (s Specialization) PublicPropertyNames() []string {
+	return []string{debian_module.PropertyDistribution, debian_module.PropertyComponent, debian_module.PropertyArchitecture}
 }

@@ -383,202 +383,113 @@ func packageTestPayload() *api.PackagePayload {
 }
 
 func TestGetIssuesPayloadInfo(t *testing.T) {
-	p := issueTestPayload()
-	p.Changes = &api.ChangesPayload{AddedAssignees: p.Issue.Assignees}
+	issue := issueTestPayload()
+	issue.Changes = &api.ChangesPayload{AddedAssignees: issue.Issue.Assignees}
+	pull := pullRequestTestPayload()
+	pull.Changes = &api.ChangesPayload{AddedAssignees: pull.PullRequest.Assignees}
 
 	cases := []struct {
-		action         api.HookIssueAction
-		text           string
-		issueTitle     string
-		attachmentText string
-		color          int
+		action              api.HookIssueAction
+		issueText           string
+		pullRequestText     string
+		issueMarkdown       string
+		pullRequestMarkdown string
+		issueColor          int
+		pullRequestColor    int
 	}{
 		{
 			api.HookIssueOpened,
 			"[test/repo] Issue opened: #2 crash by user1",
-			"#2 crash",
-			"issue body",
-			orangeColor,
+			"[test/repo] Pull request opened: #12 Fix bug by user1",
+			"issue body", "fixes bug #2",
+			orangeColor, greenColor,
 		},
 		{
 			api.HookIssueClosed,
 			"[test/repo] Issue closed: #2 crash by user1",
-			"#2 crash",
-			"",
-			redColor,
+			"[test/repo] Pull request closed: #12 Fix bug by user1",
+			"", "",
+			redColor, redColor,
 		},
 		{
 			api.HookIssueReOpened,
 			"[test/repo] Issue re-opened: #2 crash by user1",
-			"#2 crash",
-			"",
-			yellowColor,
+			"[test/repo] Pull request re-opened: #12 Fix bug by user1",
+			"", "",
+			yellowColor, yellowColor,
 		},
 		{
 			api.HookIssueEdited,
 			"[test/repo] Issue edited: #2 crash by user1",
-			"#2 crash",
-			"issue body",
-			yellowColor,
+			"[test/repo] Pull request edited: #12 Fix bug by user1",
+			"issue body", "fixes bug #2",
+			yellowColor, yellowColor,
 		},
 		{
 			api.HookIssueAssigned,
 			"[test/repo] Issue assigned to user1: #2 crash by user1",
-			"#2 crash",
-			"",
-			greenColor,
+			"[test/repo] Pull request assigned to user1: #12 Fix bug by user1",
+			"", "",
+			greenColor, greenColor,
 		},
 		{
 			api.HookIssueUnassigned,
 			"[test/repo] Issue unassigned: #2 crash by user1",
-			"#2 crash",
-			"",
-			yellowColor,
+			"[test/repo] Pull request unassigned: #12 Fix bug by user1",
+			"", "",
+			yellowColor, yellowColor,
 		},
 		{
 			api.HookIssueLabelUpdated,
 			"[test/repo] Issue labels updated: #2 crash by user1",
-			"#2 crash",
-			"",
-			yellowColor,
+			"[test/repo] Pull request labels updated: #12 Fix bug by user1",
+			"", "",
+			yellowColor, yellowColor,
 		},
 		{
 			api.HookIssueLabelCleared,
 			"[test/repo] Issue labels cleared: #2 crash by user1",
-			"#2 crash",
-			"",
-			yellowColor,
+			"[test/repo] Pull request labels cleared: #12 Fix bug by user1",
+			"", "",
+			yellowColor, yellowColor,
 		},
 		{
 			api.HookIssueSynchronized,
 			"[test/repo] Issue synchronized: #2 crash by user1",
-			"#2 crash",
-			"",
-			yellowColor,
+			"[test/repo] Pull request synchronized: #12 Fix bug by user1",
+			"", "",
+			yellowColor, yellowColor,
 		},
 		{
 			api.HookIssueMilestoned,
 			"[test/repo] Issue milestoned to Milestone Title: #2 crash by user1",
-			"#2 crash",
-			"",
-			yellowColor,
+			"[test/repo] Pull request milestoned to Milestone Title: #12 Fix bug by user1",
+			"", "",
+			yellowColor, yellowColor,
 		},
 		{
 			api.HookIssueDemilestoned,
 			"[test/repo] Issue milestone cleared: #2 crash by user1",
-			"#2 crash",
-			"",
-			yellowColor,
-		},
-	}
-
-	for i, c := range cases {
-		p.Action = c.action
-		text, issueTitle, extraMarkdown, color := getIssuesPayloadInfo(p, noneLinkFormatter, true)
-		assert.Equal(t, c.text, text, "case %d", i)
-		assert.Equal(t, c.issueTitle, issueTitle, "case %d", i)
-		assert.Equal(t, c.attachmentText, extraMarkdown, "case %d", i)
-		assert.Equal(t, c.color, color, "case %d", i)
-	}
-}
-
-func TestGetPullRequestPayloadInfo(t *testing.T) {
-	p := pullRequestTestPayload()
-	p.Changes = &api.ChangesPayload{AddedAssignees: p.PullRequest.Assignees}
-
-	cases := []struct {
-		action         api.HookIssueAction
-		text           string
-		issueTitle     string
-		attachmentText string
-		color          int
-	}{
-		{
-			api.HookIssueOpened,
-			"[test/repo] Pull request opened: #12 Fix bug by user1",
-			"#12 Fix bug",
-			"fixes bug #2",
-			greenColor,
-		},
-		{
-			api.HookIssueClosed,
-			"[test/repo] Pull request closed: #12 Fix bug by user1",
-			"#12 Fix bug",
-			"",
-			redColor,
-		},
-		{
-			api.HookIssueReOpened,
-			"[test/repo] Pull request re-opened: #12 Fix bug by user1",
-			"#12 Fix bug",
-			"",
-			yellowColor,
-		},
-		{
-			api.HookIssueEdited,
-			"[test/repo] Pull request edited: #12 Fix bug by user1",
-			"#12 Fix bug",
-			"fixes bug #2",
-			yellowColor,
-		},
-		{
-			api.HookIssueAssigned,
-			"[test/repo] Pull request assigned to user1: #12 Fix bug by user1",
-			"#12 Fix bug",
-			"",
-			greenColor,
-		},
-		{
-			api.HookIssueUnassigned,
-			"[test/repo] Pull request unassigned: #12 Fix bug by user1",
-			"#12 Fix bug",
-			"",
-			yellowColor,
-		},
-		{
-			api.HookIssueLabelUpdated,
-			"[test/repo] Pull request labels updated: #12 Fix bug by user1",
-			"#12 Fix bug",
-			"",
-			yellowColor,
-		},
-		{
-			api.HookIssueLabelCleared,
-			"[test/repo] Pull request labels cleared: #12 Fix bug by user1",
-			"#12 Fix bug",
-			"",
-			yellowColor,
-		},
-		{
-			api.HookIssueSynchronized,
-			"[test/repo] Pull request synchronized: #12 Fix bug by user1",
-			"#12 Fix bug",
-			"",
-			yellowColor,
-		},
-		{
-			api.HookIssueMilestoned,
-			"[test/repo] Pull request milestoned to Milestone Title: #12 Fix bug by user1",
-			"#12 Fix bug",
-			"",
-			yellowColor,
-		},
-		{
-			api.HookIssueDemilestoned,
 			"[test/repo] Pull request milestone cleared: #12 Fix bug by user1",
-			"#12 Fix bug",
-			"",
-			yellowColor,
+			"", "",
+			yellowColor, yellowColor,
 		},
 	}
 
 	for i, c := range cases {
-		p.Action = c.action
-		text, issueTitle, extraMarkdown, color := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
-		assert.Equal(t, c.text, text, "case %d", i)
-		assert.Equal(t, c.issueTitle, issueTitle, "case %d", i)
-		assert.Equal(t, c.attachmentText, extraMarkdown, "case %d", i)
-		assert.Equal(t, c.color, color, "case %d", i)
+		issue.Action = c.action
+		text, issueTitle, extraMarkdown, color := getIssuesPayloadInfo(issue, noneLinkFormatter, true)
+		assert.Equal(t, c.issueText, text, "case %d", i)
+		assert.Equal(t, "#2 crash", issueTitle, "case %d", i)
+		assert.Equal(t, c.issueMarkdown, extraMarkdown, "case %d", i)
+		assert.Equal(t, c.issueColor, color, "case %d", i)
+
+		pull.Action = c.action
+		text, issueTitle, extraMarkdown, color = getPullRequestPayloadInfo(pull, noneLinkFormatter, true)
+		assert.Equal(t, c.pullRequestText, text, "case %d", i)
+		assert.Equal(t, "#12 Fix bug", issueTitle, "case %d", i)
+		assert.Equal(t, c.pullRequestMarkdown, extraMarkdown, "case %d", i)
+		assert.Equal(t, c.pullRequestColor, color, "case %d", i)
 	}
 }
 

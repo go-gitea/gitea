@@ -67,14 +67,8 @@
           "200": {
             "$ref": "#/responses/WorkflowJobsList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -101,11 +95,8 @@
           "200": {
             "$ref": "#/responses/RunnerList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -150,11 +141,8 @@
           "200": {
             "$ref": "#/responses/Runner"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -180,11 +168,8 @@
           "204": {
             "description": "runner has been deleted"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -220,14 +205,8 @@
           "200": {
             "$ref": "#/responses/Runner"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -290,11 +269,8 @@
           "200": {
             "$ref": "#/responses/WorkflowRunsList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -327,8 +303,8 @@
           "200": {
             "$ref": "#/responses/CronList"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -356,8 +332,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -390,8 +366,8 @@
           "200": {
             "$ref": "#/responses/EmailList"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -430,8 +406,8 @@
           "200": {
             "$ref": "#/responses/EmailList"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -622,8 +598,8 @@
           "200": {
             "$ref": "#/responses/OrganizationList"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -654,6 +630,7 @@
           {
             "enum": [
               "alpine",
+              "arch",
               "cargo",
               "chef",
               "composer",
@@ -674,6 +651,7 @@
               "rubygems",
               "swift",
               "terraform",
+              "terraform-module",
               "vagrant"
             ],
             "type": "string",
@@ -692,121 +670,8 @@
           "200": {
             "$ref": "#/responses/PackageList"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          }
-        }
-      }
-    },
-    "/admin/unadopted": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "List unadopted repositories",
-        "operationId": "adminUnadoptedList",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results",
-            "name": "limit",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "glob pattern of repositories to search for, in the form owner or owner/repo",
-            "name": "query",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/StringSlice"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          }
-        }
-      }
-    },
-    "/admin/unadopted/{owner}/{repo}": {
-      "post": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "Adopt unadopted files as a repository",
-        "operationId": "adminAdoptRepository",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          }
-        }
-      },
-      "delete": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "Delete unadopted files",
-        "operationId": "adminDeleteUnadoptedRepository",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -906,11 +771,8 @@
           "200": {
             "$ref": "#/responses/UserList"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -939,17 +801,8 @@
           "201": {
             "$ref": "#/responses/User"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "409": {
-            "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -983,14 +836,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -1026,17 +873,8 @@
           "200": {
             "$ref": "#/responses/User"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "409": {
-            "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -1064,8 +902,8 @@
           "200": {
             "$ref": "#/responses/BadgeList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -1101,8 +939,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -1135,11 +973,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -1177,11 +1012,8 @@
           "201": {
             "$ref": "#/responses/PublicKey"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -1217,11 +1049,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -1260,11 +1089,8 @@
           "201": {
             "$ref": "#/responses/Organization"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -1300,11 +1126,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -1343,20 +1166,8 @@
           "201": {
             "$ref": "#/responses/Repository"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -1401,8 +1212,8 @@
           "200": {
             "$ref": "#/responses/GitignoreTemplateInfo"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -1447,8 +1258,8 @@
           "200": {
             "$ref": "#/responses/LabelTemplateInfo"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -1493,8 +1304,8 @@
           "200": {
             "$ref": "#/responses/LicenseTemplateInfo"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -1525,8 +1336,8 @@
           "200": {
             "$ref": "#/responses/MarkdownRender"
           },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -1559,8 +1370,8 @@
           "200": {
             "$ref": "#/responses/MarkdownRender"
           },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -1591,8 +1402,8 @@
           "200": {
             "$ref": "#/responses/MarkupRender"
           },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -1766,11 +1577,8 @@
           "200": {
             "$ref": "#/responses/NotificationThread"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -1806,11 +1614,8 @@
           "205": {
             "$ref": "#/responses/NotificationThread"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -1849,14 +1654,8 @@
           "201": {
             "$ref": "#/responses/Repository"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -1917,11 +1716,8 @@
           "201": {
             "$ref": "#/responses/Organization"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -1949,8 +1745,8 @@
           "200": {
             "$ref": "#/responses/Organization"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -1976,8 +1772,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -2014,8 +1810,8 @@
           "200": {
             "$ref": "#/responses/Organization"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -2061,11 +1857,8 @@
           "200": {
             "$ref": "#/responses/WorkflowJobsList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -2099,11 +1892,8 @@
           "200": {
             "$ref": "#/responses/RunnerList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -2164,11 +1954,8 @@
           "200": {
             "$ref": "#/responses/Runner"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -2201,11 +1988,8 @@
           "204": {
             "description": "runner has been deleted"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -2248,14 +2032,8 @@
           "200": {
             "$ref": "#/responses/Runner"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -2325,11 +2103,8 @@
           "200": {
             "$ref": "#/responses/WorkflowRunsList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -2369,8 +2144,8 @@
           "200": {
             "$ref": "#/responses/SecretList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -2418,11 +2193,8 @@
           "204": {
             "description": "response when updating a secret"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -2458,11 +2230,8 @@
           "204": {
             "description": "delete one secret of the organization"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -2502,11 +2271,8 @@
           "200": {
             "$ref": "#/responses/VariableList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -2541,11 +2307,8 @@
           "200": {
             "$ref": "#/responses/ActionVariable"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -2591,11 +2354,8 @@
           "204": {
             "description": "response when updating an org-level variable"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -2638,13 +2398,7 @@
           "201": {
             "description": "successfully created the org-level variable"
           },
-          "400": {
-            "$ref": "#/responses/error"
-          },
-          "409": {
-            "description": "variable name already exists."
-          },
-          "500": {
+          "default": {
             "$ref": "#/responses/error"
           }
         }
@@ -2684,11 +2438,8 @@
           "204": {
             "description": "response when deleting a variable"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -2735,8 +2486,8 @@
           "200": {
             "$ref": "#/responses/ActivityFeedsList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -2771,8 +2522,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -2798,8 +2549,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -2869,8 +2620,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -2906,11 +2657,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -2940,11 +2688,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -2984,8 +2729,8 @@
           "200": {
             "$ref": "#/responses/HookList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -3022,8 +2767,8 @@
           "201": {
             "$ref": "#/responses/Hook"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -3059,8 +2804,8 @@
           "200": {
             "$ref": "#/responses/Hook"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -3094,8 +2839,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -3139,8 +2884,8 @@
           "200": {
             "$ref": "#/responses/Hook"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -3180,8 +2925,8 @@
           "200": {
             "$ref": "#/responses/LabelList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -3217,11 +2962,8 @@
           "201": {
             "$ref": "#/responses/Label"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -3245,9 +2987,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to get",
+            "type": "string",
+            "description": "id of the label to get, or its name when not numeric",
             "name": "id",
             "in": "path",
             "required": true
@@ -3257,8 +2998,8 @@
           "200": {
             "$ref": "#/responses/Label"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -3277,9 +3018,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to delete",
+            "type": "string",
+            "description": "id of the label to delete, or its name when not numeric",
             "name": "id",
             "in": "path",
             "required": true
@@ -3289,8 +3029,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -3315,9 +3055,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to edit",
+            "type": "string",
+            "description": "id of the label to edit, or its name when not numeric",
             "name": "id",
             "in": "path",
             "required": true
@@ -3334,11 +3073,8 @@
           "200": {
             "$ref": "#/responses/Label"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -3378,8 +3114,8 @@
           "200": {
             "$ref": "#/responses/UserList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -3414,8 +3150,8 @@
           "303": {
             "description": "redirection to /orgs/{org}/public_members/{username}"
           },
-          "404": {
-            "description": "user is not a member"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -3448,8 +3184,8 @@
           "204": {
             "description": "member removed"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -3501,8 +3237,8 @@
           "200": {
             "$ref": "#/responses/ProjectList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -3538,11 +3274,8 @@
           "201": {
             "$ref": "#/responses/Project"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -3578,8 +3311,8 @@
           "200": {
             "$ref": "#/responses/Project"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -3610,8 +3343,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -3655,11 +3388,8 @@
           "200": {
             "$ref": "#/responses/Project"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -3707,8 +3437,8 @@
           "200": {
             "$ref": "#/responses/ProjectColumnList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -3752,14 +3482,8 @@
           "201": {
             "$ref": "#/responses/ProjectColumn"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -3803,14 +3527,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -3854,8 +3572,8 @@
           "200": {
             "$ref": "#/responses/ProjectColumn"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -3895,14 +3613,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -3954,14 +3666,8 @@
           "200": {
             "$ref": "#/responses/ProjectColumn"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -4003,11 +3709,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -4063,8 +3766,8 @@
           "200": {
             "$ref": "#/responses/IssueList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -4114,17 +3817,8 @@
           "201": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -4171,14 +3865,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -4229,17 +3917,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -4287,8 +3966,8 @@
           "200": {
             "$ref": "#/responses/ProjectWorkflowList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -4332,14 +4011,8 @@
           "201": {
             "$ref": "#/responses/ProjectWorkflow"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -4383,8 +4056,8 @@
           "200": {
             "$ref": "#/responses/ProjectWorkflow"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -4423,11 +4096,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -4479,14 +4149,8 @@
           "200": {
             "$ref": "#/responses/ProjectWorkflow"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -4526,8 +4190,8 @@
           "200": {
             "$ref": "#/responses/UserList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -4559,8 +4223,8 @@
           "204": {
             "description": "user is a public member"
           },
-          "404": {
-            "description": "user is not a public member"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -4593,11 +4257,8 @@
           "204": {
             "description": "membership publicized"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -4630,11 +4291,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -4670,11 +4328,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -4714,8 +4369,8 @@
           "200": {
             "$ref": "#/responses/RepositoryList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -4751,14 +4406,8 @@
           "201": {
             "$ref": "#/responses/Repository"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -4787,11 +4436,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -4831,8 +4477,8 @@
           "200": {
             "$ref": "#/responses/TeamList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -4868,11 +4514,8 @@
           "201": {
             "$ref": "#/responses/Team"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -4938,8 +4581,8 @@
               }
             }
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -4977,6 +4620,7 @@
           {
             "enum": [
               "alpine",
+              "arch",
               "cargo",
               "chef",
               "composer",
@@ -4997,6 +4641,7 @@
               "rubygems",
               "swift",
               "terraform",
+              "terraform-module",
               "vagrant"
             ],
             "type": "string",
@@ -5015,8 +4660,8 @@
           "200": {
             "$ref": "#/responses/PackageList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -5070,8 +4715,8 @@
           "200": {
             "$ref": "#/responses/PackageList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -5108,8 +4753,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -5151,8 +4796,8 @@
           "200": {
             "$ref": "#/responses/Package"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -5198,8 +4843,8 @@
           "201": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -5238,8 +4883,8 @@
           "201": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -5288,8 +4933,8 @@
           "200": {
             "$ref": "#/responses/Package"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -5333,8 +4978,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -5383,8 +5028,8 @@
           "200": {
             "$ref": "#/responses/PackageFileList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -5527,11 +5172,8 @@
           "200": {
             "$ref": "#/responses/IssueList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -5562,14 +5204,8 @@
           "201": {
             "$ref": "#/responses/Repository"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "409": {
-            "description": "The repository with the same name already exists."
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -5696,8 +5332,8 @@
           "200": {
             "$ref": "#/responses/SearchResults"
           },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -5732,8 +5368,8 @@
           "200": {
             "$ref": "#/responses/Repository"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -5766,11 +5402,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -5811,14 +5444,8 @@
           "200": {
             "$ref": "#/responses/Repository"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -5859,11 +5486,8 @@
           "200": {
             "$ref": "#/responses/ArtifactsList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -5905,11 +5529,8 @@
           "200": {
             "$ref": "#/responses/Artifact"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -5949,11 +5570,8 @@
           "204": {
             "description": "No Content"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -5995,11 +5613,8 @@
           "302": {
             "description": "redirect to the blob download"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -6064,14 +5679,8 @@
           "200": {
             "$ref": "#/responses/WorkflowJobsList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -6113,11 +5722,8 @@
           "200": {
             "$ref": "#/responses/WorkflowJob"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -6159,11 +5765,8 @@
           "200": {
             "description": "output blob content"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -6204,11 +5807,8 @@
           "200": {
             "$ref": "#/responses/RunnerList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -6283,11 +5883,8 @@
           "200": {
             "$ref": "#/responses/Runner"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -6327,11 +5924,8 @@
           "204": {
             "description": "runner has been deleted"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -6381,14 +5975,8 @@
           "200": {
             "$ref": "#/responses/Runner"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -6471,11 +6059,8 @@
           "200": {
             "$ref": "#/responses/WorkflowRunsList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -6517,11 +6102,8 @@
           "200": {
             "$ref": "#/responses/WorkflowRun"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -6561,11 +6143,8 @@
           "204": {
             "description": "No Content"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -6607,17 +6186,8 @@
           "200": {
             "$ref": "#/responses/WorkflowRun"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "$ref": "#/responses/conflict"
           }
         }
       }
@@ -6665,11 +6235,8 @@
           "200": {
             "$ref": "#/responses/ArtifactsList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -6718,11 +6285,8 @@
           "200": {
             "$ref": "#/responses/WorkflowRun"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -6789,11 +6353,8 @@
           "200": {
             "$ref": "#/responses/WorkflowJobsList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -6835,17 +6396,8 @@
           "200": {
             "$ref": "#/responses/WorkflowRun"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "$ref": "#/responses/conflict"
           }
         }
       }
@@ -6888,17 +6440,8 @@
           "200": {
             "$ref": "#/responses/WorkflowRun"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "$ref": "#/responses/conflict"
           }
         }
       }
@@ -6970,14 +6513,8 @@
           "200": {
             "$ref": "#/responses/WorkflowJobsList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -7026,20 +6563,8 @@
           "201": {
             "$ref": "#/responses/WorkflowJob"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -7081,8 +6606,8 @@
           "200": {
             "description": "Logs archive"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -7124,20 +6649,8 @@
           "201": {
             "$ref": "#/responses/WorkflowRun"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -7176,20 +6689,8 @@
           "201": {
             "$ref": "#/responses/empty"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -7236,8 +6737,8 @@
           "200": {
             "$ref": "#/responses/SecretList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -7292,11 +6793,8 @@
           "204": {
             "description": "response when updating a secret"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -7339,11 +6837,8 @@
           "204": {
             "description": "delete one secret of the repository"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -7390,20 +6885,8 @@
           "200": {
             "$ref": "#/responses/TasksList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "$ref": "#/responses/conflict"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -7450,11 +6933,8 @@
           "200": {
             "$ref": "#/responses/VariableList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -7496,11 +6976,8 @@
           "200": {
             "$ref": "#/responses/ActionVariable"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -7550,11 +7027,8 @@
           "204": {
             "description": "response when updating a repo-level variable"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -7601,13 +7075,7 @@
           "201": {
             "description": "response when creating a repo-level variable"
           },
-          "400": {
-            "$ref": "#/responses/error"
-          },
-          "409": {
-            "description": "variable name already exists."
-          },
-          "500": {
+          "default": {
             "$ref": "#/responses/error"
           }
         }
@@ -7654,11 +7122,8 @@
           "204": {
             "description": "response when deleting a variable"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -7693,19 +7158,7 @@
           "200": {
             "$ref": "#/responses/ActionWorkflowList"
           },
-          "400": {
-            "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "500": {
+          "default": {
             "$ref": "#/responses/error"
           }
         }
@@ -7748,19 +7201,7 @@
           "200": {
             "$ref": "#/responses/ActionWorkflow"
           },
-          "400": {
-            "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "500": {
+          "default": {
             "$ref": "#/responses/error"
           }
         }
@@ -7803,17 +7244,8 @@
           "204": {
             "description": "No Content"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -7878,17 +7310,8 @@
           "204": {
             "description": "No Content, if return_run_details is missing or false"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -7930,20 +7353,8 @@
           "204": {
             "description": "No Content"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "$ref": "#/responses/conflict"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -8040,14 +7451,8 @@
           "200": {
             "$ref": "#/responses/WorkflowRunsList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -8101,8 +7506,8 @@
           "200": {
             "$ref": "#/responses/ActivityFeedsList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -8154,8 +7559,8 @@
           "200": {
             "description": "success"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -8190,8 +7595,8 @@
           "200": {
             "$ref": "#/responses/UserList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -8233,11 +7638,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -8279,8 +7681,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -8313,8 +7715,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -8390,17 +7792,8 @@
           "201": {
             "$ref": "#/responses/BranchProtection"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -8445,14 +7838,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -8494,8 +7881,8 @@
           "200": {
             "$ref": "#/responses/BranchProtection"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -8535,8 +7922,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -8586,14 +7973,8 @@
           "200": {
             "$ref": "#/responses/BranchProtection"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -8687,17 +8068,8 @@
           "201": {
             "$ref": "#/responses/Branch"
           },
-          "403": {
-            "description": "The branch is archived or a mirror."
-          },
-          "404": {
-            "description": "The old branch does not exist."
-          },
-          "409": {
-            "description": "The branch with the same name already exists."
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -8739,8 +8111,8 @@
           "200": {
             "$ref": "#/responses/Branch"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -8790,17 +8162,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "$ref": "#/responses/conflict"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -8840,14 +8203,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -8897,14 +8254,70 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/code/search": {
+      "get": {
+        "description": "The files of the ref are searched with git grep, which returns at most 50 files. The result window is limited to 1000 files (page * limit).",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Search the code of a repository",
+        "operationId": "repoSearchCode",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
           },
-          "422": {
-            "$ref": "#/responses/validationError"
+          {
+            "type": "string",
+            "description": "Terms must all occur in a file. Supports \"exact phrases\", /regexp/ and path:DIR. Language and repository qualifiers are not supported.",
+            "name": "q",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default to the repository’s default branch",
+            "name": "ref",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CodeSearchResults"
+          },
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -8951,8 +8364,8 @@
           "200": {
             "$ref": "#/responses/UserList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -8994,11 +8407,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -9045,14 +8455,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -9092,11 +8496,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -9138,11 +8539,8 @@
           "200": {
             "$ref": "#/responses/RepoCollaboratorPermission"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -9239,11 +8637,8 @@
           "200": {
             "$ref": "#/responses/CommitList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "$ref": "#/responses/EmptyRepository"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -9297,11 +8692,8 @@
           "200": {
             "$ref": "#/responses/CombinedStatus"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -9381,11 +8773,8 @@
           "200": {
             "$ref": "#/responses/CommitStatusList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -9427,8 +8816,8 @@
           "200": {
             "$ref": "#/responses/PullRequest"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -9494,11 +8883,8 @@
           "200": {
             "$ref": "#/responses/Compare"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -9540,8 +8926,8 @@
           "200": {
             "$ref": "#/responses/ContentsListResponse"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -9585,17 +8971,8 @@
           "201": {
             "$ref": "#/responses/FilesResponse"
           },
-          "403": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/error"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -9650,8 +9027,8 @@
           "200": {
             "$ref": "#/responses/ContentsExtResponse"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -9700,8 +9077,8 @@
           "200": {
             "$ref": "#/responses/ContentsResponse"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -9755,17 +9132,8 @@
           "201": {
             "$ref": "#/responses/FileResponse"
           },
-          "403": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/error"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -9816,17 +9184,8 @@
           "201": {
             "$ref": "#/responses/FileResponse"
           },
-          "403": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/error"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -9877,20 +9236,8 @@
           "200": {
             "$ref": "#/responses/FileDeleteResponse"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/error"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -9936,11 +9283,8 @@
           "200": {
             "$ref": "#/responses/FileResponse"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -9988,8 +9332,8 @@
           "200": {
             "description": "success"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -10038,8 +9382,8 @@
           "200": {
             "$ref": "#/responses/ContentsListResponse"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -10087,8 +9431,8 @@
           "200": {
             "$ref": "#/responses/ContentsListResponse"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -10135,8 +9479,8 @@
           "200": {
             "$ref": "#/responses/RepositoryList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -10176,17 +9520,8 @@
           "202": {
             "$ref": "#/responses/Repository"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "description": "The repository with the same name already exists."
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -10228,11 +9563,8 @@
           "200": {
             "$ref": "#/responses/GitBlobResponse"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -10292,11 +9624,8 @@
           "200": {
             "$ref": "#/responses/Commit"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -10349,8 +9678,8 @@
           "200": {
             "$ref": "#/responses/string"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -10404,11 +9733,8 @@
           "200": {
             "$ref": "#/responses/Note"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -10443,8 +9769,8 @@
           "200": {
             "$ref": "#/responses/ReferenceList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -10486,8 +9812,8 @@
           "200": {
             "$ref": "#/responses/ReferenceList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -10529,11 +9855,8 @@
           "200": {
             "$ref": "#/responses/AnnotatedTag"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -10593,11 +9916,8 @@
           "200": {
             "$ref": "#/responses/GitTreeResponse"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -10644,8 +9964,8 @@
           "200": {
             "$ref": "#/responses/HookList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -10688,8 +10008,8 @@
           "201": {
             "$ref": "#/responses/Hook"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -10724,8 +10044,8 @@
           "200": {
             "$ref": "#/responses/GitHookList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -10767,8 +10087,8 @@
           "200": {
             "$ref": "#/responses/GitHook"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -10808,8 +10128,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -10856,8 +10176,8 @@
           "200": {
             "$ref": "#/responses/GitHook"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -10900,8 +10220,8 @@
           "200": {
             "$ref": "#/responses/Hook"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -10942,8 +10262,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -10991,8 +10311,8 @@
           "200": {
             "$ref": "#/responses/Hook"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -11047,8 +10367,8 @@
           "200": {
             "$ref": "#/responses/HookDeliveryList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -11098,8 +10418,8 @@
           "200": {
             "$ref": "#/responses/HookDelivery"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -11148,8 +10468,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -11184,8 +10504,8 @@
           "200": {
             "$ref": "#/responses/RepoIssueConfig"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -11220,8 +10540,8 @@
           "200": {
             "$ref": "#/responses/RepoIssueConfigValidation"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -11256,8 +10576,8 @@
           "200": {
             "$ref": "#/responses/IssueTemplates"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -11375,8 +10695,8 @@
           "200": {
             "$ref": "#/responses/IssueList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -11419,20 +10739,8 @@
           "201": {
             "$ref": "#/responses/Issue"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "412": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -11493,8 +10801,8 @@
           "200": {
             "$ref": "#/responses/CommentList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -11543,11 +10851,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -11585,11 +10890,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -11643,14 +10945,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -11693,7 +10989,7 @@
           "200": {
             "$ref": "#/responses/AttachmentList"
           },
-          "404": {
+          "default": {
             "$ref": "#/responses/error"
           }
         }
@@ -11751,23 +11047,8 @@
           "201": {
             "$ref": "#/responses/Attachment"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/error"
-          },
-          "413": {
-            "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -11818,7 +11099,7 @@
           "200": {
             "$ref": "#/responses/Attachment"
           },
-          "404": {
+          "default": {
             "$ref": "#/responses/error"
           }
         }
@@ -11868,11 +11149,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -11931,14 +11209,8 @@
           "201": {
             "$ref": "#/responses/Attachment"
           },
-          "404": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -11984,11 +11256,8 @@
           "200": {
             "$ref": "#/responses/ReactionList"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -12042,11 +11311,8 @@
           "201": {
             "$ref": "#/responses/Reaction"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -12097,11 +11363,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -12136,8 +11399,8 @@
           "200": {
             "$ref": "#/responses/IssueList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -12180,8 +11443,8 @@
           "200": {
             "$ref": "#/responses/Issue"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -12219,14 +11482,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -12278,17 +11535,8 @@
           "201": {
             "$ref": "#/responses/Issue"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "412": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -12331,7 +11579,7 @@
           "200": {
             "$ref": "#/responses/AttachmentList"
           },
-          "404": {
+          "default": {
             "$ref": "#/responses/error"
           }
         }
@@ -12389,20 +11637,8 @@
           "201": {
             "$ref": "#/responses/Attachment"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/error"
-          },
-          "413": {
-            "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -12453,7 +11689,7 @@
           "200": {
             "$ref": "#/responses/Attachment"
           },
-          "404": {
+          "default": {
             "$ref": "#/responses/error"
           }
         }
@@ -12503,11 +11739,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -12566,14 +11799,8 @@
           "201": {
             "$ref": "#/responses/Attachment"
           },
-          "404": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -12627,17 +11854,8 @@
           "201": {
             "$ref": "#/responses/Issue"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       },
@@ -12689,14 +11907,8 @@
           "200": {
             "$ref": "#/responses/Issue"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -12746,11 +11958,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -12804,8 +12013,8 @@
           "200": {
             "$ref": "#/responses/IssueList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -12852,8 +12061,8 @@
           "201": {
             "$ref": "#/responses/Issue"
           },
-          "404": {
-            "description": "the issue does not exist"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -12900,8 +12109,8 @@
           "200": {
             "$ref": "#/responses/Issue"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -12958,8 +12167,8 @@
           "200": {
             "$ref": "#/responses/CommentList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -13010,14 +12219,8 @@
           "201": {
             "$ref": "#/responses/Comment"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -13065,11 +12268,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -13131,11 +12331,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -13188,11 +12385,8 @@
           "201": {
             "$ref": "#/responses/IssueDeadline"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -13246,8 +12440,8 @@
           "200": {
             "$ref": "#/responses/IssueList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -13294,11 +12488,8 @@
           "201": {
             "$ref": "#/responses/Issue"
           },
-          "404": {
-            "description": "the issue does not exist"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -13345,11 +12536,8 @@
           "200": {
             "$ref": "#/responses/Issue"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -13392,8 +12580,8 @@
           "200": {
             "$ref": "#/responses/LabelList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -13444,14 +12632,8 @@
           "200": {
             "$ref": "#/responses/LabelList"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -13502,14 +12684,8 @@
           "200": {
             "$ref": "#/responses/LabelList"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -13550,14 +12726,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -13608,17 +12778,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -13671,11 +12832,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -13719,11 +12877,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -13763,11 +12918,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -13805,11 +12957,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -13857,11 +13006,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -13919,11 +13065,8 @@
           "200": {
             "$ref": "#/responses/ReactionList"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -13977,11 +13120,8 @@
           "201": {
             "$ref": "#/responses/Reaction"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -14032,11 +13172,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -14082,14 +13219,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "description": "Not repo writer, user does not have rights to toggle stopwatch"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "description": "Cannot cancel a non-existent stopwatch"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -14135,14 +13266,8 @@
           "201": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "description": "Not repo writer, user does not have rights to toggle stopwatch"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "description": "Cannot start a stopwatch again if it already exists"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -14188,14 +13313,8 @@
           "201": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "description": "Not repo writer, user does not have rights to toggle stopwatch"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "description": "Cannot stop a non-existent stopwatch"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -14253,8 +13372,8 @@
           "200": {
             "$ref": "#/responses/UserList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -14300,8 +13419,8 @@
           "200": {
             "$ref": "#/responses/WatchInfo"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -14360,8 +13479,8 @@
           "304": {
             "description": "User can only subscribe itself if he is no admin"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -14418,8 +13537,8 @@
           "304": {
             "description": "User can only subscribe itself if he is no admin"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -14488,8 +13607,8 @@
           "200": {
             "$ref": "#/responses/TimelineList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -14564,8 +13683,8 @@
           "200": {
             "$ref": "#/responses/TrackedTimeList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -14616,14 +13735,8 @@
           "200": {
             "$ref": "#/responses/TrackedTime"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -14667,14 +13780,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -14728,14 +13835,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -14794,8 +13895,8 @@
           "200": {
             "$ref": "#/responses/DeployKeyList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -14838,11 +13939,8 @@
           "201": {
             "$ref": "#/responses/DeployKey"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -14887,11 +13985,8 @@
           "201": {
             "$ref": "#/responses/DeployKey"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -14934,8 +14029,8 @@
           "200": {
             "$ref": "#/responses/DeployKey"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -14973,11 +14068,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -15024,8 +14116,8 @@
           "200": {
             "$ref": "#/responses/LabelList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -15068,11 +14160,8 @@
           "201": {
             "$ref": "#/responses/Label"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -15103,9 +14192,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to get",
+            "type": "string",
+            "description": "id of the label to get, or its name when not numeric",
             "name": "id",
             "in": "path",
             "required": true
@@ -15115,8 +14203,8 @@
           "200": {
             "$ref": "#/responses/Label"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -15142,9 +14230,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to delete",
+            "type": "string",
+            "description": "id of the label to delete, or its name when not numeric",
             "name": "id",
             "in": "path",
             "required": true
@@ -15154,8 +14241,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -15187,9 +14274,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to edit",
+            "type": "string",
+            "description": "id of the label to edit, or its name when not numeric",
             "name": "id",
             "in": "path",
             "required": true
@@ -15206,11 +14292,8 @@
           "200": {
             "$ref": "#/responses/Label"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -15245,8 +14328,8 @@
           "200": {
             "$ref": "#/responses/LanguageStatistics"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -15281,8 +14364,8 @@
           "200": {
             "$ref": "#/responses/LicensesList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -15333,8 +14416,8 @@
               "type": "file"
             }
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -15376,16 +14459,7 @@
           "200": {
             "$ref": "#/responses/MergeUpstreamResponse"
           },
-          "400": {
-            "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "$ref": "#/responses/error"
-          },
-          "422": {
+          "default": {
             "$ref": "#/responses/error"
           }
         }
@@ -15445,8 +14519,8 @@
           "200": {
             "$ref": "#/responses/MilestoneList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -15489,8 +14563,8 @@
           "201": {
             "$ref": "#/responses/Milestone"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -15532,8 +14606,8 @@
           "200": {
             "$ref": "#/responses/Milestone"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -15570,8 +14644,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -15621,8 +14695,8 @@
           "200": {
             "$ref": "#/responses/Milestone"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -15657,11 +14731,8 @@
           "200": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -15696,8 +14767,8 @@
           "200": {
             "$ref": "#/responses/RepoNewIssuePinsAllowed"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -15913,8 +14984,8 @@
           "200": {
             "$ref": "#/responses/ProjectList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -15957,14 +15028,8 @@
           "201": {
             "$ref": "#/responses/Project"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -16007,8 +15072,8 @@
           "200": {
             "$ref": "#/responses/Project"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -16046,11 +15111,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -16101,14 +15163,8 @@
           "200": {
             "$ref": "#/responses/Project"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -16163,8 +15219,8 @@
           "200": {
             "$ref": "#/responses/ProjectColumnList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -16215,17 +15271,8 @@
           "201": {
             "$ref": "#/responses/ProjectColumn"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -16276,17 +15323,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -16337,8 +15375,8 @@
           "200": {
             "$ref": "#/responses/ProjectColumn"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -16385,17 +15423,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -16454,17 +15483,8 @@
           "200": {
             "$ref": "#/responses/ProjectColumn"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -16513,14 +15533,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -16583,8 +15597,8 @@
           "200": {
             "$ref": "#/responses/IssueList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -16641,17 +15655,8 @@
           "201": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -16705,14 +15710,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -16770,17 +15769,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -16835,8 +15825,8 @@
           "200": {
             "$ref": "#/responses/ProjectWorkflowList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -16887,17 +15877,8 @@
           "201": {
             "$ref": "#/responses/ProjectWorkflow"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -16948,8 +15929,8 @@
           "200": {
             "$ref": "#/responses/ProjectWorkflow"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -16995,14 +15976,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -17061,17 +16036,8 @@
           "200": {
             "$ref": "#/responses/ProjectWorkflow"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -17178,10 +16144,7 @@
           "200": {
             "$ref": "#/responses/PullRequestList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "500": {
+          "default": {
             "$ref": "#/responses/error"
           }
         }
@@ -17225,20 +16188,8 @@
           "201": {
             "$ref": "#/responses/PullRequest"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -17281,14 +16232,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "400": {
-            "$ref": "#/responses/validationError"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -17331,14 +16276,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "400": {
-            "$ref": "#/responses/validationError"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -17373,8 +16312,8 @@
           "200": {
             "$ref": "#/responses/PullRequestList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -17423,8 +16362,8 @@
           "200": {
             "$ref": "#/responses/PullRequest"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -17467,8 +16406,8 @@
           "200": {
             "$ref": "#/responses/PullRequest"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -17519,23 +16458,8 @@
           "201": {
             "$ref": "#/responses/PullRequest"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "$ref": "#/responses/error"
-          },
-          "412": {
-            "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -17595,8 +16519,8 @@
           "200": {
             "$ref": "#/responses/string"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -17658,14 +16582,8 @@
           "201": {
             "$ref": "#/responses/PullReviewComment"
           },
-          "400": {
-            "$ref": "#/responses/validationError"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -17732,8 +16650,8 @@
           "200": {
             "$ref": "#/responses/CommitList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -17806,8 +16724,8 @@
           "200": {
             "$ref": "#/responses/ChangedFileList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -17850,8 +16768,8 @@
           "204": {
             "description": "pull request has been merged"
           },
-          "404": {
-            "description": "pull request has not been merged"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -17899,20 +16817,11 @@
           "200": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "405": {
+          "201": {
             "$ref": "#/responses/empty"
           },
-          "409": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -17953,14 +16862,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -18011,11 +16914,8 @@
           "201": {
             "$ref": "#/responses/PullReviewList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -18064,14 +16964,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -18126,8 +17020,8 @@
           "200": {
             "$ref": "#/responses/PullReviewList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -18176,11 +17070,8 @@
           "200": {
             "$ref": "#/responses/PullReview"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -18231,8 +17122,8 @@
           "200": {
             "$ref": "#/responses/PullReview"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -18289,11 +17180,8 @@
           "200": {
             "$ref": "#/responses/PullReview"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -18342,11 +17230,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -18397,8 +17282,8 @@
           "200": {
             "$ref": "#/responses/PullReviewCommentList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -18457,14 +17342,8 @@
           "200": {
             "$ref": "#/responses/PullReview"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -18515,14 +17394,8 @@
           "200": {
             "$ref": "#/responses/PullReview"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -18575,17 +17448,8 @@
           "200": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -18632,14 +17496,8 @@
           "200": {
             "$ref": "#/responses/PushMirrorList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -18682,14 +17540,8 @@
           "200": {
             "$ref": "#/responses/PushMirror"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -18724,17 +17576,8 @@
           "200": {
             "$ref": "#/responses/empty"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -18776,14 +17619,8 @@
           "200": {
             "$ref": "#/responses/PushMirror"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -18823,11 +17660,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -18878,8 +17712,8 @@
               "type": "file"
             }
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -18944,8 +17778,8 @@
           "200": {
             "$ref": "#/responses/ReleaseList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -18988,14 +17822,8 @@
           "201": {
             "$ref": "#/responses/Release"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -19008,7 +17836,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Gets the most recent non-prerelease, non-draft release of a repository, sorted by created_at",
+        "summary": "Gets the release set as latest, else the most recent non-prerelease, non-draft release of a repository by created_at",
         "operationId": "repoGetLatestRelease",
         "parameters": [
           {
@@ -19030,8 +17858,8 @@
           "200": {
             "$ref": "#/responses/Release"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -19073,8 +17901,8 @@
           "200": {
             "$ref": "#/responses/Release"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -19111,11 +17939,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -19158,8 +17983,8 @@
           "200": {
             "$ref": "#/responses/Release"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -19197,11 +18022,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -19252,8 +18074,8 @@
           "200": {
             "$ref": "#/responses/Release"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -19296,8 +18118,8 @@
           "200": {
             "$ref": "#/responses/AttachmentList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -19354,13 +18176,7 @@
           "201": {
             "$ref": "#/responses/Attachment"
           },
-          "400": {
-            "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "413": {
+          "default": {
             "$ref": "#/responses/error"
           }
         }
@@ -19412,8 +18228,8 @@
           "200": {
             "$ref": "#/responses/Attachment"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -19462,8 +18278,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -19522,11 +18338,8 @@
           "201": {
             "$ref": "#/responses/Attachment"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -19561,8 +18374,8 @@
           "200": {
             "$ref": "#/responses/UserList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -19681,11 +18494,8 @@
           "200": {
             "$ref": "#/responses/UserList"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -19765,11 +18575,8 @@
           "200": {
             "$ref": "#/responses/CommitStatusList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -19816,11 +18623,8 @@
           "201": {
             "$ref": "#/responses/CommitStatus"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -19867,8 +18671,8 @@
           "200": {
             "$ref": "#/responses/UserList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -19900,8 +18704,8 @@
           "200": {
             "$ref": "#/responses/WatchInfo"
           },
-          "404": {
-            "description": "User is not watching this repo or repo do not exist"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -19931,11 +18735,8 @@
           "200": {
             "$ref": "#/responses/WatchInfo"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -19965,8 +18766,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -20042,17 +18843,8 @@
           "201": {
             "$ref": "#/responses/TagProtection"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -20094,8 +18886,8 @@
           "200": {
             "$ref": "#/responses/TagProtection"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -20135,8 +18927,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -20186,14 +18978,8 @@
           "200": {
             "$ref": "#/responses/TagProtection"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -20240,8 +19026,8 @@
           "200": {
             "$ref": "#/responses/TagList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -20281,20 +19067,8 @@
           "200": {
             "$ref": "#/responses/Tag"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "405": {
-            "$ref": "#/responses/empty"
-          },
-          "409": {
-            "$ref": "#/responses/conflict"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -20336,8 +19110,8 @@
           "200": {
             "$ref": "#/responses/Tag"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -20377,20 +19151,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "405": {
-            "$ref": "#/responses/empty"
-          },
-          "409": {
-            "$ref": "#/responses/conflict"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -20425,8 +19187,8 @@
           "200": {
             "$ref": "#/responses/TeamList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -20468,10 +19230,7 @@
           "200": {
             "$ref": "#/responses/Team"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "405": {
+          "default": {
             "$ref": "#/responses/error"
           }
         }
@@ -20512,17 +19271,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "405": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       },
@@ -20562,17 +19312,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "405": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -20639,14 +19380,8 @@
           "200": {
             "$ref": "#/responses/TrackedTimeList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -20689,14 +19424,8 @@
           "200": {
             "$ref": "#/responses/TrackedTimeList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -20743,8 +19472,8 @@
           "200": {
             "$ref": "#/responses/TopicNames"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -20784,14 +19513,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/invalidTopicsError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -20833,14 +19556,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/invalidTopicsError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -20880,14 +19597,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/invalidTopicsError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -20931,14 +19642,8 @@
           "202": {
             "$ref": "#/responses/Repository"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -20973,11 +19678,8 @@
           "202": {
             "$ref": "#/responses/Repository"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -21012,11 +19714,8 @@
           "200": {
             "$ref": "#/responses/Repository"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -21058,17 +19757,8 @@
           "201": {
             "$ref": "#/responses/WikiPage"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -21110,8 +19800,8 @@
           "200": {
             "$ref": "#/responses/WikiPage"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -21148,14 +19838,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -21202,17 +19886,8 @@
           "200": {
             "$ref": "#/responses/WikiPage"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -21259,8 +19934,8 @@
           "200": {
             "$ref": "#/responses/WikiPageList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -21308,8 +19983,8 @@
           "200": {
             "$ref": "#/responses/WikiCommitList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -21354,17 +20029,8 @@
           "201": {
             "$ref": "#/responses/Repository"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "description": "The repository with the same name already exists."
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -21393,8 +20059,50 @@
           "200": {
             "$ref": "#/responses/Repository"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/search/code": {
+      "get": {
+        "description": "Authentication is required. The default branches are searched with the code indexer. Regular expressions are not supported. The result window is limited to 1000 files (page * limit).",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Search the code of all repositories",
+        "operationId": "codeSearch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Literal terms and \"exact phrases\" must all occur in a file, with optional qualifiers:\n\"repo:OWNER/NAME\", \"user:NAME\" and \"org:NAME\" to only search these repositories (each can be repeated),\n\"path:DIR\" to only search the files in a directory, \"language:NAME\" to only search the files of a language\n",
+            "name": "q",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CodeSearchResults"
+          },
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -21531,8 +20239,8 @@
           "200": {
             "$ref": "#/responses/Team"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -21556,8 +20264,8 @@
           "204": {
             "description": "team deleted"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -21593,8 +20301,8 @@
           "200": {
             "$ref": "#/responses/Team"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -21642,8 +20350,8 @@
           "200": {
             "$ref": "#/responses/ActivityFeedsList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -21684,8 +20392,8 @@
           "200": {
             "$ref": "#/responses/UserList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -21721,8 +20429,8 @@
           "200": {
             "$ref": "#/responses/User"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -21756,11 +20464,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -21794,8 +20499,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -21836,8 +20541,8 @@
           "200": {
             "$ref": "#/responses/RepositoryList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -21880,8 +20585,8 @@
           "200": {
             "$ref": "#/responses/Repository"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -21922,11 +20627,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -21968,11 +20670,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -22044,11 +20743,8 @@
           "200": {
             "$ref": "#/responses/TopicListResponse"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -22116,14 +20812,8 @@
           "200": {
             "$ref": "#/responses/WorkflowJobsList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -22150,11 +20840,8 @@
           "200": {
             "$ref": "#/responses/RunnerList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -22199,11 +20886,8 @@
           "200": {
             "$ref": "#/responses/Runner"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -22229,11 +20913,8 @@
           "204": {
             "description": "runner has been deleted"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -22269,14 +20950,8 @@
           "200": {
             "$ref": "#/responses/Runner"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -22339,11 +21014,8 @@
           "200": {
             "$ref": "#/responses/WorkflowRunsList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -22384,11 +21056,8 @@
           "204": {
             "description": "response when updating a secret"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -22417,11 +21086,8 @@
           "204": {
             "description": "delete one secret of the user"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -22454,11 +21120,8 @@
           "200": {
             "$ref": "#/responses/VariableList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -22486,11 +21149,8 @@
           "200": {
             "$ref": "#/responses/ActionVariable"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -22529,11 +21189,8 @@
           "204": {
             "description": "response when updating a variable"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -22569,11 +21226,8 @@
           "201": {
             "description": "successfully created the user-level variable"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "409": {
-            "description": "variable name already exists."
           }
         }
       },
@@ -22602,11 +21256,8 @@
           "204": {
             "description": "response when deleting a variable"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -22664,7 +21315,7 @@
           "201": {
             "$ref": "#/responses/OAuth2Application"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
           }
         }
@@ -22694,8 +21345,8 @@
           "200": {
             "$ref": "#/responses/OAuth2Application"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -22722,8 +21373,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -22758,11 +21409,8 @@
           "200": {
             "$ref": "#/responses/OAuth2Application"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -22859,8 +21507,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -22889,11 +21537,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -22916,11 +21561,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -22963,14 +21605,8 @@
           "201": {
             "$ref": "#/responses/EmailList"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "409": {
-            "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       },
@@ -22996,8 +21632,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -23084,8 +21720,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -23108,11 +21744,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -23135,8 +21768,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -23155,14 +21788,8 @@
           "200": {
             "$ref": "#/responses/string"
           },
-          "401": {
-            "$ref": "#/responses/unauthorized"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -23184,17 +21811,8 @@
           "201": {
             "$ref": "#/responses/GPGKey"
           },
-          "401": {
-            "$ref": "#/responses/unauthorized"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -23227,11 +21845,8 @@
           "200": {
             "$ref": "#/responses/GPGKeyList"
           },
-          "401": {
-            "$ref": "#/responses/unauthorized"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -23260,17 +21875,8 @@
           "201": {
             "$ref": "#/responses/GPGKey"
           },
-          "401": {
-            "$ref": "#/responses/unauthorized"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -23299,14 +21905,8 @@
           "200": {
             "$ref": "#/responses/GPGKey"
           },
-          "401": {
-            "$ref": "#/responses/unauthorized"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -23333,14 +21933,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "401": {
-            "$ref": "#/responses/unauthorized"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -23525,11 +22119,8 @@
           "200": {
             "$ref": "#/responses/PublicKeyList"
           },
-          "401": {
-            "$ref": "#/responses/unauthorized"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -23558,14 +22149,8 @@
           "201": {
             "$ref": "#/responses/PublicKey"
           },
-          "401": {
-            "$ref": "#/responses/unauthorized"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -23594,14 +22179,8 @@
           "200": {
             "$ref": "#/responses/PublicKey"
           },
-          "401": {
-            "$ref": "#/responses/unauthorized"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -23628,14 +22207,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "401": {
-            "$ref": "#/responses/unauthorized"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -23668,8 +22241,8 @@
           "200": {
             "$ref": "#/responses/OrganizationList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -23741,8 +22314,8 @@
           "201": {
             "$ref": "#/responses/Project"
           },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -23771,8 +22344,8 @@
           "200": {
             "$ref": "#/responses/Project"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -23796,8 +22369,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -23834,11 +22407,8 @@
           "200": {
             "$ref": "#/responses/Project"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -23879,8 +22449,8 @@
           "200": {
             "$ref": "#/responses/ProjectColumnList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -23917,14 +22487,8 @@
           "201": {
             "$ref": "#/responses/ProjectColumn"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -23961,14 +22525,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -24005,8 +22563,8 @@
           "200": {
             "$ref": "#/responses/ProjectColumn"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -24039,14 +22597,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -24091,14 +22643,8 @@
           "200": {
             "$ref": "#/responses/ProjectColumn"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -24133,11 +22679,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -24186,8 +22729,8 @@
           "200": {
             "$ref": "#/responses/IssueList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -24230,17 +22773,8 @@
           "201": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -24280,14 +22814,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -24331,17 +22859,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -24382,8 +22901,8 @@
           "200": {
             "$ref": "#/responses/ProjectWorkflowList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -24420,14 +22939,8 @@
           "201": {
             "$ref": "#/responses/ProjectWorkflow"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -24464,8 +22977,8 @@
           "200": {
             "$ref": "#/responses/ProjectWorkflow"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -24497,11 +23010,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -24546,14 +23056,8 @@
           "200": {
             "$ref": "#/responses/ProjectWorkflow"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -24613,14 +23117,8 @@
           "201": {
             "$ref": "#/responses/Repository"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "409": {
-            "description": "The repository with the same name already exists."
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -24662,6 +23160,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/UserSettings"
+          },
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -24694,8 +23195,8 @@
           "200": {
             "$ref": "#/responses/RepositoryList"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -24727,11 +23228,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -24761,11 +23259,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -24795,11 +23290,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -25026,8 +23518,8 @@
           "200": {
             "$ref": "#/responses/User"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -25080,8 +23572,8 @@
           "200": {
             "$ref": "#/responses/ActivityFeedsList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -25121,8 +23613,8 @@
           "200": {
             "$ref": "#/responses/UserList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -25162,8 +23654,8 @@
           "200": {
             "$ref": "#/responses/UserList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -25195,8 +23687,8 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -25236,8 +23728,8 @@
           "200": {
             "$ref": "#/responses/GPGKeyList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -25265,8 +23757,8 @@
           "200": {
             "$ref": "#/responses/UserHeatmapData"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -25312,8 +23804,8 @@
           "200": {
             "$ref": "#/responses/PublicKeyList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -25353,8 +23845,8 @@
           "200": {
             "$ref": "#/responses/OrganizationList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -25389,11 +23881,8 @@
           "200": {
             "$ref": "#/responses/OrganizationPermissions"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -25445,8 +23934,8 @@
           "200": {
             "$ref": "#/responses/ProjectList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -25486,8 +23975,8 @@
           "200": {
             "$ref": "#/responses/RepositoryList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -25527,11 +24016,8 @@
           "200": {
             "$ref": "#/responses/RepositoryList"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -25571,8 +24057,8 @@
           "200": {
             "$ref": "#/responses/RepositoryList"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -25612,8 +24098,8 @@
           "200": {
             "$ref": "#/responses/AccessTokenList"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -25649,11 +24135,8 @@
           "201": {
             "$ref": "#/responses/AccessToken"
           },
-          "400": {
+          "default": {
             "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
           }
         }
       }
@@ -25688,13 +24171,7 @@
           "204": {
             "$ref": "#/responses/empty"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
+          "default": {
             "$ref": "#/responses/error"
           }
         }
@@ -25719,23 +24196,6 @@
     }
   },
   "definitions": {
-    "APIError": {
-      "description": "APIError is an api error with a message",
-      "type": "object",
-      "properties": {
-        "message": {
-          "description": "Message contains the error description",
-          "type": "string",
-          "x-go-name": "Message"
-        },
-        "url": {
-          "description": "URL contains the documentation URL for this error",
-          "type": "string",
-          "x-go-name": "URL"
-        }
-      },
-      "x-go-package": "gitea.dev/modules/structs"
-    },
     "AccessToken": {
       "type": "object",
       "title": "AccessToken represents an API access token.",
@@ -26694,6 +25154,11 @@
           "format": "date-time",
           "x-go-name": "Created"
         },
+        "digest": {
+          "description": "Digest is the SHA-256 of the content as \"sha256:{hex}\", omitted when not recorded at upload",
+          "type": "string",
+          "x-go-name": "Digest"
+        },
         "download_count": {
           "description": "DownloadCount is the number of times the attachment has been downloaded",
           "type": "integer",
@@ -27170,6 +25635,120 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "CodeSearchResultItem": {
+      "type": "object",
+      "title": "CodeSearchResultItem is a matching file.",
+      "properties": {
+        "html_url": {
+          "description": "File URL at the searched commit",
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "language": {
+          "description": "Programming language (Gitea extension)",
+          "type": "string",
+          "x-go-name": "Language"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "path": {
+          "type": "string",
+          "x-go-name": "Path"
+        },
+        "repository": {
+          "$ref": "#/definitions/Repository"
+        },
+        "text_matches": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeSearchTextMatch"
+          },
+          "x-go-name": "TextMatches"
+        },
+        "url": {
+          "description": "Contents API URL at the searched commit",
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CodeSearchResults": {
+      "type": "object",
+      "title": "CodeSearchResults contains matching files.",
+      "properties": {
+        "incomplete_results": {
+          "description": "Search stopped early",
+          "type": "boolean",
+          "x-go-name": "IncompleteResults"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeSearchResultItem"
+          },
+          "x-go-name": "Items"
+        },
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CodeSearchTextMatch": {
+      "type": "object",
+      "title": "CodeSearchTextMatch is a matching fragment.",
+      "properties": {
+        "fragment": {
+          "type": "string",
+          "x-go-name": "Fragment"
+        },
+        "matches": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeSearchTextMatchTerm"
+          },
+          "x-go-name": "Matches"
+        },
+        "object_type": {
+          "type": "string",
+          "x-go-name": "ObjectType"
+        },
+        "object_url": {
+          "type": "string",
+          "x-go-name": "ObjectURL"
+        },
+        "property": {
+          "type": "string",
+          "x-go-name": "Property"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CodeSearchTextMatchTerm": {
+      "type": "object",
+      "title": "CodeSearchTextMatchTerm is a matched term.",
+      "properties": {
+        "indices": {
+          "description": "Start and end UTF-8 byte offsets in the fragment, end-exclusive",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "Indices"
+        },
+        "text": {
+          "type": "string",
+          "x-go-name": "Text"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "CombinedStatus": {
       "description": "CombinedStatus holds the combined state of several statuses for a single commit",
       "type": "object",
@@ -27192,13 +25771,14 @@
           "type": "string",
           "enum": [
             "pending",
+            "running",
             "success",
             "error",
             "failure",
             "warning",
             "skipped"
           ],
-          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
+          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nrunning CommitStatusRunning is for when the CommitStatus is Running\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
           "x-go-name": "State"
         },
         "statuses": {
@@ -27446,17 +26026,18 @@
           "x-go-name": "ID"
         },
         "status": {
-          "description": "State represents the status state (pending, success, error, failure)",
+          "description": "State represents the status state (pending, running, success, error, failure, warning, skipped)",
           "type": "string",
           "enum": [
             "pending",
+            "running",
             "success",
             "error",
             "failure",
             "warning",
             "skipped"
           ],
-          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
+          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nrunning CommitStatusRunning is for when the CommitStatus is Running\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
           "x-go-name": "State"
         },
         "target_url": {
@@ -27668,6 +26249,7 @@
           "example": [
             "all",
             "read:activitypub",
+            "write:commitstatus",
             "read:issue",
             "write:misc",
             "read:notification",
@@ -27798,6 +26380,7 @@
           "x-go-name": "EnableForcePush"
         },
         "enable_force_push_allowlist": {
+          "description": "EnableForcePushAllowlist only takes effect when enable_force_push is true",
           "type": "boolean",
           "x-go-name": "EnableForcePushAllowlist"
         },
@@ -28565,6 +27148,9 @@
     "CreatePullReviewComment": {
       "description": "CreatePullReviewComment represent a review comment for creation api",
       "type": "object",
+      "required": [
+        "path"
+      ],
       "properties": {
         "body": {
           "type": "string",
@@ -28683,6 +27269,17 @@
           "description": "Whether to create the release as a draft",
           "type": "boolean",
           "x-go-name": "IsDraft"
+        },
+        "make_latest": {
+          "description": "\"true\" sets the release as the latest, \"false\" keeps the current latest, \"legacy\" returns to the newest stable release by date. If omitted, a newly published release becomes the latest only if it is the newest by date",
+          "type": "string",
+          "enum": [
+            "true",
+            "false",
+            "legacy"
+          ],
+          "x-go-enum-desc": "true MakeLatestTrue\nfalse MakeLatestFalse\nlegacy MakeLatestLegacy",
+          "x-go-name": "MakeLatest"
         },
         "name": {
           "description": "The display title of the release",
@@ -28808,17 +27405,18 @@
           "x-go-name": "Description"
         },
         "state": {
-          "description": "State represents the status state to set (pending, success, error, failure)",
+          "description": "State represents the status state to set (pending, running, success, error, failure, warning, skipped)",
           "type": "string",
           "enum": [
             "pending",
+            "running",
             "success",
             "error",
             "failure",
             "warning",
             "skipped"
           ],
-          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
+          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nrunning CommitStatusRunning is for when the CommitStatus is Running\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
           "x-go-name": "State"
         },
         "target_url": {
@@ -28960,7 +27558,7 @@
           }
         },
         "visibility": {
-          "description": "Team visibility within the organization. Defaults to \"private\".",
+          "description": "Team visibility within the organization. Defaults to the instance's default team visibility, \"private\" unless configured.",
           "type": "string",
           "enum": [
             "public",
@@ -29566,12 +28164,12 @@
           "x-go-name": "Active"
         },
         "authorization_header": {
-          "description": "Authorization header to include in webhook requests",
+          "description": "Authorization header to include in webhook requests, omitted keeps the current value unless the url changes",
           "type": "string",
           "x-go-name": "AuthorizationHeader"
         },
         "branch_filter": {
-          "description": "Branch filter pattern to determine which branches trigger the webhook",
+          "description": "Branch filter pattern to determine which branches trigger the webhook, omitted keeps the current value",
           "type": "string",
           "x-go-name": "BranchFilter"
         },
@@ -29584,7 +28182,7 @@
           "x-go-name": "Config"
         },
         "events": {
-          "description": "List of events that trigger this webhook",
+          "description": "List of events that trigger this webhook, omitted or empty keeps the current events",
           "type": "array",
           "items": {
             "type": "string"
@@ -29962,6 +28560,17 @@
           "type": "boolean",
           "x-go-name": "IsDraft"
         },
+        "make_latest": {
+          "description": "\"true\" sets the release as the latest, \"false\" keeps the current latest, \"legacy\" returns to the newest stable release by date. If omitted, a newly published release becomes the latest only if it is the newest by date",
+          "type": "string",
+          "enum": [
+            "true",
+            "false",
+            "legacy"
+          ],
+          "x-go-enum-desc": "true MakeLatestTrue\nfalse MakeLatestFalse\nlegacy MakeLatestLegacy",
+          "x-go-name": "MakeLatest"
+        },
         "name": {
           "description": "The new display title of the release",
           "type": "string",
@@ -30163,6 +28772,11 @@
           "description": "`repo` to only allow repo-level projects, `owner` to only allow owner projects, `all` to allow both.",
           "type": "string",
           "x-go-name": "ProjectsMode"
+        },
+        "pull_requests_creation_restriction": {
+          "description": "who is allowed to create pull requests: \"reader\" (default, any user with read access), \"member\" (must be a collaborator with read access) or \"writer\" (must be a collaborator with write access).",
+          "type": "string",
+          "x-go-name": "PullRequestsCreationRestriction"
         },
         "squash_merge_commit_message": {
           "description": "set the default squash merge commit message body: \"PR_BODY\", \"COMMIT_MESSAGES\", or \"BLANK\".",
@@ -31304,6 +29918,11 @@
           "type": "boolean",
           "x-go-name": "AllowOnlyContributorsToTrackTime"
         },
+        "creation_restriction": {
+          "description": "who is allowed to create issues: \"reader\" (default, any user with read access), \"member\" (must be a collaborator with read access) or \"writer\" (must be a collaborator with write access).",
+          "type": "string",
+          "x-go-name": "CreationRestriction"
+        },
         "enable_issue_dependencies": {
           "description": "Enable dependencies for issues and pull requests (Built-in issue tracker)",
           "type": "boolean",
@@ -32016,7 +30635,8 @@
             "codebase",
             "codecommit",
             "bitbucketserver",
-            "forgejo"
+            "forgejo",
+            "bitbucket"
           ],
           "x-go-name": "Service"
         },
@@ -32529,6 +31149,14 @@
           "type": "string",
           "x-go-name": "Name"
         },
+        "properties": {
+          "description": "The type specific properties locating the package file, e.g. the distribution and component of a Debian package",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Properties"
+        },
         "sha1": {
           "description": "The SHA1 hash of the package file",
           "type": "string",
@@ -33026,6 +31654,9 @@
           },
           "x-go-name": "Assignees"
         },
+        "auto_merge": {
+          "$ref": "#/definitions/PullRequestAutoMerge"
+        },
         "base": {
           "$ref": "#/definitions/PRBranchInfo"
         },
@@ -33207,6 +31838,31 @@
         },
         "user": {
           "$ref": "#/definitions/User"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PullRequestAutoMerge": {
+      "description": "PullRequestAutoMerge represents a pull request scheduled to auto merge when all checks succeed",
+      "type": "object",
+      "properties": {
+        "commit_message": {
+          "description": "The message of the resulting merge commit",
+          "type": "string",
+          "x-go-name": "CommitMessage"
+        },
+        "commit_title": {
+          "description": "The title of the resulting merge commit",
+          "type": "string",
+          "x-go-name": "CommitTitle"
+        },
+        "enabled_by": {
+          "$ref": "#/definitions/User"
+        },
+        "merge_method": {
+          "description": "The merge method that will be used, eg: \"merge\", \"rebase\", \"rebase-merge\", \"squash\", \"fast-forward-only\"",
+          "type": "string",
+          "x-go-name": "MergeMethod"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -33954,6 +32610,11 @@
         "internal_tracker": {
           "$ref": "#/definitions/InternalTracker"
         },
+        "issues_creation_restriction": {
+          "description": "who is allowed to create issues: \"reader\", \"member\" or \"writer\"",
+          "type": "string",
+          "x-go-name": "IssuesCreationRestriction"
+        },
         "language": {
           "type": "string",
           "x-go-name": "Language"
@@ -34035,6 +32696,11 @@
         "projects_mode": {
           "type": "string",
           "x-go-name": "ProjectsMode"
+        },
+        "pull_requests_creation_restriction": {
+          "description": "who is allowed to create pull requests: \"reader\", \"member\" or \"writer\"",
+          "type": "string",
+          "x-go-name": "PullRequestsCreationRestriction"
         },
         "release_counter": {
           "type": "integer",
@@ -35427,6 +34093,12 @@
         }
       }
     },
+    "CodeSearchResults": {
+      "description": "CodeSearchResults",
+      "schema": {
+        "$ref": "#/definitions/CodeSearchResults"
+      }
+    },
     "CombinedStatus": {
       "description": "CombinedStatus",
       "schema": {
@@ -35568,12 +34240,6 @@
         "items": {
           "$ref": "#/definitions/Email"
         }
-      }
-    },
-    "EmptyRepository": {
-      "description": "EmptyRepository",
-      "schema": {
-        "$ref": "#/definitions/APIError"
       }
     },
     "FileDeleteResponse": {
@@ -36176,15 +34842,6 @@
         }
       }
     },
-    "StringSlice": {
-      "description": "StringSlice",
-      "schema": {
-        "type": "array",
-        "items": {
-          "type": "string"
-        }
-      }
-    },
     "Tag": {
       "description": "Tag",
       "schema": {
@@ -36362,9 +35019,6 @@
         "$ref": "#/definitions/ActionWorkflowRunsResponse"
       }
     },
-    "conflict": {
-      "description": "APIConflict is a conflict empty response"
-    },
     "empty": {
       "description": "APIEmpty is an empty response"
     },
@@ -36379,71 +35033,10 @@
         }
       }
     },
-    "forbidden": {
-      "description": "APIForbiddenError is a forbidden error response",
-      "headers": {
-        "message": {
-          "type": "string"
-        },
-        "url": {
-          "type": "string"
-        }
-      }
-    },
-    "invalidTopicsError": {
-      "description": "APIInvalidTopicsError is error format response to invalid topics",
-      "headers": {
-        "invalidTopics": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "message": {
-          "type": "string"
-        }
-      }
-    },
-    "notFound": {
-      "description": "APINotFound is a not found empty response"
-    },
-    "repoArchivedError": {
-      "description": "APIRepoArchivedError is an error that is raised when an archived repo should be modified",
-      "headers": {
-        "message": {
-          "type": "string"
-        },
-        "url": {
-          "type": "string"
-        }
-      }
-    },
     "string": {
       "description": "APIString is a string response",
       "schema": {
         "type": "string"
-      }
-    },
-    "unauthorized": {
-      "description": "APIUnauthorizedError is an unauthorized error response",
-      "headers": {
-        "message": {
-          "type": "string"
-        },
-        "url": {
-          "type": "string"
-        }
-      }
-    },
-    "validationError": {
-      "description": "APIValidationError is error format response related to input validation",
-      "headers": {
-        "message": {
-          "type": "string"
-        },
-        "url": {
-          "type": "string"
-        }
       }
     }
   },

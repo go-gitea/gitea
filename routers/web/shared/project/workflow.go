@@ -27,37 +27,37 @@ func RenderWorkflows(ctx *context.Context, canWrite bool, tpl templates.TplName)
 	if canWrite {
 		var err error
 		if canWrite, err = project_service.CanManageWorkflows(ctx, ctx.Doer, project); err != nil {
-			ctx.ServerError("CanManageWorkflows", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
 	workflows, err := db.Find[project_model.Workflow](ctx, project_model.FindWorkflowsOptions{ListOptions: db.ListOptionsAll, ProjectIDs: []int64{project.ID}})
 	if err != nil {
-		ctx.ServerError("FindWorkflows", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	var workflowID int64
 	if param := ctx.PathParam("workflow_id"); param != "" {
 		id, err := strconv.ParseInt(param, 10, 64)
 		if err != nil || !slices.ContainsFunc(workflows, func(workflow *project_model.Workflow) bool { return workflow.ID == id }) {
-			ctx.NotFound(nil)
+			ctx.NotFound()
 			return
 		}
 		workflowID = id
 	}
 	event := ctx.FormString("event")
 	if event != "" && !project_model.WorkflowEvent(event).IsValid() {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	columns, err := project_model.GetColumns(ctx, project.ID, db.ListOptionsAll)
 	if err != nil {
-		ctx.ServerError("GetColumns", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	labels, err := project_service.GetProjectLabels(ctx, project)
 	if err != nil {
-		ctx.ServerError("GetProjectLabels", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
