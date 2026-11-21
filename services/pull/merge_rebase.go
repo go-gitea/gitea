@@ -105,6 +105,9 @@ func doMergeRebaseMergeCommit(ctx *mergeContext, message string) error {
 
 // doMergeStyleRebase rebases the tracking branch on the base branch as the current HEAD with or with a merge commit to the original pr branch
 func doMergeStyleRebase(ctx *mergeContext, mergeStyle repo_model.MergeStyle, message string) error {
+	if err := prepareTemporaryRepoForMerge(ctx); err != nil {
+		return err
+	}
 	if err := rebaseTrackingOnToBase(ctx, mergeStyle); err != nil {
 		return err
 	}

@@ -149,3 +149,38 @@ func TestCommitMessageMerge(t *testing.T) {
 		assert.Equal(t, c.out, out, "idx=%d, m1=%q m2=%q", i, c.m1, c.m2)
 	}
 }
+
+func TestCommitMessageAddTrailer(t *testing.T) {
+	cases := []struct{ message, out string }{
+		{"", "Key: v"},
+		{"title", "title\n\nKey: v"},
+		{"title\n", "title\n\nKey: v"},
+		{"title\n\n", "title\n\nKey: v"},
+		{"feat: subject", "feat: subject\n\nKey: v"},
+		{"title\n\nNot trailer: xxx", "title\n\nNot trailer: xxx\n\nKey: v"},
+		{"title\n\nOther: xxx", "title\n\nOther: xxx\nKey: v"},
+		{"title\n\nKey: v", "title\n\nKey: v"},
+		{"title\n\nKey: v\n", "title\n\nKey: v\n"},
+		{"title\n\nKey: v1", "title\n\nKey: v1\nKey: v"},
+		{"title\n\nKey: v\n\nbody", "title\n\nKey: v\n\nbody\n\nKey: v"},
+		{"fix-up\n\nbody\nOther: xxx", "fix-up\n\nbody\nOther: xxx\n\nKey: v"},
+		{"title\n\nSigned-off-by: a\n folded\nKey: v1", "title\n\nSigned-off-by: a\n folded\nKey: v1\nKey: v"},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.out, CommitMessageAddTrailer(c.message, "Key", "v"), "message=%q", c.message)
+	}
+}
+
+func TestCleanupObjectMessage(t *testing.T) {
+	cases := []struct{ message, out string }{
+		{"", ""},
+		{" \r\n\n", ""},
+		{"title", "title\n"},
+		{"\n\ntitle  \r\n\r\n\r\n# heading\r\nbody\t \n\n", "title\n\n# heading\nbody\n"},
+		{"title\rbody", "title\nbody\n"},
+		{"  indented\v\n", "  indented\v\n"},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.out, CleanupObjectMessage(c.message), "message=%q", c.message)
+	}
+}
