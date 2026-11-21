@@ -2,7 +2,7 @@ import {contrastColor} from '../utils/color.ts';
 import {createSortable} from '../modules/sortable.ts';
 import {POST} from '../modules/fetch.ts';
 import {performFetchActionRequest} from '../modules/fetch-action.ts';
-import {hideFomanticModal} from '../modules/fomantic/modal.ts';
+import {hideModal} from '../modules/modal.ts';
 import {queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
 import type {SortableEvent} from 'sortablejs';
 import {toggleFullScreen} from '../utils.ts';
@@ -16,27 +16,19 @@ function updateIssueCount(card: HTMLElement): void {
 }
 
 async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<void> {
-  const columnCards = to.querySelectorAll('.issue-card');
   updateIssueCount(from);
   updateIssueCount(to);
 
-  const columnSorting = {
-    issues: Array.from(columnCards, (card, i) => ({
-      issueID: parseInt(card.getAttribute('data-issue')!),
-      sorting: i,
-    })),
-  };
-
-  try {
-    await POST(`${to.getAttribute('data-url')}/move`, {
-      data: columnSorting,
-    });
-  } catch (error) {
-    console.error(error);
-    if (oldIndex !== undefined) {
-      from.insertBefore(item, from.children[oldIndex]);
-    }
-  }
+  const prevCard = item.previousElementSibling;
+  const resp = await performFetchActionRequest(item, {
+    method: 'POST',
+    url: `${to.getAttribute('data-url')}/move`,
+    data: {
+      issueID: parseInt(item.getAttribute('data-issue')!),
+      prevIssueID: prevCard ? parseInt(prevCard.getAttribute('data-issue')!) : 0,
+    },
+  });
+  if (!resp && oldIndex !== undefined) from.insertBefore(item, from.children[oldIndex]);
 }
 
 function initRepoProjectSortable(): void {
@@ -49,7 +41,7 @@ function initRepoProjectSortable(): void {
     handle: '.project-column-header',
     delayOnTouchOnly: true,
     delay: 500,
-    onSort: async () => { // eslint-disable-line @typescript-eslint/no-misused-promises -- Sortable ignores the returned promise, the body catches its own errors
+    onSort: async () => {
       boardColumns = mainBoard.querySelectorAll<HTMLElement>('.project-column');
 
       const columnSorting = {
@@ -73,8 +65,8 @@ function initRepoProjectSortable(): void {
     const boardCardList = boardColumn.querySelector<HTMLElement>('.cards')!;
     createSortable(boardCardList, {
       group: 'shared',
-      onAdd: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises -- Sortable ignores the returned promise, moveIssue catches its own errors
-      onUpdate: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises -- Sortable ignores the returned promise, moveIssue catches its own errors
+      onAdd: moveIssue,
+      onUpdate: moveIssue,
       delayOnTouchOnly: true,
       delay: 500,
     });
@@ -82,7 +74,7 @@ function initRepoProjectSortable(): void {
 }
 
 function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
-  const elModal = document.querySelector<HTMLElement>('.ui.modal#project-column-modal-edit')!;
+  const elModal = document.querySelector<HTMLDialogElement>('#project-column-modal-edit')!;
   const elForm = elModal.querySelector<HTMLFormElement>('form')!;
 
   const elColumnId = elForm.querySelector<HTMLInputElement>('input[name="id"]')!;
@@ -140,7 +132,7 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
         queryElemChildren(elBoardColumn, '.divider', (divider: HTMLElement) => divider.style.removeProperty('color'));
       }
 
-      hideFomanticModal(elModal);
+      hideModal(elModal);
     } finally {
       elForm.classList.remove('is-loading');
     }

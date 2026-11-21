@@ -5,15 +5,12 @@ package user
 
 import (
 	"net/http"
-	"slices"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	code_indexer "gitea.dev/modules/indexer/code"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/routers/common"
 	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/codesearch"
 	"gitea.dev/services/context"
 )
 
@@ -28,7 +25,7 @@ func CodeSearch(ctx *context.Context) {
 		return
 	}
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -36,75 +33,8 @@ func CodeSearch(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("explore.code")
 	ctx.Data["IsCodePage"] = true
 
-	prepareSearch := common.PrepareCodeSearch(ctx)
-	if prepareSearch.Keyword == "" {
+	common.SearchCode(ctx, &codesearch.Options{Engine: codesearch.Indexer, OwnerName: ctx.ContextUser.Name})
+	if !ctx.Written() {
 		ctx.HTML(http.StatusOK, tplUserCode)
-		return
 	}
-
-	var (
-		repoIDs []int64
-		err     error
-	)
-
-	page := ctx.FormInt("page")
-	if page <= 0 {
-		page = 1
-	}
-
-	repoIDs, err = repo_model.FindUserCodeAccessibleOwnerRepoIDs(ctx, ctx.ContextUser.ID, ctx.Doer)
-	if err != nil {
-		ctx.ServerError("FindUserCodeAccessibleOwnerRepoIDs", err)
-		return
-	}
-
-	var (
-		total                 int64
-		searchResults         []*code_indexer.Result
-		searchResultLanguages []*code_indexer.SearchResultLanguages
-	)
-
-	if len(repoIDs) > 0 {
-		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, &code_indexer.SearchOptions{
-			RepoIDs:    repoIDs,
-			Keyword:    prepareSearch.Keyword,
-			SearchMode: prepareSearch.SearchMode,
-			Language:   prepareSearch.Language,
-			Paginator: &db.ListOptions{
-				Page:     page,
-				PageSize: setting.UI.RepoSearchPagingNum,
-			},
-		})
-		if err != nil {
-			if code_indexer.IsAvailable(ctx) {
-				ctx.ServerError("SearchResults", err)
-				return
-			}
-			ctx.Data["CodeIndexerUnavailable"] = true
-		} else {
-			ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable(ctx)
-		}
-
-		loadRepoIDs := make([]int64, 0, len(searchResults))
-		for _, result := range searchResults {
-			if !slices.Contains(loadRepoIDs, result.RepoID) {
-				loadRepoIDs = append(loadRepoIDs, result.RepoID)
-			}
-		}
-
-		repoMaps, err := repo_model.GetRepositoriesMapByIDs(ctx, loadRepoIDs)
-		if err != nil {
-			ctx.ServerError("GetRepositoriesMapByIDs", err)
-			return
-		}
-
-		ctx.Data["RepoMaps"] = repoMaps
-	}
-	ctx.Data["SearchResults"] = searchResults
-	ctx.Data["SearchResultLanguages"] = searchResultLanguages
-
-	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.RepoSearchPagingNum).CurPage(page).Build()
-	ctx.Data["Page"] = pager
-
-	ctx.HTML(http.StatusOK, tplUserCode)
 }

@@ -411,8 +411,7 @@ select.ui.dropdown {
 
 .ui.dropdown select.noselection ~ .remove.icon,
 .ui.dropdown input[value=""] ~ .remove.icon,
-.ui.dropdown input:not([value]) ~ .remove.icon,
-.ui.dropdown.loading > .remove.icon {
+.ui.dropdown input:not([value]) ~ .remove.icon {
   display: none;
 }
 
@@ -518,40 +517,6 @@ select.ui.dropdown {
 
 .ui.dropdown:not(.button) > input:focus ~ .default.text {
   color: var(--color-placeholder-text);
-}
-
-.ui.loading.dropdown > i.icon {
-  height: 1em !important;
-}
-
-.ui.loading.selection.dropdown > i.icon {
-  padding: 1.5em 1.28571429em !important;
-}
-
-.ui.loading.dropdown > i.icon::before {
-  position: absolute;
-  content: "";
-  top: 50%;
-  left: 50%;
-  margin: -0.64285714em 0 0 -0.64285714em;
-  width: 1.28571429em;
-  height: 1.28571429em;
-  border-radius: 500rem;
-  border: 0.2em solid var(--color-secondary);
-}
-
-.ui.loading.dropdown > i.icon::after {
-  position: absolute;
-  content: "";
-  top: 50%;
-  left: 50%;
-  box-shadow: 0 0 0 1px transparent;
-  margin: -0.64285714em 0 0 -0.64285714em;
-  width: 1.28571429em;
-  height: 1.28571429em;
-  animation: loader 0.6s infinite linear;
-  border: 0.2em solid var(--color-text-light-2);
-  border-radius: 500rem;
 }
 
 .ui.dropdown .loading.menu {
@@ -666,7 +631,6 @@ select.ui.dropdown {
   border-top: none;
 }
 
-.ui.dropdown > .animating.menu .scrolling.menu,
 .ui.dropdown > .visible.menu .scrolling.menu {
   display: block;
 }

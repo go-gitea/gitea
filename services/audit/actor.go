@@ -6,6 +6,7 @@ package audit
 import (
 	"context"
 
+	audit_model "gitea.dev/models/audit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/web/middleware"
 )
@@ -35,6 +36,10 @@ func WithDoer(ctx context.Context, doer *user_model.User) context.Context {
 	return context.WithValue(ctx, doerContextKey, doer)
 }
 
+func WithCLIDoer(ctx context.Context) context.Context {
+	return WithDoer(WithOrigin(ctx, audit_model.OriginCLI), user_model.NewCliUser())
+}
+
 // doerFromContext resolves the actor of an audit event: an explicit WithDoer
 // value wins over the signed-in user of the surrounding request. Returns nil
 // when neither is available, which Record turns into an unknown actor.
@@ -48,23 +53,6 @@ func doerFromContext(ctx context.Context) *user_model.User {
 		}
 	}
 	return nil
-}
-
-// credentialFromContext returns the credential the surrounding request
-// authenticated with. It is dropped when the event is recorded for someone
-// other than the signed-in user, so an explicit actor is never tied to a
-// credential that is not theirs.
-func credentialFromContext(ctx context.Context, doer *user_model.User) string {
-	data := middleware.GetContextData(ctx)
-	if data == nil {
-		return ""
-	}
-	signedUser, _ := data[middleware.ContextDataKeySignedUser].(*user_model.User)
-	if signedUser == nil || signedUser.ID != doer.ID {
-		return ""
-	}
-	credential, _ := data[middleware.ContextDataKeyAuthCredential].(string)
-	return credential
 }
 
 // ImpersonatorFromContext resolves the admin acting as the doer, so an event

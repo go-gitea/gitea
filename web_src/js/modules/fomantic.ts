@@ -1,7 +1,5 @@
 import {initAriaDropdownPatch} from './fomantic/dropdown.ts';
-import {initAriaModalPatch} from './fomantic/modal.ts';
 import {initFomanticTransition} from './fomantic/transition.ts';
-import {initFomanticDimmer} from './fomantic/dimmer.ts';
 import {svg} from '../svg.ts';
 
 export const fomanticMobileScreen = window.matchMedia('only screen and (max-width: 767.98px)');
@@ -20,9 +18,7 @@ export function initGiteaFomantic() {
   };
 
   initFomanticTransition();
-  initFomanticDimmer();
 
   // Use the patches to improve accessibility, these patches are designed to be as independent as possible, make it easy to modify or remove in the future.
   initAriaDropdownPatch();
-  initAriaModalPatch();
 }

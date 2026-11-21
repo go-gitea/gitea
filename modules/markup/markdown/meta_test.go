@@ -26,67 +26,46 @@ func (it *IssueTemplate) Valid() bool {
 }
 
 func TestExtractMetadata(t *testing.T) {
-	t.Run("ValidFrontAndBody", func(t *testing.T) {
-		var meta IssueTemplate
-		body, err := ExtractMetadata(fmt.Sprintf("%s\n%s\n%s\n%s", sepTest, frontTest, sepTest, bodyTest), &meta)
-		assert.NoError(t, err)
-		assert.Equal(t, bodyTest, body)
-		assert.Equal(t, metaTest, meta)
-		assert.True(t, meta.Valid())
-	})
+	for _, mode := range []string{"String", "Bytes"} {
+		t.Run(mode, func(t *testing.T) {
+			extract := func(format string, args ...any) (string, IssueTemplate, error) {
+				var meta IssueTemplate
+				if mode == "String" {
+					body, err := ExtractMetadata(fmt.Sprintf(format, args...), &meta)
+					return body, meta, err
+				} else {
+					body, err := ExtractMetadataBytes(fmt.Appendf(nil, format, args...), &meta)
+					return string(body), meta, err
+				}
+			}
 
-	t.Run("NoFirstSeparator", func(t *testing.T) {
-		var meta IssueTemplate
-		_, err := ExtractMetadata(fmt.Sprintf("%s\n%s\n%s", frontTest, sepTest, bodyTest), &meta)
-		assert.Error(t, err)
-	})
+			t.Run("ValidFrontAndBody", func(t *testing.T) {
+				body, meta, err := extract("%s\n%s\n%s\n%s", sepTest, frontTest, sepTest, bodyTest)
+				assert.NoError(t, err)
+				assert.Equal(t, bodyTest, body)
+				assert.Equal(t, metaTest, meta)
+				assert.True(t, meta.Valid())
+			})
 
-	t.Run("NoLastSeparator", func(t *testing.T) {
-		var meta IssueTemplate
-		_, err := ExtractMetadata(fmt.Sprintf("%s\n%s\n%s", sepTest, frontTest, bodyTest), &meta)
-		assert.Error(t, err)
-	})
+			t.Run("NoFirstSeparator", func(t *testing.T) {
+				_, _, err := extract("%s\n%s\n%s", frontTest, sepTest, bodyTest)
+				assert.Error(t, err)
+			})
 
-	t.Run("NoBody", func(t *testing.T) {
-		var meta IssueTemplate
-		body, err := ExtractMetadata(fmt.Sprintf("%s\n%s\n%s", sepTest, frontTest, sepTest), &meta)
-		assert.NoError(t, err)
-		assert.Empty(t, body)
-		assert.Equal(t, metaTest, meta)
-		assert.True(t, meta.Valid())
-	})
-}
+			t.Run("NoLastSeparator", func(t *testing.T) {
+				_, _, err := extract("%s\n%s\n%s", sepTest, frontTest, bodyTest)
+				assert.Error(t, err)
+			})
 
-func TestExtractMetadataBytes(t *testing.T) {
-	t.Run("ValidFrontAndBody", func(t *testing.T) {
-		var meta IssueTemplate
-		body, err := ExtractMetadataBytes(fmt.Appendf(nil, "%s\n%s\n%s\n%s", sepTest, frontTest, sepTest, bodyTest), &meta)
-		assert.NoError(t, err)
-		assert.Equal(t, bodyTest, string(body))
-		assert.Equal(t, metaTest, meta)
-		assert.True(t, meta.Valid())
-	})
-
-	t.Run("NoFirstSeparator", func(t *testing.T) {
-		var meta IssueTemplate
-		_, err := ExtractMetadataBytes(fmt.Appendf(nil, "%s\n%s\n%s", frontTest, sepTest, bodyTest), &meta)
-		assert.Error(t, err)
-	})
-
-	t.Run("NoLastSeparator", func(t *testing.T) {
-		var meta IssueTemplate
-		_, err := ExtractMetadataBytes(fmt.Appendf(nil, "%s\n%s\n%s", sepTest, frontTest, bodyTest), &meta)
-		assert.Error(t, err)
-	})
-
-	t.Run("NoBody", func(t *testing.T) {
-		var meta IssueTemplate
-		body, err := ExtractMetadataBytes(fmt.Appendf(nil, "%s\n%s\n%s", sepTest, frontTest, sepTest), &meta)
-		assert.NoError(t, err)
-		assert.Empty(t, string(body))
-		assert.Equal(t, metaTest, meta)
-		assert.True(t, meta.Valid())
-	})
+			t.Run("NoBody", func(t *testing.T) {
+				body, meta, err := extract("%s\n%s\n%s", sepTest, frontTest, sepTest)
+				assert.NoError(t, err)
+				assert.Empty(t, body)
+				assert.Equal(t, metaTest, meta)
+				assert.True(t, meta.Valid())
+			})
+		})
+	}
 }
 
 var (

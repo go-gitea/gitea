@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
-	"strings"
+	"sync"
 
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -18,6 +18,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/auth/source/ldap"
@@ -35,10 +36,15 @@ const (
 	tplAuthEdit templates.TplName = "admin/auth/edit"
 )
 
-var (
-	separatorAntiPattern = regexp.MustCompile(`[^\w-\.]`)
-	langCodePattern      = regexp.MustCompile(`^[a-z]{2}-[A-Z]{2}$`)
-)
+var globalVars = sync.OnceValue(func() (ret struct {
+	separatorAntiPattern *regexp.Regexp
+	langCodePattern      *regexp.Regexp
+},
+) {
+	ret.separatorAntiPattern = regexp.MustCompile(`[^\w-\.]`)
+	ret.langCodePattern = regexp.MustCompile(`^[a-z]{2}-[A-Z]{2}$`)
+	return ret
+})
 
 // Authentications show authentication config page
 func Authentications(ctx *context.Context) {
@@ -48,7 +54,7 @@ func Authentications(ctx *context.Context) {
 	var err error
 	ctx.Data["Sources"], ctx.Data["Total"], err = db.FindAndCount[auth.Source](ctx, auth.FindSourcesOptions{})
 	if err != nil {
-		ctx.ServerError("auth.Sources", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -175,15 +181,6 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 			EmailURL:   form.Oauth2EmailURL,
 			Tenant:     form.Oauth2Tenant,
 		}
-	} else {
-		customURLMapping = nil
-	}
-	var scopes []string
-	for s := range strings.SplitSeq(form.Oauth2Scopes, ",") {
-		s = strings.TrimSpace(s)
-		if s != "" {
-			scopes = append(scopes, s)
-		}
 	}
 
 	return &oauth2.Source{
@@ -193,7 +190,7 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		OpenIDConnectAutoDiscoveryURL: form.OpenIDConnectAutoDiscoveryURL,
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       form.Oauth2IconURL,
-		Scopes:                        scopes,
+		Scopes:                        util.SplitTrimSpace(form.Oauth2Scopes, ","),
 		RequiredClaimName:             form.Oauth2RequiredClaimName,
 		RequiredClaimValue:            form.Oauth2RequiredClaimValue,
 		GroupClaimName:                form.Oauth2GroupClaimName,
@@ -213,12 +210,12 @@ func parseSSPIConfig(ctx *context.Context, form forms.AuthenticationForm) (*sspi
 		ctx.Data["Err_SSPISeparatorReplacement"] = true
 		return nil, errors.New(ctx.Locale.TrString("form.require_error", ctx.Locale.TrString("form.SSPISeparatorReplacement")))
 	}
-	if separatorAntiPattern.MatchString(form.SSPISeparatorReplacement) {
+	if globalVars().separatorAntiPattern.MatchString(form.SSPISeparatorReplacement) {
 		ctx.Data["Err_SSPISeparatorReplacement"] = true
 		return nil, errors.New(ctx.Locale.TrString("form.alpha_dash_dot_error", ctx.Locale.TrString("form.SSPISeparatorReplacement")))
 	}
 
-	if form.SSPIDefaultLanguage != "" && !langCodePattern.MatchString(form.SSPIDefaultLanguage) {
+	if form.SSPIDefaultLanguage != "" && !globalVars().langCodePattern.MatchString(form.SSPIDefaultLanguage) {
 		ctx.Data["Err_SSPIDefaultLanguage"] = true
 		return nil, errors.New(ctx.Locale.TrString("form.lang_select_error"))
 	}
@@ -316,7 +313,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 			ctx.Data["Err_DiscoveryURL"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.unable_to_initialize_openid", errInit.Unwrap()), tplAuthNew, form)
 		} else {
-			ctx.ServerError("auth.CreateSource", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -339,7 +336,7 @@ func EditAuthSource(ctx *context.Context) {
 
 	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64("authid"))
 	if err != nil {
-		ctx.ServerError("auth.GetSourceByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Source"] = source
@@ -370,7 +367,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 
 	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64("authid"))
 	if err != nil {
-		ctx.ServerError("auth.GetSourceByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Source"] = source
@@ -428,7 +425,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 			ctx.Data["Err_DiscoveryURL"] = true
 			ctx.HTML(http.StatusOK, tplAuthEdit)
 		} else {
-			ctx.ServerError("UpdateSource", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -442,7 +439,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 func DeleteAuthSource(ctx *context.Context) {
 	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64("authid"))
 	if err != nil {
-		ctx.ServerError("auth.GetSourceByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

@@ -10,6 +10,7 @@ import (
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	pull_model "gitea.dev/models/pull"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"
@@ -43,7 +44,7 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 	}
 	currentReview, err := issues_model.GetCurrentReview(ctx, ctx.Doer, issue)
 	if err != nil && !issues_model.IsErrReviewNotExist(err) {
-		ctx.ServerError("GetCurrentReview", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["PageIsPullFiles"] = true
@@ -51,11 +52,11 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 	ctx.Data["CurrentReview"] = currentReview
 	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(ctx, issue.PullRequest.GetGitHeadRefName())
 	if err != nil {
-		ctx.ServerError("GetRefCommitID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	ctx.Data["ReviewCommitID"] = pullHeadCommitID // it's questionable why it only needs the head commit ID but not correct "AfterCommitID" (single commit review)
 	upload.AddUploadContext(ctx, "comment")
 	ctx.HTML(http.StatusOK, tplNewComment)
 }
@@ -68,6 +69,10 @@ func CreateCodeComment(ctx *context.Context) {
 		return
 	}
 	if !issue.IsPull {
+		return
+	}
+	if issue_service.IsLockedForDoer(issue, ctx.Repo.Permission) {
+		ctx.JSONError(ctx.Tr("repo.issues.comment_on_locked"))
 		return
 	}
 
@@ -100,7 +105,7 @@ func CreateCodeComment(ctx *context.Context) {
 		attachments,
 	)
 	if err != nil {
-		ctx.ServerError("CreateCodeComment", err)
+		ctx.JSONErrorAuto(err)
 		return
 	}
 
@@ -123,23 +128,23 @@ func UpdateResolveConversation(ctx *context.Context) {
 
 	comment, err := issues_model.GetCommentByID(ctx, commentID)
 	if err != nil {
-		ctx.ServerError("GetIssueByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err = comment.LoadIssue(ctx); err != nil {
-		ctx.ServerError("comment.LoadIssue", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound(errors.New("comment's repoID is incorrect"))
+		ctx.NotFound()
 		return
 	}
 
 	var permResult bool
 	if permResult, err = issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer); err != nil {
-		ctx.ServerError("CanMarkConversation", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if !permResult {
@@ -155,7 +160,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 	if action == "Resolve" || action == "UnResolve" {
 		err = issues_model.MarkConversation(ctx, comment, ctx.Doer, action == "Resolve")
 		if err != nil {
-			ctx.ServerError("MarkConversation", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	} else {
@@ -172,7 +177,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 	showOutdatedComments := origin == "timeline" || GetShowOutdatedComments(ctx)
 	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, showOutdatedComments)
 	if err != nil {
-		ctx.ServerError("FetchCodeCommentsByLine", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if len(comments) == 0 {
@@ -182,29 +187,30 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 	}
 
 	if err := comments.LoadAttachments(ctx); err != nil {
-		ctx.ServerError("LoadAttachments", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
 	upload.AddUploadContext(ctx, "comment")
 
 	ctx.Data["comments"] = comments
 	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer); err != nil {
-		ctx.ServerError("CanMarkConversation", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Issue"] = comment.Issue
 	if err = comment.Issue.LoadPullRequest(ctx); err != nil {
-		ctx.ServerError("comment.Issue.LoadPullRequest", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(ctx, comment.Issue.PullRequest.GetGitHeadRefName())
 	if err != nil {
-		ctx.ServerError("GetRefCommitID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
+	ctx.Data["ReviewCommitID"] = pullHeadCommitID // it's questionable why it only needs the head commit ID but not correct "AfterCommitID" (single commit review)
 	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
@@ -229,6 +235,10 @@ func SubmitReview(ctx *context.Context) {
 	if !issue.IsPull {
 		return
 	}
+	if issue_service.IsLockedForDoer(issue, ctx.Repo.Permission) {
+		ctx.JSONError(ctx.Tr("repo.issues.comment_on_locked"))
+		return
+	}
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.GetErrMsg())
 		ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
@@ -238,7 +248,7 @@ func SubmitReview(ctx *context.Context) {
 	reviewType := form.ReviewType()
 	switch reviewType {
 	case issues_model.ReviewTypeUnknown:
-		ctx.ServerError("ReviewType", fmt.Errorf("unknown ReviewType: %s", form.Type))
+		ctx.ServerErrorAuto(fmt.Errorf("unknown ReviewType: %s", form.Type))
 		return
 
 	// can not approve/reject your own PR
@@ -270,7 +280,7 @@ func SubmitReview(ctx *context.Context) {
 		} else if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) {
 			ctx.Status(http.StatusUnprocessableEntity)
 		} else {
-			ctx.ServerError("SubmitReview", err)
+			ctx.JSONErrorAuto(err)
 		}
 		return
 	}
@@ -286,7 +296,7 @@ func DismissReview(ctx *context.Context) {
 			ctx.Status(http.StatusForbidden)
 			return
 		}
-		ctx.ServerError("pull_service.DismissReview", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -332,13 +342,13 @@ func UpdateViewedFiles(ctx *context.Context) {
 	}
 
 	if _, err := pull_model.UpdateReviewState(ctx, ctx.Doer.ID, pull.ID, data.HeadCommitSHA, updatedFiles); err != nil {
-		ctx.ServerError("UpdateReview", err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 
 // UpdatePullReviewRequest add or remove review request
 func UpdatePullReviewRequest(ctx *context.Context) {
-	issues := getActionIssues(ctx)
+	issues := getActionIssues(ctx, perm.AccessModeRead)
 	if ctx.Written() {
 		return
 	}
@@ -354,7 +364,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 
 	for _, issue := range issues {
 		if err := issue.LoadRepo(ctx); err != nil {
-			ctx.ServerError("issue.LoadRepo", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -369,7 +379,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 		if reviewID < 0 {
 			// negative reviewIDs represent team requests
 			if err := issue.Repo.LoadOwner(ctx); err != nil {
-				ctx.ServerError("issue.Repo.LoadOwner", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 
@@ -384,7 +394,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 
 			team, err := organization.GetTeamByID(ctx, -reviewID)
 			if err != nil {
-				ctx.ServerError("GetTeamByID", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 
@@ -407,7 +417,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 					ctx.Status(http.StatusForbidden)
 					return
 				}
-				ctx.ServerError("TeamReviewRequest", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			continue
@@ -424,7 +434,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				ctx.Status(http.StatusForbidden)
 				return
 			}
-			ctx.ServerError("GetUserByID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -443,7 +453,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				ctx.Status(http.StatusForbidden)
 				return
 			}
-			ctx.ServerError("ReviewRequest", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}

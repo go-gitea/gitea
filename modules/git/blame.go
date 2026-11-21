@@ -7,19 +7,28 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
+	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 )
 
-func LineBlame(ctx context.Context, repo RepositoryFacade, revision, file string, line uint) (string, error) {
+func LineBlameCommitID(ctx context.Context, repo RepositoryFacade, revision, file string, line uint) (string, error) {
 	stdout, _, err := gitcmd.NewCommand("blame").WithRepo(repo).
 		AddOptionFormat("-L %d,%d", line, line).
 		AddOptionValues("-p", revision).
 		AddDashesAndList(file).
 		RunStdString(ctx)
-	return stdout, err
+	if err != nil {
+		return "", err
+	}
+	commitID, _, _ := strings.Cut(stdout, " ")
+	if !IsStringValidObjectID(nil, commitID) {
+		return "", fmt.Errorf("LineBlameCommitID: invalid commit ID %q", commitID)
+	}
+	return commitID, nil
 }
 
 // BlamePart represents block of blame - continuous lines with one sha

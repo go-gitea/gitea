@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
 	"gitea.dev/modules/git"
@@ -22,6 +23,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/migrations"
 	notify_service "gitea.dev/services/notify"
 	repo_service "gitea.dev/services/repository"
@@ -43,7 +45,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	}
 
 	err = git.ManagedRemoteAdd(ctx, repo, remoteName, addr, git.RemoteOptionMirrorFetch)
-	if err != nil && !git.IsRemoteNotExistError(err) {
+	if err != nil {
 		return err
 	}
 
@@ -56,15 +58,22 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		}
 
 		err = git.ManagedRemoteAdd(ctx, repo.WikiStorageRepo(), remoteName, wikiRemotePath, git.RemoteOptionMirrorFetch)
-		if err != nil && !git.IsRemoteNotExistError(err) {
+		if err != nil {
 			return err
 		}
 	}
 
 	// erase authentication before storing in database
 	u.User = nil
+	oldURL := m.Repo.OriginalURL
 	m.Repo.OriginalURL = u.String()
-	return repo_model.UpdateRepositoryColsNoAutoTime(ctx, m.Repo, "original_url")
+	if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, m.Repo, "original_url"); err != nil {
+		return err
+	}
+	if m.Repo.OriginalURL != oldURL {
+		audit.Record(ctx, audit_model.RepositoryMirrorPullUpdate, m.Repo, "remote_address", m.Repo.OriginalURL)
+	}
+	return nil
 }
 
 func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, repoLogName string, gitRepo git.RepositoryFacade, timeout time.Duration) error {

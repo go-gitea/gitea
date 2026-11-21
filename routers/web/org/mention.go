@@ -27,14 +27,14 @@ func GetMentionsInOwner(ctx *context.Context) {
 	// Get org members
 	members, _, err := org.GetMembers(ctx, ctx.Doer)
 	if err != nil {
-		ctx.ServerError("GetMembers", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	c.AddUsers(ctx, members)
 
 	// Get mentionable teams
 	if err := c.AddMentionableTeams(ctx, ctx.Doer, ctx.ContextUser); err != nil {
-		ctx.ServerError("AddMentionableTeams", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

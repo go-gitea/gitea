@@ -34,17 +34,13 @@ func TestIsProjectTypeValid(t *testing.T) {
 func TestGetProjects(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	projects, err := db.Find[Project](t.Context(), SearchOptions{RepoID: 1})
-	assert.NoError(t, err)
+	for _, repoID := range []int64{1, 3} {
+		projects, err := db.Find[Project](t.Context(), SearchOptions{RepoID: repoID})
+		assert.NoError(t, err)
 
-	// 1 value for this repo exists in the fixtures
-	assert.Len(t, projects, 1)
-
-	projects, err = db.Find[Project](t.Context(), SearchOptions{RepoID: 3})
-	assert.NoError(t, err)
-
-	// 1 value for this repo exists in the fixtures
-	assert.Len(t, projects, 1)
+		// 1 value for this repo exists in the fixtures
+		assert.Len(t, projects, 1)
+	}
 }
 
 func TestProject(t *testing.T) {

@@ -65,29 +65,3 @@ func TestUpdateAssignee(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, isAssigned)
 }
-
-func TestMakeIDsFromAPIAssigneesToAdd(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	_ = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	_ = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	IDs, err := issues_model.MakeIDsFromAPIAssigneesToAdd(t.Context(), "", []string{""})
-	assert.NoError(t, err)
-	assert.Equal(t, []int64{}, IDs)
-
-	_, err = issues_model.MakeIDsFromAPIAssigneesToAdd(t.Context(), "", []string{"none_existing_user"})
-	assert.Error(t, err)
-
-	IDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd(t.Context(), "user1", []string{"user1"})
-	assert.NoError(t, err)
-	assert.Equal(t, []int64{1}, IDs)
-
-	IDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd(t.Context(), "user2", []string{""})
-	assert.NoError(t, err)
-	assert.Equal(t, []int64{2}, IDs)
-
-	IDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd(t.Context(), "", []string{"user1", "user2"})
-	assert.NoError(t, err)
-	assert.Equal(t, []int64{1, 2}, IDs)
-}

@@ -8,8 +8,11 @@ import (
 	"errors"
 	"fmt"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/services/audit"
 
 	"github.com/urfave/cli/v3"
 )
@@ -49,8 +52,10 @@ func runGenerateAccessToken(ctx context.Context, c *cli.Command) error {
 		return errors.New("you must provide a username to generate a token for")
 	}
 
-	if err := initDB(ctx); err != nil {
-		return err
+	if !setting.IsInTesting {
+		if err := initDB(ctx); err != nil {
+			return err
+		}
 	}
 
 	user, err := user_model.GetUserByName(ctx, c.String("username"))
@@ -86,6 +91,7 @@ func runGenerateAccessToken(ctx context.Context, c *cli.Command) error {
 	if err := auth_model.NewAccessToken(ctx, t); err != nil {
 		return err
 	}
+	audit.Record(ctx, audit_model.UserAccessTokenAdd, user, "token", t.Name, "token_scope", t.Scope)
 
 	if c.Bool("raw") {
 		cprintln(c, t.Token)

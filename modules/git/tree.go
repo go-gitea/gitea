@@ -5,20 +5,16 @@
 package git
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/util"
 )
 
-type TreeCommon struct {
-	ID ObjectID
-}
-
 func newTree(id ObjectID) *Tree {
-	return &Tree{TreeCommon: TreeCommon{ID: id}}
+	return &Tree{ID: id}
 }
 
 // SubTree get a subtree by the sub dir path
@@ -50,20 +46,17 @@ func (t *Tree) SubTree(ctx context.Context, gitRepo *Repository, rpath string) (
 }
 
 // LsTree checks if the given filenames are in the tree
-func (repo *Repository) LsTree(ctx context.Context, ref string, filenames ...string) ([]string, error) {
-	cmd := gitcmd.NewCommand("ls-tree", "-z", "--name-only").
+func (repo *Repository) LsTree(ctx context.Context, ref string, filenames ...string) (files []string, _ error) {
+	cmd := gitcmd.NewCommand("ls-tree", "-z", "--name-only").WithRepo(repo).
 		AddDashesAndList(append([]string{ref}, filenames...)...)
 
-	res, _, err := cmd.WithRepo(repo).RunStdBytes(ctx)
-	if err != nil {
-		return nil, err
-	}
-	filelist := make([]string, 0, len(filenames))
-	for line := range bytes.SplitSeq(res, []byte{'\000'}) {
-		filelist = append(filelist, string(line))
-	}
-
-	return filelist, err
+	err := gitcmd.RunWithScannerSplit(ctx, cmd, util.BufioScannerSplit(0), func(ctx gitcmd.Context, chunk []byte) error {
+		if len(chunk) > 0 {
+			files = append(files, string(chunk))
+		}
+		return nil
+	})
+	return files, err
 }
 
 // GetTreePathLatestCommit returns the latest commit of a tree path
@@ -80,14 +73,14 @@ func (repo *Repository) GetTreePathLatestCommit(ctx context.Context, refName, tr
 
 // Tree represents a flat directory listing.
 type Tree struct {
-	TreeCommon
+	ID ObjectID
 
 	entries       Entries
 	entriesParsed bool
 }
 
 // ListEntries returns all entries of current tree.
-func (t *Tree) ListEntries(ctx context.Context, gitRepo *Repository) (Entries, error) {
+func (t *Tree) ListEntries(_ctx context.Context, gitRepo *Repository) (Entries, error) {
 	if t.entriesParsed {
 		return t.entries, nil
 	}
@@ -113,32 +106,19 @@ func (t *Tree) ListEntries(ctx context.Context, gitRepo *Repository) (Entries, e
 			return nil, err
 		}
 	}
-	if info.Type == "tree" {
-		t.entries, err = catBatchParseTreeEntries(t.ID.Type(), t, rd, info.Size)
+	if info.Type != "tree" { // resolve annotated tags to their tree, a blob yields ErrNotExist
+		info, rd, err = batch.QueryContent(t.ID.String() + "^{tree}")
 		if err != nil {
 			return nil, err
 		}
-		t.entriesParsed = true
-		return t.entries, nil
 	}
 
-	// Not a tree just use ls-tree instead
-	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "-l").AddDynamicArguments(t.ID.String()).WithRepo(gitRepo).RunStdBytes(ctx)
-	if runErr != nil {
-		if gitcmd.IsStderr(runErr, gitcmd.StderrNotValidObjectName) || gitcmd.IsStderr(runErr, gitcmd.StderrNotTreeObject) {
-			return nil, ErrNotExist{
-				ID: t.ID.String(),
-			}
-		}
-		return nil, runErr
+	t.entries, err = catBatchParseTreeEntries(t.ID.Type(), t, rd, info.Size)
+	if err != nil {
+		return nil, err
 	}
-
-	t.entries, err = parseTreeEntries(stdout, t)
-	if err == nil {
-		t.entriesParsed = true
-	}
-
-	return t.entries, err
+	t.entriesParsed = true
+	return t.entries, nil
 }
 
 // listEntriesRecursive returns all entries of current tree recursively including all subtrees

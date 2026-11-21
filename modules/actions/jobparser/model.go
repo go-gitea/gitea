@@ -26,6 +26,7 @@ type SingleWorkflow struct {
 	Defaults       Defaults  `yaml:"defaults,omitempty"`
 	RawPermissions yaml.Node `yaml:"permissions,omitempty"`
 	RunName        string    `yaml:"run-name,omitempty"`
+	CacheMode      string    `yaml:"cache-mode,omitempty"`
 }
 
 func (w *SingleWorkflow) Job() (string, *Job) {
@@ -86,7 +87,7 @@ func (w *SingleWorkflow) Marshal() ([]byte, error) {
 	return marshalYAML(&payload)
 }
 
-// marshalYAML never wraps lines, go-yaml wraps more-indented lines of folded scalars until https://github.com/yaml/go-yaml/pull/441 is released.
+// marshalYAML never wraps lines, re-encoding must not reflow long values.
 func marshalYAML(v any) ([]byte, error) {
 	return yaml.Dump(v, yaml.WithV3Defaults(), yaml.WithIndent(2), yaml.WithLineWidth(-1))
 }
@@ -110,6 +111,7 @@ type Job struct {
 	RawSecrets         yaml.Node             `yaml:"secrets,omitempty"`
 	RawConcurrency     *model.RawConcurrency `yaml:"concurrency,omitempty"`
 	RawPermissions     yaml.Node             `yaml:"permissions,omitempty"`
+	CacheMode          string                `yaml:"cache-mode,omitempty"`
 }
 
 // GetContinueOnError decodes the continue-on-error field to a bool.
@@ -129,26 +131,7 @@ func (j *Job) Clone() *Job {
 	if j == nil {
 		return nil
 	}
-	return &Job{
-		Name:               j.Name,
-		RawNeeds:           j.RawNeeds,
-		RawRunsOn:          j.RawRunsOn,
-		Env:                j.Env,
-		If:                 j.If,
-		Steps:              j.Steps,
-		TimeoutMinutes:     j.TimeoutMinutes,
-		RawContinueOnError: j.RawContinueOnError,
-		Services:           j.Services,
-		Strategy:           j.Strategy,
-		RawContainer:       j.RawContainer,
-		Defaults:           j.Defaults,
-		Outputs:            j.Outputs,
-		Uses:               j.Uses,
-		With:               j.With,
-		RawSecrets:         j.RawSecrets,
-		RawConcurrency:     j.RawConcurrency,
-		RawPermissions:     j.RawPermissions,
-	}
+	return new(*j)
 }
 
 func (j *Job) Needs() []string {

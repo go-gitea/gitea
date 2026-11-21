@@ -126,7 +126,7 @@ func TestEffectiveRequiredContexts(t *testing.T) {
 	t.Run("required workflow patterns appended", func(t *testing.T) {
 		require.NoError(t, db.Insert(t.Context(), &actions_model.ActionScopedWorkflowSource{
 			OwnerID:      consumer.OwnerID,
-			SourceRepoID: 1,
+			SourceRepoID: consumer.ID,
 			WorkflowConfigs: map[string]*actions_model.ScopedWorkflowConfig{
 				"ci.yaml":  {Required: true, Patterns: []string{"org/src: ci.yaml / build (pull_request)", "org/src: ci.yaml / lint (pull_request)"}},
 				"old.yaml": {Required: false, Patterns: []string{"org/src: old.yaml / *"}}, // kept as history, must NOT be enforced
