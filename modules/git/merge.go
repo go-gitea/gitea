@@ -27,7 +27,7 @@ func MergeBase(ctx context.Context, repo RepositoryFacade, baseCommitID, headCom
 
 // IsAncestor reports whether ancestor is reachable from descendant, a commit counts as its own ancestor
 func IsAncestor(ctx context.Context, repo RepositoryFacade, ancestor, descendant string) (bool, error) {
-	err := gitcmd.NewCommand("merge-base", "--is-ancestor").AddDynamicArguments(ancestor, descendant).WithRepo(repo).Run(ctx)
+	err := gitcmd.NewCommand("merge-base", "--is-ancestor").AddDynamicArguments(ancestor, descendant).WithRepo(repo).RunWithStderr(ctx)
 	if gitcmd.IsErrorExitCode(err, 1) {
 		return false, nil
 	}

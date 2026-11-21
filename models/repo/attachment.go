@@ -34,12 +34,17 @@ type Attachment struct {
 	Name              string
 	DownloadCount     int64              `xorm:"DEFAULT 0"`
 	Size              int64              `xorm:"DEFAULT 0"`
+	HashSHA256        string             `xorm:"hash_sha256 VARCHAR(64) NOT NULL DEFAULT ''"` // empty for attachments uploaded before it was recorded
 	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
 	CustomDownloadURL string             `xorm:"-"`
 }
 
 func init() {
 	db.RegisterModel(new(Attachment))
+}
+
+func (a *Attachment) IsLinked() bool {
+	return a.IssueID > 0 || a.ReleaseID > 0 || a.CommentID > 0
 }
 
 // IncreaseDownloadCount is update download count + 1

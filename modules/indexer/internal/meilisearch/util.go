@@ -4,6 +4,7 @@
 package meilisearch
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modules/log"
@@ -27,10 +28,10 @@ func versionedIndexName(indexName string, version int) string {
 	return fmt.Sprintf("%s_v%d", indexName, version)
 }
 
-func (i *Indexer) checkOldIndexes() {
+func (i *Indexer) checkOldIndexes(ctx context.Context) {
 	for v := 0; v < i.version; v++ {
 		indexName := versionedIndexName(i.indexName, v)
-		_, err := i.Client.GetIndex(indexName)
+		_, err := i.Client.GetIndex(ctx, indexName)
 		if err == nil {
 			log.Warn("Found older meilisearch index named %q, Gitea will keep the old NOT DELETED. You can delete the old version after the upgrade succeed.", indexName)
 		}

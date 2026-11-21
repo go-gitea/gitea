@@ -78,15 +78,6 @@
 			</div>
 		{{end}}
 
-		{{range .OpenIDs}}
-			{{if .Show}}
-				<div class="item">
-					{{svg "fontawesome-openid"}}
-					<a target="_blank" href="{{.URI}}">{{.URI}}</a>
-				</div>
-			{{end}}
-		{{end}}
-
 		<div class="item">{{svg "octicon-calendar"}} <span>{{ctx.Locale.Tr "user.joined_on" (DateUtils.AbsoluteShort .ContextUser.CreatedUnix)}}</span></div>
 
 		{{if and .Orgs .HasOrgsVisible}}

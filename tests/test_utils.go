@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/testlogger"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers"
+	indexer_service "gitea.dev/services/indexer"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -49,6 +50,7 @@ func InitIntegrationTest() (workPath string, err error) {
 	}
 
 	routers.InitWebInstalled(graceful.GetManager().HammerContext())
+	indexer_service.WaitForStartup()
 	return workPath, nil
 }
 

@@ -328,7 +328,13 @@ func getIssueCommentPayloadInfo(p *api.IssueCommentPayload, linkFormatter linkFo
 	return text, issueTitle, color
 }
 
-func getRepoRenamedFrom(p *api.RepositoryPayload) string {
+func getRepoChangedFrom(p *api.RepositoryPayload) string {
+	if p.Action == api.HookRepoTransferred {
+		if org := p.Changes.Owner.From.Organization; org != nil {
+			return org.UserName
+		}
+		return p.Changes.Owner.From.User.UserName
+	}
 	if p.Changes == nil || p.Changes.Name == nil {
 		return ""
 	}

@@ -199,5 +199,5 @@ test('EditorMarkdown', () => {
   testInput('- [ ]', '- [ ]\n- ');
   testInput('- [ ] foo', '- [ ] foo\n- [ ] ');
   testInput('* [x] foo', '* [x] foo\n* [ ] ');
-  testInput('1. [x] foo', '1. [x] foo\n2. [ ] ');
+  testInput('1. [X] foo', '1. [X] foo\n2. [ ] ');
 });

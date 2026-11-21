@@ -23,10 +23,10 @@ func TestServerErrorFetchActionRespondsJSON(t *testing.T) {
 	req.Header.Add("X-Gitea-Fetch-Action", "1")
 	resp := httptest.NewRecorder()
 	ctx := NewWebContext(NewBaseContextForTest(t, resp, req), nil, nil)
-	ctx.ServerError("test", errors.New("boom"))
+	ctx.ServerErrorAuto(errors.New("boom"))
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 	assert.Contains(t, resp.Header().Get("Content-Type"), "application/json")
-	assert.JSONEq(t, `{"errorMessage":"test, error: boom","renderFormat":"text"}`, resp.Body.String())
+	assert.JSONEq(t, `{"errorMessage":"internal server error, error: boom","renderFormat":"text"}`, resp.Body.String())
 }
 
 func TestRedirectToCurrentSite(t *testing.T) {

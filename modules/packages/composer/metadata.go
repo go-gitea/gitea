@@ -14,6 +14,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/json"
@@ -117,7 +118,9 @@ type Author struct {
 	Homepage string `json:"homepage,omitempty"`
 }
 
-var nameMatch = regexp.MustCompile(`\A[a-z0-9]([_\.-]?[a-z0-9]+)*/[a-z0-9](([_\.]?|-{0,2})[a-z0-9]+)*\z`)
+var nameMatch = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`\A[a-z0-9]([_\.-]?[a-z0-9]+)*/[a-z0-9](([_\.]?|-{0,2})[a-z0-9]+)*\z`)
+})
 
 type ReadSeekAt interface {
 	io.Reader
@@ -237,7 +240,7 @@ func ParsePackage(r ReadSeekAt, optVersion ...string) (*PackageInfo, error) {
 		return nil, err
 	}
 
-	if !nameMatch.MatchString(cj.Name) {
+	if !nameMatch().MatchString(cj.Name) {
 		return nil, ErrInvalidName
 	}
 

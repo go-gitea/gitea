@@ -40,22 +40,7 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	event := map[string]any{}
 	_ = json.Unmarshal([]byte(run.EventPayload), &event)
 
-	baseRef := ""
-	headRef := ""
-	ref := run.Ref
-	sha := run.CommitSHA
-	if pullPayload, err := run.GetPullRequestEventPayload(); err == nil && pullPayload.PullRequest != nil && pullPayload.PullRequest.Base != nil && pullPayload.PullRequest.Head != nil {
-		baseRef = pullPayload.PullRequest.Base.Ref
-		headRef = pullPayload.PullRequest.Head.Ref
-
-		// if the TriggerEvent is pull_request_target, ref and sha need to be set according to the base of pull request
-		// In GitHub's documentation, ref should be the branch or tag that triggered workflow. But when the TriggerEvent is pull_request_target,
-		// the ref will be the base branch.
-		if run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
-			ref = git.BranchPrefix + pullPayload.PullRequest.Base.Ref
-			sha = pullPayload.PullRequest.Base.Sha
-		}
-	}
+	baseRef, headRef, ref, sha := runRefs(run)
 
 	refName := git.RefName(ref)
 	refType := refName.RefType()
@@ -148,6 +133,21 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	}
 
 	return gitContext
+}
+
+// runRefs returns the run's `github.base_ref`, `github.head_ref`, `github.ref` and `github.sha`.
+func runRefs(run *actions_model.ActionRun) (baseRef, headRef, ref, sha string) {
+	ref, sha = run.Ref, run.CommitSHA
+	if pullPayload, err := run.GetPullRequestEventPayload(); err == nil && pullPayload.PullRequest != nil && pullPayload.PullRequest.Base != nil && pullPayload.PullRequest.Head != nil {
+		baseRef = pullPayload.PullRequest.Base.Ref
+		headRef = pullPayload.PullRequest.Head.Ref
+		if run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
+			ref, sha = git.BranchPrefix+pullPayload.PullRequest.Base.Ref, pullPayload.PullRequest.Base.Sha
+		} else if run.TriggerEvent == actions_module.GithubEventPullRequest && !pullPayload.PullRequest.HasMerged && pullPayload.PullRequest.MergedCommitID != nil {
+			ref, sha = git.MergeRefNameFromPullIndex(pullPayload.PullRequest.Index).String(), *pullPayload.PullRequest.MergedCommitID
+		}
+	}
+	return baseRef, headRef, ref, sha
 }
 
 type TaskNeed struct {

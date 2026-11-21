@@ -334,6 +334,21 @@ func reqUsersExploreEnabled() func(ctx *context.APIContext) {
 	}
 }
 
+func reqCodeSearchEnabled() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if !setting.Indexer.RepoIndexerEnabled || setting.Service.Explore.DisableCodePage || unit.TypeCode.UnitGlobalDisabled() {
+			ctx.APIErrorNotFound()
+			return
+		}
+		needTwoFactor, err := doerNeedTwoFactorAuth(ctx, ctx.Doer)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+		} else if needTwoFactor {
+			ctx.APIError(http.StatusForbidden, "two-factor authentication is required")
+		}
+	}
+}
+
 func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if ctx.IsSigned && setting.Service.EnableReverseProxyAuthAPI && ctx.Data["AuthedMethod"] == auth.ReverseProxyMethodName {
@@ -356,16 +371,6 @@ func reqSiteAdmin() func(ctx *context.APIContext) {
 	}
 }
 
-// reqOwner user should be the owner of the repo or site admin.
-func reqOwner() func(ctx *context.APIContext) {
-	return func(ctx *context.APIContext) {
-		if !ctx.Repo.Permission.IsOwner() && !ctx.IsUserSiteAdmin() {
-			ctx.APIError(http.StatusForbidden, "user should be the owner of the repo")
-			return
-		}
-	}
-}
-
 func reqRepoDangerZone() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !access_model.CanDoerManageRepoDangerZone(ctx, ctx.Doer, ctx.Repo.Repository, &ctx.Repo.Permission) {
@@ -379,21 +384,23 @@ func reqRepoDangerZone() func(ctx *context.APIContext) {
 func reqSelfOrAdmin() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserSiteAdmin() && ctx.ContextUser != ctx.Doer {
-			ctx.APIError(http.StatusForbidden, "doer should be the site admin or be same as the contextUser")
+			ctx.APIError(http.StatusForbidden, "doer should be the site admin or be same as the target user")
 			return
 		}
 	}
 }
 
-// reqAdmin user should be an owner or a collaborator with admin write of a repository, or site admin
-func reqAdmin() func(ctx *context.APIContext) {
+func reqRepoAdmin() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
-			ctx.APIError(http.StatusForbidden, "user should be an owner or a collaborator with admin write of a repository")
+			ctx.APIError(http.StatusForbidden, "user should be an owner or have admin permission of the repository")
 			return
 		}
 	}
 }
+
+// TODO: refactor to use reqRepoAdmin instead of reqAdmin in the future
+func reqAdmin() func(ctx *context.APIContext) { return reqRepoAdmin() }
 
 // reqRepoWriter user should have a permission to write to a repo, or be a site admin
 func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
@@ -974,36 +981,37 @@ func Routes() *web.Router {
 	addActionsRoutes := func(
 		m *web.Router,
 		reqReaderCheck func(ctx *context.APIContext),
-		reqOwnerCheck func(ctx *context.APIContext),
+		reqManagerCheck func(ctx *context.APIContext),
 		act actions.API,
 	) {
 		m.Group("/actions", func() {
 			m.Group("/secrets", func() {
-				m.Get("", reqToken(), reqOwnerCheck, act.ListActionsSecrets)
+				m.Get("", act.ListActionsSecrets)
 				m.Combo("/{secretname}").
-					Put(reqToken(), reqOwnerCheck, bind(api.CreateOrUpdateSecretOption{}), act.CreateOrUpdateSecret).
-					Delete(reqToken(), reqOwnerCheck, act.DeleteSecret)
-			})
+					Put(bind(api.CreateOrUpdateSecretOption{}), act.CreateOrUpdateSecret).
+					Delete(act.DeleteSecret)
+			}, reqManagerCheck)
 
 			m.Group("/variables", func() {
-				m.Get("", reqToken(), reqOwnerCheck, act.ListVariables)
+				m.Get("", act.ListVariables)
 				m.Combo("/{variablename}").
-					Get(reqToken(), reqOwnerCheck, act.GetVariable).
-					Delete(reqToken(), reqOwnerCheck, act.DeleteVariable).
-					Post(reqToken(), reqOwnerCheck, bind(api.CreateVariableOption{}), act.CreateVariable).
-					Put(reqToken(), reqOwnerCheck, bind(api.UpdateVariableOption{}), act.UpdateVariable)
-			})
+					Get(act.GetVariable).
+					Delete(act.DeleteVariable).
+					Post(bind(api.CreateVariableOption{}), act.CreateVariable).
+					Put(bind(api.UpdateVariableOption{}), act.UpdateVariable)
+			}, reqManagerCheck)
 
 			m.Group("/runners", func() {
-				m.Get("", reqToken(), reqOwnerCheck, act.ListRunners)
-				m.Post("/registration-token", reqToken(), reqOwnerCheck, act.CreateRegistrationToken)
-				m.Get("/{runner_id}", reqToken(), reqOwnerCheck, act.GetRunner)
-				m.Delete("/{runner_id}", reqToken(), reqOwnerCheck, act.DeleteRunner)
-				m.Patch("/{runner_id}", reqToken(), reqOwnerCheck, bind(api.EditActionRunnerOption{}), act.UpdateRunner)
-			})
-			m.Get("/runs", reqToken(), reqReaderCheck, act.ListWorkflowRuns)
-			m.Get("/jobs", reqToken(), reqReaderCheck, act.ListWorkflowJobs)
-		})
+				m.Get("", act.ListRunners)
+				m.Post("/registration-token", act.CreateRegistrationToken)
+				m.Get("/{runner_id}", act.GetRunner)
+				m.Delete("/{runner_id}", act.DeleteRunner)
+				m.Patch("/{runner_id}", bind(api.EditActionRunnerOption{}), act.UpdateRunner)
+			}, reqManagerCheck)
+
+			m.Get("/runs", reqReaderCheck, act.ListWorkflowRuns)
+			m.Get("/jobs", reqReaderCheck, act.ListWorkflowJobs)
+		}, reqToken())
 	}
 
 	m.Group("", func() {
@@ -1263,7 +1271,7 @@ func Routes() *web.Router {
 				}, reqToken(), rejectPublicOnly())
 
 				// Adds the routes for secrets/variables and runner management
-				addActionsRoutes(m, reqRepoReader(unit.TypeActions), reqOwner(), repo.NewAction())
+				addActionsRoutes(m, reqRepoReader(unit.TypeActions), reqRepoAdmin(), repo.NewAction())
 
 				m.Group("/actions/workflows", func() {
 					m.Get("", repo.ActionsListRepositoryWorkflows)
@@ -1320,6 +1328,7 @@ func Routes() *web.Router {
 						Delete(reqAdmin(), repo.DeleteTeam)
 				}, reqToken())
 				m.Get("/raw/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFile)
+				m.Get("/code/search", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.SearchRepoCode)
 				m.Get("/media/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFileOrLFS)
 				m.Methods("HEAD,GET", "/archive/*", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.GetArchive)
 				m.Combo("/forks").Get(repo.ListForks).
@@ -1861,11 +1870,6 @@ func Routes() *web.Router {
 				m.Get("", admin.GetAllEmails)
 				m.Get("/search", admin.SearchEmail)
 			})
-			m.Group("/unadopted", func() {
-				m.Get("", admin.ListUnadoptedRepositories)
-				m.Post("/{username}/{reponame}", admin.AdoptRepository)
-				m.Delete("/{username}/{reponame}", admin.DeleteUnadoptedRepository)
-			})
 			m.Group("/hooks", func() {
 				m.Combo("").Get(admin.ListHooks).
 					Post(bind(api.CreateHookOption{}), admin.CreateHook)
@@ -1889,6 +1893,8 @@ func Routes() *web.Router {
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
+
+		m.Get("/search/code", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), reqToken(), reqCodeSearchEnabled(), repo.SearchCode)
 	}, sudo())
 
 	return m

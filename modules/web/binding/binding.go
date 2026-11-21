@@ -28,10 +28,13 @@ import (
 )
 
 const (
+	// TODO: need to refactor the binding package, let the rules provide error message directly.
+	// Don't use the fragile Classification and useless&incorrect Message field in the future.
+
 	errContentType     = "ContentTypeError"
 	errDeserialization = "DeserializationError"
 	errTypeCast        = "TypeCastError"
-	errRule            = "RuleError"
+	ErrTypeCast        = errTypeCast
 
 	ErrRequired     = "RequiredError"
 	ErrAlphaDashDot = "AlphaDashDotError"

@@ -15,17 +15,9 @@
 		<a id="collapse-files-btn" class="item">{{ctx.Locale.Tr "repo.pulls.collapse_files"}}</a>
 		{{if .Issue.Index}}
 			{{if .ShowOutdatedComments}}
-				<a class="item" href="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated=false">
-					<label class="tw-pointer-events-none">
-						{{ctx.Locale.Tr "repo.issues.review.option.hide_outdated_comments"}}
-					</label>
-				</a>
+				<a class="item" href="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated=false">{{ctx.Locale.Tr "repo.issues.review.option.hide_outdated_comments"}}</a>
 			{{else}}
-				<a class="item" href="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated=true">
-					<label class="tw-pointer-events-none">
-						{{ctx.Locale.Tr "repo.issues.review.option.show_outdated_comments"}}
-					</label>
-				</a>
+				<a class="item" href="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated=true">{{ctx.Locale.Tr "repo.issues.review.option.show_outdated_comments"}}</a>
 			{{end}}
 		{{end}}
 	</div>
