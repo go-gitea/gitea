@@ -6,6 +6,7 @@ package integration
 import (
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -86,5 +87,34 @@ func TestRepoDownloadArchive(t *testing.T) {
 		assert.NotEmpty(t, content["repo1/aaa.doc"])
 		assert.NotEmpty(t, content["repo1/x/b.txt"])
 		assert.NotEmpty(t, content["repo1/x/y/a.txt"])
+	})
+}
+
+func TestRepoDownloadArchiveRequireSignInViewExpensive(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Service.BlockAnonymousAccessExpensive, true)()
+	defer test.MockVariableValue(&testWebRoutes, routers.NormalRoutes())()
+
+	archiveURL := "/user2/repo1/archive/master.zip"
+
+	t.Run("AnonymousRedirectedToLogin", func(t *testing.T) {
+		// the login redirect must be processed by the browser, so the frontend must not
+		// intercept the archive link click with a "fetch and parse JSON" flow
+		req := NewRequest(t, "GET", archiveURL)
+		resp := MakeRequest(t, req, http.StatusSeeOther)
+		assert.Equal(t, "/user/login?redirect_to="+url.QueryEscape(archiveURL), resp.Header().Get("Location"))
+	})
+
+	t.Run("InitiateDownloadByPostIsNotSupported", func(t *testing.T) {
+		// archive download is always served by streaming, the obsolete "initiate download" endpoint is removed
+		req := NewRequest(t, "POST", archiveURL)
+		MakeRequest(t, req, http.StatusMethodNotAllowed)
+	})
+
+	t.Run("SignedInUserCanDownload", func(t *testing.T) {
+		session := loginUser(t, "user2")
+		req := NewRequest(t, "GET", archiveURL)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, "attachment; filename=repo1-master.zip", resp.Header().Get("Content-Disposition"))
 	})
 }
