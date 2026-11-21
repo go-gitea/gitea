@@ -55,8 +55,14 @@ func ErrorAsStderr(err error) (string, bool) {
 	return "", false
 }
 
+// exitCoder is implemented by *exec.ExitError and by any other error which reports a process exit code
+type exitCoder interface {
+	error
+	ExitCode() int
+}
+
 func IsErrorExitCode(err error, code int) bool {
-	if exitError, ok := errors.AsType[*exec.ExitError](err); ok {
+	if exitError, ok := errors.AsType[exitCoder](err); ok {
 		return exitError.ExitCode() == code
 	}
 	return false
