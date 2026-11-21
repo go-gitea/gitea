@@ -245,6 +245,10 @@ func Push(ctx context.Context, localRepoPath string, opts PushOptions) error {
 	}
 	if opts.Mirror {
 		cmd.AddArguments("--mirror")
+		if len(opts.MirrorExclude) > 0 {
+			// a configured push refspec replaces the implicit mirror one, so negative refspecs alone would push nothing and prune everything
+			cmd.AddConfig("remote."+opts.Remote+".push", "+refs/*:refs/*")
+		}
 		for _, ref := range opts.MirrorExclude {
 			cmd.AddConfig("remote."+opts.Remote+".push", "^"+ref)
 		}
