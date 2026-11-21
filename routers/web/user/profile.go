@@ -5,7 +5,6 @@
 package user
 
 import (
-	"fmt"
 	"net/http"
 
 	activities_model "gitea.dev/models/activities"
@@ -33,7 +32,7 @@ const (
 
 // OwnerProfile render profile page for a user or a organization (aka, repo owner)
 func OwnerProfile(ctx *context.Context) {
-	ctx.Data["EnableFeed"] = setting.Other.EnableFeed
+	// HINT: USER-TYPE-GLOSSARY: in the future it needs to handle more user types correctly
 	if ctx.ContextUser.IsOrganization() {
 		org.Home(ctx)
 	} else {
@@ -54,7 +53,7 @@ func userProfile(ctx *context.Context) {
 	// and the "profile readme" related logic also duplicates in both of FindOwnerProfileReadme and RenderUserOrgHeader
 	// TODO: it is a bad design and should be refactored later,
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.HTML(http.StatusOK, tplProfile)
@@ -107,7 +106,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		Page:     page,
 	})
 	if err != nil {
-		ctx.ServerError("GetUserFollowers", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["NumFollowers"] = numFollowers
@@ -116,7 +115,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		Page:     page,
 	})
 	if err != nil {
-		ctx.ServerError("GetUserFollowing", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["NumFollowing"] = numFollowing
@@ -165,7 +164,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			},
 		})
 		if err != nil {
-			ctx.ServerError("GetFeeds", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		ctx.Data["Feeds"] = items
@@ -196,7 +195,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			IsPrivate:          private,
 		})
 		if err != nil {
-			ctx.ServerError("SearchRepository", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -223,7 +222,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			IsPrivate:          private,
 		})
 		if err != nil {
-			ctx.ServerError("SearchRepository", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -251,7 +250,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			},
 		})
 		if err != nil {
-			ctx.ServerError("GetUserOrganizations", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		cards := make([]*user_model.User, 0, len(orgs))
@@ -282,7 +281,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			IsPrivate:          private,
 		})
 		if err != nil {
-			ctx.ServerError("SearchRepository", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -292,7 +291,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 	ctx.Data["Total"] = total
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -313,25 +312,22 @@ func ActionUserFollow(ctx *context.Context) {
 	case "unfollow":
 		err = user_model.UnfollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	}
-
 	if err != nil {
-		log.Error("Failed to apply action %q: %v", ctx.FormString("action"), err)
-		ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("Action %q failed", ctx.FormString("action")))
+		ctx.ServerErrorAuto(err)
 		return
 	}
+
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
-	if ctx.ContextUser.IsIndividual() {
-		ctx.HTML(http.StatusOK, tplProfileBigAvatar)
-		return
-	} else if ctx.ContextUser.IsOrganization() {
+
+	// HINT: USER-TYPE-GLOSSARY: follow the logic in OwnerProfile
+	if ctx.ContextUser.IsOrganization() {
 		ctx.Data["Org"] = ctx.ContextUser
-		ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
+		ctx.Data["IsFollowing"] = user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 		ctx.HTML(http.StatusOK, tplFollowUnfollow)
-		return
+	} else {
+		ctx.HTML(http.StatusOK, tplProfileBigAvatar)
 	}
-	log.Error("Failed to apply action %q: unsupported context user type: %s", ctx.FormString("action"), ctx.ContextUser.Type)
-	ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("Action %q failed", ctx.FormString("action")))
 }

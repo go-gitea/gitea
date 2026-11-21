@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -19,6 +20,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	"gitea.dev/services/migrations"
@@ -215,16 +217,9 @@ func GetPushMirrorByName(ctx *context.APIContext) {
 	}
 
 	mirrorName := ctx.PathParam("name")
-	// Get push mirror of a specific repo by remoteName
-	pushMirror, exist, err := db.Get[repo_model.PushMirror](ctx, repo_model.PushMirrorOptions{
-		RepoID:     ctx.Repo.Repository.ID,
-		RemoteName: mirrorName,
-	}.ToConds())
+	pushMirror, err := repo_model.GetRepoPushMirrorByRemoteName(ctx, ctx.Repo.Repository.ID, mirrorName)
 	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	} else if !exist {
-		ctx.APIErrorNotFound()
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -308,19 +303,22 @@ func DeletePushMirrorByRemoteName(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   default:
 	//     "$ref": "#/responses/error"
-
 	if !setting.Mirror.Enabled {
 		ctx.APIError(http.StatusBadRequest, "Mirror feature is disabled")
 		return
 	}
 
-	remoteName := ctx.PathParam("name")
-	// Delete push mirror on repo by name.
-	err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{RepoID: ctx.Repo.Repository.ID, RemoteName: remoteName})
+	pushMirror, err := repo_model.GetRepoPushMirrorByRemoteName(ctx, ctx.Repo.Repository.ID, ctx.PathParam("name"))
 	if err != nil {
-		ctx.APIError(http.StatusNotFound, err.Error())
+		ctx.APIErrorAuto(err)
 		return
 	}
+	err = mirror_service.DeleteRepoPushMirrorByID(ctx, ctx.Repo.Repository.ID, pushMirror.ID)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -370,13 +368,10 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 
 	// if the registration of the push mirrorOption fails remove it from the database
 	if err = mirror_service.AddPushMirrorRemote(ctx, pushMirror, address); err != nil {
-		if err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: pushMirror.ID, RepoID: pushMirror.RepoID}); err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
 		ctx.APIErrorInternal(err)
 		return
 	}
+	audit.Record(ctx, audit_model.RepositoryMirrorPushAdd, repo, "mirror_id", pushMirror.ID, "remote_address", pushMirror.RemoteAddress)
 	m, err := convert.ToPushMirror(ctx, pushMirror)
 	if err != nil {
 		ctx.APIErrorInternal(err)

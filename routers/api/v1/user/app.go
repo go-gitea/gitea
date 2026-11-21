@@ -450,6 +450,7 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 	}
 
 	audit.Record(ctx, audit_model.UserOAuth2ApplicationUpdate, ctx.Doer, "oauth2_application", app.Name)
+	audit.Record(ctx, audit_model.UserOAuth2ApplicationSecret, ctx.Doer, "oauth2_application", app.Name)
 
 	ctx.JSON(http.StatusOK, convert.ToOAuth2Application(app))
 }

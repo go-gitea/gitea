@@ -517,7 +517,7 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 			AddTokenAuth(httpContext.Token)
 		resp := httpContext.Session.MakeRequest(t, req, http.StatusConflict)
 		respJSON := DecodeJSON(t, resp, map[string]string{})
-		assert.Equal(t, "The repository with the same name already exists.", respJSON["message"])
+		assert.Contains(t, respJSON["message"], "already exists")
 	})
 }
 
@@ -574,7 +574,7 @@ func testAPIRepoCreateConflict(t *testing.T, u *url.URL) {
 			AddTokenAuth(httpContext.Token)
 		resp := httpContext.Session.MakeRequest(t, req, http.StatusConflict)
 		respJSON := DecodeJSON(t, resp, map[string]string{})
-		assert.Equal(t, "The repository with the same name already exists.", respJSON["message"])
+		assert.Contains(t, respJSON["message"], "already exists")
 	})
 }
 

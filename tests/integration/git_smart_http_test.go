@@ -30,6 +30,10 @@ func TestGitSmartHTTP(t *testing.T) {
 		testGitArchiveRemote(t, u)
 		t.Run("AnonymousAccess-Repo", func(t *testing.T) { testGitSmartHTTPPrivateRepoAnonymousAccess(t, false) })
 		t.Run("AnonymousAccess-Wiki", func(t *testing.T) { testGitSmartHTTPPrivateRepoAnonymousAccess(t, true) })
+		t.Run("BeingCreated", func(t *testing.T) {
+			require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), &repo_model.Repository{ID: 1, Status: repo_model.RepositoryBeingMigrated}, "status"))
+			MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/info/refs?service=git-receive-pack").AddBasicAuth("user2"), http.StatusForbidden)
+		})
 	})
 }
 

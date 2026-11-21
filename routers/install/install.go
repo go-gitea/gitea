@@ -480,7 +480,7 @@ func initAdminUser(ctx *context.Context, form *forms.InstallForm) bool {
 
 	nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, adminUser.ID)
 	if err != nil {
-		ctx.ServerError("CreateAuthTokenForUserID", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 

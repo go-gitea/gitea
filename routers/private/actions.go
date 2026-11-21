@@ -12,6 +12,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/private"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 )
 
@@ -37,6 +38,7 @@ func GenerateActionsRunnerToken(ctx *context.PrivateContext) {
 		ctx.PrivateInternalErrorf("GetOrCreateActiveRunnerToken failed: %v", err)
 		return
 	}
+	audit.RecordScopedByID(audit.WithCLIDoer(ctx), owner, repo, audit.RunnerToken)
 
 	ctx.PlainText(http.StatusOK, token.Token)
 }

@@ -7,11 +7,13 @@ import (
 	"errors"
 	"net/http"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/httpauth"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 )
 
@@ -72,6 +74,9 @@ func DeleteCurrentToken(ctx *context.APIContext) {
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		ctx.APIErrorAuto(err)
 		return
+	}
+	if err == nil {
+		audit.Record(ctx, audit_model.UserAccessTokenRemove, audit.ScopeFromUserID(ctx, accessToken.UID), "token", accessToken.Name)
 	}
 	ctx.Status(http.StatusNoContent)
 }

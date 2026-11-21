@@ -7,10 +7,13 @@ import (
 	"testing"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,8 +25,8 @@ func TestAddLdapSSHPublicKeys(t *testing.T) {
 	s := &auth.Source{ID: 1}
 
 	const (
-		rsaKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4cn+iXnA4KvcQYSV88vGn0Yi91vG47t1P7okprVmhNTkipNRIHWr6WdCO4VDr/cvsRkuVJAsLO2enwjGWWueOO6BodiBgyAOZ/5t5nJNMCNuLGT5UIo/RI1b0WRQwxEZTRjt6mFNw6lH14wRd8ulsr9toSWBPMOGWoYs1PDeDL0JuTjL+tr1SZi/EyxCngpYszKdXllJEHyI79KQgeD0Vt3pTrkbNVTOEcCNqZePSVmUH8X8Vhugz3bnE0/iE9Pb5fkWO9c4AnM1FgI/8Bvp27Fw2ShryIXuR6kKvUqhVMTuOSDHwu6A8jLE5Owt3GAYugDpDYuwTVNGrHLXKpPzrGGPE/jPmaLCMZcsdkec95dYeU3zKODEm8UQZFhmJmDeWVJ36nGrGZHL4J5aTTaeFUJmmXDaJYiJ+K2/ioKgXqnXvltu0A9R8/LGy4nrTJRr4JMLuJFoUXvGm1gXQ70w2LSpk6yl71RNC0hCtsBe8BP8IhYCM0EP5jh7eCMQZNvM="
-		dssKey = "ssh-dss AAAAB3NzaC1kc3MAAACBAOChCC7lf6Uo9n7BmZ6M8St19PZf4Tn59NriyboW2x/DZuYAz3ibZ2OkQ3S0SqDIa0HXSEJ1zaExQdmbO+Ux/wsytWZmCczWOVsaszBZSl90q8UnWlSH6P+/YA+RWJm5SFtuV9PtGIhyZgoNuz5kBQ7K139wuQsecdKktISwTakzAAAAFQCzKsO2JhNKlL+wwwLGOcLffoAmkwAAAIBpK7/3xvduajLBD/9vASqBQIHrgK2J+wiQnIb/Wzy0UsVmvfn8A+udRbBo+csM8xrSnlnlJnjkJS3qiM5g+eTwsLIV1IdKPEwmwB+VcP53Cw6lSyWyJcvhFb0N6s08NZysLzvj0N+ZC/FnhKTLzIyMtkHf/IrPCwlM+pV/M/96YgAAAIEAqQcGn9CKgzgPaguIZooTAOQdvBLMI5y0bQjOW6734XOpqQGf/Kra90wpoasLKZjSYKNPjE+FRUOrStLrxcNs4BeVKhy2PYTRnybfYVk1/dmKgH6P1YSRONsGKvTsH6c5IyCRG0ncCgYeF8tXppyd642982daopE7zQ/NPAnJfag="
+		rsaKey     = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4cn+iXnA4KvcQYSV88vGn0Yi91vG47t1P7okprVmhNTkipNRIHWr6WdCO4VDr/cvsRkuVJAsLO2enwjGWWueOO6BodiBgyAOZ/5t5nJNMCNuLGT5UIo/RI1b0WRQwxEZTRjt6mFNw6lH14wRd8ulsr9toSWBPMOGWoYs1PDeDL0JuTjL+tr1SZi/EyxCngpYszKdXllJEHyI79KQgeD0Vt3pTrkbNVTOEcCNqZePSVmUH8X8Vhugz3bnE0/iE9Pb5fkWO9c4AnM1FgI/8Bvp27Fw2ShryIXuR6kKvUqhVMTuOSDHwu6A8jLE5Owt3GAYugDpDYuwTVNGrHLXKpPzrGGPE/jPmaLCMZcsdkec95dYeU3zKODEm8UQZFhmJmDeWVJ36nGrGZHL4J5aTTaeFUJmmXDaJYiJ+K2/ioKgXqnXvltu0A9R8/LGy4nrTJRr4JMLuJFoUXvGm1gXQ70w2LSpk6yl71RNC0hCtsBe8BP8IhYCM0EP5jh7eCMQZNvM="
+		ed25519Key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf"
 	)
 	for i, kase := range []struct {
 		keyString   string
@@ -31,12 +34,12 @@ func TestAddLdapSSHPublicKeys(t *testing.T) {
 		keyContents []string
 	}{
 		{rsaKey + " nocomment\n", 1, []string{rsaKey}},
-		{rsaKey + " nocomment\n" + dssKey + " nocomment", 2, []string{rsaKey, dssKey}},
-		{rsaKey + " nocomment\n# comment asmdna,ndp\n" + dssKey + " nocomment", 2, []string{rsaKey, dssKey}},
-		{rsaKey + " nocomment\n382488320jasdj1lasmva/vasodifipi4193-fksma.cm\n" + dssKey + " nocomment", 2, []string{rsaKey, dssKey}},
+		{rsaKey + " nocomment\n" + ed25519Key + " nocomment", 2, []string{rsaKey, ed25519Key}},
+		{rsaKey + " nocomment\n# comment asmdna,ndp\n" + ed25519Key + " nocomment", 2, []string{rsaKey, ed25519Key}},
+		{rsaKey + " nocomment\n382488320jasdj1lasmva/vasodifipi4193-fksma.cm\n" + ed25519Key + " nocomment", 2, []string{rsaKey, ed25519Key}},
 	} {
 		s.ID = int64(i) + 20
-		asymkey_model.AddPublicKeysBySource(t.Context(), user, s, []string{kase.keyString}, false)
+		AddPublicKeysBySource(t.Context(), user, s, []string{kase.keyString}, false)
 		keys, err := db.Find[asymkey_model.PublicKey](t.Context(), asymkey_model.FindPublicKeyOptions{
 			OwnerID:       user.ID,
 			LoginSourceID: s.ID,
@@ -53,5 +56,22 @@ func TestAddLdapSSHPublicKeys(t *testing.T) {
 		for _, key := range keys {
 			DeletePublicKey(t.Context(), user, key.ID)
 		}
+	}
+}
+
+func TestSynchronizePublicKeysAudit(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	s := &auth.Source{ID: 30, Name: "ldap"}
+	const key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEYv1rUQ6Sx6XQNM5o8URz8xvuXaV9bGXfj+OMkh8T0X"
+
+	assert.True(t, SynchronizePublicKeys(t.Context(), user, s, []string{key + " comment"}, false))
+	assert.True(t, SynchronizePublicKeys(t.Context(), user, s, nil, false))
+
+	for _, action := range []audit_model.Action{audit_model.UserKeySSHAdd, audit_model.UserKeySSHRemove} {
+		e := unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: action, ScopeType: audit_model.ScopeUser, ScopeID: user.ID})
+		assert.Equal(t, user_model.AuthSourceUserID, e.ActorID)
 	}
 }

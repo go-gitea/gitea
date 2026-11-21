@@ -90,6 +90,15 @@ func TestFindAllIssueReferences(t *testing.T) {
 			},
 		},
 		{
+			"Closes #3，see（#4）and org3/repo4#200。修复#5 #6修",
+			[]testResult{
+				{3, "", "", "3", false, XRefActionCloses, &RefSpan{Start: 7, End: 9}, &RefSpan{Start: 0, End: 6}, ""},
+				{4, "", "", "4", false, XRefActionNone, &RefSpan{Start: 18, End: 20}, nil, ""},
+				{5, "", "", "5", false, XRefActionNone, &RefSpan{Start: 50, End: 52}, nil, ""},
+				{200, "org3", "repo4", "200", false, XRefActionNone, &RefSpan{Start: 27, End: 41}, nil, ""},
+			},
+		},
+		{
 			"This [one](#919) no, this is a URL fragment.",
 			[]testResult{},
 		},
@@ -474,11 +483,11 @@ func TestRegExp_mentionPattern(t *testing.T) {
 	}
 
 	for _, testCase := range trueTestCases {
-		found := mentionPattern.FindStringSubmatch(testCase.pat)
+		found := globalVars().mentionPattern.FindStringSubmatch(testCase.pat)
 		assert.Equal(t, testCase.exp, found[1])
 	}
 	for _, testCase := range falseTestCases {
-		res := mentionPattern.MatchString(testCase)
+		res := globalVars().mentionPattern.MatchString(testCase)
 		assert.False(t, res, "[%s] should be false", testCase)
 	}
 }
@@ -506,10 +515,10 @@ func TestRegExp_issueNumericPattern(t *testing.T) {
 	}
 
 	for _, testCase := range trueTestCases {
-		assert.True(t, issueNumericPattern.MatchString(testCase))
+		assert.True(t, globalVars().issueNumericPattern.MatchString(testCase))
 	}
 	for _, testCase := range falseTestCases {
-		assert.False(t, issueNumericPattern.MatchString(testCase))
+		assert.False(t, globalVars().issueNumericPattern.MatchString(testCase))
 	}
 }
 
@@ -543,10 +552,10 @@ func TestRegExp_issueAlphanumericPattern(t *testing.T) {
 	}
 
 	for _, testCase := range trueTestCases {
-		assert.True(t, issueAlphanumericPattern.MatchString(testCase))
+		assert.True(t, globalVars().issueAlphanumericPattern.MatchString(testCase))
 	}
 	for _, testCase := range falseTestCases {
-		assert.False(t, issueAlphanumericPattern.MatchString(testCase))
+		assert.False(t, globalVars().issueAlphanumericPattern.MatchString(testCase))
 	}
 }
 

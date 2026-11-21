@@ -13,6 +13,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 
@@ -87,6 +88,13 @@ func TestGetCommitStatuses(t *testing.T) {
 			"cov/awesomeness":    3,
 			"deploy/awesomeness": 5,
 		}, latestIndexes)
+	})
+
+	t.Run("GetLatestCommitStatusForRepoAndSHAsEmpty", func(t *testing.T) {
+		assert.NoError(t, git_model.UpdateCommitStatusSummary(t.Context(), repo1.ID, sha1))
+		statuses, err := git_model.GetLatestCommitStatusForRepoAndSHAs(t.Context(), nil)
+		assert.NoError(t, err)
+		assert.Empty(t, statuses)
 	})
 }
 
@@ -200,8 +208,10 @@ func TestCommitStatusesApplyDoerPermission(t *testing.T) {
 		},
 	}
 
-	git_model.CommitStatusesApplyDoerPermission(t.Context(), doer, statuses)
+	git_model.CommitStatusesApplyDoerPermission(cache.WithCacheContext(t.Context()), doer, statuses)
 	assert.Equal(t, visibleURL, statuses[0].TargetURL)
 	assert.Empty(t, statuses[1].TargetURL)
 	assert.Equal(t, "https://mycicd.org/1", statuses[2].TargetURL)
+	assert.NotNil(t, statuses[0].Repo)
+	assert.Same(t, statuses[0].Repo, statuses[2].Repo)
 }

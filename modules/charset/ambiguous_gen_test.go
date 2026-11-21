@@ -29,6 +29,9 @@ func TestAmbiguousCharacters(t *testing.T) {
 			found := i < len(ambiguous.Confusable) && ambiguous.Confusable[i] == confusable
 			assert.True(t, found, "%c is not in %d", confusable, i)
 		}
+		for r := rune(0x20); r < 0x7f; r++ {
+			assert.False(t, unicode.Is(ambiguous.RangeTable, r), "%c must not be ambiguous, isStringAsciiSafe skips it", r)
+		}
 	}
 
 	var confusableTo rune
