@@ -114,6 +114,8 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		}
 	}
 
+	source.syncGPGKeys(ctx, user, sr.GPGPublicKey)
+
 	if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
 		groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(source.GroupTeamMap)
 		if err != nil {

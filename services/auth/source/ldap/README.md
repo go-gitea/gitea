@@ -68,6 +68,14 @@ share the following fields:
       address. This will be used to populate their account information.
   * Example: mail
 
+* Public GPG Key Attribute (optional)
+  * The LDAP attribute containing ASCII-armored public GPG keys. Each key must
+      include an active email address on the Gitea account.
+  * Gitea reads the attribute at sign-in and during LDAP user synchronization.
+      Removing a key from LDAP removes the synchronized key from Gitea. Keys
+      added manually are preserved.
+  * Make the attribute readable to the account used for LDAP searches.
+
 **LDAP via BindDN** adds the following fields:
 
 * Bind DN (optional)
