@@ -16,6 +16,7 @@ import (
 
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
+	disclosure_model "gitea.dev/models/disclosure"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
@@ -653,6 +654,18 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
+	}
+
+	if repo.UnitEnabled(ctx, unit_model.TypeSecurity) {
+		// only count draft disclosures for maintainers, read-only users shouldn't see them
+		ctx.Data["NumDisclosures"], err = disclosure_model.CountDisclosures(ctx, disclosure_model.ListDisclosuresOptions{
+			IncludeDrafts: ctx.Repo.Permission.IsAdmin(),
+			RepoID:        ctx.Repo.Repository.ID,
+		})
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
 	}
 
 	ctx.Data["Title"] = repo.Owner.Name + "/" + repo.Name

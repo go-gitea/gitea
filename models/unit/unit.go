@@ -33,6 +33,7 @@ const (
 	TypeProjects        // 8 Projects: implies that the doer can read some information from issue & PR, org-level is not well-designed
 	TypePackages        // 9 Packages: for most cases, it is for owner-level (not well-designed though)
 	TypeActions         // 10 Actions
+	TypeSecurity        // 11 Security disclosures
 )
 
 // Value returns integer value for unit type (used by template)
@@ -62,6 +63,7 @@ var (
 		TypeProjects,
 		TypePackages,
 		TypeActions,
+		TypeSecurity,
 	}
 
 	// DefaultRepoUnits contains the default unit types
@@ -74,6 +76,7 @@ var (
 		TypeProjects,
 		TypePackages,
 		TypeActions,
+		TypeSecurity,
 	}
 
 	// ForkRepoUnits contains the default unit types for forks
@@ -325,6 +328,15 @@ var (
 		perm.AccessModeOwner,
 	}
 
+	UnitSecurity = Unit{
+		TypeSecurity,
+		"repo.security",
+		"/security",
+		"repo.security.desc",
+		8,
+		perm.AccessModeOwner,
+	}
+
 	// Units contains all the units
 	Units = map[Type]Unit{
 		TypeCode:            UnitCode,
@@ -337,6 +349,7 @@ var (
 		TypeProjects:        UnitProjects,
 		TypePackages:        UnitPackages,
 		TypeActions:         UnitActions,
+		TypeSecurity:        UnitSecurity,
 	}
 )
 

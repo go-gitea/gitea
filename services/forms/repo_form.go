@@ -120,6 +120,8 @@ type RepoSettingForm struct {
 
 	EnablePackages bool
 
+	EnableSecurity bool
+
 	EnablePulls                      bool
 	PullsIgnoreWhitespace            bool
 	PullsAllowMerge                  bool

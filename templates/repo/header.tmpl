@@ -162,6 +162,15 @@
 					</a>
 					{{end}}
 
+					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeSecurity}}
+					<a class="{{if .PageIsSecurity}}active{{end}} item" href="{{.RepoLink}}/security" data-shortcut-keys="g s">
+						{{svg "octicon-shield"}} {{ctx.Locale.Tr "repo.security"}}
+						{{if .NumDisclosures}}
+							<span class="ui small label">{{CountFmt .NumDisclosures}}</span>
+						{{end}}
+					</a>
+					{{end}}
+
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeWiki}}
 						<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki" data-shortcut-keys="g w">
 							{{svg "octicon-book"}} {{ctx.Locale.Tr "repo.wiki"}}

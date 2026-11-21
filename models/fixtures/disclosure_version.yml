@@ -1,0 +1,23 @@
+-
+  id: 1
+  disclosure_id: 1
+  kind: affected
+  version: ">= 1.0.0, < 1.4.0"
+
+-
+  id: 2
+  disclosure_id: 1
+  kind: affected
+  version: "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3"
+
+-
+  id: 3
+  disclosure_id: 1
+  kind: fixed
+  version: "1.4.0"
+
+-
+  id: 4
+  disclosure_id: 2
+  kind: affected
+  version: ">= 2.0.0"

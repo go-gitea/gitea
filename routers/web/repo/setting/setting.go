@@ -641,6 +641,12 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
 	}
 
+	if form.EnableSecurity && !unit_model.TypeSecurity.UnitGlobalDisabled() {
+		units = append(units, newRepoUnit(repo, unit_model.TypeSecurity, nil))
+	} else if !unit_model.TypeSecurity.UnitGlobalDisabled() {
+		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeSecurity)
+	}
+
 	if form.EnablePulls && !unit_model.TypePullRequests.UnitGlobalDisabled() {
 		defaultUpdateStyle := util.IfZero(repo_model.UpdateStyle(form.PullsDefaultUpdateStyle), repo_model.UpdateStyleMerge)
 		prConfig := &repo_model.PullRequestsConfig{
