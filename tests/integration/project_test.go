@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -17,6 +18,7 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	issue_indexer "gitea.dev/modules/indexer/issues"
 	project "gitea.dev/services/projects"
 	"gitea.dev/tests"
 
@@ -97,18 +99,37 @@ func TestUpdateIssueProject(t *testing.T) {
 
 	sess := loginUser(t, "user2")
 
-	t.Run("AssignAndRemove", func(t *testing.T) {
-		req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{
-			"id": "1",
-		})
-		sess.MakeRequest(t, req, http.StatusOK)
-		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
+	t.Run("AssignOnCreationNeedsWriter", func(t *testing.T) {
+		newIssue := func(session *TestSession, title string, status int) {
+			req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/new", map[string]string{"title": title, "project_ids": "1"})
+			session.MakeRequest(t, req, status)
+		}
+		newIssue(sess, "writer issue", http.StatusOK)
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1, Title: "writer issue"})
+		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issue.ID, ProjectID: 1})
+		newIssue(loginUser(t, "user4"), "reader issue", http.StatusNotFound)
+		unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: 1, Title: "reader issue"})
+	})
 
-		req = NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{
-			"id": "",
-		})
-		sess.MakeRequest(t, req, http.StatusOK)
-		unittest.AssertNotExistsBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
+	t.Run("SearchFollowsProjectChanges", func(t *testing.T) {
+		assertIssue2Found := func(opts issue_indexer.SearchOptions) {
+			t.Helper()
+			opts.Keyword, opts.RepoIDs = "second", []int64{1}
+			assert.EventuallyWithT(t, func(c *assert.CollectT) {
+				ids, _, err := issue_indexer.SearchIssues(t.Context(), &opts)
+				assert.NoError(c, err)
+				assert.Contains(c, ids, int64(2))
+			}, 10*time.Second, 10*time.Millisecond)
+		}
+
+		sess.MakeRequest(t, NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{"id": ""}), http.StatusOK)
+		assertIssue2Found(issue_indexer.SearchOptions{NoProjectOnly: true})
+
+		sess.MakeRequest(t, NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{"id": "1"}), http.StatusOK)
+		assertIssue2Found(issue_indexer.SearchOptions{ProjectIDs: []int64{1}})
+
+		sess.MakeRequest(t, NewRequest(t, "POST", "/user2/repo1/projects/1/delete"), http.StatusOK)
+		assertIssue2Found(issue_indexer.SearchOptions{NoProjectOnly: true})
 	})
 }
 
@@ -228,6 +249,12 @@ func getProjectIssueIDs(t *testing.T, htmlDoc *HTMLDoc) map[int64]struct{} {
 	return ids
 }
 
+func getProjectMilestoneNames(htmlDoc *HTMLDoc) []string {
+	return htmlDoc.Find(".list-header-filters a:has(.octicon-milestone)").Map(func(_ int, s *goquery.Selection) string {
+		return strings.TrimSpace(s.Text())
+	})
+}
+
 func TestRepoProjectFilterByMilestone(t *testing.T) {
 	// Project 1 is on repo 1 (user2/repo1) and has issues:
 	//   issue 1 (milestone_id=0), issue 2 (milestone_id=1), issue 3 (milestone_id=3), issue 5 (milestone_id=0)
@@ -235,53 +262,38 @@ func TestRepoProjectFilterByMilestone(t *testing.T) {
 
 	sess := loginUser(t, "user2")
 
-	t.Run("NoFilter", func(t *testing.T) {
-		req := NewRequest(t, "GET", "/user2/repo1/projects/1")
-		resp := sess.MakeRequest(t, req, http.StatusOK)
-		htmlDoc := NewHTMLParser(t, resp.Body)
-		issueIDs := getProjectIssueIDs(t, htmlDoc)
+	for _, test := range []struct {
+		name        string
+		url         string
+		contains    []int64
+		notContains []int64
+		milestones  []string
+	}{
 		// All issues should be visible
-		assert.Contains(t, issueIDs, int64(1))
-		assert.Contains(t, issueIDs, int64(2))
-		assert.Contains(t, issueIDs, int64(3))
-		assert.Contains(t, issueIDs, int64(5))
-	})
-
-	t.Run("FilterByMilestone", func(t *testing.T) {
+		{"NoFilter", "/user2/repo1/projects/1", []int64{1, 2, 3, 5}, nil, []string{"milestone1", "milestone3"}},
 		// milestone_id=1 is "milestone1" (open), only issue 2 has it
-		req := NewRequest(t, "GET", "/user2/repo1/projects/1?milestone=1")
-		resp := sess.MakeRequest(t, req, http.StatusOK)
-		htmlDoc := NewHTMLParser(t, resp.Body)
-		issueIDs := getProjectIssueIDs(t, htmlDoc)
-		assert.Contains(t, issueIDs, int64(2))
-		assert.NotContains(t, issueIDs, int64(1))
-		assert.NotContains(t, issueIDs, int64(3))
-		assert.NotContains(t, issueIDs, int64(5))
-	})
-
-	t.Run("FilterByNoMilestone", func(t *testing.T) {
+		{"FilterByMilestone", "/user2/repo1/projects/1?milestone=1", []int64{2}, []int64{1, 3, 5}, nil},
 		// milestone=-1 means "no milestone", issues 1 and 5 have no milestone
-		req := NewRequest(t, "GET", "/user2/repo1/projects/1?milestone=-1")
-		resp := sess.MakeRequest(t, req, http.StatusOK)
-		htmlDoc := NewHTMLParser(t, resp.Body)
-		issueIDs := getProjectIssueIDs(t, htmlDoc)
-		assert.Contains(t, issueIDs, int64(1))
-		assert.Contains(t, issueIDs, int64(5))
-		assert.NotContains(t, issueIDs, int64(2))
-		assert.NotContains(t, issueIDs, int64(3))
-	})
-
-	t.Run("FilterByClosedMilestone", func(t *testing.T) {
+		{"FilterByNoMilestone", "/user2/repo1/projects/1?milestone=-1", []int64{1, 5}, []int64{2, 3}, nil},
 		// milestone_id=3 is "milestone3" (closed), only issue 3 has it
-		req := NewRequest(t, "GET", "/user2/repo1/projects/1?milestone=3")
-		resp := sess.MakeRequest(t, req, http.StatusOK)
-		htmlDoc := NewHTMLParser(t, resp.Body)
-		issueIDs := getProjectIssueIDs(t, htmlDoc)
-		assert.Contains(t, issueIDs, int64(3))
-		assert.NotContains(t, issueIDs, int64(1))
-		assert.NotContains(t, issueIDs, int64(2))
-		assert.NotContains(t, issueIDs, int64(5))
-	})
+		{"FilterByClosedMilestone", "/user2/repo1/projects/1?milestone=3", []int64{3}, []int64{1, 2, 5}, nil},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			req := NewRequest(t, "GET", test.url)
+			resp := sess.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+			issueIDs := getProjectIssueIDs(t, htmlDoc)
+			for _, issueID := range test.contains {
+				assert.Contains(t, issueIDs, issueID)
+			}
+			for _, issueID := range test.notContains {
+				assert.NotContains(t, issueIDs, issueID)
+			}
+			if test.milestones != nil {
+				assert.Equal(t, test.milestones, getProjectMilestoneNames(htmlDoc))
+			}
+		})
+	}
 }
 
 func TestOrgProjectFilterByMilestone(t *testing.T) {
@@ -300,6 +312,7 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 		Name:   "org-test-milestone",
 	}
 	require.NoError(t, issues_model.NewMilestone(t.Context(), milestone))
+	require.NoError(t, issues_model.NewMilestone(t.Context(), &issues_model.Milestone{RepoID: repo.ID, Name: "unlinked-milestone"}))
 
 	issue16.MilestoneID = milestone.ID
 	require.NoError(t, issues_model.UpdateIssueCols(t.Context(), issue16, "milestone_id"))
@@ -314,8 +327,10 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 	require.NoError(t, project_model.NewProject(t.Context(), &project))
 
 	// Add issues to the project
-	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user1, []int64{project.ID}))
-	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue17, user1, []int64{project.ID}))
+	for _, issue := range []*issues_model.Issue{issue16, issue17} {
+		_, _, err := issues_model.IssueAssignOrRemoveProject(t.Context(), issue, user1, []int64{project.ID})
+		require.NoError(t, err)
+	}
 
 	sess := loginUser(t, "user1")
 	projectURL := fmt.Sprintf("/org3/-/projects/%d", project.ID)
@@ -327,6 +342,7 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 		issueIDs := getProjectIssueIDs(t, htmlDoc)
 		assert.Contains(t, issueIDs, issue16.ID)
 		assert.Contains(t, issueIDs, issue17.ID)
+		assert.Equal(t, []string{milestone.Name}, getProjectMilestoneNames(htmlDoc))
 	})
 
 	t.Run("FilterByMilestone", func(t *testing.T) {
@@ -370,19 +386,36 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 
 func TestProjects(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("PrivateLinkedPullRequest", func(t *testing.T) {
+		require.NoError(t, db.Insert(t.Context(), &issues_model.Comment{
+			Type:       issues_model.CommentTypePullRef,
+			PosterID:   2,
+			IssueID:    1,
+			RefRepoID:  3,
+			RefIssueID: 12,
+			RefIsPull:  true,
+		}))
+		const linkedPR = `href="/org3/repo3/pulls/2"`
+
+		resp := MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/projects/1"), http.StatusOK)
+		assert.NotContains(t, resp.Body.String(), linkedPR)
+
+		resp = loginUser(t, "user2").MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/projects/1"), http.StatusOK)
+		assert.Contains(t, resp.Body.String(), linkedPR)
+	})
 	t.Run("LoadIssuesAssigneesForProject", func(t *testing.T) {
-		_ = db.TruncateBeans(t.Context(), "project_issue", "issue_assignees")
-		_ = db.Insert(t.Context(),
+		require.NoError(t, db.TruncateBeans(t.Context(), &project_model.ProjectIssue{}, &issues_model.IssueAssignees{}))
+		require.NoError(t, db.Insert(t.Context(),
 			&project_model.ProjectIssue{ProjectID: 1, IssueID: 1},
 			&project_model.ProjectIssue{ProjectID: 1, IssueID: 6},
-		)
-		_ = db.Insert(t.Context(),
+		))
+		require.NoError(t, db.Insert(t.Context(),
 			&issues_model.IssueAssignees{IssueID: 1, AssigneeID: 1},
 			&issues_model.IssueAssignees{IssueID: 1, AssigneeID: 10},
 			&issues_model.IssueAssignees{IssueID: 1, AssigneeID: 2},
 			&issues_model.IssueAssignees{IssueID: 6, AssigneeID: 2},
 			&issues_model.IssueAssignees{IssueID: 6, AssigneeID: 4},
-		)
+		))
 		assignees, err := project.LoadIssuesAssigneesForProject(t.Context(), 1)
 		require.NoError(t, err)
 		require.Len(t, assignees, 4)

@@ -7,9 +7,6 @@
 		{{end}}
 		{{if not ($.UserDisabledFeatures.Contains "manage_credentials")}}
 		{{template "user/settings/security/accountlinks" .}}
-		{{if .EnableOpenIDSignIn}}
-		{{template "user/settings/security/openid" .}}
-		{{end}}
 		{{end}}
 	</div>
 	{{end}}

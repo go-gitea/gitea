@@ -170,3 +170,39 @@ func TestRepushTag(t *testing.T) {
 		assert.False(t, respRelease.IsDraft)
 	})
 }
+
+func TestProtectedTagSystemUsers(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+	path := "/api/v1/repos/user2/repo1/tag_protections"
+
+	t.Run("API", func(t *testing.T) {
+		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", path, &api.CreateTagProtectionOption{
+			NamePattern: "sys-*", WhitelistUsernames: []string{"user2", "gitea-actions", "gitea:deploy-key"},
+		}).AddTokenAuth(token), http.StatusCreated)
+		pt := DecodeJSON(t, resp, &api.TagProtection{})
+		assert.Equal(t, []string{"user2", "gitea-actions", "gitea:deploy-key"}, pt.WhitelistUsernames)
+
+		resp = MakeRequest(t, NewRequestWithJSON(t, "PATCH", fmt.Sprintf("%s/%d", path, pt.ID), &api.EditTagProtectionOption{
+			WhitelistUsernames: []string{"gitea-actions"},
+		}).AddTokenAuth(token), http.StatusOK)
+		pt = DecodeJSON(t, resp, &api.TagProtection{})
+		assert.Equal(t, []string{"gitea-actions"}, pt.WhitelistUsernames)
+
+		MakeRequest(t, NewRequestWithJSON(t, "POST", path, &api.CreateTagProtectionOption{
+			NamePattern: "missing-*", WhitelistUsernames: []string{"no-such-user"},
+		}).AddTokenAuth(token), http.StatusUnprocessableEntity)
+	})
+
+	t.Run("Web", func(t *testing.T) {
+		session := loginUser(t, "user2")
+		resp := session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/settings/tags"), http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		menu := htmlDoc.Find(`input[name="allowlist_users"] ~ .menu`)
+		assert.Equal(t, 1, menu.Find(fmt.Sprintf(`.item[data-value="%d"]`, user_model.ActionsUserID)).Length())
+		assert.Equal(t, 1, menu.Find(fmt.Sprintf(`.item[data-value="%d"]`, user_model.DeployKeyUserID)).Length())
+		assert.Contains(t, htmlDoc.Find("table").Text(), "gitea-actions")
+		assert.Zero(t, htmlDoc.Find(`table a[href$="/gitea-actions"]`).Length())
+	})
+}

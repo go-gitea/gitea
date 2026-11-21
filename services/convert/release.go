@@ -28,7 +28,21 @@ func ToAPIRelease(ctx context.Context, repo *repo_model.Repository, r *repo_mode
 		IsPrerelease: r.IsPrerelease,
 		CreatedAt:    r.CreatedUnix.AsTime(),
 		PublishedAt:  util.Iif(r.IsDraft, nil, r.PublishedUnix.AsTimePtr()),
-		Publisher:    ToUser(ctx, r.Publisher, nil),
+		Publisher:    ToAuthor(ctx, r.Publisher, r.OriginalAuthor, nil),
 		Attachments:  ToAPIAttachments(ctx, repo, r.Attachments),
 	}
+}
+
+func ToReleaseChanges(rel, oldRelease *repo_model.Release) *api.ChangesPayload {
+	changes := &api.ChangesPayload{}
+	if oldRelease.Title != rel.Title {
+		changes.Name = &api.ChangesFromPayload{From: oldRelease.Title}
+	}
+	if oldRelease.Note != rel.Note {
+		changes.Body = &api.ChangesFromPayload{From: oldRelease.Note}
+	}
+	if oldRelease.TagName != rel.TagName {
+		changes.TagName = &api.ChangesFromPayload{From: oldRelease.TagName}
+	}
+	return changes
 }

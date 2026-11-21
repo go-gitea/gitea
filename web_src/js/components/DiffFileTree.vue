@@ -7,6 +7,7 @@ import {diffTreeStore, diffTreeStoreSetViewed, filterDiffTree, applyFiltersToFil
 import {setFileFolding} from '../features/file-fold.ts';
 import {onMounted, onUnmounted, computed, watch} from 'vue';
 import {localUserSettings} from '../modules/user-settings.ts';
+import {registerAsyncHashChangeListener, removeAsyncHashChangeListener} from '../modules/hashchange.ts';
 
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
 
@@ -31,14 +32,13 @@ onMounted(() => {
   document.querySelector('.diff-toggle-file-tree-button')!.addEventListener('click', toggleVisibility);
   addDelegatedEventListener(document.querySelector('#diff-file-boxes')!, 'input', '.viewed-file-form input[type=checkbox]',
     (el: HTMLInputElement) => diffTreeStoreSetViewed(store, el.name, el.checked), {signal: viewedFileAbort.signal});
-  hashChangeListener();
-  window.addEventListener('hashchange', hashChangeListener);
+  registerAsyncHashChangeListener(hashChangeListener);
 });
 
 onUnmounted(() => {
   document.querySelector('.diff-toggle-file-tree-button')!.removeEventListener('click', toggleVisibility);
   viewedFileAbort.abort();
-  window.removeEventListener('hashchange', hashChangeListener);
+  removeAsyncHashChangeListener(hashChangeListener);
 });
 
 function hashChangeListener() {

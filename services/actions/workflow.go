@@ -22,6 +22,7 @@ import (
 	"gitea.dev/modules/reqctx"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
 	"gitea.dev/services/audit"
 	gitea_context "gitea.dev/services/context"
 	"gitea.dev/services/convert"
@@ -108,6 +109,9 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		refName = git.RefNameFromBranch(ref)
 		runTargetCommit, err = gitRepo.GetBranchCommit(ctx, ref)
 	}
+	if err == nil && !git.IsReferenceExist(ctx, repo, refName.String()) { // the lookups also resolve a tag named like a missing branch
+		err = util.ErrNotExist
+	}
 	if err != nil {
 		return 0, util.ErrorWrapTranslatable(
 			util.NewNotExistErrorf("ref %q doesn't exist", ref),
@@ -126,7 +130,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		Ref:               string(refName),
 		CommitSHA:         runTargetCommit.ID.String(),
 		IsForkPullRequest: false,
-		Event:             "workflow_dispatch",
+		Event:             webhook_module.HookEventWorkflowDispatch,
 		TriggerEvent:      "workflow_dispatch",
 		Status:            actions_model.StatusWaiting,
 		// local dispatch: own repo at the target commit; the scoped path overrides these below

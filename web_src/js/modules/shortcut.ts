@@ -1,6 +1,6 @@
 import {registerGlobalInitFunc} from './observer.ts';
 import {createElementFromHTML, hideElem, toggleElem} from '../utils/dom.ts';
-import {showFomanticModal} from './fomantic/modal.ts';
+import {showModal} from './modal.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 
 type ShortcutHandler = (el: HTMLElement) => boolean;
@@ -69,27 +69,22 @@ function getShortcutTextContent(elem: Element): string {
 }
 
 function showShortcutHelp() {
-  let modal = document.querySelector<HTMLElement>('#global-shortcut-help');
-  if (!modal) {
-    modal = createElementFromHTML<HTMLElement>(html`
-      <div id="global-shortcut-help" class="ui small modal" role="dialog" aria-modal="true">
-        <div class="header">
-          Keyboard Shortcuts
-          <button type="button" class="close-modal"></button>
-        </div>
-        <div class="scrolling content">
-          <table class="ui very basic compact unstackable table">
-            <tbody class="shortcut-list"></tbody>
-          </table>
-        </div>
+  const modal = createElementFromHTML<HTMLDialogElement>(html`
+    <dialog id="global-shortcut-help" class="modal-dialog">
+      <div class="header">
+        Keyboard Shortcuts
+        <button type="button" class="close-modal"></button>
       </div>
-    `);
-    document.body.append(modal);
-  }
+      <div class="scrolling content">
+        <table class="ui very basic compact unstackable table">
+          <tbody class="shortcut-list"><tr><td><kbd>?</kbd></td><td>Keyboard Shortcuts</td></tr></tbody>
+        </table>
+      </div>
+    </dialog>
+  `);
 
   const seenShortcuts = new Set<string>();
   const list = modal.querySelector<HTMLElement>('.shortcut-list')!;
-  list.replaceChildren(createElementFromHTML(html`<tr><td><kbd>?</kbd></td><td>Keyboard Shortcuts</td></tr>`));
   for (const elem of document.querySelectorAll<HTMLElement>('[data-shortcut-keys]')) {
     const target = elem.matches('kbd') ? elemFromKbd(elem) : elem;
 
@@ -108,11 +103,11 @@ function showShortcutHelp() {
     seenShortcuts.add(shortcutIdentifier);
     let keysHtml = '';
     for (const keys of shortcutKeys.split(' ')) {
-      keysHtml += `<kbd>${keys}</kbd> `;
+      keysHtml += html`<kbd>${keys}</kbd> `;
     }
     list.append(createElementFromHTML(html`<tr><td>${htmlRaw(keysHtml)}</td><td>${label}</td></tr>`));
   }
-  showFomanticModal(modal);
+  showModal(modal);
 }
 
 export function registerShortcutHandler(name: string, handler: ShortcutHandler) {
@@ -151,7 +146,7 @@ export function initGlobalShortcut() {
     // Don't trigger shortcuts when typing in input fields or contenteditable areas
     let shouldSkip = target.matches('input, textarea, select') || target.isContentEditable;
     // Skip shortcuts when a modal or dropdown is open (active), to avoid interfering with their own keyboard handling
-    shouldSkip = shouldSkip || Boolean(document.querySelector('.ui.modal.active') || document.querySelector('.ui.dropdown.active'));
+    shouldSkip = shouldSkip || Boolean(document.querySelector('.modal-dialog[open], .ui.dropdown.active'));
     if (shouldSkip) {
       shortcutPresses.length = 0;
       return;

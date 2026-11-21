@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -103,6 +104,10 @@ func NewMockWebServer(t *testing.T, liveServerBaseURL, testDataDir string, liveM
 			require.NoError(t, err, "creating fixture %s", fixturePath)
 			defer out.Close()
 
+			if resp.StatusCode != http.StatusOK {
+				_, err = fmt.Fprintf(out, "HTTP/1.1 %d %s\n", resp.StatusCode, http.StatusText(resp.StatusCode))
+				require.NoError(t, err, "writing fixture header for %s", liveURL)
+			}
 			for _, name := range slices.Sorted(maps.Keys(resp.Header)) {
 				if slices.Contains(ignoredHeaders, strings.ToLower(name)) {
 					continue
@@ -125,14 +130,21 @@ func NewMockWebServer(t *testing.T, liveServerBaseURL, testDataDir string, liveM
 
 		replayed := strings.ReplaceAll(string(raw), liveServerBaseURL, mockURL)
 		headers, body, _ := strings.Cut(replayed, "\n\n")
+		code := http.StatusOK
 		for line := range strings.SplitSeq(headers, "\n") {
+			if strings.HasPrefix(line, "HTTP/") {
+				parts := strings.SplitN(line, " ", 3)
+				require.Len(t, parts, 3)
+				code, _ = strconv.Atoi(parts[1])
+				continue
+			}
 			name, value, ok := strings.Cut(line, ": ")
 			if !ok || strings.EqualFold(name, "Content-Length") {
 				continue
 			}
 			w.Header().Set(name, value)
 		}
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(code)
 		_, err = w.Write([]byte(body))
 		require.NoError(t, err)
 	})

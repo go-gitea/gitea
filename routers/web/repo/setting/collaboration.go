@@ -28,14 +28,14 @@ func Collaboration(ctx *context.Context) {
 
 	users, _, err := repo_model.GetCollaborators(ctx, &repo_model.FindCollaborationOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
-		ctx.ServerError("GetCollaborators", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Collaborators"] = users
 
 	teams, err := organization.GetRepoTeams(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetRepoTeams", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Teams"] = teams
@@ -62,7 +62,7 @@ func CollaborationPost(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
 			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 		} else {
-			ctx.ServerError("GetUserByName", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -90,7 +90,7 @@ func CollaborationPost(ctx *context.Context) {
 	// check if the user we're trying to add is an owner.
 	if ctx.Repo.Repository.Owner.IsOrganization() {
 		if isOwner, err := organization.IsOrganizationOwner(ctx, ctx.Repo.Repository.Owner.ID, u.ID); err != nil {
-			ctx.ServerError("IsOrganizationOwner", err)
+			ctx.ServerErrorAuto(err)
 			return
 		} else if isOwner {
 			ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_owner"))
@@ -104,7 +104,7 @@ func CollaborationPost(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator.blocked_user"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		} else {
-			ctx.ServerError("AddOrUpdateCollaborator", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -140,7 +140,7 @@ func DeleteCollaboration(ctx *context.Context) {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
 		} else {
-			ctx.ServerError("GetUserByName", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	} else {
@@ -172,7 +172,7 @@ func AddTeamPost(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("form.team_not_exist"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		} else {
-			ctx.ServerError("GetTeam", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -190,7 +190,7 @@ func AddTeamPost(ctx *context.Context) {
 	}
 
 	if err = repo_service.TeamAddRepository(ctx, team, ctx.Repo.Repository); err != nil {
-		ctx.ServerError("TeamAddRepository", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -206,12 +206,12 @@ func DeleteTeam(ctx *context.Context) {
 
 	team, err := organization.GetTeamByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
-		ctx.ServerError("GetTeamByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err = repo_service.RemoveRepositoryFromTeam(ctx, team, ctx.Repo.Repository.ID); err != nil {
-		ctx.ServerError("team.RemoveRepositories", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
