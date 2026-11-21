@@ -31,6 +31,8 @@ import (
 	container_service "gitea.dev/services/packages/container"
 	repo_service "gitea.dev/services/repository"
 	websocket_service "gitea.dev/services/websocket"
+
+	"xorm.io/builder"
 )
 
 // RenameUser renames a user
@@ -81,6 +83,14 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doe
 		return user_model.ErrUserAlreadyExist{
 			Name: newUserName,
 		}
+	}
+
+	if err := db.Iterate(ctx, builder.Eq{"owner_id": u.ID}.And(builder.In("lower_name",
+		builder.Select("lower_repo_name").From("immutable_tag").Where(builder.Eq{"lower_owner_name": strings.ToLower(newUserName)}),
+	)), func(ctx context.Context, repo *repo_model.Repository) error {
+		return repo_model.CheckImmutableTagConflicts(ctx, repo.ID, newUserName, repo.LowerName)
+	}); err != nil {
+		return err
 	}
 
 	if err = repo_model.UpdateRepositoryOwnerName(ctx, oldUserName, newUserName); err != nil {

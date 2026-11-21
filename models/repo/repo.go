@@ -419,6 +419,8 @@ func (repo *Repository) MustGetUnit(ctx context.Context, tp unit.Type) *RepoUnit
 		ru.Config = new(ActionsConfig)
 	case unit.TypeProjects:
 		ru.Config = new(ProjectsConfig)
+	case unit.TypeReleases:
+		ru.Config = new(ReleasesConfig)
 	default: // other units don't have config
 	}
 	if ru.Config != nil {

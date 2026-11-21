@@ -13,6 +13,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
@@ -329,20 +330,17 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	if err != nil {
 		return fmt.Errorf("db.Find[repo_model.Release]: %w", err)
 	}
-	relMap := make(map[string]*repo_model.Release)
+	relMap := make(map[string]*repo_model.Release, len(releases))
+	foldedTagNames := make(container.Set[string], len(releases))
 	for _, rel := range releases {
-		relMap[rel.LowerTagName] = rel
+		relMap[rel.TagName] = rel
+		foldedTagNames.Add(strings.ToLower(rel.TagName))
 	}
 
-	lowerTags := make([]string, 0, len(tags))
-	for _, tag := range tags {
-		lowerTags = append(lowerTags, strings.ToLower(tag))
-	}
+	newReleases := make([]*repo_model.Release, 0, len(tags)-len(relMap))
 
-	newReleases := make([]*repo_model.Release, 0, len(lowerTags)-len(relMap))
-
-	for i, lowerTag := range lowerTags {
-		tag, err := gitRepo.GetTag(ctx, tags[i])
+	for _, tagName := range tags {
+		tag, err := gitRepo.GetTag(ctx, tagName)
 		if err != nil {
 			return fmt.Errorf("GetTag: %w", err)
 		}
@@ -357,14 +355,20 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			publishedUnix = timeutil.TimeStamp(tag.Tagger.When.Unix())
 		}
 
-		rel, has := relMap[lowerTag]
+		rel, has := relMap[tagName]
+		if !has && foldedTagNames.Contains(strings.ToLower(tagName)) {
+			rel, err = repo_model.GetRelease(ctx, repo.ID, tagName)
+			if err != nil && !repo_model.IsErrReleaseNotExist(err) {
+				return fmt.Errorf("pushUpdateAddTags: %w", err)
+			}
+			has = err == nil
+		}
 		title, note := git.SplitCommitTitleBody(tag.MessageUTF8(), 255)
 		if !has {
 			rel = &repo_model.Release{
 				RepoID:        repo.ID,
 				Title:         title,
-				TagName:       tags[i],
-				LowerTagName:  lowerTag,
+				TagName:       tagName,
 				Target:        "",
 				Sha1:          commit.ID.String(),
 				NumCommits:    -1, // the commits count will be updated when the UI needs it
@@ -378,6 +382,8 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			}
 
 			newReleases = append(newReleases, rel)
+		} else if rel.IsImmutable && !rel.IsTag {
+			continue
 		} else {
 			wasLatestCandidate := rel.CanBeLatest()
 			rel.Sha1 = commit.ID.String()
@@ -386,7 +392,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 				rel.Title = title
 				rel.Note = note
 				rel.PublishedUnix = publishedUnix
-			} else {
+			} else if !rel.IsDraft || !repo.IsImmutableReleasesEnabled(ctx) { // with immutability a draft locks on explicit publication only, like on GitHub
 				rel.IsDraft = false
 				if rel.PublishedUnix.IsZero() {
 					rel.PublishedUnix = timeutil.TimeStampNow()
