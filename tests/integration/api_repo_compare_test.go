@@ -13,6 +13,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/tests"
 
@@ -28,11 +29,16 @@ func TestAPICompareBranches(t *testing.T) {
 		t.Run("CompareBranches", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...remove-files-b").AddTokenAuth(token2)
-			resp := MakeRequest(t, req, http.StatusOK)
-			apiResp := DecodeJSON(t, resp, &api.Compare{})
-			assert.Equal(t, 2, apiResp.TotalCommits)
-			assert.Len(t, apiResp.Commits, 2)
+			for _, separator := range []string{"...", ".."} {
+				req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/remove-files-a"+separator+"remove-files-b").AddTokenAuth(token2)
+				apiResp := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.Compare{})
+				assert.Equal(t, 2, apiResp.TotalCommits)
+				assert.Len(t, apiResp.Commits, 2)
+				require.NotNil(t, apiResp.MergeBaseCommit)
+				assert.Equal(t, "c8e31bc7688741a5287fcde4fbb8fc129ca07027", apiResp.MergeBaseCommit.SHA)
+				assert.Nil(t, apiResp.MergeBaseCommit.Stats)
+				assert.Nil(t, apiResp.MergeBaseCommit.Files)
+			}
 		})
 
 		t.Run("CompareCommits", func(t *testing.T) {
@@ -94,6 +100,8 @@ func TestAPICompareBranches(t *testing.T) {
 			apiResp := DecodeJSON(t, resp, &api.Compare{})
 			assert.Equal(t, 1, apiResp.TotalCommits)
 			assert.Len(t, apiResp.Commits, 1)
+			require.NotNil(t, apiResp.MergeBaseCommit)
+			assert.Equal(t, setting.AppURL+"user12/repo10/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d", apiResp.MergeBaseCommit.HTMLURL)
 		})
 	})
 }

@@ -4,11 +4,13 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	git_service "gitea.dev/services/git"
@@ -54,7 +56,7 @@ func CompareDiff(ctx *context.APIContext) {
 	//   type: boolean
 	// - name: files
 	//   in: query
-	//   description: include a list of affected files for every commit (disable for speedup, default 'true')
+	//   description: include a list of affected files for every commit in `commits` (disable for speedup, default 'true')
 	//   type: boolean
 	// responses:
 	//   "200":
@@ -93,6 +95,29 @@ func CompareDiff(ctx *context.APIContext) {
 	apiCommits := make([]*api.Commit, 0, len(compareInfo.Commits))
 	userCache := make(map[string]*user_model.User)
 
+	mergeBase := compareInfo.CompareBase
+	if compareInfo.CompareSeparator == ".." {
+		var err error
+		mergeBase, err = git.MergeBase(ctx, compareInfo.HeadRepo, compareInfo.BaseCommitID, compareInfo.HeadCommitID)
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+	var mergeBaseCommit *api.Commit
+	if mergeBase != "" {
+		commit, err := compareInfo.HeadGitRepo.GetCommit(ctx, mergeBase)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		mergeBaseCommit, err = convert.ToCommit(ctx, compareInfo.BaseRepo, compareInfo.BaseGitRepo, commit, userCache, convert.ToCommitOptions{Verification: verification})
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+
 	for i := 0; i < len(compareInfo.Commits); i++ {
 		apiCommit, err := convert.ToCommit(
 			ctx,
@@ -114,8 +139,9 @@ func CompareDiff(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusOK, &api.Compare{
-		TotalCommits: len(compareInfo.Commits),
-		Commits:      apiCommits,
+		TotalCommits:    len(compareInfo.Commits),
+		Commits:         apiCommits,
+		MergeBaseCommit: mergeBaseCommit,
 	})
 }
 
