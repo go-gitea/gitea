@@ -33,6 +33,7 @@ type Features struct {
 	SupportCheckAttrOnBare     bool           // >= 2.40
 	SupportCatFileBatchCommand bool           // >= 2.36, support `git cat-file --batch-command`
 	SupportGitMergeTree        bool           // >= 2.40 // we also need "--merge-base"
+	SupportGeometricRepack     bool           // >= 2.39, older ones delete ".keep" packs with "repack.packKeptObjects"
 }
 
 type GlobalConfigStruct struct {
@@ -85,6 +86,7 @@ func loadGitVersionFeatures() (*Features, error) {
 	features.SupportCheckAttrOnBare = features.CheckVersionAtLeast("2.40")
 	features.SupportCatFileBatchCommand = features.CheckVersionAtLeast("2.36")
 	features.SupportGitMergeTree = features.CheckVersionAtLeast("2.40") // we also need "--merge-base"
+	features.SupportGeometricRepack = features.CheckVersionAtLeast("2.39")
 	return features, nil
 }
 

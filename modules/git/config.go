@@ -73,6 +73,11 @@ func syncGitConfig(ctx context.Context) (err error) {
 		return err
 	}
 
+	// a push can add a .keep pack mid-repack, whose objects a repack would otherwise drop
+	if err := configSet(ctx, "repack.packKeptObjects", "true"); err != nil {
+		return err
+	}
+
 	// set support for AGit flow
 	if err := configAddNonExist(ctx, "receive.procReceiveRefs", "refs/for"); err != nil {
 		return err

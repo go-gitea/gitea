@@ -94,6 +94,7 @@ const (
 	StderrBadRevision        StderrPrefix = "fatal: bad revision"
 	StderrNoSuchPath         StderrPrefix = "fatal: no such path"
 	StderrBadObject          StderrPrefix = "fatal: bad object "
+	StderrGcAlreadyRunning   StderrPrefix = "fatal: gc is already running"
 
 	StderrAuthenticationFailed StderrPrefix = "fatal: Authentication failed for"
 	StderrCouldNotReadUsername StderrPrefix = "fatal: could not read Username"

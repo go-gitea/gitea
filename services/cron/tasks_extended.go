@@ -11,7 +11,6 @@ import (
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/system"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git/gitcmd"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/updatechecker"
@@ -42,26 +41,6 @@ func registerDeleteRepositoryArchives() {
 		Schedule:   "@annually",
 	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return archiver_service.DeleteRepositoryArchives(ctx)
-	})
-}
-
-func registerGarbageCollectRepositories() {
-	type RepoHealthCheckConfig struct {
-		BaseConfig
-		Timeout time.Duration
-		Args    []string `delim:" "`
-	}
-	RegisterTaskFatal("git_gc_repos", &RepoHealthCheckConfig{
-		BaseConfig: BaseConfig{
-			Enabled:    false,
-			RunAtStart: false,
-			Schedule:   "@every 72h",
-		},
-		Timeout: time.Duration(setting.Git.Timeout.GC) * time.Second,
-		Args:    setting.Git.GCArgs,
-	}, func(ctx context.Context, _ *user_model.User, config *RepoHealthCheckConfig) error {
-		// the git args are set by config, they can be safe to be trusted
-		return repo_service.GitGcRepos(ctx, config.Timeout, gitcmd.ToTrustedCmdArgs(config.Args))
 	})
 }
 
@@ -240,7 +219,6 @@ func registerRebuildIssueIndexer() {
 func initExtendedTasks() {
 	registerDeleteInactiveUsers()
 	registerDeleteRepositoryArchives()
-	registerGarbageCollectRepositories()
 	registerRewriteAllPublicKeys()
 	registerRewriteAllPrincipalKeys()
 	registerRepositoryUpdateHook()

@@ -87,7 +87,8 @@ func loadGitFrom(rootCfg ConfigProvider) {
 	GitConfig.Options = make(map[string]string)
 	GitConfig.SetOption("diff.algorithm", "histogram")
 	GitConfig.SetOption("core.logAllRefUpdates", "true")
-	GitConfig.SetOption("maintenance.strategy", "gc") // git 2.54's push-time default "geometric" delays pushes and repacks concurrently with other writes
+	GitConfig.SetOption("maintenance.auto", "false")
+	GitConfig.SetOption("receive.autogc", "false")
 
 	for _, key := range secGitConfig.Keys() {
 		GitConfig.SetOption(key.Name(), key.String())
