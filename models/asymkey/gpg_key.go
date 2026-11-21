@@ -36,6 +36,7 @@ type GPGKey struct {
 	CanEncryptComms   bool
 	CanEncryptStorage bool
 	CanCertify        bool
+	LoginSourceID     int64 `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func init() {
@@ -209,17 +210,19 @@ func parseGPGKey(ctx context.Context, ownerID int64, e *openpgp.Entity, verified
 	}, nil
 }
 
-// deleteGPGKey does the actual key deletion
-func deleteGPGKey(ctx context.Context, keyID string) (int64, error) {
-	if keyID == "" {
-		return 0, errors.New("empty KeyId forbidden") // Should never happen but just to be sure
+func deleteGPGKey(ctx context.Context, key *GPGKey) error {
+	if key.KeyID == "" {
+		return errors.New("empty KeyId forbidden")
 	}
-	// Delete imported key
-	n, err := db.GetEngine(ctx).Where("key_id=?", keyID).Delete(new(GPGKeyImport))
-	if err != nil {
-		return n, err
+	deleted, err := db.DeleteByID[GPGKey](ctx, key.ID)
+	if err != nil || deleted == 0 {
+		return err
 	}
-	return db.GetEngine(ctx).Where("key_id=?", keyID).Or("primary_key_id=?", keyID).Delete(new(GPGKey))
+	if _, err := db.GetEngine(ctx).ID(key.KeyID).Delete(new(GPGKeyImport)); err != nil {
+		return err
+	}
+	_, err = db.GetEngine(ctx).Where("owner_id=? AND primary_key_id=?", key.OwnerID, key.KeyID).Delete(new(GPGKey))
+	return err
 }
 
 // DeleteGPGKey deletes GPG key information in database.
@@ -229,12 +232,11 @@ func DeleteGPGKey(ctx context.Context, doer *user_model.User, id int64) (err err
 		if IsErrGPGKeyNotExist(err) {
 			return nil
 		}
-		return fmt.Errorf("GetPublicKeyByID: %w", err)
+		return fmt.Errorf("DeleteGPGKey: %w", err)
 	}
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		_, err = deleteGPGKey(ctx, key.KeyID)
-		return err
+		return deleteGPGKey(ctx, key)
 	})
 }
 

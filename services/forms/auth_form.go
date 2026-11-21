@@ -25,6 +25,7 @@ type AuthenticationForm struct {
 	AttributeName         string
 	AttributeSurname      string
 	AttributeMail         string
+	AttributeGPGPublicKey string
 	AttributeSSHPublicKey string
 	AttributeAvatar       string
 	SSHKeysAreVerified    bool

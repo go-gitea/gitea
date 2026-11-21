@@ -35,6 +35,7 @@ type Source struct {
 	AttributeSurname      string // Surname attribute
 	AttributeMail         string // E-mail attribute
 	AttributesInBind      bool   // fetch attributes in bind context (not user)
+	AttributeGPGPublicKey string
 	AttributeSSHPublicKey string // LDAP SSH Public Key attribute
 	AttributeAvatar       string
 	SSHKeysAreVerified    bool   // true if SSH keys in LDAP are verified
