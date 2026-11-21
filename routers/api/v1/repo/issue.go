@@ -7,6 +7,7 @@ package repo
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -151,9 +152,9 @@ func SearchIssues(ctx *context.APIContext) {
 	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
 
 	var includedAnyLabels []int64
+	var includedLabelNames []string
 	{
 		labels := ctx.FormTrim("labels")
-		var includedLabelNames []string
 		if len(labels) > 0 {
 			includedLabelNames = strings.Split(labels, ",")
 		}
@@ -193,6 +194,14 @@ func SearchIssues(ctx *context.APIContext) {
 		IncludedAnyLabelIDs: includedAnyLabels,
 		MilestoneIDs:        includedMilestones,
 		SortBy:              issue_indexer.SortByCreatedDesc,
+	}
+
+	if len(includedLabelNames) > 0 && len(includedAnyLabels) == 0 {
+		// Keep an unmatched labels filter from being treated as no filter:
+		// use a label ID that no label can have, so the search matches no issues.
+		// It goes into IncludedLabelIDs (and not IncludedAnyLabelIDs) because the DB indexer
+		// resolves "any" label IDs to names, which would silently drop unknown IDs again.
+		searchOpt.IncludedLabelIDs = []int64{math.MaxInt64}
 	}
 
 	if since != 0 {
