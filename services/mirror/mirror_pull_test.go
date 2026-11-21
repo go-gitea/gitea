@@ -6,6 +6,9 @@ package mirror
 import (
 	"testing"
 
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/timeutil"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,4 +38,17 @@ func Test_checkRecoverableSyncError(t *testing.T) {
 	for _, c := range cases {
 		assert.Equal(t, c.recoverable, checkRecoverableSyncError(c.message), "test case: %s", c.message)
 	}
+}
+
+func TestPullMirrorUpdatedTime(t *testing.T) {
+	const syncTime timeutil.TimeStamp = 1_800_000_000 // Unix seconds.
+	past, future := syncTime.Add(-60), syncTime.Add(60)
+	m := &repo_model.Mirror{Repo: &repo_model.Repository{UpdatedUnix: past}, LastSyncUnix: syncTime}
+
+	assert.Equal(t, past.AsTime(), pullMirrorUpdatedTime(m, past.AsTime(), true))
+	assert.Equal(t, syncTime.AsTime(), pullMirrorUpdatedTime(m, future.AsTime(), true))
+	assert.Equal(t, past.AsTime(), pullMirrorUpdatedTime(m, future.AsTime(), false))
+
+	m.Repo.UpdatedUnix = future
+	assert.Equal(t, syncTime.AsTime(), pullMirrorUpdatedTime(m, future.AsTime(), false))
 }
