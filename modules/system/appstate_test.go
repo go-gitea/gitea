@@ -20,7 +20,7 @@ type testItem1 struct {
 	Val2 int
 }
 
-func (*testItem1) Name() string {
+func (*testItem1) StateName() string {
 	return "test-item1"
 }
 
@@ -28,7 +28,7 @@ type testItem2 struct {
 	K string
 }
 
-func (*testItem2) Name() string {
+func (*testItem2) StateName() string {
 	return "test-item2"
 }
 

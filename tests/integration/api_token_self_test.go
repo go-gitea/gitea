@@ -7,10 +7,13 @@ import (
 	"net/http"
 	"testing"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -55,6 +58,7 @@ func TestAPIGetCurrentToken(t *testing.T) {
 	// TestAPITokenSelfService tests delete operations on token
 	t.Run("SelfService", func(t *testing.T) {
 		t.Run("Success then verify deleted", func(t *testing.T) {
+			defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 			accessToken := createAPIAccessTokenWithoutCleanUp(t, "test-delete-current-token", user, []auth_model.AccessTokenScope{auth_model.AccessTokenScopeAll})
 
@@ -65,6 +69,8 @@ func TestAPIGetCurrentToken(t *testing.T) {
 
 			// Verify the token is deleted
 			unittest.AssertNotExistsBean(t, &auth_model.AccessToken{ID: accessToken.ID})
+			event := unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.UserAccessTokenRemove, ScopeID: user.ID})
+			assert.Equal(t, accessToken.Name, audit_model.DecodeMetadata(event.Metadata)["token"])
 
 			// Verify the token can no longer be used for GET
 			req = NewRequest(t, "GET", "/api/v1/token").

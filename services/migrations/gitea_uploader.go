@@ -7,6 +7,8 @@ package migrations
 import (
 	"cmp"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -109,7 +111,6 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 			GitServiceType: opts.GitServiceType,
 			IsPrivate:      opts.Private || setting.Repository.ForcePrivate,
 			IsMirror:       opts.Mirror,
-			Status:         repo_model.RepositoryBeingMigrated,
 		}, false)
 	} else {
 		r, err = repo_model.GetRepositoryByID(ctx, opts.MigrateToRepoID)
@@ -356,11 +357,13 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 				continue
 			}
 			if rc != nil {
-				attach.Size, err = storage.Attachments.Save(attach.RelativePath(), rc, util.Iif(*asset.Size > 0, int64(*asset.Size), -1)) // GitLab links and Forgejo external links report no size
+				hasher := sha256.New()
+				attach.Size, err = storage.Attachments.Save(attach.RelativePath(), io.TeeReader(rc, hasher), util.Iif(*asset.Size > 0, int64(*asset.Size), -1)) // GitLab links and Forgejo external links report no size
 				rc.Close()
 				if err != nil {
 					return fmt.Errorf("release %s asset %s: %w", release.TagName, asset.Name, err)
 				}
+				attach.HashSHA256 = hex.EncodeToString(hasher.Sum(nil))
 			}
 
 			rel.Attachments = append(rel.Attachments, &attach)

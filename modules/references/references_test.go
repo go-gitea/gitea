@@ -483,11 +483,11 @@ func TestRegExp_mentionPattern(t *testing.T) {
 	}
 
 	for _, testCase := range trueTestCases {
-		found := mentionPattern.FindStringSubmatch(testCase.pat)
+		found := globalVars().mentionPattern.FindStringSubmatch(testCase.pat)
 		assert.Equal(t, testCase.exp, found[1])
 	}
 	for _, testCase := range falseTestCases {
-		res := mentionPattern.MatchString(testCase)
+		res := globalVars().mentionPattern.MatchString(testCase)
 		assert.False(t, res, "[%s] should be false", testCase)
 	}
 }
@@ -515,10 +515,10 @@ func TestRegExp_issueNumericPattern(t *testing.T) {
 	}
 
 	for _, testCase := range trueTestCases {
-		assert.True(t, issueNumericPattern.MatchString(testCase))
+		assert.True(t, globalVars().issueNumericPattern.MatchString(testCase))
 	}
 	for _, testCase := range falseTestCases {
-		assert.False(t, issueNumericPattern.MatchString(testCase))
+		assert.False(t, globalVars().issueNumericPattern.MatchString(testCase))
 	}
 }
 
@@ -552,10 +552,10 @@ func TestRegExp_issueAlphanumericPattern(t *testing.T) {
 	}
 
 	for _, testCase := range trueTestCases {
-		assert.True(t, issueAlphanumericPattern.MatchString(testCase))
+		assert.True(t, globalVars().issueAlphanumericPattern.MatchString(testCase))
 	}
 	for _, testCase := range falseTestCases {
-		assert.False(t, issueAlphanumericPattern.MatchString(testCase))
+		assert.False(t, globalVars().issueAlphanumericPattern.MatchString(testCase))
 	}
 }
 

@@ -138,9 +138,11 @@ type RepoSettingForm struct {
 	DefaultDeleteBranchAfterMerge    bool
 	DefaultAllowMaintainerEdit       bool
 	DefaultTargetBranch              string
+	PullsCreationRestriction         string `binding:"In(reader,member,writer)"`
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 	EnableIssueDependencies          bool
+	IssuesCreationRestriction        string `binding:"In(reader,member,writer)"`
 
 	// Signing Settings
 	TrustModel string

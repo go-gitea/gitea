@@ -11,35 +11,25 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddImmutableReleases(ctx context.Context, x base.EngineMigration) error {
-	type Release struct {
-		IsImmutable bool `xorm:"NOT NULL DEFAULT false"`
-	}
-
-	type ImmutableTag struct {
-		ID             int64  `xorm:"pk autoincr"`
-		RepoID         int64  `xorm:"INDEX(r) NOT NULL"`
-		LowerOwnerName string `xorm:"UNIQUE(s) NOT NULL"`
-		LowerRepoName  string `xorm:"UNIQUE(s) NOT NULL"`
-		TagName        string `xorm:"UNIQUE(s) INDEX(r) NOT NULL"`
-	}
-
-	if err := x.Sync(new(ImmutableTag)); err != nil {
-		return err
+func AddRunnerNameToActionTask(_ context.Context, x base.EngineMigration) error {
+	type ActionTask struct {
+		RunnerName string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
 	}
 
 	if _, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
 		IgnoreDropIndices: true,
-	}, new(Release)); err != nil {
+		IgnoreConstrains:  true,
+	}, new(ActionTask)); err != nil {
 		return err
 	}
 
-	exist, err := x.Dialect().IsColumnExist(x.DB(), ctx, "release", "lower_tag_name")
-	if err != nil || !exist { // dropping an absent column fails outside sqlite
-		return err
-	}
-	return base.EngineTransaction(x, func(sess base.Session) error {
-		return base.DropTableColumns(sess, "release", "lower_tag_name")
-	})
+	_, err := x.Exec(`
+UPDATE action_task SET runner_name = (
+	SELECT action_runner.name FROM action_runner WHERE action_runner.id = action_task.runner_id
+)
+WHERE runner_name = ''
+	AND EXISTS (
+		SELECT 1 FROM action_runner WHERE action_runner.id = action_task.runner_id AND action_runner.name IS NOT NULL
+	);`) // soft-deleted runners are included to keep their names
+	return err
 }

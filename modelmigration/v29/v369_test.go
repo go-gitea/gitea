@@ -7,64 +7,41 @@ import (
 	"testing"
 
 	"gitea.dev/modelmigration/migrationtest"
-	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestAddImmutableReleases(t *testing.T) {
-	type Release struct {
-		ID           int64 `xorm:"pk autoincr"`
-		LowerTagName string
+func TestAddRunnerNameToActionTask(t *testing.T) {
+	type ActionTask struct {
+		ID       int64 `xorm:"pk"`
+		RunnerID int64 `xorm:"index"`
+	}
+	type ActionRunner struct {
+		ID      int64  `xorm:"pk"`
+		Name    string `xorm:"VARCHAR(255)"`
+		Deleted int64
 	}
 
-	type ImmutableTag struct {
-		ID             int64  `xorm:"pk autoincr"`
-		RepoID         int64  `xorm:"INDEX(r) NOT NULL"`
-		LowerOwnerName string `xorm:"UNIQUE(s) NOT NULL"`
-		LowerRepoName  string `xorm:"UNIQUE(s) NOT NULL"`
-		TagName        string `xorm:"UNIQUE(s) INDEX(r) NOT NULL"`
-	}
-
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(Release))
-	defer deferable()
+	x, deferrable := migrationtest.PrepareTestEnv(t, 0, new(ActionTask), new(ActionRunner))
+	defer deferrable()
 	if x == nil || t.Failed() {
 		return
 	}
-	_, err := x.Insert(&Release{LowerTagName: "v1.0"})
+
+	_, err := x.Insert(
+		&ActionRunner{ID: 1, Name: "live-runner"},
+		&ActionRunner{ID: 2, Name: "deleted-runner", Deleted: 1},
+
+		&ActionTask{ID: 1, RunnerID: 1},
+		&ActionTask{ID: 2, RunnerID: 2},
+		&ActionTask{ID: 3, RunnerID: 3},
+		&ActionTask{ID: 4, RunnerID: 0},
+	)
 	require.NoError(t, err)
+	require.NoError(t, AddRunnerNameToActionTask(t.Context(), x))
 
-	if setting.Database.Type.IsSQLite3() {
-		t.Run("RollsBackFailedColumnRemoval", func(t *testing.T) {
-			_, err := x.Exec("CREATE VIEW release_view AS SELECT id FROM `release`")
-			require.NoError(t, err)
-			require.Error(t, AddImmutableReleases(t.Context(), x))
-			release := &Release{ID: 1}
-			has, err := x.Get(release)
-			require.NoError(t, err)
-			assert.True(t, has)
-			assert.Equal(t, "v1.0", release.LowerTagName)
-			_, err = x.Exec("DROP VIEW release_view")
-			require.NoError(t, err)
-		})
-	}
-
-	require.NoError(t, AddImmutableReleases(t.Context(), x))
-
-	_, err = x.Insert(&ImmutableTag{RepoID: 1, LowerOwnerName: "o", LowerRepoName: "r", TagName: "v1.0"})
-	require.NoError(t, err)
-
-	_, err = x.Insert(&ImmutableTag{RepoID: 2, LowerOwnerName: "o", LowerRepoName: "r", TagName: "v1.0"})
-	assert.Error(t, err)
-
-	_, err = x.Insert(&ImmutableTag{RepoID: 1, LowerOwnerName: "o", LowerRepoName: "r2", TagName: "v1.0"})
-	assert.NoError(t, err)
-
-	assert.NotNil(t, migrationtest.LoadTableSchemasMap(t, x)["immutable_tag"].GetColumn("repo_id"))
-
-	release := migrationtest.LoadTableSchemasMap(t, x)["release"]
-	require.NotNil(t, release)
-	assert.NotNil(t, release.GetColumn("is_immutable"))
-	assert.Nil(t, release.GetColumn("lower_tag_name"))
+	var names []string
+	require.NoError(t, x.Table("action_task").Cols("runner_name").Asc("id").Find(&names))
+	assert.Equal(t, []string{"live-runner", "deleted-runner", "", ""}, names)
 }

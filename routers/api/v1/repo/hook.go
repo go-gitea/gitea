@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/web"
 	webhook_module "gitea.dev/modules/webhook"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	webhook_service "gitea.dev/services/webhook"
@@ -418,13 +419,14 @@ func DeleteHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   default:
 	//     "$ref": "#/responses/error"
-	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id")); err != nil {
-		if webhook.IsErrWebhookNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	hook, err := utils.GetRepoHook(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
+	if err != nil {
 		return
 	}
+	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, hook.ID); err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+	audit.RecordScoped(ctx, nil, ctx.Repo.Repository, audit.WebhookRemove, "webhook", hook.URL)
 	ctx.Status(http.StatusNoContent)
 }

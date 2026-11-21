@@ -126,7 +126,7 @@ test('file detection', () => {
   for (const name of ['', 'a.jpg.x', '/path.png/x', 'webp']) {
     expect(isImageFile({name, type})).toBeFalsy();
   }
-  for (const name of ['a.mpg', '/a.mpeg', '.file.mp4', '.webm', 'file.mkv']) {
+  for (const name of ['a.mpg', '/a.mpeg', '.file.mp4', '.webm', 'file.mkv', 'a.mov', 'a.m4v']) {
     expect(isVideoFile({name, type})).toBeTruthy();
   }
   for (const name of ['', 'a.mpg.x', '/path.mp4/x', 'webm']) {

@@ -38,6 +38,10 @@ func TestEditor(t *testing.T) {
 		t.Run("EditFile", func(t *testing.T) {
 			testEditFile(t, sessionUser2, "user2", "repo1", "master", "README.md", "Hello, World (direct)\n")
 			testEditFileToNewBranch(t, sessionUser2, "user2", "repo1", "master", "feature/test", "README.md", "Hello, World (commit-to-new-branch)\n")
+			assert.Equal(t, http.StatusNotFound, testEditorActionPostRequest(t, sessionUser2, "/user2/repo1/_edit/master/README.md?from_base_branch=master", map[string]string{
+				"commit_choice":   "direct",
+				"new_branch_name": "from-base-on-non-fork",
+			}).Code)
 		})
 		t.Run("EditorconfigOfBranch", func(t *testing.T) {
 			testCreateFile(t, sessionUser2, "user2", "repo1", "master", "editorconfig", ".editorconfig", "[*]\nindent_size = 2\n")
@@ -208,12 +212,15 @@ index 0000000000..aaaaaaaaaa
 +++ b/patch-file-1.txt
 @@ -0,0 +1 @@
 +`
-	testEditorActionPostRequest(t, session, "/user2/repo1/_diffpatch/master/", map[string]string{
+	resp := testEditorActionPostRequest(t, session, "/user2/repo1/_diffpatch/master/", map[string]string{
 		"content":         pathContentCommon + "patched content\n",
 		"commit_choice":   "commit-to-new-branch",
 		"new_branch_name": "patched-branch",
 	})
-	resp := MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/raw/branch/patched-branch/patch-file-1.txt"), http.StatusOK)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, "/user2/repo1/compare/master...patched-branch", test.RedirectURL(resp))
+
+	resp = MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/raw/branch/patched-branch/patch-file-1.txt"), http.StatusOK)
 	assert.Equal(t, "patched content\n", resp.Body.String())
 
 	// patch again, it should fail
@@ -222,6 +229,7 @@ index 0000000000..aaaaaaaaaa
 		"commit_choice":   "commit-to-new-branch",
 		"new_branch_name": "patched-branch-1",
 	})
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
 	assert.Equal(t, "Unable to apply patch", test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 }
 
@@ -333,9 +341,9 @@ func testEditorWebGitCommitEmail(t *testing.T) {
 	})
 
 	t.Run("ApplyPatchCherryPick", func(t *testing.T) {
-		testWebGit(t,
+		patchResp1, patchResp2 := testWebGit(t,
 			"/user2/repo1/_diffpatch/master", map[string]string{
-				"tree_path": "__dummy__",
+				"tree_path": "__dummy__", // the "tree_path" should be ignored and should not affect the redirect URL
 				"content": `diff --git a/patch-file-1.txt b/patch-file-1.txt
 new file mode 100644
 index 0000000000..aaaaaaaaaa
@@ -346,7 +354,6 @@ index 0000000000..aaaaaaaaaa
 `,
 			},
 			"/user2/repo1/_diffpatch/master", map[string]string{
-				"tree_path": "__dummy__",
 				"content": `diff --git a/patch-file-2.txt b/patch-file-2.txt
 new file mode 100644
 index 0000000000..bbbbbbbbbb
@@ -357,6 +364,10 @@ index 0000000000..bbbbbbbbbb
 `,
 			},
 		)
+		for _, resp := range []*httptest.ResponseRecorder{patchResp1, patchResp2} {
+			assert.Equal(t, http.StatusOK, resp.Code)
+			assert.Equal(t, "/user2/repo1/src/branch/master", test.RedirectURL(resp))
+		}
 
 		commit1, err := gitRepo.GetCommitByPath(t.Context(), "patch-file-1.txt")
 		require.NoError(t, err)
