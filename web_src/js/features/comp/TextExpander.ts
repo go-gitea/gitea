@@ -26,7 +26,7 @@ function buildIssueSuggestions(key: string, matches: Issue[]): TextExpanderResul
   const ul = createElementFromAttrs('ul', {class: 'suggestions'});
   for (const issue of matches) {
     const li = createElementFromAttrs(
-      'li', {role: 'option', class: 'tw-flex tw-gap-2', 'data-value': `${key}${issue.number}`},
+      'li', {role: 'option', class: 'flex gap-2', 'data-value': `${key}${issue.number}`},
       createElementFromHTML(svg(getIssueIcon(issue), 16, [getIssueColorClass(issue)])),
       createElementFromAttrs('span', null, `#${issue.number}`),
       createElementFromAttrs('span', null, issue.title),

@@ -1063,13 +1063,13 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectedRules(ctx *context.Co
 	if approvals < pb.RequiredApprovals {
 		reviewBlockers = append([]template.HTML{ctx.Locale.TrN(pb.RequiredApprovals, requiredKey1, requiredKeyN, pb.RequiredApprovals)}, reviewBlockers...)
 	}
-	review := &pullMergeBoxSection{StatusIcon: "octicon-check", StatusIconClass: "tw-bg-green", SectionTitle: ctx.Locale.Tr("repo.pulls.changes_approved"), SectionDetails: reviewBlockers}
+	review := &pullMergeBoxSection{StatusIcon: "octicon-check", StatusIconClass: "bg-green", SectionTitle: ctx.Locale.Tr("repo.pulls.changes_approved"), SectionDetails: reviewBlockers}
 	if approvals > 0 {
 		review.SectionDetails = append(review.SectionDetails, ctx.Locale.TrN(approvals, grantedKey1, grantedKeyN, approvals))
 	}
 	if len(reviewBlockers) > 0 {
 		data.hasOverridableBlockers = true
-		review.StatusIcon, review.StatusIconClass = util.Iif(isBlockedByRejection, "octicon-file-diff", "octicon-x"), "tw-bg-red"
+		review.StatusIcon, review.StatusIconClass = util.Iif(isBlockedByRejection, "octicon-file-diff", "octicon-x"), "bg-red"
 		review.SectionTitle = ctx.Locale.Tr(util.Iif(isBlockedByRejection, "repo.issues.review.rejected", "repo.pulls.review_required"))
 	}
 	data.ReviewSection = review

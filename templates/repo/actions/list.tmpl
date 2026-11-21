@@ -14,7 +14,7 @@
 			<div class="flex-container-main">
 				<div class="ui top attached header flex-left-right">
 					<strong>{{ctx.Locale.TrN .Page.Paginator.Total "actions.runs.workflow_run_count_1" "actions.runs.workflow_run_count_n" .Page.Paginator.Total}}</strong>
-					<div class="ui secondary filter menu flex-text-block tw-m-0">
+					<div class="ui secondary filter menu flex-text-block m-0">
 						<!-- Actor -->
 						<div class="ui{{if not .Actors}} disabled{{end}} dropdown jump item">
 							<span class="text">{{ctx.Locale.Tr "actions.runs.actor"}}</span>
@@ -48,7 +48,7 @@
 								</a>
 								{{range .StatusInfoList}}
 									<a class="item{{if eq .Status $.CurStatus}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&actor={{$.CurActor}}&status={{.Status}}&branch={{$.CurBranch}}">
-										<span class="flex-text-inline tw-gap-2">
+										<span class="flex-text-inline gap-2">
 											{{template "repo/icons/action_status" (dict "Status" .StatusName)}}
 											{{.DisplayedStatus}}
 										</span>
@@ -77,7 +77,7 @@
 						</div>
 
 						{{if or $showCreateWorkflowBadge $showEnableDisableWorkflow}}
-						<button type="button" class="ui jump dropdown btn interact-bg tw-p-2">
+						<button type="button" class="ui jump dropdown btn interact-bg p-2">
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
 								{{if $showCreateWorkflowBadge}}

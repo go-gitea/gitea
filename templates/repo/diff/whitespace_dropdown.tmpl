@@ -2,19 +2,19 @@
 	{{svg "gitea-whitespace"}}
 	<div class="menu">
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=show-all&show-outdated={{$.ShowOutdatedComments}}" aria-current="{{eq .WhitespaceBehavior "show-all"}}">
-			{{svg "octicon-check" 16 (Iif (eq .WhitespaceBehavior "show-all") "" "tw-invisible")}}
+			{{svg "octicon-check" 16 (Iif (eq .WhitespaceBehavior "show-all") "" "invisible")}}
 			{{ctx.Locale.Tr "repo.diff.whitespace_show_everything"}}
 		</a>
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-all&show-outdated={{$.ShowOutdatedComments}}" aria-current="{{eq .WhitespaceBehavior "ignore-all"}}">
-			{{svg "octicon-check" 16 (Iif (eq .WhitespaceBehavior "ignore-all") "" "tw-invisible")}}
+			{{svg "octicon-check" 16 (Iif (eq .WhitespaceBehavior "ignore-all") "" "invisible")}}
 			{{ctx.Locale.Tr "repo.diff.whitespace_ignore_all_whitespace"}}
 		</a>
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-change&show-outdated={{$.ShowOutdatedComments}}" aria-current="{{eq .WhitespaceBehavior "ignore-change"}}">
-			{{svg "octicon-check" 16 (Iif (eq .WhitespaceBehavior "ignore-change") "" "tw-invisible")}}
+			{{svg "octicon-check" 16 (Iif (eq .WhitespaceBehavior "ignore-change") "" "invisible")}}
 			{{ctx.Locale.Tr "repo.diff.whitespace_ignore_amount_changes"}}
 		</a>
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-eol&show-outdated={{$.ShowOutdatedComments}}" aria-current="{{eq .WhitespaceBehavior "ignore-eol"}}">
-			{{svg "octicon-check" 16 (Iif (eq .WhitespaceBehavior "ignore-eol") "" "tw-invisible")}}
+			{{svg "octicon-check" 16 (Iif (eq .WhitespaceBehavior "ignore-eol") "" "invisible")}}
 			{{ctx.Locale.Tr "repo.diff.whitespace_ignore_at_eol"}}
 		</a>
 	</div>

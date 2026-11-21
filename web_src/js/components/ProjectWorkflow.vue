@@ -18,8 +18,8 @@ const props = defineProps<{
 const store = createProjectWorkflowStore(props);
 
 const statusClass = (row: WorkflowRow) => {
-  if (!row.workflow) return 'tw-invisible';
-  return row.workflow.enabled ? 'tw-text-green' : 'tw-text-red';
+  if (!row.workflow) return 'invisible';
+  return row.workflow.enabled ? 'text-green' : 'text-red';
 };
 
 const onRowClick = (e: MouseEvent, row: WorkflowRow) => {
@@ -65,9 +65,9 @@ onUnmounted(() => window.removeEventListener('popstate', onPopState));
             :aria-label="row.workflow ? (row.workflow.enabled ? locale.enabled : locale.disabled) : undefined"
             :aria-hidden="row.workflow ? undefined : 'true'"
           />
-          <div class="tw-min-w-0">
+          <div class="min-w-0">
             <div class="gt-ellipsis">{{ row.displayName }}</div>
-            <div class="gt-ellipsis tw-text-12 tw-text-text-light-2">{{ store.summary(row) }}</div>
+            <div class="gt-ellipsis text-12 text-text-light-2">{{ store.summary(row) }}</div>
           </div>
         </a>
       </nav>

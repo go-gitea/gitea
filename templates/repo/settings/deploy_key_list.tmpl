@@ -4,7 +4,7 @@
 			<div class="item">
 				<div class="item-leading">
 					{{$usedRecently := and $key.HasUsed $key.HasRecentActivity}}
-					<span class="{{if $usedRecently}}tw-text-green{{end}}" {{if $usedRecently}}data-tooltip-content="{{ctx.Locale.Tr "settings.key_state_desc"}}"{{end}}>
+					<span class="{{if $usedRecently}}text-green{{end}}" {{if $usedRecently}}data-tooltip-content="{{ctx.Locale.Tr "settings.key_state_desc"}}"{{end}}>
 						{{svg (Iif $key.IsKeyTypeToken "octicon-key-asterisk" "octicon-key") 32}}
 					</span>
 				</div>
@@ -17,7 +17,7 @@
 						{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort $key.CreatedUnix)}}
 						·
 						{{if $key.HasUsed}}{{ctx.Locale.Tr "settings.last_used"}}
-							<span {{if $key.HasRecentActivity}}class="tw-text-green"{{end}}>{{DateUtils.AbsoluteShort $key.UpdatedUnix}}</span>
+							<span {{if $key.HasRecentActivity}}class="text-green"{{end}}>{{DateUtils.AbsoluteShort $key.UpdatedUnix}}</span>
 						{{else}}
 							{{ctx.Locale.Tr "settings.no_activity"}}
 						{{end}}

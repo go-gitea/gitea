@@ -19,7 +19,7 @@
 						<td>{{FormatByteSize .Size}}</td>
 						<td>{{DateUtils.TimeSince .CreatedUnix}}</td>
 						<td>
-							<div class="flex-text-block tw-justify-end">
+							<div class="flex-text-block justify-end">
 								<a class="ui basic primary tiny compact button" href="{{$.Link}}/find?oid={{.Oid}}&size={{.Size}}">{{ctx.Locale.Tr "repo.settings.lfs_findcommits"}}</a>
 								<button type="button" class="ui basic tiny compact red icon button show-modal" data-tooltip-content="{{ctx.Locale.Tr "repo.editor.delete_this_file"}}"
 									data-modal="#delete-lfs-object" data-modal-header="{{ctx.Locale.Tr "repo.settings.lfs_delete" .Oid}}" data-modal-form.url="{{$.Link}}/delete/{{.Oid}}"

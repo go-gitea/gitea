@@ -9,9 +9,9 @@
 				{{$release := $info.Release}}
 				<li class="release-entry">
 					<div class="meta">
-						<a class="muted" href="{{if not (and $release.Sha1 ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode))}}#{{else}}{{$.RepoLink}}/src/tag/{{$release.TagName | PathEscapeSegments}}{{end}}" rel="nofollow">{{svg "octicon-tag" 16 "tw-mr-1"}}{{$release.TagName}}</a>
+						<a class="muted" href="{{if not (and $release.Sha1 ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode))}}#{{else}}{{$.RepoLink}}/src/tag/{{$release.TagName | PathEscapeSegments}}{{end}}" rel="nofollow">{{svg "octicon-tag" 16 "mr-1"}}{{$release.TagName}}</a>
 						{{if and $release.Sha1 ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
-							<a class="muted tw-font-mono" href="{{$.RepoLink}}/src/commit/{{$release.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "tw-mr-1"}}{{ShortSha $release.Sha1}}</a>
+							<a class="muted font-mono" href="{{$.RepoLink}}/src/commit/{{$release.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "mr-1"}}{{ShortSha $release.Sha1}}</a>
 							{{$compareTarget := ""}}
 							{{if $release.IsDraft}}
 									{{$compareTarget = $release.Target}}
@@ -30,10 +30,10 @@
 						{{end}}
 					</div>
 					<div class="ui segment detail">
-						<div class="flex-left-right tw-mb-2">
-							<h4 class="release-list-title tw-break-anywhere">
+						<div class="flex-left-right mb-2">
+							<h4 class="release-list-title wrap-anywhere">
 								{{if $.PageIsSingleTag}}{{$release.Title}}{{else}}<a class="muted" href="{{$.RepoLink}}/releases/tag/{{$release.TagName | PathEscapeSegments}}">{{$release.Title}}</a>{{end}}
-								{{template "repo/commit_statuses" dict "Status" $info.CommitStatus "Statuses" $info.CommitStatuses "AdditionalClasses" "tw-flex"}}
+								{{template "repo/commit_statuses" dict "Status" $info.CommitStatus "Statuses" $info.CommitStatuses "AdditionalClasses" "flex"}}
 								{{template "repo/release/label" (dict "Release" $release)}}
 							</h4>
 							<div>
@@ -44,12 +44,12 @@
 								{{end}}
 							</div>
 						</div>
-						<p class="tw-text-text-light">
+						<p class="text-text-light">
 							<span class="author">
 							{{if $release.OriginalAuthor}}
-								{{svg (MigrationIcon $release.Repo.GetOriginalURLHostname) 20 "tw-mr-1"}}{{$release.OriginalAuthor}}
+								{{svg (MigrationIcon $release.Repo.GetOriginalURLHostname) 20 "mr-1"}}{{$release.OriginalAuthor}}
 							{{else if $release.Publisher}}
-								{{ctx.AvatarUtils.Avatar $release.Publisher 20 "tw-mr-1"}}
+								{{ctx.AvatarUtils.Avatar $release.Publisher 20 "mr-1"}}
 								{{if gt $release.PublisherID 0}}
 									<a href="{{$release.Publisher.HomeLink}}">{{$release.Publisher.GetDisplayName}}</a>
 								{{else}}
@@ -78,12 +78,12 @@
 							<summary>
 								<span class="flex-text-inline">{{ctx.Locale.Tr "repo.release.assets"}}<span class="ui small label">{{if $showArchives}}{{Eval (len $release.Attachments) "+" 2}}{{else}}{{len $release.Attachments}}{{end}}</span></span>
 							</summary>
-							<div class="ui fitted segment tw-mt-2.5">
+							<div class="ui fitted segment mt-2.5">
 								<div class="flex-divided-list items-px-default">
 									{{range $att := $release.Attachments}}
 										<div class="item release-asset">
 											<a target="_blank" rel="nofollow" download href="{{$att.DownloadURL ctx}}">
-												<strong class="flex-text-inline">{{svg "octicon-package" 16 "tw-text-text-light-1"}}<span class="gt-ellipsis">{{$att.Name}}</span></strong>
+												<strong class="flex-text-inline">{{svg "octicon-package" 16 "text-text-light-1"}}<span class="gt-ellipsis">{{$att.Name}}</span></strong>
 											</a>
 											<span class="flex-text-inline release-asset-digest">
 												{{if $att.HashSHA256}}
@@ -99,12 +99,12 @@
 									{{if $showArchives}}
 										<div class="item">
 											<a class="archive-link" download href="{{$.RepoLink}}/archive/{{$release.TagName | PathEscapeSegments}}.zip" rel="nofollow">
-												<strong class="flex-text-inline">{{svg "octicon-file-zip" 16 "tw-text-text-light-1"}}{{ctx.Locale.Tr "repo.release.source_code"}} (ZIP)</strong>
+												<strong class="flex-text-inline">{{svg "octicon-file-zip" 16 "text-text-light-1"}}{{ctx.Locale.Tr "repo.release.source_code"}} (ZIP)</strong>
 											</a>
 										</div>
 										<div class="item">
 											<a class="archive-link" download href="{{$.RepoLink}}/archive/{{$release.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow">
-												<strong class="flex-text-inline">{{svg "octicon-file-zip" 16 "tw-text-text-light-1"}}{{ctx.Locale.Tr "repo.release.source_code"}} (TAR.GZ)</strong>
+												<strong class="flex-text-inline">{{svg "octicon-file-zip" 16 "text-text-light-1"}}{{ctx.Locale.Tr "repo.release.source_code"}} (TAR.GZ)</strong>
 											</a>
 										</div>
 									{{end}}

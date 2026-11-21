@@ -109,7 +109,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
 
       // create an iframe to sandbox the svg with styles, and set correct height by reading svg's viewBox height
       const iframe = document.createElement('iframe');
-      iframe.classList.add('markup-content-iframe', 'tw-invisible');
+      iframe.classList.add('markup-content-iframe', 'invisible');
       iframe.srcdoc = html`<style>body { margin: 0; overflow: hidden; } #mermaid { display: block; margin: 0 auto; }</style>`;
       const viewBox = svgNode.viewBox.baseVal;
       if (viewBox?.height) {
@@ -128,7 +128,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
         const iframeBody = iframe.contentDocument!.body;
         iframeBody.append(svgNode);
         bindFunctions?.(iframeBody); // follow "mermaid.render" doc, attach event handlers to the svg's container
-        iframe.classList.remove('tw-invisible');
+        iframe.classList.remove('invisible');
         initMermaidViewController(viewController, svgNode);
       });
 

@@ -174,7 +174,7 @@ func (ut *RenderUtils) UserTypeLabel(u *user_model.User) template.HTML {
 	if u == nil || !u.IsTypeBot() {
 		return ""
 	}
-	return htmlutil.HTMLFormat(` <span class="ui basic label tw-py-0 tw-align-baseline">%s</span>`, ut.locale().TrString("concept_user_bot"))
+	return htmlutil.HTMLFormat(` <span class="ui basic label py-0 align-baseline">%s</span>`, ut.locale().TrString("concept_user_bot"))
 }
 
 func filenameIsImage(filename string) bool {

@@ -34,7 +34,7 @@
 			{{template "user/auth/captcha" .}}
 
 			<div class="field">
-				<button type="submit" class="ui primary button tw-w-full">
+				<button type="submit" class="ui primary button w-full">
 					{{if .LinkAccountMode}}
 						{{ctx.Locale.Tr "auth.oauth_signin_submit"}}
 					{{else}}
@@ -43,7 +43,7 @@
 				</button>
 			</div>
 			{{if or (not .DisablePassword) .LinkAccountMode}}
-			<div class="field tw-text-center">
+			<div class="field text-center">
 				<a href="{{AppSubUrl}}/user/forgot_password">{{ctx.Locale.Tr "auth.forgot_password"}}</a>
 			</div>
 			{{end}}
@@ -61,12 +61,12 @@
 
 {{if or .EnablePasskeyAuth .ShowRegistrationButton}}
 <div class="ui container fluid">
-	<div class="ui segment flex-relaxed-list tw-items-center">
+	<div class="ui segment flex-relaxed-list items-center">
 		{{if .EnablePasskeyAuth}}
 		<div class="item signin-passkey-container">
-			<div class="tw-flex tw-flex-col tw-items-center">
+			<div class="flex flex-col items-center">
 				{{template "user/auth/webauthn_error" .}}
-				<button type="button" class="btn interact-link signin-passkey tw-p-1">{{ctx.Locale.Tr "auth.signin_passkey"}}</button>
+				<button type="button" class="btn interact-link signin-passkey p-1">{{ctx.Locale.Tr "auth.signin_passkey"}}</button>
 			</div>
 		</div>
 		{{end}}

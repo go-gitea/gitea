@@ -1,6 +1,6 @@
 {{$updateAction := $.UpdatePrimaryAction}}
 {{$hasStyleMenu := gt (len $.UpdateStyleOptions) 1}}
-<div class="ui buttons tw-shrink-0"{{if $hasStyleMenu}} data-pull-update-buttons{{end}}>
+<div class="ui buttons shrink-0"{{if $hasStyleMenu}} data-pull-update-buttons{{end}}>
 	<button type="button" class="ui button link-action" data-url="{{$updateAction.URL}}">
 		{{$updateAction.StyleButtonText}}
 	</button>

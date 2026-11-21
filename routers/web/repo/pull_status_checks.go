@@ -19,12 +19,12 @@ import (
 type statusCheckKind struct{ KindName, countTrKey, strokeClass string }
 
 var (
-	statusCheckFailing    = statusCheckKind{"failing", "repo.pulls.status_checks_failing", "tw-stroke-red"}
-	statusCheckPending    = statusCheckKind{"pending", "repo.pulls.status_checks_pending", "tw-stroke-yellow"}
-	statusCheckInProgress = statusCheckKind{"in_progress", "repo.pulls.status_checks_in_progress", "tw-stroke-yellow"}
-	statusCheckExpected   = statusCheckKind{"expected", "repo.pulls.status_checks_expected", "tw-stroke-yellow"}
-	statusCheckSkipped    = statusCheckKind{"skipped", "repo.pulls.status_checks_skipped", "tw-stroke-grey-light"}
-	statusCheckSuccessful = statusCheckKind{"successful", "repo.pulls.status_checks_successful", "tw-stroke-green"}
+	statusCheckFailing    = statusCheckKind{"failing", "repo.pulls.status_checks_failing", "stroke-red"}
+	statusCheckPending    = statusCheckKind{"pending", "repo.pulls.status_checks_pending", "stroke-yellow"}
+	statusCheckInProgress = statusCheckKind{"in_progress", "repo.pulls.status_checks_in_progress", "stroke-yellow"}
+	statusCheckExpected   = statusCheckKind{"expected", "repo.pulls.status_checks_expected", "stroke-yellow"}
+	statusCheckSkipped    = statusCheckKind{"skipped", "repo.pulls.status_checks_skipped", "stroke-grey-light"}
+	statusCheckSuccessful = statusCheckKind{"successful", "repo.pulls.status_checks_successful", "stroke-green"}
 )
 
 var statusCheckKinds = []statusCheckKind{statusCheckFailing, statusCheckPending, statusCheckInProgress, statusCheckSkipped, statusCheckExpected, statusCheckSuccessful}
@@ -118,17 +118,17 @@ func (d *pullCommitStatusCheckData) StatusChecksSection(locale translation.Local
 		}
 	}
 	section := &pullMergeBoxSection{
-		StatusIcon: "octicon-check", StatusIconClass: "tw-bg-green", SectionTitle: locale.Tr("repo.pulls.status_checks_success"),
+		StatusIcon: "octicon-check", StatusIconClass: "bg-green", SectionTitle: locale.Tr("repo.pulls.status_checks_success"),
 		SectionDetails: []template.HTML{locale.TrN(d.count(statusCheckKinds...), "repo.pulls.status_checks_count_1", "repo.pulls.status_checks_count_n", template.HTML(strings.Join(parts, ", ")))},
 	}
 	allFailed := d.RequireApprovalRunCount == 0 && len(d.StatusCheckGroups) == 1 && d.StatusCheckGroups[0].CheckKind == statusCheckFailing
 	switch {
 	case d.RequireApprovalRunCount > 0:
-		section.StatusIcon, section.StatusIconClass = "octicon-alert-fill", "tw-bg-grey-light"
+		section.StatusIcon, section.StatusIconClass = "octicon-alert-fill", "bg-grey-light"
 		section.SectionTitle = locale.TrN(d.RequireApprovalRunCount, "repo.pulls.status_checks_need_approvals", "repo.pulls.status_checks_need_approvals_n", d.RequireApprovalRunCount)
 		section.SectionDetails = []template.HTML{locale.Tr("repo.pulls.status_checks_need_approvals_helper")}
 	case allFailed:
-		section.StatusIcon, section.StatusIconClass, section.SectionTitle = "octicon-x", "tw-bg-red", locale.Tr("repo.pulls.status_checks_all_failed")
+		section.StatusIcon, section.StatusIconClass, section.SectionTitle = "octicon-x", "bg-red", locale.Tr("repo.pulls.status_checks_all_failed")
 	case d.count(statusCheckFailing) > 0:
 		section.SectionTitle = locale.Tr("repo.pulls.status_checks_failure")
 	case !d.allFinishedSuccessfully():

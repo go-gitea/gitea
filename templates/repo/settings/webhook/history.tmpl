@@ -8,23 +8,23 @@
 			{{$respInfo := $history.ResponseInfo}}
 			<div class="item" id="webhook-history-delivery-{{$history.ID}}">
 				<div class="flex-left-right">
-					<div class="flex-text-inline tw-flex-wrap">
+					<div class="flex-text-inline flex-wrap">
 						{{if $history.IsSucceed}}
-							<span class="tw-text-green">{{svg "octicon-check"}}</span>
+							<span class="text-green">{{svg "octicon-check"}}</span>
 						{{else if $history.IsDeliveryWaitingForResult}}
-							<span class="tw-text-text-light">{{svg "octicon-stopwatch"}}</span>
+							<span class="text-text-light">{{svg "octicon-stopwatch"}}</span>
 						{{else}}
-							<span class="tw-text-red">{{svg "octicon-alert"}}</span>
+							<span class="text-red">{{svg "octicon-alert"}}</span>
 						{{end}}
-						<button type="button" class="btn interact-bg tw-p-2 show-modal" aria-haspopup="dialog" data-modal="#webhook-delivery-details-{{$history.ID}}">{{$history.UUID}}</button>
-						<span class="tw-text-text-light">
+						<button type="button" class="btn interact-bg p-2 show-modal" aria-haspopup="dialog" data-modal="#webhook-delivery-details-{{$history.ID}}">{{$history.UUID}}</button>
+						<span class="text-text-light">
 							{{$history.DeliveryStatusTr ctx.Locale}}
 						</span>
 						{{if and $respInfo $respInfo.Status}}
 							<span class="ui {{if $history.IsSucceed}}green{{else}}red{{end}} label">{{$respInfo.Status}}</span>
 						{{end}}
 					</div>
-					<span class="tw-text-text-light">{{DateUtils.FullTime $history.Delivered}}</span>
+					<span class="text-text-light">{{DateUtils.FullTime $history.Delivered}}</span>
 				</div>
 
 				<template id="webhook-delivery-details-{{$history.ID}}">
@@ -40,9 +40,9 @@
 								</a>
 								{{if $canReplay}}
 									<div class="right menu">
-										<form class="tw-py-2" action="{{$.WebhookLink}}/replay/{{$history.UUID}}" method="post">
+										<form class="py-2" action="{{$.WebhookLink}}/replay/{{$history.UUID}}" method="post">
 											<span data-tooltip-content="{{if $.Webhook.IsActive}}{{ctx.Locale.Tr "repo.settings.webhook.replay.description"}}{{else}}{{ctx.Locale.Tr "repo.settings.webhook.replay.description_disabled"}}{{end}}">
-												<button type="submit" class="ui tiny button tw-mr-0{{if not $.Webhook.IsActive}} disabled{{end}}">{{svg "octicon-sync"}}</button>
+												<button type="submit" class="ui tiny button mr-0{{if not $.Webhook.IsActive}} disabled{{end}}">{{svg "octicon-sync"}}</button>
 											</span>
 										</form>
 									</div>
