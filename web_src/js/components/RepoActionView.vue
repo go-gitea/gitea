@@ -37,6 +37,7 @@ type RepoActionViewLocale = ActionRunSummaryViewLocale & ActionRunJobViewLocale 
   artifactExpiredAt: string,
   confirmDeleteArtifact: string,
   downloadFile: string,
+  deleteFile: string,
   workflowFile: string,
   workflowFileNoPermission: string,
   runDetails: string,
@@ -301,12 +302,12 @@ onBeforeUnmount(() => {
                   <SvgIcon name="octicon-file" class="tw-text-text-light"/>
                   <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 </a>
-                <a download class="silenced" :href="buildArtifactLink(artifact.name)" :data-tooltip-content="locale.downloadFile">
+                <a download class="btn interact-fg" :href="buildArtifactLink(artifact.name)" :data-tooltip-content="locale.downloadFile">
                   <SvgIcon name="octicon-download"/>
                 </a>
-                <a v-if="run.canDeleteArtifact" class="silenced" @click="deleteArtifact(artifact.name)">
+                <button type="button" v-if="run.canDeleteArtifact" class="btn interact-fg" @click="deleteArtifact(artifact.name)" :data-tooltip-content="locale.deleteFile">
                   <SvgIcon name="octicon-trash"/>
-                </a>
+                </button>
               </template>
               <span
                 v-else class="flex-text-block tw-flex-1 tw-min-w-0 tw-text-text-light-2"
@@ -501,26 +502,6 @@ onBeforeUnmount(() => {
   flex-direction: column;
   min-height: 0;
 }
-
-/* begin fomantic button overrides */
-
-.action-view-right-panel .ui.button,
-.action-view-right-panel .ui.button:focus {
-  background: transparent;
-  color: var(--color-console-fg-subtle);
-}
-
-.action-view-right-panel .ui.button:hover {
-  background: var(--color-console-hover-bg);
-  color: var(--color-console-fg);
-}
-
-.action-view-right-panel .ui.button:active {
-  background: var(--color-console-active-bg);
-  color: var(--color-console-fg);
-}
-
-/* end fomantic button overrides */
 
 @media (max-width: 767.98px) {
   .action-view-body {

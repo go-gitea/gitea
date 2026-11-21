@@ -14,7 +14,6 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
-	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -38,7 +37,6 @@ import (
 	"gitea.dev/services/gitdiff"
 	issue_service "gitea.dev/services/issue"
 	"gitea.dev/services/notifications"
-	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
 )
@@ -535,16 +533,8 @@ func CreatePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
-		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err.Error())
-		} else if errors.Is(err, issues_model.ErrMustCollaborator) {
-			ctx.APIError(http.StatusForbidden, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	if err := pull_service.NewPullRequest(ctx, ctx.Repo.Permission, prOpts); err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -753,7 +743,6 @@ func EditPullRequest(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		notify_service.PullRequestChangeTargetBranch(ctx, ctx.Doer, pr, form.Base)
 	}
 
 	// update allow edits
@@ -859,6 +848,8 @@ func MergePullRequest(ctx *context.APIContext) {
 	//     $ref: "#/definitions/MergePullRequestOption"
 	// responses:
 	//   "200":
+	//     "$ref": "#/responses/empty"
+	//   "201":
 	//     "$ref": "#/responses/empty"
 	//   default:
 	//     "$ref": "#/responses/error"
@@ -968,19 +959,12 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	if form.MergeWhenChecksSucceed {
-		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge)
-		if err != nil {
-			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
-				ctx.APIError(http.StatusConflict, err.Error())
-				return
-			}
-			ctx.APIErrorInternal(err)
-			return
-		} else if scheduled {
-			// nothing more to do ...
+		if err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge); err != nil {
+			ctx.APIErrorAuto(err)
+		} else {
 			ctx.Status(http.StatusCreated)
-			return
 		}
+		return
 	}
 
 	if err := pull_service.Merge(ctx, pr.ID, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
@@ -1216,7 +1200,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	ctx.Status(http.StatusOK)
 }
 
-// MergePullRequest cancel an auto merge scheduled for a given PullRequest by index
+// CancelScheduledAutoMerge cancels an auto merge scheduled for a given PullRequest by index
 func CancelScheduledAutoMerge(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/pulls/{index}/merge repository repoCancelScheduledAutoMerge
 	// ---
@@ -1257,30 +1241,8 @@ func CancelScheduledAutoMerge(ctx *context.APIContext) {
 		return
 	}
 
-	exist, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if !exist {
-		ctx.APIErrorNotFound()
-		return
-	}
-
-	if ctx.Doer.ID != autoMerge.DoerID {
-		allowed, err := pull_service.IsUserAllowedToMerge(ctx, pull, ctx.Repo.Permission, ctx.Doer)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		if !allowed {
-			ctx.APIError(http.StatusForbidden, "user has no permission to cancel the scheduled auto merge")
-			return
-		}
-	}
-
-	if err := automerge.RemoveScheduledAutoMerge(ctx, ctx.Doer, pull); err != nil {
-		ctx.APIErrorInternal(err)
+	if err := automerge.CancelScheduledAutoMerge(ctx, ctx.Doer, pull, ctx.Repo.Permission); err != nil {
+		ctx.APIErrorAuto(err)
 	} else {
 		ctx.Status(http.StatusNoContent)
 	}

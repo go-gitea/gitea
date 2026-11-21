@@ -229,7 +229,7 @@ func serveInstalled(c *cli.Command) error {
 	// Set up Chi routes
 	webRoutes := routers.NormalRoutes()
 
-	auditCtx := cliAuditContext(context.Background())
+	auditCtx := audit.WithCLIDoer(context.Background())
 	log.Info("Audit record output: %s", setting.Audit.RecordOutput)
 	audit.Record(auditCtx, audit_model.SystemStartup, nil, "version", setting.AppVer)
 

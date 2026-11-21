@@ -23,9 +23,7 @@ func (p *finalProcessor) Write(data []byte) (int, error) {
 }
 
 func (p *finalProcessor) Close() error {
-	// TODO: reading the whole markdown isn't a problem at the moment,
-	// because "postProcess" already does so. In the future we could optimize the code to process data on the fly.
-	buf := p.buf.Bytes()
+	buf := p.buf.Bytes() // no streaming by design, detecting HTML needs the whole content
 	buf = bytes.ReplaceAll(buf, []byte(` data-attr-class="`+p.renderInternal.secureIDPrefix), []byte(` class="`))
 
 	tmp := bytes.TrimSpace(buf)

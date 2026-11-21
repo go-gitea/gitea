@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	issues_model "gitea.dev/models/issues"
@@ -564,7 +565,9 @@ func (g *GitlabDownloader) GetComments(ctx context.Context, commentable base.Com
 	return allComments, true, nil
 }
 
-var targetBranchChangeRegexp = regexp.MustCompile("^changed target branch from `(.*?)` to `(.*?)`$")
+var targetBranchChangeRegexp = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile("^changed target branch from `(.*?)` to `(.*?)`$")
+})
 
 func (g *GitlabDownloader) convertNoteToComment(localIndex int64, note *gitlab.Note) *base.Comment {
 	comment := &base.Comment{
@@ -580,7 +583,7 @@ func (g *GitlabDownloader) convertNoteToComment(localIndex int64, note *gitlab.N
 
 	// Try to find the underlying event of system notes.
 	if note.System {
-		if match := targetBranchChangeRegexp.FindStringSubmatch(note.Body); match != nil {
+		if match := targetBranchChangeRegexp().FindStringSubmatch(note.Body); match != nil {
 			comment.CommentType = issues_model.CommentTypeChangeTargetBranch.String()
 			comment.Meta["OldRef"] = match[1]
 			comment.Meta["NewRef"] = match[2]

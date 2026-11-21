@@ -32,7 +32,7 @@ import (
 func prepareLatestCommitInfo(ctx *context.Context) bool {
 	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
-		ctx.ServerError("GetCommitByPath", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 
@@ -45,7 +45,7 @@ func prepareFileViewLfsAttrs(ctx *context.Context) (*attribute.Attributes, bool)
 		Attributes: []string{attribute.LinguistGenerated, attribute.LinguistVendored, attribute.LinguistLanguage, attribute.GitlabLanguage},
 	})
 	if err != nil {
-		ctx.ServerError("attribute.CheckAttributes", err)
+		ctx.ServerErrorAuto(err)
 		return nil, false
 	}
 	attrs := attrsMap[ctx.Repo.TreePath]
@@ -81,7 +81,7 @@ func handleFileViewRenderMarkup(ctx *context.Context, prefetchBuf []byte, utf8Re
 	var err error
 	ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRenderToHTML(ctx, rctx, renderer, utf8Reader)
 	if err != nil {
-		ctx.ServerError("Render", err)
+		ctx.ServerErrorAuto(err)
 		return true
 	}
 
@@ -161,7 +161,7 @@ type fileCodeOwner struct {
 
 func prepareFileCodeOwners(ctx *context.Context) {
 	rules, warnings1, err := issue_service.GetCodeOwnerRules(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit)
-	if msg, _ := util.ErrorUnwrapForUser(err); msg != "" {
+	if msg, _ := util.ErrorUnwrapForHTML(err, ctx.Locale); msg != "" {
 		ctx.Flash.Error(msg, true)
 		return
 	} else if err != nil {
@@ -247,7 +247,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 	// avoid creating an unnecessary temporary cat file.
 	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
 	if err != nil {
-		ctx.ServerError("getFileReader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	defer dataRc.Close()
@@ -322,12 +322,12 @@ func prepareFileViewEditorButtons(ctx *context.Context) bool {
 	lfsLock, err := git_model.GetTreePathLock(ctx, ctx.Repo.Repository.ID, ctx.Repo.TreePath)
 	ctx.Data["LFSLock"] = lfsLock
 	if err != nil {
-		ctx.ServerError("GetTreePathLock", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 	if lfsLock != nil {
 		if err := lfsLock.LoadOwner(ctx); err != nil {
-			ctx.ServerError("LoadOwner", err)
+			ctx.ServerErrorAuto(err)
 			return false
 		}
 		ctx.Data["LFSLockHint"] = ctx.Tr("repo.editor.this_file_locked")

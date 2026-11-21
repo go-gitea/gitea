@@ -145,7 +145,7 @@ func DeletePackage(ctx *context.APIContext) {
 
 	err := packages_service.RemovePackage(ctx, ctx.Doer, ctx.Package.Descriptor.Package)
 	if err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -185,7 +185,7 @@ func DeletePackageVersion(ctx *context.APIContext) {
 
 	err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
 	if err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)

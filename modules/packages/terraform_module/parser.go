@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 
 	packages_module "gitea.dev/modules/packages"
 
@@ -31,20 +32,25 @@ var (
 
 const maxReadmeSize = 1024 * 1024 // larger READMEs are not stored, they would be rendered on every page view
 
-// same rules as Terraform's module source address parser (github.com/hashicorp/terraform-registry-address)
-var (
-	nameRe   = regexp.MustCompile(`\A[0-9A-Za-z](?:[0-9A-Za-z_-]{0,62}[0-9A-Za-z])?\z`)
-	systemRe = regexp.MustCompile(`\A[0-9a-z]{1,64}\z`)
-)
+var globalVars = sync.OnceValue(func() (ret struct {
+	nameRe   *regexp.Regexp
+	systemRe *regexp.Regexp
+},
+) {
+	// same rules as Terraform's module source address parser (github.com/hashicorp/terraform-registry-address)
+	ret.nameRe = regexp.MustCompile(`\A[0-9A-Za-z](?:[0-9A-Za-z_-]{0,62}[0-9A-Za-z])?\z`)
+	ret.systemRe = regexp.MustCompile(`\A[0-9a-z]{1,64}\z`)
+	return ret
+})
 
 func ValidateAddress(namespace, name, provider string) error {
-	if !nameRe.MatchString(namespace) {
+	if !globalVars().nameRe.MatchString(namespace) {
 		return ErrInvalidNamespace
 	}
-	if !nameRe.MatchString(name) {
+	if !globalVars().nameRe.MatchString(name) {
 		return ErrInvalidName
 	}
-	if !systemRe.MatchString(provider) {
+	if !globalVars().systemRe.MatchString(provider) {
 		return ErrInvalidProvider
 	}
 	return nil

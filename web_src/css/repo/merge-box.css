@@ -1,0 +1,121 @@
+.merge-box-icon,
+.merge-box-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-white);
+}
+
+.merge-box-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-medium);
+  background: var(--color-grey-light);
+}
+
+.merge-box-status {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.merge-section > .item,
+.merge-box-checks-header {
+  flex-wrap: wrap;
+  padding: 16px;
+}
+
+.merge-section .item-title {
+  line-height: 24px;
+}
+
+.merge-section:has(form) > .item:not(.merge-box-footer),
+.merge-section:has(form) .merge-box-command-link {
+  display: none;
+}
+
+.merge-box-detail {
+  color: var(--color-text-light-2);
+}
+
+.merge-box-file {
+  padding: 6px 0;
+  overflow-wrap: anywhere;
+}
+
+.merge-box-detail code {
+  line-height: 1;
+  color: var(--color-primary);
+  background: var(--color-primary-alpha-10);
+}
+
+.merge-section > .merge-box-checks {
+  display: block;
+  padding: 0;
+}
+
+.merge-box-checks-header {
+  position: relative;
+}
+
+.merge-box-checks-toggle {
+  position: absolute;
+  inset: 0;
+  z-index: 1; /* above the rotated chevron */
+}
+
+.merge-box-checks-header:has(> [aria-expanded="false"]) + .merge-box-checks-body,
+.merge-box-checks-group:not(:only-of-type) > [aria-expanded="false"] + .flex-divided-list,
+.merge-box-checks-group:only-of-type > button {
+  display: none;
+}
+
+.merge-box-checks-body {
+  max-height: 300px;
+  padding: 8px; /* with the item paddings, aligns the content with the section items */
+}
+
+.merge-box-checks-group > .btn {
+  margin: 3px 0;
+  padding: 4px 8px;
+}
+
+.merge-box-checks .commit-status-item {
+  padding-inline: 8px;
+}
+
+.merge-box-checks .commit-status-item:hover {
+  background: var(--color-hover);
+}
+
+.merge-box-chevron {
+  color: var(--color-text-light-2);
+  transition: transform 0.15s;
+}
+
+[aria-expanded="true"] ~ .merge-box-chevron,
+[aria-expanded="true"] > .merge-box-chevron {
+  transform: rotate(90deg);
+}
+
+.merge-box-auto-merge-desc {
+  flex: 1 1 240px; /* wrap below the button on narrow screens */
+}
+
+.merge-box-menu .item > .svg {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.merge-box-menu .item[aria-checked="false"] > .svg {
+  visibility: hidden;
+}
+
+.merge-box-menu .item small {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-text-light-2);
+}
