@@ -79,7 +79,8 @@ func TestMigrateWhiteBlocklist(t *testing.T) {
 func TestIsMigrateURLAllowedForServiceLocalPath(t *testing.T) {
 	defer test.MockVariableValue(&setting.ImportLocalPaths, true)()
 	admin := &user_model.User{IsAdmin: true}
-	for _, addr := range []string{"/tmp", "file:///tmp"} {
+	tmpDir := t.TempDir()
+	for _, addr := range []string{tmpDir, "file://" + filepath.ToSlash(tmpDir)} {
 		assert.NoError(t, IsMigrateURLAllowedForService(addr, structs.PlainGitService, admin))
 		for _, svc := range []structs.GitServiceType{structs.GithubService, structs.GiteaService, structs.GitlabService, structs.BitbucketServerService} {
 			err := IsMigrateURLAllowedForService(addr, svc, admin)
