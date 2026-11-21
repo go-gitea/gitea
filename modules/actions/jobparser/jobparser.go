@@ -147,14 +147,9 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 
 // CloneHeader returns a copy of w with its workflow-global fields but no jobs.
 func (w *SingleWorkflow) CloneHeader() *SingleWorkflow {
-	return &SingleWorkflow{
-		Name:           w.Name,
-		RawOn:          w.RawOn,
-		Env:            w.Env,
-		Defaults:       w.Defaults,
-		RawPermissions: w.RawPermissions,
-		RunName:        w.RunName,
-	}
+	header := new(*w)
+	header.RawJobs = yaml.Node{}
+	return header
 }
 
 // ExpandMatrixWithNeeds returns one Job per combination of job's matrix, resolved against the

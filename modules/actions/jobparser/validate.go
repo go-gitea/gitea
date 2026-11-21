@@ -120,7 +120,7 @@ func validateWorkflowStructure(workflow *model.Workflow) error {
 var (
 	stepsJobKeys  = []string{"cancel-timeout-minutes", "container", "continue-on-error", "defaults", "env", "environment", "outputs", "runs-on", "services", "snapshot", "steps", "timeout-minutes"}
 	callerJobKeys = []string{"secrets", "uses", "with"}
-	sharedJobKeys = []string{"concurrency", "if", "name", "needs", "permissions", "strategy"}
+	sharedJobKeys = []string{"cache-mode", "concurrency", "if", "name", "needs", "permissions", "strategy"}
 )
 
 // validateJobKinds applies github.com's job kinds, decided by the first kind-specific key.

@@ -13,6 +13,7 @@ import (
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 // RecordParams describes an audit event. Callers (or domain-specific helpers)
@@ -68,7 +69,7 @@ func buildEvent(ctx context.Context, params RecordParams) *audit_model.Event {
 		ScopeType:       params.Scope.Type,
 		ScopeID:         params.Scope.ID,
 		ScopeName:       params.Scope.DisplayName(),
-		Message:         renderMessage(params.Action, params.Actor, params.Scope, params.Metadata),
+		Message:         util.TruncateRunes(renderMessage(params.Action, params.Actor, params.Scope, params.Metadata), 255), // VARCHAR(255) column
 		Metadata:        audit_model.EncodeMetadata(params.Metadata),
 		IPAddress:       getIPAddress(ctx),
 		Origin:          getOrigin(ctx),

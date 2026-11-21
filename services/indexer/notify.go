@@ -29,10 +29,6 @@ func NewNotifier() notify_service.Notifier {
 	return &indexerNotifier{}
 }
 
-func (r *indexerNotifier) AdoptRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
-	r.MigrateRepository(ctx, doer, u, repo)
-}
-
 func (r *indexerNotifier) CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
@@ -141,6 +137,12 @@ func (r *indexerNotifier) IssueChangeAssignee(ctx context.Context, doer *user_mo
 
 func (r *indexerNotifier) IssueChangeMilestone(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) {
 	issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
+}
+
+func (r *indexerNotifier) IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, addedProjectIDs, removedProjectIDs []int64) {
+	if len(addedProjectIDs) > 0 || len(removedProjectIDs) > 0 {
+		issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
+	}
 }
 
 func (r *indexerNotifier) IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,

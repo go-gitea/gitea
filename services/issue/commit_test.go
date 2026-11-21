@@ -8,6 +8,7 @@ import (
 
 	activities_model "gitea.dev/models/activities"
 	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -15,6 +16,7 @@ import (
 	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUpdateIssuesCommit(t *testing.T) {
@@ -220,9 +222,18 @@ func TestUpdateIssuesCommit_AnotherRepo(t *testing.T) {
 			unittest.AssertNotExistsBean(t, commentBean)
 			unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
 			assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, repo.DefaultBranch))
-			unittest.AssertExistsAndLoadBean(t, commentBean)
-			unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
+			comment := unittest.AssertExistsAndLoadBean(t, commentBean)
+			issue := unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
 			unittest.CheckConsistencyFor(t, &activities_model.Action{})
+
+			require.NoError(t, issue.LoadRepo(t.Context()))
+			for doer, visibleCount := range map[*user_model.User]int{nil: 0, user: 1} {
+				perm, err := access_model.GetDoerRepoPermission(t.Context(), issue.Repo, doer)
+				require.NoError(t, err)
+				comments, err := FilterReadableComments(t.Context(), doer, perm, issue, issues_model.CommentList{comment})
+				require.NoError(t, err)
+				assert.Len(t, comments, visibleCount)
+			}
 		})
 	}
 }

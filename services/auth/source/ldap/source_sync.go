@@ -7,7 +7,6 @@ import (
 	"context"
 	"strings"
 
-	asymkey_model "gitea.dev/models/asymkey"
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
@@ -143,7 +142,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 			if err == nil && isAttributeSSHPublicKeySet {
 				log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", source.AuthSource.Name, usr.Name)
-				if asymkey_model.AddPublicKeysBySource(ctx, usr, source.AuthSource, su.SSHPublicKey, source.SSHKeysAreVerified) {
+				if asymkey_service.AddPublicKeysBySource(ctx, usr, source.AuthSource, su.SSHPublicKey, source.SSHKeysAreVerified) {
 					sshKeysNeedUpdate = true
 				}
 			}
@@ -153,7 +152,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			}
 		} else if updateExisting {
 			// Synchronize SSH Public Key if that attribute is set
-			if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, usr, source.AuthSource, su.SSHPublicKey, source.SSHKeysAreVerified) {
+			if isAttributeSSHPublicKeySet && asymkey_service.SynchronizePublicKeys(ctx, usr, source.AuthSource, su.SSHPublicKey, source.SSHKeysAreVerified) {
 				sshKeysNeedUpdate = true
 			}
 

@@ -30,7 +30,7 @@ func LockIssue(ctx *context.Context) {
 		Issue:  issue,
 		Reason: form.Reason,
 	}); err != nil {
-		ctx.ServerError("LockIssue", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -53,7 +53,7 @@ func UnlockIssue(ctx *context.Context) {
 		Doer:  ctx.Doer,
 		Issue: issue,
 	}); err != nil {
-		ctx.ServerError("UnlockIssue", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

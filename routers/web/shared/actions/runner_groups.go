@@ -20,20 +20,20 @@ import (
 func RunnerGroups(ctx *context.Context) {
 	rCtx, err := getRunnersCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getRunnersCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	groups, err := actions_model.FindRunnerGroups(ctx, rCtx.OwnerID)
 	if err != nil {
-		ctx.ServerError("FindRunnerGroups", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	runners, repos, err := actions_model.CountRunnerGroupUsage(ctx, container.FilterSlice(groups, func(group *actions_model.ActionRunnerGroup) (int64, bool) {
 		return group.ID, true
 	}))
 	if err != nil {
-		ctx.ServerError("CountRunnerGroupUsage", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -49,7 +49,7 @@ func RunnerGroups(ctx *context.Context) {
 func RunnerGroupCreate(ctx *context.Context) {
 	rCtx, err := getRunnersCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getRunnersCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	group, err := actions_model.CreateRunnerGroup(ctx, rCtx.OwnerID, ctx.FormTrim("name"))
@@ -62,7 +62,7 @@ func RunnerGroupCreate(ctx *context.Context) {
 		ctx.JSONError(ctx.Tr("actions.runners.groups.name_taken"))
 		return
 	default:
-		ctx.ServerError("CreateRunnerGroup", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONRedirect(fmt.Sprintf("%s/%d", rCtx.RunnerGroupsLink, group.ID))
@@ -76,16 +76,16 @@ func RunnerGroupEdit(ctx *context.Context) {
 
 	repos, err := actions_model.FindRunnerGroupRepos(ctx, group)
 	if err != nil {
-		ctx.ServerError("FindRunnerGroupRepos", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	candidates, err := actions_model.FindRunnerGroupCandidates(ctx, group.OwnerID)
 	if err != nil {
-		ctx.ServerError("FindRunnerGroupCandidates", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if err := actions_model.RunnerList(candidates).LoadGroups(ctx); err != nil {
-		ctx.ServerError("LoadGroups", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -118,7 +118,7 @@ func RunnerGroupEditPost(ctx *context.Context) {
 		ctx.JSONError(ctx.Tr("actions.runners.groups.target_invalid"))
 		return
 	default:
-		ctx.ServerError("UpdateRunnerGroup", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("actions.runners.groups.update_success"))
@@ -136,7 +136,7 @@ func RunnerGroupDelete(ctx *context.Context) {
 		ctx.JSONError(ctx.Tr("actions.runners.groups.delete_not_empty"))
 		return
 	default:
-		ctx.ServerError("DeleteRunnerGroup", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("actions.runners.groups.delete_success"))
@@ -146,16 +146,16 @@ func RunnerGroupDelete(ctx *context.Context) {
 func runnerGroupInScope(ctx *context.Context) (*runnersCtx, *actions_model.ActionRunnerGroup) {
 	rCtx, err := getRunnersCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getRunnersCtx", err)
+		ctx.ServerErrorAuto(err)
 		return nil, nil
 	}
 	group, _, err := db.GetByID[actions_model.ActionRunnerGroup](ctx, ctx.PathParamInt64("groupid"))
 	if err != nil {
-		ctx.ServerError("GetByID", err)
+		ctx.ServerErrorAuto(err)
 		return nil, nil
 	}
 	if group == nil || group.OwnerID != rCtx.OwnerID {
-		ctx.NotFound(util.NewPermissionDeniedErrorf("no permission to edit this runner group"))
+		ctx.NotFound()
 		return nil, nil
 	}
 	return rCtx, group

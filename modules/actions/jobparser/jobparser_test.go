@@ -452,8 +452,8 @@ func TestReadWorkflowJobConditionContexts(t *testing.T) {
 
 func TestValidateWorkflowStaticJobKindAndRunsOnLikeGitHub(t *testing.T) {
 	for job, want := range map[string]string{
-		"{runs-on: x, steps: [{run: echo}]}":      "",
-		"{uses: o/r/.gitea/workflows/c.yml@main}": "",
+		"{cache-mode: write, runs-on: x, steps: [{run: echo}]}":     "",
+		"{uses: o/r/.gitea/workflows/c.yml@main, cache-mode: read}": "",
 		"{runs-on: []}": "",
 		"{runs-on: {}}": "",
 		"{runs-on: {group: org/g, labels: [a, 1]}}":           "",

@@ -24,6 +24,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"xorm.io/builder"
 )
 
 var notifySync sync.Once
@@ -48,12 +49,17 @@ func TestTransferOwnership(t *testing.T) {
 	oldOwnerGroup, groupErr := actions_model.CreateRunnerGroup(t.Context(), sourceRepo.OwnerID, "gpu")
 	require.NoError(t, groupErr)
 	require.NoError(t, db.Insert(t.Context(), &actions_model.ActionRunnerAccess{GroupID: oldOwnerGroup.ID, RepoID: sourceRepo.ID}))
+	for _, ownerID := range []int64{0, sourceRepo.OwnerID, 1} {
+		require.NoError(t, actions_model.AddScopedWorkflowSource(t.Context(), ownerID, sourceRepo.ID))
+	}
 	assert.NoError(t, AcceptTransferOwnership(t.Context(), sourceRepo, doer))
 	unittest.AssertNotExistsBean(t, &actions_model.ActionRunnerAccess{GroupID: oldOwnerGroup.ID, RepoID: sourceRepo.ID})
 
 	transferredRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	assert.EqualValues(t, 1, transferredRepo.OwnerID) // repo_transfer.yml id=1
 	unittest.AssertNotExistsBean(t, &repo_model.RepoTransfer{ID: 1})
+	unittest.AssertCount(t, &actions_model.ActionScopedWorkflowSource{SourceRepoID: 3}, 1)
+	unittest.AssertCountByCond(t, "action_scoped_workflow_source", builder.Eq{"owner_id": 0, "source_repo_id": 3}, 1)
 
 	exist, err := git.IsRepositoryExist(t.Context(), sourceRepoBak)
 	assert.NoError(t, err)

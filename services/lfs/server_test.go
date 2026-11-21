@@ -13,6 +13,8 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
@@ -51,6 +53,10 @@ func TestAuthenticate(t *testing.T) {
 		const prefixBearer = "Bearer "
 		token := getUserToken("download", 2, repo1, "")
 		assert.False(t, authenticate(ctx, repo1, "", true, false))
+		assert.True(t, authenticate(ctx, repo1, "", false, false))
+		restoreStrict := test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)
+		assert.False(t, authenticate(ctx, repo1, "", false, false))
+		restoreStrict()
 		assert.False(t, authenticate(ctx, repo1, prefixBearer+"invalid", true, false))
 		assert.True(t, authenticate(ctx, repo1, prefixBearer+token, true, false))
 	})

@@ -6,7 +6,6 @@ package auth
 import (
 	"fmt"
 
-	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
@@ -25,12 +24,12 @@ func oauth2SignInSync(ctx *context.Context, authSourceID int64, u *user_model.Us
 
 	authSource, err := auth.GetSourceByID(ctx, authSourceID)
 	if err != nil {
-		ctx.ServerError("GetSourceByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	oauth2Source, _ := authSource.Cfg.(*oauth2.Source)
 	if !authSource.IsOAuth2() || oauth2Source == nil {
-		ctx.ServerError("oauth2SignInSync", fmt.Errorf("source %s is not an OAuth2 source", gothUser.Provider))
+		ctx.ServerErrorAuto(fmt.Errorf("source %s is not an OAuth2 source", gothUser.Provider))
 		return
 	}
 
@@ -96,7 +95,7 @@ func oauth2UpdateSSHPubIfNeed(ctx *context.Context, authSource *auth.Source, got
 	if err != nil {
 		return err
 	}
-	if !asymkey_model.SynchronizePublicKeys(ctx, user, authSource, sshKeys, false) {
+	if !asymkey_service.SynchronizePublicKeys(ctx, user, authSource, sshKeys, false) {
 		return nil
 	}
 	return asymkey_service.RewriteAllPublicKeys(ctx)

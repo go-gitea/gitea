@@ -5,37 +5,46 @@ package v29
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"gitea.dev/modelmigration/base"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 
 	"xorm.io/xorm"
 )
 
-func AddRunnerGroups(_ context.Context, x base.EngineMigration) error {
-	type ActionRunner struct {
-		GroupID int64 `xorm:"INDEX NOT NULL DEFAULT 0"`
-	}
-	type ActionRunJob struct {
-		RunsOnGroup string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
-	}
-	if _, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
-		IgnoreDropIndices: true,
-	}, new(ActionRunner), new(ActionRunJob)); err != nil {
-		return err
+func AddUniqueTeamNameIndex(_ctx context.Context, x base.EngineMigration) error {
+	type Team struct {
+		ID        int64  `xorm:"pk autoincr"`
+		OrgID     int64  `xorm:"INDEX UNIQUE(s)"`
+		LowerName string `xorm:"UNIQUE(s)"`
+		Name      string
 	}
 
-	type ActionRunnerGroup struct {
-		ID                      int64  `xorm:"pk autoincr"`
-		OwnerID                 int64  `xorm:"UNIQUE(owner_name) NOT NULL DEFAULT 0"`
-		Name                    string `xorm:"VARCHAR(255) NOT NULL"`
-		LowerName               string `xorm:"VARCHAR(255) UNIQUE(owner_name) NOT NULL"`
-		IncludesAllRepositories bool   `xorm:"NOT NULL DEFAULT false"`
+	var teams []Team
+	if err := x.Where("id NOT IN (SELECT MIN(id) FROM team GROUP BY org_id, lower_name)").Asc("id").Find(&teams); err != nil {
+		return err
 	}
-	type ActionRunnerAccess struct {
-		ID      int64 `xorm:"pk autoincr"`
-		GroupID int64 `xorm:"UNIQUE(group_repo) NOT NULL"`
-		RepoID  int64 `xorm:"INDEX UNIQUE(group_repo) NOT NULL"`
+	for _, team := range teams {
+		for suffix := team.ID; ; suffix++ {
+			ending := fmt.Sprintf("-%d", suffix)
+			name := util.TruncateStringBytes(team.Name, 255-len(ending)) + ending
+			exists, err := x.Where("org_id = ? AND lower_name = ?", team.OrgID, strings.ToLower(name)).Exist(new(Team))
+			if err != nil {
+				return err
+			}
+			if !exists {
+				if _, err := x.ID(team.ID).Cols("name", "lower_name").Update(&Team{Name: name, LowerName: strings.ToLower(name)}); err != nil {
+					return err
+				}
+				log.Warn("renamed duplicate team id=%d in org id=%d from %q to %q", team.ID, team.OrgID, team.Name, name)
+				break
+			}
+		}
 	}
-	return x.Sync(new(ActionRunnerGroup), new(ActionRunnerAccess)) // plain Sync, the ignore flags above would skip the unique indexes
+
+	_, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true}, new(Team))
+	return err
 }

@@ -39,7 +39,7 @@
 	{{end}}
 </div>
 
-<div class="ui small modal" id="create-runner-group-modal">
+<dialog class="modal-dialog" id="create-runner-group-modal">
 	<div class="header">{{ctx.Locale.Tr "actions.runners.groups.create"}}</div>
 	<form class="ui form form-fetch-action" method="post">
 		<div class="content">
@@ -50,4 +50,4 @@
 		</div>
 		{{template "base/modal_actions_confirm" .}}
 	</form>
-</div>
+</dialog>

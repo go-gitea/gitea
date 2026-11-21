@@ -73,21 +73,13 @@ export default {
       semibold: 'var(--font-weight-semibold)',
       bold: 'var(--font-weight-bold)',
     },
-    fontSize: { // rarely used, but "text-base" (matching body's 1em=14px) is useful to reset font-size in a header container
+    fontSize: {
       'xs': '11px',
       'sm': '12px',
-      'base': '14px',
-      'lg': '18px',
-      'xl': '20px',
-      '2xl': '24px',
-      '3xl': '30px',
-      '4xl': '36px',
-      '5xl': '48px',
-      '6xl': '60px',
-      '7xl': '72px',
-      '8xl': '96px',
-      '9xl': '128px',
-      ...Object.fromEntries(Array.from({length: 100}, (_, i) => {
+      'base': '14px', // match body's 1em=14px
+      'lg': '16px',
+      'xl': '18px',
+      ...Object.fromEntries(Array.from({length: 48}, (_, i) => {
         return [String(i), i === 0 ? '0' : `${i}px`];
       })),
     },

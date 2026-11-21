@@ -23,16 +23,26 @@ export function contrastColor(backgroundColor: AnyColor): string {
   return useLightText(backgroundColor) ? '#fff' : '#000';
 }
 
-function resolveColors(obj: Record<string, string>): Record<string, string> {
-  const styles = window.getComputedStyle(document.documentElement);
-  const getColor = (name: string) => styles.getPropertyValue(name).trim();
-  return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, getColor(value)]));
+/** Resolves any CSS color, including var() and color-mix(), to hex for consumers that only parse hex or rgb(). */
+export function resolveCssColor(color: string): string {
+  const probe = document.createElement('div');
+  probe.style.color = `color-mix(in srgb, ${color} 100%, transparent)`;
+  document.documentElement.append(probe);
+  const computed = getComputedStyle(probe).color; // "color(srgb r g b / a)" with 0..1 channels, or "rgb()" in some engines
+  probe.remove();
+  const [r, g, b, a = 1] = computed.match(/-?[\d.]+(?:e-?\d+)?/g)!.map(Number);
+  const scale = computed.startsWith('color(') ? 255 : 1;
+  return colord({r: r * scale, g: g * scale, b: b * scale, a}).toHex();
 }
 
-export const chartJsColors = resolveColors({
-  text: '--color-text',
-  border: '--color-secondary-alpha-60',
-  commits: '--color-primary-alpha-60',
-  additions: '--color-green',
-  deletions: '--color-red',
-});
+const chartColorVars = {
+  text: 'text',
+  border: 'secondary-alpha-60',
+  commits: 'primary-alpha-60',
+  additions: 'green',
+  deletions: 'red',
+};
+
+export function chartJsColor(name: keyof typeof chartColorVars): string {
+  return resolveCssColor(`var(--color-${chartColorVars[name]})`);
+}
