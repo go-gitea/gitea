@@ -5,6 +5,7 @@ package markup
 
 import (
 	"context"
+	"strings"
 
 	"gitea.dev/models/user"
 	"gitea.dev/modules/markup"
@@ -29,6 +30,10 @@ func FormalRenderHelperFuncs() *markup.RenderHelperFuncs {
 
 			// when using gitea context (web context), use user's visibility and user's permission to check
 			return user.IsUserVisibleToViewer(giteaCtx, mentionedUser, giteaCtx.Doer)
+		},
+		IsCurrentUsername: func(ctx context.Context, username string) bool {
+			giteaCtx := gitea_context.GetWebContext(ctx)
+			return giteaCtx != nil && giteaCtx.Doer != nil && strings.EqualFold(giteaCtx.Doer.Name, username)
 		},
 	}
 }
