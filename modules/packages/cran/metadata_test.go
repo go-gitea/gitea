@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -95,6 +96,20 @@ func TestParsePackage(t *testing.T) {
 }
 
 func TestParseDescription(t *testing.T) {
+	t.Run("ContinuationLines", func(t *testing.T) {
+		for _, indent := range []string{"    ", "\t"} {
+			var buf bytes.Buffer
+			fmt.Fprintln(&buf, "Package:", packageName)
+			fmt.Fprintln(&buf, "Version:", packageVersion)
+			fmt.Fprintf(&buf, "Description: First line\n%sNote: continued text\nURL: %s,\n%shttps://example.com\n", indent, projectURL, indent)
+
+			p, err := ParseDescription(&buf)
+			require.NoError(t, err)
+			assert.Equal(t, "First line Note: continued text", p.Metadata.Description)
+			assert.Equal(t, []string{projectURL, "https://example.com"}, p.Metadata.ProjectURL)
+		}
+	})
+
 	t.Run("InvalidName", func(t *testing.T) {
 		for _, name := range []string{"123abc", "ab-cd", "ab cd", "ab/cd"} {
 			p, err := ParseDescription(createDescription(name, packageVersion))
