@@ -210,6 +210,14 @@ func CheckUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullReques
 	return ret, nil
 }
 
+// SyncCommitDivergence recomputes how far the head of a pull request is ahead of and behind its
+// base branch and stores the result on the pull request. The stored numbers drive the "out-of-date"
+// hint of the merge box and the "block on outdated branch" protection, so every path that moves the
+// head or the base of a pull request has to refresh them.
+func SyncCommitDivergence(ctx context.Context, pr *issues_model.PullRequest) error {
+	return syncCommitDivergence(ctx, pr)
+}
+
 func syncCommitDivergence(ctx context.Context, pr *issues_model.PullRequest) error {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return err
