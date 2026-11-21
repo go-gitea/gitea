@@ -66,6 +66,7 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		ReviewRequestedID:  convertID(options.ReviewRequestedID),
 		ReviewedID:         convertID(options.ReviewedID),
 		SubscriberID:       convertID(options.SubscriberID),
+		TimerTrackerID:     convertID(options.TimerTrackerID),
 		ProjectIDs:         util.Iif(options.NoProjectOnly, []int64{db.NoConditionID}, options.ProjectIDs),
 		IsClosed:           options.IsClosed,
 		IsPull:             options.IsPull,
