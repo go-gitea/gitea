@@ -508,7 +508,7 @@ jobs:
 		})
 	}
 
-	t.Run("invalid stored condition", func(t *testing.T) {
+	t.Run("stored unavailable context", func(t *testing.T) {
 		for condition, wantErr := range map[string]string{
 			"matrix.os == 'a'":          "Unrecognized named-value: 'matrix'",
 			"${{ strategy.fail-fast }}": "Unrecognized named-value: 'strategy'",

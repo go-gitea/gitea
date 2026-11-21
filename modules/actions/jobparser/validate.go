@@ -10,6 +10,7 @@ func ValidateWorkflowStatic(content []byte) ([]*Event, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Keep unknown and case-distinct keys outside of jobs accepted for existing Gitea workflows.
 	workflow, err := readWorkflowDoc(doc)
 	if err != nil {
 		return nil, err
