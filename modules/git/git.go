@@ -174,6 +174,10 @@ func InitFull() (err error) {
 	if err = InitSimple(); err != nil {
 		return err
 	}
+	// remove keyboxd's stale lock, gpg times out on it after a hostname change, like on container restarts
+	if gnupgHome := filepath.Join(gitcmd.HomeDir(), ".gnupg"); os.Getenv("GNUPGHOME") == gnupgHome {
+		_ = os.Remove(filepath.Join(gnupgHome, "public-keys.d", "pubring.db.lock"))
+	}
 	return syncGitConfig(context.Background())
 }
 

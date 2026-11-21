@@ -1,5 +1,5 @@
 name: Step with leading new line
-'on':
+"on":
   push:
 jobs:
   test:

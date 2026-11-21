@@ -5,6 +5,7 @@ jobs:
     runs-on: linux
     steps:
       - run: echo zzz
+cache-mode: read
 ---
 name: test
 jobs:
@@ -13,6 +14,8 @@ jobs:
     runs-on: linux
     steps:
       - run: uname -a && go version
+    cache-mode: write
+cache-mode: read
 ---
 name: test
 jobs:
@@ -21,6 +24,7 @@ jobs:
     runs-on: linux
     steps:
       - run: uname -a && go version
+cache-mode: read
 ---
 name: test
 jobs:
@@ -29,6 +33,7 @@ jobs:
     runs-on: linux
     steps:
       - run: uname -a && go version
+cache-mode: read
 ---
 name: test
 jobs:
@@ -37,3 +42,4 @@ jobs:
     runs-on: linux
     steps:
       - run: uname -a && go version
+cache-mode: read

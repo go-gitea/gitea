@@ -21,7 +21,6 @@ import (
 type Notifier interface {
 	Run()
 
-	AdoptRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository)
 	CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository)
 	MigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository)
 	DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository)
@@ -51,7 +50,7 @@ type Notifier interface {
 	PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, before, after string)
 	PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User)
 	PullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, comment *issues_model.Comment, mentions []*user_model.User)
-	PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch string)
+	PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch, oldSHA string)
 	PullRequestPushCommits(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment)
 	PullReviewDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment)
 
@@ -64,8 +63,8 @@ type Notifier interface {
 	EditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string)
 	DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page string)
 
-	NewRelease(ctx context.Context, rel *repo_model.Release)
-	UpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release)
+	NewRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release)
+	UpdateRelease(ctx context.Context, doer *user_model.User, rel, oldRelease *repo_model.Release)
 	DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release)
 
 	PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)

@@ -194,6 +194,7 @@ func DashboardPost(ctx *context.Context) {
 }
 
 func SelfCheck(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.self_check")
 	ctx.Data["PageIsAdminSelfCheck"] = true
 
 	ctx.Data["StartupProblems"] = setting.StartupProblems
@@ -258,13 +259,13 @@ func MonitorStats(ctx *context.Context) {
 	ctx.Data["PageIsAdminMonitorStats"] = true
 	bs, err := json.Marshal(activities_model.GetStatistic(ctx).Counter)
 	if err != nil {
-		ctx.ServerError("MonitorStats", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	statsCounter := map[string]any{}
 	err = json.Unmarshal(bs, &statsCounter)
 	if err != nil {
-		ctx.ServerError("MonitorStats", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	statsKeys := make([]string, 0, len(statsCounter))

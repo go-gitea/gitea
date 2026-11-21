@@ -11,12 +11,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"gitea.dev/cmd"
-	"gitea.dev/models/unittest"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
@@ -26,7 +26,8 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m)
+	setting.SetupGiteaTestEnv()
+	os.Exit(m.Run())
 }
 
 func makePathOutput(workPath, customPath, customConf string) string {
