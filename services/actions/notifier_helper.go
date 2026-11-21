@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -68,6 +69,7 @@ type notifyInput struct {
 
 	// optional
 	Ref         git.RefName
+	CommitID    string // Ref may have moved on by the time a queued event is handled
 	Payload     api.Payloader
 	PullRequest *issues_model.PullRequest
 
@@ -95,6 +97,11 @@ func (input *notifyInput) WithDoer(doer *user_model.User) *notifyInput {
 
 func (input *notifyInput) WithRef(ref string) *notifyInput {
 	input.Ref = git.RefName(ref)
+	return input
+}
+
+func (input *notifyInput) WithCommitID(commitID string) *notifyInput {
+	input.CommitID = commitID
 	return input
 }
 
@@ -182,19 +189,17 @@ func notify(ctx context.Context, input *notifyInput) error {
 		ref = git.RefNameFromBranch(input.Repo.DefaultBranch)
 	}
 
-	commitID, err := gitRepo.GetRefCommitID(ctx, ref.String())
-	if err != nil {
-		return fmt.Errorf("gitRepo.GetRefCommitID: %w", err)
-	}
-
-	// Get the commit object for the ref
-	commit, err := gitRepo.GetCommit(ctx, commitID)
+	commit, err := gitRepo.GetCommit(ctx, cmp.Or(input.CommitID, ref.String()))
 	if err != nil {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
 
 	if skipWorkflows(ctx, input, commit) {
 		return nil
+	}
+	if shouldDetectSchedules {
+		tipCommitID, err := gitRepo.GetRefCommitID(ctx, ref.String())
+		shouldDetectSchedules = err == nil && tipCommitID == commit.ID.String() // a later push of the branch registers its schedules
 	}
 
 	workflowCommit := commit
