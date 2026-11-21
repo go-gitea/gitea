@@ -228,6 +228,7 @@ function commitClickedShift(commit: Commit) {
 <template>
   <div class="ui scrolling dropdown custom diff-commit-selector" ref="elRoot">
     <button
+      type="button"
       ref="elExpandBtn"
       class="ui tiny basic button"
       @click.stop="toggleMenu()"
