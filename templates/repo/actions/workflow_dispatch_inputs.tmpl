@@ -12,11 +12,13 @@
 		<div class="ui field {{if .Required}}required{{end}}">
 			{{if eq .Type "choice"}}
 				<label>{{or .Description .Name}}:</label>
-				<select class="ui search selection dropdown" name="{{.Name}}">
-					{{range .Options}}
-						<option value="{{.}}" {{if eq $item.Default .}}selected{{end}}>{{.}}</option>
-					{{end}}
-				</select>
+				<div class="select-field">
+					<select name="{{.Name}}">
+						{{range .Options}}
+							<option value="{{.}}" {{if eq $item.Default .}}selected{{end}}>{{.}}</option>
+						{{end}}
+					</select>
+				</div>
 			{{else if eq .Type "boolean"}}
 				<label class="tw-flex flex-text-inline">
 					<input type="checkbox" name="{{.Name}}" {{if eq .Default "true" "True" "TRUE"}}checked{{end}}>
@@ -32,7 +34,6 @@
 		</div>
 	{{end}}
 	<div class="ui field">
-		{{/* use autofocus here to prevent the "branch selection" dropdown from getting focus, otherwise it will auto popup */}}
 		<button class="ui tiny primary button" autofocus type="submit">{{ctx.Locale.Tr "actions.workflow.run"}}</button>
 	</div>
 {{end}}

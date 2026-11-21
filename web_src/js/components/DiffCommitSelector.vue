@@ -32,7 +32,6 @@ const mergeBase = elMount.getAttribute('data-merge-base');
 const beforeCommit = elMount.getAttribute('data-before-commit');
 const afterCommit = elMount.getAttribute('data-after-commit');
 const uniqueIdMenu = generateElemId('diff-commit-selector-menu-');
-const uniqueIdShowAll = generateElemId('diff-commit-selector-show-all-');
 
 const menuVisible = shallowRef(false);
 const isLoading = shallowRef(false);
@@ -74,28 +73,18 @@ function onBodyClick(event: MouseEvent) {
 }
 
 function onKeyDown(event: KeyboardEvent) {
-  if (!menuVisible.value) return;
+  if (!menuVisible.value || event.isComposing) return;
   const item = document.activeElement as HTMLElement;
   if (!elRoot.value.contains(item)) return;
-  switch (event.key) {
-    case 'ArrowDown': // select next element
-      event.preventDefault();
-      focusElem(item.nextElementSibling as HTMLElement, item);
-      break;
-    case 'ArrowUp': // select previous element
-      event.preventDefault();
-      focusElem(item.previousElementSibling as HTMLElement, item);
-      break;
-    case 'Escape': // close menu
-      event.preventDefault();
-      item.tabIndex = -1;
-      toggleMenu();
-      break;
-  }
   if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-    const item = document.activeElement; // try to highlight the selected commits
-    const commitIdx = item?.matches('.item') ? item.getAttribute('data-commit-idx') : null;
+    event.preventDefault();
+    const items = Array.from(elRoot.value.querySelectorAll<HTMLElement>('.dropdown-item:not([aria-disabled="true"])'));
+    items[items.indexOf(item) + (event.key === 'ArrowDown' ? 1 : -1)]?.focus();
+    const commitIdx = document.activeElement!.getAttribute('data-commit-idx');
     if (commitIdx) highlight(commits.value[Number(commitIdx)]);
+  } else if (event.key === 'Escape') {
+    event.preventDefault();
+    toggleMenu();
   }
 }
 
@@ -122,20 +111,8 @@ function highlight(commit: Commit) {
   }
 }
 
-/** Focus given element */
-function focusElem(elem: HTMLElement, prevElem: HTMLElement) {
-  if (elem) {
-    elem.tabIndex = 0;
-    if (prevElem) prevElem.tabIndex = -1;
-    elem.focus();
-  }
-}
-
-/** Opens our menu, loads commits before opening */
 async function toggleMenu() {
   menuVisible.value = !menuVisible.value;
-  // load our commits when the menu is not yet visible (it'll be toggled after loading)
-  // and we got no commits
   if (!commits.value.length && menuVisible.value && !isLoading.value) {
     isLoading.value = true;
     try {
@@ -144,14 +121,13 @@ async function toggleMenu() {
       isLoading.value = false;
     }
   }
-  // set correct tabindex to allow easier navigation
   nextTick(() => {
     if (menuVisible.value) {
-      focusElem(elShowAllChanges.value, elExpandBtn.value);
-      const elActive = elMenu.value.querySelector<HTMLElement>('.item.active');
+      elShowAllChanges.value?.focus();
+      const elActive = elMenu.value.querySelector<HTMLElement>('.dropdown-item.active');
       if (elActive) elMenu.value.scrollTop = elActive.offsetTop - elMenu.value.clientHeight / 2; // scrollIntoView would also scroll the page
     } else {
-      focusElem(elExpandBtn.value, elShowAllChanges.value);
+      elExpandBtn.value.focus();
     }
   });
 }
@@ -226,23 +202,23 @@ function commitClickedShift(commit: Commit) {
 }
 </script>
 <template>
-  <div class="ui scrolling dropdown custom diff-commit-selector" ref="elRoot">
+  <div class="diff-commit-selector tw-relative tw-inline-flex" ref="elRoot">
     <button
       ref="elExpandBtn"
+      type="button"
       class="ui tiny basic button"
       @click.stop="toggleMenu()"
       :data-tooltip-content="locale.filter_changes_by_commit"
-      aria-haspopup="true"
+      aria-haspopup="menu"
+      :aria-expanded="menuVisible"
       :aria-label="locale.filter_changes_by_commit"
       :aria-controls="uniqueIdMenu"
-      :aria-activedescendant="uniqueIdShowAll"
     >
       <svg-icon name="octicon-git-commit"/>
     </button>
-    <!-- this dropdown is not managed by Fomantic UI, so it needs some classes like "transition" explicitly -->
-    <div class="left menu transition" ref="elMenu" :id="uniqueIdMenu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
+    <div class="dropdown-popup dropdown-popup-flex" ref="elMenu" :id="uniqueIdMenu" role="menu" v-show="menuVisible" v-cloak>
       <div class="loading-indicator is-loading" v-if="isLoading"/>
-      <div v-if="!isLoading" class="item" :id="uniqueIdShowAll" ref="elShowAllChanges" role="menuitem" @keydown.enter="showAllChanges()" @click="showAllChanges()">
+      <div v-if="!isLoading" class="dropdown-item" ref="elShowAllChanges" role="menuitem" tabindex="-1" @keydown.enter="showAllChanges()" @click="showAllChanges()">
         <div class="gt-ellipsis">
           {{ locale.show_all_commits }}
         </div>
@@ -253,10 +229,10 @@ function commitClickedShift(commit: Commit) {
       <!-- only show the show changes since last review if there is a review AND we are commits ahead of the last review -->
       <div
         v-if="lastReviewCommitSha != null"
-        class="item" role="menuitem"
-        :class="{disabled: !commitsSinceLastReview}"
-        @keydown.enter="changesSinceLastReviewClick()"
-        @click="changesSinceLastReviewClick()"
+        class="dropdown-item" role="menuitem" tabindex="-1"
+        :aria-disabled="!commitsSinceLastReview"
+        @keydown.enter="commitsSinceLastReview && changesSinceLastReviewClick()"
+        @click="commitsSinceLastReview && changesSinceLastReviewClick()"
       >
         <div class="gt-ellipsis">
           {{ locale.show_changes_since_your_last_review }}
@@ -265,10 +241,10 @@ function commitClickedShift(commit: Commit) {
           {{ commitsSinceLastReview }} commits
         </div>
       </div>
-      <span v-if="!isLoading" class="info tw-text-text-light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
+      <div v-if="!isLoading" class="dropdown-message">{{ locale.select_commit_hold_shift_for_range }}</div>
       <template v-for="(commit, idx) in commits" :key="commit.id">
         <div
-          class="item" role="menuitem"
+          class="dropdown-item" role="menuitem" tabindex="-1"
           :class="{selected: commit.selected, hovered: commit.hovered, active: isActive(idx)}"
           :aria-current="isActive(idx) || undefined"
           :data-commit-idx="idx"
@@ -280,7 +256,7 @@ function commitClickedShift(commit: Commit) {
           @click.meta.exact="commitClicked(commit.id, true)"
           @click.shift.exact.stop.prevent="commitClickedShift(commit)"
         >
-          <div class="tw-flex-1 tw-flex tw-flex-col tw-gap-1">
+          <div class="tw-flex-1 tw-min-w-0 tw-flex tw-flex-col tw-gap-1">
             <div class="gt-ellipsis commit-list-summary">
               {{ commit.summary }}
             </div>
@@ -292,7 +268,7 @@ function commitClickedShift(commit: Commit) {
               </span>
             </div>
           </div>
-          <div class="tw-font-mono flex-text-block">
+          <div class="tw-font-mono tw-shrink-0 flex-text-block">
             <svg-icon name="octicon-check" :size="14" v-if="isActive(idx)"/>
             {{ commit.short_sha }}
           </div>
@@ -302,52 +278,34 @@ function commitClickedShift(commit: Commit) {
   </div>
 </template>
 <style scoped>
-  .ui.dropdown.diff-commit-selector .menu {
-    margin-top: 0.25em;
-    padding: 0;
+  .dropdown-popup {
+    position: absolute;
+    z-index: 11;
+    top: 100%;
+    right: 0;
+    width: max-content;
+    max-width: calc(100vw - 16px);
     overflow-x: hidden;
-    max-height: 450px;
   }
 
-  .ui.dropdown.diff-commit-selector .menu .loading-indicator {
+  .loading-indicator {
     height: 200px;
     width: 350px;
   }
 
-  .ui.dropdown.diff-commit-selector .menu > .item,
-  .ui.dropdown.diff-commit-selector .menu > .info {
-    display: flex;
-    flex-direction: row;
-    line-height: 1.4;
-    gap: 0.25em;
-    width: auto;
-    margin: 0;
-    padding: 7px 14px !important;
-    border-radius: 0;
-  }
-
-  .ui.dropdown.diff-commit-selector .menu > .item:not(:first-child),
-  .ui.dropdown.diff-commit-selector .menu > .info:not(:first-child) {
-    border-top: 1px solid var(--color-secondary) !important;
-  }
-
-  .ui.dropdown.diff-commit-selector .menu > .item:focus {
+  .dropdown-item:focus {
     background: var(--color-active);
   }
 
-  .ui.dropdown.diff-commit-selector .menu > .item.hovered {
+  .dropdown-item.hovered {
     background-color: var(--color-small-accent);
   }
 
-  .ui.dropdown.diff-commit-selector .menu > .item.selected {
+  .dropdown-item.selected {
     background-color: var(--color-accent);
   }
 
-  .ui.dropdown.diff-commit-selector .menu > .item.active {
-    font-weight: var(--font-weight-medium);
-  }
-
-  .ui.dropdown.diff-commit-selector .menu .commit-list-summary {
+  .commit-list-summary {
     max-width: min(380px, 96vw);
   }
 </style>

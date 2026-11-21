@@ -4,7 +4,7 @@ import {initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 
 export function initGlobalEnterQuickSubmit() {
   document.addEventListener('keydown', (e) => {
-    if (e.isComposing) return;
+    if (e.isComposing || e.defaultPrevented) return;
     if (e.key !== 'Enter') return;
     const el = e.target as HTMLElement;
     const hasCtrlOrMeta = ((e.ctrlKey || e.metaKey) && !e.altKey);

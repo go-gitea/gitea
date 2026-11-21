@@ -1,13 +1,12 @@
 import {svgRaw} from '../svg.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {GET, POST} from '../modules/fetch.ts';
-import {createElementFromHTML, showElem} from '../utils/dom.ts';
+import {addDelegatedEventListener, createElementFromHTML, showElem} from '../utils/dom.ts';
 import {parseIssuePageInfo} from '../utils.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {initDropdown} from '../modules/dropdown.ts';
 import {hideModal, showModal} from '../modules/modal.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import {html, htmlRaw} from '../utils/html.ts';
-import type {JQueryElem} from '../types.ts';
 
 let i18nTextEdited: string;
 let i18nTextOptions: string;
@@ -19,11 +18,12 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
     <dialog class="modal-dialog content-history-detail-dialog">
       <div class="header flex-left-right">
         <div>${htmlRaw(itemTitleHtml)}</div>
-        <div class="ui dropdown dialog-header-options tw-mx-4 tw-hidden">
-          ${i18nTextOptions}
-          ${svgRaw('octicon-triangle-down', 14, 'dropdown icon')}
-          <div class="menu">
-            <div class="item tw-text-red" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
+        <div class="dropdown-container dialog-header-options tw-mx-4 tw-hidden">
+          <button type="button" class="dropdown-trigger btn">
+            ${i18nTextOptions} ${svgRaw('octicon-triangle-down', 14)}
+          </button>
+          <div class="dropdown-popup">
+            <button type="button" class="dropdown-item tw-text-red">${i18nTextDeleteFromHistory}</button>
           </div>
         </div>
         <button type="button" class="close-modal"></button>
@@ -31,40 +31,23 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
       <div class="comment-diff-data is-loading"></div>
     </dialog>
   `);
-  const elOptionsDropdown = elDetailDialog.querySelector('.ui.dropdown.dialog-header-options')!;
-  const $fomanticDropdownOptions = fomanticQuery(elOptionsDropdown);
-  $fomanticDropdownOptions.dropdown({
-    showOnFocus: false,
-    allowReselection: true,
-    async onChange(_value: string, _text: string, $item: JQueryElem) {
-      const optionItem = $item.data('option-item');
-      if (optionItem === 'delete') {
-        if (await confirmModal({content: i18nTextDeleteFromHistoryConfirm, confirmButtonColor: 'red'})) {
-          try {
-            const params = new URLSearchParams();
-            params.append('comment_id', commentId);
-            params.append('history_id', historyId);
-
-            const response = await POST(`${issueBaseUrl}/content-history/soft-delete?${params.toString()}`);
-            const resp = await response.json();
-
-            if (resp.ok) {
-              hideModal(elDetailDialog);
-            } else {
-              showErrorToast(resp.message);
-            }
-          } catch (error) {
-            console.error('Error:', error);
-            showErrorToast('An error occurred while deleting the history.');
-          }
-        }
-      } else { // required by eslint
-        showErrorToast(`unknown option item: ${optionItem}`);
+  const optionsDropdown = initDropdown(elDetailDialog.querySelector('.dialog-header-options')!);
+  optionsDropdown.popup.querySelector('.dropdown-item')!.addEventListener('click', async (e) => {
+    e.preventDefault();
+    if (!await confirmModal({content: i18nTextDeleteFromHistoryConfirm, confirmButtonColor: 'red'})) return;
+    try {
+      const params = new URLSearchParams({comment_id: commentId, history_id: historyId});
+      const response = await POST(`${issueBaseUrl}/content-history/soft-delete?${params.toString()}`);
+      const resp = await response.json();
+      if (resp.ok) {
+        hideModal(elDetailDialog);
+      } else {
+        showErrorToast(resp.message);
       }
-    },
-    onHide() {
-      $fomanticDropdownOptions.dropdown('clear', true);
-    },
+    } catch (error) {
+      console.error('Error:', error);
+      showErrorToast('An error occurred while deleting the history.');
+    }
   });
   showModal(elDetailDialog, {
     async onShow() {
@@ -80,9 +63,8 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
         const commentDiffData = elDetailDialog.querySelector('.comment-diff-data')!;
         commentDiffData.classList.remove('is-loading');
         commentDiffData.innerHTML = resp.diffHtml;
-        // there is only one option "item[data-option-item=delete]", so the dropdown can be entirely shown/hidden.
         if (resp.canSoftDelete) {
-          showElem(elOptionsDropdown);
+          showElem(optionsDropdown.container);
         }
       } catch (error) {
         console.error('Error:', error);
@@ -96,32 +78,29 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
 
 function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, commentId: string) {
   const elHeaderLeft = elCommentItem.querySelector('.comment-header-left')!;
-  const menuHtml = html`
-    <div class="ui dropdown interact-fg content-history-menu tw-flex-shrink-0" data-comment-id="${commentId}">
-      &bull; ${i18nTextEdited}${svgRaw('octicon-triangle-down', 14, 'dropdown icon')}
-      <div class="menu">
-      </div>
+  const elDropdown = createElementFromHTML<HTMLElement>(html`
+    <div class="dropdown-container content-history-menu tw-flex-shrink-0" data-comment-id="${commentId}">
+      <button type="button" class="dropdown-trigger btn interact-fg">
+        &bull; ${i18nTextEdited} ${svgRaw('octicon-triangle-down', 14)}
+      </button>
+      <div class="dropdown-popup"></div>
     </div>
-  `;
-
-  elHeaderLeft.querySelector(`.ui.dropdown.content-history-menu`)?.remove(); // remove the old one if exists
-  elHeaderLeft.append(createElementFromHTML(menuHtml));
-
-  const elDropdown = elHeaderLeft.querySelector('.ui.dropdown.content-history-menu')!;
-  const $fomanticDropdown = fomanticQuery(elDropdown);
-  $fomanticDropdown.dropdown({
-    action: 'hide',
-    apiSettings: {
-      url: `${issueBaseUrl}/content-history/list?comment_id=${commentId}`,
+  `);
+  elHeaderLeft.querySelector('.content-history-menu')?.remove();
+  elHeaderLeft.append(elDropdown);
+  const dropdown = initDropdown(elDropdown, {
+    async loadItems(_query, signal) {
+      const response = await GET(`${issueBaseUrl}/content-history/list?comment_id=${commentId}`, {signal});
+      const {results} = await response.json() as {results: Array<{name: string, value: number}>};
+      return results.map(({name, value}) => {
+        const item = createElementFromHTML(html`<div class="dropdown-item" data-value="${value}">${htmlRaw(name)}</div>`);
+        if (item.querySelector('[data-history-is-deleted="1"]')) item.setAttribute('aria-disabled', 'true');
+        return item;
+      });
     },
-    onHide() {
-      $fomanticDropdown.dropdown('change values', null);
-    },
-    onChange(value: string, itemHtml: string, $item: JQueryElem) {
-      if (value && !$item.find('[data-history-is-deleted=1]').length) {
-        showContentHistoryDetail(issueBaseUrl, commentId, value, itemHtml);
-      }
-    },
+  });
+  addDelegatedEventListener(dropdown.popup, 'click', '.dropdown-item', (item) => {
+    showContentHistoryDetail(issueBaseUrl, commentId, item.getAttribute('data-value')!, item.innerHTML);
   });
 }
 

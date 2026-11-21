@@ -28,7 +28,7 @@ function initPreInstall() {
   const dbName = document.querySelector<HTMLInputElement>('#db_name')!;
 
   // Database type change detection.
-  document.querySelector<HTMLInputElement>('#db_type')!.addEventListener('change', function () {
+  document.querySelector<HTMLSelectElement>('#db_type')!.addEventListener('change', function () {
     const dbType = this.value;
     hideElem('div[data-db-setting-for]');
     showElem(`div[data-db-setting-for=${dbType}]`);

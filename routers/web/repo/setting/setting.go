@@ -125,12 +125,6 @@ func preparePullRequestSettings(ctx *context.Context) {
 
 	updateBranchText := ctx.Tr("repo.pulls.update_branch")
 	rebaseUpdateText := ctx.Tr("repo.pulls.update_branch_rebase")
-	defaultUpdateStyleText := updateBranchText
-	if defaultUpdateStyle == repo_model.UpdateStyleRebase {
-		defaultUpdateStyleText = rebaseUpdateText
-	}
-
-	ctx.Data["PullsDefaultUpdateStyleText"] = defaultUpdateStyleText
 	ctx.Data["PullsDefaultUpdateStyleOptions"] = []selectOption{
 		{
 			Value:    string(repo_model.UpdateStyleMerge),

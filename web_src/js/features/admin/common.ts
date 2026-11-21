@@ -8,7 +8,7 @@ import {registerGlobalInitFunc} from '../../modules/observer.ts';
 const {appSubUrl} = window.config;
 
 function onSecurityProtocolChange(): void {
-  if (Number(document.querySelector<HTMLInputElement>('#security_protocol')?.value) > 0) {
+  if (Number(document.querySelector<HTMLSelectElement>('#security_protocol')?.value) > 0) {
     showElem('.has-tls');
   } else {
     hideElem('.has-tls');
@@ -55,10 +55,10 @@ function initAdminRunnerBulk(toolbar: HTMLElement) {
 
 function initAdminUser() {
   const pageContent = document.querySelector('.page-content.admin.edit.user, .page-content.admin.new.user');
-  const elLoginType = document.querySelector<HTMLInputElement>('#login_type');
+  const elLoginType = document.querySelector<HTMLSelectElement>('#login_type');
   if (!pageContent || !elLoginType) return;
   const isNew = pageContent.classList.contains('new');
-  const elUserType = document.querySelector<HTMLInputElement>('#user_type');
+  const elUserType = document.querySelector<HTMLSelectElement>('#user_type');
   const elUserName = document.querySelector<HTMLInputElement>('#user_name')!;
   const elLoginName = document.querySelector<HTMLInputElement>('#login_name')!;
   const elPassword = document.querySelector<HTMLInputElement>('#password')!;
@@ -114,7 +114,7 @@ function initAdminAuthentication() {
       input.removeAttribute('required');
     }
 
-    const provider = document.querySelector<HTMLInputElement>('#oauth2_provider')!.value;
+    const provider = document.querySelector<HTMLSelectElement>('#oauth2_provider')!.value;
     switch (provider) {
       case 'openidConnect':
       case 'aws-cognito':
@@ -143,7 +143,7 @@ function initAdminAuthentication() {
   }
 
   function onOAuth2UseCustomURLChange(applyDefaultValues: boolean) {
-    const provider = document.querySelector<HTMLInputElement>('#oauth2_provider')!.value;
+    const provider = document.querySelector<HTMLSelectElement>('#oauth2_provider')!.value;
     hideElem('.oauth2_use_custom_url_field');
     for (const input of document.querySelectorAll<HTMLInputElement>('.oauth2_use_custom_url_field input[required]')) {
       input.removeAttribute('required');
@@ -171,7 +171,7 @@ function initAdminAuthentication() {
     toggleElem(document.querySelector('#ldap-group-options')!, checked);
   }
 
-  const elAuthType = document.querySelector<HTMLInputElement>('#auth_type')!;
+  const elAuthType = document.querySelector<HTMLInputElement | HTMLSelectElement>('#auth_type')!;
 
   // New authentication
   if (isNewPage) {
@@ -237,9 +237,9 @@ function initAdminAuthentication() {
     elAuthType.addEventListener('change', onAuthTypeChange);
     onAuthTypeChange();
 
-    document.querySelector<HTMLInputElement>('#security_protocol')?.addEventListener('change', onSecurityProtocolChange);
+    document.querySelector<HTMLSelectElement>('#security_protocol')?.addEventListener('change', onSecurityProtocolChange);
     document.querySelector<HTMLInputElement>('#use_paged_search')?.addEventListener('change', onUsePagedSearchChange);
-    document.querySelector<HTMLInputElement>('#oauth2_provider')?.addEventListener('change', () => onOAuth2Change(true));
+    document.querySelector<HTMLSelectElement>('#oauth2_provider')?.addEventListener('change', () => onOAuth2Change(true));
     document.querySelector<HTMLInputElement>('#oauth2_use_custom_url')?.addEventListener('change', () => onOAuth2UseCustomURLChange(true));
 
     document.querySelector('.js-ldap-group-toggle')!.addEventListener('change', onEnableLdapGroupsChange);
@@ -248,14 +248,14 @@ function initAdminAuthentication() {
   if (isEditPage) {
     const authType = elAuthType.value;
     if (authType === '2' || authType === '5') {
-      document.querySelector<HTMLInputElement>('#security_protocol')?.addEventListener('change', onSecurityProtocolChange);
+      document.querySelector<HTMLSelectElement>('#security_protocol')?.addEventListener('change', onSecurityProtocolChange);
       document.querySelector('.js-ldap-group-toggle')!.addEventListener('change', onEnableLdapGroupsChange);
       onEnableLdapGroupsChange();
       if (authType === '2') {
         document.querySelector<HTMLInputElement>('#use_paged_search')?.addEventListener('change', onUsePagedSearchChange);
       }
     } else if (authType === '6') {
-      document.querySelector<HTMLInputElement>('#oauth2_provider')?.addEventListener('change', () => onOAuth2Change(true));
+      document.querySelector<HTMLSelectElement>('#oauth2_provider')?.addEventListener('change', () => onOAuth2Change(true));
       document.querySelector<HTMLInputElement>('#oauth2_use_custom_url')?.addEventListener('change', () => onOAuth2UseCustomURLChange(false));
       onOAuth2Change(false);
     }

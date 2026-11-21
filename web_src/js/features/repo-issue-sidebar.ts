@@ -1,39 +1,29 @@
-import {POST} from '../modules/fetch.ts';
-import {queryElems, toggleElem} from '../utils/dom.ts';
+import {GET, POST} from '../modules/fetch.ts';
+import {createElementFromHTML, queryElems, toggleElem} from '../utils/dom.ts';
 import {IssueSidebarComboList} from './repo-issue-sidebar-combolist.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {parseIssuePageInfo} from '../utils.ts';
 import {html} from '../utils/html.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {initDropdown} from '../modules/dropdown.ts';
 import {showTemporaryTooltip} from '../modules/tippy.ts';
-import type {FomanticApiResponse, Issue} from '../types.ts';
+import type {Issue} from '../types.ts';
 
 const {appSubUrl} = window.config;
 
 function initRepoIssueBranchSelector(elSidebar: HTMLElement) {
-  // TODO: ISSUE-SIDEBAR-REF-SELECTOR: see "repo/issue/branch_selector_field.tmpl"
-  const elSelectBranch = elSidebar.querySelector('.ui.dropdown.select-branch.branch-selector-dropdown');
+  const elSelectBranch = elSidebar.querySelector<HTMLElement>('.dropdown-container.select-branch');
   if (!elSelectBranch) return;
+  const dropdown = initDropdown(elSelectBranch);
   const urlUpdateIssueRef = elSelectBranch.getAttribute('data-url-update-issueref');
-  queryElems(elSelectBranch, '.reference-list-menu .item:not(.no-select)', (el) => el.addEventListener('click', async function (e) {
-    e.preventDefault();
-    const selectedValue = this.getAttribute('data-id')!; // eg: "refs/heads/my-branch"
-    const selectedText = this.getAttribute('data-name'); // eg: "my-branch"
-    if (urlUpdateIssueRef) {
-      // for existing issue, send request to update issue ref, and reload page
-      try {
-        await POST(urlUpdateIssueRef, {data: new URLSearchParams({ref: selectedValue})});
-        window.location.reload();
-      } catch (error) {
-        console.error(error);
-      }
-    } else {
-      // for new issue, only update UI&form, do not send request/reload
-      const selectedHiddenSelector = this.getAttribute('data-id-selector')!;
-      document.querySelector<HTMLInputElement>(selectedHiddenSelector)!.value = selectedValue;
-      elSelectBranch.querySelector('.text-branch-name')!.textContent = selectedText;
+  if (!urlUpdateIssueRef) return;
+  dropdown.valueInput!.addEventListener('change', async () => {
+    try {
+      await POST(urlUpdateIssueRef, {data: new URLSearchParams({ref: dropdown.value})});
+      window.location.reload();
+    } catch (error) {
+      console.error(error);
     }
-  }));
+  });
 }
 
 function initRepoIssueDue(elSidebar: HTMLElement) {
@@ -50,34 +40,23 @@ function initRepoIssueDue(elSidebar: HTMLElement) {
 }
 
 export function initRepoIssueSidebarDependency(elSidebar: HTMLElement) {
-  const elDropdown = elSidebar.querySelector('#new-dependency-drop-list');
+  const elDropdown = elSidebar.querySelector<HTMLElement>('#new-dependency-drop-list');
   if (!elDropdown) return;
 
   const issuePageInfo = parseIssuePageInfo();
-  const crossRepoSearch = elDropdown.getAttribute('data-issue-cross-repo-search');
-  let issueSearchUrl = `${issuePageInfo.repoLink}/issues/search?q={query}&type=${issuePageInfo.issueDependencySearchType}`;
-  if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${issuePageInfo.repoId}&type=${issuePageInfo.issueDependencySearchType}`;
-  }
-  fomanticQuery(elDropdown).dropdown({
-    fullTextSearch: true,
-    apiSettings: {
-      url: issueSearchUrl,
-      rawResponse: true, // backend responds an array, prevent fomantic api from converting it to an object
-      onResponse(response: Issue[]) {
-        const filteredResponse: FomanticApiResponse<{value: number, name: string}> = {success: true, results: []};
-        const currIssueId = elDropdown.getAttribute('data-issue-id');
-        // Parse the response from the api to work with our dropdown
-        for (const issue of response) {
-          // Don't list current issue in the dependency list.
-          if (String(issue.id) === currIssueId) continue;
-          filteredResponse.results.push({
-            value: issue.id,
-            name: html`<div class="gt-ellipsis">#${issue.number} ${issue.title}</div><div class="text small tw-break-anywhere">${issue.repository.full_name}</div>`,
-          });
-        }
-        return filteredResponse;
-      },
+  const issueSearchUrl = elDropdown.getAttribute('data-issue-cross-repo-search') === 'true' ?
+    `${appSubUrl}/issues/search?priority_repo_id=${issuePageInfo.repoId}&type=${issuePageInfo.issueDependencySearchType}` :
+    `${issuePageInfo.repoLink}/issues/search?type=${issuePageInfo.issueDependencySearchType}`;
+  initDropdown(elDropdown, {
+    async loadItems(query, signal) {
+      const response = await GET(`${issueSearchUrl}&q=${encodeURIComponent(query)}`, {signal});
+      const issues = await response.json() as Issue[];
+      return issues.filter((issue) => String(issue.id) !== elDropdown.getAttribute('data-issue-id')).map((issue) => createElementFromHTML(html`
+        <div class="dropdown-item tw-flex-col tw-items-start" data-value="${issue.id}" data-text="#${issue.number} ${issue.title}">
+          <div class="gt-ellipsis tw-w-full">#${issue.number} ${issue.title}</div>
+          <div class="text small tw-break-anywhere">${issue.repository.full_name}</div>
+        </div>
+      `));
     },
   });
 }

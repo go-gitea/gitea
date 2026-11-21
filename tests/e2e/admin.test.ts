@@ -1,13 +1,13 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {assertClipboardText, clickDropdownItem, login, randomString} from './utils.ts';
+import {assertClipboardText, login, randomString} from './utils.ts';
 
 test('create a bot and manage its access token', async ({page, request}) => {
   const botName = `e2e-bot-${randomString(8)}`;
   await login(page);
   await page.goto('/-/admin/users/new');
   await page.getByLabel('Username').fill(botName);
-  await clickDropdownItem(page, page.getByRole('combobox').filter({hasText: 'Bot'}), 'Bot');
+  await page.getByLabel('User Type').selectOption({label: 'Bot'});
   await page.getByLabel('Email Address').fill(`${botName}@${env.GITEA_TEST_E2E_DOMAIN}`);
   await page.getByRole('button', {name: 'Create User Account'}).click();
   await page.waitForURL(/\/-\/admin\/users\/\d+$/);
@@ -24,4 +24,12 @@ test('create a bot and manage its access token', async ({page, request}) => {
   await page.getByRole('button', {name: 'Delete'}).click();
   await page.getByRole('button', {name: 'Yes'}).click();
   await expect(page.getByText('The token has been deleted.')).toBeVisible();
+});
+
+test('filter users by a radio in the filter popup', async ({page}) => {
+  await login(page);
+  await page.goto('/-/admin/users');
+  await page.getByRole('button', {name: 'Filter', exact: true}).click();
+  await page.getByRole('radio', {name: 'Admin', exact: true}).click();
+  await page.waitForURL((url) => url.searchParams.get('status_filter[is_admin]') === '1');
 });

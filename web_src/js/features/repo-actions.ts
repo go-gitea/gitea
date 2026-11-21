@@ -21,7 +21,7 @@ export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): vo
 }
 
 function initWorkflowBadgeForm(form: HTMLElement): void {
-  const branchInput = form.querySelector<HTMLInputElement>('[data-workflow-badge-branch]')!;
+  const branchInput = form.querySelector<HTMLSelectElement>('[data-workflow-badge-branch]')!;
   branchInput.addEventListener('change', () => updateWorkflowBadgeFields(form, branchInput.value));
   updateWorkflowBadgeFields(form, branchInput.value);
 }

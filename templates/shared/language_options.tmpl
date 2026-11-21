@@ -1,0 +1,3 @@
+{{range .Languages}}
+	<option value="{{.Lang}}" {{if eq $.Value .Lang}}selected{{end}}>{{.Name}}</option>
+{{end}}

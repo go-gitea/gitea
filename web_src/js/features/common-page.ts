@@ -1,8 +1,8 @@
 import {GET, POST} from '../modules/fetch.ts';
 import {showGlobalErrorMessage} from '../modules/errors.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {initTabSwitcher} from '../modules/fomantic/tab.ts';
-import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
+import {initDropdown} from '../modules/dropdown.ts';
+import {initTabSwitcher} from '../modules/tab.ts';
+import {addDelegatedEventListener, createElementFromHTML} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
@@ -24,26 +24,30 @@ function initHeadNavbarContentToggle() {
 }
 
 function initFooterLanguageMenu() {
-  document.querySelector('.ui.dropdown .menu.language-menu')?.addEventListener('click', async (e) => {
-    const item = (e.target as HTMLElement).closest('.item');
-    if (!item) return;
-    e.preventDefault();
-    await GET(item.getAttribute('data-url')!);
+  addDelegatedEventListener(document, 'click', '.footer-language-menu .dropdown-item', async (el) => {
+    await GET(el.getAttribute('data-url')!);
     window.location.reload();
   });
 }
 
 function initFooterThemeSelector() {
-  const elDropdown = document.querySelector('#footer-theme-selector');
+  const elDropdown = document.querySelector<HTMLElement>('#footer-theme-selector');
   if (!elDropdown) return; // some pages don't have footer, for example: 500.tmpl
-  const $dropdown = fomanticQuery(elDropdown);
-  $dropdown.dropdown({
-    direction: 'upward',
-    apiSettings: {url: `${appSubUrl}/-/web-theme/list`},
+  const dropdown = initDropdown(elDropdown, {
+    async loadItems(_query, signal) {
+      const resp = await GET(`${appSubUrl}/-/web-theme/list`, {signal});
+      const {results} = await resp.json() as {results: Array<{name: string, value: string, active: boolean}>};
+      return results.map(({name, value, active}) => {
+        const item = createElementFromHTML(name);
+        item.classList.add('dropdown-item');
+        item.classList.toggle('active', active);
+        item.setAttribute('data-value', value);
+        return item;
+      });
+    },
   });
-  addDelegatedEventListener(elDropdown, 'click', '.menu > .item', async (el) => {
-    const themeName = el.getAttribute('data-value')!;
-    await POST(`${appSubUrl}/-/web-theme/apply?theme=${encodeURIComponent(themeName)}`);
+  addDelegatedEventListener(dropdown.popup, 'click', '.dropdown-item', async (el) => {
+    await POST(`${appSubUrl}/-/web-theme/apply?theme=${encodeURIComponent(el.getAttribute('data-value')!)}`);
     window.location.reload();
   });
 }
@@ -55,48 +59,7 @@ export function initCommmPageComponents() {
 }
 
 export function initGlobalDropdown() {
-  // do not init "custom" dropdowns, "custom" dropdowns are managed by their own code.
-  registerGlobalSelectorFunc('.ui.dropdown:not(.custom)', (el) => {
-    const $dropdown = fomanticQuery(el);
-    if ($dropdown.data('module-dropdown')) return; // do not re-init if other code has already initialized it.
-
-    $dropdown.dropdown('setting', {hideDividers: 'empty'});
-
-    if (el.classList.contains('jump')) {
-      // The "jump" means this dropdown is mainly used for "menu" purpose,
-      // clicking an item will jump to somewhere else or trigger an action/function.
-      // When a dropdown is used for non-refresh actions with tippy,
-      // it must have this "jump" class to hide the tippy when dropdown is closed.
-      $dropdown.dropdown('setting', {
-        action: 'hide',
-        onShow() {
-          // hide associated tooltip while dropdown is open
-          el._tippy?.hide();
-          el._tippy?.disable();
-        },
-        onHide() {
-          el._tippy?.enable();
-
-          // hide all tippy elements of items after a while, in case some items have tooltip popup.
-          setTimeout(() => {
-            if ($dropdown.dropdown('is hidden')) {
-              queryElems(el, '.menu > .item', (item) => item._tippy?.hide());
-            }
-          }, 2000);
-        },
-      });
-    }
-
-    // Special popup-directions, prevent Fomantic from guessing the popup direction.
-    // With default "direction: auto", if the viewport height is small, Fomantic would show the popup upward,
-    //   if the dropdown is at the beginning of the page, then the top part would be clipped by the window view.
-    //   eg: Issue List "Sort" dropdown
-    // But we can not set "direction: downward" for all dropdowns, because there is a bug in dropdown menu positioning when calculating the "left" position,
-    //   which would make some dropdown popups slightly shift out of the right viewport edge in some cases.
-    //   eg: the "Create New Repo" menu on the navbar.
-    if (el.classList.contains('upward')) $dropdown.dropdown('setting', 'direction', 'upward');
-    if (el.classList.contains('downward')) $dropdown.dropdown('setting', 'direction', 'downward');
-  });
+  registerGlobalSelectorFunc('.dropdown-container', (el: HTMLElement) => initDropdown(el));
 }
 
 export function initGlobalComponent() {

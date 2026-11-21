@@ -1,9 +1,12 @@
-<div class="ui multiple search selection dropdown">
-	<input type="hidden" name="{{.Name}}" value="{{.Value}}">
-	<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
-	<div class="menu">
+<div class="dropdown-container" data-kind="multiselect">
+	<input type="hidden" class="dropdown-value" name="{{.Name}}" value="{{.Value}}">
+	<div class="dropdown-trigger dropdown-field dropdown-search-field">
+		<input class="dropdown-filter" type="text">
+		<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "search.team_kind"}}">{{ctx.Locale.Tr "search.team_kind"}}</span>
+	</div>
+	<div class="dropdown-popup">
 		{{range .Teams}}
-			<div class="item" data-value="{{.ID}}">
+			<div class="dropdown-item" data-value="{{.ID}}">
 				{{svg "octicon-people"}}
 				{{.Name}}
 			</div>
