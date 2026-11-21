@@ -392,10 +392,9 @@ func LogStartupProblem(skip int, level log.Level, format string, args ...any) {
 	StartupProblems = append(StartupProblems, msg)
 }
 
-func deprecatedSetting(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
+func deprecatedSetting(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		removal := util.Iif(version == "", "", " because this fallback will be/has been removed in "+version)
-		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` present, please use `[%s].%s` instead%s", oldSection, oldKey, newSection, newKey, removal)
+		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` present, please use `[%s].%s` instead", oldSection, oldKey, newSection, newKey)
 	}
 }
 

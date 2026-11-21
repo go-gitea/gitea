@@ -32,7 +32,7 @@ func NewIndexer(url, apiKey, indexName string, version int, settings *meilisearc
 }
 
 // Init initializes the indexer
-func (i *Indexer) Init(_ context.Context) (bool, error) {
+func (i *Indexer) Init(ctx context.Context) (bool, error) {
 	if i == nil {
 		return false, errors.New("cannot init nil indexer")
 	}
@@ -42,11 +42,11 @@ func (i *Indexer) Init(_ context.Context) (bool, error) {
 	}
 
 	i.Client = meilisearch.New(i.url, meilisearch.WithAPIKey(i.apiKey))
-	_, err := i.Client.GetIndex(i.VersionedIndexName())
+	_, err := i.Client.GetIndex(ctx, i.VersionedIndexName())
 	if err == nil {
 		return true, nil
 	}
-	_, err = i.Client.CreateIndex(&meilisearch.IndexConfig{
+	_, err = i.Client.CreateIndex(ctx, &meilisearch.IndexConfig{
 		Uid:        i.VersionedIndexName(),
 		PrimaryKey: "id",
 	})
@@ -54,9 +54,9 @@ func (i *Indexer) Init(_ context.Context) (bool, error) {
 		return false, err
 	}
 
-	i.checkOldIndexes()
+	i.checkOldIndexes(ctx)
 
-	_, err = i.Client.Index(i.VersionedIndexName()).UpdateSettings(i.settings)
+	_, err = i.Client.Index(i.VersionedIndexName()).UpdateSettings(ctx, i.settings)
 	return false, err
 }
 
@@ -68,7 +68,7 @@ func (i *Indexer) Ping(ctx context.Context) error {
 	if i.Client == nil {
 		return errors.New("indexer is not initialized")
 	}
-	resp, err := i.Client.Health()
+	resp, err := i.Client.Health(ctx)
 	if err != nil {
 		return err
 	}

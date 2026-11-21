@@ -21,20 +21,7 @@ import (
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
-
-	"xorm.io/builder"
 )
-
-// actionsOwnerAccessibleRepoIDsSubQuery returns the sub-query restricting an owner-scoped actions
-// listing to the repos whose actions the caller can read, or nil when no restriction applies. A bare
-// org member must not be able to enumerate runs/jobs of repos they have no access to. A site admin may
-// skip the access filter, but a public-only token must stay confined to public repos even for an admin.
-func actionsOwnerAccessibleRepoIDsSubQuery(ctx *context.APIContext, ownerID int64) *builder.Builder {
-	if ownerID > 0 && (ctx.Doer == nil || !ctx.Doer.IsAdmin || ctx.PublicOnly) {
-		return repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(ownerID, ctx.Doer, ctx.PublicOnly)
-	}
-	return nil
-}
 
 // ListJobs lists jobs for api route validated ownerID and repoID
 // ownerID == 0 and repoID == 0 means all jobs
@@ -73,7 +60,7 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 		opts.Statuses = append(opts.Statuses, values...)
 	}
 
-	opts.AccessibleRepoIDsSubQuery = actionsOwnerAccessibleRepoIDsSubQuery(ctx, opts.OwnerID)
+	opts.AccessibleRepoIDsSubQuery = repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(opts.OwnerID, ctx.Doer)
 
 	jobs, total, err := db.FindAndCount[actions_model.ActionRunJob](ctx, opts)
 	if err != nil {
@@ -90,27 +77,16 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 		return
 	}
 
-	res.Entries = make([]*api.ActionWorkflowJob, len(jobs))
-
-	isRepoLevel := repoID != 0 && ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == repoID
-	for i := range jobs {
-		var repository *repo_model.Repository
-		if isRepoLevel {
-			repository = ctx.Repo.Repository
-		} else {
-			if jobs[i].Run == nil || jobs[i].Run.Repo == nil {
-				ctx.APIErrorInternal(fmt.Errorf("job %d is missing its run or repository", jobs[i].ID))
-				return
-			}
-			repository = jobs[i].Run.Repo
-		}
-
-		convertedWorkflowJob, err := convert.ToActionWorkflowJob(ctx, repository, nil, jobs[i])
-		if err != nil {
-			ctx.APIErrorInternal(err)
+	for _, job := range jobs {
+		if job.Run == nil || job.Run.Repo == nil {
+			ctx.APIErrorInternal(fmt.Errorf("job %d is missing its run or repository", job.ID))
 			return
 		}
-		res.Entries[i] = convertedWorkflowJob
+	}
+	res.Entries, err = convert.ToActionWorkflowJobs(ctx, jobs)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
 	}
 	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
@@ -196,7 +172,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 	}
 	excludePullRequests := ctx.FormBool("exclude_pull_requests")
 
-	opts.AccessibleRepoIDsSubQuery = actionsOwnerAccessibleRepoIDsSubQuery(ctx, opts.OwnerID)
+	opts.AccessibleRepoIDsSubQuery = repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(opts.OwnerID, ctx.Doer)
 
 	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
 	if err != nil {
@@ -224,6 +200,12 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 		return
 	}
 
+	latestAttempts, err := runList.GetLatestAttempts(ctx)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
 	res.Entries = make([]*api.ActionWorkflowRun, 0, len(runs))
 	for _, run := range runs {
 		if run.Repo == nil {
@@ -232,8 +214,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 			total--
 			continue
 		}
-		// TODO: load run attempts in batch
-		convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, excludePullRequests)
+		convertedRun, err := convert.ToActionWorkflowRun(ctx, run, latestAttempts[run.LatestAttemptID], excludePullRequests)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return

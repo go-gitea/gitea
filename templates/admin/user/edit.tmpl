@@ -223,7 +223,7 @@
 		</div>
 	</div>
 
-<div class="ui g-modal-confirm delete modal" id="delete-user-modal">
+<dialog class="modal-dialog" id="delete-user-modal">
 	<div class="header">
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "settings.delete_account_title"}}
@@ -241,6 +241,6 @@
 		</div>
 		{{template "base/modal_actions_confirm" .}}
 	</form>
-</div>
+</dialog>
 
 {{template "admin/layout_footer" .}}

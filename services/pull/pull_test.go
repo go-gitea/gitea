@@ -97,6 +97,7 @@ func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 
 func TestBuildSquashMergeCommitMessages(t *testing.T) {
 	trailers := []string{"Signed-off-by: a <a@example.com>", "Co-authored-by: b <b@example.com>"}
+	assert.Equal(t, "Signed-off-by: a <a@example.com>\nCo-authored-by: b <b@example.com>", buildSquashMergeCommitMessages("", trailers, true))
 	assert.Equal(t, "body\n\nSigned-off-by: a <a@example.com>\nCo-authored-by: b <b@example.com>", buildSquashMergeCommitMessages("body", trailers, false))
 	assert.Equal(t, "body\n\n---------\n\nSigned-off-by: a <a@example.com>\nCo-authored-by: b <b@example.com>", buildSquashMergeCommitMessages("body", trailers, true))
 	assert.Equal(t, "body\n\nRefs: #1\nsigned-off-by:  a <a@example.com>\nCo-authored-by: b <b@example.com>", buildSquashMergeCommitMessages("body\n\nRefs: #1\nsigned-off-by:  a <a@example.com>", trailers, true))

@@ -7,6 +7,7 @@ import (
 	"context"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"gitea.dev/modules/test"
@@ -41,7 +42,17 @@ func TestLocker(t *testing.T) {
 }
 
 func testLocker(t *testing.T, locker Locker) {
-	t.Run("lock", func(t *testing.T) {
+	runTest := func(name string, run func(*testing.T)) {
+		t.Run(name, func(t *testing.T) {
+			if _, memory := locker.(*memoryLocker); memory {
+				synctest.Test(t, run)
+			} else {
+				run(t)
+			}
+		})
+	}
+
+	runTest("lock", func(t *testing.T) {
 		parentCtx := t.Context()
 		release, err := locker.Lock(parentCtx, "test")
 		defer release()
@@ -67,7 +78,7 @@ func testLocker(t *testing.T, locker Locker) {
 		}()
 	})
 
-	t.Run("try lock", func(t *testing.T) {
+	runTest("try lock", func(t *testing.T) {
 		parentCtx := t.Context()
 		ok, release, err := locker.TryLock(parentCtx, "test")
 		defer release()
@@ -95,7 +106,7 @@ func testLocker(t *testing.T, locker Locker) {
 		}()
 	})
 
-	t.Run("wait and acquired", func(t *testing.T) {
+	runTest("wait and acquired", func(t *testing.T) {
 		ctx := t.Context()
 		release, err := locker.Lock(ctx, "test")
 		require.NoError(t, err)
@@ -115,7 +126,7 @@ func testLocker(t *testing.T, locker Locker) {
 		wg.Wait()
 	})
 
-	t.Run("multiple release", func(t *testing.T) {
+	runTest("multiple release", func(t *testing.T) {
 		ctx := t.Context()
 
 		release1, err := locker.Lock(ctx, "test")

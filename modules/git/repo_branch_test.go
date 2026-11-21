@@ -4,6 +4,7 @@
 package git
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 
@@ -96,100 +97,37 @@ func BenchmarkGetRefsBySha(b *testing.B) {
 	_, _ = bareRepo5.GetRefsBySha(b.Context(), "58a4bcc53ac13e7ff76127e0fb518b5262bf09af", "")
 }
 
-func TestRepository_IsObjectExist(t *testing.T) {
-	ctx := t.Context()
-	repo, err := OpenRepositoryLocal(ctx, filepath.Join(testReposDir, "repo1_bare"))
-	require.NoError(t, err)
-	defer repo.Close()
-
-	tests := []struct {
-		name string
-		arg  string
-		want bool
+func TestRepository_Existence(t *testing.T) {
+	for _, method := range []struct {
+		name         string
+		exists       func(*Repository, context.Context, string) bool
+		branchExists bool
 	}{
-		{
-			name: "empty",
-			arg:  "",
-			want: false,
-		},
-		{
-			name: "branch",
-			arg:  "master",
-			want: false,
-		},
-		{
-			name: "commit hash",
-			arg:  "ce064814f4a0d337b333e646ece456cd39fab612",
-			want: true,
-		},
-		{
-			name: "short commit hash",
-			arg:  "ce06481",
-			want: true,
-		},
-		{
-			name: "blob hash",
-			arg:  "153f451b9ee7fa1da317ab17a127e9fd9d384310",
-			want: true,
-		},
-		{
-			name: "short blob hash",
-			arg:  "153f451",
-			want: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, repo.IsObjectExist(ctx, tt.arg))
-		})
-	}
-}
+		{"IsObjectExist", (*Repository).IsObjectExist, false},
+		{"IsReferenceExist", (*Repository).IsReferenceExist, true},
+	} {
+		t.Run(method.name, func(t *testing.T) {
+			ctx := t.Context()
+			repo, err := OpenRepositoryLocal(ctx, filepath.Join(testReposDir, "repo1_bare"))
+			require.NoError(t, err)
+			defer repo.Close()
 
-func TestRepository_IsReferenceExist(t *testing.T) {
-	ctx := t.Context()
-	repo, err := OpenRepositoryLocal(ctx, filepath.Join(testReposDir, "repo1_bare"))
-	require.NoError(t, err)
-	defer repo.Close()
-
-	tests := []struct {
-		name string
-		arg  string
-		want bool
-	}{
-		{
-			name: "empty",
-			arg:  "",
-			want: false,
-		},
-		{
-			name: "branch",
-			arg:  "master",
-			want: true,
-		},
-		{
-			name: "commit hash",
-			arg:  "ce064814f4a0d337b333e646ece456cd39fab612",
-			want: true,
-		},
-		{
-			name: "short commit hash",
-			arg:  "ce06481",
-			want: true,
-		},
-		{
-			name: "blob hash",
-			arg:  "153f451b9ee7fa1da317ab17a127e9fd9d384310",
-			want: true,
-		},
-		{
-			name: "short blob hash",
-			arg:  "153f451",
-			want: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, repo.IsReferenceExist(ctx, tt.arg))
+			for _, testCase := range []struct {
+				name string
+				arg  string
+				want bool
+			}{
+				{"empty", "", false},
+				{"branch", "master", method.branchExists},
+				{"commit hash", "ce064814f4a0d337b333e646ece456cd39fab612", true},
+				{"short commit hash", "ce06481", true},
+				{"blob hash", "153f451b9ee7fa1da317ab17a127e9fd9d384310", true},
+				{"short blob hash", "153f451", true},
+			} {
+				t.Run(testCase.name, func(t *testing.T) {
+					assert.Equal(t, testCase.want, method.exists(repo, ctx, testCase.arg))
+				})
+			}
 		})
 	}
 }

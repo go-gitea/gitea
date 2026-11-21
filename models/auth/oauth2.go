@@ -78,8 +78,8 @@ func BuiltinApplications() map[string]*BuiltinOAuth2Application {
 		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
 	}
 	m["d57cb8c4-630c-4168-8324-ec79935e18d4"] = &BuiltinOAuth2Application{
-		ConfigName:   "tea",
-		DisplayName:  "tea",
+		ConfigName:   "gitea-cli",
+		DisplayName:  "gitea-cli",
 		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
 	}
 	m["b757811a-05c8-4c76-8d74-a5ee3d2073f2"] = &BuiltinOAuth2Application{
@@ -217,7 +217,7 @@ func (app *OAuth2Application) GenerateClientSecret(ctx context.Context) (string,
 	// for code scanners to grab sensitive tokens.
 	clientSecret := "gto_" + base32Lower.EncodeToString(rBytes)
 
-	hashedSecret, err := bcrypt.GenerateFromPassword([]byte(clientSecret), bcrypt.DefaultCost)
+	hashedSecret, err := bcrypt.GenerateFromPassword([]byte(clientSecret), util.Iif(setting.IsInTesting, bcrypt.MinCost, bcrypt.DefaultCost))
 	if err != nil {
 		return "", err
 	}

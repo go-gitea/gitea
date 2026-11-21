@@ -15,7 +15,7 @@ import (
 )
 
 func TestViewHomeSubmoduleRedirect(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	ctx, _ := contexttest.MockContext(t, "/user2/repo1/src/branch/master/test-submodule")
 	submodule := git_module.NewCommitSubmoduleFile("/user2/repo1", "test-submodule", "../repo-other", "any-ref-id")

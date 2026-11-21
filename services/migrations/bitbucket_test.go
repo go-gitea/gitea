@@ -1,0 +1,161 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package migrations
+
+import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"os"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"gitea.dev/models/unittest"
+	base "gitea.dev/modules/migration"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestBitbucketDownloadRepo(t *testing.T) {
+	token := os.Getenv("BITBUCKET_READ_TOKEN")
+	mockServer := unittest.NewMockWebServer(t, "https://api.bitbucket.org", "_mock_data/TestBitbucketDownloadRepo", token != "", unittest.MockServerOptions{
+		FixtureName: func(r *http.Request, _ []byte) string { return "GET_" + url.QueryEscape(r.URL.Path) },
+	})
+	ctx := t.Context()
+
+	downloader := NewBitbucketDownloader(mockServer.URL+"/2.0", "gitea", "test_repo", token)
+	repo, err := downloader.GetRepoInfo(ctx)
+	require.NoError(t, err)
+	assertRepositoryEqual(t, &base.Repository{
+		Name:          "test_repo",
+		Owner:         "gitea",
+		CloneURL:      "https://bitbucket.org/gitea/test_repo.git",
+		OriginalURL:   "https://bitbucket.org/gitea/test_repo",
+		DefaultBranch: "master",
+	}, repo)
+
+	prs, isEnd, err := downloader.GetPullRequests(ctx, 1, 10)
+	require.NoError(t, err)
+	assert.True(t, isEnd)
+	assertPullRequestsEqual(t, []*base.PullRequest{{
+		Number:     1,
+		PosterID:   5793964208530042003,
+		PosterName: "Lunny Xiao",
+		Title:      "Update LICENSE",
+		Content:    "do not merge this PR",
+		State:      "open",
+		Created:    time.Date(2026, 10, 7, 18, 39, 55, 551762000, time.UTC),
+		Updated:    time.Date(2026, 10, 7, 18, 40, 40, 122213000, time.UTC),
+		Head: base.PullRequestBranch{
+			CloneURL:  "https://bitbucket.org/gitea/test_repo.git",
+			Ref:       "feat/test",
+			SHA:       "9f733b96b98a4175276edf6a2e1231489c3bdd23",
+			OwnerName: "gitea",
+			RepoName:  "test_repo",
+		},
+		Base: base.PullRequestBranch{
+			Ref:       "master",
+			SHA:       "c59c9b451acca9d106cc19d61d87afe3fbbb8b83",
+			OwnerName: "gitea",
+			RepoName:  "test_repo",
+		},
+	}}, prs)
+
+	downloader = NewBitbucketDownloader(mockServer.URL+"/2.0", "atlassian", "aui", token)
+	prs, isEnd, err = downloader.GetPullRequests(ctx, 1, 1)
+	require.NoError(t, err)
+	assert.False(t, isEnd)
+	require.Len(t, prs, 1)
+	assert.Equal(t, "closed", prs[0].State)
+	assert.True(t, prs[0].Merged)
+	assert.NotNil(t, prs[0].MergedTime)
+	assert.Len(t, prs[0].MergeCommitSHA, 40)
+	assert.Empty(t, prs[0].Head.SHA)
+	assert.Len(t, prs[0].Base.SHA, 40)
+
+	comments, isEnd, err := downloader.GetComments(ctx, prs[0])
+	require.NoError(t, err)
+	assert.True(t, isEnd)
+	assert.Len(t, comments, 25)
+}
+
+func TestBitbucketDownloader(t *testing.T) {
+	headSHA := strings.Repeat("a", 40)
+	var commentRequests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "Bearer tok", r.Header.Get("Authorization"))
+		switch r.URL.Path {
+		case "/2.0/repositories/w/r/pullrequests":
+			_, _ = w.Write([]byte(`{"values":[{"id":3,"state":"OPEN","draft":true,"comment_count":5,"updated_on":"2024-01-03T00:00:00Z","source":{"commit":{"hash":"` + headSHA + `"},"repository":{"full_name":"w/r"}},"participants":[
+				{"user":{"nickname":"alice"},"approved":true,"participated_on":"2024-01-02T00:00:00Z"},
+				{"user":{"nickname":"bob"},"state":"changes_requested"},
+				{"user":{"nickname":"carol"}}]}]}`))
+		case "/2.0/repositories/w/r/pullrequests/3/comments":
+			commentRequests.Add(1)
+			_, _ = w.Write([]byte(`{"values":[
+				{"id":1,"content":{"raw":"general"},"user":{"nickname":"alice"}},
+				{"id":2,"content":{"raw":"inline"},"user":{"nickname":"bob"},"inline":{"path":"a.txt","to":5},"resolution":{}},
+				{"id":3,"content":{"raw":"old side"},"user":{"nickname":"bob"},"inline":{"path":"a.txt","from":7},"parent":{"id":2}},
+				{"id":4,"content":{"raw":"gone"},"user":{"nickname":"bob"},"deleted":true},
+				{"id":5,"content":{"raw":"file"},"user":{"nickname":"bob"},"inline":{"path":"b.txt"}}]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	downloader := NewBitbucketDownloader(server.URL+"/2.0", "w", "r", "tok")
+	prs, _, err := downloader.GetPullRequests(t.Context(), 1, 10)
+	require.NoError(t, err)
+	require.Len(t, prs, 1)
+	assert.True(t, prs[0].IsDraft)
+
+	comments, _, err := downloader.GetComments(t.Context(), prs[0])
+	require.NoError(t, err)
+	require.Len(t, comments, 2)
+	assert.Equal(t, "general", comments[0].Content)
+	assert.Equal(t, "Comment on `b.txt`:\n\nfile", comments[1].Content)
+
+	reviews, err := downloader.GetReviews(t.Context(), prs[0])
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, commentRequests.Load())
+	var inline, states []string
+	for _, review := range reviews {
+		if len(review.Comments) > 0 {
+			reviewComment := review.Comments[0]
+			inline = append(inline, fmt.Sprintf("%s:%d:%v", reviewComment.TreePath, reviewComment.Line, reviewComment.Resolved))
+			assert.Equal(t, headSHA, reviewComment.CommitID)
+		} else {
+			states = append(states, review.ReviewerName+":"+review.State)
+		}
+	}
+	assert.ElementsMatch(t, []string{"a.txt:5:true", "a.txt:-7:false"}, inline)
+	assert.ElementsMatch(t, []string{"alice:APPROVED", "bob:CHANGES_REQUESTED"}, states)
+
+	cloneURL, err := downloader.FormatCloneURL(base.MigrateOptions{AuthUsername: "me@example.com", AuthPassword: "tok"}, "https://bitbucket.org/w/r")
+	require.NoError(t, err)
+	assert.Equal(t, "https://x-token-auth:tok@bitbucket.org/w/r", cloneURL)
+
+	_, err = (&BitbucketDownloaderFactory{}).New(t.Context(), base.MigrateOptions{CloneAddr: "https://git.example.com/w/r.git"})
+	assert.ErrorContains(t, err, "invalid Bitbucket Cloud URL")
+}
+
+func TestBitbucketPullRequestClosedTime(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"values":[{"id":1,"state":"MERGED","created_on":"2024-01-01T00:00:00Z","updated_on":"2024-02-01T00:00:00Z","closed_on":"2024-01-05T00:00:00Z"},
+			{"id":2,"state":"DECLINED","created_on":"2024-01-01T00:00:00Z","updated_on":"2024-02-01T00:00:00Z"}]}`))
+	}))
+	defer server.Close()
+
+	prs, _, err := NewBitbucketDownloader(server.URL+"/2.0", "w", "r", "").GetPullRequests(t.Context(), 1, 10)
+	require.NoError(t, err)
+	require.Len(t, prs, 2)
+	assert.Equal(t, time.Date(2024, 1, 5, 0, 0, 0, 0, time.UTC), *prs[0].MergedTime)
+	assert.Equal(t, *prs[0].MergedTime, *prs[0].Closed)
+	assert.Equal(t, time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC), *prs[1].Closed) // falls back to updated_on
+}

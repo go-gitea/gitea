@@ -59,10 +59,8 @@ func CompareDiff(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Compare"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	if ctx.Repo.GitRepo == nil {
 		var err error

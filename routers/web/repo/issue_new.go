@@ -51,7 +51,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 
 	templateErrs := map[string]error{}
 	for _, filename := range templateCandidates {
-		template, err := issue_template.UnmarshalFromCommit(ctx, ctx.Repo.GitRepo, commit, filename)
+		issueTemplate, err := issue_template.UnmarshalFromCommit(ctx, ctx.Repo.GitRepo, commit, filename)
 		if errors.Is(err, util.ErrNotExist) {
 			continue
 		}
@@ -59,37 +59,37 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 			templateErrs[filename] = err
 			continue
 		}
-		ctx.Data[issueTemplateTitleKey] = template.Title
-		ctx.Data[ctxDataKey] = template.Content
+		ctx.Data[issueTemplateTitleKey] = issueTemplate.Title
+		ctx.Data[ctxDataKey] = issueTemplate.Content
 
-		if template.Type() == api.IssueTemplateTypeYaml {
+		if issueTemplate.Type() == api.IssueTemplateTypeYaml {
 			// Replace field default values by values from query
-			for _, field := range template.Fields {
+			for _, field := range issueTemplate.Fields {
 				fieldValue := ctx.FormString("field:" + field.ID)
 				if fieldValue != "" {
 					field.Attributes["value"] = fieldValue
 				}
 			}
 
-			ctx.Data["Fields"] = template.Fields
-			ctx.Data["TemplateFile"] = template.FileName
+			ctx.Data["Fields"] = issueTemplate.Fields
+			ctx.Data["TemplateFile"] = issueTemplate.FileName
 		}
 
-		metaData.LabelsData.SetSelectedLabelNames(template.Labels)
-
-		selectedAssigneeIDStrings := make([]string, 0, len(template.Assignees))
-		selectedAssigneeIDs, _ := user_model.GetDoerUserIDsByNames(ctx, template.Assignees)
-		for _, userID := range selectedAssigneeIDs {
-			selectedAssigneeIDStrings = append(selectedAssigneeIDStrings, strconv.FormatInt(userID, 10))
+		// the query parameters take precedence
+		if metaData.LabelsData.SelectedLabelIDs == "" {
+			metaData.LabelsData.SetSelectedLabelNames(issueTemplate.Labels)
 		}
-		metaData.AssigneesData.SelectedAssigneeIDs = strings.Join(selectedAssigneeIDStrings, ",")
-
-		if template.Ref != "" && !strings.HasPrefix(template.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
-			template.Ref = git.BranchPrefix + template.Ref
+		if metaData.AssigneesData.SelectedAssigneeIDs == "" {
+			selectedAssigneeIDs, _ := user_model.GetRealDoerUserIDsByNames(ctx, issueTemplate.Assignees)
+			metaData.AssigneesData.SelectedAssigneeIDs = base.JoinInt64s(selectedAssigneeIDs, ",")
 		}
 
-		ctx.Data["Reference"] = template.Ref
-		ctx.Data["RefEndName"] = git.RefName(template.Ref).ShortName()
+		if issueTemplate.Ref != "" && !strings.HasPrefix(issueTemplate.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
+			issueTemplate.Ref = git.BranchPrefix + issueTemplate.Ref
+		}
+
+		ctx.Data["Reference"] = issueTemplate.Ref
+		ctx.Data["RefEndName"] = git.RefName(issueTemplate.Ref).ShortName()
 		return true, templateErrs
 	}
 	return false, templateErrs
@@ -97,6 +97,13 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 
 // NewIssue render creating issue page
 func NewIssue(ctx *context.Context) {
+	restriction := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeIssues).IssuesConfig().CreationRestriction
+	err := issue_service.CheckCreationRestriction(ctx.Repo.Permission, unit.TypeIssues, restriction)
+	if err != nil {
+		ctx.NotFound()
+		return
+	}
+
 	issueConfig, _ := issue_service.GetTemplateConfigFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	hasTemplates := issue_service.HasTemplatesOrContactLinks(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 
@@ -111,24 +118,20 @@ func NewIssue(ctx *context.Context) {
 
 	isProjectsEnabled := ctx.Repo.Permission.CanRead(unit.TypeProjects)
 	ctx.Data["IsProjectsEnabled"] = isProjectsEnabled
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
-	pageMetaData := retrieveRepoIssueMetaData(ctx, ctx.Repo.Repository, nil, false)
+	pageMetaData := retrieveRepoIssueMetaDataWithPrefill(ctx, ctx.Repo.Repository, false)
 	if ctx.Written() {
 		return
 	}
 
-	pageMetaData.MilestonesData.SelectedMilestoneID = ctx.FormInt64("milestone")
-
-	pageMetaData.SetSelectedProjectIDs(parseProjectIDsFromQuery(ctx))
 	if len(pageMetaData.ProjectsData.SelectedProjectIDs) == 1 {
 		ctx.Data["redirect_after_creation"] = "project"
 	}
 
 	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetTagNamesByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Tags"] = tags
@@ -148,7 +151,7 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["IsIssuePoster"] = true // the current user will be the poster of the new issue
 
 	if !issueConfig.BlankIssuesEnabled && hasTemplates && !templateLoaded {
-		// The "issues/new" and "issues/new/choose" share the same query parameters "project" and "milestone", if blank issues are disabled, just redirect to the "issues/choose" page with these parameters.
+		// The "issues/new" and "issues/new/choose" share the same prefill query parameters, if blank issues are disabled, just redirect to the "issues/choose" page with these parameters.
 		ctx.Redirect(fmt.Sprintf("%s/issues/new/choose?%s", ctx.Repo.Repository.Link(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
 		return
 	}
@@ -193,7 +196,7 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	}
 
 	if !issue_service.HasTemplatesOrContactLinks(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo) {
-		// The "issues/new" and "issues/new/choose" share the same query parameters "project" and "milestone", if no template here, just redirect to the "issues/new" page with these parameters.
+		// The "issues/new" and "issues/new/choose" share the same prefill query parameters, if no template here, just redirect to the "issues/new" page with these parameters.
 		ctx.Redirect(fmt.Sprintf("%s/issues/new?%s", ctx.Repo.Repository.Link(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
 		return
 	}
@@ -202,8 +205,7 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["IssueConfig"] = issueConfig
 	ctx.Data["IssueConfigError"] = err // ctx.Flash.Err makes problems here
 
-	ctx.Data["milestone"] = ctx.FormInt64("milestone")
-	ctx.Data["project"] = ctx.FormInt64("project")
+	ctx.Data["PrefillQuery"] = issuePrefillQuery(ctx)
 
 	ctx.HTML(http.StatusOK, tplIssueChoose)
 }
@@ -211,12 +213,12 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 // DeleteIssue deletes an issue
 func DeleteIssue(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
-	if ctx.Written() {
+	if issue == nil {
 		return
 	}
 
 	if err := issue_service.DeleteIssue(ctx, ctx.Doer, issue); err != nil {
-		ctx.ServerError("DeleteIssueByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -236,8 +238,8 @@ func toSet[ItemType any, KeyType comparable](slice []ItemType, keyFunc func(Item
 	return s
 }
 
-// ValidateRepoMetasForNewIssue check and returns repository's meta information
-func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueForm, isPull bool) (ret struct {
+// ValidateRepoMetasForCreateIssue check and returns repository's meta information
+func ValidateRepoMetasForCreateIssue(ctx *context.Context, form forms.CreateIssueForm, isPull bool) (ret struct {
 	LabelIDs, AssigneeIDs []int64
 	MilestoneID           int64
 	ProjectIDs            []int64
@@ -254,7 +256,7 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 	inputLabelIDs := ctx.FormStringInt64s("label_ids")
 	candidateLabels := toSet(pageMetaData.LabelsData.AllLabels, func(label *issues_model.Label) int64 { return label.ID })
 	if len(inputLabelIDs) > 0 && !candidateLabels.Contains(inputLabelIDs...) {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return ret
 	}
 	pageMetaData.LabelsData.SetSelectedLabelIDs(inputLabelIDs)
@@ -262,12 +264,18 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 	allMilestones := append(slices.Clone(pageMetaData.MilestonesData.OpenMilestones), pageMetaData.MilestonesData.ClosedMilestones...)
 	candidateMilestones := toSet(allMilestones, func(milestone *issues_model.Milestone) int64 { return milestone.ID })
 	if form.MilestoneID > 0 && !candidateMilestones.Contains(form.MilestoneID) {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return ret
 	}
 	pageMetaData.MilestonesData.SelectedMilestoneID = form.MilestoneID
 
 	inputProjectIDs := ctx.FormStringInt64s("project_ids")
+	allProjects := slices.Concat(pageMetaData.ProjectsData.OpenProjects, pageMetaData.ProjectsData.ClosedProjects)
+	candidateProjects := toSet(allProjects, func(project *project_model.Project) int64 { return project.ID })
+	if len(inputProjectIDs) > 0 && !candidateProjects.Contains(inputProjectIDs...) {
+		ctx.NotFound()
+		return ret
+	}
 	pageMetaData.SetSelectedProjectIDs(inputProjectIDs)
 
 	// prepare assignees
@@ -298,14 +306,14 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 			if rID < 0 { // negative reviewIDs represent team requests
 				team, ok := teamReviewersMap[-rID]
 				if !ok {
-					ctx.NotFound(nil)
+					ctx.NotFound()
 					return ret
 				}
 				teamReviewers = append(teamReviewers, team)
 			} else {
 				user, ok := userReviewersMap[rID]
 				if !ok {
-					ctx.NotFound(nil)
+					ctx.NotFound()
 					return ret
 				}
 				reviewers = append(reviewers, user)
@@ -325,7 +333,7 @@ func NewIssuePost(ctx *context.Context) {
 
 	repo := ctx.Repo.Repository
 
-	validateRet := ValidateRepoMetasForNewIssue(ctx, *form, false)
+	validateRet := ValidateRepoMetasForCreateIssue(ctx, *form, false)
 	if ctx.Written() {
 		return
 	}
@@ -352,8 +360,8 @@ func NewIssuePost(ctx *context.Context) {
 
 	content := form.Content
 	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
-		if template, err := issue_template.UnmarshalFromRepo(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
-			content = issue_template.RenderToMarkdown(template, ctx.Req.Form)
+		if issueTemplate, err := issue_template.UnmarshalFromRepo(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
+			content = issue_template.RenderToMarkdown(issueTemplate, ctx.Req.Form)
 		}
 	}
 
@@ -368,14 +376,8 @@ func NewIssuePost(ctx *context.Context) {
 		Ref:         form.Ref,
 	}
 
-	if err := issue_service.NewIssue(ctx, repo, issue, labelIDs, attachments, assigneeIDs, projectIDs); err != nil {
-		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
-			ctx.HTTPError(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
-		} else if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.JSONError(ctx.Tr("repo.issues.new.blocked_user"))
-		} else {
-			ctx.ServerError("NewIssue", err)
-		}
+	if err := issue_service.NewIssue(ctx, repo, ctx.Repo.Permission, issue, labelIDs, attachments, assigneeIDs, projectIDs); err != nil {
+		ctx.JSONErrorAuto(err)
 		return
 	}
 

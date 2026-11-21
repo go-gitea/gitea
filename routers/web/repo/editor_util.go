@@ -11,7 +11,9 @@ import (
 	"strings"
 
 	git_model "gitea.dev/models/git"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
@@ -127,6 +129,11 @@ func getUniqueRepositoryName(ctx context.Context, ownerID int64, name string) st
 }
 
 func editorPushBranchToForkedRepository(ctx context.Context, doer *user_model.User, baseRepo *repo_model.Repository, baseBranchName string, targetRepo *repo_model.Repository, targetBranchName string) error {
+	if basePerm, err := access_model.GetDoerRepoPermission(ctx, baseRepo, doer); err != nil {
+		return err
+	} else if !basePerm.CanRead(unit.TypeCode) {
+		return util.NewPermissionDeniedErrorf("permission denied to read base repo %d", baseRepo.ID)
+	}
 	return git.PushManaged(ctx, baseRepo, targetRepo, git.PushOptions{
 		Branch: baseBranchName + ":" + targetBranchName,
 		Env:    repo_module.PushingEnvironment(doer, targetRepo),
