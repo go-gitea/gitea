@@ -4,7 +4,6 @@
 package conda
 
 import (
-	"archive/tar"
 	"bytes"
 	"io"
 	"strings"
@@ -28,22 +27,6 @@ const (
 )
 
 func TestParsePackage(t *testing.T) {
-	createArchive := func(files map[string][]byte) *bytes.Buffer {
-		var buf bytes.Buffer
-		tw := tar.NewWriter(&buf)
-		for filename, content := range files {
-			hdr := &tar.Header{
-				Name: filename,
-				Mode: 0o600,
-				Size: int64(len(content)),
-			}
-			tw.WriteHeader(hdr)
-			tw.Write(content)
-		}
-		tw.Close()
-		return &buf
-	}
-
 	createBZ2 := func(files map[string]string) *bytes.Reader {
 		return bytes.NewReader(test.WriteTarCompression(func(w io.Writer) io.WriteCloser {
 			bw, _ := bzip2.NewWriter(w, nil)
@@ -59,7 +42,7 @@ func TestParsePackage(t *testing.T) {
 	}
 
 	t.Run("MissingIndexFile", func(t *testing.T) {
-		buf := createArchive(map[string][]byte{"dummy.txt": {}})
+		buf := test.WriteTarArchive(map[string]string{"dummy.txt": ""})
 
 		p, err := parsePackageTar(buf)
 		assert.Nil(t, p)
@@ -67,7 +50,7 @@ func TestParsePackage(t *testing.T) {
 	})
 
 	t.Run("MissingAboutFile", func(t *testing.T) {
-		buf := createArchive(map[string][]byte{"info/index.json": []byte(`{"name":"name","version":"1.0"}`)})
+		buf := test.WriteTarArchive(map[string]string{"info/index.json": `{"name":"name","version":"1.0"}`})
 
 		p, err := parsePackageTar(buf)
 		assert.NotNil(t, p)
@@ -80,7 +63,7 @@ func TestParsePackage(t *testing.T) {
 
 	t.Run("InvalidName", func(t *testing.T) {
 		for _, name := range []string{"", "name!", "nAMe"} {
-			buf := createArchive(map[string][]byte{"info/index.json": []byte(`{"name":"` + name + `","version":"1.0"}`)})
+			buf := test.WriteTarArchive(map[string]string{"info/index.json": `{"name":"` + name + `","version":"1.0"}`})
 
 			p, err := parsePackageTar(buf)
 			assert.Nil(t, p)
@@ -90,7 +73,7 @@ func TestParsePackage(t *testing.T) {
 
 	t.Run("InvalidVersion", func(t *testing.T) {
 		for _, version := range []string{"", "1.0-2"} {
-			buf := createArchive(map[string][]byte{"info/index.json": []byte(`{"name":"name","version":"` + version + `"}`)})
+			buf := test.WriteTarArchive(map[string]string{"info/index.json": `{"name":"name","version":"` + version + `"}`})
 
 			p, err := parsePackageTar(buf)
 			assert.Nil(t, p)
@@ -99,9 +82,9 @@ func TestParsePackage(t *testing.T) {
 	})
 
 	t.Run("Valid", func(t *testing.T) {
-		buf := createArchive(map[string][]byte{
-			"info/index.json": []byte(`{"name":"` + packageName + `","version":"` + packageVersion + `","subdir":"linux-64"}`),
-			"info/about.json": []byte(`{"description":"` + description + `","dev_url":"` + repositoryURL + `","doc_url":"` + documentationURL + `","home":"` + projectURL + `"}`),
+		buf := test.WriteTarArchive(map[string]string{
+			"info/index.json": `{"name":"` + packageName + `","version":"` + packageVersion + `","subdir":"linux-64"}`,
+			"info/about.json": `{"description":"` + description + `","dev_url":"` + repositoryURL + `","doc_url":"` + documentationURL + `","home":"` + projectURL + `"}`,
 		})
 
 		p, err := parsePackageTar(buf)

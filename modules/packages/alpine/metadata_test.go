@@ -4,7 +4,6 @@
 package alpine
 
 import (
-	"archive/tar"
 	"bytes"
 	"compress/gzip"
 	"strings"
@@ -47,32 +46,10 @@ provides = gitea`)
 
 func TestParsePackage(t *testing.T) {
 	createPackage := func(name string, content []byte) *bytes.Reader {
-		names := []string{"first.stream", name}
-		contents := [][]byte{{0}, content}
-
-		var buf bytes.Buffer
-		zw := gzip.NewWriter(&buf)
-
-		for i := range names {
-			if i != 0 {
-				zw.Close()
-				zw.Reset(&buf)
-			}
-
-			tw := tar.NewWriter(zw)
-			hdr := &tar.Header{
-				Name: names[i],
-				Mode: 0o600,
-				Size: int64(len(contents[i])),
-			}
-			tw.WriteHeader(hdr)
-			tw.Write(contents[i])
-			tw.Close()
-		}
-
-		zw.Close()
-
-		return bytes.NewReader(buf.Bytes())
+		return bytes.NewReader(append(
+			test.WriteTarCompression(gzip.NewWriter, map[string]string{"first.stream": "\x00"}).Bytes(),
+			test.WriteTarCompression(gzip.NewWriter, map[string]string{name: string(content)}).Bytes()...,
+		))
 	}
 
 	t.Run("MissingPKGINFOFile", func(t *testing.T) {

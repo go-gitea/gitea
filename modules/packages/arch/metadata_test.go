@@ -4,10 +4,10 @@
 package arch
 
 import (
-	"archive/tar"
 	"bytes"
 	"compress/gzip"
 	"io"
+	"strings"
 	"testing"
 
 	"gitea.dev/modules/packages"
@@ -54,39 +54,24 @@ backup = usr/bin/paket1`)
 }
 
 func TestParsePackage(t *testing.T) {
-	createPackage := func(compression string, files map[string][]byte) *bytes.Reader {
-		var buf bytes.Buffer
-		var cw io.WriteCloser
-		switch compression {
-		case "zst":
-			cw, _ = zstd.NewWriter(&buf)
-		case "xz":
-			cw, _ = xz.NewWriter(&buf)
-		case "gz":
-			cw = gzip.NewWriter(&buf)
-		}
-		tw := tar.NewWriter(cw)
-
-		for name, content := range files {
-			hdr := &tar.Header{
-				Name: name,
-				Mode: 0o600,
-				Size: int64(len(content)),
+	createPackage := func(compression string, files map[string]string) *bytes.Reader {
+		return bytes.NewReader(test.WriteTarCompression(func(w io.Writer) (cw io.WriteCloser) {
+			switch compression {
+			case "zst":
+				cw, _ = zstd.NewWriter(w)
+			case "xz":
+				cw, _ = xz.NewWriter(w)
+			case "gz":
+				cw = gzip.NewWriter(w)
 			}
-			tw.WriteHeader(hdr)
-			tw.Write(content)
-		}
-
-		tw.Close()
-		cw.Close()
-
-		return bytes.NewReader(buf.Bytes())
+			return cw
+		}, files).Bytes())
 	}
 
 	for _, c := range []string{"gz", "xz", "zst"} {
 		t.Run(c, func(t *testing.T) {
 			t.Run("MissingPKGINFOFile", func(t *testing.T) {
-				data := createPackage(c, map[string][]byte{"dummy.txt": {}})
+				data := createPackage(c, map[string]string{"dummy.txt": ""})
 
 				pp, err := ParsePackage(data)
 				assert.Nil(t, pp)
@@ -95,13 +80,13 @@ func TestParsePackage(t *testing.T) {
 
 			t.Run("DecompressionLimit", func(t *testing.T) {
 				defer test.MockVariableValue(&packages.ArchiveDecompressionFloor, 0)()
-				pp, err := ParsePackage(createPackage(c, map[string][]byte{"dummy.txt": make([]byte, 1024*1024)}))
+				pp, err := ParsePackage(createPackage(c, map[string]string{"dummy.txt": strings.Repeat("\x00", 1024*1024)}))
 				assert.Nil(t, pp)
 				assert.ErrorIs(t, err, packages.ErrContentTooLarge)
 			})
 
 			t.Run("InvalidPKGINFOFile", func(t *testing.T) {
-				data := createPackage(c, map[string][]byte{".PKGINFO": {}})
+				data := createPackage(c, map[string]string{".PKGINFO": ""})
 
 				pp, err := ParsePackage(data)
 				assert.Nil(t, pp)
@@ -109,10 +94,10 @@ func TestParsePackage(t *testing.T) {
 			})
 
 			t.Run("Valid", func(t *testing.T) {
-				data := createPackage(c, map[string][]byte{
-					".PKGINFO":        createPKGINFOContent(packageName, packageVersion),
-					"/test/dummy.txt": {},
-					"usr/lib/legit\n\n%FILES%\n/etc/cron.d/x": {}, // must not reach the file list
+				data := createPackage(c, map[string]string{
+					".PKGINFO":        string(createPKGINFOContent(packageName, packageVersion)),
+					"/test/dummy.txt": "",
+					"usr/lib/legit\n\n%FILES%\n/etc/cron.d/x": "", // must not reach the file list
 				})
 
 				p, err := ParsePackage(data)

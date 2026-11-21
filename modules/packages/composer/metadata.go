@@ -124,10 +124,9 @@ var nameMatch = sync.OnceValue(func() *regexp.Regexp {
 })
 
 type ReadSeekAt interface {
-	io.Reader
+	packages.SizedReader
 	io.ReaderAt
 	io.Seeker
-	Size() int64
 }
 
 func readPackageFileZip(r ReadSeekAt, filename string, limit int) ([]byte, error) {

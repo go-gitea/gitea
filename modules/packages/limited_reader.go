@@ -4,6 +4,8 @@
 package packages
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"io"
 
 	"gitea.dev/modules/setting"
@@ -29,6 +31,15 @@ func NewArchiveLimitedReader(r io.Reader, archiveSize int64) io.Reader {
 		return r
 	}
 	return NewLimitedReader(r, max(ArchiveDecompressionFloor, setting.Packages.MaxDecompressionRatio*archiveSize))
+}
+
+// NewArchiveTarGzReader opens a .tar.gz upload with its inflation bounded by NewArchiveLimitedReader
+func NewArchiveTarGzReader(r io.Reader, archiveSize int64) (*tar.Reader, error) {
+	gzr, err := gzip.NewReader(r)
+	if err != nil {
+		return nil, err
+	}
+	return tar.NewReader(NewArchiveLimitedReader(gzr, archiveSize)), nil
 }
 
 type limitedReader struct {

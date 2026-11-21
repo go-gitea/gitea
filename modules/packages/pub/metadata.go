@@ -5,7 +5,6 @@ package pub
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"io"
 	"regexp"
 	"strings"
@@ -61,16 +60,14 @@ type pubspecPackage struct {
 
 // ParsePackage parses the Pub package file
 func ParsePackage(r packages.SizedReader) (*Package, error) {
-	gzr, err := gzip.NewReader(r)
+	tr, err := packages.NewArchiveTarGzReader(r, r.Size())
 	if err != nil {
 		return nil, err
 	}
-	defer gzr.Close()
 
 	var p *Package
 	var readme string
 
-	tr := tar.NewReader(packages.NewArchiveLimitedReader(gzr, r.Size()))
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {
