@@ -200,7 +200,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		return nil
 	}
 
-	err := performPush(m.Repo.CodeStorageRepo(), pull_model.MergeQueueRefPrefix+"*")
+	err := performPush(m.Repo.CodeStorageRepo(), pull_model.MergeQueueRefPrefix()+"*")
 	if err != nil {
 		return fmt.Errorf("performPush(code) failed: %w", err)
 	}

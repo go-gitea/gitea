@@ -2581,7 +2581,7 @@
   "repo.settings.block_admin_merge_override": "Administrators must follow branch protection rules",
   "repo.settings.block_admin_merge_override_desc": "Administrators must follow branch protection rules and cannot circumvent it. Users or teams in the bypass allowlist can still bypass these rules if bypass allowlist is enabled.",
   "repo.settings.merge_queue.require": "Require merge queue",
-  "repo.settings.merge_queue.require_desc": "Merges must be performed via a merge queue. Run required checks on <code>merge_group</code>, and exclude <code>gh-readonly-queue/**</code> from push workflows to avoid duplicate runs.",
+  "repo.settings.merge_queue.require_desc": "Merges must be performed via a merge queue. Run required checks on <code>merge_group</code>, and exclude <code>%s**</code> from push workflows to avoid duplicate runs.",
   "repo.settings.merge_queue.merge_method": "Merge method",
   "repo.settings.merge_queue.merge_method_desc": "Method to use when merging changes from queued pull requests.",
   "repo.settings.merge_queue.max_entries_to_build": "Build concurrency",

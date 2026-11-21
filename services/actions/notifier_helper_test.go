@@ -158,7 +158,7 @@ func TestMergeQueueWorkflowEvents(t *testing.T) {
 		ProtectedBranchConfig: git_model.ProtectedBranchConfig{EnableStatusCheck: true, StatusCheckContexts: []string{"*"}},
 	}))
 
-	const groupRef = "refs/heads/gh-readonly-queue/master/pr-1"
+	const groupRef = "refs/heads/gitea-merge-queue/master/pr-1"
 	const jobs = "\njobs: {cleanup: {runs-on: linux, steps: [{run: echo done}]}}"
 	require.NoError(t, git.ForceFastImport(ctx, repo, []git.FastImportCommit{{
 		Ref: groupRef,

@@ -23,6 +23,7 @@ import (
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -115,6 +116,7 @@ func SettingsProtectedBranch(c *context.Context) {
 		maps.DeleteFunc(queueMethods, func(style repo_model.MergeStyle, _label string) bool { return !config.IsMergeStyleAllowed(style) })
 	}
 	c.Data["MergeQueueMethods"] = queueMethods
+	c.Data["MergeQueueBranchPrefix"] = setting.Repository.PullRequest.MergeQueueBranchPrefix
 	contexts, _ := git_model.FindRepoRecentCommitStatusContexts(c, c.Repo.Repository.ID, 7*24*time.Hour) // Find last week status check contexts
 	c.Data["recent_status_checks"] = contexts
 

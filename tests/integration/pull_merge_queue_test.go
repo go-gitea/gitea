@@ -20,7 +20,9 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/mergequeue"
@@ -66,6 +68,7 @@ func watchQueueWebhook[T any](t *testing.T, session *TestSession, event string, 
 }
 
 func TestPullMergeQueue(t *testing.T) {
+	defer test.MockVariableValue(&setting.Repository.PullRequest.MergeQueueBranchPrefix, "custom-queue/")()
 	onGiteaRun(t, func(t *testing.T, _giteaURL *url.URL) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		user := repo.MustOwner(t.Context())
@@ -109,7 +112,7 @@ func TestPullMergeQueue(t *testing.T) {
 		t.Run("RebuildAndMerge", func(t *testing.T) {
 			ctx := t.Context()
 			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: 3})
-			nextPush := watchQueueWebhook[api.PushPayload](t, session, "push", nil, "gh-readonly-queue/*/pr-3-*")
+			nextPush := watchQueueWebhook[api.PushPayload](t, session, "push", nil, "custom-queue/*/pr-3-*")
 			first := prepareGroup(t, pr.BaseBranch)
 			insertGroup(t, first)
 			headSHA, err := gitRepo.GetBranchCommitID(ctx, pr.HeadBranch)
@@ -119,7 +122,7 @@ func TestPullMergeQueue(t *testing.T) {
 			mergeQueueAPI(t, "POST", pullURL+"/merge", forms.MergePullRequestForm{Do: "merge", HeadCommitID: pr.MergeBase}, http.StatusConflict)
 			mergeQueueAPI(t, "POST", pullURL+"/merge-queue", api.AddToMergeQueueOption{}, http.StatusCreated)
 			built := nextPush(t)
-			const refPrefix = "refs/heads/gh-readonly-queue/master/pr-3-"
+			const refPrefix = "refs/heads/custom-queue/master/pr-3-"
 			assert.Equal(t, refPrefix+first.GroupHeadSHA, built.Ref)
 			setMergeQueueStatus(t, first.GroupHeadSHA, commitstatus.CommitStatusFailure)
 			assertRemoved(t, predecessor.Index, "CI_FAILURE")
@@ -131,7 +134,7 @@ func TestPullMergeQueue(t *testing.T) {
 			mergeQueueAPI(t, "PATCH", "/branches/master", api.RenameBranchRepoOption{Name: "renamed"}, http.StatusNoContent)
 			require.NoError(t, mergequeue.CheckAllQueues(ctx))
 			renamed := nextPush(t)
-			assert.Contains(t, renamed.Ref, "gh-readonly-queue/renamed/")
+			assert.Contains(t, renamed.Ref, "custom-queue/renamed/")
 			assert.False(t, git.IsReferenceExist(ctx, repo, rebuilt.Ref))
 			setMergeQueueStatus(t, renamed.After, commitstatus.CommitStatusSuccess)
 			assertRemoved(t, pr.Index, "MERGE")

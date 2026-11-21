@@ -11,6 +11,7 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
@@ -54,14 +55,16 @@ func (e *MergeQueueEntry) IsBuilt() bool {
 	return e.GroupHeadSHA != ""
 }
 
-const MergeQueueRefPrefix = git.BranchPrefix + "gh-readonly-queue/"
+func MergeQueueRefPrefix() string {
+	return git.BranchPrefix + setting.Repository.PullRequest.MergeQueueBranchPrefix
+}
 
 func MergeQueueGroupRef(baseBranch string, prIndex int64, baseSHA string) string {
-	return fmt.Sprintf("%s%s/pr-%d-%s", MergeQueueRefPrefix, baseBranch, prIndex, baseSHA)
+	return fmt.Sprintf("%s%s/pr-%d-%s", MergeQueueRefPrefix(), baseBranch, prIndex, baseSHA)
 }
 
 func IsMergeQueueRef(ctx context.Context, repoID int64, ref git.RefName) (bool, error) {
-	if !strings.HasPrefix(ref.String(), MergeQueueRefPrefix) {
+	if !strings.HasPrefix(ref.String(), MergeQueueRefPrefix()) {
 		return false, nil
 	}
 	return db.Exist[MergeQueueEntry](ctx, builder.Eq{"repo_id": repoID, "group_ref": ref.String()})

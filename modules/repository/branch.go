@@ -67,7 +67,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 		log.Trace("SyncRepoBranches[%s]: branches[%d]: %v", repo.FullName(), len(branches), branches)
 		allBranches = container.SetOf(branches...)
 		if slices.ContainsFunc(branches, func(branch string) bool {
-			return strings.HasPrefix(git.BranchPrefix+branch, pull_model.MergeQueueRefPrefix)
+			return strings.HasPrefix(git.BranchPrefix+branch, pull_model.MergeQueueRefPrefix())
 		}) {
 			queueRefs, err := pull_model.GetMergeQueueGroupRefs(ctx, repo.ID)
 			if err != nil {

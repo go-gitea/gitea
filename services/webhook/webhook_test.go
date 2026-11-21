@@ -112,7 +112,7 @@ func testWebhookPrepare(t *testing.T) {
 	require.NoError(t, err)
 	new(webhookNotifier).MergeGroupChanged(t.Context(), repo.MustOwner(t.Context()), repo, &pull_model.MergeQueueEntry{
 		BaseBranch:   repo.DefaultBranch,
-		GroupRef:     "refs/heads/gh-readonly-queue/master/pr-1",
+		GroupRef:     "refs/heads/gitea-merge-queue/master/pr-1",
 		GroupHeadSHA: headSHA,
 	}, api.HookMergeGroupChecksRequested, "")
 	var events []webhook_module.HookEventType
