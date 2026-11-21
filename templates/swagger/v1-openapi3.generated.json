@@ -4996,7 +4996,7 @@
           },
           "severity": {
             "enum": [
-              "none",
+              "informative",
               "low",
               "moderate",
               "high",
@@ -6466,6 +6466,11 @@
           "title": {
             "type": "string",
             "x-go-name": "Title"
+          },
+          "withdraw_reason": {
+            "description": "The reason for withdrawing the disclosure, required when status is set to \"withdrawn\"",
+            "type": "string",
+            "x-go-name": "WithdrawReason"
           }
         },
         "type": "object",
@@ -10646,7 +10651,7 @@
             "x-go-name": "References"
           },
           "severity": {
-            "description": "The severity: \"none\", \"low\", \"moderate\", \"high\" or \"critical\"",
+            "description": "The severity: \"informative\", \"low\", \"moderate\", \"high\" or \"critical\"",
             "type": "string",
             "x-go-name": "Severity"
           },
@@ -10675,6 +10680,11 @@
             "format": "uri",
             "type": "string",
             "x-go-name": "URL"
+          },
+          "withdraw_reason": {
+            "description": "The reason for withdrawing the disclosure, required when status is \"withdrawn\"",
+            "type": "string",
+            "x-go-name": "WithdrawReason"
           }
         },
         "type": "object",
@@ -31811,7 +31821,7 @@
             }
           },
           {
-            "description": "comma-separated list of severities to filter by (none, low, moderate, high, critical)",
+            "description": "comma-separated list of severities to filter by (informative, low, moderate, high, critical)",
             "in": "query",
             "name": "severity",
             "schema": {
@@ -31959,7 +31969,7 @@
             "$ref": "#/components/responses/error"
           }
         },
-        "summary": "Delete a security disclosure (maintainers only)",
+        "summary": "Delete a security disclosure (maintainers only, drafts only)",
         "tags": [
           "repository"
         ]

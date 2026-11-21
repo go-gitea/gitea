@@ -5,7 +5,7 @@
 	<div class="ui container">
 		<h2 class="ui dividing header">{{ctx.Locale.Tr "repo.security.edit_disclosure" $d.Identifier}}</h2>
 		{{template "base/alert" .}}
-		<form class="ui form" method="post" action="{{.RepoLink}}/security/{{$d.ID}}/edit">
+		<form class="ui form" method="post" action="{{.RepoLink}}/security/disclosures/{{$d.ID}}/edit">
 			<div class="field {{if .Err_Title}}error{{end}}">
 				<label for="disclosure-title">{{ctx.Locale.Tr "repo.security.title"}}</label>
 				<input id="disclosure-title" name="title" value="{{$d.Title}}" required maxlength="255" autofocus>
@@ -68,7 +68,7 @@
 			</div>
 			<div class="field">
 				<button class="ui primary button" type="submit">{{ctx.Locale.Tr "repo.security.save"}}</button>
-				<a class="ui button" href="{{.RepoLink}}/security/{{$d.ID}}">{{ctx.Locale.Tr "repo.security.cancel"}}</a>
+				<a class="ui button" href="{{.RepoLink}}/security/disclosures/{{$d.ID}}">{{ctx.Locale.Tr "repo.security.cancel"}}</a>
 			</div>
 		</form>
 	</div>

@@ -67,7 +67,7 @@ func ListDisclosures(ctx *context.APIContext) {
 	//   type: string
 	// - name: severity
 	//   in: query
-	//   description: comma-separated list of severities to filter by (none, low, moderate, high, critical)
+	//   description: comma-separated list of severities to filter by (informative, low, moderate, high, critical)
 	//   type: string
 	// - name: status
 	//   in: query
@@ -265,6 +265,7 @@ func EditDisclosure(ctx *context.APIContext) {
 		AffectedVersions: orKeep(form.AffectedVersions, d.AffectedVersions()),
 		FixedVersions:    orKeep(form.FixedVersions, d.FixedVersions()),
 		Status:           disclosure_model.Status(util.IfZero(form.Status, string(d.Status))),
+		WithdrawReason:   util.IfZero(form.WithdrawReason, d.WithdrawReason),
 	}
 	if err := disclosure_service.UpdateDisclosure(ctx, d, ctx.Doer, input); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
@@ -285,7 +286,7 @@ func EditDisclosure(ctx *context.APIContext) {
 func DeleteDisclosure(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/security/disclosures/{id} repository repoDeleteSecurityDisclosure
 	// ---
-	// summary: Delete a security disclosure (maintainers only)
+	// summary: Delete a security disclosure (maintainers only, drafts only)
 	// produces:
 	// - application/json
 	// parameters:
@@ -316,6 +317,10 @@ func DeleteDisclosure(ctx *context.APIContext) {
 		return
 	}
 	if err := disclosure_service.DeleteDisclosure(ctx, ctx.Repo.Repository.ID, d.ID); err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.APIError(http.StatusBadRequest, err.Error())
+			return
+		}
 		ctx.APIErrorInternal(err)
 		return
 	}

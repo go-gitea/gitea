@@ -22,10 +22,11 @@ import (
 )
 
 const (
-	tplDisclosureList templates.TplName = "repo/security/list"
-	tplDisclosureView templates.TplName = "repo/security/view"
-	tplDisclosureNew  templates.TplName = "repo/security/new"
-	tplDisclosureEdit templates.TplName = "repo/security/edit"
+	tplSecurityHome   templates.TplName = "repo/security/home"
+	tplDisclosureList templates.TplName = "repo/security/disclosures/list"
+	tplDisclosureView templates.TplName = "repo/security/disclosures/view"
+	tplDisclosureNew  templates.TplName = "repo/security/disclosures/new"
+	tplDisclosureEdit templates.TplName = "repo/security/disclosures/edit"
 )
 
 // AllSeverities lists the severities for the form dropdown
@@ -34,7 +35,7 @@ var AllSeverities = []disclosure_model.Severity{
 	disclosure_model.SeverityHigh,
 	disclosure_model.SeverityModerate,
 	disclosure_model.SeverityLow,
-	disclosure_model.SeverityNone,
+	disclosure_model.SeverityInformative,
 }
 
 func prepareDisclosurePage(ctx *context.Context) {
@@ -43,6 +44,13 @@ func prepareDisclosurePage(ctx *context.Context) {
 	ctx.Data["AllSeverities"] = AllSeverities
 	// only maintainers may manage disclosures
 	ctx.Data["CanManageDisclosures"] = ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Repository.IsArchived
+}
+
+// SecurityHome renders the landing page of the repository security section
+func SecurityHome(ctx *context.Context) {
+	ctx.Data["PageIsSecurity"] = true
+	ctx.Data["Title"] = ctx.Tr("repo.security")
+	ctx.HTML(http.StatusOK, tplSecurityHome)
 }
 
 func disclosureListOptions(ctx *context.Context) disclosure_model.ListDisclosuresOptions {
@@ -78,6 +86,7 @@ func disclosureListOptions(ctx *context.Context) disclosure_model.ListDisclosure
 // Disclosures renders the list of security disclosures of the repo
 func Disclosures(ctx *context.Context) {
 	prepareDisclosurePage(ctx)
+	ctx.Data["PageIsSecurityDisclosures"] = true
 
 	opts := disclosureListOptions(ctx)
 	// drafts are only visible to maintainers
@@ -196,7 +205,7 @@ func NewDisclosurePost(ctx *context.Context) {
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("repo.security.create_success", d.Identifier()))
-	ctx.Redirect(ctx.Repo.RepoLink + "/security/" + strconv.FormatInt(d.ID, 10))
+	ctx.Redirect(ctx.Repo.RepoLink + "/security/disclosures/" + strconv.FormatInt(d.ID, 10))
 }
 
 // EditDisclosure renders the edit form of a disclosure
@@ -245,7 +254,7 @@ func EditDisclosurePost(ctx *context.Context) {
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("repo.security.edit_success", d.Identifier()))
-	ctx.Redirect(ctx.Repo.RepoLink + "/security/" + strconv.FormatInt(d.ID, 10))
+	ctx.Redirect(ctx.Repo.RepoLink + "/security/disclosures/" + strconv.FormatInt(d.ID, 10))
 }
 
 // ChangeDisclosureStatusPost publishes or withdraws a disclosure
@@ -276,12 +285,18 @@ func ChangeDisclosureStatusPost(ctx *context.Context) {
 		AffectedVersions: d.AffectedVersions(),
 		FixedVersions:    d.FixedVersions(),
 		Status:           status,
+		WithdrawReason:   ctx.FormTrim("reason"),
 	}
 	if err := disclosure_service.UpdateDisclosure(ctx, d, ctx.Doer, input); err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.Flash.Error(err.Error(), true)
+			ctx.Redirect(ctx.Repo.RepoLink + "/security/disclosures/" + strconv.FormatInt(d.ID, 10))
+			return
+		}
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/security/" + strconv.FormatInt(d.ID, 10))
+	ctx.Redirect(ctx.Repo.RepoLink + "/security/disclosures/" + strconv.FormatInt(d.ID, 10))
 }
 
 // DeleteDisclosurePost deletes a disclosure
@@ -291,9 +306,14 @@ func DeleteDisclosurePost(ctx *context.Context) {
 		return
 	}
 	if err := disclosure_service.DeleteDisclosure(ctx, ctx.Repo.Repository.ID, d.ID); err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.Flash.Error(err.Error(), true)
+			ctx.Redirect(ctx.Repo.RepoLink + "/security/disclosures/" + strconv.FormatInt(d.ID, 10))
+			return
+		}
 		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("repo.security.delete_success", d.Identifier()))
-	ctx.Redirect(ctx.Repo.RepoLink + "/security")
+	ctx.Redirect(ctx.Repo.RepoLink + "/security/disclosures")
 }

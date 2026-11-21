@@ -15,9 +15,19 @@ import (
 func TestDisclosureWeb(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	t.Run("ListAnonymousSeesPublishedOnly", func(t *testing.T) {
+	t.Run("SecurityHome", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 		req := NewRequest(t, "GET", "/user2/repo1/security")
+		resp := MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		body := htmlDoc.Find(".page-content").Text()
+		assert.Contains(t, body, "Security disclosures")
+		assert.Equal(t, 1, htmlDoc.Find(`a[href="/user2/repo1/security/disclosures"]`).Length())
+	})
+
+	t.Run("ListAnonymousSeesPublishedOnly", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		req := NewRequest(t, "GET", "/user2/repo1/security/disclosures")
 		resp := MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		body := htmlDoc.Find(".page-content").Text()
@@ -27,7 +37,7 @@ func TestDisclosureWeb(t *testing.T) {
 
 	t.Run("ViewPublishedAnonymous", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		req := NewRequest(t, "GET", "/user2/repo1/security/1")
+		req := NewRequest(t, "GET", "/user2/repo1/security/disclosures/1")
 		resp := MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		body := htmlDoc.Find(".page-content").Text()
@@ -39,18 +49,18 @@ func TestDisclosureWeb(t *testing.T) {
 
 	t.Run("ViewDraftHiddenFromAnonymousAndNonMaintainer", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/2"), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures/2"), http.StatusNotFound)
 		session := loginUser(t, "user4") // signed in, but not a maintainer of repo1
-		session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/2"), http.StatusNotFound)
+		session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures/2"), http.StatusNotFound)
 	})
 
 	t.Run("NewPageRequiresMaintainer", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/new"), http.StatusSeeOther) // anonymous is redirected to sign in
+		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures/new"), http.StatusSeeOther) // anonymous is redirected to sign in
 		session := loginUser(t, "user4")
-		session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/new"), http.StatusNotFound) // non-maintainer
+		session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures/new"), http.StatusNotFound) // non-maintainer
 		owner := loginUser(t, "user2")
-		owner.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/new"), http.StatusOK)
+		owner.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures/new"), http.StatusOK)
 	})
 
 	t.Run("CreatePublishAndDeleteAsMaintainer", func(t *testing.T) {
@@ -58,7 +68,7 @@ func TestDisclosureWeb(t *testing.T) {
 		owner := loginUser(t, "user2")
 
 		// create as draft
-		req := NewRequestWithValues(t, "POST", "/user2/repo1/security/new", map[string]string{
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/security/disclosures/new", map[string]string{
 			"title":             "Web created disclosure",
 			"summary":           "web summary",
 			"content":           "web **content**",
@@ -68,7 +78,7 @@ func TestDisclosureWeb(t *testing.T) {
 		})
 		resp := owner.MakeRequest(t, req, http.StatusSeeOther)
 		location := resp.Header().Get("Location")
-		assert.Contains(t, location, "/user2/repo1/security/")
+		assert.Contains(t, location, "/user2/repo1/security/disclosures/")
 
 		// anonymous cannot see the new draft
 		MakeRequest(t, NewRequest(t, "GET", location), http.StatusNotFound)
@@ -82,13 +92,34 @@ func TestDisclosureWeb(t *testing.T) {
 		assert.Contains(t, htmlDoc.Find(".page-content").Text(), "Web created disclosure")
 
 		// filter by the affected version
-		resp = MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security?version=5.1.0"), http.StatusOK)
+		resp = MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures?version=5.1.0"), http.StatusOK)
 		assert.Contains(t, NewHTMLParser(t, resp.Body).Find(".page-content").Text(), "Web created disclosure")
-		resp = MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security?version=5.2.0"), http.StatusOK)
+		resp = MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures?version=5.2.0"), http.StatusOK)
 		assert.NotContains(t, NewHTMLParser(t, resp.Body).Find(".page-content").Text(), "Web created disclosure")
 
-		// delete it
+		// withdrawing requires a reason
+		owner.MakeRequest(t, NewRequestWithValues(t, "POST", location+"/withdraw", map[string]string{}), http.StatusSeeOther)
+		resp = MakeRequest(t, NewRequest(t, "GET", location), http.StatusOK)
+		assert.Contains(t, NewHTMLParser(t, resp.Body).Find(".page-content").Text(), "Web created disclosure") // still published
+
+		// withdraw with a reason
+		owner.MakeRequest(t, NewRequestWithValues(t, "POST", location+"/withdraw", map[string]string{"reason": "reported in error"}), http.StatusSeeOther)
+		resp = MakeRequest(t, NewRequest(t, "GET", location), http.StatusOK)
+		body := NewHTMLParser(t, resp.Body).Find(".page-content").Text()
+		assert.Contains(t, body, "Withdrawn")
+		assert.Contains(t, body, "reported in error")
+
+		// published/withdrawn disclosures cannot be deleted
 		owner.MakeRequest(t, NewRequest(t, "POST", location+"/delete"), http.StatusSeeOther)
-		MakeRequest(t, NewRequest(t, "GET", location), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", location), http.StatusOK) // still there
+
+		// a draft can be deleted
+		req = NewRequestWithValues(t, "POST", "/user2/repo1/security/disclosures/new", map[string]string{
+			"title": "Draft to delete", "severity": "low",
+		})
+		resp = owner.MakeRequest(t, req, http.StatusSeeOther)
+		draftLocation := resp.Header().Get("Location")
+		owner.MakeRequest(t, NewRequest(t, "POST", draftLocation+"/delete"), http.StatusSeeOther)
+		MakeRequest(t, NewRequest(t, "GET", draftLocation), http.StatusNotFound)
 	})
 }

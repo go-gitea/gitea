@@ -6,11 +6,11 @@
 		<div class="flex-left-right tw-mb-4">
 			<h2 class="tw-mb-0">{{ctx.Locale.Tr "repo.security.disclosures"}}</h2>
 			{{if .CanManageDisclosures}}
-				<a class="ui primary button" href="{{.RepoLink}}/security/new">{{svg "octicon-plus" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.new_disclosure"}}</a>
+				<a class="ui primary button" href="{{.RepoLink}}/security/disclosures/new">{{svg "octicon-plus" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.new_disclosure"}}</a>
 			{{end}}
 		</div>
 
-		<form class="ui form tw-mb-4" method="get" action="{{.RepoLink}}/security">
+		<form class="ui form tw-mb-4" method="get" action="{{.RepoLink}}/security/disclosures">
 			<div class="flex-text-block tw-flex-wrap tw-gap-2">
 				<div class="ui input tw-flex-1 tw-min-w-52">
 					<input type="text" name="q" value="{{.Query}}" placeholder="{{ctx.Locale.Tr "repo.security.search_placeholder"}}" aria-label="{{ctx.Locale.Tr "repo.security.search_placeholder"}}">
@@ -46,8 +46,8 @@
 			<div class="ui segment tw-flex tw-flex-col tw-gap-1">
 				<div class="flex-left-right">
 					<h4 class="tw-mb-0 tw-break-anywhere">
-						<a class="muted tw-font-mono tw-mr-1" href="{{$.RepoLink}}/security/{{.ID}}">{{.Identifier}}</a>
-						<a href="{{$.RepoLink}}/security/{{.ID}}">{{.Title}}</a>
+						<a class="muted tw-font-mono tw-mr-1" href="{{$.RepoLink}}/security/disclosures/{{.ID}}">{{.Identifier}}</a>
+						<a href="{{$.RepoLink}}/security/disclosures/{{.ID}}">{{.Title}}</a>
 					</h4>
 					<div class="tw-flex tw-gap-2">
 						<span class="ui small {{.Severity.LabelClass}} label">{{ctx.Locale.Tr (print "repo.security.severity_" .Severity)}}</span>

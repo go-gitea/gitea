@@ -28,7 +28,7 @@ type SecurityDisclosure struct {
 	Summary string `json:"summary"`
 	// The full description, in markdown
 	Description string `json:"description"`
-	// The severity: "none", "low", "moderate", "high" or "critical"
+	// The severity: "informative", "low", "moderate", "high" or "critical"
 	Severity string `json:"severity"`
 	// The optional CVSS vector
 	CVSS *SecurityDisclosureCVSS `json:"cvss,omitempty"`
@@ -44,6 +44,8 @@ type SecurityDisclosure struct {
 	FixedVersions []string `json:"fixed_versions"`
 	// The status: "draft", "published" or "withdrawn"
 	Status string `json:"status"`
+	// The reason for withdrawing the disclosure, required when status is "withdrawn"
+	WithdrawReason string `json:"withdraw_reason,omitempty"`
 	// The user who created the disclosure
 	Author *User `json:"author,omitempty"`
 	// The user who published the disclosure
@@ -69,7 +71,7 @@ type CreateSecurityDisclosureOption struct {
 	// The full description, in markdown
 	Description string `json:"description"`
 	// required: true
-	// enum: none,low,moderate,high,critical
+	// enum: informative,low,moderate,high,critical
 	Severity string `json:"severity" binding:"Required"`
 	// Optional CVSS vector, must start with CVSS:3.0/, CVSS:3.1/ or CVSS:4.0/
 	CVSSVector string `json:"cvss_vector"`
@@ -92,7 +94,7 @@ type EditSecurityDisclosureOption struct {
 	Title            string   `json:"title"`
 	Summary          string   `json:"summary"`
 	Description      string   `json:"description"`
-	Severity         string   `json:"severity"` // enum: none,low,moderate,high,critical
+	Severity         string   `json:"severity"` // enum: informative,low,moderate,high,critical
 	CVSSVector       string   `json:"cvss_vector"`
 	CweIds           []string `json:"cwe_ids"`
 	CveID            string   `json:"cve_id"`
@@ -101,4 +103,6 @@ type EditSecurityDisclosureOption struct {
 	FixedVersions    []string `json:"fixed_versions"`    // null keeps, [] clears
 	// enum: draft,published,withdrawn
 	Status string `json:"status"`
+	// The reason for withdrawing the disclosure, required when status is set to "withdrawn"
+	WithdrawReason string `json:"withdraw_reason"`
 }

@@ -1,0 +1,20 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository security">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<h2 class="tw-mb-4">{{ctx.Locale.Tr "repo.security"}}</h2>
+		<div class="ui segments tw-max-w-2xl">
+			<a class="ui segment tw-flex tw-items-center tw-gap-3" href="{{.RepoLink}}/security/disclosures">
+				{{svg "octicon-shield" 24 "tw-shrink-0"}}
+				<span>
+					<strong>{{ctx.Locale.Tr "repo.security.disclosures"}}</strong>
+					{{if .NumDisclosures}}<span class="ui small label tw-ml-2">{{CountFmt .NumDisclosures}}</span>{{end}}
+					<p class="tw-mb-0 tw-text-text-light tw-mt-1">{{ctx.Locale.Tr "repo.security.disclosures_desc"}}</p>
+				</span>
+				{{svg "octicon-chevron-right" 16 "tw-ml-auto tw-shrink-0"}}
+			</a>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

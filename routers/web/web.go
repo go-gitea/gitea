@@ -1502,12 +1502,15 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	}, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqRepoReleaseReader)
 	// end "/{username}/{reponame}": repo releases
 
-	m.Group("/{username}/{reponame}", func() { // repo security disclosures
+	m.Group("/{username}/{reponame}", func() { // repo security section
 		m.Group("/security", func() {
-			m.Get("", repo.Disclosures)
-			m.Get("/{id}", repo.ViewDisclosure)
+			m.Get("", repo.SecurityHome)
+			m.Group("/disclosures", func() {
+				m.Get("", repo.Disclosures)
+				m.Get("/{id}", repo.ViewDisclosure)
+			})
 		}, optSignIn, reqRepoSecurityReader)
-		m.Group("/security", func() {
+		m.Group("/security/disclosures", func() {
 			m.Get("/new", repo.NewDisclosure)
 			m.Post("/new", web.Bind[*forms.NewDisclosureForm](), repo.NewDisclosurePost)
 			m.Get("/{id}/edit", repo.EditDisclosure)
@@ -1516,7 +1519,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/{id}/delete", repo.DeleteDisclosurePost)
 		}, reqSignIn, reqRepoAdmin, context.RepoMustNotBeArchived(), reqRepoSecurityReader)
 	}, optSignIn, context.RepoAssignment)
-	// end "/{username}/{reponame}": repo security disclosures
+	// end "/{username}/{reponame}": repo security section
 
 	m.Group("/{username}/{reponame}", func() { // to maintain compatibility with old attachments
 		m.Get("/attachments/{uuid}", webAuth.AllowBasic, webAuth.AllowOAuth2, repo.GetAttachment)

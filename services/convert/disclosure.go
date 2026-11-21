@@ -28,6 +28,7 @@ func ToSecurityDisclosure(ctx context.Context, repo *repo_model.Repository, d *d
 		AffectedVersions: d.AffectedVersions(),
 		FixedVersions:    d.FixedVersions(),
 		Status:           string(d.Status),
+		WithdrawReason:   d.WithdrawReason,
 		Author:           ToAuthor(ctx, d.Author, "", nil),
 		PublishedBy:      ToAuthor(ctx, d.Publisher, "", nil),
 		CreatedAt:        d.CreatedUnix.AsTime(),

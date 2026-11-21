@@ -25,17 +25,17 @@ type Severity string
 
 // Enumerate all severities, in increasing order of rank
 const (
-	SeverityNone     Severity = "none"
-	SeverityLow      Severity = "low"
-	SeverityModerate Severity = "moderate"
-	SeverityHigh     Severity = "high"
-	SeverityCritical Severity = "critical"
+	SeverityInformative Severity = "informative" // not a security issue, but worth informing users about
+	SeverityLow         Severity = "low"
+	SeverityModerate    Severity = "moderate"
+	SeverityHigh        Severity = "high"
+	SeverityCritical    Severity = "critical"
 )
 
 // ParseSeverity parses a severity string, returning an error for unknown values
 func ParseSeverity(s string) (Severity, error) {
 	switch Severity(s) {
-	case SeverityNone, SeverityLow, SeverityModerate, SeverityHigh, SeverityCritical:
+	case SeverityInformative, SeverityLow, SeverityModerate, SeverityHigh, SeverityCritical:
 		return Severity(s), nil
 	}
 	return "", util.NewInvalidArgumentErrorf("invalid severity %q", s)
@@ -138,23 +138,24 @@ func CVSSVersion(v string) string {
 // Only maintainers can create or edit disclosures; drafts are only visible to them,
 // published (and withdrawn) disclosures are visible to anyone who can read the unit.
 type Disclosure struct {
-	ID            int64              `xorm:"pk autoincr"`
-	RepoID        int64              `xorm:"INDEX UNIQUE(repo_num)"`
-	Num           int64              `xorm:"UNIQUE(repo_num)"` // per-repo sequential number, shown as the short identifier
-	AuthorID      int64              `xorm:"INDEX"`
-	Title         string             `xorm:"VARCHAR(255) NOT NULL"`
-	Summary       string             `xorm:"TEXT"`
-	Content       string             `xorm:"LONGTEXT"` // markdown
-	Severity      Severity           `xorm:"VARCHAR(16) INDEX NOT NULL DEFAULT 'none'"`
-	CVSSVector    string             `xorm:"VARCHAR(128)"`
-	CweIds        StringList         `xorm:"TEXT"`
-	CveID         string             `xorm:"VARCHAR(64)"` // optional reference to an existing CVE, never requested
-	References    StringList         `xorm:"TEXT"`
-	Status        Status             `xorm:"VARCHAR(16) INDEX NOT NULL DEFAULT 'draft'"`
-	PublishedAt   timeutil.TimeStamp `xorm:"INDEX"`
-	PublishedByID int64              `xorm:"INDEX"`
-	CreatedUnix   timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
+	ID             int64              `xorm:"pk autoincr"`
+	RepoID         int64              `xorm:"INDEX UNIQUE(repo_num)"`
+	Num            int64              `xorm:"UNIQUE(repo_num)"` // per-repo sequential number, shown as the short identifier
+	AuthorID       int64              `xorm:"INDEX"`
+	Title          string             `xorm:"VARCHAR(255) NOT NULL"`
+	Summary        string             `xorm:"TEXT"`
+	Content        string             `xorm:"LONGTEXT"` // markdown
+	Severity       Severity           `xorm:"VARCHAR(16) INDEX NOT NULL DEFAULT 'none'"`
+	CVSSVector     string             `xorm:"VARCHAR(128)"`
+	CweIds         StringList         `xorm:"TEXT"`
+	CveID          string             `xorm:"VARCHAR(64)"` // optional reference to an existing CVE, never requested
+	References     StringList         `xorm:"TEXT"`
+	Status         Status             `xorm:"VARCHAR(16) INDEX NOT NULL DEFAULT 'draft'"`
+	WithdrawReason string             `xorm:"TEXT"` // required when withdrawing
+	PublishedAt    timeutil.TimeStamp `xorm:"INDEX"`
+	PublishedByID  int64              `xorm:"INDEX"`
+	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix    timeutil.TimeStamp `xorm:"updated"`
 
 	Repo      *repo_model.Repository `xorm:"-"`
 	Author    *user_model.User       `xorm:"-"`
@@ -257,7 +258,7 @@ func CreateDisclosure(ctx context.Context, d *Disclosure, versions []*Version) e
 // disclosureUpdatableColumns are the columns written by UpdateDisclosure
 var disclosureUpdatableColumns = []string{
 	"title", "summary", "content", "severity", "cvss_vector", "cwe_ids", "cve_id",
-	"references", "status", "published_at", "published_by_id",
+	"references", "status", "withdraw_reason", "published_at", "published_by_id",
 }
 
 // UpdateDisclosure updates the given columns of the disclosure

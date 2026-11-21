@@ -450,6 +450,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(371, "Add hash_sha256 column to attachment", v29.AddHashSHA256ToAttachment),
 		newMigration(372, "Add workflow_ref to action_run", v29.AddWorkflowRefToActionRun),
 		newMigration(373, "Add security disclosure tables", v29.AddDisclosureTables),
+		newMigration(374, "Add withdraw_reason column to disclosure", v29.AddWithdrawReasonToDisclosure),
 	}
 	return preparedMigrations
 }

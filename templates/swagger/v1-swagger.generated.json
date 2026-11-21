@@ -18413,7 +18413,7 @@
           },
           {
             "type": "string",
-            "description": "comma-separated list of severities to filter by (none, low, moderate, high, critical)",
+            "description": "comma-separated list of severities to filter by (informative, low, moderate, high, critical)",
             "name": "severity",
             "in": "query"
           },
@@ -18552,7 +18552,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Delete a security disclosure (maintainers only)",
+        "summary": "Delete a security disclosure (maintainers only, drafts only)",
         "operationId": "repoDeleteSecurityDisclosure",
         "parameters": [
           {
@@ -27713,7 +27713,7 @@
         "severity": {
           "type": "string",
           "enum": [
-            "none",
+            "informative",
             "low",
             "moderate",
             "high",
@@ -29203,6 +29203,11 @@
         "title": {
           "type": "string",
           "x-go-name": "Title"
+        },
+        "withdraw_reason": {
+          "description": "The reason for withdrawing the disclosure, required when status is set to \"withdrawn\"",
+          "type": "string",
+          "x-go-name": "WithdrawReason"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -33339,7 +33344,7 @@
           "x-go-name": "References"
         },
         "severity": {
-          "description": "The severity: \"none\", \"low\", \"moderate\", \"high\" or \"critical\"",
+          "description": "The severity: \"informative\", \"low\", \"moderate\", \"high\" or \"critical\"",
           "type": "string",
           "x-go-name": "Severity"
         },
@@ -33367,6 +33372,11 @@
           "description": "The API URL of the disclosure",
           "type": "string",
           "x-go-name": "URL"
+        },
+        "withdraw_reason": {
+          "description": "The reason for withdrawing the disclosure, required when status is \"withdrawn\"",
+          "type": "string",
+          "x-go-name": "WithdrawReason"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"

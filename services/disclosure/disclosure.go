@@ -28,6 +28,7 @@ type Input struct {
 	AffectedVersions []string
 	FixedVersions    []string
 	Status           disclosure_model.Status
+	WithdrawReason   string
 }
 
 const (
@@ -163,6 +164,15 @@ func UpdateDisclosure(ctx context.Context, d *disclosure_model.Disclosure, doer 
 			d.PublishedAt = timeutil.TimeStampNow()
 			d.PublishedByID = doer.ID
 		}
+		if in.Status == disclosure_model.StatusWithdrawn {
+			// withdrawing always requires a reason, which is displayed on the disclosure
+			if strings.TrimSpace(in.WithdrawReason) == "" {
+				return util.NewInvalidArgumentErrorf("a reason is required when withdrawing a disclosure")
+			}
+			d.WithdrawReason = strings.TrimSpace(in.WithdrawReason)
+		} else {
+			d.WithdrawReason = ""
+		}
 		d.Status = in.Status
 	}
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
@@ -182,8 +192,16 @@ func UpdateDisclosure(ctx context.Context, d *disclosure_model.Disclosure, doer 
 	return nil
 }
 
-// DeleteDisclosure deletes a disclosure of the repo
+// DeleteDisclosure deletes a disclosure of the repo. Only drafts can be deleted;
+// published disclosures must be withdrawn instead.
 func DeleteDisclosure(ctx context.Context, repoID, id int64) error {
+	d, err := disclosure_model.GetDisclosureByRepoAndID(ctx, repoID, id)
+	if err != nil {
+		return err
+	}
+	if !d.IsDraft() {
+		return util.NewInvalidArgumentErrorf("only draft disclosures can be deleted, withdraw it instead")
+	}
 	return disclosure_model.DeleteDisclosureByID(ctx, repoID, id)
 }
 

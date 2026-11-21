@@ -171,15 +171,38 @@ func TestAPIDisclosures(t *testing.T) {
 		require.Len(t, list, 1)
 		assert.Equal(t, created.ID, list[0].ID)
 
-		// withdraw
+		// withdrawing requires a reason
 		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("%s/%d", baseURL, created.ID), &api.EditSecurityDisclosureOption{
 			Status: "withdrawn",
 		}).AddTokenAuth(adminToken)
-		MakeRequest(t, req, http.StatusOK)
+		MakeRequest(t, req, http.StatusBadRequest)
 
-		// delete
+		// withdraw with a reason
+		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("%s/%d", baseURL, created.ID), &api.EditSecurityDisclosureOption{
+			Status:         "withdrawn",
+			WithdrawReason: "reported in error",
+		}).AddTokenAuth(adminToken)
+		resp = MakeRequest(t, req, http.StatusOK)
+		var withdrawn api.SecurityDisclosure
+		DecodeJSON(t, resp, &withdrawn)
+		assert.Equal(t, "withdrawn", withdrawn.Status)
+		assert.Equal(t, "reported in error", withdrawn.WithdrawReason)
+
+		// non-drafts cannot be deleted
 		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%d", baseURL, created.ID)).AddTokenAuth(adminToken)
+		MakeRequest(t, req, http.StatusBadRequest)
+		MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("%s/%d", baseURL, created.ID)).AddTokenAuth(adminToken), http.StatusOK)
+
+		// but a draft can be deleted
+		req = NewRequestWithJSON(t, "POST", baseURL, &api.CreateSecurityDisclosureOption{
+			Title: "draft to delete", Severity: "informative",
+		}).AddTokenAuth(adminToken)
+		resp = MakeRequest(t, req, http.StatusCreated)
+		var draft api.SecurityDisclosure
+		DecodeJSON(t, resp, &draft)
+		assert.Equal(t, "informative", draft.Severity)
+		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%d", baseURL, draft.ID)).AddTokenAuth(adminToken)
 		MakeRequest(t, req, http.StatusNoContent)
-		MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("%s/%d", baseURL, created.ID)).AddTokenAuth(adminToken), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("%s/%d", baseURL, draft.ID)).AddTokenAuth(adminToken), http.StatusNotFound)
 	})
 }

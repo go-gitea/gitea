@@ -15,7 +15,7 @@ import (
 )
 
 func TestParseSeverity(t *testing.T) {
-	for _, s := range []Severity{SeverityNone, SeverityLow, SeverityModerate, SeverityHigh, SeverityCritical} {
+	for _, s := range []Severity{SeverityInformative, SeverityLow, SeverityModerate, SeverityHigh, SeverityCritical} {
 		parsed, err := ParseSeverity(string(s))
 		require.NoError(t, err)
 		assert.Equal(t, s, parsed)

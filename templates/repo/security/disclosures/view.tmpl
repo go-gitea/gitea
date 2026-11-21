@@ -5,7 +5,7 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<div class="tw-mb-4">
-			<a class="muted" href="{{.RepoLink}}/security">{{svg "octicon-arrow-left" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.back_to_list"}}</a>
+			<a class="muted" href="{{.RepoLink}}/security/disclosures">{{svg "octicon-arrow-left" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.back_to_list"}}</a>
 		</div>
 		<div class="flex-left-right tw-mb-2">
 			<h2 class="tw-mb-0 tw-break-anywhere">
@@ -24,14 +24,20 @@
 			</div>
 		</div>
 		{{if $d.Summary}}<p class="tw-text-text-light">{{$d.Summary}}</p>{{end}}
+		{{if eq $d.Status "withdrawn"}}
+			<div class="ui negative message">
+				<strong>{{ctx.Locale.Tr "repo.security.status_withdrawn"}}</strong>
+				{{if $d.WithdrawReason}}<p class="tw-mb-0 tw-mt-1">{{ctx.Locale.Tr "repo.security.withdraw_reason"}}: {{$d.WithdrawReason}}</p>{{end}}
+			</div>
+		{{end}}
 
 		<div class="tw-flex tw-gap-4 tw-flex-col md:tw-flex-row">
-			<div class="tw-flex-3 tw-min-w-0">
+			<div class="tw-flex-1 tw-min-w-0">
 				<div class="ui segment markup">
 					{{if $d.Content}}{{$d.RenderedContent}}{{else}}<p class="tw-text-text-light">{{ctx.Locale.Tr "repo.security.no_description"}}</p>{{end}}
 				</div>
 			</div>
-			<div class="tw-flex-1 tw-min-w-52">
+			<div class="tw-w-full md:tw-w-80 tw-shrink-0">
 				<div class="ui segment">
 					<h4 class="tw-mt-0">{{ctx.Locale.Tr "repo.security.details"}}</h4>
 					<div class="tw-mb-2">
@@ -76,17 +82,17 @@
 
 				{{if .CanManageDisclosures}}
 					<div class="ui segment tw-flex tw-flex-col tw-gap-2">
-						<a class="ui small button" href="{{$.RepoLink}}/security/{{$d.ID}}/edit">{{svg "octicon-pencil" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.edit"}}</a>
+						<a class="ui small button" href="{{$.RepoLink}}/security/disclosures/{{$d.ID}}/edit">{{svg "octicon-pencil" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.edit"}}</a>
 						{{if $d.IsDraft}}
-							<form method="post" action="{{$.RepoLink}}/security/{{$d.ID}}/publish">
+							<form method="post" action="{{$.RepoLink}}/security/disclosures/{{$d.ID}}/publish">
 								<button class="ui small primary button" type="submit">{{svg "octicon-rocket" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.publish"}}</button>
 							</form>
 						{{else if eq $d.Status "published"}}
-							<form method="post" action="{{$.RepoLink}}/security/{{$d.ID}}/withdraw">
-								<button class="ui small button" type="submit">{{ctx.Locale.Tr "repo.security.withdraw"}}</button>
-							</form>
+							<button type="button" class="ui small button show-modal" data-modal="#disclosure-withdraw-modal">{{ctx.Locale.Tr "repo.security.withdraw"}}</button>
 						{{end}}
-						<button type="button" class="ui small red button link-action" data-modal-confirm="#disclosure-delete-modal" data-url="{{$.RepoLink}}/security/{{$d.ID}}/delete">{{svg "octicon-trash" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.delete"}}</button>
+						{{if $d.IsDraft}}
+							<button type="button" class="ui small red button link-action" data-modal-confirm="#disclosure-delete-modal" data-url="{{$.RepoLink}}/security/disclosures/{{$d.ID}}/delete">{{svg "octicon-trash" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.delete"}}</button>
+						{{end}}
 					</div>
 				{{end}}
 			</div>
@@ -94,7 +100,23 @@
 	</div>
 </div>
 
-{{if .CanManageDisclosures}}
+{{if and .CanManageDisclosures (eq $d.Status "published")}}
+<dialog class="modal-dialog" id="disclosure-withdraw-modal">
+	<form method="post" action="{{.RepoLink}}/security/disclosures/{{$d.ID}}/withdraw" class="ui form">
+		<div class="header">{{ctx.Locale.Tr "repo.security.withdraw"}}</div>
+		<div class="content">
+			<p>{{ctx.Locale.Tr "repo.security.withdraw_confirm" $d.Identifier}}</p>
+			<div class="field required">
+				<label for="disclosure-withdraw-reason">{{ctx.Locale.Tr "repo.security.withdraw_reason"}}</label>
+				<textarea id="disclosure-withdraw-reason" name="reason" rows="3" required maxlength="1024" placeholder="{{ctx.Locale.Tr "repo.security.withdraw_reason_placeholder"}}"></textarea>
+			</div>
+		</div>
+		{{template "base/modal_actions_confirm" (dict "ModalButtonOkText" (ctx.Locale.Tr "repo.security.withdraw"))}}
+	</form>
+</dialog>
+{{end}}
+
+{{if and .CanManageDisclosures $d.IsDraft}}
 <dialog class="modal-dialog" id="disclosure-delete-modal">
 	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.security.delete"}}</div>
 	<div class="content"><p>{{ctx.Locale.Tr "repo.security.delete_confirm" $d.Identifier}}</p></div>
