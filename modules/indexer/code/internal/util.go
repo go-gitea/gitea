@@ -163,19 +163,18 @@ func ReadFile(batch git.CatFileBatch, update FileUpdate) ([]byte, bool, error) {
 	if !IsSearchable(update.Filename, update.Size) {
 		return nil, false, nil
 	}
-	info, reader, err := batch.QueryContent(update.BlobSha)
+	_, reader, err := batch.QueryContent(update.BlobSha)
 	if err != nil {
 		return nil, false, err
 	}
-	content, err := io.ReadAll(io.LimitReader(reader, info.Size))
+	content, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, false, err
 	}
 	if !typesniffer.DetectContentType(content).IsText() {
 		content = nil
 	}
-	_, err = reader.Discard(1)
-	return charset.ToUTF8DropErrors(content), true, err
+	return charset.ToUTF8DropErrors(content), true, nil
 }
 
 func (m FileMatcher) MatchResult(result *SearchResult) bool {

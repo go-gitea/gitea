@@ -95,13 +95,21 @@ func testCatFileBatch(t *testing.T) {
 	})
 
 	t.Run("QueryContent", func(t *testing.T) {
+		_, partialReader, err := batch.QueryContent("e2129701f1a4d54dc44f03c93bca0a2aec7c5449")
+		require.NoError(t, err)
+		_, err = partialReader.Read(make([]byte, 2))
+		require.NoError(t, err)
+		_, err = batch.QueryInfo("e2129701f1a4d54dc44f03c93bca0a2aec7c5449")
+		require.NoError(t, err)
+		assert.Panics(t, func() { _, _ = partialReader.Read(make([]byte, 1)) })
+
 		info, rd, err := batch.QueryContent("e2129701f1a4d54dc44f03c93bca0a2aec7c5449")
 		require.NoError(t, err)
 		assert.Equal(t, "e2129701f1a4d54dc44f03c93bca0a2aec7c5449", info.ID)
 		assert.Equal(t, "blob", info.Type)
 		assert.EqualValues(t, 6, info.Size)
 
-		content, err := io.ReadAll(io.LimitReader(rd, info.Size))
+		content, err := io.ReadAll(rd)
 		require.NoError(t, err)
 		require.Equal(t, "file1\n", string(content))
 	})

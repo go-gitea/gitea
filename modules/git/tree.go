@@ -97,7 +97,7 @@ func (t *Tree) ListEntries(_ctx context.Context, gitRepo *Repository) (Entries, 
 	}
 
 	if info.Type == "commit" {
-		treeID, err := ReadTreeID(rd, info.Size)
+		treeID, err := ReadTreeID(rd)
 		if err != nil && err != io.EOF {
 			return nil, err
 		}
@@ -107,9 +107,6 @@ func (t *Tree) ListEntries(_ctx context.Context, gitRepo *Repository) (Entries, 
 		}
 	}
 	if info.Type != "tree" { // resolve annotated tags to their tree, a blob yields ErrNotExist
-		if err := DiscardFull(rd, info.Size+1); err != nil {
-			return nil, err
-		}
 		info, rd, err = batch.QueryContent(t.ID.String() + "^{tree}")
 		if err != nil {
 			return nil, err

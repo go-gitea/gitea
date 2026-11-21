@@ -40,6 +40,7 @@ func findLFSFileFunc(ctx context.Context, repo *git.Repository, objectID git.Obj
 
 	// We'll use a scanner for the revList because it's simpler than a bufio.Reader
 	scan := bufio.NewScanner(revListReader)
+	treeReader := bufio.NewReader(nil)
 	trees := []string{}
 	paths := []string{}
 
@@ -61,7 +62,7 @@ func findLFSFileFunc(ctx context.Context, repo *git.Repository, objectID git.Obj
 			switch info.Type {
 			case "tag":
 				// This shouldn't happen but if it does well just get the commit and try again
-				id, err := git.ReadTagObjectID(batchReader, info.Size)
+				id, err := git.ReadTagObjectID(batchReader)
 				if err != nil {
 					return nil, err
 				}
@@ -71,22 +72,20 @@ func findLFSFileFunc(ctx context.Context, repo *git.Repository, objectID git.Obj
 				continue
 			case "commit":
 				// Read in the commit to get its tree and in case this is one of the last used commits
-				curCommit, err = git.CommitFromReader(git.MustIDFromString(commitID), io.LimitReader(batchReader, info.Size))
+				curCommit, err = git.CommitFromReader(git.MustIDFromString(commitID), batchReader)
 				if err != nil {
 					return nil, err
 				}
-				if _, err := batchReader.Discard(1); err != nil {
-					return nil, err
-				}
 
-				if info, _, err = batch.QueryContent(curCommit.TreeID.String()); err != nil {
+				if info, batchReader, err = batch.QueryContent(curCommit.TreeID.String()); err != nil {
 					return nil, err
 				}
 				curPath = ""
 			case "tree":
+				treeReader.Reset(batchReader)
 				var n int64
 				for n < info.Size {
-					mode, fname, shaID, count, err := git.ParseCatFileTreeLine(objectID.Type(), batchReader)
+					mode, fname, shaID, count, err := git.ParseCatFileTreeLine(objectID.Type(), treeReader)
 					if err != nil {
 						return nil, err
 					}
@@ -105,11 +104,8 @@ func findLFSFileFunc(ctx context.Context, repo *git.Repository, objectID git.Obj
 						paths = append(paths, curPath+fname+"/")
 					}
 				}
-				if _, err := batchReader.Discard(1); err != nil {
-					return nil, err
-				}
 				if len(trees) > 0 {
-					info, _, err = batch.QueryContent(trees[len(trees)-1])
+					info, batchReader, err = batch.QueryContent(trees[len(trees)-1])
 					if err != nil {
 						return nil, err
 					}
@@ -120,9 +116,8 @@ func findLFSFileFunc(ctx context.Context, repo *git.Repository, objectID git.Obj
 					break commitReadingLoop
 				}
 			default:
-				if err := git.DiscardFull(batchReader, info.Size+1); err != nil {
-					return nil, err
-				}
+				trees, paths = trees[:0], paths[:0]
+				break commitReadingLoop
 			}
 		}
 	}
