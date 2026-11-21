@@ -861,7 +861,6 @@
   "repo.release.tag_name": "Merkisheiti",
   "repo.release.cancel": "Hætta við",
   "repo.release.delete_tag": "Eyða Merki",
-  "repo.release.downloads": "Niðurhöl",
   "repo.branch.delete_head": "Eyða",
   "repo.tag.create_tag_operation": "Skapa merki",
   "repo.tag.confirm_create_tag": "Skapa merki",

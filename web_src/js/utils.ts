@@ -184,7 +184,7 @@ export function isImageFile({name, type}: {name: string | null, type: string | n
 }
 
 export function isVideoFile({name, type}: {name: string | null, type: string | null}): boolean {
-  return Boolean(/\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/'));
+  return Boolean(/\.(mpg|mpeg|mp4|m4v|mkv|mov|webm)$/i.test(name || '') || type?.startsWith('video/'));
 }
 
 const byteUnits = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB'];
