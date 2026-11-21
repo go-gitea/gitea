@@ -167,3 +167,38 @@ func TestFeedUser(t *testing.T) {
 		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1.rss"), http.StatusOK)
 	})
 }
+
+// TestProfileActivityCollaborator ensures that a collaborator with access to a private
+// repository can see activities for that repository on the target user's profile activity tab,
+// while users without access cannot see them.
+func TestProfileActivityCollaborator(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// user16 owns private repo22 (big_test_private_3)
+	// user15 is a collaborator on repo22, user4 is not
+	const privateRepoMarker = "user16/big_test_private_3"
+
+	// Collaborator user15 viewing user16's activity tab should see privateRepoMarker
+	sessionUser15 := loginUser(t, "user15")
+	reqCollab := NewRequest(t, "GET", "/user16?tab=activity")
+	respCollab := sessionUser15.MakeRequest(t, reqCollab, http.StatusOK)
+	assert.Contains(t, respCollab.Body.String(), privateRepoMarker)
+
+	// Non-collaborator user4 viewing user16's activity tab must NOT see privateRepoMarker
+	sessionUser4 := loginUser(t, "user4")
+	reqNonCollab := NewRequest(t, "GET", "/user16?tab=activity")
+	respNonCollab := sessionUser4.MakeRequest(t, reqNonCollab, http.StatusOK)
+	assert.NotContains(t, respNonCollab.Body.String(), privateRepoMarker)
+
+	// Anonymous viewer must NOT see privateRepoMarker
+	reqAnon := NewRequest(t, "GET", "/user16?tab=activity")
+	respAnon := MakeRequest(t, reqAnon, http.StatusOK)
+	assert.NotContains(t, respAnon.Body.String(), privateRepoMarker)
+
+	// Collaborator user15 using a public-only token must NOT see privateRepoMarker
+	publicOnlyToken := getUserToken(t, "user15", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly)
+	reqPublicOnly := NewRequest(t, "GET", "/user16?tab=activity")
+	reqPublicOnly.SetBasicAuth("user15", publicOnlyToken)
+	respPublicOnly := MakeRequest(t, reqPublicOnly, http.StatusOK)
+	assert.NotContains(t, respPublicOnly.Body.String(), privateRepoMarker)
+}
