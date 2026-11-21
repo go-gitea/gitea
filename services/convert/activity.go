@@ -46,6 +46,16 @@ func ToActivity(ctx context.Context, ac *activities_model.Action, doer *user_mod
 func ToActivities(ctx context.Context, al activities_model.ActionList, doer *user_model.User) []*api.Activity {
 	result := make([]*api.Activity, 0, len(al))
 	for _, ac := range al {
+		// An action left behind by a deleted repository -- a push notified
+		// after the deletion removed the repository's actions -- loads with
+		// no Repo. A user's own feed and an admin's are read without the
+		// accessible-repositories filter that would have dropped it, and
+		// converting it panicked, failing the whole feed. `gitea doctor`
+		// deletes these rows; until it is run, the feed leaves them out.
+		if ac.Repo == nil {
+			log.Warn("ToActivities: action %d names repository %d, which no longer exists", ac.ID, ac.RepoID)
+			continue
+		}
 		result = append(result, ToActivity(ctx, ac, doer))
 	}
 	return result
