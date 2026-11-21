@@ -31,7 +31,7 @@ func QueueManage(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Title"] = ctx.Tr("admin.monitor.queue", mq.GetName())
-	ctx.Data["PageIsAdminMonitor"] = true
+	ctx.Data["PageIsAdminMonitorQueue"] = true
 	ctx.Data["Queue"] = mq
 	ctx.HTML(http.StatusOK, tplQueueManage)
 }
@@ -80,7 +80,7 @@ func QueueRemoveAllItems(ctx *context.Context) {
 	}
 
 	if err := mq.RemoveAllItems(ctx); err != nil {
-		ctx.ServerError("RemoveAllItems", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

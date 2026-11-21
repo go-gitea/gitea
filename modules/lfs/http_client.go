@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -29,12 +30,12 @@ type HTTPClient struct {
 	transfers map[string]TransferAdapter
 }
 
-// BatchSize returns the preferred size of batchs to process
+// BatchSize returns the preferred size of batches to process
 func (c *HTTPClient) BatchSize() int {
 	return setting.LFSClient.BatchSize
 }
 
-func newHTTPClient(endpoint *url.URL, httpTransport *http.Transport) *HTTPClient {
+func newHTTPClient(endpoint *url.URL, httpTransport http.RoundTripper) *HTTPClient {
 	if httpTransport == nil {
 		httpTransport = &http.Transport{
 			Proxy: proxy.Proxy(),
@@ -273,16 +274,16 @@ func performRequest(ctx context.Context, client *http.Client, req *http.Request)
 }
 
 func handleErrorResponse(resp *http.Response) error {
-	var er ErrorResponse
-	err := json.NewDecoder(resp.Body).Decode(&er)
+	// Non-LFS endpoints might reply with plain text or HTML, read the body ahead to use it as the error message if JSON decoding fails.
+	// The returned error message might be saved into database's TEXT column, so we also need to truncate it.
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1024*1024))
 	if err != nil {
-		if err == io.EOF {
-			return io.ErrUnexpectedEOF
-		}
-		log.Error("Error decoding json: %v", err)
-		return err
+		return fmt.Errorf("LFS server returned error, status: %d, err: %w", resp.StatusCode, err)
 	}
 
-	log.Trace("ErrorResponse(%v): %v", resp.Status, er)
-	return errors.New(er.Message)
+	var er ErrorResponse
+	if err := json.Unmarshal(body, &er); err == nil && er.Message != "" {
+		return fmt.Errorf("LFS server error: %s", util.TruncateRunes(er.Message, 1000))
+	}
+	return fmt.Errorf("LFS server returned error, status: %d, body: %q", resp.StatusCode, util.TruncateRunes(string(body), 1000))
 }

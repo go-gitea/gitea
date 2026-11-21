@@ -5,7 +5,6 @@ package markdown
 
 import (
 	"html/template"
-	"strconv"
 
 	"github.com/yuin/goldmark/ast"
 )
@@ -54,36 +53,6 @@ func (n *Summary) Kind() ast.NodeKind {
 // NewSummary returns a new Summary node.
 func NewSummary() *Summary {
 	return &Summary{}
-}
-
-// TaskCheckBoxListItem is a block that represents a list item of a markdown block with a checkbox
-type TaskCheckBoxListItem struct {
-	*ast.ListItem
-	IsChecked      bool
-	SourcePosition int
-}
-
-// KindTaskCheckBoxListItem is the NodeKind for TaskCheckBoxListItem
-var KindTaskCheckBoxListItem = ast.NewNodeKind("TaskCheckBoxListItem")
-
-// Dump implements Node.Dump .
-func (n *TaskCheckBoxListItem) Dump(source []byte, level int) {
-	m := map[string]string{}
-	m["IsChecked"] = strconv.FormatBool(n.IsChecked)
-	m["SourcePosition"] = strconv.FormatInt(int64(n.SourcePosition), 10)
-	ast.DumpHelper(n, source, level, m, nil)
-}
-
-// Kind implements Node.Kind.
-func (n *TaskCheckBoxListItem) Kind() ast.NodeKind {
-	return KindTaskCheckBoxListItem
-}
-
-// NewTaskCheckBoxListItem returns a new TaskCheckBoxListItem node.
-func NewTaskCheckBoxListItem(listItem *ast.ListItem) *TaskCheckBoxListItem {
-	return &TaskCheckBoxListItem{
-		ListItem: listItem,
-	}
 }
 
 // Icon is an inline for a Fomantic UI icon

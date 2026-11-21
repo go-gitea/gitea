@@ -13,12 +13,12 @@ import (
 	"xorm.io/builder"
 )
 
-// TeamRepo represents an team-repository relation.
+// TeamRepo represents an org-team-repository relation.
 type TeamRepo struct {
 	ID     int64 `xorm:"pk autoincr"`
 	OrgID  int64 `xorm:"INDEX"`
 	TeamID int64 `xorm:"UNIQUE(s)"`
-	RepoID int64 `xorm:"UNIQUE(s)"`
+	RepoID int64 `xorm:"UNIQUE(s) INDEX"`
 }
 
 // HasTeamRepo returns true if given repository belongs to team.

@@ -6,10 +6,13 @@ package convert
 import (
 	"context"
 	"strings"
+	"unicode/utf8"
 
 	issues_model "gitea.dev/models/issues"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/charset"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 )
 
 // ToPullReview convert a review to api format
@@ -23,7 +26,7 @@ func ToPullReview(ctx context.Context, r *issues_model.Review, doer *user_model.
 
 	result := &api.PullReview{
 		ID:                r.ID,
-		Reviewer:          ToUser(ctx, r.Reviewer, doer),
+		Reviewer:          ToAuthor(ctx, r.Reviewer, r.OriginalAuthor, doer),
 		State:             api.ReviewStateUnknown,
 		Body:              r.Content,
 		CommitID:          r.CommitID,
@@ -104,7 +107,7 @@ func ToPullReviewComment(ctx context.Context, comment *issues_model.Comment, doe
 	apiComment := &api.PullReviewComment{
 		ID:           comment.ID,
 		Body:         comment.Content,
-		Poster:       ToUser(ctx, comment.Poster, doer),
+		Poster:       ToAuthor(ctx, comment.Poster, comment.OriginalAuthor, doer),
 		Resolver:     ToUser(ctx, comment.ResolveDoer, doer),
 		ReviewID:     comment.ReviewID,
 		Created:      comment.CreatedUnix.AsTime(),
@@ -127,9 +130,13 @@ func ToPullReviewComment(ctx context.Context, comment *issues_model.Comment, doe
 }
 
 func patch2diff(patch string) string {
-	split := strings.Split(patch, "\n@@")
-	if len(split) == 2 {
-		return "@@" + split[1]
+	idx := strings.Index(patch, "\n@@")
+	if idx == -1 {
+		return ""
 	}
-	return ""
+	diffContent := patch[idx+1:]
+	// Although there might be an edge case that deleted lines and added lines are in different encodings,
+	// it's not worth to make things more complicated at the moment, and most code in modern codebases should be written in UTF-8.
+	hunk := charset.ToUTF8(util.UnsafeStringToBytes(diffContent), charset.ConvertOpts{ErrorReplacement: []byte(string(utf8.RuneError))})
+	return util.UnsafeBytesToString(hunk)
 }

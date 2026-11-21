@@ -33,7 +33,6 @@ export function confirmModal(modal: HTMLDialogElement | ConfirmModalOptions): Pr
         resolve(true);
       },
       onHidden() {
-        modal.remove();
         resolve(false);
       },
     });

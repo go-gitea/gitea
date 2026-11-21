@@ -96,9 +96,6 @@ class WsSource {
     this.ws.addEventListener('open', () => {
       this.reconnectDelay = 1000;
       this.failuresWithoutConnect = 0;
-      // Pushes fired while no client was subscribed (initial connect gap, or a
-      // reconnect window) are dropped server-side, so tell clients to reconcile
-      // their state from the server on every fresh connection.
       this.source.notifyClientsUserEvent({eventType: 'worker-connected'});
     });
 
@@ -191,6 +188,7 @@ const wsSourcesByUrl = new Map<string, WsSource>();
           const openWs = wsSourcesByUrl.get(url);
           if (openWs?.ws?.readyState === WebSocket.OPEN) {
             postUserEventMessage(port, {eventType: 'worker-connected'});
+            postUserEventMessage(port, {eventType: 'worker-attached'});
           }
           return;
         }

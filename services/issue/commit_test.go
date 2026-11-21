@@ -8,6 +8,7 @@ import (
 
 	activities_model "gitea.dev/models/activities"
 	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -15,6 +16,7 @@ import (
 	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUpdateIssuesCommit(t *testing.T) {
@@ -186,73 +188,54 @@ func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
 }
 
 func TestUpdateIssuesCommit_AnotherRepo(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	for _, message := range []string{
+		"close user2/repo1#1",
+		"close " + setting.AppURL + "user2/repo1/issues/1",
+	} {
+		t.Run(message, func(t *testing.T) {
+			assert.NoError(t, unittest.PrepareTestDatabase())
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	// Test that a push to default branch closes issue in another repo
-	// If the user also has push permissions to that repo
-	pushCommits := []*repository.PushCommit{
-		{
-			Sha1:           "abcdef1",
-			CommitterEmail: "user2@example.com",
-			CommitterName:  "User Two",
-			AuthorEmail:    "user2@example.com",
-			AuthorName:     "User Two",
-			Message:        "close user2/repo1#1",
-		},
+			// Test that a push to default branch closes issue in another repo
+			// If the user also has push permissions to that repo
+			pushCommits := []*repository.PushCommit{
+				{
+					Sha1:           "abcdef1",
+					CommitterEmail: "user2@example.com",
+					CommitterName:  "User Two",
+					AuthorEmail:    "user2@example.com",
+					AuthorName:     "User Two",
+					Message:        message,
+				},
+			}
+
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+			commentBean := &issues_model.Comment{
+				Type:      issues_model.CommentTypeCommitRef,
+				CommitSHA: "abcdef1",
+				PosterID:  user.ID,
+				IssueID:   1,
+			}
+
+			issueBean := &issues_model.Issue{RepoID: 1, Index: 1, ID: 1}
+
+			unittest.AssertNotExistsBean(t, commentBean)
+			unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
+			assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, repo.DefaultBranch))
+			comment := unittest.AssertExistsAndLoadBean(t, commentBean)
+			issue := unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
+			unittest.CheckConsistencyFor(t, &activities_model.Action{})
+
+			require.NoError(t, issue.LoadRepo(t.Context()))
+			for doer, visibleCount := range map[*user_model.User]int{nil: 0, user: 1} {
+				perm, err := access_model.GetDoerRepoPermission(t.Context(), issue.Repo, doer)
+				require.NoError(t, err)
+				comments, err := FilterReadableComments(t.Context(), doer, perm, issue, issues_model.CommentList{comment})
+				require.NoError(t, err)
+				assert.Len(t, comments, visibleCount)
+			}
+		})
 	}
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	commentBean := &issues_model.Comment{
-		Type:      issues_model.CommentTypeCommitRef,
-		CommitSHA: "abcdef1",
-		PosterID:  user.ID,
-		IssueID:   1,
-	}
-
-	issueBean := &issues_model.Issue{RepoID: 1, Index: 1, ID: 1}
-
-	unittest.AssertNotExistsBean(t, commentBean)
-	unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
-	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, repo.DefaultBranch))
-	unittest.AssertExistsAndLoadBean(t, commentBean)
-	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
-	unittest.CheckConsistencyFor(t, &activities_model.Action{})
-}
-
-func TestUpdateIssuesCommit_AnotherRepo_FullAddress(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	// Test that a push to default branch closes issue in another repo
-	// If the user also has push permissions to that repo
-	pushCommits := []*repository.PushCommit{
-		{
-			Sha1:           "abcdef1",
-			CommitterEmail: "user2@example.com",
-			CommitterName:  "User Two",
-			AuthorEmail:    "user2@example.com",
-			AuthorName:     "User Two",
-			Message:        "close " + setting.AppURL + "user2/repo1/issues/1",
-		},
-	}
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	commentBean := &issues_model.Comment{
-		Type:      issues_model.CommentTypeCommitRef,
-		CommitSHA: "abcdef1",
-		PosterID:  user.ID,
-		IssueID:   1,
-	}
-
-	issueBean := &issues_model.Issue{RepoID: 1, Index: 1, ID: 1}
-
-	unittest.AssertNotExistsBean(t, commentBean)
-	unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
-	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, repo.DefaultBranch))
-	unittest.AssertExistsAndLoadBean(t, commentBean)
-	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
-	unittest.CheckConsistencyFor(t, &activities_model.Action{})
 }
 
 func TestUpdateIssuesCommit_AnotherRepoNoPermission(t *testing.T) {

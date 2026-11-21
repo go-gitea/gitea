@@ -30,333 +30,108 @@ import (
 )
 
 func TestWorkflowConcurrency(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		session := loginUser(t, user2.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-
-		apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
-		defer doAPIDeleteRepository(httpContext)(t)
-
-		runner := newMockRunner()
-		runner.registerAsRepoRunner(t, user2.Name, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
-
-		// add a variable for test
-		req := NewRequestWithJSON(t, "POST",
-			fmt.Sprintf("/api/v1/repos/%s/%s/actions/variables/myvar", user2.Name, repo.Name), &api.CreateVariableOption{
-				Value: "abc123",
-			}).
-			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusCreated)
-
-		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
-		wf1FileContent := `name: concurrent-workflow-1
-on:
-  push:
-    paths:
-      - '.gitea/workflows/concurrent-workflow-1.yml'
-concurrency:
-  group: workflow-main-abc123-user2
-jobs:
-  wf1-job:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo 'job from workflow1'
-`
-		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
-		wf2FileContent := `name: concurrent-workflow-2
-on:
-  push:
-    paths:
-      - '.gitea/workflows/concurrent-workflow-2.yml'
-concurrency:
-  group: workflow-${{ gitea.ref_name }}-${{ vars.myvar }}-${{ gitea.event.pusher.username }}
-jobs:
-  wf2-job:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo 'job from workflow2'
-`
-		wf3TreePath := ".gitea/workflows/concurrent-workflow-3.yml"
-		wf3FileContent := `name: concurrent-workflow-3
-on:
-  push:
-    paths:
-      - '.gitea/workflows/concurrent-workflow-3.yml'
-concurrency:
-  group: workflow-main-abc${{ 123 }}-${{ gitea.event.pusher.username }}
-jobs:
-  wf3-job:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo 'job from workflow3'
-`
-		// push workflow1
-		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
-		// fetch and exec workflow1
-		task := runner.fetchTask(t)
-		_, _, run := getTaskAndJobAndRunByTaskID(t, task.Id)
-		assert.Equal(t, "workflow-main-abc123-user2", getRunConcurrencyGroup(t, run))
-		assert.Equal(t, "concurrent-workflow-1.yml", run.WorkflowID)
-		runner.fetchNoTask(t)
-		runner.execTask(t, task, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
-		})
-
-		// push workflow2
-		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf2TreePath, wf2FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wf2TreePath, opts2)
-		// fetch workflow2
-		task = runner.fetchTask(t)
-		_, _, run = getTaskAndJobAndRunByTaskID(t, task.Id)
-		assert.Equal(t, "workflow-main-abc123-user2", getRunConcurrencyGroup(t, run))
-		assert.Equal(t, "concurrent-workflow-2.yml", run.WorkflowID)
-
-		// push workflow3
-		opts3 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf3TreePath, wf3FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wf3TreePath, opts3)
-		runner.fetchNoTask(t)
-
-		// exec workflow2
-		runner.execTask(t, task, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
-		})
-
-		// fetch and exec workflow3
-		task = runner.fetchTask(t)
-		_, _, run = getTaskAndJobAndRunByTaskID(t, task.Id)
-		assert.Equal(t, "workflow-main-abc123-user2", getRunConcurrencyGroup(t, run))
-		assert.Equal(t, "concurrent-workflow-3.yml", run.WorkflowID)
-		runner.fetchNoTask(t)
-		runner.execTask(t, task, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
-		})
-	})
-}
-
-func TestWorkflowConcurrencyShort(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		session := loginUser(t, user2.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-
-		apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
-		defer doAPIDeleteRepository(httpContext)(t)
-
-		runner := newMockRunner()
-		runner.registerAsRepoRunner(t, user2.Name, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
-
-		// add a variable for test
-		req := NewRequestWithJSON(t, "POST",
-			fmt.Sprintf("/api/v1/repos/%s/%s/actions/variables/myvar", user2.Name, repo.Name), &api.CreateVariableOption{
-				Value: "abc123",
-			}).
-			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusCreated)
-
-		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
-		wf1FileContent := `name: concurrent-workflow-1
-on:
-  push:
-    paths:
-      - '.gitea/workflows/concurrent-workflow-1.yml'
-concurrency: workflow-main-abc123-user2
-jobs:
-  wf1-job:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo 'job from workflow1'
-`
-		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
-		wf2FileContent := `name: concurrent-workflow-2
-on:
-  push:
-    paths:
-      - '.gitea/workflows/concurrent-workflow-2.yml'
-concurrency: workflow-${{ gitea.ref_name }}-${{ vars.myvar }}-${{ gitea.event.pusher.username }}
-jobs:
-  wf2-job:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo 'job from workflow2'
-`
-		wf3TreePath := ".gitea/workflows/concurrent-workflow-3.yml"
-		wf3FileContent := `name: concurrent-workflow-3
-on:
-  push:
-    paths:
-      - '.gitea/workflows/concurrent-workflow-3.yml'
-concurrency: workflow-main-abc${{ 123 }}-${{ gitea.event.pusher.username }}
-jobs:
-  wf3-job:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo 'job from workflow3'
-`
-		// push workflow1
-		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
-		// fetch and exec workflow1
-		task := runner.fetchTask(t)
-		_, _, run := getTaskAndJobAndRunByTaskID(t, task.Id)
-		assert.Equal(t, "workflow-main-abc123-user2", getRunConcurrencyGroup(t, run))
-		assert.Equal(t, "concurrent-workflow-1.yml", run.WorkflowID)
-		runner.fetchNoTask(t)
-		runner.execTask(t, task, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
-		})
-
-		// push workflow2
-		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf2TreePath, wf2FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wf2TreePath, opts2)
-		// fetch workflow2
-		task = runner.fetchTask(t)
-		_, _, run = getTaskAndJobAndRunByTaskID(t, task.Id)
-		assert.Equal(t, "workflow-main-abc123-user2", getRunConcurrencyGroup(t, run))
-		assert.Equal(t, "concurrent-workflow-2.yml", run.WorkflowID)
-
-		// push workflow3
-		opts3 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf3TreePath, wf3FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wf3TreePath, opts3)
-		runner.fetchNoTask(t)
-
-		// exec workflow2
-		runner.execTask(t, task, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
-		})
-
-		// fetch and exec workflow3
-		task = runner.fetchTask(t)
-		_, _, run = getTaskAndJobAndRunByTaskID(t, task.Id)
-		assert.Equal(t, "workflow-main-abc123-user2", getRunConcurrencyGroup(t, run))
-		assert.Equal(t, "concurrent-workflow-3.yml", run.WorkflowID)
-		runner.fetchNoTask(t)
-		runner.execTask(t, task, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
-		})
-	})
-}
-
-func TestWorkflowConcurrencyShortJson(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		session := loginUser(t, user2.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-
-		apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
-		defer doAPIDeleteRepository(httpContext)(t)
-
-		runner := newMockRunner()
-		runner.registerAsRepoRunner(t, user2.Name, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
-
-		// add a variable for test
-		req := NewRequestWithJSON(t, "POST",
-			fmt.Sprintf("/api/v1/repos/%s/%s/actions/variables/myvar", user2.Name, repo.Name), &api.CreateVariableOption{
-				Value: "abc123",
-			}).
-			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusCreated)
-
-		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
-		wf1FileContent := `name: concurrent-workflow-1
-on:
-  push:
-    paths:
-      - '.gitea/workflows/concurrent-workflow-1.yml'
-concurrency: |-
+	for _, workflowSyntax := range []struct {
+		name, concurrency string
+	}{
+		{"Long", `concurrency:
+  group: %s`},
+		{"Short", `concurrency: %s`},
+		{"ShortJson", `concurrency: |-
     ${{ fromjson('{
-        "group": "workflow-main-abc123-user2",
+        "group": "%s",
         "cancel-in-progress": false
-    }') }}
-jobs:
-  wf1-job:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo 'job from workflow1'
-`
-		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
-		wf2FileContent := `name: concurrent-workflow-2
+    }') }}`},
+	} {
+		t.Run(workflowSyntax.name, func(t *testing.T) {
+			onGiteaRun(t, func(t *testing.T, u *url.URL) {
+				user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+				session := loginUser(t, user2.Name)
+				token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+				apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
+				repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+				httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+				defer doAPIDeleteRepository(httpContext)(t)
+
+				runner := newMockRunner()
+				runner.registerAsRepoRunner(t, user2.Name, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+
+				// add a variable for test
+				req := NewRequestWithJSON(t, "POST",
+					fmt.Sprintf("/api/v1/repos/%s/%s/actions/variables/myvar", user2.Name, repo.Name), &api.CreateVariableOption{
+						Value: "abc123",
+					}).
+					AddTokenAuth(token)
+				MakeRequest(t, req, http.StatusCreated)
+
+				workflow := func(index int, group string) string {
+					if workflowSyntax.name == "ShortJson" {
+						group = "workflow-main-abc123-user2"
+					}
+					return fmt.Sprintf(`name: concurrent-workflow-%[1]d
 on:
   push:
     paths:
-      - '.gitea/workflows/concurrent-workflow-2.yml'
-concurrency: |-
-    ${{ fromjson('{
-        "group": "workflow-main-abc123-user2",
-        "cancel-in-progress": false
-    }') }}
+      - '.gitea/workflows/concurrent-workflow-%[1]d.yml'
+%[2]s
 jobs:
-  wf2-job:
+  wf%[1]d-job:
     runs-on: ubuntu-latest
     steps:
-      - run: echo 'job from workflow2'
-`
-		wf3TreePath := ".gitea/workflows/concurrent-workflow-3.yml"
-		wf3FileContent := `name: concurrent-workflow-3
-on:
-  push:
-    paths:
-      - '.gitea/workflows/concurrent-workflow-3.yml'
-concurrency: |-
-    ${{ fromjson('{
-        "group": "workflow-main-abc123-user2",
-        "cancel-in-progress": false
-    }') }}
-jobs:
-  wf3-job:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo 'job from workflow3'
-`
-		// push workflow1
-		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
-		// fetch and exec workflow1
-		task := runner.fetchTask(t)
-		_, _, run := getTaskAndJobAndRunByTaskID(t, task.Id)
-		assert.Equal(t, "workflow-main-abc123-user2", getRunConcurrencyGroup(t, run))
-		assert.Equal(t, "concurrent-workflow-1.yml", run.WorkflowID)
-		runner.fetchNoTask(t)
-		runner.execTask(t, task, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
+      - run: echo 'job from workflow%[1]d'
+`, index, fmt.Sprintf(workflowSyntax.concurrency, group))
+				}
+
+				wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
+				wf1FileContent := workflow(1, "workflow-main-abc123-user2")
+				wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
+				wf2FileContent := workflow(2, "workflow-${{ gitea.ref_name }}-${{ vars.myvar }}-${{ gitea.event.pusher.username }}")
+				wf3TreePath := ".gitea/workflows/concurrent-workflow-3.yml"
+				wf3FileContent := workflow(3, "workflow-main-abc${{ 123 }}-${{ gitea.event.pusher.username }}")
+				// push workflow1
+				opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf1TreePath, wf1FileContent)
+				createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
+				// fetch and exec workflow1
+				task := runner.fetchTask(t)
+				_, _, run := getTaskAndJobAndRunByTaskID(t, task.Id)
+				assert.Equal(t, "workflow-main-abc123-user2", getRunConcurrencyGroup(t, run))
+				assert.Equal(t, "concurrent-workflow-1.yml", run.WorkflowID)
+				runner.fetchNoTask(t)
+				runner.execTask(t, task, &mockTaskOutcome{
+					result: runnerv1.Result_RESULT_SUCCESS,
+				})
+
+				// push workflow2
+				opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf2TreePath, wf2FileContent)
+				createWorkflowFile(t, token, user2.Name, repo.Name, wf2TreePath, opts2)
+				// fetch workflow2
+				task = runner.fetchTask(t)
+				_, _, run = getTaskAndJobAndRunByTaskID(t, task.Id)
+				assert.Equal(t, "workflow-main-abc123-user2", getRunConcurrencyGroup(t, run))
+				assert.Equal(t, "concurrent-workflow-2.yml", run.WorkflowID)
+
+				// push workflow3
+				opts3 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf3TreePath, wf3FileContent)
+				createWorkflowFile(t, token, user2.Name, repo.Name, wf3TreePath, opts3)
+				runner.fetchNoTask(t)
+
+				// exec workflow2
+				runner.execTask(t, task, &mockTaskOutcome{
+					result: runnerv1.Result_RESULT_SUCCESS,
+				})
+
+				// fetch and exec workflow3
+				task = runner.fetchTask(t)
+				_, _, run = getTaskAndJobAndRunByTaskID(t, task.Id)
+				assert.Equal(t, "workflow-main-abc123-user2", getRunConcurrencyGroup(t, run))
+				assert.Equal(t, "concurrent-workflow-3.yml", run.WorkflowID)
+				runner.fetchNoTask(t)
+				runner.execTask(t, task, &mockTaskOutcome{
+					result: runnerv1.Result_RESULT_SUCCESS,
+				})
+			})
 		})
-
-		// push workflow2
-		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf2TreePath, wf2FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wf2TreePath, opts2)
-		// fetch workflow2
-		task = runner.fetchTask(t)
-		_, _, run = getTaskAndJobAndRunByTaskID(t, task.Id)
-		assert.Equal(t, "workflow-main-abc123-user2", getRunConcurrencyGroup(t, run))
-		assert.Equal(t, "concurrent-workflow-2.yml", run.WorkflowID)
-
-		// push workflow3
-		opts3 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf3TreePath, wf3FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wf3TreePath, opts3)
-		runner.fetchNoTask(t)
-
-		// exec workflow2
-		runner.execTask(t, task, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
-		})
-
-		// fetch and exec workflow3
-		task = runner.fetchTask(t)
-		_, _, run = getTaskAndJobAndRunByTaskID(t, task.Id)
-		assert.Equal(t, "workflow-main-abc123-user2", getRunConcurrencyGroup(t, run))
-		assert.Equal(t, "concurrent-workflow-3.yml", run.WorkflowID)
-		runner.fetchNoTask(t)
-		runner.execTask(t, task, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
-		})
-	})
+	}
 }
 
 func TestPullRequestWorkflowConcurrency(t *testing.T) {
@@ -850,22 +625,24 @@ jobs:
 	})
 }
 
-func TestWorkflowDispatchRerunAllJobsConcurrency(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		session := loginUser(t, user2.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+func TestWorkflowDispatchRerunConcurrency(t *testing.T) {
+	for _, jobScope := range []string{"all-jobs", "single-job"} {
+		t.Run(jobScope, func(t *testing.T) {
+			onGiteaRun(t, func(t *testing.T, u *url.URL) {
+				user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+				session := loginUser(t, user2.Name)
+				token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
-		apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
-		defer doAPIDeleteRepository(httpContext)(t)
+				apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
+				repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+				httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+				defer doAPIDeleteRepository(httpContext)(t)
 
-		runner := newMockRunner()
-		runner.registerAsRepoRunner(t, user2.Name, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+				runner := newMockRunner()
+				runner.registerAsRepoRunner(t, user2.Name, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 
-		wf1TreePath := ".gitea/workflows/workflow-dispatch-concurrency.yml"
-		wf1FileContent := `name: workflow-dispatch-concurrency
+				wf1TreePath := ".gitea/workflows/workflow-dispatch-concurrency.yml"
+				wf1FileContent := `name: workflow-dispatch-concurrency
 on:
   workflow_dispatch:
     inputs:
@@ -893,236 +670,110 @@ jobs:
       - run: echo 'workflow dispatch job'
 `
 
-		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
+				opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf1TreePath, wf1FileContent)
+				createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
 
-		// run the workflow with appVersion=v1.21 and cancel=false
-		urlStr := fmt.Sprintf("/%s/%s/actions/run?workflow=%s", user2.Name, repo.Name, "workflow-dispatch-concurrency.yml")
-		req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"ref":        "refs/heads/main",
-			"appVersion": "v1.21",
+				// run the workflow with appVersion=v1.21 and cancel=false
+				urlStr := fmt.Sprintf("/%s/%s/actions/run?workflow=%s", user2.Name, repo.Name, "workflow-dispatch-concurrency.yml")
+				req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
+					"ref":        "refs/heads/main",
+					"appVersion": "v1.21",
+				})
+				session.MakeRequest(t, req, http.StatusSeeOther)
+				task1 := runner.fetchTask(t)
+				_, _, run1 := getTaskAndJobAndRunByTaskID(t, task1.Id)
+				assert.Equal(t, "workflow-dispatch-v1.21", getRunConcurrencyGroup(t, run1))
+
+				req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
+					"ref":        "refs/heads/main",
+					"appVersion": "v1.22",
+				})
+				session.MakeRequest(t, req, http.StatusSeeOther)
+				task2 := runner.fetchTask(t)
+				_, job2, run2 := getTaskAndJobAndRunByTaskID(t, task2.Id)
+				assert.Equal(t, "workflow-dispatch-v1.22", getRunConcurrencyGroup(t, run2))
+
+				// run the workflow with appVersion=v1.22 and cancel=false again
+				req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
+					"ref":        "refs/heads/main",
+					"appVersion": "v1.22",
+				})
+				session.MakeRequest(t, req, http.StatusSeeOther)
+
+				runner.fetchNoTask(t) // cannot fetch task because task2 is not completed
+				run3 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID}, unittest.OrderBy("id DESC"))
+				assert.Equal(t, actions_model.StatusBlocked, run3.Status)
+				job3 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RepoID: repo.ID, RunID: run3.ID})
+				assert.Equal(t, actions_model.StatusBlocked, job3.Status)
+
+				// run the workflow with appVersion=v1.22 and cancel=true
+				req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
+					"ref":        "refs/heads/main",
+					"appVersion": "v1.22",
+					"cancel":     "on",
+				})
+				session.MakeRequest(t, req, http.StatusSeeOther)
+				task4 := runner.fetchTask(t)
+				_, job4, run4 := getTaskAndJobAndRunByTaskID(t, task4.Id)
+				assert.Equal(t, actions_model.StatusRunning, run4.Status)
+				assert.Equal(t, "workflow-dispatch-v1.22", getRunConcurrencyGroup(t, run4))
+				_, _, run2 = getTaskAndJobAndRunByTaskID(t, task2.Id)
+				assert.Equal(t, actions_model.StatusCancelled, run2.Status)
+
+				runner.execTask(t, task4, &mockTaskOutcome{
+					result: runnerv1.Result_RESULT_SUCCESS,
+				})
+
+				rerun := func(runID int64, job **actions_model.ActionRunJob) {
+					if jobScope == "single-job" {
+						*job = getLatestAttemptJobByTemplateJobID(t, runID, (*job).ID)
+						req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, runID, (*job).ID))
+					} else {
+						req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, runID))
+					}
+					_ = session.MakeRequest(t, req, http.StatusOK)
+				}
+
+				// rerun cancel true scenario
+
+				rerun(run2.ID, &job2)
+
+				rerun(run4.ID, &job4)
+
+				task5 := runner.fetchTask(t)
+				_, _, run4_1 := getTaskAndJobAndRunByTaskID(t, task5.Id)
+				assert.Equal(t, "workflow-dispatch-v1.22", getRunConcurrencyGroup(t, run4_1))
+				assert.Equal(t, run4.ID, run4_1.ID)
+				_, _, run2_1 := getTaskAndJobAndRunByTaskID(t, task2.Id)
+				assert.Equal(t, actions_model.StatusCancelled, run2_1.Status)
+
+				runner.execTask(t, task5, &mockTaskOutcome{
+					result: runnerv1.Result_RESULT_CANCELLED,
+				})
+
+				// rerun cancel false scenario
+
+				rerun(run2.ID, &job2)
+
+				run2_2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2.ID})
+				assert.Equal(t, actions_model.StatusWaiting, run2_2.Status)
+
+				rerun(run3.ID, &job3)
+
+				assert.Equal(t, actions_model.StatusBlocked, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run3.ID}).Status)
+				runner.execTask(t, runner.fetchTask(t), &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+				task6 := runner.fetchTask(t)
+				_, _, run3_2 := getTaskAndJobAndRunByTaskID(t, task6.Id)
+				if jobScope == "all-jobs" {
+					assert.Equal(t, run3.ID, run3_2.ID)
+					assert.Equal(t, actions_model.StatusRunning, run3_2.Status)
+				} else {
+					run3 = run3_2
+				}
+				assert.Equal(t, "workflow-dispatch-v1.22", getRunConcurrencyGroup(t, run3))
+			})
 		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
-		task1 := runner.fetchTask(t)
-		_, _, run1 := getTaskAndJobAndRunByTaskID(t, task1.Id)
-		assert.Equal(t, "workflow-dispatch-v1.21", getRunConcurrencyGroup(t, run1))
-
-		req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"ref":        "refs/heads/main",
-			"appVersion": "v1.22",
-		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
-		task2 := runner.fetchTask(t)
-		_, _, run2 := getTaskAndJobAndRunByTaskID(t, task2.Id)
-		assert.Equal(t, "workflow-dispatch-v1.22", getRunConcurrencyGroup(t, run2))
-
-		// run the workflow with appVersion=v1.22 and cancel=false again
-		req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"ref":        "refs/heads/main",
-			"appVersion": "v1.22",
-		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
-
-		runner.fetchNoTask(t) // cannot fetch task because task2 is not completed
-		run3 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID}, unittest.OrderBy("id DESC"))
-		assert.Equal(t, actions_model.StatusBlocked, run3.Status)
-		job3 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RepoID: repo.ID, RunID: run3.ID})
-		assert.Equal(t, actions_model.StatusBlocked, job3.Status)
-
-		// run the workflow with appVersion=v1.22 and cancel=true
-		req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"ref":        "refs/heads/main",
-			"appVersion": "v1.22",
-			"cancel":     "on",
-		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
-		task4 := runner.fetchTask(t)
-		_, _, run4 := getTaskAndJobAndRunByTaskID(t, task4.Id)
-		assert.Equal(t, actions_model.StatusRunning, run4.Status)
-		assert.Equal(t, "workflow-dispatch-v1.22", getRunConcurrencyGroup(t, run4))
-		_, _, run2 = getTaskAndJobAndRunByTaskID(t, task2.Id)
-		assert.Equal(t, actions_model.StatusCancelled, run2.Status)
-
-		runner.execTask(t, task4, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
-		})
-
-		// rerun cancel true scenario
-
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run2.ID))
-		_ = session.MakeRequest(t, req, http.StatusOK)
-
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run4.ID))
-		_ = session.MakeRequest(t, req, http.StatusOK)
-
-		task5 := runner.fetchTask(t)
-		_, _, run4_1 := getTaskAndJobAndRunByTaskID(t, task5.Id)
-		assert.Equal(t, "workflow-dispatch-v1.22", getRunConcurrencyGroup(t, run4_1))
-		assert.Equal(t, run4.ID, run4_1.ID)
-		_, _, run2_1 := getTaskAndJobAndRunByTaskID(t, task2.Id)
-		assert.Equal(t, actions_model.StatusCancelled, run2_1.Status)
-
-		runner.execTask(t, task5, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_CANCELLED,
-		})
-
-		// rerun cancel false scenario
-
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run2.ID))
-		_ = session.MakeRequest(t, req, http.StatusOK)
-
-		run2_2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2.ID})
-		assert.Equal(t, actions_model.StatusWaiting, run2_2.Status)
-
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run3.ID))
-		_ = session.MakeRequest(t, req, http.StatusOK)
-
-		assert.Equal(t, actions_model.StatusBlocked, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run3.ID}).Status)
-		runner.execTask(t, runner.fetchTask(t), &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
-		task6 := runner.fetchTask(t)
-		_, _, run3_2 := getTaskAndJobAndRunByTaskID(t, task6.Id)
-		assert.Equal(t, run3.ID, run3_2.ID)
-		assert.Equal(t, actions_model.StatusRunning, run3_2.Status)
-		assert.Equal(t, "workflow-dispatch-v1.22", getRunConcurrencyGroup(t, run3))
-	})
-}
-
-func TestWorkflowDispatchRerunSingleJobConcurrency(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		session := loginUser(t, user2.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-
-		apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
-		defer doAPIDeleteRepository(httpContext)(t)
-
-		runner := newMockRunner()
-		runner.registerAsRepoRunner(t, user2.Name, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
-
-		wf1TreePath := ".gitea/workflows/workflow-dispatch-concurrency.yml"
-		wf1FileContent := `name: workflow-dispatch-concurrency
-on:
-  workflow_dispatch:
-    inputs:
-      appVersion:
-        description: 'APP version'
-        required: true
-        default: 'v1.23'
-        type: choice
-        options:
-        - v1.21
-        - v1.22
-        - v1.23
-      cancel:
-        description: 'Cancel running workflows'
-        required: false
-        type: boolean
-        default: false
-concurrency:
-  group: workflow-dispatch-${{ inputs.appVersion }}
-  cancel-in-progress: ${{ inputs.cancel }}
-jobs:
-  job:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo 'workflow dispatch job'
-`
-
-		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
-
-		// run the workflow with appVersion=v1.21 and cancel=false
-		urlStr := fmt.Sprintf("/%s/%s/actions/run?workflow=%s", user2.Name, repo.Name, "workflow-dispatch-concurrency.yml")
-		req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"ref":        "refs/heads/main",
-			"appVersion": "v1.21",
-		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
-		task1 := runner.fetchTask(t)
-		_, _, run1 := getTaskAndJobAndRunByTaskID(t, task1.Id)
-		assert.Equal(t, "workflow-dispatch-v1.21", getRunConcurrencyGroup(t, run1))
-
-		req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"ref":        "refs/heads/main",
-			"appVersion": "v1.22",
-		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
-		task2 := runner.fetchTask(t)
-		_, job2, run2 := getTaskAndJobAndRunByTaskID(t, task2.Id)
-		assert.Equal(t, "workflow-dispatch-v1.22", getRunConcurrencyGroup(t, run2))
-
-		// run the workflow with appVersion=v1.22 and cancel=false again
-		req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"ref":        "refs/heads/main",
-			"appVersion": "v1.22",
-		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
-
-		runner.fetchNoTask(t) // cannot fetch task because task2 is not completed
-		run3 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID}, unittest.OrderBy("id DESC"))
-		assert.Equal(t, actions_model.StatusBlocked, run3.Status)
-		job3 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RepoID: repo.ID, RunID: run3.ID})
-		assert.Equal(t, actions_model.StatusBlocked, job3.Status)
-
-		// run the workflow with appVersion=v1.22 and cancel=true
-		req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"ref":        "refs/heads/main",
-			"appVersion": "v1.22",
-			"cancel":     "on",
-		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
-		task4 := runner.fetchTask(t)
-		_, job4, run4 := getTaskAndJobAndRunByTaskID(t, task4.Id)
-		assert.Equal(t, actions_model.StatusRunning, run4.Status)
-		assert.Equal(t, "workflow-dispatch-v1.22", getRunConcurrencyGroup(t, run4))
-		_, _, run2 = getTaskAndJobAndRunByTaskID(t, task2.Id)
-		assert.Equal(t, actions_model.StatusCancelled, run2.Status)
-
-		runner.execTask(t, task4, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
-		})
-
-		// rerun cancel true scenario
-		job2 = getLatestAttemptJobByTemplateJobID(t, run2.ID, job2.ID)
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.ID, job2.ID))
-		_ = session.MakeRequest(t, req, http.StatusOK)
-
-		job4 = getLatestAttemptJobByTemplateJobID(t, run4.ID, job4.ID)
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run4.ID, job4.ID))
-		_ = session.MakeRequest(t, req, http.StatusOK)
-
-		task5 := runner.fetchTask(t)
-		_, _, run4_1 := getTaskAndJobAndRunByTaskID(t, task5.Id)
-		assert.Equal(t, "workflow-dispatch-v1.22", getRunConcurrencyGroup(t, run4_1))
-		assert.Equal(t, run4.ID, run4_1.ID)
-		_, _, run2_1 := getTaskAndJobAndRunByTaskID(t, task2.Id)
-		assert.Equal(t, actions_model.StatusCancelled, run2_1.Status)
-
-		runner.execTask(t, task5, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_CANCELLED,
-		})
-
-		// rerun cancel false scenario
-
-		job2 = getLatestAttemptJobByTemplateJobID(t, run2.ID, job2.ID)
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.ID, job2.ID))
-		_ = session.MakeRequest(t, req, http.StatusOK)
-
-		run2_2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2.ID})
-		assert.Equal(t, actions_model.StatusWaiting, run2_2.Status)
-
-		job3 = getLatestAttemptJobByTemplateJobID(t, run3.ID, job3.ID)
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run3.ID, job3.ID))
-		_ = session.MakeRequest(t, req, http.StatusOK)
-
-		assert.Equal(t, actions_model.StatusBlocked, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run3.ID}).Status)
-		runner.execTask(t, runner.fetchTask(t), &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
-		task6 := runner.fetchTask(t)
-		_, _, run3 = getTaskAndJobAndRunByTaskID(t, task6.Id)
-		assert.Equal(t, "workflow-dispatch-v1.22", getRunConcurrencyGroup(t, run3))
-	})
+	}
 }
 
 func TestScheduleConcurrency(t *testing.T) {

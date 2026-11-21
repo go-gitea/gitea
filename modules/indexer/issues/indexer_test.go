@@ -4,6 +4,7 @@
 package issues
 
 import (
+	"sync"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -29,7 +30,9 @@ func TestDBSearchIssues(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	setting.Indexer.IssueType = "db"
-	InitIssueIndexer(true)
+	var startup sync.WaitGroup
+	InitIssueIndexer(&startup)
+	startup.Wait()
 
 	t.Run("search issues with keyword", searchIssueWithKeyword)
 	t.Run("search issues by index", searchIssueByIndex)

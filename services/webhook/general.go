@@ -6,6 +6,7 @@ package webhook
 import (
 	"fmt"
 	"html"
+	"maps"
 	"net/url"
 	"strings"
 
@@ -327,7 +328,13 @@ func getIssueCommentPayloadInfo(p *api.IssueCommentPayload, linkFormatter linkFo
 	return text, issueTitle, color
 }
 
-func getRepoRenamedFrom(p *api.RepositoryPayload) string {
+func getRepoChangedFrom(p *api.RepositoryPayload) string {
+	if p.Action == api.HookRepoTransferred {
+		if org := p.Changes.Owner.From.Organization; org != nil {
+			return org.UserName
+		}
+		return p.Changes.Owner.From.User.UserName
+	}
 	if p.Changes == nil || p.Changes.Name == nil {
 		return ""
 	}
@@ -460,4 +467,40 @@ func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
 		Created:             w.CreatedUnix.AsTime(),
 		BranchFilter:        w.BranchFilter,
 	}, nil
+}
+
+func ToHookDelivery(t *webhook_model.HookTask) *api.HookDelivery {
+	delivery := &api.HookDelivery{
+		UUID:        t.UUID,
+		EventType:   string(t.EventType),
+		IsDelivered: t.IsDelivered,
+		IsSucceeded: t.IsSucceed,
+	}
+	if t.IsDelivered {
+		delivery.Delivered = new(t.Delivered.AsTime())
+	}
+	if t.RequestInfo != nil {
+		delivery.Request = &api.HookDeliveryRequest{
+			URL:        t.RequestInfo.URL,
+			HTTPMethod: t.RequestInfo.HTTPMethod,
+			Headers:    maps.Clone(t.RequestInfo.Headers),
+			Body:       t.RequestInfo.Body,
+		}
+		for name := range delivery.Request.Headers {
+			if strings.EqualFold(name, "Authorization") {
+				delivery.Request.Headers[name] = "******"
+			}
+		}
+		if t.PayloadVersion == 1 && delivery.Request.Body == "" {
+			delivery.Request.Body = t.PayloadContent
+		}
+	}
+	if t.ResponseInfo != nil {
+		delivery.Response = &api.HookDeliveryResponse{
+			Status:  t.ResponseInfo.Status,
+			Headers: t.ResponseInfo.Headers,
+			Body:    t.ResponseInfo.Body,
+		}
+	}
+	return delivery
 }

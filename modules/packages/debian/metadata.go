@@ -17,7 +17,6 @@ import (
 	"gitea.dev/modules/validation"
 	"gitea.dev/modules/zstd"
 
-	"github.com/blakesmith/ar"
 	"github.com/ulikunitz/xz"
 )
 
@@ -38,6 +37,7 @@ const (
 )
 
 var GlobalVars = sync.OnceValue(func() (ret struct {
+	ErrInvalidArchive         error
 	ErrMissingControlFile     error
 	ErrUnsupportedCompression error
 	ErrInvalidName            error
@@ -49,6 +49,7 @@ var GlobalVars = sync.OnceValue(func() (ret struct {
 	symbolPattern  *regexp.Regexp
 },
 ) {
+	ret.ErrInvalidArchive = util.NewInvalidArgumentErrorf("package archive is invalid")
 	ret.ErrMissingControlFile = util.NewInvalidArgumentErrorf("control file is missing")
 	ret.ErrUnsupportedCompression = util.NewInvalidArgumentErrorf("unsupported compression algorithm")
 	ret.ErrInvalidName = util.NewInvalidArgumentErrorf("package name is invalid")
@@ -90,10 +91,13 @@ func IsValidDistributionOrComponent(s string) bool {
 // ParsePackage parses the Debian package file
 // https://manpages.debian.org/bullseye/dpkg-dev/deb.5.en.html
 func ParsePackage(r io.Reader) (*Package, error) {
-	arr := ar.NewReader(r)
+	arr, err := newArReader(r)
+	if err != nil {
+		return nil, err
+	}
 
 	for {
-		hd, err := arr.Next()
+		name, err := arr.next()
 		if err == io.EOF {
 			break
 		}
@@ -101,11 +105,9 @@ func ParsePackage(r io.Reader) (*Package, error) {
 			return nil, err
 		}
 
-		if strings.HasPrefix(hd.Name, controlTar) {
+		if strings.HasPrefix(name, controlTar) {
 			var inner io.Reader
-			// https://man7.org/linux/man-pages/man5/deb-split.5.html#FORMAT
-			// The file names might contain a trailing slash (since dpkg 1.15.6).
-			switch strings.TrimSuffix(hd.Name[len(controlTar):], "/") {
+			switch name[len(controlTar):] {
 			case "":
 				inner = arr
 			case ".gz":
@@ -142,7 +144,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 			for {
 				hd, err := tr.Next()
 				if err == io.EOF {
-					break
+					return nil, GlobalVars().ErrMissingControlFile
 				}
 				if err != nil {
 					return nil, err

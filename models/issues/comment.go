@@ -34,6 +34,7 @@ import (
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // ErrCommentNotExist represents a "CommentNotExist" kind of error.
@@ -398,12 +399,19 @@ func (c *Comment) LoadIssue(ctx context.Context) (err error) {
 	return err
 }
 
+var (
+	_ xorm.BeforeInsertProcessor = (*Comment)(nil)
+	_ xorm.BeforeUpdateProcessor = (*Comment)(nil)
+)
+
 // BeforeInsert will be invoked by XORM before inserting a record
 func (c *Comment) BeforeInsert() {
 	c.PatchQuoted = c.Patch
 	if !utf8.ValidString(c.Patch) {
 		c.PatchQuoted = strconv.Quote(c.Patch)
 	}
+
+	sanitizeDatabaseStringContent(&c.Content)
 }
 
 // BeforeUpdate will be invoked by XORM before updating a record
@@ -412,6 +420,8 @@ func (c *Comment) BeforeUpdate() {
 	if !utf8.ValidString(c.Patch) {
 		c.PatchQuoted = strconv.Quote(c.Patch)
 	}
+
+	sanitizeDatabaseStringContent(&c.Content)
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
@@ -1198,6 +1208,11 @@ func UpdateComment(ctx context.Context, c *Comment, contentVersion int, doer *us
 		if affected == 0 {
 			return ErrCommentAlreadyChanged
 		}
+		if c.Type == CommentTypeReview {
+			if _, err := db.GetEngine(ctx).ID(c.ReviewID).Cols("content").NoAutoTime().Update(&Review{Content: c.Content}); err != nil { // updated_unix picks a reviewer's latest review
+				return err
+			}
+		}
 		if err := c.LoadIssue(ctx); err != nil {
 			return err
 		}
@@ -1254,7 +1269,7 @@ func UpdateCommentsMigrationsByType(ctx context.Context, tp structs.GitServiceTy
 }
 
 // CreateAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
-func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User) (comment *Comment, err error) {
+func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User, content string) (comment *Comment, err error) {
 	if typ != CommentTypePRScheduledToAutoMerge && typ != CommentTypePRUnScheduledToAutoMerge {
 		return nil, fmt.Errorf("comment type %d cannot be used to create an auto merge comment", typ)
 	}
@@ -1271,6 +1286,8 @@ func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullReques
 		Doer:  doer,
 		Repo:  pr.BaseRepo,
 		Issue: pr.Issue,
+
+		Content: content,
 	})
 	return comment, err
 }

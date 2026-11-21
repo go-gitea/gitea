@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"slices"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	"gitea.dev/models/organization"
@@ -21,6 +22,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	pull_service "gitea.dev/services/pull"
@@ -54,8 +56,8 @@ func GetBranch(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Branch"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	branchName := ctx.PathParam("*")
 
@@ -115,12 +117,8 @@ func DeleteBranch(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.APIError(http.StatusNotFound, "Git Repository is empty.")
 		return
@@ -194,14 +192,8 @@ func CreateBranch(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Branch"
-	//   "403":
-	//     description: The branch is archived or a mirror.
-	//   "404":
-	//     description: The old branch does not exist.
-	//   "409":
-	//     description: The branch with the same name already exists.
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.APIError(http.StatusNotFound, "Git Repository is empty.")
@@ -321,11 +313,6 @@ func ListBranches(ctx *context.APIContext) {
 	keyword := ctx.FormString("q")
 
 	if !ctx.Repo.Repository.IsEmpty {
-		if ctx.Repo.GitRepo == nil {
-			ctx.APIErrorInternal(nil)
-			return
-		}
-
 		branchOpts := git_model.FindBranchOptions{
 			ListOptions:     listOptions,
 			RepoID:          ctx.Repo.Repository.ID,
@@ -418,14 +405,8 @@ func UpdateBranch(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/conflict"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opt := web.GetForm[*api.UpdateBranchRepoOption](ctx)
 
@@ -493,12 +474,8 @@ func RenameBranch(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opt := web.GetForm[*api.RenameBranchRepoOption](ctx)
 
@@ -565,8 +542,8 @@ func GetBranchProtection(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/BranchProtection"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	repo := ctx.Repo.Repository
 	bpName := ctx.PathParam("*")
@@ -674,14 +651,8 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/BranchProtection"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.CreateBranchProtectionOption](ctx)
 	repo := ctx.Repo.Repository
@@ -784,7 +755,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	if form.EnablePush && form.EnablePushWhitelist && form.PushWhitelistDeployKeys {
 		whitelistUsers = legacySetDeployKeyAllowlist(whitelistUsers, true)
 	}
-	if form.EnablePush && form.EnableForcePush && form.EnableForcePushAllowlist && form.ForcePushAllowlistDeployKeys {
+	if form.EnableForcePush && form.EnableForcePushAllowlist && form.ForcePushAllowlistDeployKeys {
 		forcePushAllowlistUsers = legacySetDeployKeyAllowlist(forcePushAllowlistUsers, true)
 	}
 
@@ -792,8 +763,8 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		ProtectedBranchConfig: git_model.ProtectedBranchConfig{
 			CanPush:                       form.EnablePush,
 			EnableWhitelist:               form.EnablePush && form.EnablePushWhitelist,
-			CanForcePush:                  form.EnablePush && form.EnableForcePush,
-			EnableForcePushAllowlist:      form.EnablePush && form.EnableForcePush && form.EnableForcePushAllowlist,
+			CanForcePush:                  form.EnableForcePush,
+			EnableForcePushAllowlist:      form.EnableForcePush && form.EnableForcePushAllowlist,
 			CanDelete:                     form.EnablePush && form.EnableDeletion,
 			EnableDeletionAllowlist:       form.EnablePush && form.EnableDeletion && form.EnableDeletionAllowlist,
 			EnableMergeWhitelist:          form.EnableMergeWhitelist,
@@ -836,6 +807,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
+	audit.Record(ctx, audit_model.RepositoryBranchProtectionAdd, ctx.Repo.Repository, "rule", protectBranch.RuleName)
 
 	// Reload from db to get all whitelists
 	bp, err := git_model.GetProtectedBranchRuleByName(ctx, ctx.Repo.Repository.ID, ruleName)
@@ -882,12 +854,8 @@ func EditBranchProtection(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/BranchProtection"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.EditBranchProtectionOption](ctx)
 	repo := ctx.Repo.Repository
 	bpName := ctx.PathParam("*")
@@ -904,46 +872,26 @@ func EditBranchProtection(ctx *context.APIContext) {
 	pushDeployKeys := protectBranch.HasDeployKeyPush()
 	forcePushDeployKeys := protectBranch.HasDeployKeyForcePush()
 	if form.EnablePush != nil {
-		if !*form.EnablePush {
-			protectBranch.CanPush = false
-			protectBranch.EnableWhitelist = false
-			pushDeployKeys = false
-		} else {
-			protectBranch.CanPush = true
-			if form.EnablePushWhitelist != nil {
-				if !*form.EnablePushWhitelist {
-					protectBranch.EnableWhitelist = false
-					pushDeployKeys = false
-				} else {
-					protectBranch.EnableWhitelist = true
-					if form.PushWhitelistDeployKeys != nil {
-						pushDeployKeys = *form.PushWhitelistDeployKeys
-					}
-				}
-			}
-		}
+		protectBranch.CanPush = *form.EnablePush
 	}
+	if form.EnablePushWhitelist != nil {
+		protectBranch.EnableWhitelist = *form.EnablePushWhitelist
+	}
+	if form.PushWhitelistDeployKeys != nil {
+		pushDeployKeys = *form.PushWhitelistDeployKeys
+	}
+	protectBranch.EnableWhitelist = protectBranch.CanPush && protectBranch.EnableWhitelist
 
 	if form.EnableForcePush != nil {
-		if !*form.EnableForcePush {
-			protectBranch.CanForcePush = false
-			protectBranch.EnableForcePushAllowlist = false
-			forcePushDeployKeys = false
-		} else {
-			protectBranch.CanForcePush = true
-			if form.EnableForcePushAllowlist != nil {
-				if !*form.EnableForcePushAllowlist {
-					protectBranch.EnableForcePushAllowlist = false
-					forcePushDeployKeys = false
-				} else {
-					protectBranch.EnableForcePushAllowlist = true
-					if form.ForcePushAllowlistDeployKeys != nil {
-						forcePushDeployKeys = *form.ForcePushAllowlistDeployKeys
-					}
-				}
-			}
-		}
+		protectBranch.CanForcePush = *form.EnableForcePush
 	}
+	if form.EnableForcePushAllowlist != nil {
+		protectBranch.EnableForcePushAllowlist = *form.EnableForcePushAllowlist
+	}
+	if form.ForcePushAllowlistDeployKeys != nil {
+		forcePushDeployKeys = *form.ForcePushAllowlistDeployKeys
+	}
+	protectBranch.EnableForcePushAllowlist = protectBranch.CanForcePush && protectBranch.EnableForcePushAllowlist
 
 	if form.EnableDeletion != nil {
 		protectBranch.CanDelete = *form.EnableDeletion
@@ -1038,8 +986,8 @@ func EditBranchProtection(ctx *context.APIContext) {
 	if form.ForcePushAllowlistUsernames != nil && form.ForcePushAllowlistDeployKeys == nil && slices.Contains(forcePushAllowlistUsers, user_model.DeployKeyUserID) {
 		forcePushDeployKeys = true
 	}
-	whitelistUsers = legacySetDeployKeyAllowlist(whitelistUsers, pushDeployKeys)
-	forcePushAllowlistUsers = legacySetDeployKeyAllowlist(forcePushAllowlistUsers, forcePushDeployKeys)
+	whitelistUsers = legacySetDeployKeyAllowlist(whitelistUsers, protectBranch.EnableWhitelist && pushDeployKeys)
+	forcePushAllowlistUsers = legacySetDeployKeyAllowlist(forcePushAllowlistUsers, protectBranch.EnableForcePushAllowlist && forcePushDeployKeys)
 
 	var whitelistTeams, forcePushAllowlistTeams, deletionAllowlistTeams, mergeWhitelistTeams, approvalsWhitelistTeams, bypassAllowlistTeams []int64
 	if repo.Owner.IsOrganization() {
@@ -1150,6 +1098,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
+	audit.Record(ctx, audit_model.RepositoryBranchProtectionUpdate, ctx.Repo.Repository, "rule", protectBranch.RuleName)
 
 	isPlainRule := !git_model.IsRuleNameSpecial(bpName)
 	var isBranchExist bool
@@ -1231,8 +1180,8 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	repo := ctx.Repo.Repository
 	bpName := ctx.PathParam("*")
@@ -1250,6 +1199,7 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	audit.Record(ctx, audit_model.RepositoryBranchProtectionRemove, ctx.Repo.Repository, "rule", bp.RuleName)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -1281,12 +1231,8 @@ func UpdateBranchProtectionPriories(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.UpdateBranchProtectionPriories](ctx)
 	repo := ctx.Repo.Repository
 
@@ -1322,11 +1268,7 @@ func MergeUpstream(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/MergeUpstreamResponse"
-	//   "400":
-	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
+	//   default:
 	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.MergeUpstreamRequest](ctx)
 	mergeStyle, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, form.Branch, form.FfOnly)

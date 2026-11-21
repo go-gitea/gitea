@@ -313,6 +313,7 @@ func clearIssueLabels(ctx context.Context, issue *Issue, doer *user_model.User) 
 			return fmt.Errorf("removeLabel: %w", err)
 		}
 	}
+	issue.Labels = nil
 
 	return nil
 }
@@ -435,6 +436,7 @@ func ReplaceIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer
 			}
 		}
 
+		issue.isLabelsLoaded = false
 		issue.Labels = nil
 		return issue.LoadLabels(ctx)
 	})

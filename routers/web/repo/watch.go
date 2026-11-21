@@ -33,14 +33,14 @@ func ActionWatch(ctx *context.Context) {
 
 	watch, err := repo_model.GetWatch(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetWatch", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["RepoWatch"] = watch
 
 	ctx.Data["Repository"], err = repo_model.GetRepositoryByName(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.Name)
 	if err != nil {
-		ctx.ServerError("GetRepositoryByName", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.HTML(http.StatusOK, tplWatch)
