@@ -5,15 +5,18 @@ package convert
 
 import (
 	"context"
+	"strings"
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/cachegroup"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -22,10 +25,30 @@ import (
 	"gitea.dev/services/gitdiff"
 )
 
-// ToAPIPullRequest assumes following fields have been assigned with valid values:
+func toAPIAutoMerge(ctx context.Context, autoMerge *pull_model.AutoMerge) *api.PullRequestAutoMerge {
+	commitTitle, commitMessage, _ := strings.Cut(autoMerge.Message, "\n\n")
+	return &api.PullRequestAutoMerge{
+		EnabledBy:     ToUser(ctx, autoMerge.Doer, nil),
+		MergeMethod:   string(autoMerge.MergeStyle),
+		CommitTitle:   commitTitle,
+		CommitMessage: commitMessage,
+	}
+}
+
+// ToAPIPullRequest hides a head repository the doer cannot see
+func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) *api.PullRequest {
+	return toAPIPullRequest(ctx, pr, doer, false)
+}
+
+// ToPayloadPullRequest keeps the head repository regardless of the doer, for webhook and Actions payloads
+func ToPayloadPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) *api.PullRequest {
+	return toAPIPullRequest(ctx, pr, doer, true)
+}
+
+// toAPIPullRequest assumes following fields have been assigned with valid values:
 // Required - Issue
 // Optional - Merger
-func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) *api.PullRequest {
+func toAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, isPayload bool) *api.PullRequest {
 	var (
 		baseBranch string
 		headBranch string
@@ -138,12 +161,12 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		apiPullRequest.Closed = pr.Issue.ClosedUnix.AsTimePtr()
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		log.Error("OpenRepository[%s]: %v", pr.BaseRepo.FullName(), err)
 		return nil
 	}
-	defer gitRepo.Close()
+	defer closer.Close()
 
 	exist, err := git_model.IsBranchExist(ctx, pr.BaseRepoID, pr.BaseBranch)
 	if err != nil {
@@ -181,20 +204,27 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			p.AccessMode = perm.AccessModeNone
 		}
 
-		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
-		apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
+		// a hidden head repository is read from the base repository's PR ref
+		headGitRepo := gitRepo
+		exist = false
+		if isPayload || pr.HeadRepoID == pr.BaseRepoID || p.HasAnyUnitAccessOrPublicAccess() {
+			apiPullRequest.Head.RepoID = pr.HeadRepo.ID
+			apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
 
-		headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo)
-		if err != nil {
-			log.Error("OpenRepository[%s]: %v", pr.HeadRepo.FullName(), err)
-			return nil
-		}
-		defer headGitRepo.Close()
+			if pr.HeadRepoID != pr.BaseRepoID { // not request-cached, a lingering cat-file would block deleting the fork on Windows
+				headGitRepo, err = git.OpenRepository(ctx, pr.HeadRepo)
+				if err != nil {
+					log.Error("OpenRepository[%s]: %v", pr.HeadRepo.FullName(), err)
+					return nil
+				}
+				defer headGitRepo.Close()
+			}
 
-		exist, err = git_model.IsBranchExist(ctx, pr.HeadRepoID, pr.HeadBranch)
-		if err != nil {
-			log.Error("GetBranch[%s]: %v", pr.HeadBranch, err)
-			return nil
+			exist, err = git_model.IsBranchExist(ctx, pr.HeadRepoID, pr.HeadBranch)
+			if err != nil {
+				log.Error("GetBranch[%s]: %v", pr.HeadBranch, err)
+				return nil
+			}
 		}
 
 		// Outer scope variables to be used in diff calculation
@@ -240,13 +270,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	}
 
 	if len(apiPullRequest.Head.Sha) == 0 && len(apiPullRequest.Head.Ref) != 0 {
-		baseGitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
-		if err != nil {
-			log.Error("OpenRepository[%s]: %v", pr.BaseRepo.FullName(), err)
-			return nil
-		}
-		defer baseGitRepo.Close()
-		refs, err := baseGitRepo.GetRefsFiltered(ctx, apiPullRequest.Head.Ref)
+		refs, err := gitRepo.GetRefsFiltered(ctx, apiPullRequest.Head.Ref)
 		if err != nil {
 			log.Error("GetRefsFiltered[%s]: %v", apiPullRequest.Head.Ref, err)
 			return nil
@@ -261,6 +285,12 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		apiPullRequest.Merged = pr.MergedUnix.AsTimePtr()
 		apiPullRequest.MergedCommitID = &pr.MergedCommitID
 		apiPullRequest.MergedBy = ToUser(ctx, pr.Merger, nil)
+	} else if !pr.Issue.IsClosed {
+		if scheduled, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pr.ID); err != nil {
+			log.Error("GetScheduledMergeByPullID[%d]: %v", pr.ID, err)
+		} else if scheduled {
+			apiPullRequest.AutoMerge = toAPIAutoMerge(ctx, autoMerge)
+		}
 	}
 
 	return apiPullRequest
@@ -322,11 +352,11 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 		return nil, err
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, baseRepo)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, baseRepo)
 	if err != nil {
 		return nil, err
 	}
-	defer gitRepo.Close()
+	defer closer.Close()
 
 	baseRepoPerm, err := access_model.GetDoerRepoPermission(ctx, baseRepo, doer)
 	if err != nil {
@@ -335,6 +365,14 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 	}
 
 	apiRepo := ToRepo(ctx, baseRepo, baseRepoPerm)
+
+	autoMerges, err := pull_model.GetScheduledMergeByPullIDs(ctx, container.FilterSlice(prs, func(pr *issues_model.PullRequest) (int64, bool) {
+		return pr.ID, !pr.Issue.IsClosed
+	}))
+	if err != nil {
+		return nil, err
+	}
+
 	baseBranchCache := make(map[string]*git_model.Branch)
 	apiPullRequests := make([]*api.PullRequest, 0, len(prs))
 	for _, pr := range prs {
@@ -419,7 +457,17 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 		}
 
 		// pull request head branch, both repository and branch could not exist
-		if pr.HeadRepo != nil {
+		if pr.HeadRepo != nil && pr.HeadRepoID != pr.BaseRepoID {
+			p, err := access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, doer)
+			if err != nil {
+				log.Error("GetDoerRepoPermission[%d]: %v", pr.HeadRepoID, err)
+				p.AccessMode = perm.AccessModeNone
+			}
+			if p.HasAnyUnitAccessOrPublicAccess() {
+				apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
+			}
+		}
+		if apiPullRequest.Head.Repository != nil {
 			apiPullRequest.Head.RepoID = pr.HeadRepo.ID
 			exist, err := git_model.IsBranchExist(ctx, pr.HeadRepo.ID, pr.HeadBranch)
 			if err != nil {
@@ -428,14 +476,6 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 			}
 			if exist {
 				apiPullRequest.Head.Ref = pr.HeadBranch
-			}
-			if pr.HeadRepoID != pr.BaseRepoID {
-				p, err := access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, doer)
-				if err != nil {
-					log.Error("GetDoerRepoPermission[%d]: %v", pr.HeadRepoID, err)
-					p.AccessMode = perm.AccessModeNone
-				}
-				apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
 			}
 		}
 		if apiPullRequest.Head.Ref == "" {
@@ -466,6 +506,8 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 			apiPullRequest.Merged = pr.MergedUnix.AsTimePtr()
 			apiPullRequest.MergedCommitID = &pr.MergedCommitID
 			apiPullRequest.MergedBy = ToUser(ctx, pr.Merger, nil)
+		} else if autoMerge := autoMerges[pr.ID]; autoMerge != nil {
+			apiPullRequest.AutoMerge = toAPIAutoMerge(ctx, autoMerge)
 		}
 
 		// Do not provide "ChangeFiles/Additions/Deletions" for the PR list, because the "diff" is quite slow

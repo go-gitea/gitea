@@ -8,74 +8,26 @@ import (
 	"testing"
 )
 
-func TestRedisUsernameOpt(t *testing.T) {
-	uri, _ := url.Parse("redis://redis:password@myredis/0")
-	opts := getRedisOptions(uri)
-
-	if opts.Username != "redis" {
-		t.Fail()
-	}
-}
-
-func TestRedisPasswordOpt(t *testing.T) {
-	uri, _ := url.Parse("redis://redis:password@myredis/0")
-	opts := getRedisOptions(uri)
-
-	if opts.Password != "password" {
-		t.Fail()
-	}
-}
-
-func TestSkipVerifyOpt(t *testing.T) {
-	uri, _ := url.Parse("rediss://myredis/0?skipverify=true")
-	tlsConfig := getRedisTLSOptions(uri)
-
-	if !tlsConfig.InsecureSkipVerify {
-		t.Fail()
-	}
-}
-
-func TestInsecureSkipVerifyOpt(t *testing.T) {
-	uri, _ := url.Parse("rediss://myredis/0?insecureskipverify=true")
-	tlsConfig := getRedisTLSOptions(uri)
-
-	if !tlsConfig.InsecureSkipVerify {
-		t.Fail()
-	}
-}
-
-func TestRedisSentinelUsernameOpt(t *testing.T) {
-	uri, _ := url.Parse("redis+sentinel://redis:password@myredis/0?sentinelusername=suser&sentinelpassword=spass")
-	opts := getRedisOptions(uri).Failover()
-
-	if opts.SentinelUsername != "suser" {
-		t.Fail()
-	}
-}
-
-func TestRedisSentinelPasswordOpt(t *testing.T) {
-	uri, _ := url.Parse("redis+sentinel://redis:password@myredis/0?sentinelusername=suser&sentinelpassword=spass")
-	opts := getRedisOptions(uri).Failover()
-
-	if opts.SentinelPassword != "spass" {
-		t.Fail()
-	}
-}
-
-func TestRedisDatabaseIndexTcp(t *testing.T) {
-	uri, _ := url.Parse("redis://redis:password@myredis/12")
-	opts := getRedisOptions(uri)
-
-	if opts.DB != 12 {
-		t.Fail()
-	}
-}
-
-func TestRedisDatabaseIndexUnix(t *testing.T) {
-	uri, _ := url.Parse("redis+socket:///var/run/redis.sock?database=12")
-	opts := getRedisOptions(uri)
-
-	if opts.DB != 12 {
-		t.Fail()
+func TestRedisOptions(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		connection string
+		valid      func(*url.URL) bool
+	}{
+		{"username", "redis://redis:password@myredis/0", func(uri *url.URL) bool { return getRedisOptions(uri).Username == "redis" }},
+		{"password", "redis://redis:password@myredis/0", func(uri *url.URL) bool { return getRedisOptions(uri).Password == "password" }},
+		{"skipverify", "rediss://myredis/0?skipverify=true", func(uri *url.URL) bool { return getRedisTLSOptions(uri).InsecureSkipVerify }},
+		{"insecureskipverify", "rediss://myredis/0?insecureskipverify=true", func(uri *url.URL) bool { return getRedisTLSOptions(uri).InsecureSkipVerify }},
+		{"sentinel username", "redis+sentinel://redis:password@myredis/0?sentinelusername=suser&sentinelpassword=spass", func(uri *url.URL) bool { return getRedisOptions(uri).Failover().SentinelUsername == "suser" }},
+		{"sentinel password", "redis+sentinel://redis:password@myredis/0?sentinelusername=suser&sentinelpassword=spass", func(uri *url.URL) bool { return getRedisOptions(uri).Failover().SentinelPassword == "spass" }},
+		{"tcp database", "redis://redis:password@myredis/12", func(uri *url.URL) bool { return getRedisOptions(uri).DB == 12 }},
+		{"unix database", "redis+socket:///var/run/redis.sock?database=12", func(uri *url.URL) bool { return getRedisOptions(uri).DB == 12 }},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			uri, _ := url.Parse(test.connection)
+			if !test.valid(uri) {
+				t.Fail()
+			}
+		})
 	}
 }

@@ -5,11 +5,13 @@ package convert
 
 import (
 	"context"
+	"slices"
 
 	"gitea.dev/models/packages"
 	access_model "gitea.dev/models/perm/access"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
+	packages_service "gitea.dev/services/packages"
 )
 
 // ToPackage convert a packages.PackageDescriptor to api.Package
@@ -40,7 +42,14 @@ func ToPackage(ctx context.Context, pd *packages.PackageDescriptor, doer *user_m
 }
 
 // ToPackageFile converts packages.PackageFileDescriptor to api.PackageFile
-func ToPackageFile(pfd *packages.PackageFileDescriptor) *api.PackageFile {
+func ToPackageFile(packageType packages.Type, pfd *packages.PackageFileDescriptor) *api.PackageFile {
+	properties := make(map[string]string)
+	publicPropertyNames := packages_service.GetSpecManager().Get(packageType).PublicPropertyNames()
+	for _, pp := range pfd.Properties {
+		if slices.Contains(publicPropertyNames, pp.Name) {
+			properties[pp.Name] = pp.Value
+		}
+	}
 	return &api.PackageFile{
 		ID:         pfd.File.ID,
 		Size:       pfd.Blob.Size,
@@ -49,5 +58,6 @@ func ToPackageFile(pfd *packages.PackageFileDescriptor) *api.PackageFile {
 		HashSHA1:   pfd.Blob.HashSHA1,
 		HashSHA256: pfd.Blob.HashSHA256,
 		HashSHA512: pfd.Blob.HashSHA512,
+		Properties: properties,
 	}
 }

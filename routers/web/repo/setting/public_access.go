@@ -125,6 +125,7 @@ func repoUnitPublicAccesses(ctx *context.Context) []*repoUnitPublicAccess {
 }
 
 func PublicAccess(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.settings.public_access")
 	ctx.Data["PageIsSettingsPublicAccess"] = true
 	ctx.Data["RepoUnitPublicAccesses"] = repoUnitPublicAccesses(ctx)
 	ctx.Data["GlobalForcePrivate"] = setting.Repository.ForcePrivate
@@ -146,7 +147,7 @@ func PublicAccessPost(ctx *context.Context) {
 			EveryoneAccessMode:  parsed.EveryoneAccessMode,
 		})
 		if err != nil {
-			ctx.ServerError("UpdateRepoUnitPublicAccess", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}

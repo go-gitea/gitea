@@ -98,41 +98,40 @@ func TestRepoFile(t *testing.T) {
 </p>
 `), test.NormalizeHTMLSpaces(rendered))
 	})
-}
 
-func TestRepoFileOrgMode(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	t.Run("OrgMode", func(t *testing.T) {
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	t.Run("Links", func(t *testing.T) {
-		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{
-			CurrentRefSubURL: "/commit/1234",
-			CurrentTreePath:  "my dir",
-		}).WithRelativePath("my dir/a.org")
+		t.Run("Links", func(t *testing.T) {
+			rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{
+				CurrentRefSubURL: "/commit/1234",
+				CurrentTreePath:  "my dir",
+			}).WithRelativePath("my dir/a.org")
 
-		rendered, err := testRenderString(rctx, `
+			rendered, err := testRenderString(rctx, `
 [[https://google.com/]]
 [[ImageLink.svg][The Image Desc]]
 `)
-		assert.NoError(t, err)
-		assert.Equal(t, `<p>
+			assert.NoError(t, err)
+			assert.Equal(t, `<p>
 <a href="https://google.com/" rel="nofollow">https://google.com/</a>
 <a href="/user2/repo1/src/commit/1234/my%20dir/ImageLink.svg" rel="nofollow">The Image Desc</a></p>
 `, rendered)
-	})
+		})
 
-	t.Run("CodeHighlight", func(t *testing.T) {
-		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{}).WithRelativePath("my-dir/a.org")
+		t.Run("CodeHighlight", func(t *testing.T) {
+			rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{}).WithRelativePath("my-dir/a.org")
 
-		rendered, err := testRenderString(rctx, `
+			rendered, err := testRenderString(rctx, `
 #+begin_src c
 int a = 1;
 #+end_src
 `)
-		assert.NoError(t, err)
-		assert.Equal(t, `<div>
+			assert.NoError(t, err)
+			assert.Equal(t, `<div>
 <pre class="code-block"><code class="chroma language-c"><span class="kt">int</span> <span class="n">a</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span></code></pre>
 </div>
 `, rendered)
+		})
 	})
 }

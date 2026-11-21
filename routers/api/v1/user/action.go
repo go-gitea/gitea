@@ -44,10 +44,8 @@ func CreateOrUpdateSecret(ctx *context.APIContext) {
 	//     description: response when creating a secret
 	//   "204":
 	//     description: response when updating a secret
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	opt := web.GetForm[*api.CreateOrUpdateSecretOption](ctx)
 
@@ -88,10 +86,8 @@ func DeleteSecret(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: delete one secret of the user
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	s, err := secret_service.DeleteSecretByName(ctx, actions_model.BelongingScopeOwner(ctx.Doer.ID), ctx.PathParam("secretname"))
 	if err != nil {
@@ -126,10 +122,8 @@ func CreateVariable(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     description: successfully created the user-level variable
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "409":
-	//     description: variable name already exists.
 
 	opt := web.GetForm[*api.CreateVariableOption](ctx)
 
@@ -181,10 +175,8 @@ func UpdateVariable(ctx *context.APIContext) {
 	//     description: response when updating a variable
 	//   "204":
 	//     description: response when updating a variable
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	opt := web.GetForm[*api.UpdateVariableOption](ctx)
 
@@ -231,10 +223,8 @@ func DeleteVariable(ctx *context.APIContext) {
 	//     description: response when deleting a variable
 	//   "204":
 	//     description: response when deleting a variable
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	if err := actions_service.DeleteVariableByName(ctx, actions_model.BelongingScopeOwner(ctx.Doer.ID), ctx.PathParam("variablename")); err != nil {
 		ctx.APIErrorAuto(err)
@@ -260,10 +250,8 @@ func GetVariable(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//			"$ref": "#/responses/ActionVariable"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
 		BelongingScope: actions_model.BelongingScopeOwner(ctx.Doer.ID),
@@ -304,10 +292,8 @@ func ListVariables(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//			"$ref": "#/responses/VariableList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 	listOptions := utils.GetListOptions(ctx)
 	vars, count, err := db.FindAndCount[actions_model.ActionVariable](ctx, &actions_model.FindVariablesOpts{
 		BelongingScope: actions_model.BelongingScopeOwner(ctx.Doer.ID),
@@ -378,10 +364,8 @@ func ListWorkflowRuns(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowRunsList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 	shared.ListRuns(ctx, ctx.Doer.ID, 0, "")
 }
 
@@ -417,12 +401,8 @@ func ListWorkflowJobs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowJobsList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	shared.ListJobs(ctx, ctx.Doer.ID, 0, 0, nil)
 }

@@ -1,0 +1,13 @@
+Cache-Control: no-cache, no-transform
+Content-Length: 1414
+Content-Security-Policy-Report-Only: script-src http://localhost:7990/bitbucket/s/ 'nonce-e6rCQzX1Ipt1fa5qEaxaFaNwY1Y='; default-src 'self'; base-uri 'self'; img-src data: *; style-src 'self' 'unsafe-inline'; frame-src 'self' https://www.youtube-nocookie.com/embed/ https://www.loom.com/embed/ https://player.vimeo.com/video/; connect-src 'self'; report-uri /bitbucket/rest/csp/latest/csp-report;
+Content-Type: application/json;charset=UTF-8
+Vary: X-AUSERNAME
+Vary: X-AUSERID
+Vary: Cookie
+X-Arequestid: @8H2NK9x1265x331x0
+X-Auserid: 2
+X-Ausername: admin
+X-Content-Type-Options: nosniff
+
+{"size":3,"limit":100,"isLastPage":true,"values":[{"id":56,"createdDate":1792553814846,"user":{"name":"admin","emailAddress":"admin@example.com","active":true,"displayName":"Administrator","id":2,"slug":"admin","type":"NORMAL","links":{"self":[{"href":"http://localhost:7990/bitbucket/users/admin"}]}},"action":"COMMENTED","commentAction":"ADDED","comment":{"properties":{"repositoryId":2},"id":7,"version":0,"text":"declining this","author":{"name":"admin","emailAddress":"admin@example.com","active":true,"displayName":"Administrator","id":2,"slug":"admin","type":"NORMAL","links":{"self":[{"href":"http://localhost:7990/bitbucket/users/admin"}]}},"createdDate":1792553814843,"updatedDate":1792553814843,"comments":[],"threadResolved":false,"severity":"NORMAL","state":"OPEN","permittedOperations":{"editable":true,"transitionable":true,"deletable":true}}},{"id":55,"createdDate":1792553814750,"user":{"name":"admin","emailAddress":"admin@example.com","active":true,"displayName":"Administrator","id":2,"slug":"admin","type":"NORMAL","links":{"self":[{"href":"http://localhost:7990/bitbucket/users/admin"}]}},"action":"DECLINED"},{"id":52,"createdDate":1792553814412,"user":{"name":"admin","emailAddress":"admin@example.com","active":true,"displayName":"Administrator","id":2,"slug":"admin","type":"NORMAL","links":{"self":[{"href":"http://localhost:7990/bitbucket/users/admin"}]}},"action":"OPENED"}],"start":0}

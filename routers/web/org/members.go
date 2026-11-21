@@ -42,7 +42,7 @@ func Members(ctx *context.Context) {
 	if ctx.Doer != nil {
 		isMember, err := ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.ServerError("IsOrgMember", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		opts.IsDoerMember = isMember
@@ -51,12 +51,12 @@ func Members(ctx *context.Context) {
 
 	total, err := organization.CountOrgMembers(ctx, opts)
 	if err != nil {
-		ctx.ServerError("CountOrgMembers", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -66,7 +66,7 @@ func Members(ctx *context.Context) {
 	opts.ListOptions.PageSize = pageSize
 	members, membersIsPublic, err := organization.FindOrgMembers(ctx, opts)
 	if err != nil {
-		ctx.ServerError("GetMembers", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Page"] = pager
@@ -85,7 +85,7 @@ func MembersAction(ctx *context.Context) {
 		ctx.HTTPError(http.StatusNotFound)
 		return
 	} else if err != nil {
-		ctx.ServerError("GetUserByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

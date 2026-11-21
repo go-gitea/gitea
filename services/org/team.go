@@ -38,6 +38,13 @@ func recordTeamMemberAudit(ctx context.Context, action audit_model.Action, team 
 	recordTeamAudit(ctx, action, team, "team", team.Name, "member", member.Name)
 }
 
+func teamWriteError(ctx context.Context, team *organization.Team, err error) error {
+	if existing, _ := organization.GetTeam(ctx, team.OrgID, team.LowerName); existing != nil && existing.ID != team.ID {
+		return organization.ErrTeamAlreadyExist{OrgID: team.OrgID, Name: team.LowerName}
+	}
+	return err
+}
+
 // NewTeam creates a record of new team.
 // It's caller's responsibility to assign organization ID.
 func NewTeam(ctx context.Context, t *organization.Team) (err error) {
@@ -58,17 +65,6 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 	}
 
 	t.LowerName = strings.ToLower(t.Name)
-	has, err = db.Exist[organization.Team](ctx, builder.Eq{
-		"org_id":     t.OrgID,
-		"lower_name": t.LowerName,
-	})
-	if err != nil {
-		return err
-	}
-	if has {
-		return organization.ErrTeamAlreadyExist{OrgID: t.OrgID, Name: t.LowerName}
-	}
-
 	if err = db.WithTx(ctx, func(ctx context.Context) error {
 		if err = db.Insert(ctx, t); err != nil {
 			return err
@@ -96,7 +92,7 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 		_, err = db.Exec(ctx, "UPDATE `user` SET num_teams=num_teams+1 WHERE id = ?", t.OrgID)
 		return err
 	}); err != nil {
-		return err
+		return teamWriteError(ctx, t, err)
 	}
 
 	recordTeamAudit(ctx, audit_model.OrganizationTeamAdd, t, "team", t.Name)
@@ -110,23 +106,10 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 		return util.NewInvalidArgumentErrorf("empty team name")
 	}
 
-	if len(t.Description) > 255 {
-		t.Description = t.Description[:255]
-	}
+	t.Description = util.TruncateRunes(t.Description, 255)
 
 	if err = db.WithTx(ctx, func(ctx context.Context) error {
 		t.LowerName = strings.ToLower(t.Name)
-		has, err := db.Exist[organization.Team](ctx, builder.Eq{
-			"org_id":     t.OrgID,
-			"lower_name": t.LowerName,
-		}.And(builder.Neq{"id": t.ID}),
-		)
-		if err != nil {
-			return err
-		} else if has {
-			return organization.ErrTeamAlreadyExist{OrgID: t.OrgID, Name: t.LowerName}
-		}
-
 		sess := db.GetEngine(ctx)
 		if _, err = sess.ID(t.ID).Cols("name", "lower_name", "description",
 			"can_create_org_repo", "authorize", "includes_all_repositories", "visibility").Update(t); err != nil {
@@ -175,7 +158,7 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 
 		return nil
 	}); err != nil {
-		return err
+		return teamWriteError(ctx, t, err)
 	}
 
 	recordTeamAudit(ctx, audit_model.OrganizationTeamUpdate, t, "team", t.Name)
@@ -345,7 +328,7 @@ func removeTeamMember(ctx context.Context, team *organization.Team, user *user_m
 
 	// Delete access to team repositories. If any user or repo is missing, we can continue.
 	for _, repo := range repos {
-		if err := access_model.RecalculateUserAccess(ctx, repo, user.ID); err != nil && !errors.Is(err, util.ErrNotExist) {
+		if err := access_model.RecalculateUserAccess(ctx, repo, user); err != nil && !errors.Is(err, util.ErrNotExist) {
 			return err
 		}
 

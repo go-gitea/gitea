@@ -8,10 +8,13 @@ import (
 	"strings"
 	"testing"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -138,5 +141,17 @@ func TestAdminUserCreate(t *testing.T) {
 		assert.NoError(t, createUser("u-FullNameEmpty", "--random-password", "--fullname", ""))
 		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "u-fullnameempty"})
 		assert.Empty(t, u.FullName)
+	})
+
+	t.Run("AuditEvents", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
+		reset()
+		require.NoError(t, db.TruncateBeans(t.Context(), &audit_model.Event{}))
+
+		require.NoError(t, createUser("u", "--random-password", "--access-token"))
+		require.NoError(t, newUserGenerateAccessTokenCommand().Run(t.Context(), []string{"generate-access-token", "--username", "u", "--token-name", "cli-token", "--scopes", "read:user", "--raw"}))
+
+		unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.UserCreate, ScopeName: "u"})
+		unittest.AssertCount(t, &audit_model.Event{Action: audit_model.UserAccessTokenAdd, ScopeName: "u"}, 2)
 	})
 }

@@ -1,6 +1,7 @@
 import {svg} from '../svg.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
+import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
 
 function changeHash(hash: string) {
   if (window.history.pushState) {
@@ -16,7 +17,7 @@ function selectRange(range: string): Element | null {
   const elLineNums = document.querySelectorAll(`.code-view td.lines-num span[data-line-number]`);
 
   const refInNewIssue = document.querySelector('a.ref-in-new-issue');
-  const copyPermalink = document.querySelector('a.copy-line-permalink');
+  const copyPermalink = document.querySelector('button.copy-line-permalink');
   const viewGitBlame = document.querySelector('a.view_git_blame');
 
   const updateIssueHref = function (anchor: string) {
@@ -142,6 +143,5 @@ export function initRepoCodeView() {
       showLineButton();
     }
   };
-  onHashChange();
-  window.addEventListener('hashchange', onHashChange);
+  registerAsyncHashChangeListener(onHashChange);
 }
