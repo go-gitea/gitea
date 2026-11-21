@@ -14370,6 +14370,78 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/maintenance/sync-branches": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Synchronize the branches of a repository with its git data",
+        "operationId": "repoMaintenanceSyncBranches",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/maintenance/sync-tags": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Synchronize the tags of a repository with its git data",
+        "operationId": "repoMaintenanceSyncTags",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/media/{filepath}": {
       "get": {
         "produces": [

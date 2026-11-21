@@ -1,0 +1,121 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package integration
+
+import (
+	"net/http"
+	"testing"
+
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestAPIRepoMaintenance(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	ownerToken := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+	siteAdminToken := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteRepository)
+
+	t.Run("SyncBranches", func(t *testing.T) {
+		// a repo owner can sync
+		_, err := db.GetEngine(t.Context()).Where("repo_id = ? AND name = ?", 1, "branch2").Delete(&git_model.Branch{})
+		require.NoError(t, err)
+		unittest.AssertNotExistsBean(t, &git_model.Branch{RepoID: 1, Name: "branch2"})
+
+		req := NewRequest(t, "POST", "/api/v1/repos/user2/repo1/maintenance/sync-branches").AddTokenAuth(ownerToken)
+		MakeRequest(t, req, http.StatusNoContent)
+		unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: 1, Name: "branch2"})
+
+		// and so can a site admin
+		_, err = db.GetEngine(t.Context()).Where("repo_id = ? AND name = ?", 1, "branch2").Delete(&git_model.Branch{})
+		require.NoError(t, err)
+		req = NewRequest(t, "POST", "/api/v1/repos/user2/repo1/maintenance/sync-branches").AddTokenAuth(siteAdminToken)
+		MakeRequest(t, req, http.StatusNoContent)
+		unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: 1, Name: "branch2"})
+	})
+
+	t.Run("SyncTags", func(t *testing.T) {
+		unittest.AssertExistsAndLoadBean(t, &repo_model.Release{RepoID: 1, TagName: "delete-tag"})
+
+		req := NewRequest(t, "POST", "/api/v1/repos/user2/repo1/maintenance/sync-tags").AddTokenAuth(ownerToken)
+		MakeRequest(t, req, http.StatusNoContent)
+		unittest.AssertNotExistsBean(t, &repo_model.Release{RepoID: 1, TagName: "delete-tag"})
+		unittest.AssertExistsAndLoadBean(t, &repo_model.Release{RepoID: 1, TagName: "v1.1"}) // a real release without a git tag is kept
+	})
+
+	t.Run("EmptyRepo", func(t *testing.T) {
+		userToken := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+		req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{Name: "maintenance-empty"}).AddTokenAuth(userToken)
+		MakeRequest(t, req, http.StatusCreated)
+
+		for _, action := range []string{"sync-branches", "sync-tags"} {
+			req = NewRequest(t, "POST", "/api/v1/repos/user2/maintenance-empty/maintenance/"+action).AddTokenAuth(ownerToken)
+			MakeRequest(t, req, http.StatusNoContent)
+		}
+	})
+
+	for _, action := range []string{"sync-branches", "sync-tags"} {
+		t.Run("Errors/"+action, func(t *testing.T) {
+			req := NewRequest(t, "POST", "/api/v1/repos/user2/no-such-repo/maintenance/"+action).AddTokenAuth(ownerToken)
+			MakeRequest(t, req, http.StatusNotFound)
+
+			// not authenticated
+			req = NewRequest(t, "POST", "/api/v1/repos/user2/repo1/maintenance/"+action)
+			MakeRequest(t, req, http.StatusUnauthorized)
+
+			// authenticated but neither repo admin nor site admin
+			otherToken := getUserToken(t, "user4", auth_model.AccessTokenScopeWriteRepository)
+			req = NewRequest(t, "POST", "/api/v1/repos/user2/repo1/maintenance/"+action).AddTokenAuth(otherToken)
+			MakeRequest(t, req, http.StatusForbidden)
+
+			// token without repository write scope
+			readToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
+			req = NewRequest(t, "POST", "/api/v1/repos/user2/repo1/maintenance/"+action).AddTokenAuth(readToken)
+			MakeRequest(t, req, http.StatusForbidden)
+		})
+	}
+}
+
+func TestRepoSettingsMaintenance(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
+	t.Run("SyncBranches", func(t *testing.T) {
+		_, err := db.GetEngine(t.Context()).Where("repo_id = ? AND name = ?", 1, "branch2").Delete(&git_model.Branch{})
+		require.NoError(t, err)
+
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings", map[string]string{"action": "maintenance-sync-branches"})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+		unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: 1, Name: "branch2"})
+	})
+
+	t.Run("SyncTags", func(t *testing.T) {
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings", map[string]string{"action": "maintenance-sync-tags"})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+		unittest.AssertNotExistsBean(t, &repo_model.Release{RepoID: 1, TagName: "delete-tag"})
+	})
+
+	t.Run("PageShowsMaintenance", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/user2/repo1/settings")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		for _, action := range []string{"maintenance-sync-branches", "maintenance-sync-tags"} {
+			assert.Contains(t, resp.Body.String(), `value="`+action+`"`)
+		}
+	})
+
+	t.Run("NonAdminForbidden", func(t *testing.T) {
+		other := loginUser(t, "user4")
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings", map[string]string{"action": "maintenance-gc"})
+		other.MakeRequest(t, req, http.StatusNotFound)
+	})
+}
