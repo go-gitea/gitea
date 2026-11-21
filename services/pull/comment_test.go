@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
+func TestCreatePushPullComment(t *testing.T) {
 	ctx := t.Context()
 	require.NoError(t, unittest.PrepareTestDatabase())
 	pusher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
@@ -119,5 +119,31 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 		require.NoError(t, err)
 		// 2 comments should exist now: one regular push comment and one force-push comment.
 		assertCommitCommentCount(t, 2, 1)
+	})
+
+	t.Run("normal-push-skips-commented-commits", func(t *testing.T) {
+		require.NoError(t, db.TruncateBeans(t.Context(), &issues_model.Comment{}))
+		baseCommitID, err := gitRepo.GetBranchCommitID(ctx, pr.BaseBranch)
+		require.NoError(t, err)
+		headCommitID, err := gitRepo.GetBranchCommitID(ctx, pr.HeadBranch)
+		require.NoError(t, err)
+		data, _, err := preparePushPullCommentPushActionContent(ctx, pr, baseCommitID, headCommitID, false)
+		require.NoError(t, err)
+		require.Len(t, data.CommitIDs, 2)
+		insertCommitComment(t, issues_model.PushActionContent{IsForcePush: true, CommitIDs: []string{baseCommitID, headCommitID}})
+		insertCommitComment(t, issues_model.PushActionContent{CommitIDs: data.CommitIDs[:1]})
+		insertCommitComment(t, issues_model.PushActionContent{CommitIDs: []string{baseCommitID}})
+
+		comment, _, err := CreatePushPullComment(t.Context(), pusher, pr, baseCommitID, headCommitID, false)
+		require.NoError(t, err)
+		require.NotNil(t, comment)
+		createdData, err := comment.GetPushActionContent()
+		require.NoError(t, err)
+		assert.Equal(t, data.CommitIDs[1:], createdData.CommitIDs)
+
+		_, created, err := CreatePushPullComment(t.Context(), pusher, pr, baseCommitID, headCommitID, false)
+		require.NoError(t, err)
+		assert.False(t, created)
+		assertCommitCommentCount(t, 4, 1)
 	})
 }
