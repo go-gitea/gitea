@@ -1447,25 +1447,19 @@ func highlightCodeLines(name, lang string, sections []*DiffSection, isLeft bool,
 		content = strings.ReplaceAll(content, "\r", "␍")
 	}
 	lexer := highlight.DetectChromaLexerByFileName(name, lang)
-	highlightedNewContent := highlight.RenderCodeByLexer(lexer, content)
-	unsafeLines := highlight.UnsafeSplitHighlightedLines(highlightedNewContent)
-	lines := make(map[int]template.HTML, len(unsafeLines))
-	// only save the highlighted lines we need, but not the whole file, to save memory
+	var lineNumbers []int
 	for _, sec := range sections {
 		for _, ln := range sec.Lines {
 			lineIdx := ln.LeftIdx
 			if !isLeft {
 				lineIdx = ln.RightIdx
 			}
-			if lineIdx >= 1 {
-				idx := lineIdx - 1
-				if idx < len(unsafeLines) && !ln.IsTruncated {
-					lines[idx] = template.HTML(util.UnsafeBytesToString(unsafeLines[idx]))
-				}
+			if lineIdx >= 1 && !ln.IsTruncated {
+				lineNumbers = append(lineNumbers, lineIdx-1)
 			}
 		}
 	}
-	return lines
+	return highlight.RenderCodeLinesByLexer(lexer, content, lineNumbers)
 }
 
 type DiffShortStat struct {
