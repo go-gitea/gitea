@@ -28,6 +28,7 @@ const sizeLimit = 1024 * 1024
 type globalVarsType struct {
 	highlightMapping map[string]string
 	githubStyles     *chroma.Style
+	htmlFormatter    *chromahtml.Formatter // shared because it caches the CSS built from the style
 }
 
 var (
@@ -43,6 +44,10 @@ func globalVars() *globalVarsType {
 		globalVarsPtr = &globalVarsType{}
 		globalVarsPtr.githubStyles = styles.Get("github")
 		globalVarsPtr.highlightMapping = setting.GetHighlightMapping()
+		globalVarsPtr.htmlFormatter = chromahtml.New(chromahtml.WithClasses(true),
+			chromahtml.WithLineNumbers(false),
+			chromahtml.PreventSurroundingPre(true),
+		)
 	}
 	return globalVarsPtr
 }
@@ -113,11 +118,6 @@ func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
 	if lexer == lexers.Fallback {
 		return htmlEscape(code) // chroma is 3x slower for plain text
 	}
-	formatter := chromahtml.New(chromahtml.WithClasses(true),
-		chromahtml.WithLineNumbers(false),
-		chromahtml.PreventSurroundingPre(true),
-	)
-
 	iterator, err := lexer.Tokenise(nil, code)
 	if err != nil {
 		log.Error("Can't tokenize code: %v", err)
@@ -125,8 +125,9 @@ func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
 	}
 
 	htmlBuf := &bytes.Buffer{}
+	vars := globalVars()
 	// style not used for live site but need to pass something
-	err = formatter.Format(htmlBuf, globalVars().githubStyles, iterator)
+	err = vars.htmlFormatter.Format(htmlBuf, vars.githubStyles, iterator)
 	if err != nil {
 		log.Error("Can't format code: %v", err)
 		return htmlEscape(code)

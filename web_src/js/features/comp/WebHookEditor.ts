@@ -1,5 +1,4 @@
-import {registerGlobalEventFunc, registerGlobalInitFunc} from '../../modules/observer.ts';
-import {POST} from '../../modules/fetch.ts';
+import {registerGlobalInitFunc} from '../../modules/observer.ts';
 import {queryElems, toggleElem} from '../../utils/dom.ts';
 
 function initCompWebHookEditorForm(el: HTMLElement) {
@@ -32,15 +31,6 @@ function initCompWebHookEditorForm(el: HTMLElement) {
   }
 }
 
-function initCompWebHookEditorHistory() {
-  registerGlobalEventFunc('click', 'onWebhookTestDeliveryClick', async (el) => {
-    el.classList.add('is-loading', 'disabled');
-    await POST(el.getAttribute('data-link')!);
-    setTimeout(() => window.location.reload(), 5000);
-  });
-}
-
 export function initCompWebHookEditor() {
   registerGlobalInitFunc('initCompWebHookEditorForm', initCompWebHookEditorForm);
-  initCompWebHookEditorHistory();
 }

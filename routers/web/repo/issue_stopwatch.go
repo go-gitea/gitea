@@ -17,12 +17,12 @@ func IssueStartStopwatch(c *context.Context) {
 	}
 
 	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
-		c.NotFound(nil)
+		c.NotFound()
 		return
 	}
 
 	if ok, err := issues_model.CreateIssueStopwatch(c, c.Doer, issue); err != nil {
-		c.ServerError("CreateIssueStopwatch", err)
+		c.ServerErrorAuto(err)
 		return
 	} else if !ok {
 		c.Flash.Warning(c.Tr("repo.issues.stopwatch_already_created"))
@@ -41,7 +41,7 @@ func IssueStopStopwatch(c *context.Context) {
 	}
 
 	if ok, err := issues_model.FinishIssueStopwatch(c, c.Doer, issue); err != nil {
-		c.ServerError("FinishIssueStopwatch", err)
+		c.ServerErrorAuto(err)
 		return
 	} else if !ok {
 		c.Flash.Warning(c.Tr("repo.issues.stopwatch_already_stopped"))
@@ -59,7 +59,7 @@ func CancelStopwatch(c *context.Context) {
 	}
 
 	if _, err := issues_model.CancelStopwatch(c, c.Doer, issue); err != nil {
-		c.ServerError("CancelStopwatch", err)
+		c.ServerErrorAuto(err)
 		return
 	}
 

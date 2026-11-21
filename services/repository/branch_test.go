@@ -4,6 +4,7 @@
 package repository
 
 import (
+	"context"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -59,7 +60,7 @@ func TestSyncBranchesToDBUsesGitState(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, git_model.MarkBranchAsDeleted(ctx, repo.ID, "develop", 1))
 
-	require.NoError(t, SyncBranchesToDB(ctx, repo.ID, 2, gitRepo, []string{"master", "foo", "develop", "pr-to-update"}))
+	require.NoError(t, SyncBranchesToDB(ctx, repo, 2, gitRepo, []string{"master", "foo", "develop", "pr-to-update"}))
 
 	loadBranch := func(name string) *git_model.Branch {
 		return unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo.ID, Name: name})
@@ -68,4 +69,52 @@ func TestSyncBranchesToDBUsesGitState(t *testing.T) {
 	assert.True(t, loadBranch("foo").IsDeleted)
 	assert.False(t, loadBranch("develop").IsDeleted)
 	assert.Equal(t, "62fb502a7172d4453f0322a2cc85bddffa57f07a", loadBranch("pr-to-update").CommitID)
+}
+
+func TestSyncBranchesToDBDefaultBranch(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	for _, tc := range []struct {
+		name      string
+		dbEmpty   bool
+		dbDefault string
+		branches  []string
+		expected  string
+	}{
+		{name: "KeepDefaultBranch", dbEmpty: true, dbDefault: "main", branches: []string{"dev", "main"}, expected: "main"},
+		{name: "GuessMaster", dbEmpty: true, dbDefault: "custom", branches: []string{"branch-0", "master"}, expected: "master"},
+		{name: "RepairWithFirstBranchByName", dbDefault: "gone", branches: []string{"zeta", "alpha"}, expected: "alpha"},
+		{name: "KeepDefaultOfConcurrentInit", dbDefault: "dev", branches: []string{"dev", "main"}, expected: "dev"},
+		{name: "StayEmptyWithoutBranches", dbEmpty: true, dbDefault: "main", expected: "main"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			repo, err := CreateRepositoryDirectly(t.Context(), user2, user2, CreateRepoOptions{Name: "default-branch-test", DefaultBranch: "main"}, true)
+			require.NoError(t, err)
+			t.Cleanup(func() {
+				assert.NoError(t, DeleteRepositoryDirectly(context.WithoutCancel(t.Context()), repo.ID))
+			})
+			require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), &repo_model.Repository{ID: repo.ID, IsEmpty: tc.dbEmpty, DefaultBranch: tc.dbDefault}, "is_empty", "default_branch"))
+			require.NoError(t, git.SetDefaultBranch(t.Context(), repo, tc.dbDefault))
+			commits := make([]git.FastImportCommit, len(tc.branches))
+			for i, branch := range tc.branches {
+				commits[i].Ref = git.BranchPrefix + branch
+			}
+			require.NoError(t, git.ForceFastImport(t.Context(), repo, commits))
+			gitRepo, err := git.OpenRepository(t.Context(), repo)
+			require.NoError(t, err)
+			defer gitRepo.Close()
+
+			require.NoError(t, SyncBranchesToDB(t.Context(), repo, user2.ID, gitRepo, append(tc.branches, "deleted")))
+
+			dbRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+			assert.Equal(t, len(tc.branches) == 0, dbRepo.IsEmpty)
+			assert.Equal(t, tc.expected, dbRepo.DefaultBranch)
+			assert.Equal(t, dbRepo.IsEmpty, repo.IsEmpty)
+			assert.Equal(t, tc.expected, repo.DefaultBranch)
+			headBranch, err := git.GetDefaultBranch(t.Context(), repo)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expected, headBranch)
+		})
+	}
 }

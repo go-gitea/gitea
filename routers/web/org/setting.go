@@ -42,7 +42,7 @@ const (
 
 // Settings render the main settings page
 func Settings(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("org.settings")
+	ctx.Data["Title"] = ctx.Tr("org.settings.options")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
@@ -50,7 +50,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["ContextUser"] = ctx.ContextUser
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -60,7 +60,7 @@ func Settings(ctx *context.Context) {
 // SettingsPost response for settings change submitted
 func SettingsPost(ctx *context.Context) {
 	form := web.GetForm[*forms.UpdateOrgSettingForm](ctx)
-	ctx.Data["Title"] = ctx.Tr("org.settings")
+	ctx.Data["Title"] = ctx.Tr("org.settings.options")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
@@ -77,7 +77,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplSettingsOptions, &form)
 			return
 		}
-		ctx.ServerError("UpdateOrgEmailAddress", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -93,7 +93,7 @@ func SettingsPost(ctx *context.Context) {
 	}
 
 	if err := user_service.UpdateUser(ctx, org.AsUser(), opts); err != nil {
-		ctx.ServerError("UpdateUser", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -149,7 +149,7 @@ func SettingsDeleteOrgPost(ctx *context.Context) {
 
 // Webhooks render webhook list page
 func Webhooks(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("org.settings")
+	ctx.Data["Title"] = ctx.Tr("repo.settings.hooks")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["BaseLink"] = ctx.Org.OrgLink + "/settings/hooks"
@@ -158,12 +158,12 @@ func Webhooks(ctx *context.Context) {
 
 	ws, err := db.Find[webhook.Webhook](ctx, webhook.ListWebhookOptions{OwnerID: ctx.Org.Organization.ID})
 	if err != nil {
-		ctx.ServerError("ListWebhooksByOpts", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -195,7 +195,7 @@ func Labels(ctx *context.Context) {
 	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
