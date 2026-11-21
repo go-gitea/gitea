@@ -4,10 +4,15 @@
 package common
 
 import (
+	"slices"
 	"testing"
 
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -91,4 +96,51 @@ func TestSearchIssuesRepoIDs(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("team unit permissions on a private repository", func(t *testing.T) {
+		t.Cleanup(func() { require.NoError(t, unittest.PrepareTestDatabase()) })
+		_, err := db.Exec(t.Context(), "UPDATE team SET authorize = 0 WHERE id = 2")
+		require.NoError(t, err)
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		for _, tc := range []struct {
+			unitType unit.Type
+			isPull   optional.Option[bool]
+			repoID   int64
+		}{
+			{unit.TypeIssues, optional.Some(false), 3},
+			{unit.TypeIssues, optional.Some(true), 0},
+			{unit.TypePullRequests, optional.Some(true), 3},
+			{unit.TypeCode, optional.None[bool](), 0},
+		} {
+			_, err := db.Exec(t.Context(), "UPDATE team_unit SET access_mode = CASE WHEN type = ? THEN 1 ELSE 0 END WHERE team_id = 2", tc.unitType)
+			require.NoError(t, err)
+			repoIDs, _, err := SearchIssuesRepoIDs(t.Context(), SearchIssuesRepoIDsOptions{
+				Doer: user4, OwnerName: "org3", TeamName: "team1", IsPull: tc.isPull,
+			})
+			require.NoError(t, err)
+			assert.Equal(t, []int64{tc.repoID}, repoIDs, "unit %v, isPull %v", tc.unitType, tc.isPull)
+		}
+	})
+
+	t.Run("disabled issues unit for anonymous, public-only and admin", func(t *testing.T) {
+		t.Cleanup(func() { require.NoError(t, unittest.PrepareTestDatabase()) })
+		_, err := db.GetEngine(t.Context()).In("repo_id", 1, 3).Delete(&repo_model.RepoUnit{Type: unit.TypeIssues})
+		require.NoError(t, err)
+		admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		for _, tc := range []struct {
+			doer   *user_model.User
+			owner  string
+			repoID int64
+		}{
+			{nil, "user2", 1},
+			{publicOnlyUser2, "user2", 1},
+			{admin, "org3", 3},
+		} {
+			for _, isPull := range []bool{false, true} {
+				repoIDs, _, err := SearchIssuesRepoIDs(t.Context(), SearchIssuesRepoIDsOptions{Doer: tc.doer, OwnerName: tc.owner, IsPull: optional.Some(isPull)})
+				require.NoError(t, err)
+				assert.Equal(t, isPull, slices.Contains(repoIDs, tc.repoID), "owner %s, isPull %v", tc.owner, isPull)
+			}
+		}
+	})
 }

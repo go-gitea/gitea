@@ -54,11 +54,13 @@ func SearchGlobalIssues(ctx *context.Context) {
 	}
 
 	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
+	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
 
 	repoIDs, allPublic, err := common.SearchIssuesRepoIDs(ctx, common.SearchIssuesRepoIDsOptions{
 		Doer:      ctx.Doer,
 		OwnerName: ctx.FormString("owner"),
 		TeamName:  ctx.FormString("team"),
+		IsPull:    isPull,
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
@@ -70,7 +72,6 @@ func SearchGlobalIssues(ctx *context.Context) {
 	}
 
 	keyword := ctx.FormTrim("q")
-	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
 
 	var includedAnyLabels []int64
 	{

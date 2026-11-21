@@ -168,7 +168,7 @@ func Milestones(ctx *context.Context) {
 	}
 
 	var (
-		userRepoCond = repo_model.SearchRepositoryCondition(repoOpts) // all repo condition user could visit
+		userRepoCond = repo_model.IssuesOrPullsRepoCondition(repoOpts, optional.None[bool]())
 		repoCond     = userRepoCond
 		repoIDs      []int64
 
