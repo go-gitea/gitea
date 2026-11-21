@@ -16,8 +16,10 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
 	"gitea.dev/models/packages"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/packages/npm"
@@ -45,7 +47,7 @@ func TestPackageNpm(t *testing.T) {
 	packageBinName := "cli"
 	packageBinPath := "./cli.sh"
 	repoType := "gitea"
-	repoURL := "http://localhost:3000/gitea/test.git"
+	repoURL := setting.AppURL + "user2/repo1.git"
 	repoDirectory := "package-subdir"
 
 	attachmentBytes := test.WriteTarCompression(gzip.NewWriter, map[string]string{
@@ -57,7 +59,7 @@ func TestPackageNpm(t *testing.T) {
 	sha512Sum := sha512.Sum512(attachmentBytes)
 	integrity := "sha512-" + base64.StdEncoding.EncodeToString(sha512Sum[:])
 
-	buildUpload := func(version string) string {
+	buildUpload := func(version, repositoryURL string) string {
 		return `{
 			"_id": "` + packageName + `",
 			"name": "` + packageName + `",
@@ -82,7 +84,7 @@ func TestPackageNpm(t *testing.T) {
 					},
 					"repository": {
 						"type": "` + repoType + `",
-						"url": "` + repoURL + `",
+						"url": "` + repositoryURL + `",
 						"directory": "` + repoDirectory + `"
 					},
 					"readme": "[docs](docs/usage.md)\n![logo](logo.png)",
@@ -130,7 +132,7 @@ func TestPackageNpm(t *testing.T) {
 	t.Run("Upload", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildUpload(packageVersion))).
+		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildUpload(packageVersion, repoURL))).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
@@ -144,6 +146,7 @@ func TestPackageNpm(t *testing.T) {
 		assert.IsType(t, &npm.Metadata{}, pd.Metadata)
 		assert.Equal(t, packageName, pd.Package.Name)
 		assert.Equal(t, packageVersion, pd.Version.Version)
+		assert.EqualValues(t, 1, pd.Package.RepoID)
 		assert.Len(t, pd.VersionProperties, 1)
 		assert.Equal(t, npm.TagProperty, pd.VersionProperties[0].Name)
 		assert.Equal(t, packageTag, pd.VersionProperties[0].Value)
@@ -162,7 +165,7 @@ func TestPackageNpm(t *testing.T) {
 	t.Run("UploadExists", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildUpload(packageVersion))).
+		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildUpload(packageVersion, repoURL))).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusConflict)
 	})
@@ -359,15 +362,6 @@ func TestPackageNpm(t *testing.T) {
 	t.Run("WebViewReadmeRepoLinks", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNpm)
-		assert.NoError(t, err)
-		require.Len(t, pvs, 1)
-
-		// link the package to a repository so README relative links resolve against
-		// repository files instead of the site root
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		assert.NoError(t, packages.SetRepositoryLink(t.Context(), pvs[0].PackageID, repo.ID))
-
 		req := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/npm/%s/%s", user.Name, url.PathEscape(packageName), packageVersion)).
 			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
@@ -507,9 +501,13 @@ func TestPackageNpm(t *testing.T) {
 	t.Run("Delete", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildUpload(packageVersion+"-dummy"))).
+		require.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{RepoID: 3, Type: unit.TypePackages}))
+		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildUpload(packageVersion+"-dummy", setting.AppURL+"org3/repo3.git"))).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
+		pkg, err := packages.GetPackageByName(t.Context(), user.ID, packages.TypeNpm, packageName)
+		require.NoError(t, err)
+		assert.EqualValues(t, 1, pkg.RepoID)
 
 		req = NewRequest(t, "PUT", root+"/-rev/dummy")
 		MakeRequest(t, req, http.StatusUnauthorized)
