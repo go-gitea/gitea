@@ -22,6 +22,7 @@ import (
 	packages_module "gitea.dev/modules/packages"
 	conan_module "gitea.dev/modules/packages/conan"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 	"gitea.dev/routers/api/packages/helper"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
@@ -63,6 +64,22 @@ func apiError(ctx *context.Context, status int, obj any) {
 	jsonResponse(ctx, status, map[string]string{
 		"message": message,
 	})
+}
+
+// maxJSONBodySize caps the JSON request bodies of the v1 API (file lists and
+// package ids). They are small, so this bounds memory use without getting in
+// the way of real clients.
+const maxJSONBodySize = 1024 * 1024 // 1 MiB
+
+// decodeJSONBody decodes the size-limited request body into v. On failure it
+// writes the error response (413 if the body is too large, errStatus
+// otherwise) and returns false.
+func decodeJSONBody(ctx *context.Context, v any, errStatus int) bool {
+	if err := json.DecodeWithLimit(ctx.Req.Body, maxJSONBodySize, v); err != nil {
+		apiError(ctx, util.Iif(errors.Is(err, json.ErrTooLarge), http.StatusRequestEntityTooLarge, errStatus), err)
+		return false
+	}
+	return true
 }
 
 func baseURL(ctx *context.Context) string {
@@ -306,8 +323,7 @@ func serveUploadURLs(ctx *context.Context, fileFilter container.Set[string], upl
 	defer ctx.Req.Body.Close()
 
 	var files map[string]int64
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&files); err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+	if !decodeJSONBody(ctx, &files, http.StatusBadRequest) {
 		return
 	}
 
@@ -544,8 +560,7 @@ func DeletePackageV1(ctx *context.Context) {
 	}
 
 	var ids *PackageReferences
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&ids); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+	if !decodeJSONBody(ctx, &ids, http.StatusInternalServerError) {
 		return
 	}
 

@@ -5,7 +5,6 @@ package updatechecker
 
 import (
 	"context"
-	"io"
 	"net/http"
 
 	"gitea.dev/modules/json"
@@ -42,10 +41,6 @@ func GiteaUpdateChecker(httpEndpoint string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
 
 	type respType struct {
 		Latest struct {
@@ -53,7 +48,8 @@ func GiteaUpdateChecker(httpEndpoint string) error {
 		} `json:"latest"`
 	}
 	respData := respType{}
-	err = json.Unmarshal(body, &respData)
+	// the response is a small JSON document, 1 MiB is far more than enough
+	err = json.DecodeWithLimit(resp.Body, 1024*1024, &respData)
 	if err != nil {
 		return err
 	}
