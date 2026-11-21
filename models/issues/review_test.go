@@ -392,6 +392,13 @@ func TestAddReviewRequest(t *testing.T) {
 	assert.NotNil(t, comment)
 	assert.NotNil(t, comment.CommentMetaData)
 	assert.Equal(t, issues_model.SpecialDoerNameCodeOwners, comment.CommentMetaData.SpecialDoerName)
+
+	_, err = db.GetEngine(t.Context()).NoAutoTime().Insert(&issues_model.Review{Type: issues_model.ReviewTypeComment, IssueID: issue2.ID, ReviewerID: reviewer2.ID, UpdatedUnix: comment.Review.CreatedUnix + 1})
+	assert.NoError(t, err)
+	_, err = issues_model.AddReviewRequest(t.Context(), issue2, reviewer2, doer, false)
+	assert.NoError(t, err)
+	unittest.AssertNotExistsBean(t, &issues_model.Review{ID: comment.ReviewID})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: issue2.ID, ReviewerID: reviewer2.ID, Type: issues_model.ReviewTypeRequest})
 }
 
 func TestRecalculateReviewsOfficial(t *testing.T) {
