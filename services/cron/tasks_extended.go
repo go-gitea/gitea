@@ -138,6 +138,26 @@ func registerDeleteOldActions() {
 	})
 }
 
+type DeleteOldNotificationsConfig struct {
+	BaseConfig
+	ReadOlderThan   time.Duration
+	UnreadOlderThan time.Duration
+}
+
+func registerDeleteOldNotifications() {
+	RegisterTaskFatal("delete_old_notifications", &DeleteOldNotificationsConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    true,
+			RunAtStart: false,
+			Schedule:   "@every 24h",
+		},
+		ReadOlderThan:   90 * 24 * time.Hour,
+		UnreadOlderThan: 365 * 24 * time.Hour,
+	}, func(ctx context.Context, _ *user_model.User, config *DeleteOldNotificationsConfig) error {
+		return activities_model.DeleteOldNotifications(ctx, config.ReadOlderThan, config.UnreadOlderThan)
+	})
+}
+
 func registerDeleteOldAuditEvents() {
 	if !setting.AuditRecordEnabled() || setting.AuditRetentionPeriod() <= 0 {
 		return
@@ -248,6 +268,7 @@ func initExtendedTasks() {
 	registerDeleteMissingRepositories()
 	registerRemoveRandomAvatars()
 	registerDeleteOldActions()
+	registerDeleteOldNotifications()
 	registerDeleteOldAuditEvents()
 	registerUpdateGiteaChecker()
 	registerDeleteOldSystemNotices()
