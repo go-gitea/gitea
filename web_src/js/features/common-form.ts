@@ -1,6 +1,6 @@
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.ts';
-import {queryElems} from '../utils/dom.ts';
 import {initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 export function initGlobalEnterQuickSubmit() {
   document.addEventListener('keydown', (e) => {
@@ -18,5 +18,7 @@ export function initGlobalEnterQuickSubmit() {
 }
 
 export function initGlobalComboMarkdownEditor() {
-  queryElems<HTMLElement>(document, '.combo-markdown-editor:not(.custom-init)', (el) => initComboMarkdownEditor(el));
+  registerGlobalInitFunc('initComboMarkdownEditor', async (el) => {
+    await initComboMarkdownEditor(el);
+  });
 }
