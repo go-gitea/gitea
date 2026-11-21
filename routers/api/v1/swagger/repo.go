@@ -511,6 +511,12 @@ type swaggerCompare struct {
 	Body api.Compare `json:"body"`
 }
 
+// swagger:response FileBlame
+type swaggerFileBlame struct {
+	// in:body
+	Body api.FileBlame `json:"body"`
+}
+
 // swagger:response MergeUpstreamResponse
 type swaggerMergeUpstreamResponse struct {
 	// in:body
