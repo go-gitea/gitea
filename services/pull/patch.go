@@ -35,7 +35,7 @@ func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io
 	}
 	defer closer.Close()
 
-	compareArg := pr.MergeBase + "..." + pr.GetGitHeadRefName()
+	compareArg := util.Iif(pr.MergeBase == "", emptyTreeID(pr)+"..", pr.MergeBase+"...") + pr.GetGitHeadRefName()
 	switch {
 	case patch:
 		err = gitRepo.GetPatch(ctx, compareArg, w)
@@ -84,18 +84,14 @@ func checkPullRequestMergeableByTmpRepo(ctx context.Context, pr *issues_model.Pu
 	}
 
 	// 1. update merge base
-	pr.MergeBase, err = git.MergeBase(ctx, prCtx.tmpRepo, tmpRepoBaseBranch, tmpRepoTrackingBranch)
+	mergeBase, err := git.MergeBase(ctx, prCtx.tmpRepo, tmpRepoBaseBranch, tmpRepoTrackingBranch)
 	if errors.Is(err, util.ErrNotExist) {
-		pr.Status = issues_model.PullRequestStatusUnrelated
-		pr.ConflictedFiles, pr.ChangedProtectedFiles = nil, nil
+		markUnrelated(ctx, prCtx.tmpRepo, pr)
 		return nil
 	} else if err != nil {
-		var err2 error
-		pr.MergeBase, err2 = tmpGitRepo.GetRefCommitID(ctx, git.BranchPrefix+tmpRepoBaseBranch)
-		if err2 != nil {
-			return fmt.Errorf("GetMergeBase: %v and can't find commit ID for base: %w", err, err2)
-		}
+		return fmt.Errorf("MergeBase: %w", err)
 	}
+	pr.MergeBase = mergeBase
 
 	if pr.HeadCommitID == pr.MergeBase {
 		pr.Status = issues_model.PullRequestStatusAncestor

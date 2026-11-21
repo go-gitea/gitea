@@ -18,16 +18,11 @@ import (
 
 // GetDiffNumChangedFiles counts the number of changed files
 // This is substantially quicker than shortstat but...
-func (repo *Repository) GetDiffNumChangedFiles(ctx context.Context, base, head string, directComparison bool) (int, error) {
+func (repo *Repository) GetDiffNumChangedFiles(ctx context.Context, base, head string) (int, error) {
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
 
-	separator := "..."
-	if directComparison {
-		separator = ".."
-	}
-
 	cmd := gitcmd.NewCommand("diff", "-z", "--name-only").
-		AddDynamicArguments(base + separator + head).
+		AddDynamicArguments(base + ".." + head).
 		AddArguments("--").
 		WithRepo(repo)
 
