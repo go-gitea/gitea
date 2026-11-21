@@ -47,6 +47,34 @@ func TestAdminViewUsers(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusForbidden)
 	})
 
+	t.Run("FilterTwoFactor", func(t *testing.T) {
+		session := loginUser(t, "user1")
+		token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadAdmin)
+		for _, enabled := range []bool{true, false} {
+			query := strconv.FormatBool(enabled)
+			req := NewRequest(t, "GET", "/-/admin/users?status_filter[is_2fa_enabled]="+query)
+			doc := NewHTMLParser(t, session.MakeRequest(t, req, http.StatusOK).Body)
+			users := doc.Find("table tbody tr td:nth-child(2) a").Map(func(_ int, s *goquery.Selection) string {
+				return s.Text()
+			})
+			req = NewRequest(t, "GET", "/api/v1/admin/users?is_2fa_enabled="+query).AddTokenAuth(token)
+			apiUsers := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []api.User{})
+			apiUserNames := make([]string, 0, len(apiUsers))
+			for _, u := range apiUsers {
+				apiUserNames = append(apiUserNames, u.UserName)
+			}
+			for _, names := range [][]string{users, apiUserNames} {
+				if enabled {
+					assert.ElementsMatch(t, []string{"user24", "user32"}, names)
+				} else {
+					assert.Contains(t, names, "user2")
+					assert.NotContains(t, names, "user24")
+					assert.NotContains(t, names, "user32")
+				}
+			}
+		}
+	})
+
 	t.Run("FilterAuthSource", func(t *testing.T) {
 		source := &auth_model.Source{Type: auth_model.LDAP, Name: "test-user-list-filter", IsActive: false, Cfg: &ldap.Source{}} // users stay attached to a deactivated source
 		require.NoError(t, auth_model.CreateSource(t.Context(), source))
