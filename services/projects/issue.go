@@ -10,6 +10,7 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
@@ -98,10 +99,35 @@ func RemoveIssueFromColumn(ctx context.Context, doer *user_model.User, issue *is
 	return nil
 }
 
-// MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
-func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, column *project_model.Column, sortedIssueIDs map[int64]int64) error {
+// MoveIssueAfter places the issue after prevIssueID, first for 0, last when it left the column.
+func MoveIssueAfter(ctx context.Context, doer *user_model.User, column *project_model.Column, issue *issues_model.Issue, prevIssueID int64) error {
 	moves, err := db.WithTx2(ctx, func(ctx context.Context) ([]columnMove, error) {
-		return moveIssuesOnProjectColumn(ctx, doer, column, sortedIssueIDs)
+		if err := project_model.LockProject(ctx, column.ProjectID); err != nil {
+			return nil, err
+		}
+		others, err := project_model.GetColumnIssueSortings(ctx, column, issue.ID)
+		if err != nil {
+			return nil, err
+		}
+		pos := util.Iif(prevIssueID == 0, 0, len(others))
+		if i := slices.IndexFunc(others, func(row project_model.ColumnIssueSorting) bool { return row.IssueID == prevIssueID }); i >= 0 {
+			pos = i + 1
+		}
+
+		moves, err := moveIssuesOnProjectColumn(ctx, doer, column, map[int64]int64{int64(pos): issue.ID})
+		if err != nil {
+			return nil, err
+		}
+		for i, other := range others {
+			newSorting := int64(i + util.Iif(i >= pos, 1, 0))
+			if other.Sorting == newSorting {
+				continue
+			}
+			if err := project_model.SetIssueSorting(ctx, column, other.IssueID, newSorting); err != nil {
+				return nil, err
+			}
+		}
+		return moves, nil
 	})
 	if err != nil {
 		return err
@@ -256,6 +282,48 @@ func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, 
 		results[projectColumnID] = append(results[projectColumnID], issue)
 	}
 	return results, nil
+}
+
+// LoadLinkedPullRequests returns, per issue, the pull requests referencing it that the doer can read
+func LoadLinkedPullRequests(ctx context.Context, issuesMap map[int64]issues_model.IssueList, doer *user_model.User) (map[int64][]*issues_model.Issue, error) {
+	linkedPrsMap := make(map[int64][]*issues_model.Issue)
+	canReadPulls := make(map[int64]bool)
+	for _, issuesList := range issuesMap {
+		for _, issue := range issuesList {
+			var referencedIDs []int64
+			for _, comment := range issue.Comments {
+				if comment.RefIssueID != 0 && comment.RefIsPull {
+					referencedIDs = append(referencedIDs, comment.RefIssueID)
+				}
+			}
+			if len(referencedIDs) == 0 {
+				continue
+			}
+
+			linkedPrs, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
+				IssueIDs: referencedIDs,
+				IsPull:   optional.Some(true),
+			})
+			if err != nil {
+				return nil, err
+			}
+			for _, pr := range linkedPrs {
+				canRead, ok := canReadPulls[pr.RepoID]
+				if !ok {
+					perm, err := access_model.GetDoerRepoPermission(ctx, pr.Repo, doer)
+					if err != nil {
+						return nil, err
+					}
+					canRead = perm.CanReadIssuesOrPulls(true)
+					canReadPulls[pr.RepoID] = canRead
+				}
+				if canRead {
+					linkedPrsMap[issue.ID] = append(linkedPrsMap[issue.ID], pr)
+				}
+			}
+		}
+	}
+	return linkedPrsMap, nil
 }
 
 // NumClosedIssues return counter of closed issues assigned to a project

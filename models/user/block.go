@@ -18,7 +18,9 @@ var (
 	ErrBlockOrganization = util.NewInvalidArgumentErrorf("cannot block an organization")
 	ErrCanNotBlock       = util.NewInvalidArgumentErrorf("cannot block the user")
 	ErrCanNotUnblock     = util.NewInvalidArgumentErrorf("cannot unblock the user")
-	ErrBlockedUser       = util.NewPermissionDeniedErrorf("user is blocked")
+
+	// ErrBlockedUser is for end users: the doer is blocked by the repo owner, or an assignee when creating an issue, etc
+	ErrBlockedUser = util.NewPermissionDeniedErrorf("you are blocked by the user")
 )
 
 type Blocking struct {

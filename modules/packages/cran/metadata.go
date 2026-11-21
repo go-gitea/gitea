@@ -13,6 +13,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/packages"
@@ -34,12 +35,19 @@ var (
 	ErrInvalidVersion         = util.NewInvalidArgumentErrorf("package version is invalid")
 )
 
-var (
-	fieldPattern         = regexp.MustCompile(`\A\S+:`)
-	namePattern          = regexp.MustCompile(`\A[a-zA-Z][a-zA-Z0-9\.]*[a-zA-Z0-9]\z`)
-	versionPattern       = regexp.MustCompile(`\A[0-9]+(?:[.\-][0-9]+)+\z`)
-	authorReplacePattern = regexp.MustCompile(`[\[\(].+?[\]\)]`)
-)
+var globalVars = sync.OnceValue(func() (ret struct {
+	fieldPattern         *regexp.Regexp
+	namePattern          *regexp.Regexp
+	versionPattern       *regexp.Regexp
+	authorReplacePattern *regexp.Regexp
+},
+) {
+	ret.fieldPattern = regexp.MustCompile(`\A\S+:`)
+	ret.namePattern = regexp.MustCompile(`\A[a-zA-Z][a-zA-Z0-9\.]*[a-zA-Z0-9]\z`)
+	ret.versionPattern = regexp.MustCompile(`\A[0-9]+(?:[.\-][0-9]+)+\z`)
+	ret.authorReplacePattern = regexp.MustCompile(`[\[\(].+?[\]\)]`)
+	return ret
+})
 
 // Package represents a CRAN package
 type Package struct {
@@ -162,7 +170,7 @@ func ParseDescription(r io.Reader) (*Package, error) {
 		if line == "" {
 			continue
 		}
-		if !fieldPattern.MatchString(line) {
+		if !globalVars().fieldPattern.MatchString(line) {
 			b.WriteRune(' ')
 			b.WriteString(line)
 			continue
@@ -202,12 +210,12 @@ func setField(p *Package, data string) error {
 
 	switch name {
 	case "Package":
-		if !namePattern.MatchString(value) {
+		if !globalVars().namePattern.MatchString(value) {
 			return ErrInvalidName
 		}
 		p.Name = value
 	case "Version":
-		if !versionPattern.MatchString(value) {
+		if !globalVars().versionPattern.MatchString(value) {
 			return ErrInvalidVersion
 		}
 		p.Version = value
@@ -220,7 +228,7 @@ func setField(p *Package, data string) error {
 	case "License":
 		p.Metadata.License = value
 	case "Author":
-		p.Metadata.Authors = splitAndTrim(authorReplacePattern.ReplaceAllString(value, ""))
+		p.Metadata.Authors = splitAndTrim(globalVars().authorReplacePattern.ReplaceAllString(value, ""))
 	case "Depends":
 		p.Metadata.Depends = splitAndTrim(value)
 	case "Imports":

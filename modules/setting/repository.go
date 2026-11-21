@@ -59,8 +59,6 @@ var (
 		DisableStars                            bool `ini:"DISABLE_STARS"`
 		DefaultBranch                           string
 		DefaultObjectFormat                     string
-		AllowAdoptionOfUnadoptedRepositories    bool
-		AllowDeleteOfUnadoptedRepositories      bool
 		DisableDownloadSourceArchives           bool
 		AllowForkWithoutMaximumLimit            bool
 		AllowForkIntoSameOwner                  bool
@@ -211,6 +209,7 @@ var (
 			AddCoCommitterTrailers:                   true,
 			RetargetChildrenOnMerge:                  true,
 			DelayCheckForInactiveDays:                7,
+			DefaultDeleteBranchAfterMerge:            true,
 			DefaultTitleSource:                       RepoPRTitleSourceAuto,
 		},
 

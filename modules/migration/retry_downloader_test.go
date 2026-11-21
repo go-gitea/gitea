@@ -11,12 +11,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type failingCommentsDownloader struct {
+	NullDownloader
+	attempts int
+}
+
+func (d *failingCommentsDownloader) GetAllComments(_ctx context.Context, _page, _perPage int) ([]*Comment, bool, error) {
+	d.attempts++
+	return nil, false, errors.New("permission denied")
+}
+
 func TestRetryDownloaderExhaustsAttempts(t *testing.T) {
-	failure := errors.New("permission denied")
-	attempts := 0
-	assert.ErrorIs(t, NewRetryDownloader(nil, 3, 0).retry(t.Context(), func(_ctx context.Context) error {
-		attempts++
-		return failure
-	}), failure)
-	assert.Equal(t, 3, attempts)
+	source := &failingCommentsDownloader{}
+	_, _, err := NewRetryDownloader(source, 3, 0).GetAllComments(t.Context(), 1, 50)
+	assert.EqualError(t, err, "permission denied")
+	assert.Equal(t, 3, source.attempts)
 }

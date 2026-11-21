@@ -43,7 +43,7 @@ func ListPackages(ctx *context.APIContext) {
 	//   in: query
 	//   description: package type filter
 	//   type: string
-	//   enum: [alpine, cargo, chef, composer, conan, conda, container, cran, debian, generic, go, helm, maven, npm, nuget, pub, pypi, rpm, rubygems, swift, terraform, vagrant]
+	//   enum: [alpine, arch, cargo, chef, composer, conan, conda, container, cran, debian, generic, go, helm, maven, npm, nuget, pub, pypi, rpm, rubygems, swift, terraform, terraform-module, vagrant]
 	// - name: q
 	//   in: query
 	//   description: name filter
@@ -145,7 +145,7 @@ func DeletePackage(ctx *context.APIContext) {
 
 	err := packages_service.RemovePackage(ctx, ctx.Doer, ctx.Package.Descriptor.Package)
 	if err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -185,7 +185,7 @@ func DeletePackageVersion(ctx *context.APIContext) {
 
 	err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
 	if err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -227,7 +227,7 @@ func ListPackageFiles(ctx *context.APIContext) {
 
 	apiPackageFiles := make([]*api.PackageFile, 0, len(ctx.Package.Descriptor.Files))
 	for _, pfd := range ctx.Package.Descriptor.Files {
-		apiPackageFiles = append(apiPackageFiles, convert.ToPackageFile(pfd))
+		apiPackageFiles = append(apiPackageFiles, convert.ToPackageFile(ctx.Package.Descriptor.Package.Type, pfd))
 	}
 
 	ctx.JSON(http.StatusOK, apiPackageFiles)

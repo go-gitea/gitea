@@ -88,6 +88,13 @@ conditional `UPDATE` or a lock.
   struct conditions and inserts of more than 1000 rows.
 - Paginated queries need a unique tiebreaker like `id` for a stable order.
 
+### Git
+
+- Pass already opened repositories down or use `git.RepositoryFromContextOrOpen`
+  rather than reopening them or spawning extra `git` processes.
+- If git command stderr output is not handled by the caller, then it needs to use RunWithStderr
+  to make sure the git error message is included in the returned error and displayed in the logs.
+
 ## Dependencies
 
 Go dependencies are managed with [Go Modules](https://go.dev/ref/mod).

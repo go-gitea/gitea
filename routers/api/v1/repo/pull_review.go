@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
@@ -18,6 +19,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	issue_service "gitea.dev/services/issue"
@@ -263,6 +265,9 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 		ctx.APIError(http.StatusBadRequest, "comment is not a review comment")
 		return
 	}
+	if isIssueLockedForDoer(ctx, parent.Issue) {
+		return
+	}
 
 	comment, err := pull_service.CreateCodeComment(ctx,
 		ctx.Doer, ctx.Repo.GitRepo, parent.Issue,
@@ -271,7 +276,7 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 		"", nil,
 	)
 	if err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 	if err := comment.LoadPoster(ctx); err != nil {
@@ -427,7 +432,7 @@ func DeletePullReview(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 
-	review, _, statusSet := prepareSingleReview(ctx)
+	review, pr, statusSet := prepareSingleReview(ctx)
 	if statusSet {
 		return
 	}
@@ -445,6 +450,7 @@ func DeletePullReview(ctx *context.APIContext) {
 		ctx.APIErrorInternal(fmt.Errorf("can not delete ReviewID: %d", review.ID))
 		return
 	}
+	audit.Record(ctx, audit_model.PullRequestReviewDelete, ctx.Repo.Repository, "pull_request", fmt.Sprintf("#%d", pr.Index), "review_id", review.ID)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -485,6 +491,13 @@ func CreatePullReview(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	opts := web.GetForm[*api.CreatePullReviewOptions](ctx)
+	for _, comment := range opts.Comments {
+		if comment.Path == "" || (comment.NewLineNum <= 0 && comment.OldLineNum <= 0) {
+			ctx.APIError(http.StatusUnprocessableEntity, "review comments require a path and a positive new_position or old_position")
+			return
+		}
+	}
+
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		ctx.APIErrorAuto(err)
@@ -492,8 +505,12 @@ func CreatePullReview(ctx *context.APIContext) {
 	}
 
 	// determine review type
-	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body)
-	if isWrong {
+	reviewType := preparePullReviewType(ctx, pr, opts.Event, opts.Body)
+	if reviewType == issues_model.ReviewTypeUnknown {
+		return
+	}
+
+	if isIssueLockedForDoer(ctx, pr.Issue) {
 		return
 	}
 
@@ -539,7 +556,7 @@ func CreatePullReview(ctx *context.APIContext) {
 			opts.CommitID,
 			nil,
 		); err != nil {
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 			return
 		}
 	}
@@ -550,7 +567,7 @@ func CreatePullReview(ctx *context.APIContext) {
 		if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) || issues_model.IsContentEmptyErr(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 		}
 		return
 	}
@@ -617,8 +634,12 @@ func SubmitPullReview(ctx *context.APIContext) {
 	}
 
 	// determine review type
-	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body)
-	if isWrong {
+	reviewType := preparePullReviewType(ctx, pr, opts.Event, opts.Body)
+	if reviewType == issues_model.ReviewTypeUnknown {
+		return
+	}
+
+	if isIssueLockedForDoer(ctx, pr.Issue) {
 		return
 	}
 
@@ -640,7 +661,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 		if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) || issues_model.IsContentEmptyErr(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 		}
 		return
 	}
@@ -721,7 +742,7 @@ func UpdatePullReview(ctx *context.APIContext) {
 		ctx.APIError(http.StatusUnprocessableEntity, "only a submitted review can be updated")
 		return
 	}
-	comment := comments[len(comments)-1] // reviews created pending via the API also carry an earlier one
+	comment := comments[len(comments)-1] // older reviews created pending via the API also carry an earlier one
 
 	oldContent := comment.Content
 	comment.Content = opts.Body
@@ -739,11 +760,18 @@ func UpdatePullReview(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiReview)
 }
 
-// preparePullReviewType return ReviewType and false or nil and true if an error happen
-func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest, event api.ReviewStateType, body string) (issues_model.ReviewType, bool) {
+func isIssueLockedForDoer(ctx *context.APIContext, issue *issues_model.Issue) bool {
+	if issue_service.IsLockedForDoer(issue, ctx.Repo.Permission) {
+		ctx.APIError(http.StatusForbidden, "cannot comment on a locked issue")
+		return true
+	}
+	return false
+}
+
+func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest, event api.ReviewStateType, body string) issues_model.ReviewType {
 	if err := pr.LoadIssue(ctx); err != nil {
 		ctx.APIErrorInternal(err)
-		return -1, true
+		return issues_model.ReviewTypeUnknown
 	}
 
 	switch event {
@@ -751,26 +779,26 @@ func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest
 		// can not approve your own PR
 		if pr.Issue.IsPoster(ctx.Doer.ID) {
 			ctx.APIError(http.StatusUnprocessableEntity, "approve your own pull is not allowed")
-			return -1, true
+			return issues_model.ReviewTypeUnknown
 		}
-		return issues_model.ReviewTypeApprove, false
+		return issues_model.ReviewTypeApprove
 
 	case api.ReviewStateRequestChanges:
 		// can not reject your own PR
 		if pr.Issue.IsPoster(ctx.Doer.ID) {
 			ctx.APIError(http.StatusUnprocessableEntity, "reject your own pull is not allowed")
-			return -1, true
+			return issues_model.ReviewTypeUnknown
 		}
 		if strings.TrimSpace(body) == "" {
 			ctx.APIError(http.StatusUnprocessableEntity, "review event REQUEST_CHANGES requires a body")
-			return -1, true
+			return issues_model.ReviewTypeUnknown
 		}
-		return issues_model.ReviewTypeReject, false
+		return issues_model.ReviewTypeReject
 
 	case api.ReviewStateComment:
-		return issues_model.ReviewTypeComment, false
+		return issues_model.ReviewTypeComment
 	default:
-		return issues_model.ReviewTypePending, false
+		return issues_model.ReviewTypePending
 	}
 }
 

@@ -113,6 +113,20 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	assert.EqualValues(t, comment.UpdatedUnix, reviewComments[0].Updated.Unix())
 	assert.Equal(t, comment.HTMLURL(t.Context()), reviewComments[0].HTMLURL)
 
+	for _, invalidComment := range []api.CreatePullReviewComment{
+		{Body: "missing path", NewLineNum: 1},
+		{Path: "README.md", Body: "missing line"},
+	} {
+		req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
+			Comments: []api.CreatePullReviewComment{
+				{Path: "README.md", Body: "comment before invalid anchor", NewLineNum: 1},
+				invalidComment,
+			},
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
+	}
+	unittest.AssertNotExistsBean(t, &issues_model.Comment{IssueID: pullIssue.ID, Content: "comment before invalid anchor"})
+
 	// test CreatePullReview
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
 		Body: "body1",
@@ -157,9 +171,16 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	assert.EqualValues(t, "APPROVED", review.State)
 	assert.Equal(t, 3, review.CodeCommentsCount)
 
-	req = NewRequestWithJSON(t, http.MethodPut, updateReviewURL, &api.UpdatePullReviewOptions{Body: "just one nit"}).AddTokenAuth(token)
+	unittest.AssertCount(t, &issues_model.Comment{ReviewID: review.ID, Type: issues_model.CommentTypeReview}, 1)
+	reviewComment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ReviewID: review.ID, Type: issues_model.CommentTypeReview})
+	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d", repo.OwnerName, repo.Name, reviewComment.ID), &api.EditIssueCommentOption{Body: "just one nit"}).AddTokenAuth(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue))
+	MakeRequest(t, req, http.StatusOK)
+	req = NewRequest(t, http.MethodGet, updateReviewURL).AddTokenAuth(token)
+	assert.Equal(t, "just one nit", DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{}).Body)
+
+	req = NewRequestWithJSON(t, http.MethodPut, updateReviewURL, &api.UpdatePullReviewOptions{Body: "no nits"}).AddTokenAuth(token)
 	review = DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{})
-	assert.Equal(t, "just one nit", review.Body)
+	assert.Equal(t, "no nits", review.Body)
 
 	// test dismiss review
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d/dismissals", repo.OwnerName, repo.Name, pullIssue.Index, review.ID), &api.DismissPullReviewOptions{

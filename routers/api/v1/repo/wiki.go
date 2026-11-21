@@ -49,6 +49,11 @@ func NewWikiPage(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.CreateWikiPageOptions](ctx)
+	// EditWikiPage shares the form but allows an empty title
+	if form.Title == "" {
+		ctx.APIError(http.StatusUnprocessableEntity, "title is required")
+		return
+	}
 	wikiName := wiki_service.UserTitleToWebPath("", form.Title)
 
 	if len(form.Message) == 0 {
@@ -117,10 +122,9 @@ func EditWikiPage(ctx *context.APIContext) {
 	form := web.GetForm[*api.CreateWikiPageOptions](ctx)
 
 	oldWikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("pageName"))
-	newWikiName := wiki_service.UserTitleToWebPath("", form.Title)
-
-	if len(newWikiName) == 0 {
-		newWikiName = oldWikiName
+	newWikiName := oldWikiName
+	if form.Title != "" {
+		newWikiName = wiki_service.UserTitleToWebPath("", form.Title)
 	}
 
 	if len(form.Message) == 0 {
