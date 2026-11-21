@@ -263,8 +263,6 @@ func runWeb(_ context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("unknown command: %s", subCmdName)
 	}
 
-	graceful.InitManager()
-
 	if os.Getppid() > 1 && len(os.Getenv("LISTEN_FDS")) > 0 {
 		log.Info("Restarting Gitea on PID: %d from parent PID: %d", os.Getpid(), os.Getppid())
 	} else {

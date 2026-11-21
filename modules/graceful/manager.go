@@ -39,30 +39,10 @@ type RunCanceler interface {
 // and add a function to call manager.InformCleanup if it's not going to be used
 const numberOfServersToCreate = 4
 
-var (
-	manager  *Manager
-	initOnce sync.Once
-)
-
-// GetManager returns the Manager
-func GetManager() *Manager {
-	initManager()
-	return manager
-}
-
-// InitManager creates the graceful manager, which uses its own contexts and signal handling
-func InitManager() {
-	if manager != nil {
-		log.Error("graceful.InitManager called more than once")
-	}
-	initManager()
-}
-
-func initManager() {
-	initOnce.Do(func() {
-		manager = newGracefulManager(context.Background())
-	})
-}
+// GetManager gets the global graceful manager which uses process signal to cancel its managed contexts
+var GetManager = sync.OnceValue(func() *Manager {
+	return newGracefulManager(context.Background())
+})
 
 // RunWithCancel helps to run a function with a custom context, the Cancel function will be called at shutdown
 // The Cancel function should stop the Run function in predictable time.

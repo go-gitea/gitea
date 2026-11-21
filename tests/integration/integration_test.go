@@ -43,8 +43,6 @@ var testWebRoutes *web.Router
 func testMain(m *testing.M) int {
 	defer log.GetManager().Close()
 
-	graceful.InitManager()
-
 	workPath, err := tests.InitIntegrationTest()
 	if err != nil {
 		return testlogger.MainErrorf("InitTest error: %v", err)
