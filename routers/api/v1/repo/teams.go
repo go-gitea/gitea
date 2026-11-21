@@ -48,6 +48,11 @@ func ListTeams(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	teams, err = organization.FilterVisibleTeams(ctx, ctx.Repo.Repository.OwnerID, ctx.Doer, teams)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
 
 	apiTeams, err := convert.ToTeams(ctx, teams, false)
 	if err != nil {
@@ -97,7 +102,13 @@ func IsTeam(ctx *context.APIContext) {
 		return
 	}
 
-	if repo_service.HasRepository(ctx, team, ctx.Repo.Repository.ID) {
+	visibleTeams, err := organization.FilterVisibleTeams(ctx, ctx.Repo.Repository.OwnerID, ctx.Doer, organization.TeamList{team})
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	if len(visibleTeams) == 1 && repo_service.HasRepository(ctx, team, ctx.Repo.Repository.ID) {
 		apiTeam, err := convert.ToTeam(ctx, team)
 		if err != nil {
 			ctx.APIErrorInternal(err)
