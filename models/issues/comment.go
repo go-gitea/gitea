@@ -782,6 +782,21 @@ func (c *Comment) LoadReview(ctx context.Context) (err error) {
 	return nil
 }
 
+// IsHiddenPendingReview reports whether the comment belongs to a review that has not been submitted
+// yet, which only its reviewer may see; FetchCodeComments hides those comments the same way.
+func (c *Comment) IsHiddenPendingReview(ctx context.Context, doer *user_model.User) (bool, error) {
+	if c.ReviewID == 0 {
+		return false, nil
+	}
+	if err := c.LoadReview(ctx); err != nil {
+		if IsErrReviewNotExist(err) {
+			return false, nil // a comment whose review row is gone stays visible, like FetchCodeComments
+		}
+		return false, err
+	}
+	return c.Review.Type <= ReviewTypePending && (doer == nil || doer.ID != c.Review.ReviewerID), nil
+}
+
 // DiffSide returns "previous" if Comment.Line is a LOC of the previous changes and "proposed" if it is a LOC of the proposed changes.
 func (c *Comment) DiffSide() string {
 	if c.Line < 0 {
