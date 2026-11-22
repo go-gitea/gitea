@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	user_model "gitea.dev/models/user"
@@ -85,6 +86,49 @@ func TestIsMigrateURLAllowedForServiceLocalPath(t *testing.T) {
 			err := IsMigrateURLAllowedForService(addr, svc, admin)
 			assert.ErrorAs(t, err, new(*git.ErrInvalidCloneAddr), "%s %d", addr, svc)
 		}
+	}
+}
+
+func TestMigrateURLAllowedWindowsDriveLetterPath(t *testing.T) {
+	defer test.MockVariableValue(&setting.ImportLocalPaths, true)()
+	adminUser := &user_model.User{IsAdmin: true}
+
+	// A Windows drive-letter path must be treated as a local path: url.Parse mistakes the
+	// drive letter for a URL scheme (e.g. "c"), so it must not be rejected as an invalid protocol
+	err := IsMigrateURLAllowed(`C:\nonexistent\repo`, adminUser)
+	assert.Error(t, err)
+	addrErr := new(*git.ErrInvalidCloneAddr)
+	assert.ErrorAs(t, err, addrErr)
+	assert.True(t, (*addrErr).LocalPath)
+	assert.False(t, (*addrErr).IsProtocolInvalid)
+
+	if runtime.GOOS != "windows" {
+		t.Skip("Windows drive-letter directories only exist on Windows")
+	}
+
+	dir := t.TempDir()
+	assert.NoError(t, IsMigrateURLAllowed(dir, adminUser))
+	assert.NoError(t, IsMigrateURLAllowed(filepath.ToSlash(dir), adminUser))
+
+	defer test.MockVariableValue(&setting.ImportLocalPaths, false)()
+	assert.Error(t, IsMigrateURLAllowed(dir, adminUser))
+}
+
+func TestIsMigrateURLAllowedForServiceWindowsDriveLetterPath(t *testing.T) {
+	defer test.MockVariableValue(&setting.ImportLocalPaths, true)()
+	admin := &user_model.User{IsAdmin: true}
+
+	err := IsMigrateURLAllowedForService(`C:\nonexistent\repo`, structs.PlainGitService, admin)
+	addrErr := new(*git.ErrInvalidCloneAddr)
+	assert.ErrorAs(t, err, addrErr)
+	assert.False(t, (*addrErr).IsProtocolInvalid)
+
+	// local paths must stay rejected for service migrations, which are accessed by their remote API
+	for _, svc := range []structs.GitServiceType{structs.GithubService, structs.GiteaService, structs.GitlabService, structs.BitbucketServerService} {
+		err := IsMigrateURLAllowedForService(`C:\nonexistent\repo`, svc, admin)
+		svcErr := new(*git.ErrInvalidCloneAddr)
+		assert.ErrorAs(t, err, svcErr, "%d", svc)
+		assert.True(t, (*svcErr).IsProtocolInvalid, "%d", svc)
 	}
 }
 

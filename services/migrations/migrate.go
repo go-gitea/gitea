@@ -40,6 +40,9 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 // unless it is a plain git migration, because other services are accessed by their remote API.
 func IsMigrateURLAllowedForService(remoteURL string, serviceType structs.GitServiceType, doer *user_model.User) error {
 	if serviceType != structs.PlainGitService {
+		if isWindowsDriveLetterPath(remoteURL) {
+			return &git.ErrInvalidCloneAddr{Host: remoteURL, IsProtocolInvalid: true}
+		}
 		if u, err := url.Parse(remoteURL); err == nil && (u.Scheme == "file" || u.Scheme == "") {
 			return &git.ErrInvalidCloneAddr{Host: remoteURL, IsProtocolInvalid: true}
 		}
@@ -47,32 +50,52 @@ func IsMigrateURLAllowedForService(remoteURL string, serviceType structs.GitServ
 	return IsMigrateURLAllowed(remoteURL, doer)
 }
 
+// isWindowsDriveLetterPath reports whether the string looks like a Windows drive-letter absolute
+// path, for example "C:\path\to\repo" or "C:/path/to/repo". Such strings must be handled as
+// filesystem paths, because url.Parse mistakes the drive letter for a URL scheme.
+func isWindowsDriveLetterPath(s string) bool {
+	if len(s) < 3 {
+		return false
+	}
+	isLetter := s[0] >= 'a' && s[0] <= 'z' || s[0] >= 'A' && s[0] <= 'Z'
+	return isLetter && s[1] == ':' && (s[2] == '/' || s[2] == '\\')
+}
+
+// checkLocalPath checks whether the local filesystem path can be used for migration by the doer
+func checkLocalPath(path string, doer *user_model.User) error {
+	if !doer.CanImportLocal() {
+		return &git.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsPermissionDenied: true, LocalPath: true}
+	}
+	if !filepath.IsAbs(path) {
+		return &git.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsInvalidPath: true, LocalPath: true}
+	}
+	isDir, err := util.IsDir(path)
+	if err != nil {
+		log.Error("Unable to check if %s is a directory: %v", path, err)
+		return err
+	}
+	if !isDir {
+		return &git.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsInvalidPath: true, LocalPath: true}
+	}
+	return nil
+}
+
 // IsMigrateURLAllowed checks if an URL is allowed to be migrated from
 func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 	// Remote address can be HTTP/HTTPS/Git URL or local path.
+	// A Windows drive-letter path must be checked as a local path first,
+	// because url.Parse mistakes the drive letter for a URL scheme (e.g. "D:\repo" gets scheme "d").
+	if isWindowsDriveLetterPath(remoteURL) {
+		return checkLocalPath(remoteURL, doer)
+	}
+
 	u, err := url.Parse(remoteURL)
 	if err != nil {
 		return &git.ErrInvalidCloneAddr{IsURLError: true, Host: remoteURL}
 	}
 
 	if u.Scheme == "file" || u.Scheme == "" {
-		if !doer.CanImportLocal() {
-			return &git.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsPermissionDenied: true, LocalPath: true}
-		}
-		isAbs := filepath.IsAbs(u.Host + u.Path)
-		if !isAbs {
-			return &git.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsInvalidPath: true, LocalPath: true}
-		}
-		isDir, err := util.IsDir(u.Host + u.Path)
-		if err != nil {
-			log.Error("Unable to check if %s is a directory: %v", u.Host+u.Path, err)
-			return err
-		}
-		if !isDir {
-			return &git.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsInvalidPath: true, LocalPath: true}
-		}
-
-		return nil
+		return checkLocalPath(u.Host+u.Path, doer)
 	}
 
 	if u.Scheme == "git" && u.Port() != "" && (strings.Contains(remoteURL, "%0d") || strings.Contains(remoteURL, "%0a")) {
