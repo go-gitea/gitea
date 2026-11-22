@@ -197,10 +197,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	if len(includedLabelNames) > 0 && len(includedAnyLabels) == 0 {
-		// Keep an unmatched labels filter from being treated as no filter:
-		// use a label ID that no label can have, so the search matches no issues.
-		// It goes into IncludedLabelIDs (and not IncludedAnyLabelIDs) because the DB indexer
-		// resolves "any" label IDs to names, which would silently drop unknown IDs again.
+		// use a label ID that no label can have, so an unmatched labels filter matches nothing
 		searchOpt.IncludedLabelIDs = []int64{math.MaxInt64}
 	}
 
