@@ -23,7 +23,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/util"
 )
 
@@ -228,7 +228,7 @@ func (b *Binder) bindMultipartForm(req *http.Request, formStruct any) (errs Erro
 }
 
 func (b *Binder) bindJSON(req *http.Request, jsonStruct any) (errs Errors) {
-	err := json.NewDecoder(req.Body).Decode(jsonStruct)
+	err := jsonlimit.DecodeWithLimit(req.Body, 100*1024*1024, jsonStruct)
 	if err != nil && !errors.Is(err, io.EOF) { // an empty body binds nothing
 		errs.addDeserializationError(err)
 	}
