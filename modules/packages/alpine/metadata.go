@@ -110,8 +110,12 @@ func ParsePackage(r packages.SizedReader) (*Package, error) {
 
 				// drain the reader
 				for {
-					if _, err := tr.Next(); err != nil {
+					_, err := tr.Next()
+					if err == io.EOF {
 						break
+					}
+					if err != nil {
+						return nil, err
 					}
 				}
 
