@@ -972,10 +972,10 @@ func createDeadlineComment(ctx context.Context, doer *user_model.User, issue *Is
 	var commentType CommentType
 
 	// newDeadline = 0 means deleting
-	if newDeadlineUnix == 0 {
+	if newDeadlineUnix.IsZero() {
 		commentType = CommentTypeRemovedDeadline
 		content = issue.DeadlineUnix.FormatDate()
-	} else if issue.DeadlineUnix == 0 {
+	} else if issue.DeadlineUnix.IsZero() {
 		// Check if the new date was added or modified
 		// If the actual deadline is 0 => deadline added
 		commentType = CommentTypeAddedDeadline

@@ -86,7 +86,7 @@ func (m *Milestone) BeforeUpdate() {
 // this object.
 func (m *Milestone) AfterLoad() {
 	m.NumOpenIssues = m.NumIssues - m.NumClosedIssues
-	if m.DeadlineUnix == 0 {
+	if m.DeadlineUnix.IsZero() {
 		return
 	}
 	m.DeadlineString = m.DeadlineUnix.FormatDate()

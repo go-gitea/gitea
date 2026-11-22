@@ -127,7 +127,7 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 			apiIssue.PullRequest.HTMLURL = issue.HTMLURL(ctx)
 		}
 	}
-	if issue.DeadlineUnix != 0 {
+	if issue.DeadlineUnix > 0 {
 		apiIssue.Deadline = issue.DeadlineUnix.AsTimePtr()
 	}
 

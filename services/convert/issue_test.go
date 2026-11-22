@@ -59,6 +59,19 @@ func TestMilestone_APIFormat(t *testing.T) {
 	}, *ToAPIMilestone(milestone))
 }
 
+func TestToAPIIssue_Deadline(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := t.Context()
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	for _, deadlineUnix := range []timeutil.TimeStamp{0, -62135596800} {
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+		issue.DeadlineUnix = deadlineUnix
+		assert.Nil(t, ToAPIIssue(ctx, doer, issue).Deadline, "legacy deadline %d should be treated as unset", deadlineUnix)
+	}
+}
+
 func TestToStopWatchesRespectsPermissions(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
