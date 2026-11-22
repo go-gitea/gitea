@@ -48,7 +48,7 @@ type RepoCommit struct {
 	// Tree contains the tree information for the commit
 	Tree *CommitMeta `json:"tree"`
 	// Verification contains commit signature verification information
-	Verification *PayloadCommitVerification `json:"verification"`
+	Verification *PayloadCommitVerification `json:"verification,omitzero"` // absent when not requested
 }
 
 // CommitStats is statistics for a RepoCommit
@@ -75,9 +75,9 @@ type Commit struct {
 	// Parents contains the parent commit information
 	Parents []*CommitMeta `json:"parents"`
 	// Files contains information about files affected by the commit
-	Files []*CommitAffectedFiles `json:"files"`
+	Files []*CommitAffectedFiles `json:"files,omitzero"` // absent when not requested
 	// Stats contains statistics about the commit changes
-	Stats *CommitStats `json:"stats"`
+	Stats *CommitStats `json:"stats,omitzero"` // absent when not requested
 }
 
 // CommitDateOptions store dates for GIT_AUTHOR_DATE and GIT_COMMITTER_DATE
