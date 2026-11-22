@@ -334,7 +334,7 @@ func UploadErrata(ctx *context.Context) {
 	group := ctx.PathParam("group")
 
 	var updates []*rpm_module.Update
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&updates); err != nil {
+	if err := json.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &updates); err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}

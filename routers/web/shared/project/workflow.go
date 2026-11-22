@@ -114,7 +114,7 @@ func CreateWorkflow(ctx *context.Context) {
 		return
 	}
 	var form api.CreateProjectWorkflowOption
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
+	if err := json.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &form); err != nil {
 		ctx.JSONError("invalid request body")
 		return
 	}
@@ -132,7 +132,7 @@ func UpdateWorkflow(ctx *context.Context) {
 		return
 	}
 	var form api.EditProjectWorkflowOption
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
+	if err := json.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &form); err != nil {
 		ctx.JSONError("invalid request body")
 		return
 	}

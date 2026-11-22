@@ -221,9 +221,8 @@ func (ar artifactRoutes) getUploadArtifactURL(ctx *ArtifactContext) {
 	}
 
 	var req getUploadArtifactRequest
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&req); err != nil {
-		log.Error("Error decode request body: %v", err)
-		ctx.HTTPError(http.StatusInternalServerError, "Error decode request body")
+	if err := json.DecodeFromRequest(ctx.Resp,ctx.Req, 10*1024*1024, &req); err != nil {{
+		ctx.HTTPError(http.StatusBadRequest, err.Error())
 		return
 	}
 

@@ -7,7 +7,9 @@ import (
 	"bytes"
 	"encoding/json" //nolint:depguard // this package wraps it
 	"errors"
+	"fmt"
 	"io"
+	"net/http"
 )
 
 // Encoder represents an encoder for json
@@ -66,7 +68,15 @@ func DecodeWithLimit(reader io.Reader, limit int64, v any) error {
 	lr := &io.LimitedReader{R: reader, N: limit + 1}
 	err := NewDecoder(lr).Decode(v)
 	if lr.N <= 0 {
-		return ErrTooLarge
+		return fmt.Errorf("%w: %d bytes", ErrTooLarge, limit)
+	}
+	return err
+}
+
+func DecodeFromRequest(w http.ResponseWriter, r *http.Request, limit int64, v any) error {
+	err := NewDecoder(http.MaxBytesReader(w, r.Body, limit)).Decode(v)
+	if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
+		return fmt.Errorf("%w: %d bytes", ErrTooLarge, limit)
 	}
 	return err
 }

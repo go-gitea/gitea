@@ -4,7 +4,6 @@
 package private
 
 import (
-	"io"
 	"net/http"
 
 	"gitea.dev/modules/json"
@@ -15,11 +14,6 @@ import (
 
 // RestoreRepo restore a repository from data
 func RestoreRepo(ctx *myCtx.PrivateContext) {
-	bs, err := io.ReadAll(ctx.Req.Body)
-	if err != nil {
-		ctx.PrivateInternalErrorf("%v", err)
-		return
-	}
 	params := struct {
 		RepoDir    string
 		OwnerName  string
@@ -27,7 +21,7 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 		Units      []string
 		Validation bool
 	}{}
-	if err = json.Unmarshal(bs, &params); err != nil {
+	if err := json.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &params); err != nil {
 		ctx.PrivateInternalErrorf("%v", err)
 		return
 	}

@@ -22,6 +22,7 @@ import (
 	packages_module "gitea.dev/modules/packages"
 	conan_module "gitea.dev/modules/packages/conan"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 	"gitea.dev/routers/api/packages/helper"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
@@ -68,11 +69,10 @@ func apiError(ctx *context.Context, status int, obj any) {
 // decodeJSONBody decodes the size-limited request body into v.
 // On failure, it writes the error response and returns false.
 func decodeJSONBody(ctx *context.Context, v any) bool {
-	err := json.NewDecoder(http.MaxBytesReader(ctx.Resp, ctx.Req.Body, 10*1024*1024)).Decode(v)
-	if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
-		apiError(ctx, http.StatusRequestEntityTooLarge, err)
-	} else if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+	err := json.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, v)
+	if err != nil {
+		status := util.Iif(errors.Is(err, json.ErrTooLarge), http.StatusRequestEntityTooLarge, http.StatusBadRequest)
+		apiError(ctx, status, err)
 	}
 	return err == nil
 }
