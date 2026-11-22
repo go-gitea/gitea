@@ -654,11 +654,12 @@ overflow-menu .ui.label:empty {
 
 .lines-code {
   padding-left: 5px;
+  padding-right: 5px;
 }
 
 .code-inner {
   font: 12px var(--fonts-monospace);
-  white-space: pre-wrap;
+  white-space: pre;
   overflow-wrap: anywhere;
   line-height: inherit; /* needed for inline code preview in markup */
 }
