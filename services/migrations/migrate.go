@@ -50,9 +50,8 @@ func IsMigrateURLAllowedForService(remoteURL string, serviceType structs.GitServ
 	return IsMigrateURLAllowed(remoteURL, doer)
 }
 
-// isWindowsDriveLetterPath reports whether the string looks like a Windows drive-letter absolute
-// path, for example "C:\path\to\repo" or "C:/path/to/repo". Such strings must be handled as
-// filesystem paths, because url.Parse mistakes the drive letter for a URL scheme.
+// isWindowsDriveLetterPath reports whether s looks like a Windows path like "C:\dir" or "C:/dir",
+// which url.Parse mistakes for a URL with scheme "c"
 func isWindowsDriveLetterPath(s string) bool {
 	if len(s) < 3 {
 		return false
@@ -83,8 +82,6 @@ func checkLocalPath(path string, doer *user_model.User) error {
 // IsMigrateURLAllowed checks if an URL is allowed to be migrated from
 func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 	// Remote address can be HTTP/HTTPS/Git URL or local path.
-	// A Windows drive-letter path must be checked as a local path first,
-	// because url.Parse mistakes the drive letter for a URL scheme (e.g. "D:\repo" gets scheme "d").
 	if isWindowsDriveLetterPath(remoteURL) {
 		return checkLocalPath(remoteURL, doer)
 	}
