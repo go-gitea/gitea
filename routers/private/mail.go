@@ -10,7 +10,7 @@ import (
 
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/context"
@@ -28,7 +28,7 @@ func SendEmail(ctx *context.PrivateContext) {
 	}
 
 	var mail private.Email
-	if err := json.DecodeWithLimit(ctx.Req.Body, 10*1024*1024, &mail); err != nil {
+	if err := jsonlimit.DecodeWithLimit(ctx.Req.Body, 10*1024*1024, &mail); err != nil {
 		ctx.PrivateInternalErrorf("JSON Decode failed: %v", err)
 		return
 	}

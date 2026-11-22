@@ -6,7 +6,7 @@ package private
 import (
 	"net/http"
 
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/services/audit"
 	myCtx "gitea.dev/services/context"
 	"gitea.dev/services/migrations"
@@ -21,7 +21,7 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 		Units      []string
 		Validation bool
 	}{}
-	if err := json.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &params); err != nil {
+	if err := jsonlimit.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &params); err != nil {
 		ctx.PrivateInternalErrorf("%v", err)
 		return
 	}

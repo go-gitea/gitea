@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
@@ -131,7 +131,7 @@ func (d *OneDevDownloader) callAPI(ctx context.Context, endpoint string, paramet
 	}
 	defer resp.Body.Close()
 
-	return json.DecodeWithLimit(resp.Body, 100*1024*1024, &result)
+	return jsonlimit.DecodeWithLimit(resp.Body, 100*1024*1024, &result)
 }
 
 func (d *OneDevDownloader) getServerVersionByEndpoint(ctx context.Context, endpoint string) (*version.Version, error) {

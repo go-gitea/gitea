@@ -12,6 +12,7 @@ import (
 	"gitea.dev/models/db"
 	packages_model "gitea.dev/models/packages"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
@@ -40,7 +41,7 @@ func (l *LockInfo) IsLocked() bool {
 
 func ParseLockInfo(r io.Reader) (*LockInfo, error) {
 	var lock LockInfo
-	err := json.DecodeWithLimit(r, maxLockInfoSize, &lock)
+	err := jsonlimit.DecodeWithLimit(r, maxLockInfoSize, &lock)
 	if err != nil {
 		return nil, err
 	}

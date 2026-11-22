@@ -18,6 +18,7 @@ import (
 	conan_model "gitea.dev/models/packages/conan"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/log"
 	packages_module "gitea.dev/modules/packages"
 	conan_module "gitea.dev/modules/packages/conan"
@@ -306,7 +307,7 @@ func serveUploadURLs(ctx *context.Context, fileFilter container.Set[string], upl
 	defer ctx.Req.Body.Close()
 
 	var files map[string]int64
-	if err := json.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &files); err != nil {
+	if err := jsonlimit.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &files); err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
@@ -544,7 +545,7 @@ func DeletePackageV1(ctx *context.Context) {
 	}
 
 	var ids *PackageReferences
-	if err := json.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &ids); err != nil {
+	if err := jsonlimit.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &ids); err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}

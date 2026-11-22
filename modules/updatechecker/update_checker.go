@@ -7,7 +7,7 @@ import (
 	"context"
 	"net/http"
 
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/system"
@@ -48,7 +48,7 @@ func GiteaUpdateChecker(httpEndpoint string) error {
 		} `json:"latest"`
 	}
 	respData := respType{}
-	err = json.DecodeWithLimit(resp.Body, 100*1024, &respData)
+	err = jsonlimit.DecodeWithLimit(resp.Body, 100*1024, &respData)
 	if err != nil {
 		return err
 	}

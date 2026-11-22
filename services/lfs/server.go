@@ -30,6 +30,7 @@ import (
 	"gitea.dev/modules/auth/httpauth"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	lfs_module "gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -423,7 +424,7 @@ func VerifyHandler(ctx *context.Context) {
 }
 
 func decodeJSON(req *http.Request, v any) error {
-	return json.DecodeWithLimit(req.Body, 100*1024*1024, v)
+	return jsonlimit.DecodeWithLimit(req.Body, 100*1024*1024, v)
 }
 
 func getRequestContext(ctx *context.Context) *requestContext {
