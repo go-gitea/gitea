@@ -71,7 +71,6 @@ func apiError(ctx *context.Context, status int, obj any) {
 func decodeJSONBody(ctx *context.Context, v any) bool {
 	err := json.DecodeWithLimit(ctx.Req.Body, 10*1024*1024, v) // 10 MiB should be large enough for Conan requests
 	if err != nil {
-		_ = ctx.Req.Body.Close()
 		httpStatus := util.Iif(errors.Is(err, json.ErrTooLarge), http.StatusRequestEntityTooLarge, http.StatusBadRequest)
 		apiError(ctx, httpStatus, err)
 	}
