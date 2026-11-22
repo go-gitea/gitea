@@ -25,7 +25,7 @@ export function matchEmoji(queryText: string): string[] {
       if (index === -1) continue;
       const existing = results.get(mainAlias);
       const rankedIndex = index + aliasIndex;
-      results.set(mainAlias, existing ? existing - rankedIndex : rankedIndex);
+      results.set(mainAlias, existing === undefined ? rankedIndex : Math.min(existing, rankedIndex));
     }
   }
 

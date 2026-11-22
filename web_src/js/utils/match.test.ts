@@ -67,6 +67,17 @@ test('matchEmoji', () => {
       "jellyfish",
     ]
   `);
+
+  expect(matchEmoji('boat')).toMatchInlineSnapshot(`
+    [
+      "boat",
+      "rowboat",
+      "speedboat",
+      "motor_boat",
+    ]
+  `);
+
+  expect(matchEmoji('car')[0]).toEqual('car');
 });
 
 test('matchMention', async () => {
