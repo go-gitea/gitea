@@ -40,22 +40,7 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	event := map[string]any{}
 	_ = json.Unmarshal([]byte(run.EventPayload), &event)
 
-	baseRef := ""
-	headRef := ""
-	ref := run.Ref
-	sha := run.CommitSHA
-	if pullPayload, err := run.GetPullRequestEventPayload(); err == nil && pullPayload.PullRequest != nil && pullPayload.PullRequest.Base != nil && pullPayload.PullRequest.Head != nil {
-		baseRef = pullPayload.PullRequest.Base.Ref
-		headRef = pullPayload.PullRequest.Head.Ref
-
-		// if the TriggerEvent is pull_request_target, ref and sha need to be set according to the base of pull request
-		// In GitHub's documentation, ref should be the branch or tag that triggered workflow. But when the TriggerEvent is pull_request_target,
-		// the ref will be the base branch.
-		if run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
-			ref = git.BranchPrefix + pullPayload.PullRequest.Base.Ref
-			sha = pullPayload.PullRequest.Base.Sha
-		}
-	}
+	baseRef, headRef, ref, sha := runRefs(run)
 
 	refName := git.RefName(ref)
 	refType := refName.RefType()
@@ -148,6 +133,27 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	}
 
 	return gitContext
+}
+
+// runRefs returns the run's `github.base_ref`, `github.head_ref`, `github.ref` and `github.sha`, never the PR head for pull_request_target.
+func runRefs(run *actions_model.ActionRun) (baseRef, headRef, ref, sha string) {
+	if run.TriggerEvent != actions_module.GithubEventPullRequestTarget {
+		ref, sha = run.Ref, run.CommitSHA
+	}
+	if pullPayload, err := run.GetPullRequestEventPayload(); err == nil && pullPayload.PullRequest != nil && pullPayload.PullRequest.Base != nil && pullPayload.PullRequest.Head != nil {
+		pr := pullPayload.PullRequest
+		baseRef, headRef = pr.Base.Ref, pr.Head.Ref
+		if run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
+			if run.WorkflowRef == "" { // scoped and older runs keep the base
+				ref, sha = git.BranchPrefix+baseRef, pr.Base.Sha
+			} else {
+				ref, sha = run.WorkflowRef, run.WorkflowCommitSHA
+			}
+		} else if run.TriggerEvent == actions_module.GithubEventPullRequest && !pr.HasMerged && pr.MergedCommitID != nil {
+			ref, sha = git.MergeRefNameFromPullIndex(pr.Index).String(), *pr.MergedCommitID
+		}
+	}
+	return baseRef, headRef, ref, sha
 }
 
 type TaskNeed struct {

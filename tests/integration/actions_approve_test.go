@@ -110,7 +110,8 @@ jobs:
 		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", baseRepo.OwnerName, baseRepo.Name, apiPull.Index))
 		resp = user4Session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		assert.Zero(t, htmlDoc.doc.Find("#approve-status-checks button.link-action").Length())
+		assert.Contains(t, htmlDoc.Find(".merge-box-checks-header").Text(), "2 workflows awaiting approval")
+		assert.Zero(t, htmlDoc.doc.Find("#approve-status-checks").Length())
 
 		// user2 can see the approve button
 		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", baseRepo.OwnerName, baseRepo.Name, apiPull.Index))
@@ -123,6 +124,13 @@ jobs:
 				baseRepo.Link(), apiPull.Head.Sha),
 			dataURL,
 		)
+
+		for _, state := range []api.StateType{api.StateClosed, api.StateOpen} {
+			req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", baseRepo.OwnerName, baseRepo.Name, apiPull.Index),
+				&api.EditPullRequestOption{State: new(string(state))}).AddTokenAuth(user4Token)
+			MakeRequest(t, req, http.StatusCreated)
+		}
+		reopenedRun1 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID, WorkflowID: "pull_1.yml"}, unittest.OrderBy("id DESC"))
 
 		req = NewRequest(t, "POST", fmt.Sprintf("%s/actions/runs/%d/cancel", baseRepo.Link(), run1.ID))
 		user2Session.MakeRequest(t, req, http.StatusOK)
@@ -139,6 +147,7 @@ jobs:
 		assert.False(t, run2.NeedApproval)
 		assert.Equal(t, user2.ID, run2.ApprovedBy)
 		assert.Equal(t, actions_model.StatusWaiting, run2.Status)
+		assert.False(t, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: reopenedRun1.ID}).NeedApproval)
 
 		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", baseRepo.OwnerName, baseRepo.Name, apiPull.Index))
 		resp = user2Session.MakeRequest(t, req, http.StatusOK)

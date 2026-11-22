@@ -5,7 +5,9 @@ package actions
 
 import (
 	"strconv"
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	act_model "gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
@@ -49,6 +51,19 @@ func TestEvaluateRunConcurrency_RunIDFallback(t *testing.T) {
 	assert.Contains(t, attemptA.ConcurrencyGroup, "791")
 	assert.Contains(t, attemptB.ConcurrencyGroup, "792")
 	assert.NotEqual(t, attemptA.ConcurrencyGroup, attemptB.ConcurrencyGroup)
+
+	t.Run("preserves 255 runes and bounds longer groups", func(t *testing.T) {
+		evaluateGroup := func(group string) string {
+			require.NoError(t, EvaluateRunConcurrencyFillModel(ctx, runA, attemptA, &act_model.RawConcurrency{Group: group}, nil, nil))
+			return attemptA.ConcurrencyGroup
+		}
+		group := strings.Repeat("界", 255)
+		assert.Equal(t, group, evaluateGroup(group))
+		boundedGroup := evaluateGroup(group + "a")
+		assert.LessOrEqual(t, utf8.RuneCountInString(boundedGroup), 255)
+		assert.Equal(t, boundedGroup, evaluateGroup(group+"a"))
+		assert.NotEqual(t, boundedGroup, evaluateGroup(group+"b"))
+	})
 }
 
 func TestPrepareRunAndInsert_ExpressionsSeeRunID(t *testing.T) {
@@ -389,36 +404,50 @@ func TestFindTaskNeeds(t *testing.T) {
 func TestGenerateGiteaContext(t *testing.T) {
 	payload := api.PullRequestPayload{
 		PullRequest: &api.PullRequest{
-			Base: &api.PRBranchInfo{
-				Name: "owner:main",
-				Ref:  "main",
-				Sha:  "1234567890abcdef",
-			},
-			Head: &api.PRBranchInfo{
-				Name: "fork:feature",
-				Ref:  "feature",
-				Sha:  "fedcba0987654321",
-			},
+			Base: &api.PRBranchInfo{Ref: "release", Sha: "base-sha"},
+			Head: &api.PRBranchInfo{Sha: "head-sha"},
 		},
 	}
 	payloadBytes, err := json.Marshal(payload)
 	assert.NoError(t, err)
 
 	run := &actions_model.ActionRun{
-		Event:        webhook_module.HookEventPullRequest,
-		TriggerEvent: string(actions_module.GithubEventPullRequestTarget),
-		EventPayload: string(payloadBytes),
-		TriggerUser:  &user_model.User{Name: "test-user"},
-		Repo:         &repo_model.Repository{Name: "test-repo", OwnerName: "test-owner"},
+		Event:             webhook_module.HookEventPullRequest,
+		TriggerEvent:      actions_module.GithubEventPullRequestTarget,
+		EventPayload:      string(payloadBytes),
+		TriggerUser:       &user_model.User{Name: "test-user"},
+		Repo:              &repo_model.Repository{Name: "test-repo", OwnerName: "test-owner"},
+		CommitSHA:         "head-sha",
+		WorkflowCommitSHA: "default-sha",
+		WorkflowRef:       "refs/heads/main",
 	}
 
 	giteaCtx := GenerateGiteaContext(t.Context(), run, nil, nil)
-
 	assert.Equal(t, "refs/heads/main", giteaCtx["ref"])
 	assert.Equal(t, "main", giteaCtx["ref_name"])
+	assert.Equal(t, "default-sha", giteaCtx["sha"])
+	assert.Equal(t, "release", giteaCtx["base_ref"])
 
-	run.TriggerEvent, run.Ref = string(actions_module.GithubEventPullRequest), "refs/pull/1/head"
+	run.WorkflowRef = ""
+	_, _, ref, sha := runRefs(run)
+	assert.Equal(t, [2]string{"refs/heads/release", "base-sha"}, [2]string{ref, sha})
+
+	run.TriggerEvent, run.Ref = actions_module.GithubEventPullRequest, "refs/pull/1/head"
 	assert.Equal(t, "branch", GenerateGiteaContext(t.Context(), run, nil, nil)["ref_type"])
+
+	payload.PullRequest.Index, payload.PullRequest.MergedCommitID = 1, new("merge-sha")
+	payloadBytes, err = json.Marshal(payload)
+	require.NoError(t, err)
+	run.EventPayload = string(payloadBytes)
+	giteaCtx = GenerateGiteaContext(t.Context(), run, nil, nil)
+	assert.Equal(t, "refs/pull/1/merge", giteaCtx["ref"])
+	assert.Equal(t, "merge-sha", giteaCtx["sha"])
+
+	payload.PullRequest.HasMerged = true
+	payloadBytes, err = json.Marshal(payload)
+	require.NoError(t, err)
+	run.EventPayload = string(payloadBytes)
+	assert.Equal(t, "head-sha", GenerateGiteaContext(t.Context(), run, nil, nil)["sha"])
 
 	defer test.MockVariableValue(&setting.Actions.ArtifactRetentionDays, 7)()
 	assert.Equal(t, "7", GenerateGiteaContext(t.Context(), run, nil, nil)["retention_days"])
@@ -439,32 +468,22 @@ func TestGenerateGiteaContextRefProtected(t *testing.T) {
 		NamePattern: "v*",
 	}))
 
-	gitCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
-		RepoID:      repo.ID,
-		Repo:        repo,
-		TriggerUser: &user_model.User{Name: "test-user"},
-		Ref:         "refs/heads/master",
-	}, nil, nil)
-
-	assert.Equal(t, true, gitCtx["ref_protected"])
-
-	tagCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
-		RepoID:      repo.ID,
-		Repo:        repo,
-		TriggerUser: &user_model.User{Name: "test-user"},
-		Ref:         "refs/tags/v1.0.0",
-	}, nil, nil)
-
-	assert.Equal(t, true, tagCtx["ref_protected"])
-
-	unprotectedTagCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
-		RepoID:      repo.ID,
-		Repo:        repo,
-		TriggerUser: &user_model.User{Name: "test-user"},
-		Ref:         "refs/tags/other",
-	}, nil, nil)
-
-	assert.Equal(t, false, unprotectedTagCtx["ref_protected"])
+	for _, tc := range []struct {
+		ref       string
+		protected bool
+	}{
+		{"refs/heads/master", true},
+		{"refs/tags/v1.0.0", true},
+		{"refs/tags/other", false},
+	} {
+		gitCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
+			RepoID:      repo.ID,
+			Repo:        repo,
+			TriggerUser: &user_model.User{Name: "test-user"},
+			Ref:         tc.ref,
+		}, nil, nil)
+		assert.Equal(t, tc.protected, gitCtx["ref_protected"])
+	}
 }
 
 // TestGenerateGiteaContext_NilAttempt verifies that, with no explicit attempt,

@@ -96,18 +96,14 @@ func goGetDefaultBranch(ctx *context.Context, repo *repo_model.Repository) strin
 	if len(repo.DefaultBranch) == 0 {
 		return def
 	}
-	if err := repo.LoadOwner(ctx); err != nil || repo.Owner == nil {
-		return def
-	}
 	// a token that was not granted repository read scope must not learn repository details, even when the
 	// account behind it could read the repo through the web UI
 	if !goGetTokenCanReadRepo(ctx) {
 		return def
 	}
-	// the caller must be able to read the code and see the owner: a limited/private owner hides its repos
-	// from anonymous/non-member callers even when the repo itself is public
+	// the caller must be able to read the code
 	perm, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
-	if err != nil || !perm.CanRead(unit.TypeCode) || !user_model.IsUserVisibleToViewer(ctx, repo.Owner, ctx.Doer) {
+	if err != nil || !perm.CanRead(unit.TypeCode) {
 		return def
 	}
 	return repo.DefaultBranch

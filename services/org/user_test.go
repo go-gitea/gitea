@@ -47,26 +47,21 @@ func TestUser_RemoveMember(t *testing.T) {
 func TestRemoveOrgUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	testSuccess := func(org *organization.Organization, user *user_model.User) {
-		expectedNumMembers := org.NumMembers
-		if unittest.GetBean(t, &organization.OrgUser{OrgID: org.ID, UID: user.ID}) != nil {
-			expectedNumMembers--
-		}
-		assert.NoError(t, RemoveOrgUser(t.Context(), org, user))
-		unittest.AssertNotExistsBean(t, &organization.OrgUser{OrgID: org.ID, UID: user.ID})
-		org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: org.ID})
-		assert.Equal(t, expectedNumMembers, org.NumMembers)
-	}
-
 	org3 := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
 	org7 := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 7})
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 
-	testSuccess(org3, user4)
-
-	org3 = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
-	testSuccess(org3, user4)
+	for range 2 {
+		expectedNumMembers := org3.NumMembers
+		if unittest.GetBean(t, &organization.OrgUser{OrgID: org3.ID, UID: user4.ID}) != nil {
+			expectedNumMembers--
+		}
+		assert.NoError(t, RemoveOrgUser(t.Context(), org3, user4))
+		unittest.AssertNotExistsBean(t, &organization.OrgUser{OrgID: org3.ID, UID: user4.ID})
+		org3 = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: org3.ID})
+		assert.Equal(t, expectedNumMembers, org3.NumMembers)
+	}
 
 	err := RemoveOrgUser(t.Context(), org7, user5)
 	assert.Error(t, err)

@@ -48,10 +48,21 @@ func TestRepoMigrate(t *testing.T) {
 
 	t.Run("ProviderEntries", func(t *testing.T) {
 		resp := session.MakeRequest(t, NewRequest(t, "GET", "/repo/migrate"), http.StatusOK)
-		entries := NewHTMLParser(t, resp.Body).Find(".migrate-entry .header").FilterFunction(func(_ int, s *goquery.Selection) bool {
+		entries := NewHTMLParser(t, resp.Body).Find(".migrate-entry-title").FilterFunction(func(_ int, s *goquery.Selection) bool {
 			return strings.Contains(s.Text(), "Bitbucket")
 		})
 		assert.Equal(t, 1, entries.Length())
 		assert.Equal(t, "Bitbucket", strings.TrimSpace(entries.Text()))
+	})
+
+	t.Run("BitbucketVariants", func(t *testing.T) {
+		for _, service := range structs.BitbucketService.Variants() {
+			resp := session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/repo/migrate?service_type=%d", service)), http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+			assert.Equal(t, fmt.Sprint(service), htmlDoc.GetInputValueByName("service"))
+			assert.Equal(t, 2, htmlDoc.Find(".ui.compact.menu a.item").Length())
+			assert.Contains(t, htmlDoc.Find(".ui.compact.menu a.item.active").AttrOr("href", ""), fmt.Sprintf("service_type=%d&", service))
+			assert.Equal(t, service == structs.BitbucketServerService, htmlDoc.Find(`input[name="auth_username"]`).Length() == 1)
+		}
 	})
 }

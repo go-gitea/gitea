@@ -111,8 +111,16 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
       const iframe = document.createElement('iframe');
       iframe.classList.add('markup-content-iframe', 'tw-invisible');
       iframe.srcdoc = html`<style>body { margin: 0; overflow: hidden; } #mermaid { display: block; margin: 0 auto; }</style>`;
-      const viewBoxHeight = svgNode.viewBox.baseVal?.height;
-      if (viewBoxHeight) iframe.style.height = `${Math.max(Math.ceil(viewBoxHeight), 85)}px`; // min-height keeps the buttons from overlapping
+      const viewBox = svgNode.viewBox.baseVal;
+      if (viewBox?.height) {
+        iframe.style.height = `${Math.ceil(viewBox.height)}px`;
+        iframe.style.minHeight = '85px'; // keeps the buttons from overlapping
+        if (svgNode.getAttribute('width') === '100%') { // svg shrinks to the iframe width, so the height must follow its aspect ratio
+          iframe.style.aspectRatio = `${viewBox.width} / ${viewBox.height}`;
+          iframe.style.maxHeight = iframe.style.height;
+          iframe.style.height = 'auto';
+        }
+      }
 
       // the iframe will be fully reloaded if its DOM context is changed (e.g.: moved in the DOM tree).
       // to avoid unnecessary reloading, we should insert the iframe to its final position only once.

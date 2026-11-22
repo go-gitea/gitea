@@ -31,143 +31,140 @@ func TestAPIIssuesReactions(t *testing.T) {
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/reactions", owner.Name, issue.Repo.Name, issue.Index)
+	t.Run("Issue", func(t *testing.T) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/reactions", owner.Name, issue.Repo.Name, issue.Index)
 
-	// Try to add not allowed reaction
-	req := NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
-		Reaction: "wrong",
-	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusForbidden)
+		// Try to add not allowed reaction
+		req := NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
+			Reaction: "wrong",
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
 
-	// Delete not allowed reaction
-	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
-		Reaction: "zzz",
-	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
+		// Delete not allowed reaction
+		req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
+			Reaction: "zzz",
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
 
-	// Add allowed reaction
-	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
-		Reaction: "rocket",
-	}).AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusCreated)
-	apiNewReaction := DecodeJSON(t, resp, &api.Reaction{})
+		// Add allowed reaction
+		req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
+			Reaction: "rocket",
+		}).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusCreated)
+		apiNewReaction := DecodeJSON(t, resp, &api.Reaction{})
 
-	// Add existing reaction
-	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
-		Reaction: "rocket",
-	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusOK)
+		// Add existing reaction
+		req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
+			Reaction: "rocket",
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
 
-	// Blocked user can't react to comment
-	user34 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34})
-	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
-		Reaction: "rocket",
-	}).AddTokenAuth(getUserToken(t, user34.Name, auth_model.AccessTokenScopeWriteIssue))
-	MakeRequest(t, req, http.StatusForbidden)
+		// Blocked user can't react to comment
+		user34 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34})
+		req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
+			Reaction: "rocket",
+		}).AddTokenAuth(getUserToken(t, user34.Name, auth_model.AccessTokenScopeWriteIssue))
+		MakeRequest(t, req, http.StatusForbidden)
 
-	// Get end result of reaction list of issue #1
-	req = NewRequest(t, "GET", urlStr).
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	apiReactions := DecodeJSON(t, resp, []*api.Reaction{})
-	expectResponse := make(map[int]api.Reaction)
-	expectResponse[0] = api.Reaction{
-		User:     convert.ToUser(t.Context(), user2, user2),
-		Reaction: "eyes",
-		Created:  time.Unix(1573248003, 0),
-	}
-	expectResponse[1] = *apiNewReaction
-	assert.Len(t, apiReactions, 2)
-	for i, r := range apiReactions {
-		assert.Equal(t, expectResponse[i].Reaction, r.Reaction)
-		assert.Equal(t, expectResponse[i].Created.Unix(), r.Created.Unix())
-		assert.Equal(t, expectResponse[i].User.ID, r.User.ID)
-	}
-}
+		// Get end result of reaction list of issue #1
+		req = NewRequest(t, "GET", urlStr).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		apiReactions := DecodeJSON(t, resp, []*api.Reaction{})
+		expectResponse := make(map[int]api.Reaction)
+		expectResponse[0] = api.Reaction{
+			User:     convert.ToUser(t.Context(), user2, user2),
+			Reaction: "eyes",
+			Created:  time.Unix(1573248003, 0),
+		}
+		expectResponse[1] = *apiNewReaction
+		assert.Len(t, apiReactions, 2)
+		for i, r := range apiReactions {
+			assert.Equal(t, expectResponse[i].Reaction, r.Reaction)
+			assert.Equal(t, expectResponse[i].Created.Unix(), r.Created.Unix())
+			assert.Equal(t, expectResponse[i].User.ID, r.User.ID)
+		}
+	})
 
-func TestAPICommentReactions(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	t.Run("Comment", func(t *testing.T) {
+		comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2})
+		_ = comment.LoadIssue(t.Context())
+		issue := comment.Issue
+		_ = issue.LoadRepo(t.Context())
+		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID})
 
-	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2})
-	_ = comment.LoadIssue(t.Context())
-	issue := comment.Issue
-	_ = issue.LoadRepo(t.Context())
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID})
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/reactions", owner.Name, issue.Repo.Name, comment.ID)
 
-	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+		// Try to add not allowed reaction
+		req := NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
+			Reaction: "wrong",
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
 
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/reactions", owner.Name, issue.Repo.Name, comment.ID)
+		// Delete none existing reaction
+		req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
+			Reaction: "eyes",
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
 
-	// Try to add not allowed reaction
-	req := NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
-		Reaction: "wrong",
-	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusForbidden)
+		t.Run("UnrelatedCommentID", func(t *testing.T) {
+			// Using the ID of a comment that does not belong to the repository must fail
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+			repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+			token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeWriteIssue)
+			urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/reactions", repoOwner.Name, repo.Name, comment.ID)
+			req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
+				Reaction: "+1",
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusNotFound)
+			req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
+				Reaction: "+1",
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusNotFound)
 
-	// Delete none existing reaction
-	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
-		Reaction: "eyes",
-	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
+			req = NewRequest(t, "GET", urlStr).
+				AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusNotFound)
+		})
 
-	t.Run("UnrelatedCommentID", func(t *testing.T) {
-		// Using the ID of a comment that does not belong to the repository must fail
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-		token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeWriteIssue)
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/reactions", repoOwner.Name, repo.Name, comment.ID)
+		// Add allowed reaction
 		req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 			Reaction: "+1",
 		}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNotFound)
-		req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
+		resp := MakeRequest(t, req, http.StatusCreated)
+		apiNewReaction := DecodeJSON(t, resp, &api.Reaction{})
+
+		// Add existing reaction
+		req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 			Reaction: "+1",
 		}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNotFound)
+		MakeRequest(t, req, http.StatusOK)
 
+		// Get end result of reaction list of issue #1
 		req = NewRequest(t, "GET", urlStr).
 			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNotFound)
+		resp = MakeRequest(t, req, http.StatusOK)
+		apiReactions := DecodeJSON(t, resp, []*api.Reaction{})
+		expectResponse := make(map[int]api.Reaction)
+		expectResponse[0] = api.Reaction{
+			User:     convert.ToUser(t.Context(), user2, user2),
+			Reaction: "laugh",
+			Created:  time.Unix(1573248004, 0),
+		}
+		expectResponse[1] = api.Reaction{
+			User:     convert.ToUser(t.Context(), user1, user1),
+			Reaction: "laugh",
+			Created:  time.Unix(1573248005, 0),
+		}
+		expectResponse[2] = *apiNewReaction
+		assert.Len(t, apiReactions, 3)
+		for i, r := range apiReactions {
+			assert.Equal(t, expectResponse[i].Reaction, r.Reaction)
+			assert.Equal(t, expectResponse[i].Created.Unix(), r.Created.Unix())
+			assert.Equal(t, expectResponse[i].User.ID, r.User.ID)
+		}
 	})
-
-	// Add allowed reaction
-	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
-		Reaction: "+1",
-	}).AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusCreated)
-	apiNewReaction := DecodeJSON(t, resp, &api.Reaction{})
-
-	// Add existing reaction
-	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
-		Reaction: "+1",
-	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusOK)
-
-	// Get end result of reaction list of issue #1
-	req = NewRequest(t, "GET", urlStr).
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	apiReactions := DecodeJSON(t, resp, []*api.Reaction{})
-	expectResponse := make(map[int]api.Reaction)
-	expectResponse[0] = api.Reaction{
-		User:     convert.ToUser(t.Context(), user2, user2),
-		Reaction: "laugh",
-		Created:  time.Unix(1573248004, 0),
-	}
-	expectResponse[1] = api.Reaction{
-		User:     convert.ToUser(t.Context(), user1, user1),
-		Reaction: "laugh",
-		Created:  time.Unix(1573248005, 0),
-	}
-	expectResponse[2] = *apiNewReaction
-	assert.Len(t, apiReactions, 3)
-	for i, r := range apiReactions {
-		assert.Equal(t, expectResponse[i].Reaction, r.Reaction)
-		assert.Equal(t, expectResponse[i].Created.Unix(), r.Created.Unix())
-		assert.Equal(t, expectResponse[i].User.ID, r.User.ID)
-	}
 }

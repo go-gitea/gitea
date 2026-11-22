@@ -14,7 +14,6 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
-	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -38,7 +37,6 @@ import (
 	"gitea.dev/services/gitdiff"
 	issue_service "gitea.dev/services/issue"
 	"gitea.dev/services/notifications"
-	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
 )
@@ -107,9 +105,7 @@ func ListPullRequests(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequestList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "500":
+	//   default:
 	//     "$ref": "#/responses/error"
 
 	labelIDs, err := base.StringsToInt64s(ctx.FormStrings("labels"))
@@ -133,7 +129,7 @@ func ListPullRequests(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 	prs, maxResults, err := issues_model.PullRequests(ctx, ctx.Repo.Repository.ID, &issues_model.PullRequestsOptions{
 		ListOptions: listOptions,
-		State:       ctx.FormTrim("state"),
+		IsClosed:    common.ParseIssueFilterStateIsClosed(ctx.FormTrim("state")),
 		SortType:    ctx.FormTrim("sort"),
 		Labels:      labelIDs,
 		MilestoneID: ctx.FormInt64("milestone"),
@@ -183,8 +179,8 @@ func GetPullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequest"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
@@ -242,8 +238,8 @@ func GetPullRequestByBaseHead(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequest"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	var headRepoID int64
 	var headBranch string
@@ -337,8 +333,8 @@ func DownloadPullDiffOrPatch(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/string"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
@@ -390,16 +386,8 @@ func CreatePullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/PullRequest"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	form := *web.GetForm[*api.CreatePullRequestOption](ctx)
 	if form.Head == form.Base {
@@ -414,7 +402,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	)
 
 	// Get repo/branch information
-	compareResult, closer := parseCompareInfo(ctx, form.Base+".."+form.Head)
+	compareResult, closer := parseCompareInfo(ctx, form.Base+"..."+form.Head)
 	if ctx.Written() {
 		return
 	}
@@ -422,6 +410,10 @@ func CreatePullRequest(ctx *context.APIContext) {
 
 	if !compareResult.BaseRef.IsBranch() || !compareResult.HeadRef.IsBranch() {
 		ctx.APIError(http.StatusUnprocessableEntity, "Invalid PullRequest: base and head must be branches")
+		return
+	}
+	if compareResult.CompareBase == "" {
+		ctx.APIError(http.StatusUnprocessableEntity, "Invalid PullRequest: base and head have no common history")
 		return
 	}
 
@@ -541,16 +533,8 @@ func CreatePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
-		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err.Error())
-		} else if errors.Is(err, issues_model.ErrMustCollaborator) {
-			ctx.APIError(http.StatusForbidden, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	if err := pull_service.NewPullRequest(ctx, ctx.Repo.Permission, prOpts); err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -591,18 +575,8 @@ func EditPullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/PullRequest"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/error"
-	//   "412":
-	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	form := web.GetForm[*api.EditPullRequestOption](ctx)
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
@@ -769,7 +743,6 @@ func EditPullRequest(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		notify_service.PullRequestChangeTargetBranch(ctx, ctx.Doer, pr, form.Base)
 	}
 
 	// update allow edits
@@ -826,8 +799,8 @@ func IsPullRequestMerged(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: pull request has been merged
-	//   "404":
-	//     description: pull request has not been merged
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
@@ -876,16 +849,10 @@ func MergePullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "405":
+	//   "201":
 	//     "$ref": "#/responses/empty"
-	//   "409":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm[*forms.MergePullRequestForm](ctx)
 
@@ -992,19 +959,12 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	if form.MergeWhenChecksSucceed {
-		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge)
-		if err != nil {
-			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
-				ctx.APIError(http.StatusConflict, err.Error())
-				return
-			}
-			ctx.APIErrorInternal(err)
-			return
-		} else if scheduled {
-			// nothing more to do ...
+		if err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge); err != nil {
+			ctx.APIErrorAuto(err)
+		} else {
 			ctx.Status(http.StatusCreated)
-			return
 		}
+		return
 	}
 
 	if err := pull_service.Merge(ctx, pr.ID, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
@@ -1127,7 +1087,14 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		return nil, nil
 	}
 
-	compareInfo, err := git_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef, headRef, compareReq.DirectComparison(), false)
+	compareInfo, err := git_service.GetCompareInfo(ctx, git_service.CompareBaseHead{
+		BaseRepo:    baseRepo,
+		BaseGitRepo: ctx.Repo.GitRepo,
+		BaseRef:     baseRef,
+		HeadRepo:    headRepo,
+		HeadGitRepo: headGitRepo,
+		HeadRef:     headRef,
+	}, compareReq.DirectComparison(), false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil
@@ -1168,14 +1135,8 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
@@ -1239,7 +1200,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	ctx.Status(http.StatusOK)
 }
 
-// MergePullRequest cancel an auto merge scheduled for a given PullRequest by index
+// CancelScheduledAutoMerge cancels an auto merge scheduled for a given PullRequest by index
 func CancelScheduledAutoMerge(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/pulls/{index}/merge repository repoCancelScheduledAutoMerge
 	// ---
@@ -1266,12 +1227,8 @@ func CancelScheduledAutoMerge(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	pullIndex := ctx.PathParamInt64("index")
 	pull, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, pullIndex)
@@ -1284,30 +1241,8 @@ func CancelScheduledAutoMerge(ctx *context.APIContext) {
 		return
 	}
 
-	exist, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if !exist {
-		ctx.APIErrorNotFound()
-		return
-	}
-
-	if ctx.Doer.ID != autoMerge.DoerID {
-		allowed, err := pull_service.IsUserAllowedToMerge(ctx, pull, ctx.Repo.Permission, ctx.Doer)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		if !allowed {
-			ctx.APIError(http.StatusForbidden, "user has no permission to cancel the scheduled auto merge")
-			return
-		}
-	}
-
-	if err := automerge.RemoveScheduledAutoMerge(ctx, ctx.Doer, pull); err != nil {
-		ctx.APIErrorInternal(err)
+	if err := automerge.CancelScheduledAutoMerge(ctx, ctx.Doer, pull, ctx.Repo.Permission); err != nil {
+		ctx.APIErrorAuto(err)
 	} else {
 		ctx.Status(http.StatusNoContent)
 	}
@@ -1356,8 +1291,8 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommitList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
@@ -1381,13 +1316,18 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	}
 	defer closer.Close()
 
-	var compareInfo git_service.CompareInfo
+	baseRef := git.RefNameFromBranch(pr.BaseBranch)
 	if pr.HasMerged {
-		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefName(pr.MergeBase), git.RefName(pr.GetGitHeadRefName()), false, false)
-	} else {
-		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefNameFromBranch(pr.BaseBranch), git.RefName(pr.GetGitHeadRefName()), false, false)
+		baseRef = git.RefName(pr.MergeBase)
 	}
-
+	compareInfo, err := git_service.GetCompareInfo(ctx, git_service.CompareBaseHead{
+		BaseRepo:    pr.BaseRepo,
+		BaseGitRepo: baseGitRepo,
+		BaseRef:     baseRef,
+		HeadRepo:    pr.BaseRepo,
+		HeadGitRepo: baseGitRepo,
+		HeadRef:     git.RefName(pr.GetGitHeadRefName()),
+	}, false, false)
 	if gitcmd.IsStderr(err, gitcmd.StderrBadRevision) {
 		ctx.APIError(http.StatusNotFound, "invalid base branch or revision")
 		return
@@ -1482,8 +1422,8 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ChangedFileList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
@@ -1507,12 +1447,18 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	baseGitRepo := ctx.Repo.GitRepo
 
-	var compareInfo git_service.CompareInfo
+	baseRef := git.RefNameFromBranch(pr.BaseBranch)
 	if pr.HasMerged {
-		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefName(pr.MergeBase), git.RefName(pr.GetGitHeadRefName()), false, false)
-	} else {
-		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefNameFromBranch(pr.BaseBranch), git.RefName(pr.GetGitHeadRefName()), false, false)
+		baseRef = git.RefName(pr.MergeBase)
 	}
+	compareInfo, err := git_service.GetCompareInfo(ctx, git_service.CompareBaseHead{
+		BaseRepo:    pr.BaseRepo,
+		BaseGitRepo: baseGitRepo,
+		BaseRef:     baseRef,
+		HeadRepo:    pr.BaseRepo,
+		HeadGitRepo: baseGitRepo,
+		HeadRef:     git.RefName(pr.GetGitHeadRefName()),
+	}, false, false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

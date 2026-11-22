@@ -27,7 +27,7 @@ type Client interface {
 }
 
 // newClient creates a LFS client
-func newClient(endpoint *url.URL, httpTransport *http.Transport) Client {
+func newClient(endpoint *url.URL, httpTransport http.RoundTripper) Client {
 	if endpoint.Scheme == "file" {
 		return newFilesystemClient(endpoint)
 	}
@@ -35,7 +35,7 @@ func newClient(endpoint *url.URL, httpTransport *http.Transport) Client {
 }
 
 // NewClientFromEndpoint creates a LFS client after resolving its endpoint.
-func NewClientFromEndpoint(cloneurl, lfsurl string, httpTransport *http.Transport) (Client, error) {
+func NewClientFromEndpoint(cloneurl, lfsurl string, httpTransport http.RoundTripper) (Client, error) {
 	endpoint := DetermineEndpoint(cloneurl, lfsurl)
 	if endpoint == nil {
 		source := cloneurl

@@ -11,17 +11,16 @@ import (
 	"strings"
 
 	actions_model "gitea.dev/models/actions"
-	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
 )
 
 // dispatchInputsForJob types a top-level job's `inputs.*` from EventPayload, empty for other events.
 func dispatchInputsForJob(run *actions_model.ActionRun, job *actions_model.ActionRunJob) (map[string]any, error) {
-	if run.Event != "workflow_dispatch" {
+	if run.Event != webhook_module.HookEventWorkflowDispatch {
 		return map[string]any{}, nil
 	}
 	var payload api.WorkflowDispatchPayload
@@ -85,7 +84,7 @@ func decodeWorkflowCallInputs(caller *actions_model.ActionRunJob) (map[string]an
 // calledWorkflowInputs overlays the run's dispatch inputs with `workflowCallInputs`, as GitHub does.
 func calledWorkflowInputs(ctx context.Context, run *actions_model.ActionRun, caller *actions_model.ActionRunJob, workflowCallInputs map[string]any) (map[string]any, error) {
 	top := caller
-	for run.Event == "workflow_dispatch" && top.ParentJobID != 0 {
+	for run.Event == webhook_module.HookEventWorkflowDispatch && top.ParentJobID != 0 {
 		parent, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, top.ParentJobID)
 		if err != nil {
 			return nil, fmt.Errorf("load caller job %d: %w", top.ParentJobID, err)
@@ -101,22 +100,6 @@ func calledWorkflowInputs(ctx context.Context, run *actions_model.ActionRun, cal
 		inputs[name] = value
 	}
 	return inputs, nil
-}
-
-// pullRequestTargetBaseSHA returns the base branch commit of a pull_request_target run, and whether the run is one.
-func pullRequestTargetBaseSHA(run *actions_model.ActionRun) (string, bool) {
-	if run.TriggerEvent != actions_module.GithubEventPullRequestTarget {
-		return "", false
-	}
-	payload, err := run.GetPullRequestEventPayload()
-	if err != nil {
-		log.Error("run %d: get pull request event payload: %v", run.ID, err)
-		return "", false
-	}
-	if payload.PullRequest == nil || payload.PullRequest.Base == nil || payload.PullRequest.Base.Sha == "" {
-		return "", false
-	}
-	return payload.PullRequest.Base.Sha, true
 }
 
 // evaluateJobIf evaluates a job's `if:`. An invalid `if:` skips the job and is reported in its summary.
