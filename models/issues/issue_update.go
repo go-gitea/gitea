@@ -530,7 +530,8 @@ func UpdateIssueMentions(ctx context.Context, issueID int64, mentions []*user_mo
 // UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.
 func UpdateIssueDeadline(ctx context.Context, issue *Issue, deadlineUnix timeutil.TimeStamp, doer *user_model.User) (err error) {
 	// if the deadline hasn't changed, do nothing
-	if issue.DeadlineUnix == deadlineUnix {
+	if issue.DeadlineUnix == deadlineUnix ||
+		(issue.DeadlineUnix.IsZero() && deadlineUnix.IsZero()) {
 		return nil
 	}
 

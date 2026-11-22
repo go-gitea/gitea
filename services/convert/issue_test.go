@@ -70,6 +70,10 @@ func TestToAPIIssue_Deadline(t *testing.T) {
 		issue.DeadlineUnix = deadlineUnix
 		assert.Nil(t, ToAPIIssue(ctx, doer, issue).Deadline, "legacy deadline %d should be treated as unset", deadlineUnix)
 	}
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	issue.DeadlineUnix = -86400
+	assert.Equal(t, issue.DeadlineUnix.AsTimePtr(), ToAPIIssue(ctx, doer, issue).Deadline, "pre-1970 deadline should be returned")
 }
 
 func TestToStopWatchesRespectsPermissions(t *testing.T) {
