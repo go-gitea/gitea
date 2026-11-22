@@ -90,7 +90,7 @@ func IssuePinMove(ctx *context.Context) {
 
 	form := &movePinIssueForm{}
 	if err := json.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &form); err != nil {
-		ctx.ServerErrorAuto(err)
+		ctx.JSONError("invalid request body")
 		return
 	}
 
