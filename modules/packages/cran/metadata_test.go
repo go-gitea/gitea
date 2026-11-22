@@ -72,9 +72,8 @@ func TestParsePackage(t *testing.T) {
 
 	t.Run("DecompressionLimit", func(t *testing.T) {
 		defer test.MockVariableValue(&packages.ArchiveDecompressionFloor, 0)()
-		buf := bytes.NewReader(test.WriteTarCompression(gzip.NewWriter, map[string]string{"dummy.txt": strings.Repeat("\x00", 1024*1024)}).Bytes())
-
-		_, err := ParsePackage(buf, buf.Size())
+		buf := test.WriteTarCompression(gzip.NewWriter, map[string]string{"dummy.txt": strings.Repeat("\x00", 1024*1024)})
+		_, err := ParsePackage(bytes.NewReader(buf.Bytes()))
 		assert.ErrorIs(t, err, packages.ErrContentTooLarge)
 	})
 }

@@ -16,9 +16,11 @@ var (
 		Storage *Storage
 		Enabled bool
 
-		LimitTotalOwnerCount     int64
-		LimitTotalOwnerSize      int64
-		MaxDecompressionRatio    int64
+		MaxDecompressionRatio int64
+
+		LimitTotalOwnerCount int64
+		LimitTotalOwnerSize  int64
+
 		LimitSizeAlpine          int64
 		LimitSizeArch            int64
 		LimitSizeCargo           int64
