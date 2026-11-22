@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -14,7 +15,9 @@ import (
 	"gitea.dev/actionslib/ping/v1/pingv1connect"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	"gitea.dev/actionslib/runner/v1/runnerv1connect"
+	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/setting"
 
 	"connectrpc.com/connect/v2"
@@ -23,6 +26,29 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+func TestActionsRunnerLegacyToken(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		ctx := t.Context()
+		runner := &actions_model.ActionRunner{UUID: "legacy-runner", Name: "Legacy runner"}
+		runner.GenerateAndFillToken()
+		runner.TokenSalt = "legacy-salt"
+		runner.TokenHash = auth_model.HashToken(runner.Token, runner.TokenSalt)
+		require.NoError(t, actions_model.CreateRunner(ctx, runner))
+
+		client := newMockRunnerClient(runner.UUID, runner.Token).runnerServiceClient
+		_, err := client.Declare(ctx, &runnerv1.DeclareRequest{})
+		require.NoError(t, err)
+
+		updated, err := actions_model.GetRunnerByID(ctx, runner.ID)
+		require.NoError(t, err)
+		assert.Equal(t, base.EncodeSha256(runner.Token), updated.TokenHash)
+		assert.Empty(t, updated.TokenSalt)
+
+		_, err = client.Declare(ctx, &runnerv1.DeclareRequest{})
+		require.NoError(t, err)
+	})
+}
 
 type mockRunner struct {
 	client *mockRunnerClient
