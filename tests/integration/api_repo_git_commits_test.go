@@ -162,7 +162,7 @@ func TestAPIReposGitCommitListWithoutSelectFields(t *testing.T) {
 	assert.Equal(t, "f27c2b2b03dcab38beaf89b0ab4ff61f6de63441", apiData[0].CommitMeta.SHA)
 	assert.Equal(t, (*api.CommitStats)(nil), apiData[0].Stats)
 	assert.Equal(t, (*api.PayloadCommitVerification)(nil), apiData[0].RepoCommit.Verification)
-	assert.Equal(t, ([]*api.CommitAffectedFiles)(nil), apiData[0].Files)
+	assert.Equal(t, []*api.CommitAffectedFiles{}, apiData[0].Files)
 }
 
 func TestDownloadCommitDiffOrPatch(t *testing.T) {

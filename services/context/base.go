@@ -112,9 +112,13 @@ func (b *Base) HTTPError(status int, contents ...string) {
 
 // JSON render content as JSON
 func (b *Base) JSON(status int, content any) {
+	b.writeJSON(status, content, json.MarshalWriteRelaxed)
+}
+
+func (b *Base) writeJSON(status int, content any, marshalWrite func(io.Writer, any) error) {
 	b.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
 	b.Resp.WriteHeader(status)
-	if err := json.MarshalWriteRelaxed(b.Resp, content); err != nil {
+	if err := marshalWrite(b.Resp, content); err != nil {
 		log.Error("Render JSON failed: %v", err)
 	}
 }
