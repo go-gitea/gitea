@@ -22,7 +22,7 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 		Validation bool
 	}{}
 	if err := jsonlimit.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &params); err != nil {
-		ctx.PrivateInternalErrorf("%v", err)
+		ctx.PrivateUserErrorf(http.StatusBadRequest, "invalid request body: %v", err)
 		return
 	}
 
