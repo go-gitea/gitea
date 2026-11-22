@@ -40,7 +40,7 @@ type manifestCreationInfo struct {
 
 func processManifest(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
 	var index oci.Index
-	if err := json.NewDecoder(buf).Decode(&index); err != nil {
+	if err := json.DecodeWithLimit(buf, 100*1024*1024, &index); err != nil {
 		return "", err
 	}
 	if index.SchemaVersion != 2 {
@@ -160,7 +160,7 @@ func processOciImageManifest(ctx context.Context, mci *manifestCreationInfo, buf
 
 func processOciImageIndex(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (manifestDigest string, errRet error) {
 	var index oci.Index
-	if err := json.NewDecoder(buf).Decode(&index); err != nil {
+	if err := json.DecodeWithLimit(buf, 100*1024*1024, &index); err != nil {
 		return "", err
 	}
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {

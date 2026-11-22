@@ -430,7 +430,7 @@ func inspectTarball(data []byte) (hasShrinkwrap, hasInstallScript bool) {
 		case strings.HasSuffix(name, ".gyp"):
 			hasGypFile = true
 		case strings.HasSuffix(name, "/package.json"):
-			_ = json.NewDecoder(io.LimitReader(tr, maxNpmPackageJSONBytes)).Decode(&pkg)
+			_ = json.DecodeWithLimit(tr, maxNpmPackageJSONBytes, &pkg)
 		}
 	}
 	// npm publish adds "install": "node-gyp rebuild" for a root *.gyp file to the manifest, but not to the tarball

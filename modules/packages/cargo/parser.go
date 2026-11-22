@@ -119,7 +119,7 @@ func parsePackage(r io.Reader) (*Package, error) {
 		Repository    string              `json:"repository"`
 		Links         string              `json:"links"`
 	}
-	if err := json.NewDecoder(r).Decode(&meta); err != nil {
+	if err := json.DecodeWithLimit(r, 100*1024*1024, &meta); err != nil {
 		return nil, err
 	}
 

@@ -42,7 +42,7 @@ func UpdateRepositoryNames(ctx context.Context, owner *user_model.User, newOwner
 
 func ParseManifestMetadata(ctx context.Context, rd io.Reader, ownerID int64, imageName string) (*v1.Manifest, *packages_model.PackageFileDescriptor, *container_module.Metadata, error) {
 	var manifest v1.Manifest
-	if err := json.NewDecoder(rd).Decode(&manifest); err != nil {
+	if err := json.DecodeWithLimit(rd, 10*1024*1024, &manifest); err != nil {
 		return nil, nil, nil, err
 	}
 	configDescriptor, err := container_service.GetContainerBlob(ctx, &container_service.BlobSearchOptions{

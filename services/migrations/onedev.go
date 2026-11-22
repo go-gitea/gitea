@@ -131,8 +131,7 @@ func (d *OneDevDownloader) callAPI(ctx context.Context, endpoint string, paramet
 	}
 	defer resp.Body.Close()
 
-	decoder := json.NewDecoder(resp.Body)
-	return decoder.Decode(&result)
+	return json.DecodeWithLimit(resp.Body, 100*1024*1024, &result)
 }
 
 func (d *OneDevDownloader) getServerVersionByEndpoint(ctx context.Context, endpoint string) (*version.Version, error) {

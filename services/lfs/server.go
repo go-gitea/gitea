@@ -423,10 +423,7 @@ func VerifyHandler(ctx *context.Context) {
 }
 
 func decodeJSON(req *http.Request, v any) error {
-	defer req.Body.Close()
-
-	dec := json.NewDecoder(req.Body)
-	return dec.Decode(v)
+	return json.DecodeWithLimit(req.Body, 100*1024*1024, v)
 }
 
 func getRequestContext(ctx *context.Context) *requestContext {

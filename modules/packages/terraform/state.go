@@ -21,7 +21,7 @@ type State struct {
 // ParseState parses the required parts of Terraform state file
 func ParseState(r io.Reader) (*State, error) {
 	var state State
-	err := json.NewDecoder(r).Decode(&state)
+	err := json.DecodeWithLimit(r, 100*1024*1024, &state)
 	if err != nil {
 		return nil, err
 	}

@@ -320,7 +320,7 @@ func (c *CodeCommitDownloader) callAPI(ctx context.Context, operation string, in
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusOK {
-		return json.NewDecoder(resp.Body).Decode(output)
+		return json.DecodeWithLimit(resp.Body, 100*1024*1024, output)
 	}
 	respBody, _ := io.ReadAll(resp.Body)
 	return fmt.Errorf("CodeCommit %s: %s: %s", operation, resp.Status, respBody)

@@ -190,7 +190,7 @@ func (b *BitbucketDownloader) doAPI(ctx context.Context, path string, query url.
 	if resp.StatusCode != http.StatusOK {
 		return &bbsStatusError{Status: resp.StatusCode, URL: req.URL.String()}
 	}
-	return json.NewDecoder(resp.Body).Decode(out)
+	return json.DecodeWithLimit(resp.Body, 100*1024*1024, out)
 }
 
 func bitbucketUserID(user bitbucketUser) int64 {

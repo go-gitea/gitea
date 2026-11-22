@@ -164,7 +164,7 @@ func parseOCIImageConfig(r io.Reader) (*Metadata, error) {
 
 func parseHelmConfig(r io.Reader) (*Metadata, error) {
 	var config helm.Metadata
-	if err := json.NewDecoder(r).Decode(&config); err != nil {
+	if err := json.DecodeWithLimit(r, 100*1024*1024, &config); err != nil {
 		return nil, err
 	}
 

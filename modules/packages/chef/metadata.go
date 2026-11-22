@@ -112,7 +112,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 // ParseChefMetadata parses a metadata.json file to retrieve the metadata of a Chef package
 func ParseChefMetadata(r io.Reader) (*Package, error) {
 	var cm chefMetadata
-	if err := json.NewDecoder(packages.NewLimitedReader(r, packages.MaxMetadataSize)).Decode(&cm); err != nil {
+	if err := json.DecodeWithLimit(r, packages.MaxMetadataSize, &cm); err != nil {
 		return nil, err
 	}
 

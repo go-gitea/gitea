@@ -141,7 +141,7 @@ func (renderer) Render(ctx *markup.RenderContext, input io.Reader, outputWriter 
 	htmlWriter := htmlutil.NewHTMLWriter(outputWriter)
 	// the size is (should be) checked and/or limited by the caller to avoid OOM
 	var notebook Notebook
-	if err := json.NewDecoder(input).Decode(&notebook); err != nil {
+	if err := json.DecodeWithLimit(input, setting.UI.MaxDisplayFileSize, &notebook); err != nil {
 		htmlWriter.WriteFormatf(`<div class="ui error message">Failed to parse notebook JSON: %v</div>`, err)
 		return htmlWriter.Err()
 	}
