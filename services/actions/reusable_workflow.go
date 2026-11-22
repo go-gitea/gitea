@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -34,8 +35,8 @@ import (
 	"xorm.io/builder"
 )
 
-// MaxReusableCallLevels allows nine calls across ten workflows, including the top-level workflow.
-const MaxReusableCallLevels = 8
+// MaxReusableCallLevels counts ancestors of the deepest caller, leaving room for the caller and its callee.
+const MaxReusableCallLevels = model.MaxWorkflowCallDepth - 2
 
 // checkRunJobLimit rejects adding jobs that would push the attempt over actions_model.MaxJobNumPerRun.
 // checkCallerChain bounds nesting *depth*, but a reusable graph also fans out in *breadth*: without a
@@ -105,8 +106,8 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 // validateCalledWorkflows validates all workflows content calls, recursively.
 func validateCalledWorkflows(ctx context.Context, run *actions_model.ActionRun, content []byte) error {
 	validated := make(container.Set[string])
-	var validate func(content []byte, source *actions_model.ActionRunJob, level int) error
-	validate = func(content []byte, source *actions_model.ActionRunJob, level int) error {
+	var validate func([]byte, *actions_model.ActionRunJob, int, string) error
+	validate = func(content []byte, source *actions_model.ActionRunJob, level int, callerCacheMode string) error {
 		workflow, err := jobparser.ReadWorkflow(content)
 		if err != nil {
 			return err
@@ -115,6 +116,10 @@ func validateCalledWorkflows(ctx context.Context, run *actions_model.ActionRun, 
 			return err
 		}
 		for _, id := range slices.Sorted(maps.Keys(workflow.Jobs)) {
+			jobCacheMode, err := childCacheMode(callerCacheMode, workflow.CacheMode, id, workflow.Jobs[id].CacheMode)
+			if err != nil {
+				return err
+			}
 			uses := workflow.Jobs[id].Uses
 			if uses == "" {
 				continue
@@ -122,7 +127,7 @@ func validateCalledWorkflows(ctx context.Context, run *actions_model.ActionRun, 
 			if level > MaxReusableCallLevels {
 				return errCallLevelExceeded(uses)
 			}
-			if !validated.Add(fmt.Sprintf("%d@%s:%s", source.WorkflowSourceRepoID, source.WorkflowSourceCommitSHA, uses)) {
+			if !validated.Add(fmt.Sprintf("%d@%s:%s:%s", source.WorkflowSourceRepoID, source.WorkflowSourceCommitSHA, uses, jobCacheMode)) {
 				continue
 			}
 			ref, err := ResolveUses(ctx, uses)
@@ -134,7 +139,7 @@ func validateCalledWorkflows(ctx context.Context, run *actions_model.ActionRun, 
 				return fmt.Errorf("job %s: %w", id, err)
 			}
 			if _, err = jobparser.ValidateWorkflowStatic(called.content); err == nil {
-				err = validate(called.content, &actions_model.ActionRunJob{WorkflowSourceRepoID: called.repoID, WorkflowSourceCommitSHA: called.commitSHA}, level+1)
+				err = validate(called.content, &actions_model.ActionRunJob{WorkflowSourceRepoID: called.repoID, WorkflowSourceCommitSHA: called.commitSHA}, level+1, jobCacheMode)
 			}
 			if err != nil {
 				return fmt.Errorf("job %s: Error from called workflow %s: %w", id, uses, err)
@@ -142,7 +147,7 @@ func validateCalledWorkflows(ctx context.Context, run *actions_model.ActionRun, 
 		}
 		return nil
 	}
-	return validate(content, &actions_model.ActionRunJob{WorkflowSourceRepoID: run.WorkflowRepoID, WorkflowSourceCommitSHA: run.WorkflowCommitSHA}, 0)
+	return validate(content, &actions_model.ActionRunJob{WorkflowSourceRepoID: run.WorkflowRepoID, WorkflowSourceCommitSHA: run.WorkflowCommitSHA}, 0, "")
 }
 
 // checkSelfRepoStepExpressions rejects `$/` steps with expressions that runnerWorkflowPayload can't pin to the workflow's source.
@@ -166,16 +171,13 @@ func errCallLevelExceeded(uses string) error {
 }
 
 // resolveSameRepoWorkflowSourceCommit returns the commit to read a same-repo reusable workflow from.
-// pull_request_target runs must resolve local `uses:` at the PR base commit, not a stored head SHA.
 func resolveSameRepoWorkflowSourceCommit(run *actions_model.ActionRun, caller *actions_model.ActionRunJob) string {
 	// only a SHA copied from the run row can be the polluted head one; a SHA resolved from a `uses:` ref is right by construction
-	if run.IsScopedRun || caller.WorkflowSourceRepoID != run.RepoID || caller.WorkflowSourceCommitSHA != run.WorkflowCommitSHA {
+	if run.TriggerEvent != actions_module.GithubEventPullRequestTarget || run.IsScopedRun || caller.WorkflowSourceRepoID != run.RepoID || caller.WorkflowSourceCommitSHA != run.WorkflowCommitSHA {
 		return caller.WorkflowSourceCommitSHA
 	}
-	if baseSHA, ok := pullRequestTargetBaseSHA(run); ok && baseSHA != caller.WorkflowSourceCommitSHA {
-		return baseSHA
-	}
-	return caller.WorkflowSourceCommitSHA
+	_, _, _, sha := runRefs(run)
+	return sha
 }
 
 // readWorkflowFromRepo loads a workflow file from `repo` at `refOrSHA`.
@@ -294,8 +296,8 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 		return err
 	}
 
-	// 2. Parse the caller's own job (Uses, With, RawSecrets) from its WorkflowPayload.
-	parsedJob, err := caller.ParseJob()
+	// 2. Parse the caller's own job (Uses, With, RawSecrets) and its workflow's CacheMode fallback from its WorkflowPayload.
+	callerWorkflow, parsedJob, err := jobparser.ParseRawSingleWorkflow(caller.WorkflowPayload)
 	if err != nil {
 		return fmt.Errorf("parse caller job %d: %w", caller.ID, err)
 	}
@@ -408,7 +410,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 	}
 
 	// 9. We own the expansion: insert the direct children.
-	if err := insertCallerChildren(ctx, run, attempt, caller, source.content, source.repoID, source.commitSHA, vars, jobInputs); err != nil {
+	if err := insertCallerChildren(ctx, run, attempt, caller, cmp.Or(parsedJob.CacheMode, callerWorkflow.CacheMode), source, vars, jobInputs); err != nil {
 		// On failure, undo the partial expansion so an error return always leaves the caller unexpanded and childless.
 		return errors.Join(err, undoExpansion(ctx, caller))
 	}
@@ -422,7 +424,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 }
 
 // insertCallerChildren parses the called workflow with the caller's resolved inputs and inserts each parsed job.
-func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, content []byte, sourceRepoID int64, sourceCommitSHA string, vars map[string]string, inputs map[string]any) error {
+func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, callerCacheMode string, source *reusableWorkflowSource, vars map[string]string, inputs map[string]any) error {
 	callerPermissions := caller.TokenPermissions
 	if callerPermissions == nil {
 		actionsUnit, err := run.Repo.GetUnit(ctx, unit.TypeActions)
@@ -441,7 +443,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 	}
 
 	gitCtx := GenerateGiteaContext(ctx, run, attempt, nil)
-	childWorkflows, err := jobparser.Parse(content,
+	childWorkflows, err := jobparser.Parse(source.content,
 		jobparser.WithVars(vars),
 		jobparser.WithGitContext(gitCtx.ToGitHubContext()),
 		jobparser.WithInputs(inputs),
@@ -469,6 +471,9 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 		}
 		needs := parsedChild.Needs()
 		isMatrixDeferred := jobparser.HasDeferredMatrix(parsedChild)
+		if parsedChild.CacheMode, err = childCacheMode(callerCacheMode, sw.CacheMode, jobID, parsedChild.CacheMode); err != nil {
+			return err
+		}
 		if err := sw.SetJob(jobID, parsedChild.EraseNeeds()); err != nil {
 			return err
 		}
@@ -507,8 +512,8 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 			MaxParallel:             parseMaxParallel(jobID, parsedChild.Strategy.MaxParallelString),
 			Status:                  util.Iif(len(needs) > 0, actions_model.StatusPending, actions_model.StatusBlocked),
 			ParentJobID:             caller.ID,
-			WorkflowSourceRepoID:    sourceRepoID,
-			WorkflowSourceCommitSHA: sourceCommitSHA,
+			WorkflowSourceRepoID:    source.repoID,
+			WorkflowSourceCommitSHA: source.commitSHA,
 			IsMatrixDeferred:        isMatrixDeferred,
 		}
 		if isMatrixDeferred {
@@ -536,6 +541,20 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 		}
 	}
 	return nil
+}
+
+// childCacheMode resolves a called job's cache-mode, rejecting a job or even overridden workflow one beyond its caller's like GitHub.
+func childCacheMode(caller, workflow, jobID, job string) (string, error) {
+	if caller != "" && caller != "write" {
+		allowed := []string{"", "none", caller}
+		if !slices.Contains(allowed, workflow) {
+			return "", fmt.Errorf("cache-mode: The workflow is requesting '%s', but is only allowed '%s'", workflow, caller)
+		}
+		if !slices.Contains(allowed, job) {
+			return "", fmt.Errorf("cache-mode: The nested job '%s' is requesting '%s', but is only allowed '%s'", jobID, job, caller)
+		}
+	}
+	return cmp.Or(job, workflow, caller), nil
 }
 
 // ResolveUses normalizes and parses a reusable workflow `uses:` value.

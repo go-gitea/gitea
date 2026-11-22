@@ -210,8 +210,6 @@ func notify(ctx context.Context, input *notifyInput) error {
 		}
 	}
 
-	var detectedWorkflows []*actions_module.DetectedWorkflow
-	var filteredWorkflows []*actions_module.DetectedWorkflow
 	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
 	workflows, schedules, filtered, invalid, err := actions_module.DetectWorkflows(ctx, gitRepo, workflowCommit,
 		input.Event,
@@ -230,56 +228,32 @@ func notify(ctx context.Context, input *notifyInput) error {
 		len(schedules),
 	)
 
-	for _, wf := range workflows {
-		if actionsConfig.IsWorkflowDisabled(wf.EntryName) {
-			log.Trace("repo %s has disable workflows %s", input.Repo.FullName(), wf.EntryName)
-			continue
+	appendEnabled := func(dst, src []*actions_module.DetectedWorkflow, isTarget bool) []*actions_module.DetectedWorkflow {
+		for _, wf := range src {
+			if actionsConfig.IsWorkflowDisabled(wf.EntryName) {
+				log.Trace("repo %s has disable workflows %s", input.Repo.FullName(), wf.EntryName)
+			} else if (wf.TriggerEvent.Name == actions_module.GithubEventPullRequestTarget) == isTarget {
+				dst = append(dst, wf)
+			}
 		}
-
-		if wf.TriggerEvent.Name != actions_module.GithubEventPullRequestTarget {
-			detectedWorkflows = append(detectedWorkflows, wf)
-		}
+		return dst
 	}
+	detectedWorkflows, filteredWorkflows := appendEnabled(nil, workflows, false), appendEnabled(nil, filtered, false)
 
-	for _, wf := range filtered {
-		if actionsConfig.IsWorkflowDisabled(wf.EntryName) {
-			log.Trace("repo %s has disable workflows %s", input.Repo.FullName(), wf.EntryName)
-			continue
+	if input.PullRequest != nil && input.Event.IsPullRequest() {
+		// like GitHub, pull_request_target reads workflows from the default branch whatever the base
+		defaultCommit := baseCommit
+		if input.PullRequest.BaseBranch != input.Repo.DefaultBranch {
+			if defaultCommit, err = gitRepo.GetBranchCommit(ctx, input.Repo.DefaultBranch); err != nil {
+				return fmt.Errorf("notify: %w", err)
+			}
 		}
-
-		if wf.TriggerEvent.Name != actions_module.GithubEventPullRequestTarget {
-			filteredWorkflows = append(filteredWorkflows, wf)
-		}
-	}
-
-	if input.PullRequest != nil {
-		// detect pull_request_target workflows
-		baseWorkflows, _, baseFiltered, _, err := actions_module.DetectWorkflows(ctx, gitRepo, baseCommit, input.Event, input.Payload, false)
+		targetWorkflows, _, targetFiltered, _, err := actions_module.DetectWorkflows(ctx, gitRepo, defaultCommit, input.Event, input.Payload, false)
 		if err != nil {
 			return fmt.Errorf("DetectWorkflows: %w", err)
 		}
-		if len(baseWorkflows) == 0 {
-			log.Trace("repo %s with commit %s couldn't find pull_request_target workflows", input.Repo.FullName(), baseCommit.ID)
-		} else {
-			for _, wf := range baseWorkflows {
-				if actionsConfig.IsWorkflowDisabled(wf.EntryName) {
-					log.Trace("repo %s has disable workflows %s", input.Repo.FullName(), wf.EntryName)
-					continue
-				}
-				if wf.TriggerEvent.Name == actions_module.GithubEventPullRequestTarget {
-					detectedWorkflows = append(detectedWorkflows, wf)
-				}
-			}
-		}
-		for _, wf := range baseFiltered {
-			if actionsConfig.IsWorkflowDisabled(wf.EntryName) {
-				log.Trace("repo %s has disable workflows %s", input.Repo.FullName(), wf.EntryName)
-				continue
-			}
-			if wf.TriggerEvent.Name == actions_module.GithubEventPullRequestTarget {
-				filteredWorkflows = append(filteredWorkflows, wf)
-			}
-		}
+		detectedWorkflows = appendEnabled(detectedWorkflows, targetWorkflows, true)
+		filteredWorkflows = appendEnabled(filteredWorkflows, targetFiltered, true)
 	}
 
 	if shouldDetectSchedules {
@@ -396,7 +370,7 @@ func handleWorkflows(
 	for _, dwf := range detectedWorkflows {
 		// repo-level run: the workflow content is this repo at dwf.SourceCommitSHA
 		if err := buildApproveAndInsertRun(ctx, input, ref, commit, payload, isForkPullRequest, dwf, input.Repo.ID, false); err != nil {
-			log.Error("repo %s: %v", input.Repo.FullName(), err)
+			log.Error("repo %s workflow %s ref %s: %v", input.Repo.FullName(), dwf.EntryName, ref, err)
 			continue
 		}
 	}
@@ -440,6 +414,7 @@ func buildApproveAndInsertRun(
 		Status:            actions_model.StatusWaiting,
 		WorkflowRepoID:    workflowRepoID,
 		WorkflowCommitSHA: dwf.SourceCommitSHA,
+		WorkflowRef:       util.Iif(!isScopedRun && dwf.TriggerEvent.Name == actions_module.GithubEventPullRequestTarget, git.BranchPrefix+input.Repo.DefaultBranch, ""),
 		IsScopedRun:       isScopedRun,
 	}
 
@@ -594,7 +569,7 @@ func ifNeedApprovalWith(
 	hasMergedPR func(context.Context, int64, int64) (bool, error),
 ) (bool, error) {
 	// 1. don't need approval if it's not a fork PR
-	// 2. don't need approval if the event is `pull_request_target` since the workflow will run in the context of base branch
+	// 2. don't need approval if the event is `pull_request_target` since the workflow will run in the context of the default branch
 	// 		see https://docs.github.com/en/actions/managing-workflow-runs/approving-workflow-runs-from-public-forks#about-workflow-runs-from-public-forks
 	if !run.IsForkPullRequest || run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
 		return false, nil
@@ -816,7 +791,7 @@ func detectAndHandleScopedWorkflows(
 			}
 
 			if err := buildApproveAndInsertRun(ctx, input, ref, consumerCommit, payload, isForkPullRequest, dwf, sourceRepo.ID, true); err != nil {
-				log.Error("scoped workflows: source %s workflow %s: %v", sourceRepo.FullName(), dwf.EntryName, err)
+				log.Error("scoped workflows: source %s workflow %s for consumer %s ref %s: %v", sourceRepo.FullName(), dwf.EntryName, input.Repo.FullName(), ref, err)
 				continue
 			}
 		}

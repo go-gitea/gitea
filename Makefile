@@ -437,12 +437,12 @@ test-integration: $(EXECUTABLE)
 	@# Use a compiled binary: testlogger forwards gitea logs to t.Log, so `go test -v`
 	@# would flood output per passing test. testcache can't help these tests anyway —
 	@# they mutate the work directory, so cache inputs change between runs.
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c gitea.dev/tests/integration -o ./test-integration-$(GITEA_TEST_DATABASE).test
+	$(GO) test -ldflags=-w $(GOTEST_FLAGS) -tags '$(TAGS)' -c gitea.dev/tests/integration -o ./test-integration-$(GITEA_TEST_DATABASE).test
 	./tools/test-integration.sh ./test-integration-$(GITEA_TEST_DATABASE).test
 
 .PHONY: test-integration-compile
 test-integration-compile:
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c -o /dev/null gitea.dev/tests/integration
+	$(GO) test -ldflags=-w $(GOTEST_FLAGS) -tags '$(TAGS)' -c -o /dev/null gitea.dev/tests/integration
 
 TEST_INTEGRATION_GOALS := $(filter test-integration$(HASH)%,$(MAKECMDGOALS))
 .PHONY: $(TEST_INTEGRATION_GOALS)

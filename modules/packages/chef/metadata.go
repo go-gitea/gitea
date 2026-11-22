@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
@@ -108,7 +108,7 @@ func ParsePackage(r packages.SizedReader) (*Package, error) {
 // ParseChefMetadata parses a metadata.json file to retrieve the metadata of a Chef package
 func ParseChefMetadata(r io.Reader) (*Package, error) {
 	var cm chefMetadata
-	if err := json.NewDecoder(packages.NewLimitedReader(r, packages.MaxMetadataSize)).Decode(&cm); err != nil {
+	if err := jsonlimit.DecodeWithLimit(r, packages.MaxMetadataSize, &cm); err != nil {
 		return nil, err
 	}
 
