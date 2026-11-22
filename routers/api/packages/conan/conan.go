@@ -544,7 +544,12 @@ func DeletePackageV1(ctx *context.Context) {
 	}
 
 	var ids *PackageReferences
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&ids); err != nil {
+	// the request body is a list of package ids, bound it to avoid buffering arbitrarily large bodies
+	if err := json.NewDecoder(http.MaxBytesReader(ctx.Resp, ctx.Req.Body, 1024*1024)).Decode(&ids); err != nil {
+		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
+			apiError(ctx, http.StatusRequestEntityTooLarge, err)
+			return
+		}
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
