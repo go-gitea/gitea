@@ -99,9 +99,9 @@ async function toggleActionForm(show: boolean) {
 
 <template>
   <div :data-pull-merge-busy="showActionForm || forceMerge ? '' : undefined">
-    <div class="ui checkbox tw-flex tw-mb-4" v-if="!showActionForm && mergeForm.canBypassMerge && mergeStyle !== mergeStyleManuallyMerged">
+    <div class="ui checkbox flex mb-4" v-if="!showActionForm && mergeForm.canBypassMerge && mergeStyle !== mergeStyleManuallyMerged">
       <input type="checkbox" v-model="forceMerge">
-      <label class="tw-text-red tw-cursor-pointer">{{ mergeForm.textBypassRules }}</label>
+      <label class="text-red cursor-pointer">{{ mergeForm.textBypassRules }}</label>
     </div>
 
     <form ref="actionForm" class="ui form form-fetch-action" v-if="showActionForm" :action="mergeForm.baseLink+'/merge'" method="post">
@@ -122,7 +122,7 @@ async function toggleActionForm(show: boolean) {
         <input type="text" name="merge_commit_id" :placeholder="mergeForm.textMergeCommitId" required>
       </div>
 
-      <div class="flex-text-block tw-flex-wrap">
+      <div class="flex-text-block flex-wrap">
         <button class="ui button" :class="forceMerge ? 'red' : mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle" :disabled="actionDisabled">
           {{ buttonTexts.confirm }}
         </button>

@@ -17,7 +17,7 @@
 			{{range .Principals}}
 				<div class="item">
 					<div class="item-leading">
-						<span class="{{if .HasRecentActivity}}tw-text-green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.principal_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
+						<span class="{{if .HasRecentActivity}}text-green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.principal_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
 					</div>
 					<div class="item-main">
 						<div class="item-title">{{.Name}}</div>
@@ -36,7 +36,7 @@
 	</div>
 	<br>
 
-	<div {{if not .HasPrincipalError}}class="tw-hidden"{{end}} id="add-ssh-principal-panel">
+	<div {{if not .HasPrincipalError}}class="hidden"{{end}} id="add-ssh-principal-panel">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "settings.add_new_principal"}}
 		</h4>

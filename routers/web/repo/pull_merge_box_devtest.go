@@ -67,7 +67,7 @@ func DevtestPullMergeBox(ctx *context.Context) {
 
 	add("Ready to merge, out of date", func(prInfo *pullRequestViewInfo) {
 		data := prInfo.MergeBoxData
-		review(data, "octicon-check", "tw-bg-green", "repo.pulls.changes_approved", ctx.Locale.TrN(2, "repo.pulls.approvals_granted_1", "repo.pulls.approvals_granted_n", 2), false)
+		review(data, "octicon-check", "bg-green", "repo.pulls.changes_approved", ctx.Locale.TrN(2, "repo.pulls.approvals_granted_1", "repo.pulls.approvals_granted_n", 2), false)
 		data.StatusCheckData = checks(status("ci/lint", commitstatus.CommitStatusSuccess, "Successful in 32s"), status("ci/test", commitstatus.CommitStatusSuccess, "Successful in 2m"))
 		data.ShowUpdatePullInfo = true
 		data.UpdateStyleOptions = []*pullUpdateAction{
@@ -77,7 +77,7 @@ func DevtestPullMergeBox(ctx *context.Context) {
 		data.UpdatePrimaryAction = data.UpdateStyleOptions[0]
 	})
 	add("Review required, checks in progress", func(prInfo *pullRequestViewInfo) {
-		review(prInfo.MergeBoxData, "octicon-x", "tw-bg-red", "repo.pulls.review_required", ctx.Locale.TrN(1, "repo.pulls.approvals_required_1", "repo.pulls.approvals_required_n", 1), true)
+		review(prInfo.MergeBoxData, "octicon-x", "bg-red", "repo.pulls.review_required", ctx.Locale.TrN(1, "repo.pulls.approvals_required_1", "repo.pulls.approvals_required_n", 1), true)
 		prInfo.MergeBoxData.StatusCheckData = checks(
 			status("ci/lint", commitstatus.CommitStatusSuccess, "Successful in 32s"),
 			status("ci/test", commitstatus.CommitStatusPending, "Running"),
@@ -96,7 +96,7 @@ func DevtestPullMergeBox(ctx *context.Context) {
 	})
 	add("Changes requested, auto-merge enabled", func(prInfo *pullRequestViewInfo) {
 		data := prInfo.MergeBoxData
-		review(data, "octicon-file-diff", "tw-bg-red", "repo.issues.review.rejected", ctx.Locale.Tr("repo.pulls.blocked_by_rejection"), true)
+		review(data, "octicon-file-diff", "bg-red", "repo.issues.review.rejected", ctx.Locale.Tr("repo.pulls.blocked_by_rejection"), true)
 		data.AutoMerge = &pull_model.AutoMerge{Doer: &user_model.User{Name: "user2"}, MergeStyle: repo_model.MergeStyleSquash}
 		data.AutoMergeStyleName = trMergeStyleShortName(ctx.Locale, data.AutoMerge.MergeStyle)
 		data.CanCancelAutoMerge = true

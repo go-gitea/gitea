@@ -137,7 +137,7 @@ export function initRepoIssueCommentDelete() {
         const side = conversationHolder.getAttribute('data-side')!;
         const selector = isLineSame ? '.add-code-comment' : `.add-code-comment[data-side=${CSS.escape(side)}]`;
         const addCodeCommentButtons = parentTr.previousElementSibling!.querySelectorAll(selector);
-        toggleElemClass(addCodeCommentButtons, 'tw-invisible', false);
+        toggleElemClass(addCodeCommentButtons, 'invisible', false);
       }
       conversationHolder.remove();
     }

@@ -5,8 +5,8 @@
 		{{template "base/alert" .}}
 		<div class="status-page-error">
 			<div class="status-page-error-title">{{.ErrorCodeStatus}} {{.ErrorCodeText}}</div>
-			<div class="tw-text-center">
-				<div class="tw-my-4">
+			<div class="text-center">
+				<div class="my-4">
 				{{if .NotFoundPrompt}}
 					{{.NotFoundPrompt}}
 				{{else if eq .ErrorCodeStatus 404}}
@@ -14,7 +14,7 @@
 				{{end}}
 				</div>
 				{{if .NotFoundGoBackURL}}
-					<a class="tw-block tw-my-4" href="{{.NotFoundGoBackURL}}">{{ctx.Locale.Tr "go_back"}}</a>
+					<a class="block my-4" href="{{.NotFoundGoBackURL}}">{{ctx.Locale.Tr "go_back"}}</a>
 				{{end}}
 			</div>
 		</div>

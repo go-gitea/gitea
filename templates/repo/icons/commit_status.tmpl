@@ -1,18 +1,18 @@
 <!-- make sure the combined states match the color logic in web_src/js/components/DashboardRepoList.vue -->
 {{if eq .State "pending"}}
-	{{svg "octicon-dot-fill" 18 "commit-status icon tw-text-yellow"}}
+	{{svg "octicon-dot-fill" 18 "commit-status icon text-yellow"}}
 {{else if eq .State "running"}}
-	{{svg "gitea-running" 18 "commit-status icon tw-text-yellow rotate-clockwise"}}
+	{{svg "gitea-running" 18 "commit-status icon text-yellow rotate-clockwise"}}
 {{else if eq .State "success"}}
-	{{svg "octicon-check" 18 "commit-status icon tw-text-green"}}
+	{{svg "octicon-check" 18 "commit-status icon text-green"}}
 {{else if eq .State "error"}}
-	{{svg "gitea-exclamation" 18 "commit-status icon tw-text-red"}}
+	{{svg "gitea-exclamation" 18 "commit-status icon text-red"}}
 {{else if eq .State "failure"}}
-	{{svg "octicon-x" 18 "commit-status icon tw-text-red"}}
+	{{svg "octicon-x" 18 "commit-status icon text-red"}}
 {{else if eq .State "warning"}}
-	{{svg "gitea-exclamation" 18 "commit-status icon tw-text-yellow"}}
+	{{svg "gitea-exclamation" 18 "commit-status icon text-yellow"}}
 {{else if eq .State "skipped"}}
-	{{svg "octicon-skip" 18 "commit-status icon tw-text-text-light"}}
+	{{svg "octicon-skip" 18 "commit-status icon text-text-light"}}
 {{else}}{{/* external CI may report any state */}}
-	{{svg "octicon-question" 18 "commit-status icon tw-text-text-light"}}
+	{{svg "octicon-question" 18 "commit-status icon text-text-light"}}
 {{end}}

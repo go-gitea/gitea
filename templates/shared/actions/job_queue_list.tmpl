@@ -4,7 +4,7 @@
 >
 	<div class="ui top attached header flex-left-right">
 		<strong>{{ctx.Locale.Tr "actions.job_queue.title"}} ({{ctx.Locale.Tr "admin.total" .JobQueueTotal}})</strong>
-		<div class="ui secondary filter menu flex-text-block tw-m-0" id="actions-job-queue-filter">
+		<div class="ui secondary filter menu flex-text-block m-0" id="actions-job-queue-filter">
 			{{if .ShowRepoColumn}}
 			<div class="ui{{if not .JobQueueFilterOwners}} disabled{{end}} dropdown jump item">
 				<span class="text">{{if .JobQueueFilterOwnerName}}{{.JobQueueFilterOwnerName}}{{else}}{{ctx.Locale.Tr "repo.owner"}}{{end}}</span>
@@ -42,7 +42,7 @@
 					<a class="item{{if not .JobQueueFilterStatus}} selected{{end}}" href="?owner_id={{.JobQueueFilterOwnerID}}&repo_id={{.JobQueueFilterRepoID}}">{{ctx.Locale.Tr "actions.runs.status_no_select"}}</a>
 					{{range $status := .JobQueueFilterStatuses}}
 						<a class="item{{if eq $status $.JobQueueFilterStatus}} selected{{end}}" href="?owner_id={{$.JobQueueFilterOwnerID}}&repo_id={{$.JobQueueFilterRepoID}}&status={{$status}}">
-							<span class="flex-text-inline tw-gap-2">
+							<span class="flex-text-inline gap-2">
 								{{template "repo/icons/action_status" (dict "Status" $status)}}
 								{{ctx.Locale.Tr (printf "actions.status.%s" $status)}}
 							</span>
@@ -76,7 +76,7 @@
 					</td>
 					{{if $.ShowRepoColumn}}<td>{{if $job.Repo}}<a href="{{$job.Repo.Link}}">{{$job.Repo.FullName}}</a>{{end}}</td>{{end}}
 					<td>{{if $job.Run}}<a href="{{$job.Run.Link}}">{{$job.Name}} <span class="text grey">#{{$job.Run.Index}}</span></a>{{else}}{{$job.Name}}{{end}}</td>
-					<td><span class="flex-text-inline tw-flex-wrap">{{range $job.RunsOn}}<span class="ui label">{{.}}</span>{{end}}</span></td>
+					<td><span class="flex-text-inline flex-wrap">{{range $job.RunsOn}}<span class="ui label">{{.}}</span>{{end}}</span></td>
 					<td>{{index $.JobQueueRunners $job.TaskID}}</td>
 					<td>{{if and $job.Run $job.Repo}}<a href="{{$job.Repo.Link}}/commit/{{$job.Run.CommitSHA}}">{{ShortSha $job.Run.CommitSHA}}</a>{{end}}</td>
 					<td>{{if $job.Started}}{{DateUtils.TimeSince $job.Started}}{{else}}{{DateUtils.TimeSince $job.Updated}}{{end}}</td>
@@ -85,7 +85,7 @@
 			</tbody>
 		</table>
 	{{else}}
-		<div class="tw-text-center tw-p-4">{{ctx.Locale.Tr "actions.job_queue.no_jobs"}}</div>
+		<div class="text-center p-4">{{ctx.Locale.Tr "actions.job_queue.no_jobs"}}</div>
 	{{end}}
 	{{template "base/paginate" .}}
 	</div>

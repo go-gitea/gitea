@@ -61,9 +61,9 @@ const clear = () => { model.value = [] };
 <template>
   <div class="field">
     <label :id="labelId">{{ label }}</label>
-    <div v-if="readonly" class="flex-text-block tw-flex-wrap" role="group" :aria-labelledby="labelId">
+    <div v-if="readonly" class="flex-text-block flex-wrap" role="group" :aria-labelledby="labelId">
       <template v-if="!multiple">{{ selected[0]!.text }}</template>
-      <span v-else-if="!selected.length" class="tw-text-text-light-2">{{ placeholder }}</span>
+      <span v-else-if="!selected.length" class="text-text-light-2">{{ placeholder }}</span>
       <template v-else>
         <!-- eslint-disable-next-line vue/no-v-html -->
         <span v-for="option in selected" :key="String(option.value)" v-html="option.html"/>
@@ -74,7 +74,7 @@ const clear = () => { model.value = [] };
         <span :id="valueId" class="text" :class="{default: multiple && !selected.length}">
           <template v-if="!multiple">{{ selected[0]!.text }}</template>
           <template v-else-if="!selected.length">{{ placeholder }}</template>
-          <span v-else class="flex-text-inline tw-flex-wrap">
+          <span v-else class="flex-text-inline flex-wrap">
             <!-- eslint-disable-next-line vue/no-v-html -->
             <span v-for="option in selected" :key="String(option.value)" v-html="option.html"/>
           </span>
@@ -82,9 +82,9 @@ const clear = () => { model.value = [] };
         <SvgIcon name="octicon-triangle-down" :size="14" class="dropdown icon"/>
       </button>
       <!-- not .tippy-target: its "display: unset" puts the menu in an inline box, which Chromium can hit-test instead of the items -->
-      <div class="tw-hidden">
+      <div class="hidden">
         <div ref="elMenu">
-          <div v-if="multiple" class="tw-px-2 tw-pt-1 tw-pb-2">
+          <div v-if="multiple" class="px-2 pt-1 pb-2">
             <div class="ui small fluid icon input">
               <i class="icon"><SvgIcon name="octicon-search"/></i>
               <input
@@ -103,7 +103,7 @@ const clear = () => { model.value = [] };
               type="button" class="item" :role="multiple ? 'menuitemcheckbox' : 'menuitemradio'"
               :aria-checked="isSelected(option)" @click="choose(option)"
             >
-              <SvgIcon name="octicon-check" :class="{'tw-invisible': !isSelected(option)}"/>
+              <SvgIcon name="octicon-check" :class="{'invisible': !isSelected(option)}"/>
               <!-- eslint-disable-next-line vue/no-v-html -->
               <span v-if="multiple" v-html="option.html"/>
               <template v-else>{{ option.text }}</template>

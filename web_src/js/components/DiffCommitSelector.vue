@@ -246,7 +246,7 @@ function commitClickedShift(commit: Commit) {
         <div class="gt-ellipsis">
           {{ locale.show_all_commits }}
         </div>
-        <div class="gt-ellipsis tw-text-text-light-2 tw-mb-0">
+        <div class="gt-ellipsis text-text-light-2 mb-0">
           {{ locale.stats_num_commits }}
         </div>
       </div>
@@ -261,11 +261,11 @@ function commitClickedShift(commit: Commit) {
         <div class="gt-ellipsis">
           {{ locale.show_changes_since_your_last_review }}
         </div>
-        <div class="gt-ellipsis tw-text-text-light-2">
+        <div class="gt-ellipsis text-text-light-2">
           {{ commitsSinceLastReview }} commits
         </div>
       </div>
-      <span v-if="!isLoading" class="info tw-text-text-light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
+      <span v-if="!isLoading" class="info text-text-light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
       <template v-for="(commit, idx) in commits" :key="commit.id">
         <div
           class="item" role="menuitem"
@@ -280,11 +280,11 @@ function commitClickedShift(commit: Commit) {
           @click.meta.exact="commitClicked(commit.id, true)"
           @click.shift.exact.stop.prevent="commitClickedShift(commit)"
         >
-          <div class="tw-flex-1 tw-flex tw-flex-col tw-gap-1">
+          <div class="flex-1 flex flex-col gap-1">
             <div class="gt-ellipsis commit-list-summary">
               {{ commit.summary }}
             </div>
-            <div class="gt-ellipsis tw-text-text-light-2">
+            <div class="gt-ellipsis text-text-light-2">
               {{ commit.committer_or_author_name }}
               <span class="text right">
                 <!-- TODO: make this respect the PreferredTimestampTense setting -->
@@ -292,7 +292,7 @@ function commitClickedShift(commit: Commit) {
               </span>
             </div>
           </div>
-          <div class="tw-font-mono flex-text-block">
+          <div class="font-mono flex-text-block">
             <svg-icon name="octicon-check" :size="14" v-if="isActive(idx)"/>
             {{ commit.short_sha }}
           </div>

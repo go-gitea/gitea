@@ -7,11 +7,11 @@
 		<p>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_modal_desc"}}</p>
 		{{end}}
 		<div>
-			<h3 class="tw-m-0">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_title"}}</h3>
+			<h3 class="m-0">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_title"}}</h3>
 			{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_desc"}}
 		</div>
 		{{$args := $pull.GetInstructionsCliArgs}}
-		<div class="ui secondary segment tw-font-mono tw-overflow-x-auto tw-whitespace-nowrap">
+		<div class="ui secondary segment font-mono overflow-x-auto whitespace-nowrap">
 			{{$gitRemoteName := ctx.RootData.SystemConfig.Repository.GitGuideRemoteName.Value ctx}}
 			{{if eq $pull.Flow 0}}
 			<div>git fetch -u {{if ne $pull.HeadRepo.ID $pull.BaseRepo.ID}}{{$pull.HeadRepo.HTMLURL ctx}}{{else}}{{$gitRemoteName}}{{end}} {{$args.HeadBranchArg}}:{{$args.LocalBranchArg}}</div>
@@ -22,13 +22,13 @@
 		</div>
 		{{if $data.ShowMergeInstructions}}
 		<div>
-			<h3 class="tw-m-0">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_title"}}</h3>
+			<h3 class="m-0">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_title"}}</h3>
 			{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_desc"}}
 			{{if not $data.AutodetectManualMerge}}
 				<div>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_warning"}}</div>
 			{{end}}
 		</div>
-		<div class="ui secondary segment tw-font-mono tw-overflow-x-auto tw-whitespace-nowrap">
+		<div class="ui secondary segment font-mono overflow-x-auto whitespace-nowrap">
 			<div>git checkout {{$args.BaseBranchArg}}</div>
 			<div>git pull {{$gitRemoteName}} {{$args.BaseBranchArg}}</div>
 			<div>git merge --no-ff {{$args.LocalBranchArg}}</div>

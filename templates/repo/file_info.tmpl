@@ -1,4 +1,4 @@
-<div class="file-info tw-font-mono">
+<div class="file-info font-mono">
 	{{if .FileIsSymlink}}
 		<div class="file-info-entry">
 			{{ctx.Locale.Tr "repo.symbolic_link"}}
@@ -16,7 +16,7 @@
 	{{end}}
 	{{if .LFSLock}}
 		<div class="file-info-entry" data-tooltip-content="{{.LFSLockHint}}">
-			{{svg "octicon-lock" 16 "tw-mr-1"}}
+			{{svg "octicon-lock" 16 "mr-1"}}
 			<a href="{{.LFSLockOwnerHomeLink}}">{{.LFSLockOwner}}</a>
 		</div>
 	{{end}}

@@ -57,10 +57,10 @@ func TestGroupStatusChecks(t *testing.T) {
 	assert.Equal(t, "octicon-alert-fill", approvalData.StatusChecksSection(translation.MockLocale{}).StatusIcon)
 
 	assert.Equal(t, []statusCheckProgressSegment{
-		{StrokeClass: "tw-stroke-green", DashLength: 19, DashOffset: -2.5},
-		{StrokeClass: "tw-stroke-yellow", DashLength: 21, DashOffset: -26.5},
-		{StrokeClass: "tw-stroke-red", DashLength: 45, DashOffset: -52.5},
+		{StrokeClass: "stroke-green", DashLength: 19, DashOffset: -2.5},
+		{StrokeClass: "stroke-yellow", DashLength: 21, DashOffset: -26.5},
+		{StrokeClass: "stroke-red", DashLength: 45, DashOffset: -52.5},
 	}, (&pullCommitStatusCheckData{counts: map[statusCheckKind]int{statusCheckFailing: 50, statusCheckPending: 25, statusCheckInProgress: 1, statusCheckSuccessful: 24}}).progressSegments())
-	assert.Equal(t, []statusCheckProgressSegment{{StrokeClass: "tw-stroke-yellow", DashLength: 100, DashOffset: 0}},
+	assert.Equal(t, []statusCheckProgressSegment{{StrokeClass: "stroke-yellow", DashLength: 100, DashOffset: 0}},
 		(&pullCommitStatusCheckData{counts: map[statusCheckKind]int{statusCheckPending: 1, statusCheckInProgress: 1, statusCheckExpected: 1}}).progressSegments())
 }
