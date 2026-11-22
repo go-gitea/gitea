@@ -22,7 +22,6 @@ import (
 	packages_module "gitea.dev/modules/packages"
 	conan_module "gitea.dev/modules/packages/conan"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 	"gitea.dev/routers/api/packages/helper"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
@@ -64,17 +63,6 @@ func apiError(ctx *context.Context, status int, obj any) {
 	jsonResponse(ctx, status, map[string]string{
 		"message": message,
 	})
-}
-
-// decodeJSONBody decodes the size-limited request body into v.
-// On failure, it writes the error response and returns false.
-func decodeJSONBody(ctx *context.Context, v any) bool {
-	err := json.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, v)
-	if err != nil {
-		status := util.Iif(errors.Is(err, json.ErrTooLarge), http.StatusRequestEntityTooLarge, http.StatusBadRequest)
-		apiError(ctx, status, err)
-	}
-	return err == nil
 }
 
 func baseURL(ctx *context.Context) string {
@@ -318,7 +306,8 @@ func serveUploadURLs(ctx *context.Context, fileFilter container.Set[string], upl
 	defer ctx.Req.Body.Close()
 
 	var files map[string]int64
-	if !decodeJSONBody(ctx, &files) {
+	if err := json.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &files); err != nil {
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
@@ -555,7 +544,8 @@ func DeletePackageV1(ctx *context.Context) {
 	}
 
 	var ids *PackageReferences
-	if !decodeJSONBody(ctx, &ids) {
+	if err := json.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &ids); err != nil {
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
