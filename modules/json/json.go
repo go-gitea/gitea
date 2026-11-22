@@ -58,7 +58,6 @@ func NewDecoder(reader io.Reader) Decoder {
 	return DefaultJSONHandler.NewDecoder(reader)
 }
 
-// ErrTooLarge is returned by DecodeWithLimit when the input is larger than the limit
 var ErrTooLarge = errors.New("json: input exceeds the size limit")
 
 // DecodeWithLimit decodes a JSON value from reader into v, reading at most limit bytes.

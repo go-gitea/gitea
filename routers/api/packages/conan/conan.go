@@ -66,17 +66,15 @@ func apiError(ctx *context.Context, status int, obj any) {
 	})
 }
 
-// maxJSONBodySize caps the JSON request bodies of the v1 API (file lists and
-// package ids). They are small, so this bounds memory use without getting in
-// the way of real clients.
 const maxJSONBodySize = 1024 * 1024 // 1 MiB
 
-// decodeJSONBody decodes the size-limited request body into v. On failure it
-// writes the error response (413 if the body is too large, errStatus
-// otherwise) and returns false.
-func decodeJSONBody(ctx *context.Context, v any, errStatus int) bool {
+// decodeJSONBody decodes the size-limited request body into v.
+// On failure, it writes the error response and returns false.
+func decodeJSONBody(ctx *context.Context, v any) bool {
 	if err := json.DecodeWithLimit(ctx.Req.Body, maxJSONBodySize, v); err != nil {
-		apiError(ctx, util.Iif(errors.Is(err, json.ErrTooLarge), http.StatusRequestEntityTooLarge, errStatus), err)
+		_ = ctx.Req.Body.Close()
+		httpStatus := util.Iif(errors.Is(err, json.ErrTooLarge), http.StatusRequestEntityTooLarge, http.StatusBadRequest)
+		apiError(ctx, httpStatus, err)
 		return false
 	}
 	return true
@@ -323,7 +321,7 @@ func serveUploadURLs(ctx *context.Context, fileFilter container.Set[string], upl
 	defer ctx.Req.Body.Close()
 
 	var files map[string]int64
-	if !decodeJSONBody(ctx, &files, http.StatusBadRequest) {
+	if !decodeJSONBody(ctx, &files) {
 		return
 	}
 
@@ -560,7 +558,7 @@ func DeletePackageV1(ctx *context.Context) {
 	}
 
 	var ids *PackageReferences
-	if !decodeJSONBody(ctx, &ids, http.StatusInternalServerError) {
+	if !decodeJSONBody(ctx, &ids) {
 		return
 	}
 
