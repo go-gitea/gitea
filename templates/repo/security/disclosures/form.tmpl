@@ -18,8 +18,27 @@
 							"TextareaName" "content"
 							"TextareaContent" .content
 							"TextareaPlaceholder" (ctx.Locale.Tr "repo.security.description_placeholder")
+							"CustomInit" true
 						)}}
 					</div>
+					<details class="disclosure-credits" {{if or .IsNew .HasCredits}}open{{end}}>
+						<summary>
+							<span class="flex-text-block">
+								{{ctx.Locale.Tr "repo.security.credits"}}
+								{{if .CreditCount}}<span class="ui label">{{.CreditCount}}</span>{{end}}
+							</span>
+						</summary>
+						<div class="field tw-mt-2" id="disclosure-credits-field" data-global-init="initDisclosureCreditsEditor">
+							<p class="help">{{ctx.Locale.Tr "repo.security.credits_help"}}</p>
+							<div id="disclosure-credit-rows">
+								{{range $i, $row := .CreditRows}}
+									{{template "repo/security/disclosures/credit_row" (dict "Index" $i "Row" $row "AllCreditRoles" $.AllCreditRoles)}}
+								{{end}}
+							</div>
+							<button type="button" class="ui small basic button tw-mt-1" id="disclosure-credit-add">{{svg "octicon-plus" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.credit_add"}}</button>
+							<template id="disclosure-credit-row-template">{{template "repo/security/disclosures/credit_row" (dict "Index" "__INDEX__" "Row" (dict "Role" "" "Who" "" "External" false "URL" "") "AllCreditRoles" .AllCreditRoles)}}</template>
+						</div>
+					</details>
 					<div class="flex-text-block tw-justify-end">
 						<a class="ui button tw-mr-2" href="{{.CancelLink}}">{{ctx.Locale.Tr "repo.security.cancel"}}</a>
 						<button type="submit" class="ui primary button">{{.SubmitText}}</button>

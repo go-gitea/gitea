@@ -35,6 +35,33 @@ func TestDisclosureWeb(t *testing.T) {
 		assert.NotContains(t, body, "TLS certificate verification bypass") // draft is hidden
 	})
 
+	t.Run("Feed", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		// the list page advertises the feed via link tags and a button
+		resp := MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures"), http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.Equal(t, 1, htmlDoc.Find(`link[rel="alternate"][type="application/rss+xml"][href="/user2/repo1/security/disclosures.rss"]`).Length())
+		assert.Equal(t, 1, htmlDoc.Find(`link[rel="alternate"][type="application/atom+xml"][href="/user2/repo1/security/disclosures.atom"]`).Length())
+		assert.Equal(t, 1, htmlDoc.Find(`a[href="/user2/repo1/security/disclosures.rss"]`).Length())
+
+		// anonymous readers of the public repo get the feed, drafts are never included
+		resp = MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures.rss"), http.StatusOK)
+		assert.Equal(t, "application/rss+xml; charset=utf-8", resp.Header().Get("Content-Type"))
+		body := resp.Body.String()
+		assert.Contains(t, body, "Buffer overflow in URL parser")
+		assert.Contains(t, body, "SD-0001")
+		assert.NotContains(t, body, "TLS certificate verification bypass") // draft
+		assert.NotContains(t, body, "Private repo disclosure")             // other repo
+
+		resp = MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures.atom"), http.StatusOK)
+		assert.Equal(t, "application/atom+xml; charset=utf-8", resp.Header().Get("Content-Type"))
+		assert.Contains(t, resp.Body.String(), "Buffer overflow in URL parser")
+
+		// the feed of a private repo is not accessible anonymously
+		MakeRequest(t, NewRequest(t, "GET", "/user2/repo2/security/disclosures.rss"), http.StatusNotFound)
+	})
+
 	t.Run("ViewPublishedAnonymous", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 		req := NewRequest(t, "GET", "/user2/repo1/security/disclosures/1")
@@ -152,6 +179,61 @@ func TestDisclosureWeb(t *testing.T) {
 		// neither severity nor vector is rejected too
 		req = NewRequestWithValues(t, "POST", "/user2/repo1/security/disclosures/new", map[string]string{
 			"title": "no severity at all",
+		})
+		owner.MakeRequest(t, req, http.StatusOK)
+	})
+
+	t.Run("CreateWithCredits", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		owner := loginUser(t, "user2")
+
+		// one local user credit and one external person credit
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/security/disclosures/new", map[string]string{
+			"title":             "Credited disclosure",
+			"severity":          "low",
+			"credit_role_0":     "reporter",
+			"credit_who_0":      "user4",
+			"credit_role_1": "finder",
+			"credit_who_1":  "Jane Doe",
+			"credit_type_1": "external",
+			"credit_url_1":  "https://jane.example.com",
+		})
+		resp := owner.MakeRequest(t, req, http.StatusSeeOther)
+		location := resp.Header().Get("Location")
+
+		resp = owner.MakeRequest(t, NewRequest(t, "GET", location), http.StatusOK)
+		body := NewHTMLParser(t, resp.Body).Find(".page-content").Text()
+		assert.Contains(t, body, "user4")
+		assert.Contains(t, body, "Jane Doe")
+		assert.Contains(t, body, "Reporter")
+		assert.Contains(t, body, "Finder")
+
+		// the edit form is prefilled with the credits
+		resp = owner.MakeRequest(t, NewRequest(t, "GET", location+"/edit"), http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.Equal(t, "user4", htmlDoc.Find(`input[name="credit_who_0"]`).AttrOr("value", ""))
+		assert.Equal(t, "reporter", htmlDoc.Find(`select[name="credit_role_0"] option[selected]`).AttrOr("value", ""))
+		assert.Equal(t, "Jane Doe", htmlDoc.Find(`input[name="credit_who_1"]`).AttrOr("value", ""))
+		assert.Equal(t, "https://jane.example.com", htmlDoc.Find(`input[name="credit_url_1"]`).AttrOr("value", ""))
+		assert.Equal(t, "external", htmlDoc.Find(`select[name="credit_type_1"] option[selected]`).AttrOr("value", ""))
+
+		// the credits editor is a collapsible section in the main column, not the sidebar
+		assert.Equal(t, 1, htmlDoc.Find(`.issue-content-left details.disclosure-credits[open]`).Length())
+		assert.Equal(t, 0, htmlDoc.Find(`.issue-content-right #disclosure-credits-field`).Length())
+		assert.Equal(t, 1, htmlDoc.Find(`#disclosure-credit-add`).Length())
+		assert.Equal(t, 1, htmlDoc.Find(`#disclosure-credit-row-template`).Length())
+
+		// an unknown local user is rejected
+		req = NewRequestWithValues(t, "POST", "/user2/repo1/security/disclosures/new", map[string]string{
+			"title": "bad credit", "severity": "low",
+			"credit_role_0": "reporter", "credit_who_0": "nosuchuser",
+		})
+		owner.MakeRequest(t, req, http.StatusOK) // re-renders the form with an error
+
+		// an invalid external URL is rejected
+		req = NewRequestWithValues(t, "POST", "/user2/repo1/security/disclosures/new", map[string]string{
+			"title": "bad credit url", "severity": "low",
+			"credit_role_0": "finder", "credit_who_0": "Jane Doe", "credit_type_0": "external", "credit_url_0": "notaurl",
 		})
 		owner.MakeRequest(t, req, http.StatusOK)
 	})

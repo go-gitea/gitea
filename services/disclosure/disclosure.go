@@ -28,8 +28,23 @@ type Input struct {
 	References       []string
 	AffectedVersions []string
 	FixedVersions    []string
-	Status           disclosure_model.Status
-	WithdrawReason   string
+	// Credits are the raw credit entries; UserName refers to a local user, otherwise
+	// Name/URL describe an external person
+	Credits []CreditInput
+	// KeepCredits leaves the existing credits unchanged (API edit: credits not sent)
+	KeepCredits bool
+	// CreditsResolved is set by validateInput from Credits
+	CreditsResolved disclosure_model.CreditList
+	Status          disclosure_model.Status
+	WithdrawReason  string
+}
+
+// CreditInput is one raw credit entry from a form or API request
+type CreditInput struct {
+	Role     string
+	UserName string // local Gitea user name; when set, Name/URL are ignored
+	Name     string // external person's display name
+	URL      string // external person's optional link
 }
 
 const (
@@ -67,7 +82,7 @@ func SplitCommaSeparated(s string) []string {
 	return out
 }
 
-func validateInput(in *Input) error {
+func validateInput(ctx context.Context, in *Input) error {
 	in.Title = strings.TrimSpace(in.Title)
 	if in.Title == "" {
 		return util.NewInvalidArgumentErrorf("title is required")
@@ -112,7 +127,49 @@ func validateInput(in *Input) error {
 			return err
 		}
 	}
+	if !in.KeepCredits {
+		resolved, err := resolveCredits(ctx, in.Credits)
+		if err != nil {
+			return err
+		}
+		in.CreditsResolved = resolved
+	}
 	return nil
+}
+
+// resolveCredits validates raw credit entries and resolves local user names to user IDs.
+// The resolved credits are stored back on the input so applyTo can persist them.
+func resolveCredits(ctx context.Context, inputs []CreditInput) (disclosure_model.CreditList, error) {
+	if len(inputs) == 0 {
+		return nil, nil
+	}
+	credits := make(disclosure_model.CreditList, 0, len(inputs))
+	for _, in := range inputs {
+		role, err := disclosure_model.ParseCreditRole(strings.TrimSpace(in.Role))
+		if err != nil {
+			return nil, err
+		}
+		c := &disclosure_model.Credit{Role: role}
+		if userName := strings.TrimSpace(in.UserName); userName != "" {
+			user, err := user_model.GetUserByName(ctx, userName)
+			if err != nil {
+				if user_model.IsErrUserNotExist(err) {
+					return nil, util.NewInvalidArgumentErrorf("credit user %q does not exist", userName)
+				}
+				return nil, err
+			}
+			c.UserID = user.ID
+			c.Name = user.GetDisplayName()
+		} else {
+			c.Name = strings.TrimSpace(in.Name)
+			c.URL = strings.TrimSpace(in.URL)
+		}
+		credits = append(credits, c)
+	}
+	if err := disclosure_model.ValidateCredits(credits); err != nil {
+		return nil, err
+	}
+	return credits, nil
 }
 
 func (in *Input) applyTo(d *disclosure_model.Disclosure) {
@@ -124,12 +181,15 @@ func (in *Input) applyTo(d *disclosure_model.Disclosure) {
 	d.CweIds = disclosure_model.SanitizeVersions(in.CweIds)
 	d.CveID = strings.TrimSpace(in.CveID)
 	d.References = disclosure_model.SanitizeVersions(in.References)
+	if !in.KeepCredits {
+		d.Credits = in.CreditsResolved
+	}
 }
 
 // CreateDisclosure creates a new disclosure in the repo. Only callers with maintainer
 // permission should invoke this; the permission check happens in the routers.
 func CreateDisclosure(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, in *Input) (*disclosure_model.Disclosure, error) {
-	if err := validateInput(in); err != nil {
+	if err := validateInput(ctx, in); err != nil {
 		return nil, err
 	}
 	d := &disclosure_model.Disclosure{
@@ -166,7 +226,7 @@ func CreateDisclosure(ctx context.Context, repo *repo_model.Repository, doer *us
 
 // UpdateDisclosure updates an existing disclosure, including its status and versions
 func UpdateDisclosure(ctx context.Context, d *disclosure_model.Disclosure, doer *user_model.User, in *Input) error {
-	if err := validateInput(in); err != nil {
+	if err := validateInput(ctx, in); err != nil {
 		return err
 	}
 	in.applyTo(d)

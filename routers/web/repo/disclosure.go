@@ -5,6 +5,7 @@ package repo
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
+	"gitea.dev/routers/web/feed"
 	"gitea.dev/services/context"
 	disclosure_service "gitea.dev/services/disclosure"
 	"gitea.dev/services/forms"
@@ -43,6 +45,7 @@ func prepareDisclosurePage(ctx *context.Context) {
 	ctx.Data["PageIsSecurity"] = true
 	ctx.Data["Title"] = ctx.Tr("repo.security.disclosures")
 	ctx.Data["AllSeverities"] = AllSeverities
+	ctx.Data["AllCreditRoles"] = disclosure_model.AllCreditRoles
 	// only maintainers may manage disclosures
 	ctx.Data["CanManageDisclosures"] = ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Repository.IsArchived
 }
@@ -59,6 +62,7 @@ func prepareDisclosureFormData(ctx *context.Context, isNew bool, action, cancelL
 func SecurityHome(ctx *context.Context) {
 	ctx.Data["PageIsSecurity"] = true
 	ctx.Data["Title"] = ctx.Tr("repo.security")
+	ctx.Data["FeedURL"] = ctx.Repo.RepoLink + "/security/disclosures"
 	ctx.HTML(http.StatusOK, tplSecurityHome)
 }
 
@@ -118,7 +122,18 @@ func Disclosures(ctx *context.Context) {
 	ctx.Data["SortOrder"] = opts.OrderBy
 	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 	ctx.Data["Page"] = pager
+	ctx.Data["FeedURL"] = ctx.Repo.RepoLink + "/security/disclosures"
 	ctx.HTML(http.StatusOK, tplDisclosureList)
+}
+
+// DisclosuresFeedRSS serves the repo's published disclosures as RSS feed
+func DisclosuresFeedRSS(ctx *context.Context) {
+	feed.ShowDisclosureFeed(ctx, ctx.Repo.Repository, "rss")
+}
+
+// DisclosuresFeedAtom serves the repo's published disclosures as Atom feed
+func DisclosuresFeedAtom(ctx *context.Context) {
+	feed.ShowDisclosureFeed(ctx, ctx.Repo.Repository, "atom")
 }
 
 // getVisibleDisclosure loads a disclosure by ID, hiding drafts from non-maintainers
@@ -165,7 +180,85 @@ func ViewDisclosure(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplDisclosureView)
 }
 
-func disclosureFormToInput(formTitle, formSummary, formContent, formSeverity, formCVSS, formCweIds, formCveID, formReferences, formAffected, formFixed string) *disclosure_service.Input {
+// creditFormRow is one row of the credits editor in the disclosure form
+type creditFormRow struct {
+	Role     string
+	Who      string // local Gitea user name, or external person's name
+	External bool
+	URL      string
+}
+
+// parseCreditFormRows reads the indexed credit_* fields from the submitted form;
+// the JS editor keeps the rows contiguous starting at index 0
+func parseCreditFormRows(ctx *context.Context) []creditFormRow {
+	rows := make([]creditFormRow, 0, 8)
+	for i := 0; ; i++ {
+		if ctx.FormStrings(fmt.Sprintf("credit_role_%d", i)) == nil {
+			break
+		}
+		row := creditFormRow{
+			Role:     ctx.FormTrim(fmt.Sprintf("credit_role_%d", i)),
+			Who:      ctx.FormTrim(fmt.Sprintf("credit_who_%d", i)),
+			External: ctx.FormString(fmt.Sprintf("credit_type_%d", i)) == "external",
+			URL:      ctx.FormTrim(fmt.Sprintf("credit_url_%d", i)),
+		}
+		if row.Role == "" && row.Who == "" && row.URL == "" {
+			continue // empty row
+		}
+		rows = append(rows, row)
+	}
+	return rows
+}
+
+// creditInputs converts form rows to service credit inputs
+func creditInputs(rows []creditFormRow) []disclosure_service.CreditInput {
+	inputs := make([]disclosure_service.CreditInput, 0, len(rows))
+	for _, row := range rows {
+		in := disclosure_service.CreditInput{Role: row.Role, URL: row.URL}
+		if row.External {
+			in.Name = row.Who
+		} else {
+			in.UserName = row.Who
+		}
+		inputs = append(inputs, in)
+	}
+	return inputs
+}
+
+// setCreditFormRows makes the credit rows available to the form template,
+// always rendering at least one (empty) row
+func setCreditFormRows(ctx *context.Context, rows []creditFormRow) {
+	if len(rows) == 0 {
+		rows = append(rows, creditFormRow{})
+	}
+	count := 0
+	for _, row := range rows {
+		if row.Who != "" {
+			count++
+		}
+	}
+	ctx.Data["CreditRows"] = rows
+	ctx.Data["CreditCount"] = count
+	ctx.Data["HasCredits"] = count > 0
+}
+
+// creditFormRowsFromDisclosure converts stored credits back to form rows
+func creditFormRowsFromDisclosure(d *disclosure_model.Disclosure) []creditFormRow {
+	rows := make([]creditFormRow, 0, len(d.Credits))
+	for _, c := range d.Credits {
+		row := creditFormRow{Role: string(c.Role), URL: c.URL, External: c.UserID == 0}
+		if c.UserID > 0 && c.User != nil {
+			row.Who = c.User.Name
+		} else {
+			row.Who = c.Name
+			row.External = true
+		}
+		rows = append(rows, row)
+	}
+	return rows
+}
+
+func disclosureFormToInput(formTitle, formSummary, formContent, formSeverity, formCVSS, formCweIds, formCveID, formReferences, formAffected, formFixed string, creditRows []creditFormRow) *disclosure_service.Input {
 	return &disclosure_service.Input{
 		Title:            formTitle,
 		Summary:          formSummary,
@@ -177,6 +270,7 @@ func disclosureFormToInput(formTitle, formSummary, formContent, formSeverity, fo
 		References:       disclosure_service.SplitLines(formReferences),
 		AffectedVersions: disclosure_service.SplitLines(formAffected),
 		FixedVersions:    disclosure_service.SplitLines(formFixed),
+		Credits:          creditInputs(creditRows),
 	}
 }
 
@@ -186,6 +280,7 @@ func NewDisclosure(ctx *context.Context) {
 	ctx.Data["PageIsSecurityNew"] = true
 	ctx.Data["Title"] = ctx.Tr("repo.security.new_disclosure")
 	prepareDisclosureFormData(ctx, true, ctx.Repo.RepoLink+"/security/disclosures/new", ctx.Repo.RepoLink+"/security/disclosures", ctx.Locale.TrString("repo.security.create"))
+	setCreditFormRows(ctx, nil)
 	ctx.HTML(http.StatusOK, tplDisclosureNew)
 }
 
@@ -195,13 +290,15 @@ func NewDisclosurePost(ctx *context.Context) {
 	ctx.Data["PageIsSecurityNew"] = true
 	ctx.Data["Title"] = ctx.Tr("repo.security.new_disclosure")
 	prepareDisclosureFormData(ctx, true, ctx.Repo.RepoLink+"/security/disclosures/new", ctx.Repo.RepoLink+"/security/disclosures", ctx.Locale.TrString("repo.security.create"))
+	creditRows := parseCreditFormRows(ctx)
+	setCreditFormRows(ctx, creditRows)
 
 	form := web.GetForm[*forms.NewDisclosureForm](ctx)
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplDisclosureNew)
 		return
 	}
-	input := disclosureFormToInput(form.Title, form.Summary, form.Content, form.Severity, form.CVSSVector, form.CweIds, form.CveID, form.References, form.AffectedVersions, form.FixedVersions)
+	input := disclosureFormToInput(form.Title, form.Summary, form.Content, form.Severity, form.CVSSVector, form.CweIds, form.CveID, form.References, form.AffectedVersions, form.FixedVersions, creditRows)
 	if form.Publish {
 		input.Status = disclosure_model.StatusPublished
 	}
@@ -244,6 +341,7 @@ func EditDisclosure(ctx *context.Context) {
 	ctx.Data["affected_versions"] = strings.Join(d.AffectedVersions(), "\n")
 	ctx.Data["fixed_versions"] = strings.Join(d.FixedVersions(), "\n")
 	ctx.Data["status"] = string(d.Status)
+	setCreditFormRows(ctx, creditFormRowsFromDisclosure(d))
 	ctx.HTML(http.StatusOK, tplDisclosureEdit)
 }
 
@@ -260,13 +358,15 @@ func EditDisclosurePost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.security.edit_disclosure", d.Identifier())
 	link := ctx.Repo.RepoLink + "/security/disclosures/" + strconv.FormatInt(d.ID, 10)
 	prepareDisclosureFormData(ctx, false, link+"/edit", link, ctx.Locale.TrString("repo.security.save"))
+	creditRows := parseCreditFormRows(ctx)
+	setCreditFormRows(ctx, creditRows)
 
 	form := web.GetForm[*forms.EditDisclosureForm](ctx)
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplDisclosureEdit)
 		return
 	}
-	input := disclosureFormToInput(form.Title, form.Summary, form.Content, form.Severity, form.CVSSVector, form.CweIds, form.CveID, form.References, form.AffectedVersions, form.FixedVersions)
+	input := disclosureFormToInput(form.Title, form.Summary, form.Content, form.Severity, form.CVSSVector, form.CweIds, form.CveID, form.References, form.AffectedVersions, form.FixedVersions, creditRows)
 	input.Status = disclosure_model.Status(form.Status)
 	if err := disclosure_service.UpdateDisclosure(ctx, d, ctx.Doer, input); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {

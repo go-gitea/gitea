@@ -53,6 +53,7 @@ import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.ts'
 import {initGlobalSelectorObserver} from './modules/observer.ts';
 import {initRepositorySearch} from './features/repo-search.ts';
 import {initColorPickers} from './features/colorpicker.ts';
+import {initDisclosureCreditsEditor} from './features/repo-disclosure.ts';
 import {initAdminSelfCheck} from './features/admin/selfcheck.ts';
 import {initOAuth2SettingsDisableCheckbox} from './features/oauth2-settings.ts';
 import {initGlobalFetchAction} from './modules/fetch-action.ts';
@@ -162,6 +163,7 @@ const initPerformanceTracer = callInitFunctions([
   initUserSettings,
   initRepoDiffView,
   initColorPickers,
+  initDisclosureCreditsEditor,
 
   initOAuth2SettingsDisableCheckbox,
 

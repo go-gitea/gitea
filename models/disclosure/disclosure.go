@@ -159,6 +159,7 @@ type Disclosure struct {
 	CweIds         StringList         `xorm:"TEXT"`
 	CveID          string             `xorm:"VARCHAR(64)"` // optional reference to an existing CVE, never requested
 	References     StringList         `xorm:"TEXT"`
+	Credits        CreditList         `xorm:"TEXT"` // who is credited (local users and/or external people) and their role
 	Status         Status             `xorm:"VARCHAR(16) INDEX NOT NULL DEFAULT 'draft'"`
 	WithdrawReason string             `xorm:"TEXT"` // required when withdrawing
 	PublishedAt    timeutil.TimeStamp `xorm:"INDEX"`
@@ -345,6 +346,27 @@ func (d *Disclosure) LoadAttributes(ctx context.Context) error {
 		}
 		d.Versions = versions
 	}
+	return d.LoadCreditUsers(ctx)
+}
+
+// LoadCreditUsers resolves the local users referenced by the credits
+func (d *Disclosure) LoadCreditUsers(ctx context.Context) error {
+	userIDs := make([]int64, 0, len(d.Credits))
+	for _, c := range d.Credits {
+		if c.UserID > 0 {
+			userIDs = append(userIDs, c.UserID)
+		}
+	}
+	if len(userIDs) == 0 {
+		return nil
+	}
+	userMap, err := user_model.GetUsersMapByIDs(ctx, userIDs)
+	if err != nil {
+		return err
+	}
+	for _, c := range d.Credits {
+		c.User = userMap[c.UserID] // nil if the user was deleted, the name is the fallback
+	}
 	return nil
 }
 
@@ -365,6 +387,11 @@ func loadAttributes(ctx context.Context, list []*Disclosure) error {
 		if d.PublishedByID > 0 {
 			userIDs = append(userIDs, d.PublishedByID)
 		}
+		for _, c := range d.Credits {
+			if c.UserID > 0 {
+				userIDs = append(userIDs, c.UserID)
+			}
+		}
 	}
 	repoMap, err := repo_model.GetRepositoriesMapByIDs(ctx, repoIDs)
 	if err != nil {
@@ -383,6 +410,9 @@ func loadAttributes(ctx context.Context, list []*Disclosure) error {
 		d.Author = userMap[d.AuthorID]
 		d.Publisher = userMap[d.PublishedByID]
 		d.Versions = versionsMap[d.ID]
+		for _, c := range d.Credits {
+			c.User = userMap[c.UserID] // nil if the user was deleted, the name is the fallback
+		}
 	}
 	return nil
 }

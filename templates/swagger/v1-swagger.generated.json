@@ -27665,6 +27665,14 @@
           },
           "x-go-name": "AffectedVersions"
         },
+        "credits": {
+          "description": "Credits for the disclosure; null keeps, [] clears",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SecurityDisclosureCreditInput"
+          },
+          "x-go-name": "Credits"
+        },
         "cve_id": {
           "description": "An optional reference to an existing CVE record",
           "type": "string",
@@ -29150,6 +29158,13 @@
             "type": "string"
           },
           "x-go-name": "AffectedVersions"
+        },
+        "credits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SecurityDisclosureCreditInput"
+          },
+          "x-go-name": "Credits"
         },
         "cve_id": {
           "type": "string",
@@ -33292,6 +33307,14 @@
           "format": "date-time",
           "x-go-name": "CreatedAt"
         },
+        "credits": {
+          "description": "Credits: who is credited for the disclosure and their role",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SecurityDisclosureCredit"
+          },
+          "x-go-name": "Credits"
+        },
         "cve_id": {
           "description": "An optional reference to an existing CVE record",
           "type": "string",
@@ -33411,6 +33434,78 @@
           "description": "The CVSS version: \"3.0\", \"3.1\" or \"4.0\"",
           "type": "string",
           "x-go-name": "Version"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "SecurityDisclosureCredit": {
+      "description": "SecurityDisclosureCredit is one credit entry of a security disclosure: either a\nlocal Gitea user (User set) or an external person (Name, optionally with URL)",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "The display name (always set, also as fallback for deleted users)",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "role": {
+          "description": "The role the person played",
+          "type": "string",
+          "enum": [
+            "finder",
+            "reporter",
+            "analyst",
+            "coordinator",
+            "sponsor",
+            "other"
+          ],
+          "x-go-enum-desc": "finder SecurityDisclosureCreditRoleFinder\nreporter SecurityDisclosureCreditRoleReporter\nanalyst SecurityDisclosureCreditRoleAnalyst\ncoordinator SecurityDisclosureCreditRoleCoordinator\nsponsor SecurityDisclosureCreditRoleSponsor\nother SecurityDisclosureCreditRoleOther",
+          "x-go-name": "Role"
+        },
+        "url": {
+          "description": "Optional link, external people only",
+          "type": "string",
+          "x-go-name": "URL"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "SecurityDisclosureCreditInput": {
+      "description": "SecurityDisclosureCreditInput is one credit entry when creating or editing a disclosure",
+      "type": "object",
+      "required": [
+        "role"
+      ],
+      "properties": {
+        "name": {
+          "description": "The display name of an external person (not a Gitea user); required when user_name is not set",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "finder",
+            "reporter",
+            "analyst",
+            "coordinator",
+            "sponsor",
+            "other"
+          ],
+          "x-go-enum-desc": "finder SecurityDisclosureCreditRoleFinder\nreporter SecurityDisclosureCreditRoleReporter\nanalyst SecurityDisclosureCreditRoleAnalyst\ncoordinator SecurityDisclosureCreditRoleCoordinator\nsponsor SecurityDisclosureCreditRoleSponsor\nother SecurityDisclosureCreditRoleOther",
+          "x-go-name": "Role"
+        },
+        "url": {
+          "description": "Optional link of an external person",
+          "type": "string",
+          "x-go-name": "URL"
+        },
+        "user_name": {
+          "description": "The name of a local Gitea user; when set, Name/URL are ignored",
+          "type": "string",
+          "x-go-name": "UserName"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"

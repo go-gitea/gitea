@@ -69,6 +69,7 @@
 @import "./repo/list-header.css";
 @import "./repo/file-view.css";
 @import "./repo/wiki.css";
+@import "./repo/security.css";
 @import "./repo/home.css";
 @import "./repo/home-file-list.css";
 @import "./repo/reactions.css";

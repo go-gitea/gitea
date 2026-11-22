@@ -196,6 +196,7 @@ func CreateDisclosure(ctx *context.APIContext) {
 		References:       form.References,
 		AffectedVersions: form.AffectedVersions,
 		FixedVersions:    form.FixedVersions,
+		Credits:          creditInputsFromAPI(form.Credits),
 	}
 	if form.Publish {
 		input.Status = disclosure_model.StatusPublished
@@ -266,6 +267,10 @@ func EditDisclosure(ctx *context.APIContext) {
 		FixedVersions:    orKeep(form.FixedVersions, d.FixedVersions()),
 		Status:           disclosure_model.Status(util.IfZero(form.Status, string(d.Status))),
 		WithdrawReason:   util.IfZero(form.WithdrawReason, d.WithdrawReason),
+		KeepCredits:      form.Credits == nil, // null keeps the existing credits, [] clears them
+	}
+	if form.Credits != nil {
+		input.Credits = creditInputsFromAPI(form.Credits)
 	}
 	if err := disclosure_service.UpdateDisclosure(ctx, d, ctx.Doer, input); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
@@ -333,6 +338,23 @@ func orKeep[T any](got, cur []T) []T {
 		return cur
 	}
 	return got
+}
+
+// creditInputsFromAPI converts API credit entries to service credit inputs
+func creditInputsFromAPI(credits []structs.SecurityDisclosureCreditInput) []disclosure_service.CreditInput {
+	if credits == nil {
+		return nil
+	}
+	inputs := make([]disclosure_service.CreditInput, 0, len(credits))
+	for _, c := range credits {
+		inputs = append(inputs, disclosure_service.CreditInput{
+			Role:     string(c.Role),
+			UserName: c.UserName,
+			Name:     c.Name,
+			URL:      c.URL,
+		})
+	}
+	return inputs
 }
 
 // getAPIDisclosure loads the disclosure by path ID, hiding drafts from non-maintainers

@@ -118,6 +118,24 @@
 						{{range $d.References}}<span class="item"><a href="{{.}}" target="_blank" rel="noopener noreferrer" class="tw-break-all">{{.}}</a></span>{{end}}
 					</div>
 				{{end}}
+				{{if $d.Credits}}
+					<div class="divider"></div>
+					<span class="text"><strong>{{ctx.Locale.Tr "repo.security.credits"}}</strong></span>
+					<div class="ui list">
+						{{range $d.Credits}}
+							<span class="item tw-flex tw-items-center">
+								{{if .User}}
+									{{ctx.AvatarUtils.Avatar .User 20 "tw-mr-1"}}<a href="{{.User.HomeLink}}">{{.User.GetDisplayName}}</a>
+								{{else if .URL}}
+									<a href="{{.URL}}" target="_blank" rel="noopener noreferrer" class="tw-break-all">{{.Name}}</a>
+								{{else}}
+									<span>{{.Name}}</span>
+								{{end}}
+								<span class="ui tiny label tw-ml-1">{{ctx.Locale.Tr (print "repo.security.credit_role_" .Role)}}</span>
+							</span>
+						{{end}}
+					</div>
+				{{end}}
 
 				{{if .CanManageDisclosures}}
 					<div class="divider"></div>

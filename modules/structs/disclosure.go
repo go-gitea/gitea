@@ -21,6 +21,46 @@ const (
 	SecurityDisclosureSeverityCritical    SecurityDisclosureSeverity = "critical"
 )
 
+// SecurityDisclosureCreditRole is the role a credited person played in the disclosure
+// (CVE CNA vocabulary)
+//
+// swagger:enum SecurityDisclosureCreditRole
+type SecurityDisclosureCreditRole string
+
+const (
+	SecurityDisclosureCreditRoleFinder      SecurityDisclosureCreditRole = "finder"
+	SecurityDisclosureCreditRoleReporter    SecurityDisclosureCreditRole = "reporter"
+	SecurityDisclosureCreditRoleAnalyst     SecurityDisclosureCreditRole = "analyst"
+	SecurityDisclosureCreditRoleCoordinator SecurityDisclosureCreditRole = "coordinator"
+	SecurityDisclosureCreditRoleSponsor     SecurityDisclosureCreditRole = "sponsor"
+	SecurityDisclosureCreditRoleOther       SecurityDisclosureCreditRole = "other"
+)
+
+// SecurityDisclosureCredit is one credit entry of a security disclosure: either a
+// local Gitea user (User set) or an external person (Name, optionally with URL)
+type SecurityDisclosureCredit struct {
+	// The role the person played
+	Role SecurityDisclosureCreditRole `json:"role"`
+	// The display name (always set, also as fallback for deleted users)
+	Name string `json:"name"`
+	// Optional link, external people only
+	URL string `json:"url,omitempty"`
+	// The credited local user, if any
+	User *User `json:"user,omitempty"`
+}
+
+// SecurityDisclosureCreditInput is one credit entry when creating or editing a disclosure
+type SecurityDisclosureCreditInput struct {
+	// required: true
+	Role SecurityDisclosureCreditRole `json:"role" binding:"Required"`
+	// The name of a local Gitea user; when set, Name/URL are ignored
+	UserName string `json:"user_name,omitempty"`
+	// The display name of an external person (not a Gitea user); required when user_name is not set
+	Name string `json:"name,omitempty"`
+	// Optional link of an external person
+	URL string `json:"url,omitempty"`
+}
+
 // SecurityDisclosureCVSS is the optional CVSS vector of a security disclosure,
 // with the CVSS version encoded in the vector prefix
 type SecurityDisclosureCVSS struct {
@@ -54,6 +94,8 @@ type SecurityDisclosure struct {
 	CveID string `json:"cve_id,omitempty"`
 	// External references (URLs)
 	References []string `json:"references"`
+	// Credits: who is credited for the disclosure and their role
+	Credits []SecurityDisclosureCredit `json:"credits"`
 	// Affected version ranges, e.g. [">= 1.2.3, < 1.4.0"]
 	AffectedVersions []string `json:"affected_versions"`
 	// Fixed versions, e.g. ["1.4.0"]
@@ -96,6 +138,8 @@ type CreateSecurityDisclosureOption struct {
 	CveID string `json:"cve_id"`
 	// External references (URLs)
 	References []string `json:"references"`
+	// Credits for the disclosure; null keeps, [] clears
+	Credits []SecurityDisclosureCreditInput `json:"credits"`
 	// Affected version ranges, e.g. [">= 1.2.3, < 1.4.0"]
 	AffectedVersions []string `json:"affected_versions"`
 	// Fixed versions, e.g. ["1.4.0"]
@@ -110,13 +154,14 @@ type EditSecurityDisclosureOption struct {
 	Summary     string `json:"summary"`
 	Description string `json:"description"`
 	// When cvss_vector is set, the severity is derived from it instead
-	Severity         SecurityDisclosureSeverity `json:"severity"`
-	CVSSVector       string                     `json:"cvss_vector"`
-	CweIds           []string                   `json:"cwe_ids"`
-	CveID            string                     `json:"cve_id"`
-	References       []string                   `json:"references"`
-	AffectedVersions []string                   `json:"affected_versions"` // null keeps, [] clears
-	FixedVersions    []string                   `json:"fixed_versions"`    // null keeps, [] clears
+	Severity         SecurityDisclosureSeverity      `json:"severity"`
+	CVSSVector       string                          `json:"cvss_vector"`
+	CweIds           []string                        `json:"cwe_ids"`
+	CveID            string                          `json:"cve_id"`
+	References       []string                        `json:"references"`
+	Credits          []SecurityDisclosureCreditInput `json:"credits"`           // null keeps, [] clears
+	AffectedVersions []string                        `json:"affected_versions"` // null keeps, [] clears
+	FixedVersions    []string                        `json:"fixed_versions"`    // null keeps, [] clears
 	// enum: draft,published,withdrawn
 	Status string `json:"status"`
 	// The reason for withdrawing the disclosure, required when status is set to "withdrawn"

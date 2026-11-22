@@ -1,0 +1,10 @@
+.repository .disclosure-credits > summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-semibold);
+  padding: 4px 0;
+}
+
+.repository .disclosure-credits .disclosure-credit-row .ui.dropdown {
+  min-width: 0;
+  width: auto;
+}

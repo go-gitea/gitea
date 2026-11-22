@@ -1,0 +1,12 @@
+<div class="disclosure-credit-row tw-flex tw-flex-wrap tw-gap-1 tw-mb-1 tw-items-center">
+	<select class="ui selection dropdown" name="credit_role_{{.Index}}" aria-label="{{ctx.Locale.Tr "repo.security.credit_role"}}">
+		{{range .AllCreditRoles}}<option value="{{.}}" {{if eq (printf "%s" .) $.Row.Role}}selected{{end}}>{{ctx.Locale.Tr (print "repo.security.credit_role_" .)}}</option>{{end}}
+	</select>
+	<select class="ui selection dropdown disclosure-credit-type" name="credit_type_{{.Index}}" aria-label="{{ctx.Locale.Tr "repo.security.credit_type"}}">
+		<option value="user" {{if not $.Row.External}}selected{{end}}>{{ctx.Locale.Tr "repo.security.credit_type_user"}}</option>
+		<option value="external" {{if $.Row.External}}selected{{end}}>{{ctx.Locale.Tr "repo.security.credit_type_external"}}</option>
+	</select>
+	<input class="tw-flex-1 tw-min-w-40" name="credit_who_{{.Index}}" value="{{.Row.Who}}" maxlength="255" placeholder="{{ctx.Locale.Tr "repo.security.credit_who_placeholder"}}" aria-label="{{ctx.Locale.Tr "repo.security.credit_who"}}">
+	<input class="tw-w-48 disclosure-credit-url" name="credit_url_{{.Index}}" value="{{.Row.URL}}" maxlength="2048" placeholder="https://..." aria-label="{{ctx.Locale.Tr "repo.security.credit_url"}}" {{if not $.Row.External}}disabled{{end}}>
+	<button type="button" class="ui compact small basic icon button disclosure-credit-remove" data-tooltip-content="{{ctx.Locale.Tr "repo.security.credit_remove"}}" aria-label="{{ctx.Locale.Tr "repo.security.credit_remove"}}">{{svg "octicon-trash" 14}}</button>
+</div>

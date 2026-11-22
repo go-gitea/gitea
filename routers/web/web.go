@@ -1507,9 +1507,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("", repo.SecurityHome)
 			m.Group("/disclosures", func() {
 				m.Get("", repo.Disclosures)
+				m.Get(".rss", webAuth.AllowBasic, feedEnabled, repo.DisclosuresFeedRSS)
+				m.Get(".atom", webAuth.AllowBasic, feedEnabled, repo.DisclosuresFeedAtom)
 				m.Get("/{id}", repo.ViewDisclosure)
 			})
-		}, optSignIn, reqRepoSecurityReader)
+		}, optSignIn, reqRepoSecurityReader, ctxDataSet(reqctx.ContextData{"EnableFeed": setting.Other.EnableFeed}))
 		m.Group("/security/disclosures", func() {
 			m.Get("/new", repo.NewDisclosure)
 			m.Post("/new", web.Bind[*forms.NewDisclosureForm](), repo.NewDisclosurePost)

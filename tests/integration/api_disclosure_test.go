@@ -118,6 +118,55 @@ func TestAPIDisclosures(t *testing.T) {
 		post(&api.CreateSecurityDisclosureOption{Title: "x", Severity: "low", FixedVersions: []string{">= 1.0.0"}})
 	})
 
+	t.Run("Credits", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		// create with one local-user credit and one external credit
+		req := NewRequestWithJSON(t, "POST", baseURL, &api.CreateSecurityDisclosureOption{
+			Title:    "Credited disclosure",
+			Severity: "low",
+			Credits: []api.SecurityDisclosureCreditInput{
+				{Role: "reporter", UserName: "user4"},
+				{Role: "finder", Name: "Jane Doe", URL: "https://jane.example.com"},
+			},
+		}).AddTokenAuth(adminToken)
+		resp := MakeRequest(t, req, http.StatusCreated)
+		var created api.SecurityDisclosure
+		DecodeJSON(t, resp, &created)
+		require.Len(t, created.Credits, 2)
+		assert.Equal(t, api.SecurityDisclosureCreditRole("reporter"), created.Credits[0].Role)
+		assert.Equal(t, "user4", created.Credits[0].Name)
+		require.NotNil(t, created.Credits[0].User)
+		assert.Equal(t, "user4", created.Credits[0].User.UserName)
+		assert.Equal(t, api.SecurityDisclosureCreditRole("finder"), created.Credits[1].Role)
+		assert.Equal(t, "Jane Doe", created.Credits[1].Name)
+		assert.Equal(t, "https://jane.example.com", created.Credits[1].URL)
+		assert.Nil(t, created.Credits[1].User)
+
+		// unknown local user is rejected
+		req = NewRequestWithJSON(t, "POST", baseURL, &api.CreateSecurityDisclosureOption{
+			Title: "x", Severity: "low",
+			Credits: []api.SecurityDisclosureCreditInput{{Role: "reporter", UserName: "nosuchuser"}},
+		}).AddTokenAuth(adminToken)
+		MakeRequest(t, req, http.StatusBadRequest)
+
+		// PATCH without credits keeps them, PATCH with [] clears them
+		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("%s/%d", baseURL, created.ID), &api.EditSecurityDisclosureOption{
+			Title: "Credited disclosure (edited)",
+		})
+		resp = MakeRequest(t, req.AddTokenAuth(adminToken), http.StatusOK)
+		var edited api.SecurityDisclosure
+		DecodeJSON(t, resp, &edited)
+		assert.Len(t, edited.Credits, 2)
+
+		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("%s/%d", baseURL, created.ID), &api.EditSecurityDisclosureOption{
+			Credits: []api.SecurityDisclosureCreditInput{},
+		})
+		resp = MakeRequest(t, req.AddTokenAuth(adminToken), http.StatusOK)
+		DecodeJSON(t, resp, &edited)
+		assert.Empty(t, edited.Credits)
+	})
+
 	t.Run("CreateDerivesSeverityFromCVSS", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 		// no severity given: it is derived from the CVSS base score (7.5 -> high)
@@ -163,7 +212,7 @@ func TestAPIDisclosures(t *testing.T) {
 		var created api.SecurityDisclosure
 		DecodeJSON(t, resp, &created)
 		assert.Equal(t, "draft", created.Status)
-		assert.Equal(t, "SD-0005", created.Identifier) // two disclosures were created by the CVSS derivation subtest above
+		assert.Equal(t, "SD-0006", created.Identifier) // three disclosures were created by the subtests above
 		assert.Nil(t, created.PublishedAt)
 		require.NotNil(t, created.CVSS)
 		assert.Equal(t, "4.0", created.CVSS.Version)
