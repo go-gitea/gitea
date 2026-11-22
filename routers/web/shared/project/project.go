@@ -156,7 +156,7 @@ func MoveIssues(ctx *context.Context) {
 		IssueID     int64 `json:"issueID"`
 		PrevIssueID int64 `json:"prevIssueID"`
 	}{}
-	if err := json.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &form); err != nil {
+	if err := json.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, form); err != nil {
 		ctx.JSONError("invalid request body")
 		return
 	}
