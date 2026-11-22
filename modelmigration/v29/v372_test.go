@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"gitea.dev/modelmigration/migrationtest"
+	"gitea.dev/models/db"       //nolint:depguard // allow to access db in migration tests
+	"gitea.dev/models/unittest" //nolint:depguard // allow to access db in migration tests
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,8 +29,8 @@ type packageVersionBeforeV372 struct {
 func (packageVersionBeforeV372) TableName() string { return "package_version" }
 
 func Test_MakePackageVersionUniqueByVersion(t *testing.T) {
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(packageVersionBeforeV372))
-	defer deferable()
+	x, deferrable := migrationtest.PrepareTestEnv(t, 0, new(packageVersionBeforeV372))
+	defer deferrable()
 
 	_, err := x.Insert(&packageVersionBeforeV372{PackageID: 1, Version: "v1", LowerVersion: "v1"})
 	require.NoError(t, err)
@@ -52,6 +54,15 @@ func Test_MakePackageVersionUniqueByVersion(t *testing.T) {
 	lowerIdx, ok := indexes["lower_version"]
 	require.True(t, ok, "regular index on lower_version must still exist")
 	assert.Equal(t, schemas.IndexType, lowerIdx.Type)
+
+	// whether versions that differ only in case can coexist depends on the database
+	// collation (see MakePackageVersionUniqueByVersion), so only assert it on
+	// case-sensitive ones
+	result, err := db.CheckCollations(unittest.GetXORMEngine())
+	require.NoError(t, err)
+	if result != nil && !result.IsCollationCaseSensitive(result.DatabaseCollation) {
+		t.Skip("database uses a case-insensitive collation, case-variant versions cannot coexist")
+	}
 
 	// versions of one package that differ only in case are allowed now,
 	// while the exact same version is rejected

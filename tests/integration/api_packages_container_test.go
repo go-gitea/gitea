@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
 	packages_model "gitea.dev/models/packages"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -801,6 +802,14 @@ func TestPackageContainer(t *testing.T) {
 	t.Run("TagCaseSensitivity", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
+		// on a case-insensitive database collation, tags differing only in case cannot coexist,
+		// so the case-sensitive behavior asserted below can only be tested with a case-sensitive one
+		collationResult, err := db.CheckCollations(unittest.GetXORMEngine())
+		require.NoError(t, err)
+		if collationResult != nil && !collationResult.IsCollationCaseSensitive(collationResult.DatabaseCollation) {
+			t.Skip("database uses a case-insensitive collation, case-variant container tags cannot coexist")
+		}
+
 		image := "tag-case"
 		url := fmt.Sprintf("%sv2/%s/%s", setting.AppURL, user.Name, image)
 
@@ -859,7 +868,8 @@ func TestPackageContainer(t *testing.T) {
 
 		// pushing the lower-case tag creates a second tag instead of re-pointing the upper-case one
 		assert.Equal(t, digestB, pushManifest("v1.0.0-rc1", manifestB))
-		assert.Equal(t, []string{"v1.0.0-RC1", "v1.0.0-rc1"}, getTags())
+		// tag order is not fixed: it follows the database's collation
+		assert.ElementsMatch(t, []string{"v1.0.0-RC1", "v1.0.0-rc1"}, getTags())
 
 		req = NewRequest(t, "GET", url+"/manifests/v1.0.0-RC1").
 			AddTokenAuth(userToken)
@@ -883,7 +893,8 @@ func TestPackageContainer(t *testing.T) {
 			AddTokenAuth(userToken)
 		resp = MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, digestC, resp.Header().Get("Docker-Content-Digest"))
-		assert.Equal(t, []string{"v1.0.0-RC1", "v1.0.0-rc1"}, getTags())
+		// tag order is not fixed: it follows the database's collation
+		assert.ElementsMatch(t, []string{"v1.0.0-RC1", "v1.0.0-rc1"}, getTags())
 
 		// deleting a tag is case-sensitive too
 		req = NewRequest(t, "DELETE", url+"/manifests/v1.0.0-RC1").
