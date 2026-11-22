@@ -895,17 +895,12 @@ func Test_jobEmitterQueueHandler_DeletedRunIsNotRequeued(t *testing.T) {
 		"an update for a deleted run must be dropped, not returned as unhandled")
 }
 
-// Test_ReEmitUnresolvedJobs covers go-gitea/gitea#40279: when a job-completion transition is
-// lost (the emitter pass for the run never ran), its dependent jobs stay pending/blocked
-// forever, because every sweep only inspects running tasks and jobs. The re-emit sweep must
-// find such runs from persisted state and queue their check again. Runs whose check would be
-// a no-op must not be re-emitted.
+// https://github.com/go-gitea/gitea/issues/40279
 func Test_ReEmitUnresolvedJobs(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
-	// seedStalledRun creates the state a lost transition leaves behind: a finished job whose
-	// dependents were never resolved, with no queued emitter pass anymore.
+	// seedStalledRun creates the state a lost transition leaves behind: a finished job whose dependents were never resolved
 	seedStalledRun := func(t *testing.T, index int64) (*actions_model.ActionRun, *actions_model.ActionRunJob) {
 		t.Helper()
 		run, attempt := createRunAttempt(t, index, "", actions_model.StatusRunning)

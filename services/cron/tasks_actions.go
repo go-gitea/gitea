@@ -24,9 +24,7 @@ func initActionsTasks() {
 	registerCleanupActionRuns()
 }
 
-// registerReEmitUnresolvedJobs registers a task that re-queues the job-emitter check for runs
-// whose jobs are still pending/blocked, repairing the runs a lost emitter transition strands.
-// RunAtStart is essential: a restart does not otherwise un-stall such runs.
+// registerReEmitUnresolvedJobs registers a task that repairs runs whose job-emitter transition was lost, e.g. by a restart
 func registerReEmitUnresolvedJobs() {
 	RegisterTaskFatal("reemit_unresolved_jobs", &BaseConfig{
 		Enabled:    true,

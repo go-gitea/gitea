@@ -299,6 +299,20 @@ func GetAllRunJobsByRepoAndRunID(ctx context.Context, repoID, runID int64) (Acti
 	return jobs, nil
 }
 
+// FindRunIDsWithUnresolvedJobs returns the ids of runs whose latest attempt still has jobs that
+// only an emitter pass can resolve: pending (needs unfinished) or blocked (needs done, held by
+// concurrency or a deferred expansion). Runs awaiting approval are excluded.
+func FindRunIDsWithUnresolvedJobs(ctx context.Context) ([]int64, error) {
+	var ids []int64
+	err := db.GetEngine(ctx).Table("action_run_job").
+		Join("INNER", "action_run", "action_run.id = action_run_job.run_id AND action_run.latest_attempt_id = action_run_job.run_attempt_id").
+		Where(builder.In("`action_run_job`.`status`", StatusPending, StatusBlocked)).
+		And(builder.Eq{"`action_run`.`need_approval`": false}).
+		Distinct("`action_run_job`.`run_id`").
+		Find(&ids)
+	return ids, err
+}
+
 // GetRunJobsByRunAndAttemptID returns jobs for a run within a specific attempt.
 // runAttemptID may be 0 to address legacy jobs that were created before ActionRunAttempt existed and therefore have no attempt association.
 func GetRunJobsByRunAndAttemptID(ctx context.Context, runID, runAttemptID int64) (ActionJobList, error) {
