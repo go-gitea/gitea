@@ -321,7 +321,7 @@ func UpdateViewedFiles(ctx *context.Context) {
 	var data *viewedFilesUpdate
 	err := json.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &data)
 	if err != nil {
-		ctx.HTTPError(http.StatusBadRequest, err.Error())
+		ctx.JSONError("invalid request body")
 		return
 	}
 

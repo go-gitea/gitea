@@ -25,7 +25,7 @@ func UpdatePreferences(ctx *context.Context) {
 	}
 	form := &preferencesForm{}
 	if err := json.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &form); err != nil {
-		ctx.JSONError("json decode failed")
+		ctx.JSONError("invalid request body")
 		return
 	}
 	_ = user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyCodeViewShowFileTree, strconv.FormatBool(form.CodeViewShowFileTree))

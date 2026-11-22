@@ -371,7 +371,7 @@ func UpdateBranchProtectionPriories(ctx *context.Context) {
 		IDs []int64 `json:"ids"`
 	}
 	if err := json.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &form); err != nil {
-		ctx.JSONError("invalid argument")
+		ctx.JSONError("invalid request body")
 		return
 	}
 	if err := git_model.UpdateProtectBranchPriorities(ctx, ctx.Repo.Repository, form.IDs); err != nil {
