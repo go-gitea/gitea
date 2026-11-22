@@ -15,14 +15,17 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	pull_service "gitea.dev/services/pull"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -432,15 +435,86 @@ func TestCreateAgitPullWithReadPermission(t *testing.T) {
 		assert.Equal(t, 3, repo.NumPulls)
 		assert.Equal(t, 3, repo.NumOpenPulls)
 
-		err := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
+		pushErr := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
 			AddDynamicArguments("topic=test-topic").
 			WithDir(dstPath).
 			RunWithStderr(t.Context())
-		assert.NoError(t, err)
+		assert.NoError(t, pushErr)
 
 		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
 		assert.Equal(t, 4, repo.NumPulls)
 		assert.Equal(t, 4, repo.NumOpenPulls)
+
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "user4/test-topic", Flow: issues_model.PullRequestFlowAGit})
+		require.NoError(t, pr.LoadIssue(t.Context()))
+		author := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		maintainer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		require.ErrorIs(t, pull_service.SetAllowEdits(t.Context(), maintainer, pr, true), pull_service.ErrUserHasNoPermissionForAction)
+
+		doGitCheckoutWriteFileCommit(localGitAddCommitOptions{
+			LocalRepoPath: dstPath, CheckoutBranch: "master", TreeFilePath: "review-update.txt", TreeFileContent: "update",
+		})(t)
+		refspec := fmt.Sprintf("HEAD:refs/for-review/%d", pr.Index)
+		push := func(user, ref string, force bool) (string, error) {
+			u.User = url.UserPassword(user, userPassword)
+			cmd := gitcmd.NewCommand("push")
+			if force {
+				cmd.AddArguments("-o", "force-push")
+			}
+			_, stderr, err := cmd.AddDynamicArguments(u.String(), ref).WithDir(dstPath).RunStdString(t.Context())
+			return stderr, err
+		}
+		accept := func(user, ref string, force bool) {
+			stderr, err := push(user, ref, force)
+			require.NoError(t, err, "%s", stderr)
+		}
+		reject := func(user, ref string, force bool, reason string) {
+			stderr, err := push(user, ref, force)
+			require.Error(t, err)
+			require.Contains(t, stderr, reason)
+		}
+		reject("user2", refspec, false, "has not allowed edits by maintainers")
+		reject("user5", refspec, false, "User permission denied")
+		reject("user4", "HEAD:refs/for-review/01", false, "Invalid pull request index")
+		reject("user4", "HEAD:refs/for-review/999999", false, "Pull request does not exist")
+		reject("user2", "HEAD:refs/for-review/3", false, "not an open AGit pull request")
+		accept("user4", refspec, false)
+		authorHead, err := git.GetFullCommitID(t.Context(), repo, pr.GetGitHeadRefName())
+		require.NoError(t, err)
+
+		session := loginUser(t, "user4")
+		resp := session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/user2/repo1/pulls/%d", pr.Index)), http.StatusOK)
+		dataURL, exists := NewHTMLParser(t, resp.Body).doc.Find("#allow-edits-from-maintainers").Attr("data-url")
+		require.True(t, exists)
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", dataURL+"/set_allow_maintainer_edit", map[string]string{
+			"allow_maintainer_edit": "true",
+		}), http.StatusOK)
+		doGitCheckoutWriteFileCommit(localGitAddCommitOptions{
+			LocalRepoPath: dstPath, CheckoutBranch: "master", TreeFilePath: "maintainer-update.txt", TreeFileContent: "update",
+		})(t)
+		reject("user5", refspec, false, "User permission denied")
+		accept("user2", refspec, false)
+		head, err := git.GetFullCommitID(t.Context(), repo, pr.GetGitHeadRefName())
+		require.NoError(t, err)
+		localRepo, err := git.OpenRepositoryLocal(t.Context(), dstPath)
+		require.NoError(t, err)
+		defer localRepo.Close()
+		localHead, err := localRepo.GetRefCommitID(t.Context(), "HEAD")
+		require.NoError(t, err)
+		assert.Equal(t, localHead, head)
+		pr.HeadCommitID = authorHead
+		require.Error(t, pull_service.UpdateRefForAgit(t.Context(), pr, authorHead))
+		head, err = git.GetFullCommitID(t.Context(), repo, pr.GetGitHeadRefName())
+		require.NoError(t, err)
+		assert.Equal(t, localHead, head)
+
+		require.NoError(t, pull_service.SetAllowEdits(t.Context(), author, pr, false))
+		require.NoError(t, gitcmd.NewCommand("reset", "--hard", "HEAD~1").WithDir(dstPath).RunWithStderr(t.Context()))
+		reject("user2", refspec, true, "has not allowed edits by maintainers")
+		reject("user4", refspec, false, "request `force-push` push option")
+		accept("user4", refspec, true)
+		require.NoError(t, issues_model.UpdateIssueCols(t.Context(), &issues_model.Issue{ID: pr.IssueID, IsClosed: true}, "is_closed"))
+		reject("user4", refspec, true, "not an open AGit pull request")
 	})
 }
 

@@ -139,7 +139,7 @@ func NewPullRequest(ctx context.Context, basePerm access_model.Permission, opts 
 				return err
 			}
 		} else { // agit
-			if err = UpdateRefForAgit(ctx, pr); err != nil {
+			if err = UpdateRefForAgit(ctx, pr, ""); err != nil {
 				return err
 			}
 		}
@@ -623,11 +623,15 @@ func UpdatePullsRefs(ctx context.Context, doer *user_model.User, repo *repo_mode
 }
 
 // UpdateRefForAgit update refs/pull/id/head directly for agit flow pull request
-func UpdateRefForAgit(ctx context.Context, pr *issues_model.PullRequest) (err error) {
+func UpdateRefForAgit(ctx context.Context, pr *issues_model.PullRequest, oldCommitID string) (err error) {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return err
 	}
-	if err := git.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadCommitID); err != nil {
+	cmd := gitcmd.NewCommand("update-ref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.HeadCommitID)
+	if oldCommitID != "" {
+		cmd.AddDynamicArguments(oldCommitID)
+	}
+	if err := cmd.WithRepo(pr.BaseRepo).RunWithStderr(ctx); err != nil {
 		return fmt.Errorf("unable to update ref %s for base repo %s, err: %w", pr.GetGitHeadRefName(), pr.BaseRepo.FullName(), err)
 	}
 	return syncCommitDivergence(ctx, pr)

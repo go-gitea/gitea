@@ -5,6 +5,7 @@ package integration
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/url"
 	"sync"
@@ -191,7 +192,7 @@ func TestAgitPullPush(t *testing.T) {
 					_, err = generateCommitWithNewData(t.Context(), testFileSizeSmall, dstPath, "user2@example.com", "User Two", "updated-")
 					assert.NoError(t, err)
 
-					err = gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-review").
+					err = gitcmd.NewCommand("push", "origin").AddDynamicArguments(fmt.Sprintf("HEAD:refs/for-review/%d", pr.Index)).
 						WithDir(dstPath).
 						RunWithStderr(t.Context())
 					assert.NoError(t, err)
