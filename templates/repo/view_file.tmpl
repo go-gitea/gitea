@@ -27,7 +27,7 @@
 		<div class="file-codeowners ui segment flex-text-block tw-flex-wrap">
 			{{svg "octicon-shield-check" 16}} <span>{{ctx.Locale.Tr "repo.codeowners"}}</span>
 			{{range $one := .FileCodeOwners}}
-				<a href="{{$one.CodeOwnerLink}}">{{$one.CodeOwnerName}}</a>
+				<a {{if $one.IsUser}}class="user-mention" {{end}}href="{{$one.CodeOwnerLink}}">{{$one.CodeOwnerName}}</a>
 			{{end}}
 		</div>
 		{{end}}

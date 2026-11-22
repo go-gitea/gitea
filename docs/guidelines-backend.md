@@ -105,7 +105,7 @@ be touched by pull requests whose sole purpose is updating dependencies. Run
 `make tidy` after any change to `go.mod`.
 
 Any `go.mod` / `go.sum` update must be justified in the PR description and must be
-verified by reviewers and the merger to reference an existing upstream commit.
+verified by reviewers and the maintainer who merges it to reference an existing upstream commit.
 
 ## Golang HTML template
 
