@@ -6,25 +6,34 @@ package integration
 import (
 	"encoding/base64"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"os/exec"
 	"path"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	auth_model "gitea.dev/models/auth"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 	pull_service "gitea.dev/services/pull"
 	"gitea.dev/tests"
 
@@ -455,21 +464,22 @@ func TestCreateAgitPullWithReadPermission(t *testing.T) {
 			LocalRepoPath: dstPath, CheckoutBranch: "master", TreeFilePath: "review-update.txt", TreeFileContent: "update",
 		})(t)
 		refspec := fmt.Sprintf("HEAD:refs/for-review/%d", pr.Index)
-		push := func(user, ref string, force bool) (string, error) {
-			u.User = url.UserPassword(user, userPassword)
+		push := func(user string, force bool, refs ...string) (string, error) {
+			pushURL := *u
+			pushURL.User = url.UserPassword(user, userPassword)
 			cmd := gitcmd.NewCommand("push")
 			if force {
 				cmd.AddArguments("-o", "force-push")
 			}
-			_, stderr, err := cmd.AddDynamicArguments(u.String(), ref).WithDir(dstPath).RunStdString(t.Context())
+			_, stderr, err := cmd.AddDynamicArguments(pushURL.String()).AddDynamicArguments(refs...).WithDir(dstPath).RunStdString(t.Context())
 			return stderr, err
 		}
 		accept := func(user, ref string, force bool) {
-			stderr, err := push(user, ref, force)
+			stderr, err := push(user, force, ref)
 			require.NoError(t, err, "%s", stderr)
 		}
 		reject := func(user, ref string, force bool, reason string) {
-			stderr, err := push(user, ref, force)
+			stderr, err := push(user, force, ref)
 			require.Error(t, err)
 			require.Contains(t, stderr, reason)
 		}
@@ -478,6 +488,25 @@ func TestCreateAgitPullWithReadPermission(t *testing.T) {
 		reject("user4", "HEAD:refs/for-review/01", false, "Invalid pull request index")
 		reject("user4", "HEAD:refs/for-review/999999", false, "Pull request does not exist")
 		reject("user2", "HEAD:refs/for-review/3", false, "not an open AGit pull request")
+		otherRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+		require.NoError(t, git.CreateDelegateHooks(t.Context(), otherRepo))
+		u.Path = otherRepo.FullName() + ".git"
+		reject(otherRepo.OwnerName, refspec, false, "Pull request does not exist")
+		u.Path = "user2/repo1.git"
+
+		accept("user4", "HEAD~1:refs/for/master/another-review", false)
+		otherPR := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "user4/another-review", Flow: issues_model.PullRequestFlowAGit})
+		initialHead, err := git.GetFullCommitID(t.Context(), repo, pr.GetGitHeadRefName())
+		require.NoError(t, err)
+		stderr, err := push("user4", false, fmt.Sprintf("HEAD:refs/for-review/%d", otherPR.Index), refspec)
+		require.Error(t, err)
+		require.Contains(t, stderr, "Push refs/for-review by itself (one ref per push)")
+		for _, unchanged := range []*issues_model.PullRequest{pr, otherPR} {
+			head, err := git.GetFullCommitID(t.Context(), repo, unchanged.GetGitHeadRefName())
+			require.NoError(t, err)
+			assert.Equal(t, initialHead, head)
+		}
+
 		accept("user4", refspec, false)
 		authorHead, err := git.GetFullCommitID(t.Context(), repo, pr.GetGitHeadRefName())
 		require.NoError(t, err)
@@ -493,6 +522,13 @@ func TestCreateAgitPullWithReadPermission(t *testing.T) {
 			LocalRepoPath: dstPath, CheckoutBranch: "master", TreeFilePath: "maintainer-update.txt", TreeFileContent: "update",
 		})(t)
 		reject("user5", refspec, false, "User permission denied")
+		stderr, err = push("user2", false, "HEAD:refs/heads/mixed-with-review", refspec)
+		require.Error(t, err)
+		require.Contains(t, stderr, "Push refs/for-review by itself (one ref per push)")
+		assert.False(t, git.IsReferenceExist(t.Context(), repo, "refs/heads/mixed-with-review"))
+		unchangedHead, err := git.GetFullCommitID(t.Context(), repo, pr.GetGitHeadRefName())
+		require.NoError(t, err)
+		assert.Equal(t, authorHead, unchangedHead)
 		accept("user2", refspec, false)
 		head, err := git.GetFullCommitID(t.Context(), repo, pr.GetGitHeadRefName())
 		require.NoError(t, err)
@@ -503,19 +539,107 @@ func TestCreateAgitPullWithReadPermission(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, localHead, head)
 		pr.HeadCommitID = authorHead
-		require.Error(t, pull_service.UpdateRefForAgit(t.Context(), pr, authorHead))
+		err = pull_service.UpdateRefForAgit(t.Context(), pr, authorHead)
+		require.ErrorIs(t, err, util.ErrAlreadyExist)
+		require.EqualError(t, err, "pull request was updated concurrently, please retry")
 		head, err = git.GetFullCommitID(t.Context(), repo, pr.GetGitHeadRefName())
 		require.NoError(t, err)
 		assert.Equal(t, localHead, head)
+		t.Run("Concurrent pushes", func(t *testing.T) {
+			if runtime.GOOS == "windows" {
+				t.Skip("requires named pipes for the reference transaction hook")
+			}
+			doGitCheckoutWriteFileCommit(localGitAddCommitOptions{
+				LocalRepoPath: dstPath, CheckoutBranch: "master", TreeFilePath: "concurrent-update.txt", TreeFileContent: "update",
+			})(t)
+			winner, err := localRepo.GetRefCommitID(t.Context(), "HEAD")
+			require.NoError(t, err)
+			testConcurrentAgitReviewPush(t, repo, pr, maintainer, push, localHead, winner, authorHead)
+			require.NoError(t, gitcmd.NewCommand("reset", "--hard").AddDynamicArguments(localHead).WithDir(dstPath).RunWithStderr(t.Context()))
+		})
 
 		require.NoError(t, pull_service.SetAllowEdits(t.Context(), author, pr, false))
 		require.NoError(t, gitcmd.NewCommand("reset", "--hard", "HEAD~1").WithDir(dstPath).RunWithStderr(t.Context()))
 		reject("user2", refspec, true, "has not allowed edits by maintainers")
 		reject("user4", refspec, false, "request `force-push` push option")
+		require.NoError(t, pull_model.ScheduleAutoMerge(t.Context(), maintainer, pr.ID, repo_model.MergeStyleMerge, "", false))
 		accept("user4", refspec, true)
+		unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: pr.ID})
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.IssueID, Type: issues_model.CommentTypePRUnScheduledToAutoMerge})
+
+		pr.HasMerged = true
+		require.NoError(t, pr.UpdateCols(t.Context(), "has_merged"))
+		reject("user4", refspec, true, "not an open AGit pull request")
+		pr.HasMerged = false
+		require.NoError(t, pr.UpdateCols(t.Context(), "has_merged"))
 		require.NoError(t, issues_model.UpdateIssueCols(t.Context(), &issues_model.Issue{ID: pr.IssueID, IsClosed: true}, "is_closed"))
 		reject("user4", refspec, true, "not an open AGit pull request")
 	})
+}
+
+func testConcurrentAgitReviewPush(t *testing.T, repo *repo_model.Repository, pr *issues_model.PullRequest, maintainer *user_model.User, push func(string, bool, ...string) (string, error), oldHead, winner, loser string) {
+	t.Helper()
+	hookDir := filepath.Join(gitrepo.RepoLocalPath(repo), "hooks")
+	openPipe := func(name string) *os.File {
+		pipePath := filepath.Join(hookDir, name)
+		output, err := exec.CommandContext(t.Context(), "mkfifo", pipePath).CombinedOutput()
+		require.NoError(t, err, "%s", output)
+		t.Cleanup(func() { os.Remove(pipePath) })
+		pipe, err := os.OpenFile(pipePath, os.O_RDWR, 0)
+		require.NoError(t, err)
+		t.Cleanup(func() { pipe.Close() })
+		return pipe
+	}
+	ready := openPipe("agit-test-ready")
+	release := openPipe("agit-test-release")
+	require.NoError(t, ready.SetReadDeadline(time.Now().Add(10*time.Second)))
+	require.NoError(t, release.SetWriteDeadline(time.Now().Add(10*time.Second)))
+	hookPath := filepath.Join(hookDir, "reference-transaction")
+	// Hold the winning push's ref lock while the author's push attempts its CAS.
+	hookContents := fmt.Sprintf(`#!/bin/sh
+[ "$1" = prepared ] || exit 0
+while read -r old new ref; do
+  if [ "$new" = '%s' ] && [ "$ref" = '%s' ]; then
+    printf r >hooks/agit-test-ready
+    read -r _ <hooks/agit-test-release
+  fi
+done
+`, winner, pr.GetGitHeadRefName())
+	require.NoError(t, os.WriteFile(hookPath, []byte(hookContents), 0o755))
+	defer os.Remove(hookPath)
+
+	ref := fmt.Sprintf(":refs/for-review/%d", pr.Index)
+	var winnerStderr string
+	var winnerErr error
+	var winnerPush sync.WaitGroup
+	winnerPush.Go(func() { winnerStderr, winnerErr = push("user2", false, "HEAD"+ref) })
+	defer func() {
+		_, _ = release.WriteString("\n")
+		winnerPush.Wait()
+	}()
+	var signal [1]byte
+	_, err := io.ReadFull(ready, signal[:])
+	require.NoError(t, err)
+	require.NoError(t, pull_model.ScheduleAutoMerge(t.Context(), maintainer, pr.ID, repo_model.MergeStyleMerge, "", false))
+	stderr, err := push("user4", true, loser+ref)
+	require.Error(t, err)
+	require.Contains(t, stderr, "[remote rejected]")
+	require.Contains(t, stderr, "(pull request was updated concurrently, please retry)")
+	unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: pr.ID})
+	unittest.AssertNotExistsBean(t, &issues_model.Comment{IssueID: pr.IssueID, Type: issues_model.CommentTypePRUnScheduledToAutoMerge})
+	head, err := git.GetFullCommitID(t.Context(), repo, pr.GetGitHeadRefName())
+	require.NoError(t, err)
+	assert.Equal(t, oldHead, head)
+	_, err = pull_model.DeleteScheduledAutoMerge(t.Context(), pr.ID)
+	require.NoError(t, err)
+
+	_, err = release.WriteString("\n")
+	require.NoError(t, err)
+	winnerPush.Wait()
+	require.NoError(t, winnerErr, "%s", winnerStderr)
+	head, err = git.GetFullCommitID(t.Context(), repo, pr.GetGitHeadRefName())
+	require.NoError(t, err)
+	assert.Equal(t, winner, head)
 }
 
 /*

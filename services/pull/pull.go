@@ -135,13 +135,13 @@ func NewPullRequest(ctx context.Context, basePerm access_model.Permission, opts 
 			if err = PushToBaseRepo(ctx, pr); err != nil {
 				return err
 			}
-			if err = syncCommitDivergence(ctx, pr); err != nil {
-				return err
-			}
 		} else { // agit
 			if err = UpdateRefForAgit(ctx, pr, ""); err != nil {
 				return err
 			}
+		}
+		if err = SyncCommitDivergence(ctx, pr); err != nil {
+			return err
 		}
 
 		// add first push codes comment
@@ -338,8 +338,8 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 			return err
 		}
 
-		if err := syncCommitDivergence(ctx, pr); err != nil {
-			return fmt.Errorf("syncCommitDivergence: %w", err)
+		if err := SyncCommitDivergence(ctx, pr); err != nil {
+			return fmt.Errorf("SyncCommitDivergence: %w", err)
 		}
 
 		// The "official" flag of existing reviews was computed against the previous
@@ -503,8 +503,8 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 						if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, opts.NewCommitID); err != nil {
 							log.Error("MarkReviewsAsNotStale: %v", err)
 						}
-						if err = syncCommitDivergence(ctx, pr); err != nil {
-							log.Error("syncCommitDivergence: %v", err)
+						if err = SyncCommitDivergence(ctx, pr); err != nil {
+							log.Error("SyncCommitDivergence: %v", err)
 						}
 					}
 
@@ -532,12 +532,12 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 		}
 		for _, pr := range baseBranchPRs {
 			pr.BaseRepo = repo // avoid loading again
-			err = syncCommitDivergence(ctx, pr)
+			err = SyncCommitDivergence(ctx, pr)
 			if err != nil {
 				if errors.Is(err, util.ErrNotExist) {
 					log.Warn("Cannot test PR %s/%d with base=%s head=%s: no longer exists", pr.BaseRepo.FullName(), pr.IssueID, pr.BaseBranch, pr.HeadBranch)
 				} else {
-					log.Error("syncCommitDivergence: %v", err)
+					log.Error("SyncCommitDivergence: %v", err)
 				}
 				continue
 			}
@@ -623,7 +623,7 @@ func UpdatePullsRefs(ctx context.Context, doer *user_model.User, repo *repo_mode
 }
 
 // UpdateRefForAgit update refs/pull/id/head directly for agit flow pull request
-func UpdateRefForAgit(ctx context.Context, pr *issues_model.PullRequest, oldCommitID string) (err error) {
+func UpdateRefForAgit(ctx context.Context, pr *issues_model.PullRequest, oldCommitID string) error {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return err
 	}
@@ -632,9 +632,15 @@ func UpdateRefForAgit(ctx context.Context, pr *issues_model.PullRequest, oldComm
 		cmd.AddDynamicArguments(oldCommitID)
 	}
 	if err := cmd.WithRepo(pr.BaseRepo).RunWithStderr(ctx); err != nil {
+		if oldCommitID != "" && gitcmd.IsStderr(err,
+			gitcmd.StderrRegexp(`^fatal: update_ref failed for ref '.+': cannot lock ref '.+': (is at [0-9a-f]+ but expected |reference is missing but expected |unable to resolve reference '|[Uu]nable to create '.+\.lock': File exists)`),
+			gitcmd.StderrRegexp(`^fatal: update_ref failed for ref '.+': cannot lock references$`),
+		) {
+			return util.NewAlreadyExistErrorf("pull request was updated concurrently, please retry")
+		}
 		return fmt.Errorf("unable to update ref %s for base repo %s, err: %w", pr.GetGitHeadRefName(), pr.BaseRepo.FullName(), err)
 	}
-	return syncCommitDivergence(ctx, pr)
+	return nil
 }
 
 // retargetBranchPulls change target branch for all pull requests whose base branch is the branch

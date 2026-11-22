@@ -210,7 +210,8 @@ func CheckUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullReques
 	return ret, nil
 }
 
-func syncCommitDivergence(ctx context.Context, pr *issues_model.PullRequest) error {
+// SyncCommitDivergence refreshes the stored ahead and behind counts.
+func SyncCommitDivergence(ctx context.Context, pr *issues_model.PullRequest) error {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return err
 	}
