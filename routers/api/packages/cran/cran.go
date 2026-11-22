@@ -166,7 +166,7 @@ func uploadPackageFile(ctx *context.Context, compositeKey string, properties map
 	}
 	defer buf.Close()
 
-	pck, err := cran_module.ParsePackage(buf, buf.Size())
+	pck, err := cran_module.ParsePackage(buf)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			apiError(ctx, http.StatusBadRequest, err)

@@ -70,27 +70,22 @@ type Metadata struct {
 	NeedsCompilation bool     `json:"needs_compilation"`
 }
 
-type ReaderReaderAt interface {
-	io.Reader
-	io.ReaderAt
-}
-
 // ParsePackage reads the package metadata from a CRAN package
 // .zip and .tar.gz/.tgz files are supported.
-func ParsePackage(r ReaderReaderAt, size int64) (*Package, error) {
+func ParsePackage(r packages.SizedReader) (*Package, error) {
 	magicBytes := make([]byte, 2)
 	if _, err := r.ReadAt(magicBytes, 0); err != nil {
 		return nil, err
 	}
 
 	if magicBytes[0] == 0x1F && magicBytes[1] == 0x8B {
-		return parsePackageTarGz(r, size)
+		return parsePackageTarGz(r)
 	}
-	return parsePackageZip(r, size)
+	return parsePackageZip(r)
 }
 
-func parsePackageTarGz(r io.Reader, size int64) (*Package, error) {
-	tr, err := packages.NewArchiveTarGzReader(r, size)
+func parsePackageTarGz(r packages.SizedReader) (*Package, error) {
+	tr, err := packages.NewArchiveTarGzReader(r, r.Size())
 	if err != nil {
 		return nil, err
 	}
@@ -123,8 +118,8 @@ func parsePackageTarGz(r io.Reader, size int64) (*Package, error) {
 	return nil, ErrMissingDescriptionFile
 }
 
-func parsePackageZip(r io.ReaderAt, size int64) (*Package, error) {
-	zr, err := zip.NewReader(r, size)
+func parsePackageZip(r packages.SizedReader) (*Package, error) {
+	zr, err := zip.NewReader(r, r.Size())
 	if err != nil {
 		return nil, err
 	}

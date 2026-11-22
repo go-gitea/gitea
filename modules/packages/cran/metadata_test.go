@@ -41,34 +41,26 @@ func createDescription(name, version string) *bytes.Buffer {
 func TestParsePackage(t *testing.T) {
 	for _, archive := range []struct {
 		extension string
-		create    func(string, []byte) *bytes.Reader
+		create    func(string, []byte) *bytes.Buffer
 	}{
-		{".tar.gz", func(filename string, content []byte) *bytes.Reader {
-			return bytes.NewReader(test.WriteTarCompression(gzip.NewWriter, map[string]string{filename: string(content)}).Bytes())
+		{".tar.gz", func(filename string, content []byte) *bytes.Buffer {
+			return test.WriteTarCompression(gzip.NewWriter, map[string]string{filename: string(content)})
 		}},
-		{".zip", func(filename string, content []byte) *bytes.Reader {
-			return bytes.NewReader(test.WriteZipArchive(map[string]string{filename: string(content)}).Bytes())
+		{".zip", func(filename string, content []byte) *bytes.Buffer {
+			return test.WriteZipArchive(map[string]string{filename: string(content)})
 		}},
 	} {
 		t.Run(archive.extension, func(t *testing.T) {
 			t.Run("MissingDescriptionFile", func(t *testing.T) {
-				buf := archive.create(
-					"dummy.txt",
-					[]byte{},
-				)
-
-				p, err := ParsePackage(buf, buf.Size())
+				buf := archive.create("dummy.txt", []byte{})
+				p, err := ParsePackage(bytes.NewReader(buf.Bytes()))
 				assert.Nil(t, p)
 				assert.ErrorIs(t, err, ErrMissingDescriptionFile)
 			})
 
 			t.Run("Valid", func(t *testing.T) {
-				buf := archive.create(
-					"package/DESCRIPTION",
-					createDescription(packageName, packageVersion).Bytes(),
-				)
-
-				p, err := ParsePackage(buf, buf.Size())
+				buf := archive.create("package/DESCRIPTION", createDescription(packageName, packageVersion).Bytes())
+				p, err := ParsePackage(bytes.NewReader(buf.Bytes()))
 				assert.NotNil(t, p)
 				assert.NoError(t, err)
 

@@ -22,6 +22,7 @@ var ArchiveDecompressionFloor int64 = 512 * 1024 * 1024
 // SizedReader is an uploaded buffer that knows its own compressed size
 type SizedReader interface {
 	io.Reader
+	io.ReaderAt
 	Size() int64
 }
 
