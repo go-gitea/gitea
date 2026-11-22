@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"slices"
 
-	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
@@ -19,8 +18,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/services/automergequeue"
 	notify_service "gitea.dev/services/notify"
-
-	"xorm.io/builder"
 )
 
 // ReviewRequest add or remove a review request from a user for this PR, and make comment for it.
@@ -94,13 +91,9 @@ func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 		}
 
 		if canDoerChangeReviewRequests {
-			ok, err := isReviewerCandidate(ctx, issue.Repo, issue.PosterID, reviewer)
-			if err != nil {
-				return err
-			}
-			if !ok {
+			if !isReviewerCandidate(permReviewer, issue.PosterID, reviewer) {
 				return issues_model.ErrNotValidReviewRequest{
-					Reason: "Reviewer must be a collaborator, team member with pull request access, or the repository owner",
+					Reason: "Reviewer must be a repository member or collaborator with pull request access",
 					UserID: doer.ID,
 					RepoID: issue.Repo.ID,
 				}
@@ -258,40 +251,13 @@ func teamReviewRequestNotify(ctx context.Context, issue *issues_model.Issue, doe
 	return err
 }
 
-// isReviewerCandidate matches services/pull.GetReviewers eligibility (collaborator, org team with PR read, or non-org owner).
-func isReviewerCandidate(ctx context.Context, repo *repo_model.Repository, posterID int64, reviewer *user_model.User) (bool, error) {
-	if reviewer.ID == posterID {
-		return false, nil
+// isReviewerCandidate reports whether reviewer may be requested: an active non-poster
+// who is a member/collaborator with pull-request read access.
+func isReviewerCandidate(permReviewer access_model.Permission, posterID int64, reviewer *user_model.User) bool {
+	if reviewer.ID == posterID || !reviewer.IsActive {
+		return false
 	}
-	if err := repo.LoadOwner(ctx); err != nil {
-		return false, fmt.Errorf("isReviewerCandidate: %w", err)
-	}
-	if !repo.Owner.IsOrganization() && reviewer.ID == repo.OwnerID {
-		return true, nil
-	}
-	if !reviewer.IsActive {
-		return false, nil
-	}
-
-	hasCollab, err := db.Exist[repo_model.Collaboration](ctx, builder.Eq{
-		"repo_id": repo.ID,
-		"user_id": reviewer.ID,
-	}.And(builder.Gte{"mode": perm.AccessModeRead}))
-	if err != nil {
-		return false, fmt.Errorf("isReviewerCandidate: %w", err)
-	}
-	if hasCollab {
-		return true, nil
-	}
-
-	if repo.Owner.IsOrganization() {
-		userIDs, err := organization.GetTeamUserIDsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypePullRequests)
-		if err != nil {
-			return false, fmt.Errorf("isReviewerCandidate: %w", err)
-		}
-		return slices.Contains(userIDs, reviewer.ID), nil
-	}
-	return false, nil
+	return permReviewer.IsMemberOrCollaborator() && permReviewer.CanAccess(perm.AccessModeRead, unit.TypePullRequests)
 }
 
 // isTeamReviewerCandidate matches services/pull.GetReviewerTeams eligibility.
