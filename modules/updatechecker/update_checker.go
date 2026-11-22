@@ -48,8 +48,7 @@ func GiteaUpdateChecker(httpEndpoint string) error {
 		} `json:"latest"`
 	}
 	respData := respType{}
-	// the response is a small JSON document, 1 MiB is far more than enough
-	err = json.DecodeWithLimit(resp.Body, 1024*1024, &respData)
+	err = json.DecodeWithLimit(resp.Body, 100*1024, &respData)
 	if err != nil {
 		return err
 	}

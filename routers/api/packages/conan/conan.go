@@ -66,18 +66,16 @@ func apiError(ctx *context.Context, status int, obj any) {
 	})
 }
 
-const maxJSONBodySize = 1024 * 1024 // 1 MiB
-
 // decodeJSONBody decodes the size-limited request body into v.
 // On failure, it writes the error response and returns false.
 func decodeJSONBody(ctx *context.Context, v any) bool {
-	if err := json.DecodeWithLimit(ctx.Req.Body, maxJSONBodySize, v); err != nil {
+	err := json.DecodeWithLimit(ctx.Req.Body, 10*1024*1024, v) // 10 MiB should be large enough for Conan requests
+	if err != nil {
 		_ = ctx.Req.Body.Close()
 		httpStatus := util.Iif(errors.Is(err, json.ErrTooLarge), http.StatusRequestEntityTooLarge, http.StatusBadRequest)
 		apiError(ctx, httpStatus, err)
-		return false
 	}
-	return true
+	return err == nil
 }
 
 func baseURL(ctx *context.Context) string {
