@@ -29,8 +29,8 @@ func ListUserBadges(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/BadgeList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	badges, maxResults, err := user_model.GetUserBadges(ctx, ctx.ContextUser)
 	if err != nil {
@@ -64,8 +64,8 @@ func AddUserBadges(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.UserBadgeOption](ctx)
 	badges := prepareBadgesForReplaceOrAdd(*form)
@@ -98,10 +98,8 @@ func DeleteUserBadges(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.UserBadgeOption](ctx)
 	badges := prepareBadgesForReplaceOrAdd(*form)

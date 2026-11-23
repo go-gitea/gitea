@@ -5,7 +5,6 @@ package org
 
 import (
 	"net/http"
-	"strings"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
@@ -25,38 +24,29 @@ const tplOrgHome templates.TplName = "org/home"
 
 // Home show organization home page
 func Home(ctx *context.Context) {
-	uname := ctx.PathParam("username")
-
-	if strings.HasSuffix(uname, ".keys") || strings.HasSuffix(uname, ".gpg") {
-		ctx.NotFound(nil)
-		return
-	}
-
-	ctx.SetPathParam("org", uname)
+	ctx.SetPathParam("org", ctx.PathParam("username"))
 	context.OrgAssignment(context.OrgAssignmentOptions{})(ctx)
 	if ctx.Written() {
 		return
 	}
 
-	home(ctx, false)
+	orgHome(ctx, false)
 }
 
 func Repositories(ctx *context.Context) {
-	home(ctx, true)
+	orgHome(ctx, true)
 }
 
-func home(ctx *context.Context, viewRepositories bool) {
+func orgHome(ctx *context.Context, viewRepositories bool) {
 	org := ctx.Org.Organization
+	if org == nil {
+		// some requests may reach here by "user" route patterns, e.g.: "/{owner}/-/repositories"
+		ctx.NotFound()
+		return
+	}
 
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Title"] = org.DisplayName()
-
-	badges, err := organization.GetOrgBadges(ctx, org)
-	if err != nil {
-		ctx.ServerError("GetOrgBadges", err)
-		return
-	}
-	ctx.Data["Badges"] = badges
 
 	var orderBy db.SearchOrderBy
 	sortOrder := ctx.FormString("sort")
@@ -101,7 +91,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 
 	members, _, err := organization.FindOrgMembers(ctx, opts)
 	if err != nil {
-		ctx.ServerError("FindOrgMembers", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -121,7 +111,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 				ListOptions: db.ListOptions{Page: 1, PageSize: orgOverviewTeamsLimit},
 			})
 			if err != nil {
-				ctx.ServerError("SearchTeam", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		}
@@ -132,7 +122,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 
 	prepareResult, err := shared_user.RenderUserOrgHeader(ctx)
 	if err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -161,7 +151,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 		IsPrivate:          private,
 	})
 	if err != nil {
-		ctx.ServerError("SearchRepository", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

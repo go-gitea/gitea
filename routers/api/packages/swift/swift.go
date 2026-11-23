@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 
 	packages_model "gitea.dev/models/packages"
 	"gitea.dev/modules/json"
@@ -35,12 +36,17 @@ const (
 	AcceptZip   = "application/vnd.swift.registry.v1+zip"
 )
 
-var (
+var globalVars = sync.OnceValue(func() (ret struct {
+	scopePattern *regexp.Regexp
+	namePattern  *regexp.Regexp
+},
+) {
 	// https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#361-package-scope
-	scopePattern = regexp.MustCompile(`\A[a-zA-Z0-9][a-zA-Z0-9-]{0,38}\z`)
+	ret.scopePattern = regexp.MustCompile(`\A[a-zA-Z0-9][a-zA-Z0-9-]{0,38}\z`)
 	// https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#362-package-name
-	namePattern = regexp.MustCompile(`\A[a-zA-Z0-9][a-zA-Z0-9-_]{0,99}\z`)
-)
+	ret.namePattern = regexp.MustCompile(`\A[a-zA-Z0-9][a-zA-Z0-9-_]{0,99}\z`)
+	return ret
+})
 
 type headers struct {
 	Status      int
@@ -327,7 +333,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 	_, err := version.NewSemver(packageVersion)
 
-	if err != nil || !scopePattern.MatchString(packageScope) || !namePattern.MatchString(packageName) {
+	if err != nil || !globalVars().scopePattern.MatchString(packageScope) || !globalVars().namePattern.MatchString(packageName) {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}

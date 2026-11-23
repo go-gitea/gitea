@@ -84,7 +84,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	ctx.Data["BadgeSlug"] = badgeSlug
 	availableBadges, _, err := badges.SearchBadges(ctx, &badges.SearchBadgeOptions{})
 	if err != nil {
-		ctx.ServerError("SearchBadges", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Badges"] = availableBadges
@@ -128,7 +128,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		IsPrivate:          private,
 	})
 	if err != nil {
-		ctx.ServerError("SearchRepository", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if isSitemap {

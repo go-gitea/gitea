@@ -24,7 +24,7 @@
 			{{svg "octicon-lock"}} {{ctx.Locale.Tr "repo.issues.lock"}}
 		{{end}}
 	</button>
-	<div class="ui tiny modal" id="lock-conversation">
+	<dialog class="modal-dialog" id="lock-conversation">
 		<div class="header">
 			{{if .Issue.IsLocked}}
 				{{ctx.Locale.Tr "repo.issues.unlock.title"}}
@@ -67,7 +67,7 @@
 
 				<div class="actions">
 					<button type="button" class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-					{{/* explicitly focus the submit button, to avoid Fomantic modal focuses and popups the dropdown */}}
+					{{/* explicitly focus the submit button, otherwise the modal focuses and pops up the dropdown */}}
 					<button type="submit" class="ui red button" autofocus>
 						{{if .Issue.IsLocked}}
 							{{ctx.Locale.Tr "repo.issues.unlock_confirm"}}
@@ -78,12 +78,12 @@
 				</div>
 			</form>
 		</div>
-	</div>
+	</dialog>
 	<button type="button" class="tw-mt-1 fluid ui show-modal button" data-modal="#sidebar-delete-issue">
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "repo.issues.delete"}}
 	</button>
-	<div class="ui g-modal-confirm modal" id="sidebar-delete-issue">
+	<dialog class="modal-dialog" id="sidebar-delete-issue">
 		<div class="header">
 			{{if .Issue.IsPull}}
 				{{ctx.Locale.Tr "repo.pulls.delete.title"}}
@@ -103,5 +103,5 @@
 		<form action="{{.Issue.Link}}/delete" method="post">
 			{{template "base/modal_actions_confirm" .}}
 		</form>
-	</div>
+	</dialog>
 {{end}}

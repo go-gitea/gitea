@@ -11,6 +11,7 @@ import (
 	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
 	admin_model "gitea.dev/models/admin"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
@@ -31,6 +32,7 @@ import (
 	"gitea.dev/modules/storage"
 	actions_service "gitea.dev/services/actions"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	issue_service "gitea.dev/services/issue"
 
 	"xorm.io/builder"
@@ -139,6 +141,11 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		return err
 	}
 
+	if _, err := db.GetEngine(ctx).In("release_id", builder.Select("id").From("`release`").Where(builder.Eq{"repo_id": repoID})).
+		Delete(&issues_model.Reaction{}); err != nil {
+		return err
+	}
+
 	// CleanupEphemeralRunnersByPickedTaskOfRepo deletes ephemeral global/org/user that have started any task of this repo
 	// The cannot pick a second task hardening for ephemeral runners expect that task objects remain available until runner deletion
 	// This method will delete affected ephemeral global/org/user runners
@@ -191,6 +198,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		&actions_model.ActionTasksVersion{RepoID: repoID},
 		&actions_model.ActionScopedWorkflowSource{SourceRepoID: repoID},
 		&issues_model.IssuePin{RepoID: repoID},
+		&repo_model.RepoBadge{RepoID: repo.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %w", err)
 	}
@@ -398,7 +406,6 @@ func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User
 			},
 			Private: true,
 			OwnerID: owner.ID,
-			Actor:   owner,
 		})
 		if err != nil {
 			return fmt.Errorf("GetUserRepositories: %w", err)
@@ -410,6 +417,7 @@ func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User
 			if err := DeleteRepositoryDirectly(ctx, repo.ID); err != nil {
 				return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %w", repo.Name, owner.Name, owner.ID, err)
 			}
+			audit.Record(ctx, audit_model.RepositoryDelete, repo)
 		}
 	}
 	return nil

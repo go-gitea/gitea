@@ -78,15 +78,6 @@
 			</div>
 		{{end}}
 
-		{{range .OpenIDs}}
-			{{if .Show}}
-				<div class="item">
-					{{svg "fontawesome-openid"}}
-					<a target="_blank" href="{{.URI}}">{{.URI}}</a>
-				</div>
-			{{end}}
-		{{end}}
-
 		<div class="item">{{svg "octicon-calendar"}} <span>{{ctx.Locale.Tr "user.joined_on" (DateUtils.AbsoluteShort .ContextUser.CreatedUnix)}}</span></div>
 
 		{{if and .Orgs .HasOrgsVisible}}
@@ -107,7 +98,15 @@
 		{{if .Badges}}
 			<div class="item">
 				<div class="user-badges">
-				{{template "shared/badges" (dict "Badges" .Badges "AllowImages" true)}}
+				{{range .Badges}}
+					<span class="user-badge-item">
+						{{if .ImageURL}}
+						<img loading="lazy" width="64" height="64" src="{{.ImageURL}}" alt="{{.Description}}" data-tooltip-content="{{.Description}}">
+						{{else}}
+						<span class="ui label user-badge-chip" data-tooltip-content="{{if .Description}}{{.Description}}{{else}}{{.Slug}}{{end}}">{{.Slug}}</span>
+						{{end}}
+					</span>
+				{{end}}
 				</div>
 			</div>
 		{{end}}

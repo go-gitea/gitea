@@ -4,7 +4,6 @@
 package setting
 
 import (
-	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -28,6 +27,7 @@ var Service = struct {
 	DefaultUserVisibilityMode               structs.VisibleType `ini:"-"`
 	AllowedUserVisibilityModesSlice         AllowedVisibility   `ini:"-"`
 	DefaultOrgVisibilityMode                structs.VisibleType `ini:"-"`
+	DefaultTeamVisibilityMode               structs.VisibleType `ini:"-"`
 	ActiveCodeLives                         int
 	ResetPwdCodeLives                       int
 	RegisterEmailConfirm                    bool
@@ -66,6 +66,7 @@ var Service = struct {
 	McaptchaSitekey                         string
 	McaptchaURL                             string
 	DefaultKeepEmailPrivate                 bool
+	ForceUserActivityVisibility             string
 	DefaultAllowCreateOrganization          bool
 	DefaultUserIsRestricted                 bool
 	EnableTimetracking                      bool
@@ -81,12 +82,6 @@ var Service = struct {
 	DefaultOrgMemberVisible                 bool
 	UserDeleteWithCommentsMaxTime           time.Duration
 	ValidSiteURLSchemes                     []string
-
-	// OpenID settings
-	EnableOpenIDSignIn bool
-	EnableOpenIDSignUp bool
-	OpenIDWhitelist    []*regexp.Regexp
-	OpenIDBlacklist    []*regexp.Regexp
 
 	// Explore page settings
 	Explore struct {
@@ -158,7 +153,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 		Service.RegisterManualConfirm = false
 	}
 	if sec.HasKey("EMAIL_DOMAIN_WHITELIST") {
-		deprecatedSetting(rootCfg, "service", "EMAIL_DOMAIN_WHITELIST", "service", "EMAIL_DOMAIN_ALLOWLIST", "1.21")
+		deprecatedSetting(rootCfg, "service", "EMAIL_DOMAIN_WHITELIST", "service", "EMAIL_DOMAIN_ALLOWLIST")
 	}
 	Service.EmailDomainAllowList = CompileEmailGlobList(sec, "EMAIL_DOMAIN_WHITELIST", "EMAIL_DOMAIN_ALLOWLIST")
 	Service.EmailDomainBlockList = CompileEmailGlobList(sec, "EMAIL_DOMAIN_BLOCKLIST")
@@ -200,6 +195,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.McaptchaSecret = sec.Key("MCAPTCHA_SECRET").MustString("")
 	Service.McaptchaSitekey = sec.Key("MCAPTCHA_SITEKEY").MustString("")
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
+	Service.ForceUserActivityVisibility = sec.Key("FORCE_USER_ACTIVITY_VISIBILITY").In("", []string{"public", "private"})
 	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
 	Service.DefaultUserIsRestricted = sec.Key("DEFAULT_USER_IS_RESTRICTED").MustBool(false)
 	Service.EnableTimetracking = sec.Key("ENABLE_TIMETRACKING").MustBool(true)
@@ -243,6 +239,9 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[defaultOrgVisibility]
 	Service.DefaultOrgMemberVisible = sec.Key("DEFAULT_ORG_MEMBER_VISIBLE").MustBool()
 
+	defaultTeamVisibility := structs.VisibilityString(sec.Key("DEFAULT_TEAM_VISIBILITY").In("private", structs.VisibilityModeKeys()))
+	Service.DefaultTeamVisibilityMode = structs.VisibilityModes[defaultTeamVisibility]
+
 	Service.UserDeleteWithCommentsMaxTime = sec.Key("USER_DELETE_WITH_COMMENTS_MAX_TIME").MustDuration(0)
 	sec.Key("VALID_SITE_URL_SCHEMES").MustString("http,https") // FIXME: INI-MUST-SIDE-EFFECT
 	Service.ValidSiteURLSchemes = sec.Key("VALID_SITE_URL_SCHEMES").Strings(",")
@@ -257,28 +256,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 
 	mustMapSetting(rootCfg, "service.explore", &Service.Explore)
 
-	loadOpenIDSetting(rootCfg)
 	loadQosSetting(rootCfg)
-}
-
-func loadOpenIDSetting(rootCfg ConfigProvider) {
-	sec := rootCfg.Section("openid")
-	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(false)
-	Service.EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(false)
-	pats := sec.Key("WHITELISTED_URIS").Strings(" ")
-	if len(pats) != 0 {
-		Service.OpenIDWhitelist = make([]*regexp.Regexp, len(pats))
-		for i, p := range pats {
-			Service.OpenIDWhitelist[i] = regexp.MustCompilePOSIX(p)
-		}
-	}
-	pats = sec.Key("BLACKLISTED_URIS").Strings(" ")
-	if len(pats) != 0 {
-		Service.OpenIDBlacklist = make([]*regexp.Regexp, len(pats))
-		for i, p := range pats {
-			Service.OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)
-		}
-	}
 }
 
 func loadQosSetting(rootCfg ConfigProvider) {
