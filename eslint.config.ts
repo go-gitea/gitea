@@ -228,7 +228,7 @@ export default defineConfig([
       '@typescript-eslint/no-unsafe-argument': [0],
       '@typescript-eslint/no-unsafe-assignment': [0],
       '@typescript-eslint/no-unsafe-call': [0],
-      '@typescript-eslint/no-unsafe-class-instance-assignment': [2],
+      '@typescript-eslint/no-unsafe-class-instance-assignment': [0],
       '@typescript-eslint/no-unsafe-declaration-merging': [2],
       '@typescript-eslint/no-unsafe-enum-assignment': [0],
       '@typescript-eslint/no-unsafe-enum-comparison': [0],
