@@ -36,7 +36,7 @@ jobs:
           - "389:389"
           - "636:636"
       s3:
-        image: rustfs/rustfs:1.0.0-beta.3@sha256:378642b05b7dcb4849fb77ebe6aca4ced1c3f66e7e504247df95a5c9018d3358
+        image: rustfs/rustfs:1.0.6@sha256:ee717072290bec9b11abfc0365f8310b00df1cd9b3639943edae47bdef05044a
         env:
           RUSTFS_ACCESS_KEY: 123456
           RUSTFS_SECRET_KEY: 12345678
@@ -72,7 +72,7 @@ jobs:
           - "389:389"
           - "636:636"
       s3:
-        image: rustfs/rustfs:1.0.0-beta.3@sha256:378642b05b7dcb4849fb77ebe6aca4ced1c3f66e7e504247df95a5c9018d3358
+        image: rustfs/rustfs:1.0.6@sha256:ee717072290bec9b11abfc0365f8310b00df1cd9b3639943edae47bdef05044a
         env:
           RUSTFS_ACCESS_KEY: 123456
           RUSTFS_SECRET_KEY: 12345678
@@ -139,7 +139,7 @@ jobs:
         ports:
           - 6379:6379
       s3:
-        image: rustfs/rustfs:1.0.0-beta.3@sha256:378642b05b7dcb4849fb77ebe6aca4ced1c3f66e7e504247df95a5c9018d3358
+        image: rustfs/rustfs:1.0.6@sha256:ee717072290bec9b11abfc0365f8310b00df1cd9b3639943edae47bdef05044a
         env:
           RUSTFS_ACCESS_KEY: 123456
           RUSTFS_SECRET_KEY: 12345678

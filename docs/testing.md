@@ -81,7 +81,7 @@ PostgreSQL tests also use a RustFS container for object storage:
 
 ```bash
 docker run -e "POSTGRES_DB=test" -e "POSTGRES_USER=postgres" -e "POSTGRES_PASSWORD=postgres" -p 5432:5432 --rm --name pgsql postgres:latest
-docker run --rm -p 9000:9000 -e RUSTFS_ACCESS_KEY=123456 -e RUSTFS_SECRET_KEY=12345678 --name rustfs rustfs/rustfs:1.0.0-beta.3
+docker run --rm -p 9000:9000 -e RUSTFS_ACCESS_KEY=123456 -e RUSTFS_SECRET_KEY=12345678 --name rustfs rustfs/rustfs:1.0.6
 ```
 
 ```bash
