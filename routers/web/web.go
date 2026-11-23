@@ -1708,6 +1708,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}, repo.MustBeNotEmpty)
 
 		m.Get("/blob_excerpt/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
+		m.Get("/rich_diff", repo.RichDiff)
 
 		m.Group("", func() {
 			m.Get("/graph", repo.Graph)

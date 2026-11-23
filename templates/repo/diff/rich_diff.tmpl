@@ -1,0 +1,5 @@
+{{if .RichDiffError}}
+	<div class="tw-p-3">{{.RichDiffError}}</div>
+{{else}}
+	<div class="markup rich-diff tw-p-4">{{.RichDiffHTML}}</div>
+{{end}}

@@ -452,6 +452,7 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 		ctx.ServerErrorAuto(err)
 		return
 	}
+	diff.SetRichDiffLinks(ci.HeadRepo.Link(), beforeCommitID, headCommitID)
 	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ci.HeadGitRepo, &diffCommonOptions)
 	if err != nil {
 		ctx.ServerErrorAuto(err)

@@ -358,6 +358,9 @@ func Diff(ctx *context.Context) {
 		}
 		parentCommitID = parentCommit.ID.String()
 	}
+	if ctx.Data["PageIsWiki"] == nil {
+		diff.SetRichDiffLinks(ctx.Repo.RepoLink, parentCommitID, commit.ID.String())
+	}
 	setCompareContext(ctx, parentCommit, commit, userName, repoName)
 	ctx.Data["Title"] = commit.MessageTitle() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit

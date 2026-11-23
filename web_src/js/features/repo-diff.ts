@@ -17,8 +17,21 @@ import {initImageDiff} from './imagediff.ts';
 import DiffCommitSelector from '../components/DiffCommitSelector.vue';
 import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
 
+async function loadRichDiff(el: HTMLElement) {
+  const link = el.getAttribute('data-rich-diff-link')!;
+  el.removeAttribute('data-rich-diff-link');
+  try {
+    const resp = await GET(link);
+    if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
+    el.innerHTML = await resp.text();
+  } catch (error) {
+    el.setAttribute('data-rich-diff-link', link); // allow retrying by toggling again
+    showErrorToast(`Failed to load rich diff: ${errorMessage(error)}`);
+  }
+}
+
 function initDiffFileViewToggle(el: HTMLElement) {
-  // switch between "rendered" and "source", for image and CSV files
+  // switch between "rendered" and "source", for image, CSV and markup files
   queryElems(el, '.file-view-toggle', (btn) => btn.addEventListener('click', () => {
     queryElemSiblings(btn, '.file-view-toggle', (el) => el.classList.remove('active'));
     btn.classList.add('active');
@@ -28,6 +41,7 @@ function initDiffFileViewToggle(el: HTMLElement) {
 
     hideElem(queryElemSiblings(target));
     showElem(target);
+    if (target.hasAttribute('data-rich-diff-link')) loadRichDiff(target as HTMLElement);
   }));
 }
 

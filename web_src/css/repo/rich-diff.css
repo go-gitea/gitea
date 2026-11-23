@@ -1,0 +1,24 @@
+.markup.rich-diff ins.rich-diff-added,
+.markup.rich-diff del.rich-diff-removed {
+  color: var(--color-text);
+}
+
+.markup.rich-diff ins.rich-diff-added {
+  background: var(--color-diff-added-word-bg);
+  text-decoration: none;
+}
+
+.markup.rich-diff del.rich-diff-removed {
+  background: var(--color-diff-removed-word-bg);
+}
+
+.markup.rich-diff .rich-diff-added:not(ins) {
+  background: var(--color-diff-added-row-bg);
+  box-shadow: inset 3px 0 var(--color-diff-added-fg);
+}
+
+.markup.rich-diff .rich-diff-removed:not(del) {
+  background: var(--color-diff-removed-row-bg);
+  box-shadow: inset 3px 0 var(--color-diff-removed-fg);
+  text-decoration: line-through;
+}

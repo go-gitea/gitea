@@ -68,6 +68,7 @@
 @import "./repo/issue-list.css";
 @import "./repo/list-header.css";
 @import "./repo/file-view.css";
+@import "./repo/rich-diff.css";
 @import "./repo/wiki.css";
 @import "./repo/home.css";
 @import "./repo/home-file-list.css";

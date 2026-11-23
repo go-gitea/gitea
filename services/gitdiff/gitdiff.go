@@ -494,6 +494,8 @@ type DiffFile struct {
 
 	IsBlobTypeImage bool
 	IsBlobTypeCsv   bool
+
+	RichDiffLink string // filled by SetRichDiffLinks, the link to the rendered diff of a markup file
 }
 
 // GetType returns type of diff file.
@@ -502,7 +504,7 @@ func (diffFile *DiffFile) GetType() int {
 }
 
 func (diffFile *DiffFile) CanShowFileViewToggle() bool {
-	return diffFile.IsBlobTypeImage || (diffFile.IsBlobTypeCsv && !diffFile.IsIncomplete && !diffFile.HasTruncatedLines)
+	return diffFile.IsBlobTypeImage || diffFile.RichDiffLink != "" || (diffFile.IsBlobTypeCsv && !diffFile.IsIncomplete && !diffFile.HasTruncatedLines)
 }
 
 type DiffRenderDetail struct {
