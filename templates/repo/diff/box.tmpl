@@ -24,7 +24,8 @@
 			{{end}}
 		</div>
 		{{if .DiffRefreshHead}}
-			<button type="button" class="ui compact mini red button diff-refresh-button tw-hidden" data-global-init="initDiffRefresh" data-head="{{.DiffRefreshHead}}" data-pull-id="{{.Issue.PullRequest.ID}}" aria-label="{{ctx.Locale.Tr "repo.pulls.refresh_diff"}}" data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.new_commits_available"}}">
+			<button type="button" class="ui compact mini button flex-text-inline diff-refresh-button tw-hidden" data-global-init="initDiffRefresh" data-head="{{.DiffRefreshHead}}" data-pull-id="{{.Issue.PullRequest.ID}}" aria-label="{{ctx.Locale.Tr "repo.pulls.refresh_diff"}}" data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.new_commits_available"}}">
+				{{svg "octicon-sync" 14}}
 				{{ctx.Locale.Tr "repo.pulls.refresh_diff"}}
 			</button>
 		{{end}}
