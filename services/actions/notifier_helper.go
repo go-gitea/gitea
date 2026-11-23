@@ -298,9 +298,9 @@ func preparePullRequestMerge(ctx context.Context, input *notifyInput, gitRepo *g
 			return headCommit, err
 		}
 	}
-	mergeCommitID, err := pull_service.UpdateMergeRef(ctx, input.PullRequest, baseCommit.ID.String(), headCommit.ID.String())
+	mergeCommitID, err := pull_service.CreateTestMerge(ctx, input.PullRequest, baseCommit.ID.String(), headCommit.ID.String())
 	if err != nil {
-		log.Error("UpdateMergeRef for %-v: %v", input.PullRequest, err)
+		log.Error("create test merge for %-v: %v", input.PullRequest, err)
 	}
 	if mergeCommitID == "" {
 		return headCommit, nil

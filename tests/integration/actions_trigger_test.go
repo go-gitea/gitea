@@ -1245,9 +1245,15 @@ jobs:
 		assert.NoError(t, err)
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
 
+		mergeRefCommitID := func() string {
+			commitID, _ := git.GetFullCommitID(t.Context(), repo, git.MergeRefNameFromPullIndex(pullRequest.Index).String())
+			return commitID
+		}
+		require.Eventually(t, func() bool { return mergeRefCommitID() == mergeCommitSHA }, 10*time.Second, 50*time.Millisecond)
 		actions_service.NewNotifier().PullRequestSynchronized(t.Context(), user2, pullRequest, "", addWorkflow.Commit.SHA)
 		unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, Event: webhook_module.HookEventPullRequestSync, CommitSHA: addWorkflow.Commit.SHA})
 		checkCommitStatusAndInsertFakeStatus(t, repo, addWorkflow.Commit.SHA)
+		assert.Equal(t, mergeCommitSHA, mergeRefCommitID()) // a delayed event doesn't move refs/pull/<index>/merge
 
 		testCreateBranch(t, ctx.Session, repo.OwnerName, repo.Name, "commit/"+addWorkflow.Commit.Parents[0].SHA, "other-base", http.StatusSeeOther)
 		require.NoError(t, pull_service.ChangeTargetBranch(t.Context(), pullRequest, user2, "other-base"))

@@ -39,6 +39,15 @@ func (*mergeRefNotifier) IssueChangeStatus(ctx context.Context, _doer *user_mode
 
 // UpdateMergeRef refreshes refs/pull/<index>/merge and returns its commit, empty when closed, conflicting or git lacks merge-tree
 func UpdateMergeRef(ctx context.Context, pr *issues_model.PullRequest, baseCommitID, headCommitID string) (string, error) {
+	commitID, err := CreateTestMerge(ctx, pr, baseCommitID, headCommitID)
+	if commitID == "" || err != nil {
+		return "", err
+	}
+	return commitID, git.UpdateRef(ctx, pr.BaseRepo, git.MergeRefNameFromPullIndex(pr.Index).String(), commitID)
+}
+
+// CreateTestMerge is UpdateMergeRef without moving refs/pull/<index>/merge
+func CreateTestMerge(ctx context.Context, pr *issues_model.PullRequest, baseCommitID, headCommitID string) (string, error) {
 	if !git.DefaultFeatures().SupportGitMergeTree {
 		return "", nil
 	}
@@ -46,10 +55,18 @@ func UpdateMergeRef(ctx context.Context, pr *issues_model.PullRequest, baseCommi
 	if err != nil || conflicted {
 		return "", err
 	}
-	return updateMergeRef(ctx, pr, baseCommitID, headCommitID, treeID)
+	return createTestMergeCommit(ctx, pr, baseCommitID, headCommitID, treeID)
 }
 
 func updateMergeRef(ctx context.Context, pr *issues_model.PullRequest, baseCommitID, headCommitID, treeID string) (string, error) {
+	commitID, err := createTestMergeCommit(ctx, pr, baseCommitID, headCommitID, treeID)
+	if commitID == "" || err != nil {
+		return "", err
+	}
+	return commitID, git.UpdateRef(ctx, pr.BaseRepo, git.MergeRefNameFromPullIndex(pr.Index).String(), commitID)
+}
+
+func createTestMergeCommit(ctx context.Context, pr *issues_model.PullRequest, baseCommitID, headCommitID, treeID string) (string, error) {
 	if err := pr.LoadIssue(ctx); err != nil || pr.Issue.IsClosed {
 		return "", err
 	}
@@ -67,6 +84,5 @@ func updateMergeRef(ctx context.Context, pr *issues_model.PullRequest, baseCommi
 	if err != nil {
 		return "", err
 	}
-	commitID := strings.TrimSpace(stdout)
-	return commitID, git.UpdateRef(ctx, pr.BaseRepo, git.MergeRefNameFromPullIndex(pr.Index).String(), commitID)
+	return strings.TrimSpace(stdout), nil
 }
