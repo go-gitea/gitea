@@ -342,6 +342,7 @@ func (d *IssuePageMetaData) retrieveProjectsDataForIssueWriter(ctx *context.Cont
 type repoReviewerSelection struct {
 	IsTeam         bool
 	Team           *organization.Team
+	TeamOrgName    string
 	User           *user_model.User
 	Review         *issues_model.Review
 	CanBeDismissed bool
@@ -540,6 +541,37 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 		}
 
 		data.TeamReviewers = teamReviewersResult
+	}
+
+	otherOrgIDs := make(container.Set[int64])
+	for _, list := range [][]*repoReviewerSelection{data.CurrentPullReviewers, data.TeamReviewers} {
+		for _, item := range list {
+			if item.Team != nil {
+				if item.Team.OrgID == repo.OwnerID {
+					item.TeamOrgName = repo.OwnerName
+				} else if item.Team.OrgID > 0 {
+					otherOrgIDs.Add(item.Team.OrgID)
+				}
+			}
+		}
+	}
+	if len(otherOrgIDs) > 0 {
+		orgs, err := user_model.GetUsersByIDs(ctx, otherOrgIDs.Values())
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+		orgNames := make(map[int64]string, len(orgs))
+		for _, org := range orgs {
+			orgNames[org.ID] = org.Name
+		}
+		for _, list := range [][]*repoReviewerSelection{data.CurrentPullReviewers, data.TeamReviewers} {
+			for _, item := range list {
+				if item.Team != nil && item.TeamOrgName == "" {
+					item.TeamOrgName = orgNames[item.Team.OrgID]
+				}
+			}
+		}
 	}
 }
 
