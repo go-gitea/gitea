@@ -4,7 +4,7 @@
 <div class="bottom-reactions" data-action-url="{{$.ActionURL}}" role="group" aria-label="{{ctx.Locale.Tr "repo.reactions"}}">
 {{if $canReact}}
 	<button type="button" class="select-reaction" data-global-click="onReactionPickerClick" aria-label="{{ctx.Locale.Tr "repo.reactions"}}">{{svg "octicon-smiley"}}</button>
-	<div class="tippy-target">
+	<div class="floating-target">
 		<div class="reaction-picker">
 			{{range $value := $allowedReactions}}
 			<button type="button" class="item emoji" role="menuitem" data-tooltip-content="{{$value}}" aria-label="{{$value}}" data-reaction-content="{{$value}}" data-has-reacted="{{(index $.Reactions $value).HasUser ctx.RootData.SignedUserID}}" data-global-click="onCommentReactionButtonClick">{{ReactionToEmoji $value}}</button>

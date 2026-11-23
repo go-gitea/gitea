@@ -25,7 +25,7 @@
 @import "./modules/transition.css";
 
 @import "./modules/shortcut.css";
-@import "./modules/tippy.css";
+@import "./modules/floating.css";
 @import "./modules/breadcrumb.css";
 @import "./modules/comment.css";
 @import "./modules/navbar.css";

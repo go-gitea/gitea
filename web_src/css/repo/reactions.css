@@ -77,7 +77,7 @@
   padding: 0 4px;
 }
 
-.tippy-box .reaction-picker .item {
+.floating-box .reaction-picker .item {
   justify-content: center;
   width: 32px;
   height: 32px;
@@ -86,6 +86,6 @@
   font-size: 17.5px;
 }
 
-.tippy-box .reaction-picker .item[data-has-reacted="true"] {
+.floating-box .reaction-picker .item[data-has-reacted="true"] {
   background: var(--color-reaction-active-bg);
 }

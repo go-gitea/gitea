@@ -351,12 +351,12 @@ func TestAvatarStack(t *testing.T) {
 		assert.Contains(t, got, `<span class="avatar-stack">`)
 	})
 
-	t.Run("three participants switch to N people label with tippy popup", func(t *testing.T) {
+	t.Run("three participants switch to N people label with floating popup", func(t *testing.T) {
 		got := string(ut.AvatarStackWithNames(mkData(mkCo("Bob", "bob@example.com"), mkCo("Carol", "carol@example.com"))))
 		assert.Contains(t, got, "repo.commits.avatar_stack_people:3")
 		assert.NotContains(t, got, "repo.commits.avatar_stack_and")
 		assert.Contains(t, got, `data-global-init="initAvatarStackPopup"`)
-		assert.Contains(t, got, `<div class="tippy-target">`)
+		assert.Contains(t, got, `<div class="floating-target">`)
 		assert.Contains(t, got, `class="avatar-stack-popup"`)
 	})
 
