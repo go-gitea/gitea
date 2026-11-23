@@ -204,6 +204,10 @@ func testAPIGetContentsRefFormats(t *testing.T) {
 	_ = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/docs/README.md?ref=464929"), http.StatusOK)
 	// Test 5-character short hash (unique prefix)
 	_ = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/docs/README.md?ref=46492"), http.StatusOK)
+	// Test 4-character short hash (minimum valid length)
+	_ = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/docs/README.md?ref=4649"), http.StatusOK)
+	// Test 3-character short hash (below minimum) - should fall back to default branch, file not found
+	_ = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/docs/README.md?ref=464"), http.StatusNotFound)
 	_ = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/README.md?ref=sub-home-md-img-check"), http.StatusNotFound)
 
 	// FIXME: this is an incorrect behavior, non-existing branch falls back to default branch
