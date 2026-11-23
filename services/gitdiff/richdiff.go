@@ -12,15 +12,17 @@ import (
 // SetRichDiffLinks sets the rendered diff link for the files whose markup renders inline (markdown, orgmode, ...)
 func (diff *Diff) SetRichDiffLinks(repoLink, beforeCommitID, afterCommitID string) {
 	for _, file := range diff.Files {
-		if file.IsBin || file.IsLFSFile || file.IsSubmodule || !CanRichDiff(file.Name) {
+		hasOld, hasNew := file.Type != DiffFileAdd, file.Type != DiffFileDel
+		// a file renamed from or to a non-markup name has no rendered version on that side
+		if file.IsBin || file.IsLFSFile || file.IsSubmodule || (hasOld && !CanRichDiff(file.OldName)) || (hasNew && !CanRichDiff(file.Name)) {
 			continue
 		}
 		q := url.Values{}
-		if file.Type != DiffFileAdd {
+		if hasOld {
 			q.Set("before", beforeCommitID)
 			q.Set("old_path", file.OldName)
 		}
-		if file.Type != DiffFileDel {
+		if hasNew {
 			q.Set("after", afterCommitID)
 			q.Set("path", file.Name)
 		}

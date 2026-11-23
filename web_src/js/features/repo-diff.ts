@@ -18,16 +18,10 @@ import DiffCommitSelector from '../components/DiffCommitSelector.vue';
 import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
 
 async function loadRichDiff(el: HTMLElement) {
-  const link = el.getAttribute('data-rich-diff-link')!;
+  const resp = await performFetchActionRequest(el, {method: 'GET', url: el.getAttribute('data-rich-diff-link')!});
+  if (!resp) return; // the link is kept to retry by toggling again
   el.removeAttribute('data-rich-diff-link');
-  try {
-    const resp = await GET(link);
-    if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
-    el.innerHTML = await resp.text();
-  } catch (error) {
-    el.setAttribute('data-rich-diff-link', link); // allow retrying by toggling again
-    showErrorToast(`Failed to load rich diff: ${errorMessage(error)}`);
-  }
+  el.innerHTML = await resp.text();
 }
 
 function initDiffFileViewToggle(el: HTMLElement) {

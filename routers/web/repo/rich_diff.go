@@ -6,6 +6,7 @@ package repo
 import (
 	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
 	"path"
 	"strings"
@@ -18,7 +19,6 @@ import (
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 	"gitea.dev/services/gitdiff"
 )
@@ -30,18 +30,13 @@ var errRichDiffTooLarge = errors.New("file too large for rich diff")
 // RichDiff renders the changes between two versions of a markup file
 func RichDiff(ctx *context.Context) {
 	oldPath, newPath := ctx.FormString("old_path"), ctx.FormString("path")
-	if !gitdiff.CanRichDiff(util.IfZero(newPath, oldPath)) {
+	canRichDiff := func(treePath string) bool { return treePath == "" || gitdiff.CanRichDiff(treePath) }
+	if oldPath+newPath == "" || !canRichDiff(oldPath) || !canRichDiff(newPath) {
 		ctx.NotFound()
 		return
 	}
-	oldCommitID, oldHTML, err := renderRichDiffFile(ctx, ctx.FormString("before"), oldPath)
-	if err == nil {
-		var newCommitID, newHTML string
-		newCommitID, newHTML, err = renderRichDiffFile(ctx, ctx.FormString("after"), newPath)
-		if err == nil {
-			ctx.Data["RichDiffHTML"], err = htmldiff.Diff(oldHTML, newHTML, htmldiff.Options{NormalizeLink: commitIDRemover(oldCommitID, newCommitID)})
-		}
-	}
+	var err error
+	ctx.Data["RichDiffHTML"], err = diffRichDiffFiles(ctx, oldPath, newPath)
 	switch {
 	case git.IsErrNotExist(err):
 		ctx.NotFound()
@@ -53,6 +48,18 @@ func RichDiff(ctx *context.Context) {
 		ctx.Data["RichDiffError"] = ctx.Locale.Tr("repo.diff.rich_diff_failed")
 	}
 	ctx.HTML(http.StatusOK, tplRichDiff)
+}
+
+func diffRichDiffFiles(ctx *context.Context, oldPath, newPath string) (template.HTML, error) {
+	oldCommitID, oldHTML, err := renderRichDiffFile(ctx, ctx.FormString("before"), oldPath)
+	if err != nil {
+		return "", err
+	}
+	newCommitID, newHTML, err := renderRichDiffFile(ctx, ctx.FormString("after"), newPath)
+	if err != nil {
+		return "", err
+	}
+	return htmldiff.Diff(oldHTML, newHTML, htmldiff.Options{NormalizeLink: commitIDRemover(oldCommitID, newCommitID)})
 }
 
 func renderRichDiffFile(ctx *context.Context, commitRef, treePath string) (commitID, rendered string, _ error) {
@@ -86,12 +93,12 @@ func renderRichDiffFile(ctx *context.Context, commitRef, treePath string) (commi
 	metas["RefTypeNameSubURL"] = refSubURL
 	rctx.WithMetas(metas)
 
-	var sb strings.Builder
 	renderer := markup.DetectRendererTypeByFilename(treePath)
-	if err := markup.RenderWithRenderer(rctx, renderer, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}), &sb); err != nil {
+	_, html, err := markupRenderToHTML(ctx, rctx, renderer, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}))
+	if err != nil {
 		return "", "", fmt.Errorf("renderRichDiffFile: %w", err)
 	}
-	return commitID, sb.String(), nil
+	return commitID, string(html), nil
 }
 
 // commitIDRemover makes the links of both versions comparable, they point to their own commit

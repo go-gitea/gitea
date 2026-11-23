@@ -24,14 +24,15 @@ func TestRichDiff(t *testing.T) {
 			"new.md":  "Hello new world",
 			"new.txt": "Hello new world",
 		})
-		link := func(path string) string {
-			q := url.Values{"before": {resp.Commit.SHA}, "old_path": {"old.md"}, "after": {resp.Commit.SHA}, "path": {path}}
+		link := func(oldPath, path string) string {
+			q := url.Values{"before": {resp.Commit.SHA}, "old_path": {oldPath}, "after": {resp.Commit.SHA}, "path": {path}}
 			return "/user2/repo1/rich_diff?" + q.Encode()
 		}
 
-		body := MakeRequest(t, NewRequest(t, "GET", link("new.md")), http.StatusOK).Body.String()
+		body := MakeRequest(t, NewRequest(t, "GET", link("old.md", "new.md")), http.StatusOK).Body.String()
 		assert.Contains(t, body, `Hello <del class="rich-diff-removed">old</del><ins class="rich-diff-added">new</ins> world`)
 
-		MakeRequest(t, NewRequest(t, "GET", link("new.txt")), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", link("old.md", "new.txt")), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", link("new.txt", "new.md")), http.StatusNotFound)
 	})
 }

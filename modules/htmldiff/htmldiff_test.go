@@ -29,6 +29,18 @@ func TestDiff(t *testing.T) {
 			expected: `<p>Some <strong><del ` + del + `>bold</del><ins ` + add + `>strong</ins></strong> text</p>`,
 		},
 		{
+			name:     "equal siblings are not merged",
+			old:      `<p><kbd>A</kbd><kbd>B</kbd><kbd>C</kbd> x</p>`,
+			new:      `<p><kbd>A</kbd><kbd>C</kbd><kbd>D</kbd> x</p>`,
+			expected: `<p><kbd>A</kbd><kbd><del ` + del + `>B</del></kbd><kbd>C</kbd><kbd><ins ` + add + `>D</ins></kbd> x</p>`,
+		},
+		{
+			name:     "block with a rule is not atomic",
+			old:      `<div><hr/><p>note one</p></div>`,
+			new:      `<div><hr/><p>note two</p></div>`,
+			expected: `<div><hr/><p>note <del ` + del + `>one</del><ins ` + add + `>two</ins></p></div>`,
+		},
+		{
 			name:     "existing del element is kept",
 			old:      `<p>a <del>struck</del> b</p>`,
 			new:      `<p>a <del>struck</del> c</p>`,
