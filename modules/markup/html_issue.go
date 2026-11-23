@@ -53,7 +53,8 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 		link := node.Data[m[0]:m[1]]
 		siteURL := httplib.ParseGiteaSiteURL(ctx, link)
 		if siteURL == nil {
-			return
+			start = m[1]
+			continue
 		}
 		isSameRepo := siteURL.OwnerName == ctx.RenderOptions.Metas["user"] && siteURL.RepoName == ctx.RenderOptions.Metas["repo"]
 

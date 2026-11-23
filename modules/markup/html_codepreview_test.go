@@ -18,6 +18,9 @@ import (
 func TestRenderCodePreview(t *testing.T) {
 	markup.Init(&markup.RenderHelperFuncs{
 		RenderRepoFileCodePreview: func(ctx context.Context, options markup.RenderCodePreviewOptions) (template.HTML, error) {
+			if options.FilePath == "missing.md" {
+				return "", nil
+			}
 			return "<div>code preview</div>", nil
 		},
 	})
@@ -28,4 +31,8 @@ func TestRenderCodePreview(t *testing.T) {
 	}
 	test("http://localhost:3000/owner/repo/src/commit/0123456789/foo/bar.md#L10-L20", "<p><div>code preview</div></p>")
 	test("http://other/owner/repo/src/commit/0123456789/foo/bar.md#L10-L20", `<p><a href="http://other/owner/repo/src/commit/0123456789/foo/bar.md#L10-L20" rel="nofollow">http://other/owner/repo/src/commit/0123456789/foo/bar.md#L10-L20</a></p>`)
+	test("http://other/owner/repo/src/commit/0123456789/foo/bar.md#L10-L20 http://localhost:3000/owner/repo/src/commit/0123456789/foo/bar.md#L10-L20",
+		`<p><a href="http://other/owner/repo/src/commit/0123456789/foo/bar.md#L10-L20" rel="nofollow">http://other/owner/repo/src/commit/0123456789/foo/bar.md#L10-L20</a> <div>code preview</div></p>`)
+	test("http://localhost:3000/owner/repo/src/commit/0123456789/missing.md#L1-L2 http://localhost:3000/owner/repo/src/commit/0123456789/foo/bar.md#L10-L20",
+		`<p><a href="http://localhost:3000/owner/repo/src/commit/0123456789/missing.md#L1-L2" rel="nofollow">http://localhost:3000/owner/repo/src/commit/0123456789/missing.md#L1-L2</a> <div>code preview</div></p>`)
 }
