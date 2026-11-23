@@ -18,6 +18,7 @@ import (
 
 	git_module "gitea.dev/modules/git"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
@@ -320,7 +321,7 @@ func (c *CodeCommitDownloader) callAPI(ctx context.Context, operation string, in
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusOK {
-		return json.NewDecoder(resp.Body).Decode(output)
+		return jsonlimit.DecodeWithLimit(resp.Body, 100*1024*1024, output)
 	}
 	respBody, _ := io.ReadAll(resp.Body)
 	return fmt.Errorf("CodeCommit %s: %s: %s", operation, resp.Status, respBody)
