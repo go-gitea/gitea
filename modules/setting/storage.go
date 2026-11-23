@@ -22,11 +22,8 @@ const (
 	// S3StorageType is the type descriptor for S3-compatible storage
 	S3StorageType StorageType = "s3"
 	// AzureBlobStorageType is the type descriptor for azure blob storage
-	AzureBlobStorageType StorageType = "azureblob"
-	// legacyMinioStorageType is the deprecated value of S3StorageType,
-	// accepted on read and rewritten to S3StorageType in
-	// migrateDeprecatedStorageConfig.
-	legacyMinioStorageType StorageType = "minio"
+	AzureBlobStorageType   StorageType = "azureblob"
+	legacyMinioStorageType StorageType = "minio" // deprecated alias of S3StorageType
 )
 
 var storageTypes = []StorageType{
@@ -57,8 +54,7 @@ type S3StorageConfig struct {
 	BucketLookUpType   string `ini:"S3_BUCKET_LOOKUP_TYPE" json:",omitempty"`
 }
 
-// minioToS3KeyRenames lists deprecated MINIO_* ini keys and their S3_*
-// replacements, ordered for stable startup-log output.
+// minioToS3KeyRenames is a slice, not a map, for stable startup-log order
 var minioToS3KeyRenames = []struct{ oldKey, newKey string }{
 	{"MINIO_ACCESS_KEY_ID", "S3_ACCESS_KEY_ID"},
 	{"MINIO_BASE_PATH", "S3_BASE_PATH"},
@@ -73,24 +69,23 @@ var minioToS3KeyRenames = []struct{ oldKey, newKey string }{
 	{"MINIO_USE_SSL", "S3_USE_SSL"},
 }
 
-func migrateDeprecatedStorageConfig(sec ConfigSection) {
-	if sec == nil {
-		return
-	}
-	if storageType := ConfigSectionKey(sec, "STORAGE_TYPE"); storageType != nil && storageType.String() == string(legacyMinioStorageType) {
-		LogStartupProblem(1, log.WARN, "Deprecation: config option `[%s].STORAGE_TYPE = %s` is deprecated, please use `%s` instead", sec.Name(), legacyMinioStorageType, S3StorageType)
-		storageType.SetValue(string(S3StorageType))
-	}
-	for _, rename := range minioToS3KeyRenames {
-		oldKey := ConfigSectionKey(sec, rename.oldKey)
-		if oldKey == nil {
-			continue
+// migrateDeprecatedStorageKeys copies all keys before deleting any, so `%(MINIO_*)s` interpolations still resolve
+func migrateDeprecatedStorageKeys(rootCfg ConfigProvider) {
+	sections := rootCfg.Sections()
+	for _, sec := range sections {
+		for _, rename := range minioToS3KeyRenames {
+			if oldKey := ConfigSectionKey(sec, rename.oldKey); oldKey != nil && ConfigSectionKey(sec, rename.newKey) == nil {
+				_, _ = sec.NewKey(rename.newKey, oldKey.String())
+			}
 		}
-		LogStartupProblem(1, log.WARN, "Deprecation: config option `[%s].%s` present, please use `[%s].%s` instead", sec.Name(), rename.oldKey, sec.Name(), rename.newKey)
-		if ConfigSectionKey(sec, rename.newKey) == nil {
-			_, _ = sec.NewKey(rename.newKey, oldKey.String())
+	}
+	for _, sec := range sections {
+		for _, rename := range minioToS3KeyRenames {
+			if ConfigSectionKey(sec, rename.oldKey) != nil {
+				LogStartupProblem(1, log.WARN, "Deprecation: config option `[%s].%s` present, please use `[%s].%s` instead", sec.Name(), rename.oldKey, sec.Name(), rename.newKey)
+				sec.DeleteKey(rename.oldKey)
+			}
 		}
-		sec.DeleteKey(rename.oldKey)
 	}
 }
 
@@ -146,7 +141,6 @@ const storageSectionName = "storage"
 
 func getDefaultStorageSection(rootCfg ConfigProvider) ConfigSection {
 	storageSec := rootCfg.Section(storageSectionName)
-	migrateDeprecatedStorageConfig(storageSec)
 	// Global Defaults
 	storageSec.Key("STORAGE_TYPE").MustString("local")            // FIXME: INI-MUST-SIDE-EFFECT
 	storageSec.Key("S3_ENDPOINT").MustString("localhost:9000")    // FIXME: INI-MUST-SIDE-EFFECT
@@ -172,21 +166,21 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		return nil, errors.New("no name for storage")
 	}
 
-	migrateDeprecatedStorageConfig(rootCfg.Section(storageSectionName))
-	migrateDeprecatedStorageConfig(sec)
+	migrateDeprecatedStorageKeys(rootCfg)
 	targetSec, tp, err := getStorageTargetSection(rootCfg, name, typ, sec)
 	if err != nil {
 		return nil, err
 	}
 
 	overrideSec := getStorageOverrideSection(rootCfg, sec, tp, name)
-	migrateDeprecatedStorageConfig(targetSec)
-	migrateDeprecatedStorageConfig(overrideSec)
 
 	targetType := targetSec.Key("STORAGE_TYPE").String()
 	switch targetType {
 	case string(LocalStorageType):
 		return getStorageForLocal(targetSec, overrideSec, tp, name)
+	case string(legacyMinioStorageType):
+		LogStartupProblem(1, log.WARN, "Deprecation: storage type `%s` for `%s` is deprecated, please use `%s` instead", legacyMinioStorageType, name, S3StorageType)
+		fallthrough
 	case string(S3StorageType):
 		return getStorageForS3(targetSec, overrideSec, tp, name)
 	case string(AzureBlobStorageType):
@@ -207,13 +201,13 @@ const (
 )
 
 func getStorageSectionByType(rootCfg ConfigProvider, typ string) (ConfigSection, targetSecType, error) { //nolint:unparam // FIXME: targetSecType is always 0, wrong design?
+	legacySecName := storageSectionName + "." + string(legacyMinioStorageType)
 	targetSec, err := rootCfg.GetSection(storageSectionName + "." + typ)
 	if err != nil && typ == string(S3StorageType) {
-		// fall back to the legacy section name [storage.minio]
-		if legacySec, legacyErr := rootCfg.GetSection(storageSectionName + "." + string(legacyMinioStorageType)); legacyErr == nil {
-			LogStartupProblem(0, log.WARN, "Deprecation: storage section `[%s.%s]` is deprecated, please rename it to `[%s.%s]`", storageSectionName, legacyMinioStorageType, storageSectionName, S3StorageType)
-			targetSec, err = legacySec, nil
-		}
+		targetSec, err = rootCfg.GetSection(legacySecName)
+	}
+	if err == nil && targetSec.Name() == legacySecName {
+		LogStartupProblem(1, log.WARN, "Deprecation: storage section `[%s]` is deprecated, please rename it to `[%s.%s]` and use `STORAGE_TYPE = %s`", legacySecName, storageSectionName, S3StorageType, S3StorageType)
 	}
 	if err != nil {
 		if !IsValidStorageType(StorageType(typ)) {
@@ -223,7 +217,6 @@ func getStorageSectionByType(rootCfg ConfigProvider, typ string) (ConfigSection,
 		// it's not an error
 		return nil, 0, nil
 	}
-	migrateDeprecatedStorageConfig(targetSec)
 
 	targetType := targetSec.Key("STORAGE_TYPE").String()
 	if targetType == "" {
@@ -262,7 +255,6 @@ func getStorageTargetSection(rootCfg ConfigProvider, name, typ string, sec Confi
 	// check storage name thirdly
 	targetSec, _ := rootCfg.GetSection(storageSectionName + "." + name)
 	if targetSec != nil {
-		migrateDeprecatedStorageConfig(targetSec)
 		targetType := targetSec.Key("STORAGE_TYPE").String()
 		switch targetType {
 		case "":

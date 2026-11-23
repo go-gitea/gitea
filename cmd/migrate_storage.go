@@ -50,8 +50,7 @@ func newMigrateStorageCommand() *cli.Command {
 				Value:   "",
 				Usage:   "New storage placement if store is local (leave blank for default)",
 			},
-			// S3-compatible storage configuration. The `minio-*` aliases are
-			// deprecated and accepted for backward compatibility.
+			// S3 storage special configurations, `minio-*` aliases are deprecated
 			&cli.StringFlag{
 				Name:    "s3-endpoint",
 				Aliases: []string{"minio-endpoint"},

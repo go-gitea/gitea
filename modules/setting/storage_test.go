@@ -504,6 +504,7 @@ func Test_getStorageDeprecatedMinioKeys(t *testing.T) {
 [storage]
 STORAGE_TYPE = minio
 MINIO_ENDPOINT = minio.example.com:9000
+MINIO_IAM_ENDPOINT = https://%(MINIO_ENDPOINT)s/iam
 MINIO_ACCESS_KEY_ID = old_access
 MINIO_SECRET_ACCESS_KEY = old_secret
 MINIO_BUCKET = old-bucket
@@ -513,6 +514,7 @@ MINIO_USE_SSL = true
 		assert.NoError(t, err)
 		assert.NoError(t, loadLFSFrom(cfg))
 		assert.Equal(t, "minio.example.com:9000", LFS.Storage.S3Config.Endpoint)
+		assert.Equal(t, "https://minio.example.com:9000/iam", LFS.Storage.S3Config.IamEndpoint)
 		assert.Equal(t, "old_access", LFS.Storage.S3Config.AccessKeyID)
 		assert.Equal(t, "old_secret", LFS.Storage.S3Config.SecretAccessKey)
 		assert.Equal(t, "old-bucket", LFS.Storage.S3Config.Bucket)
@@ -520,7 +522,7 @@ MINIO_USE_SSL = true
 		assert.Equal(t, "/old-prefix/lfs/", LFS.Storage.S3Config.BasePath)
 
 		joined := strings.Join(StartupProblems, "\n")
-		assert.Contains(t, joined, "STORAGE_TYPE = minio")
+		assert.Contains(t, joined, "storage type `minio`")
 		for _, k := range legacyKeys {
 			assert.Contains(t, joined, k, "expected deprecation warning for %s", k)
 		}
@@ -559,17 +561,20 @@ MINIO_BASE_PATH = /lfs-prefix
 		assert.Equal(t, "/default-prefix/attachments/", Attachment.Storage.S3Config.BasePath)
 	})
 
-	t.Run("legacy type selects shared S3 section", func(t *testing.T) {
-		for _, sectionName := range []string{"s3", "minio"} {
-			t.Run(sectionName, func(t *testing.T) {
+	t.Run("both types select the legacy section", func(t *testing.T) {
+		for _, storageType := range []string{"s3", "minio"} {
+			t.Run(storageType, func(t *testing.T) {
 				cfg, err := NewConfigProviderFromData(`
+[picture]
+AVATAR_STORAGE_TYPE = ` + storageType + `
+
 [storage]
 MINIO_ACCESS_KEY_ID = inherited-access
 
 [storage.lfs]
-STORAGE_TYPE = minio
+STORAGE_TYPE = ` + storageType + `
 
-[storage.` + sectionName + `]
+[storage.minio]
 S3_ENDPOINT = s3.example.com:9000
 S3_BUCKET = shared-bucket
 `)
@@ -579,7 +584,45 @@ S3_BUCKET = shared-bucket
 				assert.Equal(t, "inherited-access", LFS.Storage.S3Config.AccessKeyID)
 				assert.Equal(t, "s3.example.com:9000", LFS.Storage.S3Config.Endpoint)
 				assert.Equal(t, "shared-bucket", LFS.Storage.S3Config.Bucket)
+				assert.NoError(t, loadAvatarsFrom(cfg))
+				assert.Equal(t, S3StorageType, Avatar.Storage.Type)
+				assert.Equal(t, "shared-bucket", Avatar.Storage.S3Config.Bucket)
 			})
 		}
+	})
+
+	t.Run("each type prefers its own section", func(t *testing.T) {
+		cfg, err := NewConfigProviderFromData(`
+[picture]
+AVATAR_STORAGE_TYPE = minio
+REPOSITORY_AVATAR_STORAGE_TYPE = s3
+
+[storage.minio]
+S3_BUCKET = minio-bucket
+
+[storage.s3]
+S3_BUCKET = s3-bucket
+`)
+		assert.NoError(t, err)
+		assert.NoError(t, loadAvatarsFrom(cfg))
+		assert.NoError(t, loadRepoAvatarFrom(cfg))
+		assert.Equal(t, "minio-bucket", Avatar.Storage.S3Config.Bucket)
+		assert.Equal(t, "s3-bucket", RepoAvatar.Storage.S3Config.Bucket)
+	})
+
+	t.Run("legacy keys inherited from parent sections", func(t *testing.T) {
+		cfg, err := NewConfigProviderFromData(`
+[actions]
+STORAGE_TYPE = minio
+MINIO_ENDPOINT = artifacts.example.com:9000
+
+[actions.artifacts]
+MINIO_BASE_PATH = /artifacts
+`)
+		assert.NoError(t, err)
+		assert.NoError(t, loadActionsFrom(cfg))
+		assert.Equal(t, S3StorageType, Actions.ArtifactStorage.Type)
+		assert.Equal(t, "artifacts.example.com:9000", Actions.ArtifactStorage.S3Config.Endpoint)
+		assert.Equal(t, "/artifacts", Actions.ArtifactStorage.S3Config.BasePath)
 	})
 }
