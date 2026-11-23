@@ -139,7 +139,7 @@ func SearchTeam(ctx context.Context, opts *SearchTeamOptions) (TeamList, int64, 
 	db.SetSessionPagination(sess, opts)
 
 	teams := make([]*Team, 0, opts.PageSize)
-	count, err := sess.OrderBy("CASE WHEN name=? THEN '' ELSE lower_name END", OwnerTeamName).FindAndCount(&teams)
+	count, err := sess.OrderBy("CASE WHEN team.authorize=? THEN '' ELSE team.lower_name END", perm.AccessModeOwner).FindAndCount(&teams)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -153,7 +153,7 @@ func GetRepoTeams(ctx context.Context, orgID, repoID int64) (teams TeamList, err
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
 		Where("team.org_id = ?", orgID).
 		And("team_repo.repo_id=?", repoID).
-		OrderBy("CASE WHEN name LIKE '" + OwnerTeamName + "' THEN '' ELSE name END").
+		OrderBy("CASE WHEN team.authorize=? THEN '' ELSE team.name END", perm.AccessModeOwner).
 		Find(&teams)
 }
 

@@ -308,8 +308,8 @@ func teamUnitsRepoReaderCond(id string, userID, orgID, teamID int64, units ...un
 							"org_id": orgID,
 							"team_id": builder.Select("id").From("team").Where(
 								builder.Eq{
-									"org_id":     orgID,
-									"lower_name": strings.ToLower(organization.OwnerTeamName),
+									"org_id":    orgID,
+									"authorize": perm.AccessModeOwner,
 								}),
 							"uid": userID,
 						}),

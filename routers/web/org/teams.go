@@ -523,8 +523,8 @@ func EditTeamPost(ctx *context.Context) {
 	ctx.Data["Units"] = unit_model.Units
 
 	oldTeamAccessMode := t.AccessMode
+	t.Name = form.TeamName
 	if !t.IsOwnerTeam() {
-		t.Name = form.TeamName
 		t.AccessMode = teamPermission
 		if t.IncludesAllRepositories != includesAllRepositories {
 			isIncludeAllChanged = true

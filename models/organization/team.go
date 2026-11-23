@@ -69,7 +69,7 @@ func (err ErrTeamNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// OwnerTeamName return the owner team name
+// OwnerTeamName is the default name of the owner team; the team can be renamed, so identify it by IsOwnerTeam
 const OwnerTeamName = "Owners"
 
 // Team represents a organization team.
@@ -169,7 +169,8 @@ func (t *Team) GetUnitsMap() map[string]string {
 
 // IsOwnerTeam returns true if team is owner team.
 func (t *Team) IsOwnerTeam() bool {
-	return t.Name == OwnerTeamName
+	// only the owner team has the owner access mode, so it stays identifiable after being renamed
+	return t.AccessMode == perm.AccessModeOwner
 }
 
 // IsMember returns true if given user is a member of team.
@@ -255,9 +256,15 @@ func GetTeamIDsByNames(ctx context.Context, orgID int64, names []string, ignoreN
 	return ids, nil
 }
 
-// GetOwnerTeam returns team by given team name and organization.
+// GetOwnerTeam returns the owner team of the organization.
 func GetOwnerTeam(ctx context.Context, orgID int64) (*Team, error) {
-	return GetTeam(ctx, orgID, OwnerTeamName)
+	t, exist, err := db.Get[Team](ctx, builder.Eq{"org_id": orgID, "authorize": perm.AccessModeOwner})
+	if err != nil {
+		return nil, err
+	} else if !exist {
+		return nil, ErrTeamNotExist{OrgID: orgID}
+	}
+	return t, nil
 }
 
 // GetTeamByID returns team by given ID.
