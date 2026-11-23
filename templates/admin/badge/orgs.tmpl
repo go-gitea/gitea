@@ -17,11 +17,11 @@
 				{{range .Orgs}}
 					<div class="item tw-items-center">
 						<div class="item-leading">
-							<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
+							<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar .AsUser 32}}</a>
 						</div>
 						<div class="item-main">
 							<div class="item-title">
-								{{template "shared/user/name" .}}
+								{{template "shared/user/name" .AsUser}}
 							</div>
 						</div>
 						<div class="item-trailing">
