@@ -530,8 +530,19 @@ func UpdateIssueMentions(ctx context.Context, issueID int64, mentions []*user_mo
 // UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.
 func UpdateIssueDeadline(ctx context.Context, issue *Issue, deadlineUnix timeutil.TimeStamp, doer *user_model.User) (err error) {
 	// if the deadline hasn't changed, do nothing
-	if issue.DeadlineUnix == deadlineUnix ||
-		(issue.DeadlineUnix.IsZero() && deadlineUnix.IsZero()) {
+	if issue.DeadlineUnix == deadlineUnix {
+		return nil
+	}
+	// clearing a legacy sentinel is not a change: normalize it to numeric
+	// zero without recording a removal comment
+	if issue.DeadlineUnix.IsZero() && deadlineUnix.IsZero() {
+		if issue.DeadlineUnix == 0 {
+			return nil
+		}
+		if err := UpdateIssueCols(ctx, &Issue{ID: issue.ID, DeadlineUnix: 0}, "deadline_unix"); err != nil {
+			return err
+		}
+		issue.DeadlineUnix = 0
 		return nil
 	}
 
