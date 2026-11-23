@@ -25,7 +25,7 @@ function initDevtestPage() {
   const modalButtons = document.querySelector('.modal-buttons');
   if (modalButtons) {
     for (const el of document.querySelectorAll<HTMLDialogElement>('[data-devtest-modal]')) {
-      const btn = createElementFromHTML(html`<button class="ui button show-modal" data-modal="#${el.id}">${el.id}</button`);
+      const btn = createElementFromHTML(html`<button type="button" class="ui button show-modal" data-modal="#${el.id}">${el.id}</button`);
       modalButtons.append(btn);
     }
   }
