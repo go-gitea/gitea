@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 50
     services:
       pgsql:
-        image: postgres:14@sha256:156f0b253fd61366d5fc2107ad45955027d5612f695a8436ce20167f3fa79bff
+        image: postgres:14@sha256:c0e9c0e9bac7e4c1834b698217a03ee5c708de30d313c84a506972de0e24b059
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -60,7 +60,7 @@ jobs:
     timeout-minutes: 50
     services:
       pgsql:
-        image: postgres:14@sha256:156f0b253fd61366d5fc2107ad45955027d5612f695a8436ce20167f3fa79bff
+        image: postgres:14@sha256:c0e9c0e9bac7e4c1834b698217a03ee5c708de30d313c84a506972de0e24b059
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -150,7 +150,7 @@ jobs:
         ports:
           - "9000:9000"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:f9791d0a0613e93057c06ae31f7ac0c0222f0530590e67e020b0986c66a36fa6
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:a60e44b56e24a6fdd7c13c3e05c2009fa1e6111f0092fdf92f8793b2dda0bfe5
         ports:
           - 10000:10000
     steps:
@@ -231,7 +231,7 @@ jobs:
         ports:
           - "1433:1433"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:f9791d0a0613e93057c06ae31f7ac0c0222f0530590e67e020b0986c66a36fa6
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:a60e44b56e24a6fdd7c13c3e05c2009fa1e6111f0092fdf92f8793b2dda0bfe5
         ports:
           - 10000:10000
     steps:
