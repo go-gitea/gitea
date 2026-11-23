@@ -158,7 +158,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 			require.NoError(t, err)
 			resp = session.MakeRequest(t, NewRequest(t, "GET", "/user2/test_codeowner/src/branch/file-owners/README.md"), http.StatusOK)
 			doc = NewHTMLParser(t, resp.Body)
-			assert.Equal(t, "@user8", doc.Find(".file-codeowners a[href='/user8']").Text())
+			assert.Equal(t, "@user8", doc.Find(".file-codeowners a.user-mention[href='/user8']").Text())
 			assert.Equal(t, "@org3/team1", doc.Find(".file-codeowners a[href='/org3/teams/team1']").Text())
 			resp = session.MakeRequest(t, NewRequest(t, "GET", "/user2/test_codeowner/src/branch/file-owners/CODEOWNERS"), http.StatusOK)
 			doc = NewHTMLParser(t, resp.Body)

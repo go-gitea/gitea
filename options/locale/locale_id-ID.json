@@ -800,7 +800,6 @@
   "repo.release.publish": "Mempublikasikan Rilis",
   "repo.release.save_draft": "Simpan Draft",
   "repo.release.deletion_success": "Rilis ini telah dihapus.",
-  "repo.release.downloads": "Unduhan",
   "repo.branch.delete_head": "Hapus",
   "repo.branch.delete_html": "Hapus cabang",
   "repo.branch.create_branch": "Membuat cabang %s",

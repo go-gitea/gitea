@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/setting"
@@ -100,7 +101,7 @@ func (c *HTTPClient) batch(ctx context.Context, operation, ref string, objects [
 	defer res.Body.Close()
 
 	var response BatchResponse
-	err = json.NewDecoder(res.Body).Decode(&response)
+	err = jsonlimit.DecodeWithLimit(res.Body, 100*1024*1024, &response)
 	if err != nil {
 		log.Error("Error decoding json: %v", err)
 		return nil, err

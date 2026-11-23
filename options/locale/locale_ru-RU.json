@@ -1934,7 +1934,7 @@
   "repo.release.tag_name_invalid": "Имя тега является не допустимым.",
   "repo.release.tag_name_protected": "Имя тега защищено.",
   "repo.release.tag_already_exist": "Этот тег уже используется.",
-  "repo.release.downloads": "Загрузки",
+  "repo.release.assets": "Ресурсы",
   "repo.release.download_count": "Загрузки: %s",
   "repo.release.add_tag_msg": "Использовать заголовок и содержимое релиза в качестве сообщения тега.",
   "repo.release.add_tag": "Создать только тег",

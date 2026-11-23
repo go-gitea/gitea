@@ -1571,7 +1571,7 @@
   "repo.release.tag_name_invalid": "Il nome tag non è valido.",
   "repo.release.tag_name_protected": "Il nome dell'etichetta è protetto.",
   "repo.release.tag_already_exist": "Questo nome tag esiste già.",
-  "repo.release.downloads": "Download",
+  "repo.release.assets": "Asset",
   "repo.release.download_count": "Scarica: %s",
   "repo.release.add_tag_msg": "Utilizzare il titolo e il contenuto del rilascio come messaggio di tag.",
   "repo.release.add_tag": "Crea Solo Branch",
