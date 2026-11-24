@@ -151,6 +151,7 @@ func acquireMarkdownRender(ctx *markup.RenderContext) (*sharedMarkdownRender, fu
 	r, _ := SharedMarkdownRenderPool.Value().Get().(*sharedMarkdownRender)
 	r.internalVar.Value = &ctx.RenderInternal
 	return r, func() {
+		r.internalVar.Value = nil
 		SharedMarkdownRenderPool.Value().Put(r)
 	}
 }

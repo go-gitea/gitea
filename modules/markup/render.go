@@ -97,9 +97,8 @@ type RenderContext struct {
 	TocShowInSection TocShowInSectionType
 	TocHeadingItems  []*TocHeadingItem
 
-	RenderHelper  RenderHelper
-	RenderOptions RenderOptions
-
+	RenderHelper   RenderHelper
+	RenderOptions  RenderOptions
 	RenderInternal internal.RenderInternal
 }
 
