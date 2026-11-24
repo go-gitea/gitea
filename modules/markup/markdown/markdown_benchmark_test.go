@@ -10,13 +10,6 @@ import (
 	"gitea.dev/modules/markup/markdown"
 )
 
-func BenchmarkSpecializedMarkdown(b *testing.B) {
-	// 240856	      4719 ns/op
-	for b.Loop() {
-		markdown.SpecializedMarkdown(&markup.RenderContext{})
-	}
-}
-
 func BenchmarkMarkdownRender(b *testing.B) {
 	// 23202	     50840 ns/op
 	for b.Loop() {
