@@ -11,9 +11,9 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
+	disclosure_model "gitea.dev/models/disclosure"
 	api "gitea.dev/modules/structs"
+	disclosure_service "gitea.dev/services/disclosure"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -23,13 +23,37 @@ import (
 func TestAPIDisclosures(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	ownerSession := loginUser(t, "user2") // user2 owns repo1 and is its admin
+	owner, repo := setupDisclosureTestRepo(t, "disclosure-api", false)
+	_, privateRepo := setupDisclosureTestRepo(t, "disclosure-api-private", true)
+	ownerSession := loginUser(t, "user2") // owner of the test repos and their admin
 	adminToken := getTokenForLoggedInUser(t, ownerSession, auth_model.AccessTokenScopeWriteRepository)
-	otherSession := loginUser(t, "user4") // signed in, but not a maintainer of repo1
+	otherSession := loginUser(t, "user4") // signed in, but not a maintainer of the test repos
 	otherToken := getTokenForLoggedInUser(t, otherSession, auth_model.AccessTokenScopeWriteRepository)
 
 	baseURL := fmt.Sprintf("/api/v1/repos/%s/%s/security/disclosures", repo.OwnerName, repo.Name)
+	privateBaseURL := fmt.Sprintf("/api/v1/repos/%s/%s/security/disclosures", privateRepo.OwnerName, privateRepo.Name)
+
+	published := createTestDisclosure(t, repo, owner, &disclosure_service.Input{
+		Title:            "Buffer overflow in URL parser",
+		Summary:          "A crafted URL can overflow a stack buffer in the URL parser",
+		Content:          "## Description\n\nA crafted URL can overflow a stack buffer.",
+		CVSSVector:       "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+		CweIds:           []string{"CWE-120"},
+		CveID:            "CVE-2026-0001",
+		AffectedVersions: []string{">= 1.0.0, < 1.4.0", "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3"},
+		FixedVersions:    []string{"1.4.0"},
+		Status:           disclosure_model.StatusPublished,
+	})
+	draft := createTestDisclosure(t, repo, owner, &disclosure_service.Input{
+		Title:            "TLS certificate verification bypass",
+		Severity:         disclosure_model.SeverityHigh,
+		AffectedVersions: []string{">= 2.0.0"},
+	})
+	privateDisclosure := createTestDisclosure(t, privateRepo, owner, &disclosure_service.Input{
+		Title:    "Private repo disclosure",
+		Severity: disclosure_model.SeverityLow,
+		Status:   disclosure_model.StatusPublished,
+	})
 
 	t.Run("ListAnonymousSeesPublishedOnly", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
@@ -39,7 +63,7 @@ func TestAPIDisclosures(t *testing.T) {
 		DecodeJSON(t, resp, &disclosures)
 		require.Len(t, disclosures, 1)
 		d := disclosures[0]
-		assert.Equal(t, int64(1), d.ID)
+		assert.Equal(t, published.ID, d.ID)
 		assert.Equal(t, "SD-0001", d.Identifier)
 		assert.Equal(t, "published", d.Status)
 		assert.Equal(t, "critical", d.Severity)
@@ -53,8 +77,8 @@ func TestAPIDisclosures(t *testing.T) {
 		require.NotNil(t, d.PublishedAt)
 		require.NotNil(t, d.Author)
 		assert.Equal(t, "user2", d.Author.UserName)
-		assert.True(t, strings.HasSuffix(d.URL, baseURL+"/1"), d.URL)
-		assert.Equal(t, "/user2/repo1/security/disclosures/1", d.HTMLURL)
+		assert.True(t, strings.HasSuffix(d.URL, baseURL+"/"+fmt.Sprint(published.ID)), d.URL)
+		assert.Equal(t, repo.Link()+fmt.Sprintf("/security/disclosures/%d", published.ID), d.HTMLURL)
 	})
 
 	t.Run("ListFilters", func(t *testing.T) {
@@ -73,26 +97,30 @@ func TestAPIDisclosures(t *testing.T) {
 			}
 			return ids
 		}
-		assert.Equal(t, []int64{1}, listIDs(baseURL+"?q=buffer", ""))
-		assert.Equal(t, []int64{1}, listIDs(baseURL+"?q=BUFFER", "")) // case-insensitive
-		assert.Equal(t, []int64{1}, listIDs(baseURL+"?severity=critical", ""))
+		publishedID := []int64{published.ID}
+		assert.Equal(t, publishedID, listIDs(baseURL+"?q=buffer", ""))
+		assert.Equal(t, publishedID, listIDs(baseURL+"?q=BUFFER", "")) // case-insensitive
+		assert.Equal(t, publishedID, listIDs(baseURL+"?severity=critical", ""))
 		assert.Empty(t, listIDs(baseURL+"?severity=high", "")) // draft hidden from anonymous
-		assert.Equal(t, []int64{1}, listIDs(baseURL+"?status=published", ""))
-		assert.Empty(t, listIDs(baseURL+"?status=draft", ""))                                                 // draft hidden from anonymous
-		assert.Equal(t, []int64{1}, listIDs(baseURL+"?version=1.2.0", ""))                                    // semver range match
-		assert.Empty(t, listIDs(baseURL+"?version=1.4.0", ""))                                                // outside the range
-		assert.Equal(t, []int64{1}, listIDs(baseURL+"?version=a94a8fe5ccb19ba61c4c0873d391e987982fbbd3", "")) // exact non-semver match
+		assert.Equal(t, publishedID, listIDs(baseURL+"?status=published", ""))
+		assert.Empty(t, listIDs(baseURL+"?status=draft", ""))                                                  // draft hidden from anonymous
+		assert.Equal(t, publishedID, listIDs(baseURL+"?version=1.2.0", ""))                                    // semver range match
+		assert.Empty(t, listIDs(baseURL+"?version=1.4.0", ""))                                                 // outside the range
+		assert.Equal(t, publishedID, listIDs(baseURL+"?version=a94a8fe5ccb19ba61c4c0873d391e987982fbbd3", "")) // exact non-semver match
 		// admin sees drafts too
-		assert.Equal(t, []int64{2}, listIDs(baseURL+"?version=2.5.0", adminToken))
-		assert.Equal(t, []int64{2}, listIDs(baseURL+"?status=draft", adminToken))
-		assert.ElementsMatch(t, []int64{1, 2}, listIDs(baseURL+"?page=1&limit=50", adminToken))
+		assert.Equal(t, []int64{draft.ID}, listIDs(baseURL+"?version=2.5.0", adminToken))
+		assert.Equal(t, []int64{draft.ID}, listIDs(baseURL+"?status=draft", adminToken))
+		assert.ElementsMatch(t, []int64{published.ID, draft.ID}, listIDs(baseURL+"?page=1&limit=50", adminToken))
+
+		// a private repo's disclosures are not accessible anonymously
+		MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("%s/%d", privateBaseURL, privateDisclosure.ID)), http.StatusNotFound)
 	})
 
 	t.Run("GetDraftHiddenFromNonMaintainers", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		MakeRequest(t, NewRequest(t, "GET", baseURL+"/2"), http.StatusNotFound)                          // anonymous
-		MakeRequest(t, NewRequest(t, "GET", baseURL+"/2").AddTokenAuth(otherToken), http.StatusNotFound) // non-admin
-		resp := MakeRequest(t, NewRequest(t, "GET", baseURL+"/2").AddTokenAuth(adminToken), http.StatusOK)
+		MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("%s/%d", baseURL, draft.ID)), http.StatusNotFound)                          // anonymous
+		MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("%s/%d", baseURL, draft.ID)).AddTokenAuth(otherToken), http.StatusNotFound) // non-admin
+		resp := MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("%s/%d", baseURL, draft.ID)).AddTokenAuth(adminToken), http.StatusOK)
 		var d api.SecurityDisclosure
 		DecodeJSON(t, resp, &d)
 		assert.Equal(t, "draft", d.Status)
@@ -215,7 +243,7 @@ func TestAPIDisclosures(t *testing.T) {
 		var created api.SecurityDisclosure
 		DecodeJSON(t, resp, &created)
 		assert.Equal(t, "draft", created.Status)
-		assert.Equal(t, "SD-0006", created.Identifier) // three disclosures were created by the subtests above
+		assert.Regexp(t, `^SD-\d{4}$`, created.Identifier)
 		assert.Nil(t, created.PublishedAt)
 		require.NotNil(t, created.CVSS)
 		assert.Equal(t, "4.0", created.CVSS.Version)
@@ -228,10 +256,10 @@ func TestAPIDisclosures(t *testing.T) {
 			Status: "published",
 		}).AddTokenAuth(adminToken)
 		resp = MakeRequest(t, req, http.StatusOK)
-		var published api.SecurityDisclosure
-		DecodeJSON(t, resp, &published)
-		assert.Equal(t, "published", published.Status)
-		assert.NotNil(t, published.PublishedAt)
+		var publishedResp api.SecurityDisclosure
+		DecodeJSON(t, resp, &publishedResp)
+		assert.Equal(t, "published", publishedResp.Status)
+		assert.NotNil(t, publishedResp.PublishedAt)
 
 		// edit fields, clear fixed versions with []
 		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("%s/%d", baseURL, created.ID), &api.EditSecurityDisclosureOption{
@@ -280,11 +308,11 @@ func TestAPIDisclosures(t *testing.T) {
 			Title: "draft to delete", Severity: "informative",
 		}).AddTokenAuth(adminToken)
 		resp = MakeRequest(t, req, http.StatusCreated)
-		var draft api.SecurityDisclosure
-		DecodeJSON(t, resp, &draft)
-		assert.Equal(t, "informative", draft.Severity)
-		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%d", baseURL, draft.ID)).AddTokenAuth(adminToken)
+		var draftResp api.SecurityDisclosure
+		DecodeJSON(t, resp, &draftResp)
+		assert.Equal(t, "informative", draftResp.Severity)
+		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%d", baseURL, draftResp.ID)).AddTokenAuth(adminToken)
 		MakeRequest(t, req, http.StatusNoContent)
-		MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("%s/%d", baseURL, draft.ID)).AddTokenAuth(adminToken), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("%s/%d", baseURL, draftResp.ID)).AddTokenAuth(adminToken), http.StatusNotFound)
 	})
 }

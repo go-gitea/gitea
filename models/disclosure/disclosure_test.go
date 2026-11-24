@@ -50,10 +50,21 @@ func TestValidateCVSSVector(t *testing.T) {
 	assert.Equal(t, "", CVSSVersion("bogus"))
 }
 
+// createTestDisclosure inserts a disclosure (with versions) into the given repo
+func createTestDisclosure(t *testing.T, repoID, authorID int64, title string, severity Severity, status Status, versions ...*Version) *Disclosure {
+	t.Helper()
+	d := &Disclosure{RepoID: repoID, AuthorID: authorID, Title: title, Severity: severity, Status: status}
+	require.NoError(t, CreateDisclosure(t.Context(), d, versions))
+	return d
+}
+
 func TestGetDisclosureByRepoAndID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	d, err := GetDisclosureByRepoAndID(t.Context(), 1, 1)
+	d1 := createTestDisclosure(t, 1, 2, "Buffer overflow in URL parser", SeverityCritical, StatusPublished)
+	d2 := createTestDisclosure(t, 2, 2, "Private repo disclosure", SeverityLow, StatusPublished)
+
+	d, err := GetDisclosureByRepoAndID(t.Context(), 1, d1.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "Buffer overflow in URL parser", d.Title)
 	assert.Equal(t, SeverityCritical, d.Severity)
@@ -61,25 +72,42 @@ func TestGetDisclosureByRepoAndID(t *testing.T) {
 	assert.Equal(t, "SD-0001", d.Identifier())
 	assert.False(t, d.IsDraft())
 
-	_, err = GetDisclosureByRepoAndID(t.Context(), 1, 3) // belongs to repo 2
+	_, err = GetDisclosureByRepoAndID(t.Context(), 1, d2.ID) // belongs to repo 2
 	assert.True(t, IsErrDisclosureNotExist(err))
-	_, err = GetDisclosureByRepoAndID(t.Context(), 2, 1)
+	_, err = GetDisclosureByRepoAndID(t.Context(), 2, d1.ID)
 	assert.True(t, IsErrDisclosureNotExist(err))
 }
 
 func TestDisclosureLoadAttributes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	d, err := GetDisclosureByID(t.Context(), 1)
+	d := &Disclosure{
+		RepoID:        1,
+		AuthorID:      2,
+		Title:         "Loaded disclosure",
+		Severity:      SeverityCritical,
+		Status:        StatusPublished,
+		CweIds:        StringList{"CWE-120"},
+		PublishedAt:   946684810,
+		PublishedByID: 2,
+	}
+	versions := []*Version{
+		{Kind: VersionKindAffected, Version: ">= 1.0.0, < 1.4.0"},
+		{Kind: VersionKindAffected, Version: "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3"},
+		{Kind: VersionKindFixed, Version: "1.4.0"},
+	}
+	require.NoError(t, CreateDisclosure(t.Context(), d, versions))
+
+	got, err := GetDisclosureByID(t.Context(), d.ID)
 	require.NoError(t, err)
-	require.NoError(t, d.LoadAttributes(t.Context()))
-	assert.Equal(t, int64(1), d.Repo.ID)
-	assert.Equal(t, "user2", d.Author.GetDisplayName())
-	assert.Equal(t, "user2", d.Publisher.GetDisplayName())
-	require.Len(t, d.Versions, 3)
-	assert.Equal(t, VersionKindAffected, d.Versions[0].Kind)
-	assert.Equal(t, VersionKindFixed, d.Versions[2].Kind)
-	assert.Equal(t, `["CWE-120"]`, string(mustJSON(t, d.CweIds)))
+	require.NoError(t, got.LoadAttributes(t.Context()))
+	assert.Equal(t, int64(1), got.Repo.ID)
+	assert.Equal(t, "user2", got.Author.GetDisplayName())
+	assert.Equal(t, "user2", got.Publisher.GetDisplayName())
+	require.Len(t, got.Versions, 3)
+	assert.Equal(t, VersionKindAffected, got.Versions[0].Kind)
+	assert.Equal(t, VersionKindFixed, got.Versions[2].Kind)
+	assert.Equal(t, `["CWE-120"]`, string(mustJSON(t, got.CweIds)))
 }
 
 func mustJSON(t *testing.T, l StringList) []byte {
@@ -92,21 +120,18 @@ func mustJSON(t *testing.T, l StringList) []byte {
 func TestCreateDisclosure(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	d := &Disclosure{
-		RepoID:   1,
-		AuthorID: 2,
-		Title:    "New disclosure",
-		Severity: SeverityModerate,
-		Status:   StatusDraft,
-	}
 	versions := []*Version{
 		{Kind: VersionKindAffected, Version: ">= 3.0.0, < 3.1.0"},
 		{Kind: VersionKindFixed, Version: "3.1.0"},
 	}
-	require.NoError(t, CreateDisclosure(t.Context(), d, versions))
-	assert.Equal(t, int64(3), d.Num) // fixtures have num 1 and 2 in repo 1
-	assert.Equal(t, "SD-0003", d.Identifier())
+	d := createTestDisclosure(t, 1, 2, "New disclosure", SeverityModerate, StatusDraft, versions...)
+	assert.Equal(t, int64(1), d.Num) // first disclosure in the repo
+	assert.Equal(t, "SD-0001", d.Identifier())
 	assert.Positive(t, d.ID)
+
+	d2 := createTestDisclosure(t, 1, 2, "Second disclosure", SeverityLow, StatusDraft)
+	assert.Equal(t, int64(2), d2.Num)
+	assert.Equal(t, "SD-0002", d2.Identifier())
 
 	got, err := GetDisclosureByRepoAndID(t.Context(), 1, d.ID)
 	require.NoError(t, err)
@@ -119,14 +144,13 @@ func TestCreateDisclosure(t *testing.T) {
 func TestUpdateDisclosure(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	d, err := GetDisclosureByRepoAndID(t.Context(), 1, 2)
-	require.NoError(t, err)
+	d := createTestDisclosure(t, 1, 2, "Original title", SeverityHigh, StatusDraft)
 	d.Title = "Updated title"
 	d.Status = StatusPublished
 	d.PublishedByID = 2
 	require.NoError(t, UpdateDisclosure(t.Context(), d))
 
-	got, err := GetDisclosureByRepoAndID(t.Context(), 1, 2)
+	got, err := GetDisclosureByRepoAndID(t.Context(), 1, d.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "Updated title", got.Title)
 	assert.Equal(t, StatusPublished, got.Status)
@@ -137,29 +161,45 @@ func TestUpdateDisclosure(t *testing.T) {
 func TestDeleteDisclosureByID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	require.NoError(t, DeleteDisclosureByID(t.Context(), 1, 2))
-	_, err := GetDisclosureByRepoAndID(t.Context(), 1, 2)
+	d1 := createTestDisclosure(t, 1, 2, "To delete", SeverityLow, StatusDraft, &Version{Kind: VersionKindAffected, Version: ">= 2.0.0"})
+	d2 := createTestDisclosure(t, 2, 2, "Other repo", SeverityLow, StatusDraft)
+
+	require.NoError(t, DeleteDisclosureByID(t.Context(), 1, d1.ID))
+	_, err := GetDisclosureByRepoAndID(t.Context(), 1, d1.ID)
 	assert.True(t, IsErrDisclosureNotExist(err))
-	versions, err := GetVersionsByDisclosureID(t.Context(), 2)
+	versions, err := GetVersionsByDisclosureID(t.Context(), d1.ID)
 	require.NoError(t, err)
 	assert.Empty(t, versions)
 
-	assert.True(t, IsErrDisclosureNotExist(DeleteDisclosureByID(t.Context(), 1, 2)))
+	assert.True(t, IsErrDisclosureNotExist(DeleteDisclosureByID(t.Context(), 1, d1.ID)))
 	// wrong repo must not delete
-	assert.True(t, IsErrDisclosureNotExist(DeleteDisclosureByID(t.Context(), 2, 1)))
+	assert.True(t, IsErrDisclosureNotExist(DeleteDisclosureByID(t.Context(), 2, d1.ID)))
+	_, err = GetDisclosureByRepoAndID(t.Context(), 2, d2.ID)
+	assert.NoError(t, err)
 }
 
 func TestListDisclosures(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	// repo 1 has 2 disclosures, drafts excluded by default
+	published := createTestDisclosure(t, 1, 2, "Buffer overflow in URL parser", SeverityCritical, StatusPublished,
+		&Version{Kind: VersionKindAffected, Version: ">= 1.0.0, < 1.4.0"},
+		&Version{Kind: VersionKindFixed, Version: "1.4.0"},
+	)
+	published.Summary = "A crafted URL can overflow a stack buffer in the URL parser"
+	published.Content = "## Description\n\nA crafted URL can overflow a stack buffer."
+	require.NoError(t, UpdateDisclosure(t.Context(), published))
+	draft := createTestDisclosure(t, 1, 2, "TLS certificate verification bypass", SeverityHigh, StatusDraft)
+	draft.Content = "Draft content about the TLS bypass."
+	require.NoError(t, UpdateDisclosure(t.Context(), draft))
+
+	// drafts excluded by default
 	list, err := ListDisclosures(t.Context(), ListDisclosuresOptions{RepoID: 1, ListOptions: db.ListOptionsAll})
 	require.NoError(t, err)
-	assert.Len(t, list, 1)
+	require.Len(t, list, 1)
 	assert.Equal(t, "Buffer overflow in URL parser", list[0].Title)
 	assert.NotNil(t, list[0].Repo)
 	assert.NotNil(t, list[0].Author)
-	assert.Len(t, list[0].Versions, 3)
+	assert.Len(t, list[0].Versions, 2)
 
 	list, err = ListDisclosures(t.Context(), ListDisclosuresOptions{RepoID: 1, IncludeDrafts: true, ListOptions: db.ListOptionsAll})
 	require.NoError(t, err)
@@ -168,16 +208,17 @@ func TestListDisclosures(t *testing.T) {
 	// keyword search is case-insensitive and covers title/summary/content
 	list, err = ListDisclosures(t.Context(), ListDisclosuresOptions{RepoID: 1, IncludeDrafts: true, Keyword: "BUFFER", ListOptions: db.ListOptionsAll})
 	require.NoError(t, err)
-	assert.Len(t, list, 1)
+	require.Len(t, list, 1)
+	assert.Equal(t, published.ID, list[0].ID)
 	list, err = ListDisclosures(t.Context(), ListDisclosuresOptions{RepoID: 1, IncludeDrafts: true, Keyword: "draft content", ListOptions: db.ListOptionsAll})
 	require.NoError(t, err)
-	assert.Len(t, list, 1)
-	assert.Equal(t, int64(2), list[0].ID)
+	require.Len(t, list, 1)
+	assert.Equal(t, draft.ID, list[0].ID)
 
 	// severity filter
 	list, err = ListDisclosures(t.Context(), ListDisclosuresOptions{RepoID: 1, IncludeDrafts: true, Severities: []Severity{SeverityHigh}, ListOptions: db.ListOptionsAll})
 	require.NoError(t, err)
-	assert.Len(t, list, 1)
+	require.Len(t, list, 1)
 	assert.Equal(t, SeverityHigh, list[0].Severity)
 
 	// status filter
@@ -194,11 +235,20 @@ func TestListDisclosures(t *testing.T) {
 func TestListDisclosuresVersionFilter(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	// semver range match: disclosure 1 affects >= 1.0.0, < 1.4.0
+	published := createTestDisclosure(t, 1, 2, "Published with versions", SeverityCritical, StatusPublished,
+		&Version{Kind: VersionKindAffected, Version: ">= 1.0.0, < 1.4.0"},
+		&Version{Kind: VersionKindAffected, Version: "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3"},
+		&Version{Kind: VersionKindFixed, Version: "1.4.0"},
+	)
+	draft := createTestDisclosure(t, 1, 2, "Draft with versions", SeverityHigh, StatusDraft,
+		&Version{Kind: VersionKindAffected, Version: ">= 2.0.0"},
+	)
+
+	// semver range match
 	list, err := ListDisclosures(t.Context(), ListDisclosuresOptions{RepoID: 1, Version: "1.2.0", ListOptions: db.ListOptionsAll})
 	require.NoError(t, err)
 	require.Len(t, list, 1)
-	assert.Equal(t, int64(1), list[0].ID)
+	assert.Equal(t, published.ID, list[0].ID)
 
 	// outside the range
 	list, err = ListDisclosures(t.Context(), ListDisclosuresOptions{RepoID: 1, Version: "1.4.0", ListOptions: db.ListOptionsAll})
@@ -209,16 +259,16 @@ func TestListDisclosuresVersionFilter(t *testing.T) {
 	list, err = ListDisclosures(t.Context(), ListDisclosuresOptions{RepoID: 1, Version: "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3", ListOptions: db.ListOptionsAll})
 	require.NoError(t, err)
 	require.Len(t, list, 1)
-	assert.Equal(t, int64(1), list[0].ID)
+	assert.Equal(t, published.ID, list[0].ID)
 
-	// disclosure 2 (draft) is filtered out by default even if it matches
+	// the draft is filtered out by default even if it matches
 	list, err = ListDisclosures(t.Context(), ListDisclosuresOptions{RepoID: 1, Version: "2.5.0", ListOptions: db.ListOptionsAll})
 	require.NoError(t, err)
 	assert.Empty(t, list)
 	list, err = ListDisclosures(t.Context(), ListDisclosuresOptions{RepoID: 1, Version: "2.5.0", IncludeDrafts: true, ListOptions: db.ListOptionsAll})
 	require.NoError(t, err)
 	require.Len(t, list, 1)
-	assert.Equal(t, int64(2), list[0].ID)
+	assert.Equal(t, draft.ID, list[0].ID)
 
 	// count respects the version filter too
 	count, err := CountDisclosures(t.Context(), ListDisclosuresOptions{RepoID: 1, Version: "1.2.0"})
@@ -253,11 +303,13 @@ func TestValidateVersions(t *testing.T) {
 func TestSetDisclosureVersions(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	require.NoError(t, SetDisclosureVersions(t.Context(), 1,
+	d := createTestDisclosure(t, 1, 2, "Versioned disclosure", SeverityModerate, StatusDraft)
+
+	require.NoError(t, SetDisclosureVersions(t.Context(), d.ID,
 		[]string{">= 2.0.0, < 2.5.0", "  ", ">= 2.0.0, < 2.5.0"}, // dedupe + skip empty
 		[]string{"2.5.0"},
 	))
-	versions, err := GetVersionsByDisclosureID(t.Context(), 1)
+	versions, err := GetVersionsByDisclosureID(t.Context(), d.ID)
 	require.NoError(t, err)
 	require.Len(t, versions, 2)
 	assert.Equal(t, ">= 2.0.0, < 2.5.0", versions[0].Version)
@@ -266,8 +318,8 @@ func TestSetDisclosureVersions(t *testing.T) {
 	assert.Equal(t, VersionKindFixed, versions[1].Kind)
 
 	// invalid entries abort the whole replacement
-	assert.Error(t, SetDisclosureVersions(t.Context(), 1, []string{">= broken"}, nil))
-	versions, err = GetVersionsByDisclosureID(t.Context(), 1)
+	assert.Error(t, SetDisclosureVersions(t.Context(), d.ID, []string{">= broken"}, nil))
+	versions, err = GetVersionsByDisclosureID(t.Context(), d.ID)
 	require.NoError(t, err)
 	assert.Len(t, versions, 2) // unchanged
 }
@@ -275,7 +327,10 @@ func TestSetDisclosureVersions(t *testing.T) {
 func TestListDisclosuresOrdering(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	opts := ListDisclosuresOptions{RepoID: 1, IncludeDrafts: true, ListOptions: db.ListOptionsAll}
+	first := createTestDisclosure(t, 1, 2, "High first created", SeverityHigh, StatusPublished)
+	createTestDisclosure(t, 1, 2, "Critical second created", SeverityCritical, StatusPublished)
+
+	opts := ListDisclosuresOptions{RepoID: 1, ListOptions: db.ListOptionsAll}
 	opts.OrderBy = "severity"
 	list, err := ListDisclosures(t.Context(), opts)
 	require.NoError(t, err)
@@ -286,5 +341,5 @@ func TestListDisclosuresOrdering(t *testing.T) {
 	list, err = ListDisclosures(t.Context(), opts)
 	require.NoError(t, err)
 	require.Len(t, list, 2)
-	assert.Equal(t, int64(1), list[0].ID)
+	assert.Equal(t, first.ID, list[0].ID)
 }

@@ -4,30 +4,90 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
+	disclosure_model "gitea.dev/models/disclosure"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	disclosure_service "gitea.dev/services/disclosure"
+	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+// setupDisclosureTestRepo creates a fresh repository owned by user2; new repos get the security unit by default
+func setupDisclosureTestRepo(t *testing.T, name string, isPrivate bool) (*user_model.User, *repo_model.Repository) {
+	t.Helper()
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo, err := repo_service.CreateRepository(t.Context(), owner, owner, repo_service.CreateRepoOptions{
+		Name:          name,
+		AutoInit:      false,
+		DefaultBranch: "master",
+		IsPrivate:     isPrivate,
+	})
+	require.NoError(t, err)
+	return owner, repo
+}
+
+func createTestDisclosure(t *testing.T, repo *repo_model.Repository, doer *user_model.User, in *disclosure_service.Input) *disclosure_model.Disclosure {
+	t.Helper()
+	d, err := disclosure_service.CreateDisclosure(t.Context(), repo, doer, in)
+	require.NoError(t, err)
+	return d
+}
 
 func TestDisclosureWeb(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
+	owner, repo := setupDisclosureTestRepo(t, "disclosure-web", false)
+	_, privateRepo := setupDisclosureTestRepo(t, "disclosure-private", true)
+	disclosuresURL := repo.Link() + "/security/disclosures"
+
+	published := createTestDisclosure(t, repo, owner, &disclosure_service.Input{
+		Title:            "Buffer overflow in URL parser",
+		Summary:          "A crafted URL can overflow a stack buffer in the URL parser",
+		Content:          "## Description\n\nA crafted URL can overflow a stack buffer.\n\n## Impact\n\nRemote code execution.",
+		CVSSVector:       "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+		CweIds:           []string{"CWE-120"},
+		CveID:            "CVE-2026-0001",
+		References:       []string{"https://example.com/advisories/1"},
+		AffectedVersions: []string{">= 1.0.0, < 1.4.0", "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3"},
+		FixedVersions:    []string{"1.4.0"},
+		Status:           disclosure_model.StatusPublished,
+	})
+	draft := createTestDisclosure(t, repo, owner, &disclosure_service.Input{
+		Title:            "TLS certificate verification bypass",
+		Summary:          "Certificate hostname checks can be skipped for crafted certificates",
+		Content:          "Draft content about the TLS bypass.",
+		Severity:         disclosure_model.SeverityHigh,
+		AffectedVersions: []string{">= 2.0.0"},
+	})
+	createTestDisclosure(t, privateRepo, owner, &disclosure_service.Input{
+		Title:    "Private repo disclosure",
+		Summary:  "A disclosure in another repo",
+		Content:  "content",
+		Severity: disclosure_model.SeverityLow,
+		Status:   disclosure_model.StatusPublished,
+	})
+
 	t.Run("SecurityHome", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		req := NewRequest(t, "GET", "/user2/repo1/security")
+		req := NewRequest(t, "GET", repo.Link()+"/security")
 		resp := MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		body := htmlDoc.Find(".page-content").Text()
 		assert.Contains(t, body, "Security disclosures")
-		assert.Equal(t, 1, htmlDoc.Find(`a[href="/user2/repo1/security/disclosures"]`).Length())
+		assert.Equal(t, 1, htmlDoc.Find(fmt.Sprintf(`a[href="%s"]`, disclosuresURL)).Length())
 	})
 
 	t.Run("ListAnonymousSeesPublishedOnly", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		req := NewRequest(t, "GET", "/user2/repo1/security/disclosures")
+		req := NewRequest(t, "GET", disclosuresURL)
 		resp := MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		body := htmlDoc.Find(".page-content").Text()
@@ -39,14 +99,14 @@ func TestDisclosureWeb(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		// the list page advertises the feed via link tags and a button
-		resp := MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures"), http.StatusOK)
+		resp := MakeRequest(t, NewRequest(t, "GET", disclosuresURL), http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		assert.Equal(t, 1, htmlDoc.Find(`link[rel="alternate"][type="application/rss+xml"][href="/user2/repo1/security/disclosures.rss"]`).Length())
-		assert.Equal(t, 1, htmlDoc.Find(`link[rel="alternate"][type="application/atom+xml"][href="/user2/repo1/security/disclosures.atom"]`).Length())
-		assert.Equal(t, 1, htmlDoc.Find(`a[href="/user2/repo1/security/disclosures.rss"]`).Length())
+		assert.Equal(t, 1, htmlDoc.Find(fmt.Sprintf(`link[rel="alternate"][type="application/rss+xml"][href="%s.rss"]`, disclosuresURL)).Length())
+		assert.Equal(t, 1, htmlDoc.Find(fmt.Sprintf(`link[rel="alternate"][type="application/atom+xml"][href="%s.atom"]`, disclosuresURL)).Length())
+		assert.Equal(t, 1, htmlDoc.Find(fmt.Sprintf(`a[href="%s.rss"]`, disclosuresURL)).Length())
 
 		// anonymous readers of the public repo get the feed, drafts are never included
-		resp = MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures.rss"), http.StatusOK)
+		resp = MakeRequest(t, NewRequest(t, "GET", disclosuresURL+".rss"), http.StatusOK)
 		assert.Equal(t, "application/rss+xml; charset=utf-8", resp.Header().Get("Content-Type"))
 		body := resp.Body.String()
 		assert.Contains(t, body, "Buffer overflow in URL parser")
@@ -54,17 +114,17 @@ func TestDisclosureWeb(t *testing.T) {
 		assert.NotContains(t, body, "TLS certificate verification bypass") // draft
 		assert.NotContains(t, body, "Private repo disclosure")             // other repo
 
-		resp = MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures.atom"), http.StatusOK)
+		resp = MakeRequest(t, NewRequest(t, "GET", disclosuresURL+".atom"), http.StatusOK)
 		assert.Equal(t, "application/atom+xml; charset=utf-8", resp.Header().Get("Content-Type"))
 		assert.Contains(t, resp.Body.String(), "Buffer overflow in URL parser")
 
 		// the feed of a private repo is not accessible anonymously
-		MakeRequest(t, NewRequest(t, "GET", "/user2/repo2/security/disclosures.rss"), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", privateRepo.Link()+"/security/disclosures.rss"), http.StatusNotFound)
 	})
 
 	t.Run("ViewPublishedAnonymous", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		req := NewRequest(t, "GET", "/user2/repo1/security/disclosures/1")
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/%d", disclosuresURL, published.ID))
 		resp := MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		body := htmlDoc.Find(".page-content").Text()
@@ -76,18 +136,19 @@ func TestDisclosureWeb(t *testing.T) {
 
 	t.Run("ViewDraftHiddenFromAnonymousAndNonMaintainer", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures/2"), http.StatusNotFound)
-		session := loginUser(t, "user4") // signed in, but not a maintainer of repo1
-		session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures/2"), http.StatusNotFound)
+		draftURL := fmt.Sprintf("%s/%d", disclosuresURL, draft.ID)
+		MakeRequest(t, NewRequest(t, "GET", draftURL), http.StatusNotFound)
+		session := loginUser(t, "user4") // signed in, but not a maintainer of the repo
+		session.MakeRequest(t, NewRequest(t, "GET", draftURL), http.StatusNotFound)
 	})
 
 	t.Run("NewPageRequiresMaintainer", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures/new"), http.StatusSeeOther) // anonymous is redirected to sign in
+		MakeRequest(t, NewRequest(t, "GET", disclosuresURL+"/new"), http.StatusSeeOther) // anonymous is redirected to sign in
 		session := loginUser(t, "user4")
-		session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures/new"), http.StatusNotFound) // non-maintainer
+		session.MakeRequest(t, NewRequest(t, "GET", disclosuresURL+"/new"), http.StatusNotFound) // non-maintainer
 		owner := loginUser(t, "user2")
-		resp := owner.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures/new"), http.StatusOK)
+		resp := owner.MakeRequest(t, NewRequest(t, "GET", disclosuresURL+"/new"), http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Equal(t, 1, htmlDoc.Find(`input[name="cvss_vector"]`).Length())
 		assert.Equal(t, 1, htmlDoc.Find(`select[name="severity"]`).Length())
@@ -98,7 +159,7 @@ func TestDisclosureWeb(t *testing.T) {
 		owner := loginUser(t, "user2")
 
 		// create as draft
-		req := NewRequestWithValues(t, "POST", "/user2/repo1/security/disclosures/new", map[string]string{
+		req := NewRequestWithValues(t, "POST", disclosuresURL+"/new", map[string]string{
 			"title":             "Web created disclosure",
 			"summary":           "web summary",
 			"content":           "web **content**",
@@ -108,7 +169,7 @@ func TestDisclosureWeb(t *testing.T) {
 		})
 		resp := owner.MakeRequest(t, req, http.StatusSeeOther)
 		location := resp.Header().Get("Location")
-		assert.Contains(t, location, "/user2/repo1/security/disclosures/")
+		assert.Contains(t, location, disclosuresURL+"/")
 
 		// anonymous cannot see the new draft
 		MakeRequest(t, NewRequest(t, "GET", location), http.StatusNotFound)
@@ -122,9 +183,9 @@ func TestDisclosureWeb(t *testing.T) {
 		assert.Contains(t, htmlDoc.Find(".page-content").Text(), "Web created disclosure")
 
 		// filter by the affected version
-		resp = MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures?version=5.1.0"), http.StatusOK)
+		resp = MakeRequest(t, NewRequest(t, "GET", disclosuresURL+"?version=5.1.0"), http.StatusOK)
 		assert.Contains(t, NewHTMLParser(t, resp.Body).Find(".page-content").Text(), "Web created disclosure")
-		resp = MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/disclosures?version=5.2.0"), http.StatusOK)
+		resp = MakeRequest(t, NewRequest(t, "GET", disclosuresURL+"?version=5.2.0"), http.StatusOK)
 		assert.NotContains(t, NewHTMLParser(t, resp.Body).Find(".page-content").Text(), "Web created disclosure")
 
 		// withdrawing requires a reason
@@ -144,7 +205,7 @@ func TestDisclosureWeb(t *testing.T) {
 		MakeRequest(t, NewRequest(t, "GET", location), http.StatusOK) // still there
 
 		// a draft can be deleted
-		req = NewRequestWithValues(t, "POST", "/user2/repo1/security/disclosures/new", map[string]string{
+		req = NewRequestWithValues(t, "POST", disclosuresURL+"/new", map[string]string{
 			"title": "Draft to delete", "severity": "low",
 		})
 		resp = owner.MakeRequest(t, req, http.StatusSeeOther)
@@ -158,7 +219,7 @@ func TestDisclosureWeb(t *testing.T) {
 		owner := loginUser(t, "user2")
 
 		// no severity submitted: the severity is derived server-side from the CVSS base score
-		req := NewRequestWithValues(t, "POST", "/user2/repo1/security/disclosures/new", map[string]string{
+		req := NewRequestWithValues(t, "POST", disclosuresURL+"/new", map[string]string{
 			"title":       "CVSS-derived web disclosure",
 			"cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
 		})
@@ -171,13 +232,13 @@ func TestDisclosureWeb(t *testing.T) {
 		assert.Contains(t, body, "7.5")
 
 		// an incomplete vector is rejected
-		req = NewRequestWithValues(t, "POST", "/user2/repo1/security/disclosures/new", map[string]string{
+		req = NewRequestWithValues(t, "POST", disclosuresURL+"/new", map[string]string{
 			"title": "bad vector", "severity": "low", "cvss_vector": "CVSS:3.1/AV:N",
 		})
 		owner.MakeRequest(t, req, http.StatusOK) // re-renders the form with an error flash
 
 		// neither severity nor vector is rejected too
-		req = NewRequestWithValues(t, "POST", "/user2/repo1/security/disclosures/new", map[string]string{
+		req = NewRequestWithValues(t, "POST", disclosuresURL+"/new", map[string]string{
 			"title": "no severity at all",
 		})
 		owner.MakeRequest(t, req, http.StatusOK)
@@ -188,7 +249,7 @@ func TestDisclosureWeb(t *testing.T) {
 		owner := loginUser(t, "user2")
 
 		// one local user credit and one external person credit
-		req := NewRequestWithValues(t, "POST", "/user2/repo1/security/disclosures/new", map[string]string{
+		req := NewRequestWithValues(t, "POST", disclosuresURL+"/new", map[string]string{
 			"title":         "Credited disclosure",
 			"severity":      "low",
 			"credit_role_0": "reporter",
@@ -224,14 +285,14 @@ func TestDisclosureWeb(t *testing.T) {
 		assert.Equal(t, 1, htmlDoc.Find(`#disclosure-credit-row-template`).Length())
 
 		// an unknown local user is rejected
-		req = NewRequestWithValues(t, "POST", "/user2/repo1/security/disclosures/new", map[string]string{
+		req = NewRequestWithValues(t, "POST", disclosuresURL+"/new", map[string]string{
 			"title": "bad credit", "severity": "low",
 			"credit_role_0": "reporter", "credit_who_0": "nosuchuser",
 		})
 		owner.MakeRequest(t, req, http.StatusOK) // re-renders the form with an error
 
 		// an invalid external URL is rejected
-		req = NewRequestWithValues(t, "POST", "/user2/repo1/security/disclosures/new", map[string]string{
+		req = NewRequestWithValues(t, "POST", disclosuresURL+"/new", map[string]string{
 			"title": "bad credit url", "severity": "low",
 			"credit_role_0": "finder", "credit_who_0": "Jane Doe", "credit_type_0": "external", "credit_url_0": "notaurl",
 		})

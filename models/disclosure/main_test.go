@@ -15,8 +15,6 @@ import (
 func TestMain(m *testing.M) {
 	unittest.MainTest(m, &unittest.TestOptions{
 		FixtureFiles: []string{
-			"disclosure.yml",
-			"disclosure_version.yml",
 			"repository.yml",
 			"user.yml",
 		},

@@ -665,13 +665,6 @@
   created_unix: 946684810
 
 -
-  id: 115
-  repo_id: 1
-  type: 11
-  config: "{}"
-  created_unix: 946684810
-
--
   id: 101
   repo_id: 59
   type: 1
