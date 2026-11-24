@@ -232,8 +232,10 @@ type ActionRunnerLabel struct {
 
 // ActionRunner represents a Runner
 type ActionRunner struct {
-	ID        int64                `json:"id"`
-	OwnerID   int64                `json:"owner_id"`
+	ID int64 `json:"id"`
+	// OwnerID is the user or organization the runner is registered to, 0 for repository and global runners
+	OwnerID int64 `json:"owner_id"`
+	// RepoID is the repository the runner is registered to, 0 for user, organization and global runners
 	RepoID    int64                `json:"repo_id"`
 	Name      string               `json:"name"`
 	Status    string               `json:"status"`

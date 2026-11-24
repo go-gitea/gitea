@@ -102,6 +102,7 @@ func testActionsRunnerUser(t *testing.T) {
 		Token string `json:"token"`
 	}{})
 	assert.NotEmpty(t, registrationToken.Token)
+	assert.Equal(t, map[int64][2]int64{34346: {1, 0}, 34349: {0, 0}}, listRunnerScopes(t, "/api/v1/user/actions/runners?with_available=true", token))
 
 	req = NewRequest(t, "GET", "/api/v1/user/actions/runners").AddTokenAuth(token)
 	runnerListResp := MakeRequest(t, req, http.StatusOK)
@@ -313,18 +314,11 @@ func testActionsRunnerRepo(t *testing.T) {
 
 	t.Run("ListWithAvailable", func(t *testing.T) {
 		token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadRepository)
-		listOwnerAndRepoIDs := func(url string) map[int64][2]int64 {
-			runnerList := DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(token), http.StatusOK), &api.ActionRunnersResponse{})
-			ownerAndRepoIDs := map[int64][2]int64{}
-			for _, runner := range runnerList.Entries {
-				ownerAndRepoIDs[runner.ID] = [2]int64{runner.OwnerID, runner.RepoID}
-			}
-			return ownerAndRepoIDs
-		}
 		org3Available := map[int64][2]int64{34347: {3, 0}, 34349: {0, 0}, 34350: {3, 0}}
-		assert.Equal(t, org3Available, listOwnerAndRepoIDs("/api/v1/orgs/org3/actions/runners?with_available=true"))
-		assert.Equal(t, org3Available, listOwnerAndRepoIDs("/api/v1/repos/org3/repo3/actions/runners?with_available=true"))
-		assert.Equal(t, map[int64][2]int64{34348: {0, 1}, 34349: {0, 0}}, listOwnerAndRepoIDs("/api/v1/repos/user2/repo1/actions/runners?with_available=true"))
+		assert.Equal(t, map[int64][2]int64{34347: {3, 0}, 34350: {3, 0}}, listRunnerScopes(t, "/api/v1/orgs/org3/actions/runners", token))
+		assert.Equal(t, org3Available, listRunnerScopes(t, "/api/v1/orgs/org3/actions/runners?with_available=true", token))
+		assert.Equal(t, org3Available, listRunnerScopes(t, "/api/v1/repos/org3/repo3/actions/runners?with_available=true", token))
+		assert.Equal(t, map[int64][2]int64{34348: {0, 1}, 34349: {0, 0}}, listRunnerScopes(t, "/api/v1/repos/user2/repo1/actions/runners?with_available=true", token))
 	})
 
 	t.Run("Access", func(t *testing.T) {
@@ -445,4 +439,13 @@ func testActionsRunnerRepo(t *testing.T) {
 		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", 4384797347934)).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
+}
+
+func listRunnerScopes(t *testing.T, url, token string) map[int64][2]int64 {
+	runnerList := DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(token), http.StatusOK), &api.ActionRunnersResponse{})
+	scopes := map[int64][2]int64{}
+	for _, runner := range runnerList.Entries {
+		scopes[runner.ID] = [2]int64{runner.OwnerID, runner.RepoID}
+	}
+	return scopes
 }

@@ -25045,11 +25045,13 @@
           "x-go-name": "Name"
         },
         "owner_id": {
+          "description": "OwnerID is the user or organization the runner is registered to, 0 for repository and global runners",
           "type": "integer",
           "format": "int64",
           "x-go-name": "OwnerID"
         },
         "repo_id": {
+          "description": "RepoID is the repository the runner is registered to, 0 for user, organization and global runners",
           "type": "integer",
           "format": "int64",
           "x-go-name": "RepoID"
