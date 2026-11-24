@@ -73,7 +73,7 @@ import (
 	"gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/reqctx"
@@ -221,9 +221,8 @@ func (ar artifactRoutes) getUploadArtifactURL(ctx *ArtifactContext) {
 	}
 
 	var req getUploadArtifactRequest
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&req); err != nil {
-		log.Error("Error decode request body: %v", err)
-		ctx.HTTPError(http.StatusInternalServerError, "Error decode request body")
+	if err := jsonlimit.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &req); err != nil {
+		ctx.HTTPError(http.StatusBadRequest, err.Error())
 		return
 	}
 
