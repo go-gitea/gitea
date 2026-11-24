@@ -668,32 +668,32 @@ type Diff struct {
 	IsIncomplete bool
 }
 
+func (diffSection *DiffSection) AttachComments(byLine map[int64][]*issues_model.Comment, attached issues_model.CommentList) issues_model.CommentList {
+	for _, line := range diffSection.Lines {
+		line.Comments = append(line.Comments, byLine[-int64(line.LeftIdx)]...)
+		line.Comments = append(line.Comments, byLine[int64(line.RightIdx)]...)
+		sort.SliceStable(line.Comments, func(i, j int) bool {
+			return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
+		})
+		FillHiddenCommentIDsForDiffLine(line, byLine)
+		attached = append(attached, line.Comments...)
+	}
+	return attached
+}
+
 // LoadComments loads comments into each line
-func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, currentUser *user_model.User, showOutdatedComments bool) error {
+func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, currentUser *user_model.User, showOutdatedComments bool) (issues_model.CommentList, error) {
 	allComments, err := issues_model.FetchCodeComments(ctx, issue, currentUser, showOutdatedComments)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	var attached issues_model.CommentList
 	for _, file := range diff.Files {
-		if lineCommits, ok := allComments[file.Name]; ok {
-			for _, section := range file.Sections {
-				for _, line := range section.Lines {
-					if comments, ok := lineCommits[int64(line.LeftIdx*-1)]; ok {
-						line.Comments = append(line.Comments, comments...)
-					}
-					if comments, ok := lineCommits[int64(line.RightIdx)]; ok {
-						line.Comments = append(line.Comments, comments...)
-					}
-					sort.SliceStable(line.Comments, func(i, j int) bool {
-						return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
-					})
-					// Mark expand buttons that have comments in hidden lines
-					FillHiddenCommentIDsForDiffLine(line, lineCommits)
-				}
-			}
+		for _, section := range file.Sections {
+			attached = section.AttachComments(allComments[file.Name], attached)
 		}
 	}
-	return nil
+	return attached, nil
 }
 
 const cmdDiffHead = "diff --git "
@@ -1596,23 +1596,34 @@ func CommentAsDiff(ctx context.Context, c *issues_model.Comment) (*Diff, error) 
 }
 
 // GetCodeCommentPatch returns the code snippet stored with a code comment
-func GetCodeCommentPatch(ctx context.Context, gitRepo *git.Repository, mergeBase, headCommitID, treePath string, line int64) (string, error) {
-	patch, err := git.GetFileDiffCutAroundLine(ctx, gitRepo, mergeBase, headCommitID, treePath,
-		int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines,
-	)
+func GetCodeCommentPatch(ctx context.Context, gitRepo *git.Repository, mergeBase, headCommitID, treePath string, line int64, startLines ...int64) (string, error) {
+	startLine := util.OptionalArg(startLines)
+	contextLines := setting.UI.CodeCommentLines
+	cut, err := git.GetFileDiffCutAroundLine(ctx, gitRepo, mergeBase, headCommitID, treePath, line, startLine, contextLines)
 	contextCommitID := util.Iif(line < 0, mergeBase, headCommitID)
-	if err != nil || patch != "" || contextCommitID == "" {
-		return patch, err
+	if err != nil || cut.Patch != "" || contextCommitID == "" {
+		return cut.Patch, err
 	}
-	patch, err = GeneratePatchForUnchangedLine(ctx, gitRepo, contextCommitID, treePath, line, setting.UI.CodeCommentLines)
+	var lineOffset int64
+	if startLine != 0 {
+		lineOffset = cut.NewContextStart - cut.OldContextStart
+		if line < 0 {
+			contextLines = int(-line - max(cut.OldContextStart, -startLine))
+		} else {
+			if startLine < 0 {
+				startLine = -startLine + lineOffset
+			}
+			contextLines = int(line - max(cut.NewContextStart, startLine))
+		}
+	}
+	patch, err := generatePatchForUnchangedLine(ctx, gitRepo, contextCommitID, treePath, line, contextLines, lineOffset)
 	if err != nil {
 		log.Debug("Unable to generate patch for unchanged line (file=%s, line=%d, commit=%s): %v", treePath, line, contextCommitID, err)
 	}
 	return patch, nil
 }
 
-// GeneratePatchForUnchangedLine creates a patch showing code context for an unchanged line
-func GeneratePatchForUnchangedLine(ctx context.Context, gitRepo *git.Repository, commitID, treePath string, line int64, contextLines int) (string, error) {
+func generatePatchForUnchangedLine(ctx context.Context, gitRepo *git.Repository, commitID, treePath string, line int64, contextLines int, lineOffset int64) (string, error) {
 	commit, err := gitRepo.GetCommit(ctx, commitID)
 	if err != nil {
 		return "", fmt.Errorf("GetCommit: %w", err)
@@ -1630,11 +1641,11 @@ func GeneratePatchForUnchangedLine(ctx context.Context, gitRepo *git.Repository,
 	}
 	defer dataRc.Close()
 
-	return generatePatchForUnchangedLineFromReader(dataRc, treePath, line, contextLines)
+	return generatePatchForUnchangedLineFromReader(dataRc, treePath, line, contextLines, lineOffset)
 }
 
 // generatePatchForUnchangedLineFromReader is the testable core logic that generates a patch from a reader
-func generatePatchForUnchangedLineFromReader(reader io.Reader, treePath string, line int64, contextLines int) (string, error) {
+func generatePatchForUnchangedLineFromReader(reader io.Reader, treePath string, line int64, contextLines int, lineOffset int64) (string, error) {
 	// Calculate line range (commented line + lines above it)
 	commentLine := int(line)
 	if line < 0 {
@@ -1669,7 +1680,13 @@ func generatePatchForUnchangedLineFromReader(reader io.Reader, treePath string, 
 	fmt.Fprintf(&patchBuilder, "diff --git a/%s b/%s\n", treePath, treePath)
 	fmt.Fprintf(&patchBuilder, "--- a/%s\n", treePath)
 	fmt.Fprintf(&patchBuilder, "+++ b/%s\n", treePath)
-	fmt.Fprintf(&patchBuilder, "@@ -%d,%d +%d,%d @@\n", startLine, len(lines), startLine, len(lines))
+	leftStart, rightStart := int64(startLine), int64(startLine)
+	if line < 0 {
+		rightStart += lineOffset
+	} else {
+		leftStart -= lineOffset
+	}
+	fmt.Fprintf(&patchBuilder, "@@ -%d,%d +%d,%d @@\n", leftStart, len(lines), rightStart, len(lines))
 
 	for _, lineContent := range lines {
 		patchBuilder.WriteString(" ")

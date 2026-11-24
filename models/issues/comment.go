@@ -255,6 +255,9 @@ type CommentMetaData struct {
 	ProjectWorkflowEvent project_model.WorkflowEvent `json:"project_workflow_event,omitempty"`
 
 	SpecialDoerName SpecialDoerNameType `json:"special_doer_name,omitempty"` // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
+
+	CodeCommitID  string `json:"code_commit_id,omitempty"`  // the commit whose file content the line numbers of a code comment refer to
+	CodeStartLine int64  `json:"code_start_line,omitempty"` // signed first line of a multi-line code comment, "line" is the last one
 }
 
 type projectWorkflowContextKey struct{}
@@ -345,6 +348,8 @@ type Comment struct {
 	Review      *Review `xorm:"-"`
 	ReviewID    int64   `xorm:"index"`
 	Invalidated bool
+
+	CodeSuggestion *CodeSuggestionState `xorm:"-"`
 
 	// Reference an issue or pull from another comment, issue or PR
 	// All information is about the origin of the reference
@@ -798,6 +803,34 @@ func (c *Comment) UnsignedLine() uint64 {
 	return uint64(c.Line)
 }
 
+// CodeStartLine returns the signed first line of a code comment, which equals Line for single-line comments
+func (c *Comment) CodeStartLine() int64 {
+	if c.CommentMetaData != nil && c.CommentMetaData.CodeStartLine != 0 {
+		return c.CommentMetaData.CodeStartLine
+	}
+	return c.Line
+}
+
+// UnsignedCodeStartLine returns the first line of a code comment without + or -
+func (c *Comment) UnsignedCodeStartLine() uint64 {
+	return uint64(max(c.CodeStartLine(), -c.CodeStartLine()))
+}
+
+func (c *Comment) CodeCommentRangeLabels() [2]string {
+	if c.CodeStartLine() < 0 && c.Line > 0 {
+		return [2]string{fmt.Sprintf("L%d", c.UnsignedCodeStartLine()), fmt.Sprintf("R%d", c.Line)}
+	}
+	return [2]string{strconv.FormatUint(c.UnsignedCodeStartLine(), 10), strconv.FormatUint(c.UnsignedLine(), 10)}
+}
+
+// CodeCommitID returns the commit the line numbers of a code comment refer to, empty for comments created before it was recorded
+func (c *Comment) CodeCommitID() string {
+	if c.CommentMetaData == nil {
+		return ""
+	}
+	return c.CommentMetaData.CodeCommitID
+}
+
 // CodeCommentLink returns the url to a comment in code
 func (c *Comment) CodeCommentLink(ctx context.Context) string {
 	err := c.LoadIssue(ctx)
@@ -867,6 +900,8 @@ func buildCreateCommentMetaData(ctx context.Context, opts *CreateCommentOptions)
 	if opts.SpecialDoerName != "" {
 		meta.SpecialDoerName = opts.SpecialDoerName
 	}
+	meta.CodeCommitID = opts.CodeCommitID
+	meta.CodeStartLine = opts.CodeStartLine
 	if meta == (CommentMetaData{}) {
 		return nil
 	}
@@ -1063,6 +1098,8 @@ type CreateCommentOptions struct {
 	CommitSHA          string
 	Patch              string
 	LineNum            int64
+	CodeStartLine      int64
+	CodeCommitID       string
 	TreePath           string
 	ReviewID           int64
 	Content            string

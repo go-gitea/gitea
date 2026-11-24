@@ -46,6 +46,12 @@
 				</div>
 			{{end}}
 			{{if and .PageIsPullFiles $.SignedUserID}}
+				<button type="button" id="code-suggestion-batch" class="ui tiny primary button show-modal tw-hidden" data-modal="#code-suggestion-modal"
+					data-modal-comment_ids="" data-modal-header="{{ctx.Locale.Tr "repo.diff.suggestion.commit_batch"}}" data-modal-commit_summary="{{$.CodeSuggestionBatchCommitMessage}}"
+					data-add-text="{{ctx.Locale.Tr "repo.diff.suggestion.add_to_batch"}}" data-remove-text="{{ctx.Locale.Tr "repo.diff.suggestion.remove_from_batch"}}"
+					data-overlap-text="{{ctx.Locale.Tr "repo.diff.suggestion.not_appliable.overlap"}}">
+					{{ctx.Locale.Tr "repo.diff.suggestion.commit_batch"}} <span class="ui small label code-suggestion-batch-count">0</span>
+				</button>
 				{{template "repo/diff/new_review" .}}
 			{{end}}
 		</div>
@@ -190,11 +196,11 @@
 										{{end}}
 									</div>
 								{{else if $file.Sections}}
-									<table class="chroma" data-paste-markdown-skip data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}">
+									<table class="chroma" data-global-init="initDiffSelection" {{if $.PageIsPullFiles}}data-all-commits="{{$.IsShowingAllCommits}}"{{end}} data-paste-markdown-skip data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}">
 										{{if $.IsSplitStyle}}
 											{{template "repo/diff/section_split" dict "file" $file}}
 										{{else}}
-											{{template "repo/diff/section_unified" dict "file" $file}}
+											{{template "repo/diff/section_unified" dict "file" $file "selectable" true}}
 										{{end}}
 									</table>
 								{{else if $file.IsRenamed}}
@@ -238,6 +244,9 @@
 	</div>
 
 	{{if and (not $.Repository.IsArchived) (not .DiffNotAvailable)}}
+		{{if .PageIsPullFiles}}
+			{{template "repo/diff/code_suggestion_modal" dict "HeadCommitID" $.CompareInfo.HeadCommitID "Origin" "diff"}}
+		{{end}}
 		<template id="issue-comment-editor-template">
 			<form class="ui form comment">
 				<div class="field">

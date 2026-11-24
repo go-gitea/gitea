@@ -9,11 +9,13 @@ import {convertHtmlToMarkdown} from '../markup/html2markdown.ts';
 import {applyAreYouSure} from '../modules/are-you-sure.ts';
 import {registerShortcutHandler} from '../modules/shortcut.ts';
 import {registerGlobalEventFunc} from '../modules/observer.ts';
+import {refreshCodeSuggestionControls} from './repo-code-suggestion.ts';
 
 async function onConvContentEdit(clickTarget: HTMLElement) {
   const commentContent = clickTarget.closest('.comment-header')!.nextElementSibling!;
   const editContentZone = commentContent.querySelector('.edit-content-zone')!;
   let renderContent = commentContent.querySelector('.render-content')!;
+  const suggestionActions = commentContent.querySelector('.code-suggestion-actions');
   const rawContent = commentContent.querySelector('.raw-content')!;
 
   let comboMarkdownEditor : ComboMarkdownEditor;
@@ -21,6 +23,7 @@ async function onConvContentEdit(clickTarget: HTMLElement) {
   const cancelAndReset = (e: Event) => {
     e.preventDefault();
     showElem(renderContent);
+    if (suggestionActions) showElem(suggestionActions);
     hideElem(editContentZone);
     comboMarkdownEditor.dropzoneReloadFiles();
   };
@@ -58,6 +61,7 @@ async function onConvContentEdit(clickTarget: HTMLElement) {
       newRenderContent.innerHTML = data.content;
       renderContent.replaceWith(newRenderContent);
       renderContent = newRenderContent;
+      refreshCodeSuggestionControls(suggestionActions, data.suggestionControls);
 
       rawContent.textContent = comboMarkdownEditor.value();
 
@@ -76,12 +80,14 @@ async function onConvContentEdit(clickTarget: HTMLElement) {
       console.error(error);
     } finally {
       renderContent.classList.remove('is-loading');
+      if (suggestionActions) showElem(suggestionActions);
     }
   };
 
   // Show write/preview tab and copy raw content as needed
   showElem(editContentZone);
   hideElem(renderContent);
+  if (suggestionActions) hideElem(suggestionActions);
 
   comboMarkdownEditor = getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'))!;
   if (!comboMarkdownEditor) {

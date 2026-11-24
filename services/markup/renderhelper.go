@@ -16,6 +16,7 @@ func FormalRenderHelperFuncs() *markup.RenderHelperFuncs {
 	return &markup.RenderHelperFuncs{
 		RenderRepoFileCodePreview: renderRepoFileCodePreview,
 		RenderRepoIssueIconTitle:  renderRepoIssueIconTitle,
+		GetCodeSuggestionSource:   getCodeSuggestionSource,
 		IsUsernameMentionable: func(ctx context.Context, username string) bool {
 			mentionedUser, err := user.GetUserByName(ctx, username)
 			if err != nil {

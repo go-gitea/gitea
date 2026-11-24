@@ -1,0 +1,57 @@
+.markup .code-suggestion {
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  margin-block: 0.75em;
+}
+
+.code-suggestion-heading {
+  padding: 6px 10px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-light-1);
+  background: var(--color-box-header);
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.code-suggestion-diff {
+  overflow-x: auto;
+}
+
+.markup .code-suggestion .code-suggestion-diff table {
+  display: table;
+  table-layout: auto;
+  margin: 0;
+}
+
+.markup .code-suggestion-diff tr {
+  border: 0;
+}
+
+.markup .code-suggestion-diff td {
+  padding: 0 8px !important;
+  border: 0 !important;
+}
+
+.code-suggestion-diff .lines-type-marker {
+  width: 1%;
+  font-family: var(--fonts-monospace);
+  user-select: none;
+}
+
+.code-suggestion-diff .code-inner {
+  white-space: pre;
+}
+
+.code-suggestion-controls {
+  margin-block-start: 0.5em;
+}
+
+.code-comment-range {
+  color: var(--color-text-light-1);
+  font-size: 0.875em;
+  white-space: nowrap;
+}
+
+.file-comment + .code-comment-range {
+  margin-inline-start: 0.5em;
+}

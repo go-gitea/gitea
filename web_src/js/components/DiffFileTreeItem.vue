@@ -40,7 +40,7 @@ const diffStatusIcons: Record<DiffStatus, {name: SvgName, class: string}> = {
   </template>
   <a
     v-else
-    class="item-file" :class="{ 'selected': store.selectedItem === '#diff-' + item.NameHash, 'viewed': item.IsViewed }"
+    class="item-file" :class="{ 'selected': store.selectedFileHash === item.NameHash, 'viewed': item.IsViewed }"
     :title="item.DisplayName" :href="'#diff-' + item.NameHash"
   >
     <!-- file -->

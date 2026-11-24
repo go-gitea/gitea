@@ -143,13 +143,23 @@ func TestComposeIssueComment(t *testing.T) {
 	b, err := io.ReadAll(quotedprintable.NewReader(&buf))
 	assert.NoError(t, err)
 
-	// text/plain
 	assert.Contains(t, string(b), fmt.Sprintf(`( %s )`, doer.HTMLURL(t.Context())))
 	assert.Contains(t, string(b), fmt.Sprintf(`( %s )`, issue.HTMLURL(t.Context())))
 
-	// text/html
 	assert.Contains(t, string(b), fmt.Sprintf(`href="%s"`, doer.HTMLURL(t.Context())))
 	assert.Contains(t, string(b), fmt.Sprintf(`href="%s"`, issue.HTMLURL(t.Context())))
+
+	codeComment := &issues_model.Comment{
+		TreePath:        "file.txt",
+		Content:         "~~~suggestion\nreplacement\n~~~",
+		RenderedContent: "<table>Web-only suggestion</table>",
+	}
+	msg := testComposeIssueCommentMessage(t, &mailComment{Issue: issue, Doer: doer, Comment: &issues_model.Comment{
+		Type: issues_model.CommentTypeReview, Review: &issues_model.Review{CodeComments: issues_model.CodeComments{"file.txt": {1: {codeComment}}}},
+	}}, recipients[:1], false, "review comment")
+	assert.Regexp(t, `<pre[^>]*><code[^>]*>replacement`, msg.Body)
+	assert.NotContains(t, msg.Body, "Web-only suggestion")
+	assert.EqualValues(t, "<table>Web-only suggestion</table>", codeComment.RenderedContent)
 }
 
 func TestMailMentionsComment(t *testing.T) {

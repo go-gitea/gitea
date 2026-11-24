@@ -1,8 +1,8 @@
 {{$diffBlobExcerptData := .DiffBlobExcerptData}}
 {{$canCreateComment := and ctx.RootData.SignedUserID $diffBlobExcerptData.PullIssueIndex}}
 {{if $.IsSplitStyle}}
-	{{range $line := $.section.Lines}}
-	<tr class="{{.GetHTMLDiffLineType}}-code line-expanded" data-line-type="{{.GetHTMLDiffLineType}}">
+	{{range $rowIndex, $line := $.section.Lines}}
+	<tr class="{{.GetHTMLDiffLineType}}-code line-expanded" data-line-type="{{.GetHTMLDiffLineType}}" {{if eq $rowIndex 0}}data-global-init="repaintDiffRanges"{{end}}>
 		{{if $line.IsDiffLineSection}}
 			<td class="lines-num lines-num-old">{{$line.RenderBlobExcerptButtons $.FileNameHash $diffBlobExcerptData}}</td>
 			<td colspan="7" class="lines-code lines-code-old">
@@ -11,13 +11,13 @@
 			</td>
 		{{else}}
 			{{$inlineDiff := $.section.GetComputedInlineDiffFor $line ctx.Locale}}
-			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$.FileNameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>
-			<td class="lines-escape lines-escape-old">{{if $line.LeftIdx}}{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}{{end}}</td>
-			<td class="lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="tw-font-mono" data-type-marker=""></span>{{end}}</td>
-			<td class="lines-code lines-code-old">
+			<td data-diff-column="old" class="lines-num lines-num-old">{{if $line.LeftIdx}}<a class="diff-line-link" href="#diff-{{$.FileNameHash}}L{{$line.LeftIdx}}" data-global-click="onSelectDiffLine">{{$line.LeftIdx}}</a>{{end}}</td>
+			<td data-diff-column="old" class="lines-escape lines-escape-old">{{if $line.LeftIdx}}{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}{{end}}</td>
+			<td data-diff-column="old" class="lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="tw-font-mono" data-type-marker=""></span>{{end}}</td>
+			<td data-diff-column="old" class="lines-code lines-code-old">
 				{{/* ATTENTION: BLOB-EXCERPT-COMMENT-RIGHT: here it intentionally use "right" side to comment, because the backend code depends on the assumption that the comment only happens on right side*/}}
 				{{- if and $canCreateComment $line.RightIdx -}}
-					<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment {{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">
+					<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment {{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="right" data-global-click="onAddDiffComment">
 						{{- svg "octicon-plus" -}}
 					</button>
 				{{- end -}}
@@ -27,12 +27,12 @@
 					<code class="code-inner"></code>
 				{{- end -}}
 			</td>
-			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{$.FileNameHash}}R{{$line.RightIdx}}{{end}}"></span></td>
-			<td class="lines-escape lines-escape-new">{{if and $line.RightIdx}}{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}{{end}}</td>
-			<td class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="tw-font-mono" data-type-marker=""></span>{{end}}</td>
-			<td class="lines-code lines-code-new">
+			<td data-diff-column="new" class="lines-num lines-num-new">{{if $line.RightIdx}}<a class="diff-line-link" href="#diff-{{$.FileNameHash}}R{{$line.RightIdx}}" data-global-click="onSelectDiffLine">{{$line.RightIdx}}</a>{{end}}</td>
+			<td data-diff-column="new" class="lines-escape lines-escape-new">{{if and $line.RightIdx}}{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}{{end}}</td>
+			<td data-diff-column="new" class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="tw-font-mono" data-type-marker=""></span>{{end}}</td>
+			<td data-diff-column="new" class="lines-code lines-code-new">
 				{{- if and $canCreateComment $line.RightIdx -}}
-					<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment {{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">
+					<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment {{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="right" data-global-click="onAddDiffComment">
 						{{- svg "octicon-plus" -}}
 					</button>
 				{{- end -}}
@@ -45,7 +45,7 @@
 		{{end}}
 	</tr>
 	{{if $line.Comments}}
-		<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
+		<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}" {{if eq $rowIndex 0}}data-global-init="repaintDiffRanges"{{end}}>
 			<td class="add-comment-left" colspan="4">
 				{{if eq $line.GetCommentSide "previous"}}
 					{{template "repo/diff/conversation" dict "comments" $line.Comments}}
@@ -60,20 +60,20 @@
 	{{end}}
 	{{end}}
 {{else}}
-	{{range $line := $.section.Lines}}
-	<tr class="{{.GetHTMLDiffLineType}}-code line-expanded" data-line-type="{{.GetHTMLDiffLineType}}">
+	{{range $rowIndex, $line := $.section.Lines}}
+	<tr class="{{.GetHTMLDiffLineType}}-code line-expanded" data-line-type="{{.GetHTMLDiffLineType}}" {{if eq $rowIndex 0}}data-global-init="repaintDiffRanges"{{end}}>
 		{{if $line.IsDiffLineSection}}
 			<td colspan="2" class="lines-num">{{$line.RenderBlobExcerptButtons $.FileNameHash $diffBlobExcerptData}}</td>
 		{{else}}
-			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$.FileNameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>
-			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{$.FileNameHash}}R{{$line.RightIdx}}{{end}}"></span></td>
+			<td data-diff-column="unified" class="lines-num lines-num-old">{{if $line.LeftIdx}}<a class="diff-line-link" href="#diff-{{$.FileNameHash}}L{{$line.LeftIdx}}" data-global-click="onSelectDiffLine">{{$line.LeftIdx}}</a>{{end}}</td>
+			<td data-diff-column="unified" class="lines-num lines-num-new">{{if $line.RightIdx}}<a class="diff-line-link" href="#diff-{{$.FileNameHash}}R{{$line.RightIdx}}" data-global-click="onSelectDiffLine">{{$line.RightIdx}}</a>{{end}}</td>
 		{{end}}
 		{{$inlineDiff := $.section.GetComputedInlineDiffFor $line ctx.Locale}}
-		<td class="lines-escape">{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}</td>
-		<td class="lines-type-marker"><span class="tw-font-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
-		<td class="lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">
-			{{- if and $canCreateComment -}}
-				<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
+		<td {{if not $line.IsDiffLineSection}}data-diff-column="unified" {{end}}class="lines-escape">{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}</td>
+		<td {{if not $line.IsDiffLineSection}}data-diff-column="unified" {{end}}class="lines-type-marker"><span class="tw-font-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
+		<td {{if not $line.IsDiffLineSection}}data-diff-column="unified" {{end}}class="lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">
+			{{- if and $canCreateComment (not $line.IsDiffLineSection) -}}
+				<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-global-click="onAddDiffComment">
 					{{- svg "octicon-plus" -}}
 				</button>
 			{{- end -}}
@@ -81,7 +81,7 @@
 		</td>
 	</tr>
 	{{if $line.Comments}}
-		<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
+		<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}" {{if eq $rowIndex 0}}data-global-init="repaintDiffRanges"{{end}}>
 			<td class="add-comment-left add-comment-right" colspan="5">
 				{{template "repo/diff/conversation" dict "comments" $line.Comments}}
 			</td>

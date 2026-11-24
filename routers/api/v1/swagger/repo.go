@@ -189,6 +189,12 @@ type swaggerResponsePullReviewCommentList struct {
 	Body []api.PullReviewComment `json:"body"`
 }
 
+// swagger:response ApplyPullReviewSuggestionsResponse
+type swaggerResponseApplyPullReviewSuggestions struct {
+	// in:body
+	Body api.ApplyPullReviewSuggestionsResponse `json:"body"`
+}
+
 // CommitStatus
 // swagger:response CommitStatus
 type swaggerResponseStatus struct {

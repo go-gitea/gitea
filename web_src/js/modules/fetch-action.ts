@@ -18,6 +18,7 @@ type FetchActionOpts = {
   headers?: HeadersInit;
   data?: RequestData;
   formSubmitter?: HTMLElement | null;
+  errorMessage?: string;
 
   // pseudo selectors/commands to update the current page with the response text when the response is text (html)
   // e.g.: "$this", "$innerHTML", "$closest(tr) td .the-class", "$body #the-id"
@@ -167,11 +168,12 @@ export async function performFetchActionRequest(el: HTMLElement, opt: FetchActio
     headers.set('X-Gitea-Fetch-Action', '1');
     const resp = await request(url, {method: opt.method, data: opt.data, headers});
     if (resp.ok) return resp;
-    await handleFetchActionError(el, resp);
+    if (opt.errorMessage) showErrorToast(opt.errorMessage);
+    else await handleFetchActionError(el, resp);
   } catch (err) {
     if (errorName(err) !== 'AbortError') {
       console.error(`Fetch action request error:`, err);
-      showErrorToast(`Error: ${errorMessage(err)}`);
+      showErrorToast(opt.errorMessage ?? `Error: ${errorMessage(err)}`);
     }
   } finally {
     toggleLoadingIndicator(el, opt, false);

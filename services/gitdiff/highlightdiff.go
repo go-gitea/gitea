@@ -94,6 +94,11 @@ type highlightCodeDiff struct {
 	diffCodeClose       rune
 }
 
+// HighlightDiffLinePair marks the changed parts of a deleted and an added line of highlighted code
+func HighlightDiffLinePair(deletion, addition template.HTML) (template.HTML, template.HTML) {
+	return newHighlightCodeDiff().diffLineWithHighlight(deletion, addition)
+}
+
 func newHighlightCodeDiff() *highlightCodeDiff {
 	return &highlightCodeDiff{
 		placeholderBegin:    rune(0x100000), // Plane 16: Supplementary Private Use Area B (U+100000..U+10FFFD)

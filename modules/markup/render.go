@@ -49,9 +49,21 @@ type StandalonePageOptions struct {
 	RenderQueryString string
 }
 
+type CodeSuggestionAnchor struct {
+	CommitID, FilePath string
+	StartLine, EndLine uint64
+}
+
+type CodeSuggestionSource struct {
+	Heading           string
+	OriginalLines     []string
+	HighlightLinePair func(deletion, addition template.HTML) (template.HTML, template.HTML)
+}
+
 type RenderOptions struct {
 	UseAbsoluteLink bool
 	FeedExcerpt     bool
+	CodeSuggestion  *CodeSuggestionAnchor
 
 	// relative path from tree root of the branch
 	RelativePath string

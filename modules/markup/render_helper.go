@@ -38,6 +38,7 @@ type RenderHelperFuncs struct {
 	IsCurrentUsername         func(ctx context.Context, username string) bool
 	RenderRepoFileCodePreview func(ctx context.Context, options RenderCodePreviewOptions) (template.HTML, error)
 	RenderRepoIssueIconTitle  func(ctx context.Context, options RenderIssueIconTitleOptions) (template.HTML, error)
+	GetCodeSuggestionSource   func(ctx context.Context, anchor CodeSuggestionAnchor) (CodeSuggestionSource, error)
 }
 
 var DefaultRenderHelperFuncs *RenderHelperFuncs

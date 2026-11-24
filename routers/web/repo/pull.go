@@ -774,23 +774,21 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		"numberOfViewedFiles": numViewedFiles,
 	}
 
-	if err = diff.LoadComments(ctx, issue, ctx.Doer, GetShowOutdatedComments(ctx)); err != nil {
+	allComments, err := diff.LoadComments(ctx, issue, ctx.Doer, GetShowOutdatedComments(ctx))
+	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}
 
-	allComments := issues_model.CommentList{}
-	for _, file := range diff.Files {
-		for _, section := range file.Sections {
-			for _, line := range section.Lines {
-				allComments = append(allComments, line.Comments...)
-			}
-		}
-	}
 	if err := allComments.LoadAttachments(ctx); err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}
+	if err := pull_service.LoadCodeSuggestionStates(ctx, ctx.Doer, pull, allComments); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	ctx.Data["CodeSuggestionBatchCommitMessage"] = pull_service.CodeSuggestionsBatchCommitMessage
 
 	pb := prViewInfo.ProtectedBranchRule
 	if prViewInfo.ProtectedBranchRule != nil {

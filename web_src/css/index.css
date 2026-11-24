@@ -62,6 +62,7 @@
 @import "./install.css";
 
 @import "./repo.css";
+@import "./repo/code-suggestion.css";
 @import "./repo/release-tag.css";
 @import "./repo/issue-card.css";
 @import "./repo/issue-label.css";

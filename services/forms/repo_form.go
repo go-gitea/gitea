@@ -472,6 +472,8 @@ type CodeCommentForm struct {
 	Origin         string `binding:"Required;In(timeline,diff)"`
 	Content        string `binding:"Required"`
 	Side           string `binding:"Required;In(previous,proposed)"`
+	StartSide      string `binding:"In(,previous,proposed)"`
+	StartLine      int64
 	Line           int64
 	TreePath       string `form:"path" binding:"Required"`
 	SingleReview   bool   `form:"single_review"`
@@ -586,4 +588,14 @@ type AddDeployTokenForm struct {
 	middleware.FormDefaultValidator
 	Title      string `binding:"Required;MaxSize(50)"`
 	IsWritable bool
+}
+
+// ApplyCodeSuggestionsForm applies the suggestions of code comments to the head branch of a pull request in one commit
+type ApplyCodeSuggestionsForm struct {
+	middleware.FormDefaultValidator
+	Origin        string `binding:"Required;In(timeline,diff)"`
+	CommentIDs    string `form:"comment_ids" binding:"Required"` // comma-separated "id:contentVersion" pairs
+	HeadCommitID  string `binding:"Required"`
+	CommitSummary string `binding:"MaxSize(100)"`
+	CommitMessage string
 }

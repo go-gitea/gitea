@@ -1,0 +1,25 @@
+{{if .CodeSuggestion}}
+	<div class="code-suggestion-controls flex-text-block tw-flex-wrap" data-global-init="initCodeSuggestionControls" data-comment-id="{{.ID}}"
+		data-content-version="{{.ContentVersion}}" data-path="{{.TreePath}}" data-start-line="{{.UnsignedCodeStartLine}}" data-end-line="{{.UnsignedLine}}">
+		{{if .CodeSuggestion.Reason}}
+			<span class="tw-text-text-light">{{ctx.Locale.Tr .CodeSuggestion.Reason}}</span>
+		{{else}}
+			<button type="button" class="ui tiny primary button show-modal" data-modal="#code-suggestion-modal"
+				data-modal-comment_ids="{{.ID}}:{{.ContentVersion}}" data-modal-commit_summary="{{.CodeSuggestionCommitMessage}}">
+				{{ctx.Locale.Tr "repo.diff.suggestion.apply"}}
+			</button>
+			<button type="button" class="ui tiny basic button code-suggestion-batch-toggle tw-hidden" data-global-click="toggleCodeSuggestionBatch"></button>
+		{{end}}
+	</div>
+{{end}}
+
+{{define "repo/diff/comment_body"}}
+	<div class="render-content markup" {{if .CanEdit}}data-can-edit="true"{{end}}>
+		{{template "repo/diff/comment_body_content" .Comment}}
+	</div>
+	<div class="code-suggestion-actions">{{template "repo/diff/code_suggestion_controls" .Comment}}</div>
+{{end}}
+
+{{define "repo/diff/comment_body_content" -}}
+	{{if .RenderedContent}}{{.RenderedContent}}{{else}}<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>{{end}}
+{{- end}}

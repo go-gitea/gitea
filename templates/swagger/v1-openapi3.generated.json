@@ -77,6 +77,16 @@
         },
         "description": "AnnotatedTag"
       },
+      "ApplyPullReviewSuggestionsResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApplyPullReviewSuggestionsResponse"
+            }
+          }
+        },
+        "description": ""
+      },
       "Artifact": {
         "content": {
           "application/json": {
@@ -2661,6 +2671,46 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "ApplyPullReviewSuggestionsOptions": {
+        "properties": {
+          "comment_ids": {
+            "description": "IDs of the review comments containing the suggestions.",
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array",
+            "x-go-name": "CommentIDs"
+          },
+          "head_commit_id": {
+            "description": "Expected head commit SHA. Defaults to the current head of the pull request.",
+            "type": "string",
+            "x-go-name": "HeadCommitID"
+          },
+          "message": {
+            "description": "Commit message. Defaults to a message based on the selected suggestions.",
+            "type": "string",
+            "x-go-name": "Message"
+          }
+        },
+        "required": [
+          "comment_ids"
+        ],
+        "title": "ApplyPullReviewSuggestionsOptions identifies the review comments to apply in one commit.",
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "ApplyPullReviewSuggestionsResponse": {
+        "properties": {
+          "sha": {
+            "type": "string",
+            "x-go-name": "SHA"
+          }
+        },
+        "title": "ApplyPullReviewSuggestionsResponse identifies the resulting commit.",
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "Attachment": {
         "description": "Attachment a generic attachment",
         "properties": {
@@ -4708,6 +4758,17 @@
             "description": "the tree path",
             "type": "string",
             "x-go-name": "Path"
+          },
+          "start_line": {
+            "description": "First line of a multi-line comment, or 0 for a single-line comment.",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "StartLine"
+          },
+          "start_side": {
+            "description": "Side of start_line, LEFT or RIGHT. Defaults to the side of the end line.",
+            "type": "string",
+            "x-go-name": "StartSide"
           }
         },
         "required": [
@@ -9606,6 +9667,17 @@
           },
           "resolver": {
             "$ref": "#/components/schemas/User"
+          },
+          "start_line": {
+            "description": "First line of a multi-line comment.",
+            "format": "uint64",
+            "type": "integer",
+            "x-go-name": "StartLine"
+          },
+          "start_side": {
+            "description": "Side of the first line of a multi-line comment, LEFT or RIGHT.",
+            "type": "string",
+            "x-go-name": "StartSide"
           },
           "updated_at": {
             "format": "date-time",
@@ -30381,6 +30453,64 @@
           }
         },
         "summary": "Cancel to dismiss a review for a pull request",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/pulls/{index}/suggestions/apply": {
+      "post": {
+        "operationId": "repoApplyPullReviewSuggestions",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "index of the pull request",
+            "in": "path",
+            "name": "index",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyPullReviewSuggestionsOptions"
+              }
+            }
+          },
+          "required": true,
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/ApplyPullReviewSuggestionsResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Apply pull request review suggestions in one commit",
         "tags": [
           "repository"
         ]

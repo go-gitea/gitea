@@ -13,6 +13,7 @@ import (
 	"gitea.dev/models/perm/access"
 	"gitea.dev/models/repo"
 	"gitea.dev/models/unit"
+	"gitea.dev/modules/cache"
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/languagestats"
@@ -21,6 +22,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	gitea_context "gitea.dev/services/context"
+	"gitea.dev/services/gitdiff"
 )
 
 func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePreviewOptions) (template.HTML, error) {
@@ -117,4 +119,55 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		"EscapeStatus":     escapeStatus,
 		"LineEscapeStatus": lineEscapeStatus,
 	})
+}
+
+func getCodeSuggestionSource(ctx context.Context, anchor markup.CodeSuggestionAnchor) (markup.CodeSuggestionSource, error) {
+	webCtx := gitea_context.GetWebContext(ctx)
+	if webCtx == nil || webCtx.Repo == nil || webCtx.Repo.Repository == nil || !webCtx.Repo.Permission.CanRead(unit.TypeCode) {
+		return markup.CodeSuggestionSource{}, util.ErrNotExist
+	}
+	lines, err := ReadCodeSuggestionLines(ctx, webCtx.Repo.GitRepo, anchor)
+	if err != nil {
+		return markup.CodeSuggestionSource{}, err
+	}
+	return markup.CodeSuggestionSource{
+		Heading:           webCtx.Locale.TrString("repo.diff.suggestion.suggested_change"),
+		OriginalLines:     lines,
+		HighlightLinePair: gitdiff.HighlightDiffLinePair,
+	}, nil
+}
+
+func ReadCodeSuggestionLines(ctx context.Context, repo *git.Repository, anchor markup.CodeSuggestionAnchor) ([]string, error) {
+	if repo == nil || anchor.StartLine == 0 || anchor.StartLine > anchor.EndLine || !git.IsStringValidObjectID(nil, anchor.CommitID) {
+		return nil, util.ErrNotExist
+	}
+	type fileKey struct {
+		repo               *git.Repository
+		commitID, filePath string
+	}
+	lines, err := cache.GetWithContextCache(ctx, "codeSuggestionFileLines", fileKey{repo, anchor.CommitID, anchor.FilePath}, func(ctx context.Context, key fileKey) ([]string, error) {
+		commit, err := key.repo.GetCommit(ctx, key.commitID)
+		if err != nil {
+			return nil, err
+		}
+		blob, err := commit.GetBlobByPath(ctx, key.repo, key.filePath)
+		if err != nil {
+			return nil, err
+		}
+		content, err := blob.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize+1)
+		if err != nil {
+			return nil, err
+		}
+		if content == "" || int64(len(content)) > setting.UI.MaxDisplayFileSize || strings.ContainsRune(content, 0) {
+			return nil, util.ErrNotExist
+		}
+		return strings.Split(strings.TrimSuffix(strings.ReplaceAll(content, "\r\n", "\n"), "\n"), "\n"), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if anchor.EndLine > uint64(len(lines)) {
+		return nil, util.ErrNotExist
+	}
+	return lines[anchor.StartLine-1 : anchor.EndLine], nil
 }

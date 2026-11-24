@@ -404,6 +404,7 @@ func ViewIssue(ctx *context.Context) {
 		} else {
 			ctx.Data["DisableStatusChange"] = prViewInfo.IsPullRequestBroken && issue.IsClosed
 		}
+		ctx.Data["CodeSuggestionHeadCommitID"] = prViewInfo.CompareInfo.HeadCommitID
 	}
 
 	ctx.Data["Reference"] = issue.Ref
@@ -789,6 +790,22 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 		}
 	}
 
+	if issue.IsPull {
+		var codeComments []*issues_model.Comment
+		for _, comment := range issue.Comments {
+			if comment.Type == issues_model.CommentTypeReview && comment.Review != nil {
+				for _, lineComments := range comment.Review.CodeComments {
+					for _, comments := range lineComments {
+						codeComments = append(codeComments, comments...)
+					}
+				}
+			}
+		}
+		if err = pull_service.LoadCodeSuggestionStates(ctx, ctx.Doer, issue.PullRequest, codeComments); err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+	}
 	ctx.Data["LatestCloseCommentID"] = latestCloseCommentID
 
 	// Combine multiple label assignments into a single comment

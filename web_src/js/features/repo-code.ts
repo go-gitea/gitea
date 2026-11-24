@@ -3,102 +3,54 @@ import {createTippy} from '../modules/tippy.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
 import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
 
-function changeHash(hash: string) {
-  if (window.history.pushState) {
-    window.history.pushState(null, '', hash);
-  } else {
-    window.location.hash = hash;
+export function pushLineSelectionHash(hash: string) {
+  if (window.location.hash !== hash) window.history.pushState(null, '', hash);
+}
+
+export function selectLineRows(first: HTMLTableRowElement, last: HTMLTableRowElement) {
+  const rows = [first];
+  while (rows[rows.length - 1] !== last) rows.push(rows[rows.length - 1].nextElementSibling as HTMLTableRowElement);
+  return rows;
+}
+
+function updateLineMenu(menu: Element, anchor: string, rows: HTMLTableRowElement[]) {
+  const copyLines = menu.querySelector('button.copy-lines')!;
+  if (rows.length > 1) copyLines.textContent = copyLines.getAttribute('data-text-lines');
+  const lines = rows.map((row) => row.querySelector('.code-inner')!.textContent.replace(/[\r\n]+$/, ''));
+  copyLines.setAttribute('data-clipboard-text', lines.join('\n'));
+
+  const copyPermalink = menu.querySelector('button.copy-line-permalink')!;
+  const permalink = new URL(copyPermalink.getAttribute('data-url')!, window.location.origin);
+  permalink.hash = anchor;
+  copyPermalink.setAttribute('data-clipboard-text', permalink.href);
+
+  const viewGitBlame = menu.querySelector('a.view_git_blame');
+  if (viewGitBlame) viewGitBlame.setAttribute('href', `${viewGitBlame.getAttribute('href')}#${anchor}`);
+
+  const refInNewIssue = menu.querySelector('a.ref-in-new-issue');
+  if (refInNewIssue) {
+    const issueContent = `${refInNewIssue.getAttribute('data-url-param-body-link')}#${anchor}`;
+    refInNewIssue.setAttribute('href', `${refInNewIssue.getAttribute('data-url-issue-new')}?body=${encodeURIComponent(issueContent)}`);
   }
 }
 
-// it selects the code lines defined by range: `L1-L3` (3 lines) or `L2` (singe line)
-function selectRange(range: string): Element | null {
-  for (const el of document.querySelectorAll('.code-view tr.active')) el.classList.remove('active');
-  const elLineNums = document.querySelectorAll(`.code-view td.lines-num span[data-line-number]`);
-
-  const refInNewIssue = document.querySelector('a.ref-in-new-issue');
-  const copyPermalink = document.querySelector('button.copy-line-permalink');
-  const viewGitBlame = document.querySelector('a.view_git_blame');
-
-  const updateIssueHref = function (anchor: string) {
-    if (!refInNewIssue) return;
-    const urlIssueNew = refInNewIssue.getAttribute('data-url-issue-new');
-    const urlParamBodyLink = refInNewIssue.getAttribute('data-url-param-body-link')!;
-    const issueContent = `${urlParamBodyLink}#${anchor}`; // the default content for issue body
-    refInNewIssue.setAttribute('href', `${urlIssueNew}?body=${encodeURIComponent(issueContent)}`);
-  };
-
-  const updateViewGitBlameFragment = function (anchor: string) {
-    if (!viewGitBlame) return;
-    let href = viewGitBlame.getAttribute('href')!;
-    href = href.replace(/#L\d+$|#L\d+-L\d+$/, '');
-    if (anchor.length !== 0) {
-      href += `#${anchor}`;
-    }
-    viewGitBlame.setAttribute('href', href);
-  };
-
-  const updateCopyPermalinkUrl = function (anchor: string) {
-    if (!copyPermalink) return;
-    let link = copyPermalink.getAttribute('data-url')!;
-    link = `${window.location.origin}${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
-    copyPermalink.setAttribute('data-clipboard-text', link);
-  };
-
-  const rangeFields = range ? range.split('-') : [];
-  const start = rangeFields[0] ?? '';
-  if (!start) return null;
-  const stop = rangeFields[1] || start;
-
-  // format is i.e. 'L14-L26'
-  let startLineNum = parseInt(start.substring(1));
-  let stopLineNum = parseInt(stop.substring(1));
-  if (startLineNum > stopLineNum) {
-    const tmp = startLineNum;
-    startLineNum = stopLineNum;
-    stopLineNum = tmp;
-    range = `${stop}-${start}`;
-  }
-  if (startLineNum < 1) return null;
-
-  const first = elLineNums[startLineNum - 1] ?? null;
-  for (let i = startLineNum - 1; i <= stopLineNum - 1 && i < elLineNums.length; i++) {
-    elLineNums[i].closest('tr')!.classList.add('active');
-  }
-  changeHash(`#${range}`);
-  updateIssueHref(range);
-  updateViewGitBlameFragment(range);
-  updateCopyPermalinkUrl(range);
-  return first;
-}
-
-function showLineButton() {
+function showLineButton(first: Element, anchor: string, rows: HTMLTableRowElement[]) {
   const menu = document.querySelector('.code-line-menu');
   if (!menu) return;
 
-  // remove all other line buttons
-  for (const el of document.querySelectorAll('.code-line-button')) {
-    el.remove();
-  }
-
-  // find active row and add button
-  const tr = document.querySelector('.code-view tr.active');
-  if (!tr) return;
-
-  const td = tr.querySelector('td.lines-num')!;
   const btn = document.createElement('button');
+  btn.type = 'button';
   btn.classList.add('code-line-button', 'ui', 'basic', 'button');
   btn.innerHTML = svg('octicon-kebab-horizontal');
-  td.prepend(btn);
+  first.parentElement!.prepend(btn);
 
-  // put a copy of the menu back into DOM for the next click
-  btn.closest('.code-view')!.append(menu.cloneNode(true));
-
+  const content = menu.cloneNode(true) as Element;
+  updateLineMenu(content, anchor, rows);
   createTippy(btn, {
     theme: 'menu',
     trigger: 'click',
     hideOnClick: true,
-    content: menu,
+    content,
     placement: 'right-start',
     interactive: true,
     onShow: (tippy) => {
@@ -109,6 +61,29 @@ function showLineButton() {
   });
 }
 
+function selectRange(hash: string) {
+  for (const row of document.querySelectorAll('.code-view tr.active')) row.classList.remove('active');
+  for (const btn of document.querySelectorAll('.code-line-button')) {
+    btn._tippy.destroy();
+    btn.remove();
+  }
+
+  const match = /^#L([1-9]\d*)(?:-L([1-9]\d*))?$/.exec(hash);
+  if (!match) return;
+  const firstLine = Number(match[1]), lastLine = Number(match[2] ?? match[1]);
+  const start = Math.min(firstLine, lastLine), end = Math.max(firstLine, lastLine);
+  const lineNumbers = document.querySelectorAll('.code-view td.lines-num span[data-line-number]');
+  const first = lineNumbers[start - 1];
+  if (!first) return;
+  const last = lineNumbers[Math.min(end, lineNumbers.length) - 1];
+  const rows = selectLineRows(first.closest('tr')!, last.closest('tr')!);
+  for (const row of rows) row.classList.add('active');
+
+  const anchor = start === end ? `L${start}` : `L${start}-L${end}`;
+  showLineButton(first, anchor, rows);
+  return {anchor, first};
+}
+
 export function initRepoCodeView() {
   // When viewing a file or blame, there is always a ".file-view" element,
   // but the ".code-view" class is only present when viewing the "code" of a file; it is not present when viewing a PDF file.
@@ -116,32 +91,20 @@ export function initRepoCodeView() {
   // the "code-view" related event listeners should always be added when the current page contains ".file-view" element.
   if (!document.querySelector('.repo-view-container .file-view')) return;
 
-  // "file code view" and "blame" pages need this "line number button" feature
   let selRangeStart: string | undefined;
-  addDelegatedEventListener(document, 'click', '.code-view .lines-num span', (el: HTMLElement, e: KeyboardEvent) => {
-    if (!selRangeStart || !e.shiftKey) {
-      selRangeStart = el.getAttribute('id')!;
-      selectRange(selRangeStart);
-    } else {
-      const selRangeStop = el.getAttribute('id');
-      selectRange(`${selRangeStart}-${selRangeStop}`);
-    }
+  addDelegatedEventListener<HTMLElement, MouseEvent>(document, 'click', '.code-view .lines-num span[data-line-number]', (el, e) => {
+    if (!selRangeStart || !e.shiftKey) selRangeStart = el.id;
+    const selection = selectRange(`#${selRangeStart}-${el.id}`);
+    if (selection) pushLineSelectionHash(`#${selection.anchor}`);
     window.getSelection()!.removeAllRanges();
-    showLineButton();
   });
 
-  // apply the selected range from the URL hash
-  const onHashChange = () => {
-    if (!window.location.hash) return;
-    if (!document.querySelector('.code-view .lines-num')) return;
-    const range = window.location.hash.substring(1);
-    const first = selectRange(range);
-    if (first) {
-      // set scrollRestoration to 'manual' when there is a hash in the URL, so that the scroll position will not be remembered after refreshing
-      if (window.history.scrollRestoration !== 'manual') window.history.scrollRestoration = 'manual';
-      first.scrollIntoView({block: 'start'});
-      showLineButton();
+  registerAsyncHashChangeListener(() => {
+    const selection = selectRange(window.location.hash);
+    selRangeStart = selection?.first.id;
+    if (selection) {
+      window.history.scrollRestoration = 'manual';
+      selection.first.scrollIntoView({block: 'start'});
     }
-  };
-  registerAsyncHashChangeListener(onHashChange);
+  });
 }

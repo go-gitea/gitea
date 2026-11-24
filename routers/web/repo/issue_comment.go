@@ -6,17 +6,13 @@ package repo
 import (
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
-	"strconv"
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
-	"gitea.dev/models/renderhelper"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -211,23 +207,38 @@ func UpdateCommentContent(ctx *context.Context) {
 		}
 	}
 
-	var renderedContent template.HTML
 	if comment.Content != "" {
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{
-			FootnoteContextID: strconv.FormatInt(comment.ID, 10),
-		})
-		var err error
-		renderedContent, err = markdown.RenderString(rctx, comment.Content)
-		if err != nil {
-			ctx.ServerErrorAuto(err)
+		if err := comment.RenderContent(ctx, ctx.Repo.Repository); err != nil {
+			ctx.JSONErrorAuto(err)
 			return
 		}
 	}
+	if comment.Type == issues_model.CommentTypeCode && comment.CodeCommitID() != "" {
+		if err := comment.Issue.LoadPullRequest(ctx); err != nil {
+			ctx.JSONErrorAuto(err)
+			return
+		}
+		if err := pull_service.LoadCodeSuggestionStates(ctx, ctx.Doer, comment.Issue.PullRequest, issues_model.CommentList{comment}); err != nil {
+			ctx.JSONErrorAuto(err)
+			return
+		}
+	}
+	content, err := ctx.RenderToHTML("repo/diff/comment_body_content", comment)
+	if err != nil {
+		ctx.JSONErrorAuto(err)
+		return
+	}
+	controls, err := ctx.RenderToHTML("repo/diff/code_suggestion_controls", comment)
+	if err != nil {
+		ctx.JSONErrorAuto(err)
+		return
+	}
 
 	ctx.JSON(http.StatusOK, map[string]any{
-		"content":        commentContentHTML(ctx, renderedContent),
-		"contentVersion": comment.ContentVersion,
-		"attachments":    attachmentsHTML(ctx, comment.Attachments, comment.Content),
+		"content":            content,
+		"suggestionControls": controls,
+		"contentVersion":     comment.ContentVersion,
+		"attachments":        attachmentsHTML(ctx, comment.Attachments, comment.Content),
 	})
 }
 

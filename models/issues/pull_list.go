@@ -71,7 +71,7 @@ func GetUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch
 
 // CanMaintainerWriteToBranch check whether user is a maintainer and could write to the branch
 func CanMaintainerWriteToBranch(ctx context.Context, headPerm access_model.Permission, headBranch string, doer *user_model.User) bool {
-	can, err := canMaintainerWriteToBranch(ctx, headPerm, headBranch, doer)
+	can, err := CheckMaintainerWriteToBranch(ctx, headPerm, headBranch, doer)
 	if err != nil {
 		log.Error("CanMaintainerWriteToBranch: %v", err)
 		return false
@@ -79,7 +79,7 @@ func CanMaintainerWriteToBranch(ctx context.Context, headPerm access_model.Permi
 	return can
 }
 
-func canMaintainerWriteToBranch(ctx context.Context, headPerm access_model.Permission, headBranch string, doer *user_model.User) (bool, error) {
+func CheckMaintainerWriteToBranch(ctx context.Context, headPerm access_model.Permission, headBranch string, doer *user_model.User) (bool, error) {
 	if headPerm.CanWrite(unit.TypeCode) {
 		return true, nil
 	}
@@ -124,7 +124,7 @@ func canMaintainerWriteToBranch(ctx context.Context, headPerm access_model.Permi
 		if err := pr.LoadBaseRepo(ctx); err != nil {
 			return false, err
 		}
-		doerBasePerm, err := access_model.GetIndividualUserRepoPermission(ctx, pr.BaseRepo, doer)
+		doerBasePerm, err := access_model.GetDoerRepoPermission(ctx, pr.BaseRepo, doer)
 		if err != nil {
 			return false, err
 		}

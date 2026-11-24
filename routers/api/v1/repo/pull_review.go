@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/audit"
@@ -268,12 +270,9 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 		return
 	}
 
-	comment, err := pull_service.CreateCodeComment(ctx,
-		ctx.Doer, ctx.Repo.GitRepo, parent.Issue,
-		parent.Line, opts.Body, parent.TreePath,
-		false, parent.ReviewID,
-		"", nil,
-	)
+	comment, err := pull_service.CreateCodeComment(ctx, ctx.Doer, ctx.Repo.GitRepo, parent.Issue, false, "", issues_model.CreateCommentOptions{
+		LineNum: parent.Line, Content: opts.Body, TreePath: parent.TreePath, ReviewID: parent.ReviewID,
+	})
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
@@ -490,11 +489,36 @@ func CreatePullReview(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	opts := web.GetForm[*api.CreatePullReviewOptions](ctx)
+	comments := make([]issues_model.CreateCommentOptions, 0, len(opts.Comments))
 	for _, comment := range opts.Comments {
 		if comment.Path == "" || (comment.NewLineNum <= 0 && comment.OldLineNum <= 0) {
-			ctx.APIError(http.StatusUnprocessableEntity, "review comments require a path and a positive new_position or old_position")
+			ctx.APIErrorAuto(util.ErrorWrap(util.ErrUnprocessableContent, "review comments require a path and a positive new_position or old_position"))
 			return
 		}
+		line, endSide := comment.NewLineNum, "RIGHT"
+		if comment.OldLineNum > 0 {
+			line, endSide = -comment.OldLineNum, "LEFT"
+		}
+		if comment.StartLine < 0 {
+			ctx.APIErrorAuto(util.ErrorWrap(util.ErrUnprocessableContent, "start_line must be nonnegative"))
+			return
+		}
+		startLine := comment.StartLine
+		switch cmp.Or(comment.StartSide, endSide) {
+		case "LEFT":
+			startLine = -startLine
+		case "RIGHT":
+		default:
+			ctx.APIErrorAuto(util.ErrorWrap(util.ErrUnprocessableContent, "start_side must be LEFT or RIGHT"))
+			return
+		}
+		if err := pull_service.ValidateCodeCommentRange(startLine, line); err != nil {
+			ctx.APIErrorAuto(util.ErrorWrap(util.ErrUnprocessableContent, "%s", err))
+			return
+		}
+		comments = append(comments, issues_model.CreateCommentOptions{
+			LineNum: line, Content: comment.Body, TreePath: comment.Path, CodeStartLine: startLine,
+		})
 	}
 
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
@@ -537,24 +561,8 @@ func CreatePullReview(ctx *context.APIContext) {
 	}
 
 	// create review comments
-	for _, c := range opts.Comments {
-		line := c.NewLineNum
-		if c.OldLineNum > 0 {
-			line = c.OldLineNum * -1
-		}
-
-		if _, err := pull_service.CreateCodeComment(ctx,
-			ctx.Doer,
-			ctx.Repo.GitRepo,
-			pr.Issue,
-			line,
-			c.Body,
-			c.Path,
-			true, // pending review
-			0,    // no reply
-			opts.CommitID,
-			nil,
-		); err != nil {
+	for _, comment := range comments {
+		if _, err := pull_service.CreateCodeComment(ctx, ctx.Doer, ctx.Repo.GitRepo, pr.Issue, true, opts.CommitID, comment); err != nil {
 			ctx.APIErrorAuto(err)
 			return
 		}

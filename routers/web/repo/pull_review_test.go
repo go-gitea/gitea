@@ -12,7 +12,6 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/templates"
-	"gitea.dev/routers/common"
 	"gitea.dev/services/context"
 	"gitea.dev/services/contexttest"
 	"gitea.dev/services/pull"
@@ -24,58 +23,49 @@ import (
 func TestRenderConversation(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	pr, _ := issues_model.GetPullRequestByID(t.Context(), 2)
-	_ = pr.LoadIssue(t.Context())
-	_ = pr.Issue.LoadPoster(t.Context())
-	_ = pr.Issue.LoadRepo(t.Context())
-
-	run := func(name string, cb func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder)) {
-		t.Run(name, func(t *testing.T) {
-			ctx, resp := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
-			contexttest.LoadUser(t, ctx, pr.Issue.PosterID)
-			contexttest.LoadRepo(t, ctx, pr.BaseRepoID)
-			contexttest.LoadGitRepo(t, ctx)
-			defer ctx.Repo.GitRepo.Close()
-			cb(t, ctx, resp)
-		})
+	pr, err := issues_model.GetPullRequestByID(t.Context(), 2)
+	require.NoError(t, err)
+	require.NoError(t, pr.LoadIssue(t.Context()))
+	newContext := func(t *testing.T) (*context.Context, *httptest.ResponseRecorder) {
+		t.Helper()
+		ctx, resp := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
+		contexttest.LoadUser(t, ctx, pr.Issue.PosterID)
+		contexttest.LoadRepo(t, ctx, pr.BaseRepoID)
+		contexttest.LoadGitRepo(t, ctx)
+		t.Cleanup(func() { ctx.Repo.GitRepo.Close() })
+		return ctx, resp
 	}
 
-	var preparedComment *issues_model.Comment
-	run("prepare", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
-		comment, err := pull.CreateCodeComment(ctx, pr.Issue.Poster, ctx.Repo.GitRepo, pr.Issue, 1, "content", "", false, 0, pr.HeadCommitID, nil)
-		require.NoError(t, err)
+	ctx, _ := newContext(t)
+	comment, err := pull.CreateCodeComment(ctx, ctx.Doer, ctx.Repo.GitRepo, pr.Issue, false, pr.HeadCommitID, issues_model.CreateCommentOptions{LineNum: 1, Content: "content"})
+	require.NoError(t, err)
+	comment.Invalidated = true
+	require.NoError(t, issues_model.UpdateCommentInvalidate(ctx, comment))
 
-		comment.Invalidated = true
-		err = issues_model.UpdateCommentInvalidate(ctx, comment)
-		require.NoError(t, err)
-
-		preparedComment = comment
-	})
-	require.NotNil(t, preparedComment)
-
-	for _, testCase := range []struct {
-		name, origin, expected string
-		showOutdated           bool
+	check := func(t *testing.T, origin string, showOutdated bool, want string) {
+		t.Helper()
+		ctx, resp := newContext(t)
+		ctx.Data["ShowOutdatedComments"] = showOutdated
+		renderConversation(ctx, comment, origin)
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Contains(t, resp.Body.String(), want)
+	}
+	for _, test := range []struct {
+		name, origin, want string
+		showOutdated       bool
 	}{
-		{"diff with outdated", "diff", `<div class="content comment-container"`, true},
-		{"diff without outdated", "diff", `conversation-not-existing`, false},
-		{"timeline with outdated", "timeline", `<div id="code-comments-`, true},
-		{"timeline is not affected by ShowOutdatedComments=false", "timeline", `<div id="code-comments-`, false},
+		{"DiffShowsOutdated", "diff", `<div class="content comment-container"`, true},
+		{"DiffHidesOutdated", "diff", "conversation-not-existing", false},
+		{"TimelineAlwaysShowsOutdated", "timeline", `<div id="code-comments-`, false},
 	} {
-		run(testCase.name, func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
-			ctx.Data["ShowOutdatedComments"] = testCase.showOutdated
-			renderConversation(ctx, preparedComment, testCase.origin)
-			assert.Contains(t, resp.Body.String(), testCase.expected)
-		})
+		t.Run(test.name, func(t *testing.T) { check(t, test.origin, test.showOutdated, test.want) })
 	}
-	for _, origin := range []string{"diff", "timeline"} {
-		run(origin+" non-existing review", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
-			err := db.TruncateBeans(t.Context(), &issues_model.Review{})
-			assert.NoError(t, err)
-			ctx.Data["ShowOutdatedComments"] = true
-			renderConversation(ctx, preparedComment, origin)
-			assert.Equal(t, http.StatusOK, resp.Code)
-			assert.NotContains(t, resp.Body.String(), common.PageInternalServerErrorMark)
-		})
+
+	_, err = db.DeleteByID[issues_model.Review](t.Context(), comment.ReviewID)
+	require.NoError(t, err)
+	for _, test := range []struct{ origin, want string }{
+		{"diff", `<div class="content comment-container"`}, {"timeline", `<div id="code-comments-`},
+	} {
+		t.Run(test.origin+"/MissingReview", func(t *testing.T) { check(t, test.origin, true, test.want) })
 	}
 }

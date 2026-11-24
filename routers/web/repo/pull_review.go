@@ -4,24 +4,30 @@
 package repo
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	pull_model "gitea.dev/models/pull"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/context/upload"
 	"gitea.dev/services/forms"
 	issue_service "gitea.dev/services/issue"
+	markup_service "gitea.dev/services/markup"
 	pull_service "gitea.dev/services/pull"
 	user_service "gitea.dev/services/user"
 )
@@ -57,8 +63,33 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
 	ctx.Data["ReviewCommitID"] = pullHeadCommitID // it's questionable why it only needs the head commit ID but not correct "AfterCommitID" (single commit review)
+	side := ctx.FormString("side")
+	ctx.Data["CodeCommentSide"] = side
+	if side == "proposed" && cmp.Or(ctx.FormString("start_side"), side) == "proposed" && ctx.FormBool("all_commits") && ctx.Repo.Permission.CanRead(unit.TypeCode) {
+		ctx.Data["CodeSuggestionSourceURL"] = issue.Link() + "/files/reviews/suggestion_source"
+	}
 	upload.AddUploadContext(ctx, "comment")
 	ctx.HTML(http.StatusOK, tplNewComment)
+}
+
+// RenderCodeSuggestionSource responds with the raw code a new suggestion replaces, to prefill it in the comment editor
+func RenderCodeSuggestionSource(ctx *context.Context) {
+	if side := cmp.Or(ctx.FormString("side"), "proposed"); side != "proposed" || cmp.Or(ctx.FormString("start_side"), side) != "proposed" {
+		ctx.ServerErrorAuto(util.NewInvalidArgumentErrorf("suggestions require lines on the proposed side"))
+		return
+	}
+	line := uint64(ctx.FormInt64("line"))
+	lines, err := markup_service.ReadCodeSuggestionLines(ctx, ctx.Repo.GitRepo, markup.CodeSuggestionAnchor{
+		CommitID:  ctx.FormString("commit_id"),
+		FilePath:  ctx.FormString("path"),
+		StartLine: cmp.Or(uint64(ctx.FormInt64("start_line")), line),
+		EndLine:   line,
+	})
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	ctx.PlainText(http.StatusOK, strings.Join(lines, "\n"))
 }
 
 // CreateCodeComment will create a code comment including an pending review if required
@@ -82,9 +113,16 @@ func CreateCodeComment(ctx *context.Context) {
 		return
 	}
 
-	signedLine := form.Line
+	if form.StartLine < 0 || form.Line < 0 {
+		ctx.JSONErrorAuto(util.NewInvalidArgumentErrorf("code comment line numbers must be nonnegative"))
+		return
+	}
+	signedStartLine, signedLine := form.StartLine, form.Line
+	if cmp.Or(form.StartSide, form.Side) == "previous" {
+		signedStartLine = -signedStartLine
+	}
 	if form.Side == "previous" {
-		signedLine *= -1
+		signedLine = -signedLine
 	}
 
 	var attachments []string
@@ -92,18 +130,14 @@ func CreateCodeComment(ctx *context.Context) {
 		attachments = form.Files
 	}
 
-	comment, err := pull_service.CreateCodeComment(ctx,
-		ctx.Doer,
-		ctx.Repo.GitRepo,
-		issue,
-		signedLine,
-		form.Content,
-		form.TreePath,
-		!form.SingleReview,
-		form.Reply,
-		form.LatestCommitID,
-		attachments,
-	)
+	comment, err := pull_service.CreateCodeComment(ctx, ctx.Doer, ctx.Repo.GitRepo, issue, !form.SingleReview, form.LatestCommitID, issues_model.CreateCommentOptions{
+		LineNum:       signedLine,
+		Content:       form.Content,
+		TreePath:      form.TreePath,
+		ReviewID:      form.Reply,
+		Attachments:   attachments,
+		CodeStartLine: signedStartLine,
+	})
 	if err != nil {
 		ctx.JSONErrorAuto(err)
 		return
@@ -201,6 +235,10 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 	}
 	ctx.Data["Issue"] = comment.Issue
 	if err = comment.Issue.LoadPullRequest(ctx); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	if err = pull_service.LoadCodeSuggestionStates(ctx, ctx.Doer, comment.Issue.PullRequest, comments); err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}

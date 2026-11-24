@@ -1,5 +1,6 @@
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
+import {refreshCodeSuggestionControls} from '../features/repo-code-suggestion.ts';
 
 const preventListener = (e: Event) => e.preventDefault();
 
@@ -75,20 +76,19 @@ export function initMarkupTasklist(elMarkup: HTMLElement): void {
         requestBody.append('content_version', contentVersion);
         const response = await POST(updateUrl, {data: requestBody});
         const data = await response.json();
-        if (response.status === 400) {
-          showErrorToast(data.errorMessage);
+        if (!response.ok) {
+          checkbox.checked = !checkbox.checked;
+          showErrorToast(data.errorMessage ?? window.config.i18n.error_occurred);
           return;
         }
         editContentZone.setAttribute('data-content-version', data.contentVersion);
         rawContent.textContent = newContent;
+        refreshCodeSuggestionControls(container.querySelector(':scope > .code-suggestion-actions'), data.suggestionControls);
       } catch (err) {
         checkbox.checked = !checkbox.checked;
         console.error('exception occurred when updating markup task list', err);
-      }
-
-      // Enable input on checkboxes again
-      for (const checkbox of checkboxes) {
-        checkbox.removeEventListener('click', preventListener);
+      } finally {
+        for (const checkbox of checkboxes) checkbox.removeEventListener('click', preventListener);
       }
     });
 

@@ -5,6 +5,7 @@
   min-height: 0;
   z-index: 5;
   opacity: 0;
+  touch-action: none;
   transition: transform 0.1s ease-in-out;
   transform: scale(1);
   box-shadow: none !important;
@@ -39,6 +40,18 @@
 
 .ui.button.add-code-comment:focus {
   opacity: 1;
+}
+
+.code-diff tr.diff-range-highlight > td {
+  box-shadow: inset 0 0 0 100vmax var(--color-primary-alpha-30);
+}
+
+.diff-comment-draft form[data-code-suggestion-side=""] :is(
+  .markdown-toolbar-group:has(> [data-global-click="onInsertCodeSuggestion"]),
+  .gitea-extra-toolbar-button,
+  .gitea-extra-toolbar-button + .separator
+) {
+  display: none;
 }
 
 .repository .diff-file-box .code-diff .add-comment-left,
@@ -149,12 +162,14 @@
   display: none;
 }
 
-.pull.files.diff .comment {
+.pull.files.diff .comment,
+.diff-range-highlight {
   scroll-margin-top: 99px;
 }
 
 @media (max-width: 991.98px) {
-  .pull.files.diff .comment {
+  .pull.files.diff .comment,
+  .diff-range-highlight {
     scroll-margin-top: 130px;
   }
 }

@@ -54,6 +54,7 @@ func TestAPIPullReview(t *testing.T) {
 	})
 	t.Run("General", testAPIPullReviewGeneral)
 	t.Run("CommentReply", testAPIPullReviewCommentReply)
+	t.Run("CrossHunkComment", testAPIPullReviewCrossHunkComment)
 }
 
 func testAPIPullReviewGeneral(t *testing.T) {
@@ -116,6 +117,9 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	for _, invalidComment := range []api.CreatePullReviewComment{
 		{Body: "missing path", NewLineNum: 1},
 		{Path: "README.md", Body: "missing line"},
+		{Path: "README.md", Body: "reversed range", OldLineNum: 1, StartLine: 2},
+		{Path: "README.md", Body: "negative start line", NewLineNum: 5, StartLine: -3},
+		{Path: "README.md", Body: "unknown start side", NewLineNum: 5, StartLine: 3, StartSide: "right"},
 	} {
 		req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
 			Comments: []api.CreatePullReviewComment{
@@ -130,18 +134,22 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	// test CreatePullReview
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
 		Body: "body1",
-		// Event: "" # will result in PENDING
 		Comments: []api.CreatePullReviewComment{
 			{
 				Path:       "README.md",
 				Body:       "first new line",
-				OldLineNum: 0,
 				NewLineNum: 1,
 			}, {
 				Path:       "README.md",
-				Body:       "first old line",
-				OldLineNum: 1,
-				NewLineNum: 0,
+				Body:       "mixed lines",
+				NewLineNum: 3,
+				StartLine:  3,
+				StartSide:  "LEFT",
+			}, {
+				Path:       "README.md",
+				Body:       "old lines",
+				OldLineNum: 2,
+				StartLine:  1,
 			}, {
 				Path:       "iso-8859-1.txt",
 				Body:       "this line contains a non-utf-8 character",
@@ -154,7 +162,25 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	review = DecodeJSON(t, resp, &api.PullReview{})
 	assert.EqualValues(t, 6, review.ID)
 	assert.EqualValues(t, "PENDING", review.State)
-	assert.Equal(t, 3, review.CodeCommentsCount)
+	assert.Equal(t, 4, review.CodeCommentsCount)
+
+	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d/comments", repo.OwnerName, repo.Name, pullIssue.Index, review.ID).
+		AddTokenAuth(token)
+	reviewComments = DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []*api.PullReviewComment{})
+	type commentRange struct {
+		start, newEnd, oldEnd uint64
+		side                  string
+	}
+	ranges := make(map[string]commentRange, len(reviewComments))
+	for _, comment := range reviewComments {
+		ranges[comment.Body] = commentRange{comment.StartLine, comment.LineNum, comment.OldLineNum, comment.StartSide}
+	}
+	assert.Equal(t, map[string]commentRange{
+		"first new line": {0, 1, 0, ""},
+		"old lines":      {1, 0, 2, "LEFT"},
+		"mixed lines":    {3, 3, 0, "LEFT"},
+		"this line contains a non-utf-8 character": {0, 1, 0, ""},
+	}, ranges)
 
 	// test SubmitPullReview
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d", repo.OwnerName, repo.Name, pullIssue.Index, review.ID), &api.SubmitPullReviewOptions{
@@ -165,7 +191,7 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	review = DecodeJSON(t, resp, &api.PullReview{})
 	assert.EqualValues(t, 6, review.ID)
 	assert.EqualValues(t, "APPROVED", review.State)
-	assert.Equal(t, 3, review.CodeCommentsCount)
+	assert.Equal(t, 4, review.CodeCommentsCount)
 
 	unittest.AssertCount(t, &issues_model.Comment{ReviewID: review.ID, Type: issues_model.CommentTypeReview}, 1)
 	reviewComment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ReviewID: review.ID, Type: issues_model.CommentTypeReview})
@@ -440,7 +466,7 @@ func TestAPIPullReviewCommentResolveEndpoints(t *testing.T) {
 	latestCommitID, err := gitRepo.GetRefCommitID(t.Context(), pullIssue.PullRequest.GetGitHeadRefName())
 	require.NoError(t, err)
 
-	codeComment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, pullIssue, 1, "resolve comment", "README.md", false, 0, latestCommitID, nil)
+	codeComment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, pullIssue, false, latestCommitID, issues_model.CreateCommentOptions{LineNum: 1, Content: "resolve comment", TreePath: "README.md"})
 	require.NoError(t, err)
 	require.NotNil(t, codeComment)
 
@@ -594,7 +620,7 @@ func testAPIPullReviewCommentReply(t *testing.T) {
 	commitID, err := gitRepo.GetRefCommitID(t.Context(), pullIssue.PullRequest.GetGitHeadRefName())
 	require.NoError(t, err)
 
-	parent, err := pull_service.CreateCodeComment(t.Context(), doer, gitRepo, pullIssue, 1, "parent comment", "README.md", false, 0, commitID, nil)
+	parent, err := pull_service.CreateCodeComment(t.Context(), doer, gitRepo, pullIssue, false, commitID, issues_model.CreateCommentOptions{LineNum: 1, Content: "parent comment", TreePath: "README.md"})
 	require.NoError(t, err)
 	require.NotZero(t, parent.ReviewID)
 
@@ -627,6 +653,43 @@ func testAPIPullReviewCommentReply(t *testing.T) {
 	wrongPR := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/comments/%d/replies", repo.OwnerName, repo.Name, pullIssue.Index, otherCodeComment.ID)
 	req = NewRequestWithJSON(t, http.MethodPost, wrongPR, &api.CreatePullReviewCommentReplyOptions{Body: "x"}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
+}
+
+func testAPIPullReviewCrossHunkComment(t *testing.T) {
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 5})
+	require.NoError(t, pr.LoadBaseRepo(t.Context()))
+	repo := pr.BaseRepo
+	gitRepo, err := git.OpenRepository(t.Context(), repo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	const treePath = "range.txt"
+	const baseRef = "refs/heads/review-range-base"
+	contextLines := strings.Repeat("context\n", 12)
+	require.NoError(t, git.ForceFastImport(t.Context(), repo, []git.FastImportCommit{
+		{Ref: baseRef, Parent: pr.MergeBase, Files: []git.FastImportFile{{Path: treePath, Content: "first old\n" + contextLines + "last old\n"}}},
+		{Ref: pr.GetGitHeadRefName(), Parent: ":1", Files: []git.FastImportFile{{Path: treePath, Content: "first new\n" + contextLines + "last new\n"}}},
+	}))
+	pr.MergeBase, err = gitRepo.GetRefCommitID(t.Context(), baseRef)
+	require.NoError(t, err)
+	require.NoError(t, pr.UpdateCols(t.Context(), "merge_base"))
+
+	token := getUserToken(t, repo.OwnerName, auth_model.AccessTokenScopeWriteRepository)
+	reviewsURL := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pr.Index)
+	req := NewRequestWithJSON(t, http.MethodPost, reviewsURL, &api.CreatePullReviewOptions{
+		Event: api.ReviewStateComment,
+		Comments: []api.CreatePullReviewComment{
+			{Path: treePath, Body: "cross-hunk range", StartLine: 1, NewLineNum: 14},
+		},
+	}).AddTokenAuth(token)
+	review := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{})
+	req = NewRequestf(t, http.MethodGet, "%s/%d/comments", reviewsURL, review.ID).AddTokenAuth(token)
+	comments := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []*api.PullReviewComment{})
+	require.Len(t, comments, 1)
+	assert.EqualValues(t, 1, comments[0].StartLine)
+	assert.Equal(t, "RIGHT", comments[0].StartSide)
+	assert.EqualValues(t, 14, comments[0].LineNum)
+	assert.Equal(t, "@@ -11,4 +11,4 @@\n context\n context\n context\n-last old\n+last new", comments[0].DiffHunk)
 }
 
 func reviewsCountCheck(t *testing.T, name string, issueID, reviewerID int64, expectedDismissed, expectedRequested, expectedTotal int, expectApproval bool) {
