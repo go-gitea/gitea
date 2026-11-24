@@ -317,7 +317,7 @@
 }
 
 .ui.pagination.menu.narrow {
-  max-width: 100%;
+  max-width: calc(100% - 1rem);
 }
 
 .ui.pagination.menu.narrow .item {
