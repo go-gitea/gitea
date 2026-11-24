@@ -274,6 +274,13 @@ type swaggerCommitList struct {
 	Body []api.Commit `json:"body"`
 }
 
+// PullRequestConflicts
+// swagger:response PullRequestConflicts
+type swaggerPullRequestConflicts struct {
+	// in:body
+	Body api.PullRequestConflicts `json:"body"`
+}
+
 // ChangedFileList
 // swagger:response ChangedFileList
 type swaggerChangedFileList struct {

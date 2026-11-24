@@ -1095,6 +1095,16 @@
         },
         "description": "PullRequest"
       },
+      "PullRequestConflicts": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PullRequestConflicts"
+            }
+          }
+        },
+        "description": "PullRequestConflicts"
+      },
       "PullRequestList": {
         "content": {
           "application/json": {
@@ -9381,6 +9391,83 @@
             "description": "The merge method that will be used, eg: \"merge\", \"rebase\", \"rebase-merge\", \"squash\", \"fast-forward-only\"",
             "type": "string",
             "x-go-name": "MergeMethod"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PullRequestConflictBlob": {
+        "description": "PullRequestConflictBlob is one version of a conflicted file",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "x-go-name": "Mode"
+          },
+          "sha": {
+            "description": "SHA is the blob ID, it can be fetched with the git blobs API",
+            "type": "string",
+            "x-go-name": "SHA"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PullRequestConflictFile": {
+        "description": "PullRequestConflictFile is a file that can't be merged automatically",
+        "properties": {
+          "base": {
+            "$ref": "#/components/schemas/PullRequestConflictBlob"
+          },
+          "content": {
+            "description": "Content is the file of the merge result, null for binary or large files. It has conflict markers when both sides changed the file, and is the surviving version when one side deleted it.",
+            "type": "string",
+            "x-go-name": "Content"
+          },
+          "kind": {
+            "description": "Kind tells how the file conflicts: \"us\" is the base branch of the pull request and \"them\" is its head.",
+            "enum": [
+              "both_modified",
+              "both_added",
+              "deleted_by_us",
+              "deleted_by_them",
+              "other"
+            ],
+            "type": "string",
+            "x-go-name": "Kind"
+          },
+          "ours": {
+            "$ref": "#/components/schemas/PullRequestConflictBlob"
+          },
+          "path": {
+            "description": "Path is the path of the file. For directory/file conflicts git reports a synthetic path (such as \"name~\u003csha\u003e\") that exists on neither side.",
+            "type": "string",
+            "x-go-name": "Path"
+          },
+          "theirs": {
+            "$ref": "#/components/schemas/PullRequestConflictBlob"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PullRequestConflicts": {
+        "description": "PullRequestConflicts lists the files that prevent a pull request from being merged",
+        "properties": {
+          "conflicted": {
+            "type": "boolean",
+            "x-go-name": "Conflicted"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/PullRequestConflictFile"
+            },
+            "type": "array",
+            "x-go-name": "Files"
+          },
+          "truncated": {
+            "description": "Truncated is true if there are more conflicted files than listed",
+            "type": "boolean",
+            "x-go-name": "Truncated"
           }
         },
         "type": "object",
@@ -29553,6 +29640,54 @@
           }
         },
         "summary": "Get commits for a pull request",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/pulls/{index}/conflicts": {
+      "get": {
+        "description": "Merges the head of the pull request into its base branch without committing anything. Responds with 501 if the git version of the server does not support it. A merged pull request has no conflicts to report (422).",
+        "operationId": "repoGetPullRequestConflicts",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "index of the pull request",
+            "in": "path",
+            "name": "index",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PullRequestConflicts"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Get the merge conflicts of a pull request",
         "tags": [
           "repository"
         ]

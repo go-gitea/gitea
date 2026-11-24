@@ -80,3 +80,16 @@ func TestMergeTreeDirectoryRenameConflictWithoutFiles(t *testing.T) {
 	assert.Empty(t, conflictedFiles)
 	assert.Equal(t, "5e3dd4cfc5b11e278a35b2daa83b7274175e3ab1", treeID)
 }
+
+func TestParseMergeTreeConflictInfo(t *testing.T) {
+	info, stage, ok := parseMergeTreeConflictInfo("100644 0123456789abcdef0123456789abcdef01234567 2\tdir/some file.txt")
+	assert.True(t, ok)
+	assert.Equal(t, 2, stage)
+	assert.Equal(t, "dir/some file.txt", info.path)
+	assert.Equal(t, MergeTreeConflictStage{Mode: "100644", ObjectID: "0123456789abcdef0123456789abcdef01234567"}, info.stage)
+
+	for _, line := range []string{"", "1\tfile", "100644 abc 4\tfile", "100644 abc x\tfile", "100644 abc 1", "100644 abc 1\t"} {
+		_, _, ok = parseMergeTreeConflictInfo(line)
+		assert.False(t, ok, line)
+	}
+}

@@ -212,3 +212,35 @@ type ChangedFile struct {
 	// The raw URL to download the file
 	RawURL string `json:"raw_url,omitempty"`
 }
+
+// PullRequestConflictBlob is one version of a conflicted file
+type PullRequestConflictBlob struct {
+	// SHA is the blob ID, it can be fetched with the git blobs API
+	SHA  string `json:"sha"`
+	Mode string `json:"mode"`
+}
+
+// PullRequestConflictFile is a file that can't be merged automatically
+type PullRequestConflictFile struct {
+	// Path is the path of the file. For directory/file conflicts git reports a synthetic path (such as "name~<sha>") that exists on neither side.
+	Path string `json:"path"`
+	// Kind tells how the file conflicts: "us" is the base branch of the pull request and "them" is its head.
+	// enum: ["both_modified","both_added","deleted_by_us","deleted_by_them","other"]
+	Kind string `json:"kind"`
+	// Base is the version in the merge base, it is null if the file didn't exist there
+	Base *PullRequestConflictBlob `json:"base"`
+	// Ours is the version in the base branch, it is null if the file doesn't exist there
+	Ours *PullRequestConflictBlob `json:"ours"`
+	// Theirs is the version in the head branch, it is null if the file doesn't exist there
+	Theirs *PullRequestConflictBlob `json:"theirs"`
+	// Content is the file of the merge result, null for binary or large files. It has conflict markers when both sides changed the file, and is the surviving version when one side deleted it.
+	Content *string `json:"content"`
+}
+
+// PullRequestConflicts lists the files that prevent a pull request from being merged
+type PullRequestConflicts struct {
+	Conflicted bool                       `json:"conflicted"`
+	Files      []*PullRequestConflictFile `json:"files"`
+	// Truncated is true if there are more conflicted files than listed
+	Truncated bool `json:"truncated"`
+}
