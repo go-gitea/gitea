@@ -9,6 +9,7 @@ import (
 	"crypto/rsa"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"gitea.dev/modules/generate"
@@ -58,7 +59,7 @@ func TestGenKeyPair(t *testing.T) {
 }
 
 func TestInitKeys(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := filepath.Join(t.TempDir(), "ssh")
 
 	keyTypes := []string{"rsa", "ecdsa", "ed25519"}
 	for _, keyType := range keyTypes {
@@ -72,6 +73,11 @@ func TestInitKeys(t *testing.T) {
 	keyFiles, err := InitDefaultHostKeys(tempDir)
 	require.NoError(t, err)
 	assert.Len(t, keyFiles, len(keyTypes))
+	if runtime.GOOS != "windows" { // Windows has no POSIX permission bits
+		info, err := os.Stat(tempDir)
+		require.NoError(t, err)
+		assert.Equal(t, os.FileMode(0o700), info.Mode().Perm())
+	}
 
 	// Record file contents so regeneration can be detected
 	content := map[string][]byte{}
