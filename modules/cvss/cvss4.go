@@ -73,18 +73,16 @@ var (
 	severityLevelsCR  = map[string]float64{"H": 0.0, "M": 0.1, "L": 0.2}
 )
 
-// m returns the effective value of a metric; absent optional metrics default to
-// the worst case, as the base score assumes for threat/environmental metrics
+// worstCaseDefaults are the values assumed for absent optional metrics
+// (the base score assumes the worst case for threat/environmental metrics)
+var worstCaseDefaults = map[string]string{"E": "A", "CR": "H", "IR": "H", "AR": "H"}
+
+// m returns the effective value of a metric, applying the worst-case default when absent
 func (v *Vector) m4(metric string) string {
 	value := v.Metrics[metric]
-	switch metric {
-	case "E":
-		if value == "" || value == "X" {
-			return "A"
-		}
-	case "CR", "IR", "AR":
-		if value == "" || value == "X" {
-			return "H"
+	if value == "" || value == "X" {
+		if def, ok := worstCaseDefaults[metric]; ok {
+			return def
 		}
 	}
 	return value
@@ -202,30 +200,28 @@ func (v *Vector) baseScore4() float64 {
 	}
 	var distEq1, distEq2, distEq3eq6, distEq4 float64
 	found := false
+maxVectorsLoop:
 	for _, maxVector := range maxVectors {
-		distAV := severityLevelsAV[m("AV")] - severityLevelsAV[extractValueMetric("AV", maxVector)]
-		distPR := severityLevelsPR[m("PR")] - severityLevelsPR[extractValueMetric("PR", maxVector)]
-		distUI := severityLevelsUI[m("UI")] - severityLevelsUI[extractValueMetric("UI", maxVector)]
-		distAC := severityLevelsAC[m("AC")] - severityLevelsAC[extractValueMetric("AC", maxVector)]
-		distAT := severityLevelsAT[m("AT")] - severityLevelsAT[extractValueMetric("AT", maxVector)]
-		distVC := severityLevelsCIA[m("VC")] - severityLevelsCIA[extractValueMetric("VC", maxVector)]
-		distVI := severityLevelsCIA[m("VI")] - severityLevelsCIA[extractValueMetric("VI", maxVector)]
-		distVA := severityLevelsCIA[m("VA")] - severityLevelsCIA[extractValueMetric("VA", maxVector)]
-		distSC := severityLevelsSC[m("SC")] - severityLevelsSC[extractValueMetric("SC", maxVector)]
-		distSI := severityLevelsSI[m("SI")] - severityLevelsSI[extractValueMetric("SI", maxVector)]
-		distSA := severityLevelsSI[m("SA")] - severityLevelsSI[extractValueMetric("SA", maxVector)]
-		distCR := severityLevelsCR[m("CR")] - severityLevelsCR[extractValueMetric("CR", maxVector)]
-		distIR := severityLevelsCR[m("IR")] - severityLevelsCR[extractValueMetric("IR", maxVector)]
-		distAR := severityLevelsCR[m("AR")] - severityLevelsCR[extractValueMetric("AR", maxVector)]
-		if distAV < 0 || distPR < 0 || distUI < 0 || distAC < 0 || distAT < 0 ||
-			distVC < 0 || distVI < 0 || distVA < 0 || distSC < 0 || distSI < 0 || distSA < 0 ||
-			distCR < 0 || distIR < 0 || distAR < 0 {
-			continue
+		// severity distance of the vector to the max vector, per metric
+		dist := make(map[string]float64, 14)
+		for metric, levels := range map[string]map[string]float64{
+			"AV": severityLevelsAV, "PR": severityLevelsPR, "UI": severityLevelsUI,
+			"AC": severityLevelsAC, "AT": severityLevelsAT,
+			"VC": severityLevelsCIA, "VI": severityLevelsCIA, "VA": severityLevelsCIA,
+			"SC": severityLevelsSC, "SI": severityLevelsSI, "SA": severityLevelsSI,
+			"CR": severityLevelsCR, "IR": severityLevelsCR, "AR": severityLevelsCR,
+		} {
+			dist[metric] = levels[m(metric)] - levels[extractValueMetric(metric, maxVector)]
 		}
-		distEq1 = distAV + distPR + distUI
-		distEq2 = distAC + distAT
-		distEq3eq6 = distVC + distVI + distVA + distCR + distIR + distAR
-		distEq4 = distSC + distSI + distSA
+		for _, d := range dist {
+			if d < 0 {
+				continue maxVectorsLoop
+			}
+		}
+		distEq1 = dist["AV"] + dist["PR"] + dist["UI"]
+		distEq2 = dist["AC"] + dist["AT"]
+		distEq3eq6 = dist["VC"] + dist["VI"] + dist["VA"] + dist["CR"] + dist["IR"] + dist["AR"]
+		distEq4 = dist["SC"] + dist["SI"] + dist["SA"]
 		found = true
 		break
 	}
@@ -238,7 +234,7 @@ func (v *Vector) baseScore4() float64 {
 	availableEq3eq6 := value - scoreEq3eq6Next
 	availableEq4 := value - scoreEq4Next
 	availableEq5 := value - scoreEq5Next
-	normalized := []float64{}
+	sum, count := 0.0, 0
 	for _, avail := range []struct {
 		available float64
 		current   float64
@@ -255,15 +251,12 @@ func (v *Vector) baseScore4() float64 {
 		availableEq5, 0, 1 * step, // EQ5 does not contribute severity distance
 	}} {
 		if !math.IsNaN(avail.available) && avail.available >= 0 && avail.max > 0 {
-			normalized = append(normalized, avail.available*(avail.current/avail.max))
+			sum += avail.available * (avail.current / avail.max)
+			count++
 		}
 	}
-	if len(normalized) > 0 {
-		sum := 0.0
-		for _, n := range normalized {
-			sum += n
-		}
-		value -= sum / float64(len(normalized))
+	if count > 0 {
+		value -= sum / float64(count)
 	}
 	value = math.Max(0.0, math.Min(10.0, value))
 	return roundScore4(value)

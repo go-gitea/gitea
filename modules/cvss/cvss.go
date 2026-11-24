@@ -85,17 +85,20 @@ var cvss3MetricValues = map[string][]string{
 	"A":  {"H", "L", "N"},
 }
 
+// cvss3MetricOrder is the metric list of CVSS v3.0/v3.1 vectors (identical for both versions)
+var cvss3MetricOrder = []string{"AV", "AC", "PR", "UI", "S", "C", "I", "A"}
+
 // metricOrder is the canonical metric order used when rendering a vector string
 var metricOrder = map[string][]string{
-	"3.0": {"AV", "AC", "PR", "UI", "S", "C", "I", "A"},
-	"3.1": {"AV", "AC", "PR", "UI", "S", "C", "I", "A"},
+	"3.0": cvss3MetricOrder,
+	"3.1": cvss3MetricOrder,
 	"4.0": {"AV", "AC", "AT", "PR", "UI", "VC", "VI", "VA", "SC", "SI", "SA", "E", "CR", "IR", "AR"},
 }
 
 // mandatoryMetrics are the base metrics required in a vector
 var mandatoryMetrics = map[string][]string{
-	"3.0": {"AV", "AC", "PR", "UI", "S", "C", "I", "A"},
-	"3.1": {"AV", "AC", "PR", "UI", "S", "C", "I", "A"},
+	"3.0": cvss3MetricOrder,
+	"3.1": cvss3MetricOrder,
 	"4.0": {"AV", "AC", "AT", "PR", "UI", "VC", "VI", "VA", "SC", "SI", "SA"},
 }
 
@@ -168,7 +171,16 @@ func (v *Vector) Severity() Severity {
 	return SeverityFromScore(v.BaseScore())
 }
 
-var impactWeights = map[string]float64{"H": 0.56, "L": 0.22, "N": 0.0}
+var (
+	impactWeights = map[string]float64{"H": 0.56, "L": 0.22, "N": 0.0}
+	avWeights     = map[string]float64{"N": 0.85, "A": 0.62, "L": 0.55, "P": 0.2}
+	acWeights     = map[string]float64{"L": 0.77, "H": 0.44}
+	prWeights     = map[string]map[string]float64{ // PR weights depend on the scope
+		"U": {"N": 0.85, "L": 0.62, "H": 0.27},
+		"C": {"N": 0.85, "L": 0.68, "H": 0.5},
+	}
+	uiWeights = map[string]float64{"N": 0.85, "R": 0.62}
+)
 
 // baseScore3 implements the CVSS v3.0/v3.1 base score formula (identical for both versions)
 func (v *Vector) baseScore3() float64 {
@@ -183,14 +195,7 @@ func (v *Vector) baseScore3() float64 {
 	if impact <= 0 {
 		return 0
 	}
-	av := map[string]float64{"N": 0.85, "A": 0.62, "L": 0.55, "P": 0.2}[m["AV"]]
-	ac := map[string]float64{"L": 0.77, "H": 0.44}[m["AC"]]
-	pr := map[string]float64{"N": 0.85, "L": 0.62, "H": 0.27}
-	if m["S"] == "C" {
-		pr = map[string]float64{"N": 0.85, "L": 0.68, "H": 0.5}
-	}
-	ui := map[string]float64{"N": 0.85, "R": 0.62}[m["UI"]]
-	exploitability := 8.22 * av * ac * pr[m["PR"]] * ui
+	exploitability := 8.22 * avWeights[m["AV"]] * acWeights[m["AC"]] * prWeights[m["S"]][m["PR"]] * uiWeights[m["UI"]]
 	return roundScore(min(impact+exploitability, 10), v.Version == "3.1")
 }
 
