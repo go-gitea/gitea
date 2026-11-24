@@ -167,7 +167,7 @@ func TestTouchAccessToken(t *testing.T) {
 	defer timeutil.MockSet(time.Unix(1000000, 0))()
 	now := timeutil.TimeStampNow()
 	touch := func(created, updated, loadedUpdated timeutil.TimeStamp) timeutil.TimeStamp {
-		_, err := db.GetEngine(t.Context()).Exec("UPDATE access_token SET created_unix = ?, updated_unix = ? WHERE id = 1", created, updated)
+		_, err := db.Exec(t.Context(), "UPDATE access_token SET created_unix = ?, updated_unix = ? WHERE id = 1", created, updated)
 		assert.NoError(t, err)
 		token := &auth_model.AccessToken{ID: 1, Name: "Token Z", CreatedUnix: created, UpdatedUnix: loadedUpdated}
 		assert.NoError(t, auth_model.TouchAccessToken(t.Context(), token))

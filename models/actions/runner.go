@@ -12,6 +12,7 @@ import (
 	"time"
 
 	runnerv1 "gitea.dev/actionslib/runner/v1"
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/shared/types"
@@ -194,7 +195,7 @@ func (r *ActionRunner) LoadAttributes(ctx context.Context) error {
 }
 
 func (r *ActionRunner) GenerateAndFillToken() {
-	r.Token, r.TokenHash, _ = generateToken()
+	r.Token, r.TokenHash, _ = auth_model.GenerateToken()
 }
 
 // CanMatchLabels checks whether the runner's labels can match a job's "runs-on"

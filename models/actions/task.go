@@ -138,7 +138,7 @@ func (task *ActionTask) LoadAttributes(ctx context.Context) error {
 }
 
 func (task *ActionTask) GenerateAndFillToken() {
-	task.Token, task.TokenHash, task.TokenLastEight = generateToken()
+	task.Token, task.TokenHash, task.TokenLastEight = auth_model.GenerateToken()
 }
 
 func GetTaskByID(ctx context.Context, id int64) (*ActionTask, error) {
@@ -187,9 +187,6 @@ func GetTaskRunnerNames(ctx context.Context, taskIDs []int64) (map[int64]string,
 
 func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, error) {
 	errNotExist := util.NewNotExistErrorf("task token not found")
-	if token == "" {
-		return nil, errNotExist
-	}
 	if len(token) != 40 {
 		return nil, errNotExist
 	}

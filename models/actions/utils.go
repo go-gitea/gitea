@@ -6,22 +6,14 @@ package actions
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"time"
 
-	"gitea.dev/modules/base"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
 )
-
-func generateToken() (token, hash, lastEight string) {
-	token = hex.EncodeToString(util.CryptoRandomBytes(20))
-	return token, base.EncodeSha256(token), token[len(token)-8:]
-}
 
 /*
 LogIndexes is the index for mapping log line number to buffer offset.

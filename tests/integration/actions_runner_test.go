@@ -17,6 +17,7 @@ import (
 	"gitea.dev/actionslib/runner/v1/runnerv1connect"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/setting"
 
@@ -29,24 +30,14 @@ import (
 
 func TestActionsRunnerLegacyToken(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
-		ctx := t.Context()
-		runner := &actions_model.ActionRunner{UUID: "legacy-runner", Name: "Legacy runner"}
+		runner := &actions_model.ActionRunner{UUID: "legacy-runner", TokenSalt: "legacy-salt"}
 		runner.GenerateAndFillToken()
-		runner.TokenSalt = "legacy-salt"
 		runner.TokenHash = auth_model.HashToken(runner.Token, runner.TokenSalt)
-		require.NoError(t, actions_model.CreateRunner(ctx, runner))
+		require.NoError(t, actions_model.CreateRunner(t.Context(), runner))
 
-		client := newMockRunnerClient(runner.UUID, runner.Token).runnerServiceClient
-		_, err := client.Declare(ctx, &runnerv1.DeclareRequest{})
+		_, err := newMockRunnerClient(runner.UUID, runner.Token).runnerServiceClient.Declare(t.Context(), &runnerv1.DeclareRequest{})
 		require.NoError(t, err)
-
-		updated, err := actions_model.GetRunnerByID(ctx, runner.ID)
-		require.NoError(t, err)
-		assert.Equal(t, base.EncodeSha256(runner.Token), updated.TokenHash)
-		assert.Empty(t, updated.TokenSalt)
-
-		_, err = client.Declare(ctx, &runnerv1.DeclareRequest{})
-		require.NoError(t, err)
+		assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: runner.ID, TokenHash: base.EncodeSha256(runner.Token)}).TokenSalt)
 	})
 }
 

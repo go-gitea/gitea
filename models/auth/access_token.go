@@ -45,11 +45,15 @@ func init() {
 	db.RegisterModel(new(AccessToken))
 }
 
+func GenerateToken() (token, hash, lastEight string) {
+	token = hex.EncodeToString(util.CryptoRandomBytes(20))
+	return token, base.EncodeSha256(token), token[len(token)-8:]
+}
+
 // setNewTokenValue generates a fresh random token value and fills in its hash and last-eight.
 func (t *AccessToken) setNewTokenValue() {
-	t.Token = hex.EncodeToString(util.CryptoRandomBytes(20))
-	t.TokenHash, t.TokenSalt = base.EncodeSha256(t.Token), ""
-	t.TokenLastEight = t.Token[len(t.Token)-8:]
+	t.Token, t.TokenHash, t.TokenLastEight = GenerateToken()
+	t.TokenSalt = ""
 }
 
 // NewAccessToken creates new access token.
@@ -147,12 +151,12 @@ func (opts ListAccessTokensOptions) ToOrders() string {
 
 // TouchAccessToken records a token use at most once a minute, re-checked in SQL so concurrent stale copies write once.
 func TouchAccessToken(ctx context.Context, t *AccessToken) error {
-	const intervalSeconds = 60
 	now := timeutil.TimeStampNow()
-	if t.UpdatedUnix > t.CreatedUnix && now-t.UpdatedUnix < intervalSeconds {
+	cutoff := now.AddDuration(-time.Minute)
+	if t.UpdatedUnix > t.CreatedUnix && t.UpdatedUnix > cutoff {
 		return nil
 	}
-	_, err := db.GetEngine(ctx).Where("id = ? AND (updated_unix <= created_unix OR updated_unix <= ?)", t.ID, now-intervalSeconds).
+	_, err := db.GetEngine(ctx).Where("id = ? AND (updated_unix <= created_unix OR updated_unix <= ?)", t.ID, cutoff).
 		Cols("updated_unix").NoAutoTime().Update(&AccessToken{UpdatedUnix: max(now, t.CreatedUnix+1)})
 	return err
 }
