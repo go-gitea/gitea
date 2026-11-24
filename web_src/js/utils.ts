@@ -199,8 +199,8 @@ export function formatBytes(num: number, precision = 2): string {
 }
 
 export function getPaginationPages(current: number, total: number): Array<number | null> {
-  const count = Math.min(total, 5);
-  const first = Math.min(Math.max(current - 2, 1), total - count + 1);
+  const count = Math.min(total, 3);
+  const first = Math.min(Math.max(current - 1, 1), total - count + 1);
   const pages: Array<number | null> = Array.from({length: count}, (_value, idx) => first + idx);
   if (first > 1) pages.unshift(null);
   if (first + count <= total) pages.push(null);

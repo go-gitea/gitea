@@ -119,10 +119,10 @@ test('formatBytes', () => {
 });
 
 test('getPaginationPages', () => {
-  expect(getPaginationPages(1, 5)).toEqual([1, 2, 3, 4, 5]);
-  expect(getPaginationPages(3, 20)).toEqual([1, 2, 3, 4, 5, null]);
-  expect(getPaginationPages(4, 7)).toEqual([null, 2, 3, 4, 5, 6, null]);
-  expect(getPaginationPages(20, 20)).toEqual([null, 16, 17, 18, 19, 20]);
+  expect(getPaginationPages(1, 3)).toEqual([1, 2, 3]);
+  expect(getPaginationPages(2, 20)).toEqual([1, 2, 3, null]);
+  expect(getPaginationPages(3, 5)).toEqual([null, 2, 3, 4, null]);
+  expect(getPaginationPages(20, 20)).toEqual([null, 18, 19, 20]);
 });
 
 test('file detection', () => {
