@@ -98,15 +98,10 @@ func TestParsePackage(t *testing.T) {
 func TestParseDescription(t *testing.T) {
 	t.Run("ContinuationLines", func(t *testing.T) {
 		for _, indent := range []string{"    ", "\t"} {
-			var buf bytes.Buffer
-			fmt.Fprintln(&buf, "Package:", packageName)
-			fmt.Fprintln(&buf, "Version:", packageVersion)
-			fmt.Fprintf(&buf, "Description: First line\n%sNote: continued text\nURL: %s,\n%shttps://example.com\n", indent, projectURL, indent)
-
-			p, err := ParseDescription(&buf)
+			p, err := ParseDescription(bytes.NewBufferString(fmt.Sprintf("Description: First line\n%sNote: continued text\nURL: %s,\n%shttps://example.com <https://example.org> (devel)\n", indent, projectURL, indent)))
 			require.NoError(t, err)
 			assert.Equal(t, "First line Note: continued text", p.Metadata.Description)
-			assert.Equal(t, []string{projectURL, "https://example.com"}, p.Metadata.ProjectURL)
+			assert.Equal(t, []string{projectURL, "https://example.com", "https://example.org"}, p.Metadata.ProjectURL)
 		}
 	})
 
