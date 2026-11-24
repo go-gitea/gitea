@@ -37,7 +37,7 @@ func ToSecurityDisclosure(ctx context.Context, repo *repo_model.Repository, d *d
 		UpdatedAt:        d.UpdatedUnix.AsTime(),
 		PublishedAt:      util.Iif(d.PublishedAt > 0, d.PublishedAt.AsTimePtr(), nil),
 		URL:              repo.APIURL() + "/security/disclosures/" + strconv.FormatInt(d.ID, 10),
-		HTMLURL:          repo.Link() + "/security/" + strconv.FormatInt(d.ID, 10),
+		HTMLURL:          repo.Link() + "/security/disclosures/" + strconv.FormatInt(d.ID, 10),
 	}
 	if d.CVSSVector != "" {
 		result.CVSS = &api.SecurityDisclosureCVSS{

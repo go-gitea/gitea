@@ -189,10 +189,10 @@ func TestDisclosureWeb(t *testing.T) {
 
 		// one local user credit and one external person credit
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/security/disclosures/new", map[string]string{
-			"title":             "Credited disclosure",
-			"severity":          "low",
-			"credit_role_0":     "reporter",
-			"credit_who_0":      "user4",
+			"title":         "Credited disclosure",
+			"severity":      "low",
+			"credit_role_0": "reporter",
+			"credit_who_0":  "user4",
 			"credit_role_1": "finder",
 			"credit_who_1":  "Jane Doe",
 			"credit_type_1": "external",

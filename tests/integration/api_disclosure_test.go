@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
@@ -52,6 +53,8 @@ func TestAPIDisclosures(t *testing.T) {
 		require.NotNil(t, d.PublishedAt)
 		require.NotNil(t, d.Author)
 		assert.Equal(t, "user2", d.Author.UserName)
+		assert.True(t, strings.HasSuffix(d.URL, baseURL+"/1"), d.URL)
+		assert.Equal(t, "/user2/repo1/security/disclosures/1", d.HTMLURL)
 	})
 
 	t.Run("ListFilters", func(t *testing.T) {

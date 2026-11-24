@@ -143,7 +143,7 @@
 						<a class="ui small button" href="{{$.RepoLink}}/security/disclosures/{{$d.ID}}/edit">{{svg "octicon-pencil" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.edit"}}</a>
 						{{if $d.IsDraft}}
 							<form method="post" action="{{$.RepoLink}}/security/disclosures/{{$d.ID}}/publish" class="single-button-form">
-								<button class="ui small primary button" type="submit">{{svg "octicon-rocket" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.publish"}}</button>
+								<button class="fluid ui small primary button" type="submit">{{svg "octicon-rocket" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.publish"}}</button>
 							</form>
 							<button type="button" class="ui small red button link-action" data-modal-confirm="#disclosure-delete-modal" data-url="{{$.RepoLink}}/security/disclosures/{{$d.ID}}/delete">{{svg "octicon-trash" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.delete"}}</button>
 						{{else if eq $d.Status "published"}}
