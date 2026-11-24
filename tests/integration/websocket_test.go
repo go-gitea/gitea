@@ -102,11 +102,12 @@ func TestWebSocketTopicSubscription(t *testing.T) {
 			_, payload, err := conn.Read(t.Context())
 			require.NoError(t, err)
 			var event struct {
-				Topic string `json:"topic"`
+				EventData struct {
+					Topic string `json:"topic"`
+				} `json:"eventData"`
 			}
-			require.NoError(t, json.Unmarshal(payload, &event))
-			if event.Topic != "" {
-				return event.Topic
+			if json.Unmarshal(payload, &event) == nil && event.EventData.Topic != "" {
+				return event.EventData.Topic
 			}
 		}
 	}

@@ -36,7 +36,7 @@ import (
 	git_service "gitea.dev/services/git"
 	issue_service "gitea.dev/services/issue"
 	notify_service "gitea.dev/services/notify"
-	"gitea.dev/services/pubsub"
+	websocket_service "gitea.dev/services/websocket"
 
 	"xorm.io/builder"
 )
@@ -600,7 +600,7 @@ func PushToBaseRepo(ctx context.Context, pr *issues_model.PullRequest) error {
 	if err := git.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), headCommitID); err != nil {
 		return err
 	}
-	pubsub.DefaultBroker.Publish(pubsub.PullTopic(pr.ID), nil)
+	websocket_service.PublishPullHead(pr.ID)
 	return nil
 }
 
@@ -635,7 +635,7 @@ func UpdateRefForAgit(ctx context.Context, pr *issues_model.PullRequest) (err er
 	if err := git.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadCommitID); err != nil {
 		return fmt.Errorf("unable to update ref %s for base repo %s, err: %w", pr.GetGitHeadRefName(), pr.BaseRepo.FullName(), err)
 	}
-	pubsub.DefaultBroker.Publish(pubsub.PullTopic(pr.ID), nil)
+	websocket_service.PublishPullHead(pr.ID)
 	return syncCommitDivergence(ctx, pr)
 }
 

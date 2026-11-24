@@ -17,10 +17,17 @@ import (
 
 const eventPullHead = "pull-head" // keep in sync with web_src/js/types.ts
 
-// TopicEventFunc returns the reader of a topic's current event, nil for unknown topics. The event is nil if the doer can't read it.
-func TopicEventFunc(topic string) func(ctx context.Context, doerID int64) []byte {
+func pullTopic(pullID int64) string {
+	return fmt.Sprintf("pull-%d", pullID)
+}
+
+func PublishPullHead(pullID int64) {
+	pubsub.DefaultBroker.Publish(pullTopic(pullID), nil)
+}
+
+func pullTopicEventFunc(topic string) func(ctx context.Context, doerID int64) []byte {
 	var pullID int64
-	if _, err := fmt.Sscanf(topic, "pull-%d", &pullID); err != nil || topic != pubsub.PullTopic(pullID) {
+	if _, err := fmt.Sscanf(topic, "pull-%d", &pullID); err != nil || topic != pullTopic(pullID) {
 		return nil
 	}
 	return func(ctx context.Context, doerID int64) []byte {
@@ -39,8 +46,9 @@ func TopicEventFunc(topic string) func(ctx context.Context, doerID int64) []byte
 		if err != nil {
 			return nil
 		}
-		return makeEventMessage(eventPullHead, "", topic, struct {
-			Head string `json:"head"`
-		}{head})
+		return makeEventMessage(eventPullHead, "", struct {
+			Topic string `json:"topic"`
+			Head  string `json:"head"`
+		}{topic, head})
 	}
 }

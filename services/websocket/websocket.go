@@ -38,6 +38,11 @@ func UserData(ctx context.Context, user *user_model.User) (data [][]byte) {
 	return data
 }
 
+// TopicEventFunc returns the reader of a topic's current event, nil for unknown topics. The event is nil if the doer can't read it.
+func TopicEventFunc(topic string) func(ctx context.Context, doerID int64) []byte {
+	return pullTopicEventFunc(topic)
+}
+
 func EventForSession(brokerPayload []byte, sessionID string) []byte {
 	target, eventData, _ := bytes.Cut(brokerPayload, []byte("\n"))
 	if len(target) > 0 && string(target) != sessionID {
@@ -47,13 +52,12 @@ func EventForSession(brokerPayload []byte, sessionID string) []byte {
 }
 
 // makeEventMessage prefixes the client JSON with its target session, empty for all sessions.
-func makeEventMessage(eventType, targetSession, topic string, eventData any) []byte {
+func makeEventMessage(eventType, targetSession string, eventData any) []byte {
 	buf := bytes.NewBufferString(targetSession + "\n")
 	err := json.MarshalWriteRelaxed(buf, &struct {
 		EventType string `json:"eventType"`
-		Topic     string `json:"topic,omitzero"`
 		EventData any    `json:"eventData,omitzero"`
-	}{eventType, topic, eventData})
+	}{eventType, eventData})
 	if err != nil {
 		setting.PanicInDevOrTesting("websocket: marshal event: %v", err)
 		return nil

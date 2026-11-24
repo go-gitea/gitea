@@ -91,7 +91,7 @@ export type StopwatchData = {
 export type ServerUserEventMessage =
   {eventType: 'notification-count', eventData: {count: number}} |
   {eventType: 'stopwatches', eventData: Array<StopwatchData>} |
-  {eventType: 'pull-head', topic: string, eventData: {head: string}} |
+  {eventType: 'pull-head', eventData: {topic: string, head: string}} |
   {eventType: 'logout'};
 
 export const serverUserEventTypes = ['notification-count', 'stopwatches', 'pull-head', 'logout'] as const satisfies ReadonlyArray<ServerUserEventMessage['eventType']>;

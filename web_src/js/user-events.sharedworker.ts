@@ -109,11 +109,11 @@ class WsSource {
           console.error('websocket message is not a valid server user event', msg);
           return;
         }
-        if (!('topic' in msg)) {
+        if (!('eventData' in msg && 'topic' in msg.eventData)) {
           this.source.notifyClientsUserEvent(msg);
           return;
         }
-        const topic = this.topics.get(msg.topic);
+        const topic = this.topics.get(msg.eventData.topic);
         if (!topic) return;
         topic.lastEvent = msg;
         for (const port of topic.ports) postUserEventMessage(port, msg);
