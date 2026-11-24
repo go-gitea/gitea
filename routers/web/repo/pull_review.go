@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	issues_model "gitea.dev/models/issues"
@@ -29,6 +30,7 @@ import (
 	issue_service "gitea.dev/services/issue"
 	markup_service "gitea.dev/services/markup"
 	pull_service "gitea.dev/services/pull"
+	files_service "gitea.dev/services/repository/files"
 	user_service "gitea.dev/services/user"
 )
 
@@ -61,20 +63,18 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	ctx.Data["AfterCommitID"] = pullHeadCommitID
 	ctx.Data["ReviewCommitID"] = pullHeadCommitID // it's questionable why it only needs the head commit ID but not correct "AfterCommitID" (single commit review)
 	side := ctx.FormString("side")
 	ctx.Data["CodeCommentSide"] = side
-	if side == "proposed" && cmp.Or(ctx.FormString("start_side"), side) == "proposed" && ctx.FormBool("all_commits") && ctx.Repo.Permission.CanRead(unit.TypeCode) {
-		ctx.Data["CodeSuggestionSourceURL"] = issue.Link() + "/files/reviews/suggestion_source"
-	}
+	ctx.Data["CanSuggestCode"] = side == "proposed" && ctx.FormString("start_side", "proposed") == "proposed" &&
+		ctx.FormBool("all_commits") && ctx.Repo.Permission.CanRead(unit.TypeCode)
 	upload.AddUploadContext(ctx, "comment")
 	ctx.HTML(http.StatusOK, tplNewComment)
 }
 
 // RenderCodeSuggestionSource responds with the raw code a new suggestion replaces, to prefill it in the comment editor
 func RenderCodeSuggestionSource(ctx *context.Context) {
-	if side := cmp.Or(ctx.FormString("side"), "proposed"); side != "proposed" || cmp.Or(ctx.FormString("start_side"), side) != "proposed" {
+	if ctx.FormString("side", "proposed") != "proposed" || ctx.FormString("start_side", "proposed") != "proposed" {
 		ctx.ServerErrorAuto(util.NewInvalidArgumentErrorf("suggestions require lines on the proposed side"))
 		return
 	}
@@ -140,12 +140,6 @@ func CreateCodeComment(ctx *context.Context) {
 	})
 	if err != nil {
 		ctx.JSONErrorAuto(err)
-		return
-	}
-
-	if comment == nil {
-		log.Trace("Comment not created: %-v #%d[%d]", ctx.Repo.Repository, issue.Index, issue.ID)
-		ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		return
 	}
 
@@ -220,11 +214,6 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return
 	}
 
-	if err := comments.LoadAttachments(ctx); err != nil {
-		ctx.ServerErrorAuto(err)
-		return
-	}
-
 	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
 	upload.AddUploadContext(ctx, "comment")
 
@@ -234,11 +223,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return
 	}
 	ctx.Data["Issue"] = comment.Issue
-	if err = comment.Issue.LoadPullRequest(ctx); err != nil {
-		ctx.ServerErrorAuto(err)
-		return
-	}
-	if err = pull_service.LoadCodeSuggestionStates(ctx, ctx.Doer, comment.Issue.PullRequest, comments); err != nil {
+	if err = loadCodeSuggestionStates(ctx, comment.Issue, comments); err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}
@@ -247,7 +232,6 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	ctx.Data["AfterCommitID"] = pullHeadCommitID
 	ctx.Data["ReviewCommitID"] = pullHeadCommitID // it's questionable why it only needs the head commit ID but not correct "AfterCommitID" (single commit review)
 	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
@@ -496,4 +480,56 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 	}
 
 	ctx.JSONOK()
+}
+
+// ApplyCodeSuggestions commits the suggestions of code comments to the head branch of the pull request
+func ApplyCodeSuggestions(ctx *context.Context) {
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
+	if err != nil {
+		ctx.JSONErrorAuto(err)
+		return
+	}
+	pr.Issue.Repo = ctx.Repo.Repository
+
+	form := context.GetFetchActionForm[*forms.ApplyCodeSuggestionsForm](ctx)
+	if form == nil {
+		return
+	}
+	var commentIDs []int64
+	contentVersions := map[int64]int{}
+	for item := range strings.SplitSeq(form.CommentIDs, ",") {
+		idStr, versionStr, _ := strings.Cut(item, ":")
+		id, idErr := strconv.ParseInt(idStr, 10, 64)
+		version, versionErr := strconv.Atoi(versionStr)
+		if idErr != nil || versionErr != nil {
+			ctx.HTTPError(http.StatusBadRequest)
+			return
+		}
+		commentIDs = append(commentIDs, id)
+		contentVersions[id] = version
+	}
+	_, err = files_service.ApplyCodeSuggestions(ctx, ctx.Doer, pr.ID, files_service.ApplyCodeSuggestionsOptions{
+		CommentIDs:      commentIDs,
+		ContentVersions: contentVersions,
+		HeadCommitID:    form.HeadCommitID,
+		Summary:         form.CommitSummary,
+		Description:     form.CommitMessage,
+	})
+	if err != nil {
+		ctx.JSONErrorAuto(err)
+		return
+	}
+
+	if form.Origin == "diff" {
+		ctx.JSONRedirect(pr.Issue.Link() + "/files")
+	} else {
+		ctx.JSONRedirect(pr.Issue.Link() + "#" + issues_model.CommentHashTag(commentIDs[0]))
+	}
+}
+
+func loadCodeSuggestionStates(ctx *context.Context, issue *issues_model.Issue, comments issues_model.CommentList) error {
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		return err
+	}
+	return pull_service.LoadCodeSuggestionStates(ctx, ctx.Doer, issue.PullRequest, comments)
 }

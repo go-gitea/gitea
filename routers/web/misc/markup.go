@@ -22,8 +22,8 @@ func Markup(ctx *context.Context) {
 	var anchor *markup.CodeSuggestionAnchor
 	line := ctx.FormInt64("code_suggestion_line")
 	startLine := cmp.Or(ctx.FormInt64("code_suggestion_start_line"), line)
-	side := cmp.Or(ctx.FormString("code_suggestion_side"), "proposed")
-	if mode == "comment" && startLine > 0 && line >= startLine && side == "proposed" && cmp.Or(ctx.FormString("code_suggestion_start_side"), side) == "proposed" {
+	if mode == "comment" && startLine > 0 && line >= startLine &&
+		ctx.FormString("code_suggestion_side", "proposed") == "proposed" && ctx.FormString("code_suggestion_start_side", "proposed") == "proposed" {
 		anchor = &markup.CodeSuggestionAnchor{
 			CommitID:  ctx.FormString("code_suggestion_commit_id"),
 			FilePath:  ctx.FormString("code_suggestion_path"),

@@ -80,7 +80,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			g.transformCodeSpan(ctx, v, reader)
 		case *ast.FencedCodeBlock:
 			if ctx.RenderOptions.CodeSuggestion != nil && v.Info != nil && isCodeSuggestionInfo(v.Info.Segment.Value(reader.Source())) {
-				v.SetAttributeString(codeSuggestionAttribute, true)
+				v.SetAttributeString(codeSuggestionAttribute, ctx)
 			}
 			g.transformFencedCodeblock(v, reader)
 		case *ast.Blockquote:
@@ -125,10 +125,9 @@ func filterFeedExcerpt(parent ast.Node) {
 }
 
 // NewHTMLRenderer creates a HTMLRenderer to render in the gitea form.
-func NewHTMLRenderer(ctx *markup.RenderContext, opts ...html.Option) renderer.NodeRenderer {
+func NewHTMLRenderer(renderInternal *internal.RenderInternal, opts ...html.Option) renderer.NodeRenderer {
 	r := &HTMLRenderer{
-		ctx:            ctx,
-		renderInternal: &ctx.RenderInternal,
+		renderInternal: renderInternal,
 		Config:         html.NewConfig(),
 	}
 	for _, opt := range opts {
@@ -141,7 +140,6 @@ func NewHTMLRenderer(ctx *markup.RenderContext, opts ...html.Option) renderer.No
 // renders gitea specific features.
 type HTMLRenderer struct {
 	html.Config
-	ctx            *markup.RenderContext
 	renderInternal *internal.RenderInternal
 }
 
@@ -159,26 +157,28 @@ func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 }
 
 func (r *HTMLRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
-	if fenced, ok := n.(*ast.FencedCodeBlock); ok {
+	fenced, isFenced := n.(*ast.FencedCodeBlock)
+	if isFenced {
 		helpers := markup.DefaultRenderHelperFuncs
-		if suggestion, _ := fenced.AttributeString(codeSuggestionAttribute); suggestion == true && helpers != nil && helpers.GetCodeSuggestionSource != nil {
+		suggestion, _ := fenced.AttributeString(codeSuggestionAttribute)
+		if ctx, ok := suggestion.(*markup.RenderContext); ok && helpers != nil && helpers.GetCodeSuggestionSource != nil {
 			if !entering {
 				return ast.WalkContinue, nil
 			}
-			anchor := *r.ctx.RenderOptions.CodeSuggestion
-			original, err := helpers.GetCodeSuggestionSource(r.ctx, anchor)
+			anchor := *ctx.RenderOptions.CodeSuggestion
+			original, err := helpers.GetCodeSuggestionSource(ctx, anchor)
 			if err == nil {
 				return ast.WalkContinue, r.renderCodeSuggestion(w, anchor, original, codeSuggestionContent(fenced, source))
 			}
 			if !errors.Is(err, giteautil.ErrNotExist) {
 				log.Error("Unable to render code suggestion: %v", err)
 			}
-			fenced.SetAttributeString(codeSuggestionAttribute, false)
+			fenced.SetAttributeString(codeSuggestionAttribute, nil)
 		}
 	}
 	if entering {
 		var language string
-		if fenced, ok := n.(*ast.FencedCodeBlock); ok {
+		if isFenced {
 			language = string(fenced.Language(source))
 		}
 		preAttrs, codeAttrs := highlight.CodeBlockAttributes(language)

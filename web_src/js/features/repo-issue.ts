@@ -156,9 +156,9 @@ export function initRepoIssueCodeCommentCancel() {
       hideElem(form);
       showElem(form.closest('.comment-code-cloud')!.querySelectorAll('button.comment-form-reply'));
     } else {
-      const table = form.closest('table');
-      (form.closest(diffDraftHolder) ?? form.closest('.comment-code-cloud'))?.remove();
-      if (table) repaintDiffRanges(table);
+      const table = form.closest('table')!;
+      form.closest(diffDraftHolder)!.remove();
+      repaintDiffRanges(table);
     }
   });
 }
@@ -210,7 +210,7 @@ export function initRepoPullRequestReview() {
   registerAsyncHashChangeListener(() => {
     const hash = window.location.hash;
     if (!hash.startsWith('#issuecomment-') && !hash.startsWith('#pullrequestreview-')) return;
-    const comment = document.querySelector<HTMLElement>(`#${CSS.escape(hash.substring(1))}`);
+    const comment = document.querySelector<HTMLElement>(`#${CSS.escape(hash.slice(1))}`);
     if (!comment || comment.closest('#diff-file-boxes')) return;
     revealReviewComment(comment);
     comment.scrollIntoView({block: 'start'});
@@ -265,28 +265,26 @@ async function openDiffComment({start, end}: DiffCommentRange, previousDraft?: H
   const isRange = start.line !== line;
   let commentRow = row.nextElementSibling;
   if (!commentRow?.classList.contains('add-comment')) {
-    const tdSplit = html`<td class="add-comment-left" colspan="4"></td><td class="add-comment-right" colspan="4"></td>`;
-    const tdUnified = html`<td class="add-comment-left add-comment-right" colspan="5"></td>`;
+    const cells = table.closest('.code-diff-split') ?
+      html`<td class="add-comment-left" colspan="4"></td><td class="add-comment-right" colspan="4"></td>` :
+      html`<td class="add-comment-left add-comment-right" colspan="5"></td>`;
     commentRow = createElementFromHTML(html`
-      <tr class="add-comment" data-line-type="${row.getAttribute('data-line-type')!}">
-        ${htmlRaw(table.closest('.code-diff-split') ? tdSplit : tdUnified)}
-      </tr>
+      <tr class="add-comment" data-line-type="${row.getAttribute('data-line-type')!}">${htmlRaw(cells)}</tr>
     `);
     row.after(commentRow);
   }
 
   const cell = commentRow.querySelector<HTMLTableCellElement>(`.add-comment-${side}`)!;
   if (cell.querySelector(`:scope > .conversation-holder:not(${diffDraftHolder})`)) return;
-  let draft = cell.querySelector<HTMLElement>(diffDraftHolder);
-  if (!isRange && draft) return;
-  draft ??= previousDraft ?? null;
-  const rowDraft = commentRow.querySelector(diffDraftHolder);
-  if (rowDraft && rowDraft !== draft) return;
-  const updatingDraft = draft !== null;
+  const rowDraft = commentRow.querySelector<HTMLElement>(diffDraftHolder);
+  const cellDraft = rowDraft?.parentElement === cell ? rowDraft : undefined;
+  if ((cellDraft && !isRange) || (rowDraft && !cellDraft && rowDraft !== previousDraft)) return;
+  let draft = cellDraft ?? previousDraft;
+  const updatingDraft = Boolean(draft);
   if (draft) {
     const form = draft.querySelector('form');
     if (!form || form.classList.contains('is-loading')) return;
-    if (!cell.contains(draft)) cell.append(draft);
+    if (draft.parentElement !== cell) cell.append(draft);
   } else {
     draft = document.createElement('div');
     draft.className = `conversation-holder ${diffDraftHolder.substring(1)}`;
@@ -312,17 +310,16 @@ async function openDiffComment({start, end}: DiffCommentRange, previousDraft?: H
   const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement;
   const sameSide = start.line[0] === line[0];
   const startSide = start.line[0] === 'L' ? 'previous' : 'proposed';
-  const fields = {line: line.slice(1), start_line: isRange ? start.line.slice(1) : '', side: side === 'left' ? 'previous' : 'proposed', start_side: startSide};
-  const rangeChanged = updatingDraft && Object.entries(fields).some(([name, value]) => field(name).value !== value);
-  for (const [name, value] of Object.entries(fields)) field(name).value = value;
+  const fields = Object.entries({
+    line: line.slice(1), start_line: isRange ? start.line.slice(1) : '', side: side === 'left' ? 'previous' : 'proposed', start_side: startSide,
+  });
+  const rangeChanged = updatingDraft && fields.some(([name, value]) => field(name).value !== value);
+  for (const [name, value] of fields) field(name).value = value;
   field('path').value = table.getAttribute('data-path')!;
   const label = form.querySelector('.diff-comment-lines')!;
   toggleElem(label, isRange);
   if (isRange) {
     label.textContent = trString(label.getAttribute('data-text-lines')!, sameSide ? start.line.slice(1) : start.line, sameSide ? line.slice(1) : line);
-  }
-  if (form.hasAttribute('data-code-suggestion-side')) {
-    form.setAttribute('data-code-suggestion-side', startSide === 'proposed' && sameSide ? 'proposed' : '');
   }
   repaintDiffRanges(table);
 

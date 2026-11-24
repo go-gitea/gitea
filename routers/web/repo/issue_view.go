@@ -404,7 +404,6 @@ func ViewIssue(ctx *context.Context) {
 		} else {
 			ctx.Data["DisableStatusChange"] = prViewInfo.IsPullRequestBroken && issue.IsClosed
 		}
-		ctx.Data["CodeSuggestionHeadCommitID"] = prViewInfo.CompareInfo.HeadCommitID
 	}
 
 	ctx.Data["Reference"] = issue.Ref

@@ -314,65 +314,53 @@ func createCodeComment(ctx context.Context, opts *issues_model.CreateCommentOpti
 	defer closer.Close()
 
 	comments, err := issues_model.FindComments(ctx, &issues_model.FindCommentsOptions{
-		ReviewID: review.ID,
-		Line:     line,
-		TreePath: treePath,
-		Type:     issues_model.CommentTypeCode,
-		ListOptions: db.ListOptions{
-			PageSize: 1,
-			Page:     1,
-		},
+		ReviewID:    review.ID,
+		Line:        line,
+		TreePath:    treePath,
+		Type:        issues_model.CommentTypeCode,
+		ListOptions: db.ListOptions{PageSize: 1, Page: 1},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("createCodeComment: find first comment for review %d, line %d, path %s: %w", review.ID, line, treePath, err)
 	}
 
-	var first *issues_model.Comment
+	prHeadRef := pr.GetGitHeadRefName()
+	headRef := prHeadRef
 	if len(comments) > 0 {
-		first = comments[0]
+		first := comments[0]
 		opts.CodeCommitID = first.CodeCommitID()
 		if opts.CodeStartLine == 0 && first.CodeStartLine() != line {
 			opts.CodeStartLine = first.CodeStartLine()
 		}
-	}
-
-	headRef := pr.GetGitHeadRefName()
-	if line > 0 {
-		if first != nil {
-			// if there are existing comments, use the first comment's information to create the new comment
+		if line > 0 {
 			opts.CommitSHA, opts.Invalidated = first.CommitSHA, first.Invalidated
 			if cmp.Or(opts.CodeStartLine, line) == first.CodeStartLine() {
 				opts.Patch = first.Patch
 			}
-		} else if review.CommitID != "" {
-			headRef = review.CommitID
 		}
+	} else if line > 0 {
+		headRef = cmp.Or(review.CommitID, prHeadRef)
+	}
 
-		if opts.CommitSHA == "" {
-			// FIXME validate treePath (TODO: unclear comment)
-			// Get latest commit referencing the commented line, error can be ignored then the head commit will be used as fallback
-			opts.CommitSHA, err = git.LineBlameCommitID(ctx, pr.BaseRepo, headRef, treePath, uint(line))
-			// Preserve attribution to the reviewed revision, falling back to the PR head if blame fails.
-			if err != nil && headRef != pr.GetGitHeadRefName() {
-				opts.CommitSHA, err = git.LineBlameCommitID(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), treePath, uint(line))
-			}
-			if err != nil {
-				log.Debug("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitHeadRefName(), gitRepo.LogString(), treePath, line, err)
-			}
+	if line > 0 && opts.CommitSHA == "" {
+		opts.CommitSHA, err = git.LineBlameCommitID(ctx, pr.BaseRepo, headRef, treePath, uint(line))
+		if err != nil && headRef != prHeadRef {
+			opts.CommitSHA, err = git.LineBlameCommitID(ctx, pr.BaseRepo, prHeadRef, treePath, uint(line))
+		}
+		if err != nil {
+			log.Debug("LineBlame[%s, %s, %s, %d]: %v", prHeadRef, gitRepo.LogString(), treePath, line, err)
 		}
 	}
 
 	if opts.Patch == "" {
-		headCommitID, err := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
+		headCommitID, err := gitRepo.GetRefCommitID(ctx, prHeadRef)
 		if err != nil {
-			return nil, fmt.Errorf("createCodeComment: resolve head ref %s: %w", pr.GetGitHeadRefName(), err)
+			return nil, fmt.Errorf("createCodeComment: resolve head ref %s: %w", prHeadRef, err)
 		}
-		if opts.CommitSHA == "" {
-			opts.CommitSHA = headCommitID
-		}
-		if first == nil {
+		opts.CommitSHA = cmp.Or(opts.CommitSHA, headCommitID)
+		if len(comments) == 0 {
 			opts.CodeCommitID = util.Iif(line < 0, pr.MergeBase, headCommitID)
-			if anchorRef := cmp.Or(latestCommitID, headRef); line > 0 && anchorRef != headCommitID && anchorRef != pr.GetGitHeadRefName() {
+			if anchorRef := cmp.Or(latestCommitID, headRef); line > 0 && anchorRef != headCommitID && anchorRef != prHeadRef {
 				if anchorCommitID, err := gitRepo.GetRefCommitID(ctx, anchorRef); err == nil {
 					opts.CodeCommitID = anchorCommitID
 				} else if !errors.Is(err, util.ErrNotExist) {

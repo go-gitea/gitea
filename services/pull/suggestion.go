@@ -18,6 +18,7 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/markup/markdown"
@@ -119,16 +120,14 @@ func openCodeSuggestionLoader(ctx context.Context, doer *user_model.User, pr *is
 		}
 	}()
 	headCommitID, err := headRepo.GetBranchCommitID(ctx, pr.HeadBranch)
-	if errors.Is(err, util.ErrNotExist) {
-		if expectedHead != "" {
-			return nil, ErrCodeSuggestionHeadChanged
-		}
-		return nil, util.ErrPermissionDenied
-	} else if err != nil {
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return nil, err
 	}
 	if expectedHead != "" && headCommitID != expectedHead {
 		return nil, ErrCodeSuggestionHeadChanged
+	}
+	if err != nil {
+		return nil, util.ErrPermissionDenied
 	}
 
 	if err := pr.LoadIssue(ctx); err != nil {
@@ -199,12 +198,10 @@ func (loader *codeSuggestionLoader) getBlob(ctx context.Context, key codeSuggest
 
 func (loader *codeSuggestionLoader) readBlob(ctx context.Context, key codeSuggestionPath) (codeSuggestionBlob, error) {
 	commit, err := key.repo.GetCommit(ctx, key.commitID)
-	if errors.Is(err, util.ErrNotExist) {
-		return codeSuggestionBlob{rejection: rejectCodeSuggestion("outdated")}, nil
-	} else if err != nil {
-		return codeSuggestionBlob{}, err
+	var entry *git.TreeEntry
+	if err == nil {
+		entry, err = commit.GetTreeEntryByPath(ctx, key.repo, key.path)
 	}
-	entry, err := commit.GetTreeEntryByPath(ctx, key.repo, key.path)
 	if errors.Is(err, util.ErrNotExist) {
 		return codeSuggestionBlob{rejection: rejectCodeSuggestion("outdated")}, nil
 	} else if err != nil {
@@ -287,8 +284,7 @@ func (loader *codeSuggestionLoader) validate(ctx context.Context, comment *issue
 	first, err := loader.getConversation(ctx, comment)
 	if errors.Is(err, util.ErrNotExist) {
 		return codeSuggestionSelection{}, rejectCodeSuggestion("outdated")
-	}
-	if err != nil {
+	} else if err != nil {
 		return codeSuggestionSelection{}, err
 	}
 	if first.IsResolved() {
@@ -313,16 +309,11 @@ func (loader *codeSuggestionLoader) validateEdit(ctx context.Context, comment *i
 		return codeSuggestionEdit{}, err
 	}
 	if original.id != blob.id {
-		hunks, err := getCodeCommentDiff(ctx, loader.cache, loader.headRepo, codeCommentDiff{
-			before: comment.CodeCommitID(), after: loader.headCommitID, path: comment.TreePath,
-		})
-		if errors.Is(err, util.ErrNotExist) {
+		hunks, err := getCodeCommentDiff(ctx, loader.cache, loader.headRepo, codeCommentDiff{before: comment.CodeCommitID(), after: loader.headCommitID, path: comment.TreePath})
+		if errors.Is(err, util.ErrNotExist) || err == nil && codeSuggestionAnchorMoved(hunks, comment.CodeStartLine(), comment.Line) {
 			return codeSuggestionEdit{}, rejectCodeSuggestion("outdated")
 		} else if err != nil {
 			return codeSuggestionEdit{}, err
-		}
-		if codeSuggestionAnchorMoved(hunks, comment.CodeStartLine(), comment.Line) {
-			return codeSuggestionEdit{}, rejectCodeSuggestion("outdated")
 		}
 	}
 	return validateSuggestionLines(original.content, blob.content, comment.CodeStartLine(), comment.Line, suggestion)
@@ -391,59 +382,59 @@ func spliceCodeSuggestions(content []byte, edits []codeSuggestionEdit) ([]byte, 
 	slices.SortFunc(edits, func(first, second codeSuggestionEdit) int {
 		return cmp.Compare(first.start, second.start)
 	})
-	var result bytes.Buffer
+	var result []byte
 	previousEnd := 0
 	for _, edit := range edits {
 		if edit.start < previousEnd {
 			return nil, rejectCodeSuggestion("overlap")
 		}
-		result.Write(content[previousEnd:edit.start])
-		result.Write(edit.replacement)
+		result = append(result, content[previousEnd:edit.start]...)
+		result = append(result, edit.replacement...)
 		previousEnd = edit.end
 	}
-	result.Write(content[previousEnd:])
-	return result.Bytes(), nil
+	return append(result, content[previousEnd:]...), nil
 }
 
 func LoadCodeSuggestionStates(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comments []*issues_model.Comment) error {
-	type candidate struct {
-		comment     *issues_model.Comment
-		suggestions []string
-	}
-	var candidates []candidate
 	for _, comment := range comments {
 		comment.CodeSuggestion = nil
-		if doer != nil && comment.Type == issues_model.CommentTypeCode && comment.IssueID == pr.IssueID && comment.CodeCommitID() != "" {
-			if suggestions := markdown.ParseCodeSuggestions(comment.Content); len(suggestions) > 0 {
-				candidates = append(candidates, candidate{comment, suggestions})
-			}
-		}
 	}
-	if len(candidates) == 0 {
+	if doer == nil {
 		return nil
 	}
-	loader, err := openCodeSuggestionLoader(ctx, doer, pr, "")
-	if errors.Is(err, util.ErrPermissionDenied) {
-		return nil
-	} else if err != nil {
-		return err
-	}
-	defer loader.close()
 
-	for _, candidate := range candidates {
-		if loader.canPushToPath != nil && !loader.canPushToPath(candidate.comment.TreePath) {
+	var loader *codeSuggestionLoader
+	for _, comment := range comments {
+		if comment.Type != issues_model.CommentTypeCode || comment.IssueID != pr.IssueID || comment.CodeCommitID() == "" {
 			continue
 		}
-		_, err := loader.validate(ctx, candidate.comment, candidate.suggestions)
+		suggestions := markdown.ParseCodeSuggestions(comment.Content)
+		if len(suggestions) == 0 {
+			continue
+		}
+		if loader == nil {
+			var err error
+			loader, err = openCodeSuggestionLoader(ctx, doer, pr, "")
+			if errors.Is(err, util.ErrPermissionDenied) {
+				return nil
+			} else if err != nil {
+				return err
+			}
+			defer loader.close()
+		}
+		if loader.canPushToPath != nil && !loader.canPushToPath(comment.TreePath) {
+			continue
+		}
+		_, err := loader.validate(ctx, comment, suggestions)
 		var state issues_model.CodeSuggestionState
 		if rejection, ok := errors.AsType[codeSuggestionRejection](err); ok {
 			state.Reason = string(rejection)
 		} else if err != nil {
 			return err
-		} else if err := candidate.comment.LoadPoster(ctx); err != nil {
+		} else if err := comment.LoadPoster(ctx); err != nil {
 			return err
 		}
-		candidate.comment.CodeSuggestion = &state
+		comment.CodeSuggestion = &state
 	}
 	return nil
 }
@@ -451,15 +442,14 @@ func LoadCodeSuggestionStates(ctx context.Context, doer *user_model.User, pr *is
 // PrepareCodeSuggestionChanges validates suggestions and splices them into the head files, contentVersions optionally pins the comment versions the doer saw
 func PrepareCodeSuggestionChanges(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, commentIDs []int64, contentVersions map[int64]int, expectedHead string) (*CodeSuggestionChanges, error) {
 	ids := make([]int64, 0, min(len(commentIDs), maxCodeSuggestions))
-	seen := make(map[int64]bool)
+	seen := make(container.Set[int64])
 	for _, id := range commentIDs {
-		if seen[id] {
+		if !seen.Add(id) {
 			continue
 		}
 		if len(ids) == maxCodeSuggestions {
 			return nil, util.ErrorWrapTranslatable(util.ErrInvalidArgument, codeSuggestionReasonPrefix+"batch_limit", maxCodeSuggestions)
 		}
-		seen[id] = true
 		ids = append(ids, id)
 	}
 	if len(ids) == 0 {
@@ -513,10 +503,7 @@ func PrepareCodeSuggestionChanges(ctx context.Context, doer *user_model.User, pr
 		return nil, err
 	}
 	for _, path := range slices.Sorted(maps.Keys(files)) {
-		blob, err := loader.getBlob(ctx, codeSuggestionPath{loader.headRepo, loader.headCommitID, path})
-		if err != nil {
-			return nil, err
-		}
+		blob, _ := loader.getBlob(ctx, codeSuggestionPath{loader.headRepo, loader.headCommitID, path})
 		content, err := spliceCodeSuggestions(blob.content, files[path])
 		if err != nil {
 			return nil, err

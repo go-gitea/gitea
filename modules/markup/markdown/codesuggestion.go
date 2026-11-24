@@ -47,7 +47,7 @@ func ParseCodeSuggestions(content string) (suggestions []string) {
 
 func (r *HTMLRenderer) renderCodeSuggestion(w util.BufWriter, anchor markup.CodeSuggestionAnchor, suggestion markup.CodeSuggestionSource, replacement string) error {
 	if err := r.renderInternal.FormatWithSafeAttrsf(w,
-		`<div class="code-suggestion"><div class="code-suggestion-heading">%s</div><div class="code-suggestion-diff code-diff-unified"><table class="chroma"><tbody>`,
+		`<div class="code-suggestion"><div class="code-suggestion-heading">%s</div><div class="code-suggestion-diff"><div class="code-suggestion-lines chroma code-diff-unified">`,
 		suggestion.Heading); err != nil {
 		return err
 	}
@@ -72,12 +72,12 @@ func (r *HTMLRenderer) renderCodeSuggestion(w util.BufWriter, anchor markup.Code
 	}{{"del-code", "-", deletions}, {"add-code", "+", additions}} {
 		for lineIndex, line := range change.lines {
 			if err := r.renderInternal.FormatWithSafeAttrsf(w,
-				`<tr class="%s"><td class="lines-num">%d</td><td class="lines-type-marker">%s</td><td class="lines-code"><div class="code-inner">%s</div></td></tr>`,
+				`<div class="code-suggestion-row %s"><div class="lines-num">%d</div><div class="lines-type-marker">%s</div><div class="lines-code"><div class="code-inner">%s</div></div></div>`,
 				change.class, anchor.StartLine+uint64(lineIndex), change.marker, line); err != nil {
 				return err
 			}
 		}
 	}
-	_, err := w.WriteString("</tbody></table></div></div>")
+	_, err := w.WriteString("</div></div></div>")
 	return err
 }

@@ -1,4 +1,4 @@
-.markup .code-suggestion {
+.code-suggestion {
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
   overflow: hidden;
@@ -17,19 +17,18 @@
   overflow-x: auto;
 }
 
-.markup .code-suggestion .code-suggestion-diff table {
+.code-suggestion-lines {
   display: table;
-  table-layout: auto;
-  margin: 0;
+  width: 100%;
 }
 
-.markup .code-suggestion-diff tr {
-  border: 0;
+.code-suggestion-row {
+  display: table-row;
 }
 
-.markup .code-suggestion-diff td {
-  padding: 0 8px !important;
-  border: 0 !important;
+.code-suggestion-row > div {
+  display: table-cell;
+  padding: 0 8px;
 }
 
 .code-suggestion-diff .lines-type-marker {
@@ -52,6 +51,6 @@
   white-space: nowrap;
 }
 
-.file-comment + .code-comment-range {
+.collapsible-comment-box .code-comment-range {
   margin-inline-start: 0.5em;
 }

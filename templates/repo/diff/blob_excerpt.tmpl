@@ -11,7 +11,7 @@
 			</td>
 		{{else}}
 			{{$inlineDiff := $.section.GetComputedInlineDiffFor $line ctx.Locale}}
-			<td data-diff-column="old" class="lines-num lines-num-old">{{if $line.LeftIdx}}<a class="diff-line-link" href="#diff-{{$.FileNameHash}}L{{$line.LeftIdx}}" data-global-click="onSelectDiffLine">{{$line.LeftIdx}}</a>{{end}}</td>
+			<td data-diff-column="old" class="lines-num lines-num-old">{{template "repo/diff/line_number" dict "Number" $line.LeftIdx "FileNameHash" $.FileNameHash "Side" "L"}}</td>
 			<td data-diff-column="old" class="lines-escape lines-escape-old">{{if $line.LeftIdx}}{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}{{end}}</td>
 			<td data-diff-column="old" class="lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="tw-font-mono" data-type-marker=""></span>{{end}}</td>
 			<td data-diff-column="old" class="lines-code lines-code-old">
@@ -27,8 +27,8 @@
 					<code class="code-inner"></code>
 				{{- end -}}
 			</td>
-			<td data-diff-column="new" class="lines-num lines-num-new">{{if $line.RightIdx}}<a class="diff-line-link" href="#diff-{{$.FileNameHash}}R{{$line.RightIdx}}" data-global-click="onSelectDiffLine">{{$line.RightIdx}}</a>{{end}}</td>
-			<td data-diff-column="new" class="lines-escape lines-escape-new">{{if and $line.RightIdx}}{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}{{end}}</td>
+			<td data-diff-column="new" class="lines-num lines-num-new">{{template "repo/diff/line_number" dict "Number" $line.RightIdx "FileNameHash" $.FileNameHash "Side" "R"}}</td>
+			<td data-diff-column="new" class="lines-escape lines-escape-new">{{if $line.RightIdx}}{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}{{end}}</td>
 			<td data-diff-column="new" class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="tw-font-mono" data-type-marker=""></span>{{end}}</td>
 			<td data-diff-column="new" class="lines-code lines-code-new">
 				{{- if and $canCreateComment $line.RightIdx -}}
@@ -65,8 +65,8 @@
 		{{if $line.IsDiffLineSection}}
 			<td colspan="2" class="lines-num">{{$line.RenderBlobExcerptButtons $.FileNameHash $diffBlobExcerptData}}</td>
 		{{else}}
-			<td data-diff-column="unified" class="lines-num lines-num-old">{{if $line.LeftIdx}}<a class="diff-line-link" href="#diff-{{$.FileNameHash}}L{{$line.LeftIdx}}" data-global-click="onSelectDiffLine">{{$line.LeftIdx}}</a>{{end}}</td>
-			<td data-diff-column="unified" class="lines-num lines-num-new">{{if $line.RightIdx}}<a class="diff-line-link" href="#diff-{{$.FileNameHash}}R{{$line.RightIdx}}" data-global-click="onSelectDiffLine">{{$line.RightIdx}}</a>{{end}}</td>
+			<td data-diff-column="unified" class="lines-num lines-num-old">{{template "repo/diff/line_number" dict "Number" $line.LeftIdx "FileNameHash" $.FileNameHash "Side" "L"}}</td>
+			<td data-diff-column="unified" class="lines-num lines-num-new">{{template "repo/diff/line_number" dict "Number" $line.RightIdx "FileNameHash" $.FileNameHash "Side" "R"}}</td>
 		{{end}}
 		{{$inlineDiff := $.section.GetComputedInlineDiffFor $line ctx.Locale}}
 		<td {{if not $line.IsDiffLineSection}}data-diff-column="unified" {{end}}class="lines-escape">{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}</td>

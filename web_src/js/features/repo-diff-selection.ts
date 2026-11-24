@@ -1,7 +1,7 @@
-import {registerGlobalEventFunc, registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
+import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
 import {selectDiffTreeFile} from '../modules/diff-file.ts';
 import {addDelegatedEventListener, toggleElemClass} from '../utils/dom.ts';
-import {pushLineSelectionHash, selectLineRows} from './repo-code.ts';
+import {selectLineRows} from './repo-code.ts';
 
 type DiffSide = 'L' | 'R';
 export type DiffLine = `${DiffSide}${number}`;
@@ -12,7 +12,6 @@ export type DiffCommentRange = {start: DiffEndpoint; end: DiffEndpoint};
 type DiffRange = DiffCommentRange & {rows: HTMLTableRowElement[]};
 type OpenComment = (range: DiffCommentRange, draft?: HTMLElement) => Promise<void>;
 type SelectionAnchor = {line: DiffLine; fromGutter?: boolean};
-type Gesture = {id: number; anchor: DiffEndpoint; target?: DiffEndpoint};
 
 const lineLink = '.diff-line-link';
 const visibleButton = '.add-code-comment:not(.tw-invisible)';
@@ -20,10 +19,7 @@ const selectableCell = 'td[data-diff-column]';
 const savedRange = '.conversation-holder[data-start-idx]';
 export const diffDraftHolder = '.diff-comment-draft';
 
-const controllers = new WeakMap<HTMLTableElement, {
-  click: (button: HTMLButtonElement, event: MouseEvent) => Promise<void> | undefined;
-  repaint: () => void;
-}>();
+const controllers = new WeakMap<HTMLTableElement, ReturnType<typeof initDiffSelection>>();
 let selection: {table: HTMLTableElement; range: LineRange; anchor: SelectionAnchor} | undefined;
 
 export function parseDiffLineHash(hash: string): DiffLineHash | undefined {
@@ -37,12 +33,12 @@ export function formatDiffLineHash({fileHash, start, end}: DiffLineHash) {
   return `#diff-${fileHash}${start}${start === end ? '' : `-${end}`}`;
 }
 
-export function diffLineFromForm(side: string, line: string): DiffLine {
+function diffLineFromForm(side: string, line: string): DiffLine {
   return `${side === 'previous' ? 'L' : 'R'}${Number(line)}`;
 }
 
-function endpointFromLink(link: HTMLAnchorElement, fileHash: string): DiffEndpoint {
-  return {row: link.closest('tr')!, line: link.getAttribute('href')!.slice('#diff-'.length + fileHash.length) as DiffLine};
+function endpointFromLink(link: HTMLAnchorElement): DiffEndpoint {
+  return {row: link.closest('tr')!, line: parseDiffLineHash(link.hash)!.start};
 }
 
 export function findDiffLine(table: Element, fileHash: string, line: DiffLine) {
@@ -51,8 +47,7 @@ export function findDiffLine(table: Element, fileHash: string, line: DiffLine) {
 
 function lineOnSide(row: HTMLTableRowElement, fileHash: string, side: DiffSide) {
   const prefix = `#diff-${fileHash}${side}`;
-  const link = row.querySelector<HTMLAnchorElement>(`:scope > td > ${lineLink}[href^="${CSS.escape(prefix)}"]`);
-  return link ? endpointFromLink(link, fileHash) : undefined;
+  return endpointFromLink(row.querySelector<HTMLAnchorElement>(`:scope > td > ${lineLink}[href^="${CSS.escape(prefix)}"]`)!);
 }
 
 function rangeBetween(first: DiffEndpoint, last: DiffEndpoint): DiffRange {
@@ -90,25 +85,21 @@ export function resolveDiffRange(table: Element, {fileHash, start, end}: DiffLin
   const first = findDiffLine(table, fileHash, start);
   const last = end === start ? first : findDiffLine(table, fileHash, end);
   if (!last) return;
-  const endPoint = endpointFromLink(last, fileHash);
-  if (first) return rangeBetween(endpointFromLink(first, fileHash), endPoint);
+  const endPoint = endpointFromLink(last);
+  if (first) return rangeBetween(endpointFromLink(first), endPoint);
   const gap = allowHiddenStart ? findDiffLineExpander(table, start)?.closest('tr') : undefined;
-  if (gap && gap.compareDocumentPosition(endPoint.row) & Node.DOCUMENT_POSITION_FOLLOWING) {
-    return rangeBetween({row: gap, line: start}, endPoint);
-  }
-  return undefined;
+  return gap && gap.compareDocumentPosition(endPoint.row) & Node.DOCUMENT_POSITION_FOLLOWING ?
+    rangeBetween({row: gap, line: start}, endPoint) : undefined;
 }
 
 export function normalizeDiffCommentRange({start, end}: DiffCommentRange, clicked: DiffEndpoint, fileHash: string): DiffCommentRange {
   if (start.row === end.row && (start.line === end.line || end.row.getAttribute('data-line-type') === 'same')) {
     return {start: clicked, end: clicked};
   }
-  if (start.line[0] === 'R' && end.line[0] === 'L') {
-    if (start.row.matches('.same-code')) return {start: lineOnSide(start.row, fileHash, 'L')!, end};
-    if (end.row.matches('.same-code')) return {start, end: lineOnSide(end.row, fileHash, 'R')!};
-    return {start: clicked, end: clicked};
-  }
-  return {start, end};
+  if (start.line[0] !== 'R' || end.line[0] !== 'L') return {start, end};
+  if (start.row.matches('.same-code')) return {start: lineOnSide(start.row, fileHash, 'L'), end};
+  if (end.row.matches('.same-code')) return {start, end: lineOnSide(end.row, fileHash, 'R')};
+  return {start: clicked, end: clicked};
 }
 
 export function setDiffLineSelection(table?: HTMLTableElement, range?: DiffCommentRange, anchor?: SelectionAnchor) {
@@ -118,13 +109,17 @@ export function setDiffLineSelection(table?: HTMLTableElement, range?: DiffComme
   } : undefined;
   if (previous && previous !== table) repaintDiffRanges(previous);
   if (table) repaintDiffRanges(table);
-  document.querySelector('.diff-hash-target')?.classList.remove('diff-hash-target');
+}
+
+export function isDiffLineSelected({fileHash, start, end}: DiffLineHash) {
+  return selection?.table.isConnected && selection.range.start === start &&
+    selection.range.end === end && diffTableHash(selection.table) === fileHash;
 }
 
 function navigateDiffLineSelection(table: HTMLTableElement, fileHash: string, range: DiffCommentRange, anchor: SelectionAnchor = {line: range.start.line}) {
   setDiffLineSelection(table, range, anchor);
   selectDiffTreeFile(fileHash);
-  pushLineSelectionHash(formatDiffLineHash({fileHash, start: range.start.line, end: range.end.line}));
+  window.location.hash = formatDiffLineHash({fileHash, start: range.start.line, end: range.end.line});
 }
 
 export function repaintDiffRanges(element: Element) {
@@ -144,13 +139,12 @@ function diffTableHash(table: HTMLTableElement) {
 
 function initDiffSelection(table: HTMLTableElement, openComment: OpenComment) {
   const fileHash = diffTableHash(table);
-  let pointer: Gesture | undefined;
+  let pointer: {id: number; anchor: DiffEndpoint; target?: DiffEndpoint} | undefined;
   let clicked: {endpoint: DiffEndpoint; opened: Promise<void>; draft: HTMLElement} | undefined;
   let suppressClick = false;
-  let painted = new Set<HTMLTableRowElement>();
-  let hovered: Element | null = null, focused: Element | null = null;
+  let hovered: Element | null = null;
 
-  function repaint() {
+  function repaint(focused = table.ownerDocument.activeElement?.closest(savedRange)) {
     if (clicked && !clicked.draft.isConnected) clicked = undefined;
     const next = new Set<HTMLTableRowElement>();
     function paint(start: DiffLine, end: DiffLine, allowHiddenStart = false) {
@@ -174,17 +168,14 @@ function initDiffSelection(table: HTMLTableElement, openComment: OpenComment) {
       };
       paint(signedLine('data-start-idx'), signedLine('data-idx'), true);
     }
-    for (const row of painted) {
+    for (const row of table.querySelectorAll<HTMLTableRowElement>(':scope > tbody > .diff-range-highlight')) {
       if (!next.has(row)) row.classList.remove('diff-range-highlight');
     }
-    for (const row of next) {
-      if (!painted.has(row)) row.classList.add('diff-range-highlight');
-    }
-    painted = next;
+    for (const row of next) row.classList.toggle('diff-range-highlight', true);
   }
 
   function commentEndpoint(button: Element) {
-    return lineOnSide(button.closest('tr')!, fileHash, button.getAttribute('data-side') === 'left' ? 'L' : 'R')!;
+    return lineOnSide(button.closest('tr')!, fileHash, button.getAttribute('data-side') === 'left' ? 'L' : 'R');
   }
 
   function canComment({row, line}: DiffEndpoint) {
@@ -192,23 +183,19 @@ function initDiffSelection(table: HTMLTableElement, openComment: OpenComment) {
     return row.querySelector(`:scope > td > ${visibleButton}[data-side="${CSS.escape(side)}"]`) !== null;
   }
 
-  function commentRange({start, end}: DiffRange, target: DiffEndpoint) {
+  function commentRange({start, end}: DiffCommentRange, target: DiffEndpoint) {
     if (start.row !== end.row && end.row.matches('.same-code') && !canComment(end)) {
-      end = lineOnSide(end.row, fileHash, end.line[0] === 'L' ? 'R' : 'L')!;
+      end = lineOnSide(end.row, fileHash, end.line[0] === 'L' ? 'R' : 'L');
     }
     const normalized = normalizeDiffCommentRange({start, end}, target, fileHash);
     return canComment(normalized.end) ? normalized : {start: target, end: target};
   }
 
-  async function openRange(range: DiffCommentRange, anchor?: typeof clicked) {
-    if (anchor) await anchor.opened;
-    await openComment(range, anchor?.draft.isConnected ? anchor.draft : undefined);
-  }
-
-  function selectCommentRange(first: DiffEndpoint, last: DiffEndpoint, previous?: typeof clicked) {
+  async function selectCommentRange(first: DiffEndpoint, last: DiffEndpoint, previous?: typeof clicked) {
     const range = commentRange(rangeBetween(first, last), last);
     navigateDiffLineSelection(table, fileHash, range, {line: range.start.row === first.row ? range.start.line : range.end.line});
-    return openRange(range, previous);
+    if (previous) await previous.opened;
+    await openComment(range, previous?.draft.isConnected ? previous.draft : undefined);
   }
 
   function takeClicked() {
@@ -222,9 +209,9 @@ function initDiffSelection(table: HTMLTableElement, openComment: OpenComment) {
       const related = (e.relatedTarget as Element | null)?.closest(savedRange) ?? null;
       if (related === holder) return;
       const active = event === 'pointerout' || event === 'focusout' ? related : holder;
-      if (e instanceof FocusEvent) focused = active;
-      else hovered = active;
-      repaint();
+      const isFocus = e instanceof FocusEvent;
+      if (!isFocus) hovered = active;
+      repaint(isFocus ? active : undefined);
     });
   }
 
@@ -255,36 +242,30 @@ function initDiffSelection(table: HTMLTableElement, openComment: OpenComment) {
     repaint();
   });
 
-  table.addEventListener('pointerup', (e) => {
-    if (pointer?.id !== e.pointerId) return;
-    const {anchor} = pointer;
-    const target = pointerTarget(e);
-    pointer = undefined;
-    suppressClick = target?.line !== anchor.line;
-    if (target && suppressClick) {
-      const previous = takeClicked();
-      selectCommentRange(anchor, target, previous?.endpoint.line === anchor.line ? previous : undefined);
-    } else {
-      repaint();
-    }
-  });
-
-  for (const event of ['pointercancel', 'lostpointercapture']) {
+  for (const event of ['pointerup', 'pointercancel', 'lostpointercapture'] as const) {
     table.addEventListener(event, (e) => {
-      if (pointer?.id !== (e as PointerEvent).pointerId) return;
+      if (pointer?.id !== e.pointerId) return;
+      const {anchor} = pointer;
+      const target = event === 'pointerup' ? pointerTarget(e) : undefined;
       pointer = undefined;
-      repaint();
+      if (event === 'pointerup') suppressClick = target?.line !== anchor.line;
+      if (target && suppressClick) {
+        const previous = takeClicked();
+        selectCommentRange(anchor, target, previous?.endpoint.line === anchor.line ? previous : undefined);
+      } else {
+        repaint();
+      }
     });
   }
 
-  controllers.set(table, {repaint, click(button, e) {
+  function click(button: HTMLButtonElement, e: MouseEvent) {
     if (suppressClick && e.detail > 0) return;
     const endpoint = commentEndpoint(button);
     const previous = takeClicked();
     const activeSelection = selection?.table === table ? selection : undefined;
     if (e.shiftKey) {
       const anchor = activeSelection?.anchor.fromGutter ?
-        endpointFromLink(findDiffLine(table, fileHash, activeSelection.anchor.line)!, fileHash) : previous?.endpoint;
+        endpointFromLink(findDiffLine(table, fileHash, activeSelection.anchor.line)!) : previous?.endpoint;
       if (anchor) {
         const first = anchor.row === endpoint.row && endpoint.line[0] === 'L' ? endpoint : anchor;
         return selectCommentRange(first, endpoint, previous?.endpoint.line === anchor.line ? previous : undefined);
@@ -292,13 +273,11 @@ function initDiffSelection(table: HTMLTableElement, openComment: OpenComment) {
     }
     const single = {start: endpoint, end: endpoint};
     if (activeSelection) {
-      const range = resolveDiffRange(table, {...activeSelection.range, fileHash})!;
-      if (range.end.row === endpoint.row) {
-        if (range.end.line === endpoint.line || endpoint.row.matches('.same-code')) {
-          const comment = commentRange(range, endpoint);
-          if (comment.start.line !== comment.end.line) return openRange(comment);
-        }
-        if (range.start.line !== endpoint.line || range.end.line !== endpoint.line) navigateDiffLineSelection(table, fileHash, single);
+      const {start, end} = resolveDiffRange(table, {...activeSelection.range, fileHash})!;
+      if (end.row === endpoint.row) {
+        const comment = end.line === endpoint.line || endpoint.row.matches('.same-code') ? commentRange({start, end}, endpoint) : single;
+        if (comment.start.line !== comment.end.line) return openComment(comment, undefined);
+        if (start.line !== endpoint.line || end.line !== endpoint.line) navigateDiffLineSelection(table, fileHash, single);
       }
     }
     const opened = openComment(single);
@@ -306,22 +285,25 @@ function initDiffSelection(table: HTMLTableElement, openComment: OpenComment) {
     const draft = endpoint.row.nextElementSibling?.querySelector<HTMLElement>(`:scope > .add-comment-${side} > ${diffDraftHolder}`);
     if (draft) clicked = {endpoint, opened, draft};
     return opened;
-  }});
+  }
+
+  return {repaint, click};
 }
 
 export function registerRepoDiffSelection(openComment: OpenComment) {
-  registerGlobalInitFunc('initDiffSelection', (table: HTMLTableElement) => initDiffSelection(table, openComment));
+  registerGlobalInitFunc('initDiffSelection', (table: HTMLTableElement) => {
+    controllers.set(table, initDiffSelection(table, openComment));
+  });
   registerGlobalInitFunc('repaintDiffRanges', repaintDiffRanges);
-  registerGlobalSelectorFunc<HTMLAnchorElement>(`${lineLink}:not([tabindex])`, (link) => { link.tabIndex = -1 });
   registerGlobalEventFunc('click', 'onSelectDiffLine', (link: HTMLAnchorElement, e: MouseEvent) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     e.preventDefault();
     const table = link.closest('table')!;
     const fileHash = diffTableHash(table);
-    const end = endpointFromLink(link, fileHash);
-    const anchor = e.shiftKey && selection?.table === table ? selection.anchor.line : end.line;
-    const range = resolveDiffRange(table, {fileHash, start: anchor, end: end.line})!;
-    navigateDiffLineSelection(table, fileHash, range, {line: anchor, fromGutter: true});
+    const end = endpointFromLink(link);
+    const start = e.shiftKey && selection?.table === table ?
+      endpointFromLink(findDiffLine(table, fileHash, selection.anchor.line)!) : end;
+    navigateDiffLineSelection(table, fileHash, rangeBetween(start, end), {line: start.line, fromGutter: true});
     window.getSelection()!.removeAllRanges();
   });
   registerGlobalEventFunc('click', 'onAddDiffComment', (button: HTMLButtonElement, e: MouseEvent) => {

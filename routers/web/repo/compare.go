@@ -38,7 +38,6 @@ import (
 	"gitea.dev/services/context/upload"
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
-	pull_service "gitea.dev/services/pull"
 	user_service "gitea.dev/services/user"
 )
 
@@ -755,19 +754,13 @@ func ExcerptBlob(ctx *context.Context) {
 			ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
 				return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 			}
-			// and "diff/comment_form.tmpl" (reply comment) needs them
 			ctx.Data["PageIsPullFiles"] = true
-			ctx.Data["AfterCommitID"] = diffBlobExcerptData.AfterCommitID
 
 			allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, ctx.FormBool("show_outdated"))
 			if err != nil {
 				log.Error("FetchCodeComments error: %v", err)
 			} else if comments := section.AttachComments(allComments[filePath], nil); len(comments) > 0 {
-				if err := issue.LoadPullRequest(ctx); err != nil {
-					ctx.ServerErrorAuto(err)
-					return
-				}
-				if err := pull_service.LoadCodeSuggestionStates(ctx, ctx.Doer, issue.PullRequest, comments); err != nil {
+				if err := loadCodeSuggestionStates(ctx, issue, comments); err != nil {
 					ctx.ServerErrorAuto(err)
 					return
 				}

@@ -17,7 +17,7 @@ import {initImageDiff} from './imagediff.ts';
 import DiffCommitSelector from '../components/DiffCommitSelector.vue';
 import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
 import {
-  findDiffLine, findDiffLineExpander, parseDiffLineHash, repaintDiffRanges, resolveDiffRange, setAddCommentVisibility,
+  findDiffLine, findDiffLineExpander, isDiffLineSelected, parseDiffLineHash, repaintDiffRanges, resolveDiffRange, setAddCommentVisibility,
   setDiffLineSelection, type DiffLineHash,
 } from './repo-diff-selection.ts';
 import {revealReviewComment} from './repo-issue.ts';
@@ -59,13 +59,12 @@ function initRepoDiffConversationForm() {
       const response = await performFetchActionRequest(form, {method: 'POST', url: form.getAttribute('action')!, data: formData});
       if (!response) return;
       const newConversationHolder = createElementFromHTML(await response.text());
-      const side = newConversationHolder.getAttribute('data-side');
 
       form.closest('.conversation-holder')!.replaceWith(newConversationHolder);
       (form as any) = null; // prevent further usage of the form because it should have been replaced
 
       if (codeLineRow) {
-        setAddCommentVisibility(codeLineRow, side!, false);
+        setAddCommentVisibility(codeLineRow, newConversationHolder.getAttribute('data-side')!, false);
         repaintDiffRanges(codeLineRow);
       }
 
@@ -146,13 +145,14 @@ function onDiffFileBodyChange() {
   initRepoIssueContentHistory(); // it scans the whole page via a fetch, so it doesn't fit the per-element observer pattern
 }
 
-function diffLoadUrl(btn: Element) {
+async function fetchDiffPage(btn: Element) {
   const url = new URL(btn.getAttribute('data-href')!, window.location.href);
   const loadParams = new Set(url.searchParams.keys());
   for (const [name, value] of new URLSearchParams(window.location.search)) {
     if (!loadParams.has(name)) url.searchParams.append(name, value);
   }
-  return url.href;
+  const response = await GET(url.href);
+  return response.ok ? parseDom(await response.text(), 'text/html') : undefined;
 }
 
 let loadingMoreFiles: Promise<boolean> | undefined;
@@ -170,13 +170,9 @@ async function diffLoadMoreFiles(btn: Element) {
 async function loadMoreDiffFiles(btn: Element): Promise<boolean> {
   btn.classList.add('disabled');
   try {
-    const resp = await GET(diffLoadUrl(btn));
-    if (!resp.ok) return false;
-    const respText = await resp.text();
-    const respDoc = parseDom(respText, 'text/html'); // the response is a full HTML page, extract the new file boxes from it
-    const respFileBoxes = respDoc.querySelector('#diff-file-boxes')!;
-    const respFileBoxesChildren = Array.from(respFileBoxes.children); // "children:HTMLCollection" will be empty after replaceWith
-    document.querySelector('#diff-incomplete')!.replaceWith(...respFileBoxesChildren);
+    const respDoc = await fetchDiffPage(btn);
+    if (!respDoc) return false;
+    document.querySelector('#diff-incomplete')!.replaceWith(...respDoc.querySelector('#diff-file-boxes')!.children);
     applyFiltersToFileBoxes(diffTreeStore());
     onDiffFileBodyChange();
     return true;
@@ -193,13 +189,9 @@ async function diffLoadFileBody(el: Element) {
   if (el.classList.contains('disabled')) return;
   el.classList.add('disabled');
   try {
-    const resp = await GET(diffLoadUrl(el));
-    if (!resp.ok) return;
-    const respText = await resp.text();
-    const respDoc = parseDom(respText, 'text/html');
-    const respFileBody = respDoc.querySelector('#diff-file-boxes .diff-file-body .file-body')!;
-    const respFileBodyChildren = Array.from(respFileBody.children); // "children:HTMLCollection" will be empty after replaceWith
-    el.parentElement!.replaceWith(...respFileBodyChildren);
+    const respDoc = await fetchDiffPage(el);
+    if (!respDoc) return;
+    el.parentElement!.replaceWith(...respDoc.querySelector('#diff-file-boxes .diff-file-body .file-body')!.children);
     onDiffFileBodyChange();
   } catch (error) {
     console.error('Error:', error);
@@ -253,14 +245,16 @@ async function scrollToDiffLines(box: HTMLElement, range: DiffLineHash, currentH
   resolved.start.row.scrollIntoView({block: 'start'});
 }
 
-async function onLocationHashChange() {
-  setDiffLineSelection();
+async function onLocationHashChange(event: HashChangeEvent) {
+  if (event.newURL && event.newURL !== window.location.href) return;
   const currentHash = window.location.hash;
   const lineRange = parseDiffLineHash(currentHash);
+  if (lineRange && isDiffLineSelected(lineRange)) return;
+  setDiffLineSelection();
   const fileHash = lineRange?.fileHash ?? /^#diff-([0-9a-f]{40})$/.exec(currentHash)?.[1];
-  const comment = /^#issuecomment-(\d+)$/.exec(currentHash);
+  const commentId = /^#issuecomment-(\d+)$/.exec(currentHash)?.[1];
   selectDiffTreeFile(fileHash ?? '');
-  if (!fileHash && !comment) return;
+  if (!fileHash && !commentId) return;
 
   const targetId = fileHash ? `diff-${fileHash}` : currentHash.slice(1);
   while (currentHash === window.location.hash) {
@@ -270,15 +264,18 @@ async function onLocationHashChange() {
       if (lineRange) {
         await scrollToDiffLines(target, lineRange, currentHash);
       } else {
-        if (comment) revealReviewComment(target);
-        target.classList.add('diff-hash-target');
-        target.scrollIntoView({block: 'start'});
+        if (commentId) revealReviewComment(target);
+        if (target.matches(':target')) {
+          target.scrollIntoView({block: 'start'});
+        } else {
+          window.location.replace(currentHash);
+        }
       }
       return;
     }
 
-    if (comment) {
-      const button = document.querySelector<HTMLElement>(`.code-expander-button[data-hidden-comment-ids*=",${CSS.escape(comment[1])},"]`);
+    if (commentId) {
+      const button = document.querySelector<HTMLElement>(`.code-expander-button[data-hidden-comment-ids*=",${CSS.escape(commentId)},"]`);
       if (button) {
         await expandExcerpt(button);
         if (button.isConnected) return;

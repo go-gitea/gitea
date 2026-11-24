@@ -214,11 +214,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		}
 	}
 	if comment.Type == issues_model.CommentTypeCode && comment.CodeCommitID() != "" {
-		if err := comment.Issue.LoadPullRequest(ctx); err != nil {
-			ctx.JSONErrorAuto(err)
-			return
-		}
-		if err := pull_service.LoadCodeSuggestionStates(ctx, ctx.Doer, comment.Issue.PullRequest, issues_model.CommentList{comment}); err != nil {
+		if err := loadCodeSuggestionStates(ctx, comment.Issue, issues_model.CommentList{comment}); err != nil {
 			ctx.JSONErrorAuto(err)
 			return
 		}

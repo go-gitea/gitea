@@ -152,7 +152,7 @@
 </div>
 
 {{if .Issue.IsPull}}
-	{{template "repo/diff/code_suggestion_modal" dict "HeadCommitID" $.CodeSuggestionHeadCommitID "Origin" "timeline"}}
+	{{template "repo/diff/code_suggestion_modal" dict "HeadCommitID" $.PullHeadCommitID "Origin" "timeline"}}
 {{end}}
 
 <template id="issue-comment-editor-template">

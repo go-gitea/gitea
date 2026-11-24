@@ -126,7 +126,7 @@ func SpecializedMarkdown(ctx *markup.RenderContext) goldmark.Markdown {
 		),
 		goldmark.WithRendererOptions(
 			html.WithUnsafe(),
-			renderer.WithNodeRenderers(util.Prioritized(NewHTMLRenderer(ctx), 10)),
+			renderer.WithNodeRenderers(util.Prioritized(NewHTMLRenderer(&ctx.RenderInternal), 10)),
 		),
 	)
 }

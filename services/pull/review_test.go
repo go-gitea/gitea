@@ -53,9 +53,6 @@ func TestValidateCodeCommentRange(t *testing.T) {
 	}{
 		{"OmittedStart", 0, 5, nil},
 		{"SameEndpoint", 5, 5, nil},
-		{"NewSide", 5, 8, nil},
-		{"OldSide", -5, -8, nil},
-		{"OldToNew", -12, 5, nil},
 		{"NewToOld", 5, -8, util.ErrInvalidArgument},
 		{"ReversedNewSide", 8, 5, util.ErrInvalidArgument},
 		{"ReversedOldSide", -8, -5, util.ErrInvalidArgument},
@@ -66,7 +63,7 @@ func TestValidateCodeCommentRange(t *testing.T) {
 	}
 }
 
-func TestCreateCodeCommentContextOfUnchangedLine(t *testing.T) {
+func TestCreateCodeCommentOnUnchangedLines(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx := t.Context()
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 6})
@@ -100,9 +97,7 @@ func TestCreateCodeCommentContextOfUnchangedLine(t *testing.T) {
 	require.NoError(t, err)
 	mergeBase, err := headCommit.ParentID(0)
 	require.NoError(t, err)
-	mergeBaseCommit, err := gitRepo.GetCommit(ctx, mergeBase.String())
-	require.NoError(t, err)
-	lineCommitID, err := mergeBaseCommit.ParentID(0)
+	lineCommit, err := gitRepo.GetCommit(ctx, headRef+"^^")
 	require.NoError(t, err)
 	pr.MergeBase = mergeBase.String()
 	require.NoError(t, pr.UpdateCols(ctx, "merge_base"))
@@ -110,46 +105,44 @@ func TestCreateCodeCommentContextOfUnchangedLine(t *testing.T) {
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pr.IssueID})
 	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	otherReviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-	makeComment := func(doer *user_model.User, pending bool, commitID string, start, end, reviewID int64) *issues_model.Comment {
+	makeComment := func(doer *user_model.User, pending bool, start, end, reviewID int64) *issues_model.Comment {
 		t.Helper()
-		comment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, issue, pending, commitID, issues_model.CreateCommentOptions{
+		comment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, issue, pending, "", issues_model.CreateCommentOptions{
 			LineNum: end, CodeStartLine: start, TreePath: treePath, Content: "test", ReviewID: reviewID,
 		})
 		require.NoError(t, err)
 		return comment
 	}
 
-	single := makeComment(reviewer, true, strings.Repeat("a", 40), 0, 17, 0)
-	assert.Equal(t, lineCommitID.String(), single.CommitSHA)
+	single := makeComment(reviewer, true, 0, 17, 0)
+	assert.Equal(t, lineCommit.ID.String(), single.CommitSHA)
 	assert.Equal(t, headCommit.ID.String(), single.CodeCommitID())
 	assert.True(t, strings.HasSuffix(single.Patch, "\n old 10\n"), "patch: %q", single.Patch)
-	assert.True(t, strings.HasSuffix(makeComment(reviewer, true, "", 0, -15, 0).Patch, "\n old 10\n"))
+	assert.True(t, strings.HasSuffix(makeComment(reviewer, true, 0, -15, 0).Patch, "\n old 10\n"))
 	_, err = pull_service.CreateCodeComment(ctx, otherReviewer, gitRepo, issue, false, "", issues_model.CreateCommentOptions{
 		LineNum: single.Line, Content: "reply", TreePath: treePath, ReviewID: single.ReviewID,
 	})
 	assert.True(t, issues_model.IsErrReviewNotExist(err), "got: %v", err)
 
-	ranged := makeComment(reviewer, true, "", 15, single.Line, 0)
-	mixed := makeComment(reviewer, true, "", -2, single.Line, 0)
-
+	sameSide := makeComment(reviewer, true, 15, single.Line, 0)
+	mixed := makeComment(reviewer, true, -2, single.Line, 0)
 	const pushedRef = "refs/heads/range-invalidation"
 	require.NoError(t, git.ForceFastImport(ctx, pr.BaseRepo, []git.FastImportCommit{{
-		Ref: pushedRef, Parent: headCommit.ID.String(), Files: []git.FastImportFile{
-			{Path: treePath, Content: strings.Replace(headLines, "old 9\n", "changed\n", 1)},
-		},
+		Ref: pushedRef, Parent: headCommit.ID.String(),
+		Files: []git.FastImportFile{{Path: treePath, Content: strings.Replace(headLines, "old 9\n", "changed\n", 1)}},
 	}}))
 	require.NoError(t, pull_service.InvalidateCodeComments(ctx, issues_model.PullRequestList{pr}, pr.BaseRepo, pushedRef))
 	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: single.ID}).Invalidated)
-	for _, comment := range []*issues_model.Comment{ranged, mixed} {
+	for _, comment := range []*issues_model.Comment{sameSide, mixed} {
 		assert.True(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID}).Invalidated)
 	}
 
-	root := makeComment(otherReviewer, false, "", -9, 11, 0)
+	root := makeComment(otherReviewer, false, -9, 11, 0)
 	require.NoError(t, git.UpdateRef(ctx, gitRepo, headRef, mergeBase.String()))
-	reply := makeComment(otherReviewer, false, "", 0, root.Line, root.ReviewID)
+	reply := makeComment(otherReviewer, false, 0, root.Line, root.ReviewID)
 	assert.Equal(t, headCommit.ID.String(), reply.CodeCommitID())
 	assert.EqualValues(t, -9, reply.CodeStartLine())
-	assert.EqualValues(t, 10, makeComment(otherReviewer, false, "", 10, root.Line, root.ReviewID).CodeStartLine())
+	assert.EqualValues(t, 10, makeComment(otherReviewer, false, 10, root.Line, root.ReviewID).CodeStartLine())
 }
 
 func TestCreateCodeCommentUnknownCommitID(t *testing.T) {

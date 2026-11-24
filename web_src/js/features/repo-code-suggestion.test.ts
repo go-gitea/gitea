@@ -1,5 +1,8 @@
 import {initGlobalSelectorObserver} from '../modules/observer.ts';
-import {codeSuggestionInsertion, initRepoCodeSuggestions, refreshCodeSuggestionControls} from './repo-code-suggestion.ts';
+import {ComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
+import {
+  codeSuggestionInsertion, initCodeCommentEditor, initRepoCodeSuggestions, refreshCodeSuggestionControls,
+} from './repo-code-suggestion.ts';
 
 test.each([
   [
@@ -9,6 +12,26 @@ test.each([
   ['preserve a blank source line and reuse surrounding newlines', 'Before\n\nAfter', 7, '', '```suggestion\n\n```', 21],
 ] as const)('%s', (_name, value, end, source, want, cursor) => {
   expect(codeSuggestionInsertion(value, 7, end, source)).toEqual({text: want, cursor});
+});
+
+test('moving a draft between old-side and new-side ranges updates both suggestion toolbars', () => {
+  document.body.innerHTML = `<form>
+    <input name="start_side" type="hidden" value="previous">
+    <div class="combo-markdown-editor">
+      <div class="markdown-toolbar-group"><button type="button" data-global-click="onInsertCodeSuggestion"></button></div>
+      <div class="editor-toolbar"><button class="gitea-extra-toolbar-button"></button><i class="separator"></i></div>
+    </div>
+  </form>`;
+  onTestFinished(() => document.body.replaceChildren());
+  const form = document.querySelector('form')!;
+  const editor = new ComboMarkdownEditor(form.querySelector('.combo-markdown-editor')!);
+  const startSide = form.querySelector<HTMLInputElement>('input')!;
+  const suggestionActions = form.querySelectorAll('.markdown-toolbar-group, .gitea-extra-toolbar-button, .separator');
+  expect(initCodeCommentEditor(form)).toBe(editor);
+  expect([...suggestionActions].every((action) => action.classList.contains('tw-hidden'))).toBe(true);
+  startSide.value = 'proposed';
+  expect(initCodeCommentEditor(form)).toBe(editor);
+  expect(form.querySelector('.tw-hidden')).toBeNull();
 });
 
 test('batches disjoint suggestions, rejects overlap and evicts changed or removed suggestions', async () => {

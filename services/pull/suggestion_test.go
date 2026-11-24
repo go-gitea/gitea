@@ -6,8 +6,6 @@ package pull
 import (
 	"testing"
 
-	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/util"
 
@@ -63,39 +61,18 @@ func TestValidateSuggestionLines(t *testing.T) {
 	}
 }
 
-func TestValidateSuggestionEditLineShifts(t *testing.T) {
-	const path = "lines.txt"
-	const original = "header\nrepeat\nbetween\nrepeat\nlast\n"
-	repo, err := git.ForceFastImportWithInit(t.Context(), t.TempDir(), []git.FastImportCommit{
-		{Ref: "refs/heads/anchor", Files: []git.FastImportFile{{Path: path, Content: original}}},
-		{Ref: "refs/heads/shifted", Parent: ":1", Files: []git.FastImportFile{{Path: path, Content: "inserted\nextra\n" + original}}},
-		{Ref: "refs/heads/after", Parent: ":1", Files: []git.FastImportFile{{Path: path, Content: "header\nrepeat\nbetween\nrepeat\nextra\nlast\n"}}},
-		{Ref: "refs/heads/replaced", Parent: ":1", Files: []git.FastImportFile{{Path: path, Content: "HEADER\nrepeat\nbetween\nrepeat\nlast\n"}}},
-	})
-	require.NoError(t, err)
-	gitRepo, err := git.OpenRepository(t.Context(), repo)
-	require.NoError(t, err)
-	defer gitRepo.Close()
-	anchor, err := gitRepo.GetBranchCommitID(t.Context(), "anchor")
-	require.NoError(t, err)
+func TestCodeSuggestionAnchorMoved(t *testing.T) {
 	for _, test := range []struct {
-		branch string
-		want   error
+		name string
+		hunk git.FileDiffHunk
+		want bool
 	}{
-		{"shifted", codeSuggestionRejection(codeSuggestionReasonPrefix + "outdated")},
-		{"after", nil},
-		{"replaced", nil},
+		{"InsertBefore", git.FileDiffHunk{OldStart: 1, NewStart: 1, NewCount: 2}, true},
+		{"InsertAfter", git.FileDiffHunk{OldStart: 5, NewStart: 5, NewCount: 1}, false},
+		{"ReplaceBeforeWithoutShift", git.FileDiffHunk{OldStart: 1, OldCount: 1, NewStart: 1, NewCount: 1}, false},
 	} {
-		t.Run(test.branch, func(t *testing.T) {
-			head, err := gitRepo.GetBranchCommitID(t.Context(), test.branch)
-			require.NoError(t, err)
-			loader := &codeSuggestionLoader{
-				pr: &issues_model.PullRequest{}, headRepo: gitRepo, headCommitID: head, cache: cache.NewEphemeralCache(),
-			}
-			_, err = loader.validateEdit(t.Context(), &issues_model.Comment{
-				Line: 4, TreePath: path, CommentMetaData: &issues_model.CommentMetaData{CodeCommitID: anchor},
-			}, "new\n")
-			assert.ErrorIs(t, err, test.want)
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.want, codeSuggestionAnchorMoved([]git.FileDiffHunk{test.hunk}, 4, 4))
 		})
 	}
 }

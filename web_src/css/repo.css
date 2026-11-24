@@ -845,14 +845,15 @@
   table-layout: fixed;
 }
 
-.repository .diff-file-box .code-diff .lines-num:has(> .diff-line-link) {
-  padding: 0 !important;
+.lines-num-old,
+.lines-num-new {
+  position: relative;
 }
 
-.diff-line-link {
-  color: inherit;
-  display: block;
-  padding: 0 5px;
+.diff-line-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
 }
 
 .repository .diff-file-box .code-diff tbody tr .lines-type-marker {
@@ -1038,12 +1039,12 @@
   }
 }
 
-.comment:is(.diff-hash-target, :target:not(#diff-file-boxes *)) .comment-container {
+.comment:target .comment-container {
   border-color: var(--color-primary) !important;
   box-shadow: 0 0 0 3px var(--color-primary-alpha-30) !important;
 }
 
-.comment:is(.diff-hash-target, :target:not(#diff-file-boxes *)) .comment-header::before {
+.comment:target .comment-header::before {
   border-right-color: var(--color-primary) !important;
   filter: drop-shadow(-4px 0 0 var(--color-primary-alpha-30)) !important;
 }
@@ -1408,7 +1409,7 @@ tbody.commit-list {
   margin-top: 1em;
 }
 
-.diff-file-box.diff-hash-target {
+.diff-file-box:target {
   border-color: var(--color-primary) !important;
   border-radius: var(--border-radius) !important;
   box-shadow: 0 0 0 3px var(--color-primary-alpha-30) !important;
@@ -1427,8 +1428,8 @@ tbody.commit-list {
   box-shadow: 0 -1px 0 1px var(--color-body);
 }
 
-.diff-file-box.diff-hash-target .diff-file-header {
-  box-shadow: unset; /* the targeted file box provides the outline */
+.diff-file-box:target .diff-file-header {
+  box-shadow: unset; /* when targeted, still use the parent's box-shadow, remove the patched above */
 }
 
 .diff-file-header .file-link {

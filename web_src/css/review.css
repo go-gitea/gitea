@@ -42,16 +42,8 @@
   opacity: 1;
 }
 
-.code-diff tr.diff-range-highlight > td {
+.diff-range-highlight > td {
   box-shadow: inset 0 0 0 100vmax var(--color-primary-alpha-30);
-}
-
-.diff-comment-draft form[data-code-suggestion-side=""] :is(
-  .markdown-toolbar-group:has(> [data-global-click="onInsertCodeSuggestion"]),
-  .gitea-extra-toolbar-button,
-  .gitea-extra-toolbar-button + .separator
-) {
-  display: none;
 }
 
 .repository .diff-file-box .code-diff .add-comment-left,

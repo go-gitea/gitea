@@ -2,19 +2,16 @@
 {{$replyReviewComment := $.ReplyReviewComment -}}{{/* can be nil */ -}}
 {{$canAddComment := and $root.SignedUserID (not $root.Repository.IsArchived) -}}
 {{if $canAddComment}}
-	{{$suggestionSourceURL := $root.CodeSuggestionSourceURL}}
+	{{$canSuggest := $root.CanSuggestCode}}
 	{{$side := $root.CodeCommentSide}}
 	{{$startSide := $side}}
 	{{if $replyReviewComment}}
 		{{$side = $replyReviewComment.DiffSide}}
-		{{$startSide = "proposed"}}
-		{{if lt $replyReviewComment.CodeStartLine 0}}{{$startSide = "previous"}}{{end}}
-		{{if and (gt $replyReviewComment.CodeStartLine 0) $replyReviewComment.CodeCommitID ($root.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
-			{{$suggestionSourceURL = print $root.Issue.Link "/files/reviews/suggestion_source"}}
-		{{end}}
+		{{$startSide = Iif (lt $replyReviewComment.CodeStartLine 0) "previous" "proposed"}}
+		{{$canSuggest = and (gt $replyReviewComment.CodeStartLine 0) $replyReviewComment.CodeCommitID ($root.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
 	{{end}}
 	<form class="ui form {{if $replyReviewComment}}tw-hidden comment-form{{end}}" action="{{$root.Issue.Link}}/files/reviews/comments" method="post"
-		{{if $suggestionSourceURL}}data-code-suggestion-source-url="{{$suggestionSourceURL}}" data-code-suggestion-side="{{$side}}" data-code-suggestion-source-error="{{ctx.Locale.Tr "repo.diff.suggestion.source_unavailable"}}"{{end}}>
+		{{if $canSuggest}}data-code-suggestion-source-url="{{$root.Issue.Link}}/files/reviews/suggestion_source" data-code-suggestion-source-error="{{ctx.Locale.Tr "repo.diff.suggestion.source_unavailable"}}"{{end}}>
 		<input type="hidden" name="origin" value="{{if $root.PageIsPullFiles}}diff{{else}}timeline{{end}}">
 		<input type="hidden" name="latest_commit_id" value="{{$root.ReviewCommitID}}">
 		<input type="hidden" name="side" value="{{$side}}">
@@ -38,7 +35,7 @@
 			"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
 			"DropzoneParentContainer" "form"
 			"DisableAutosize" "true"
-			"ToolbarButton" (and $suggestionSourceURL (dict "Click" "onInsertCodeSuggestion" "Label" (ctx.Locale.Tr "repo.diff.suggestion.add") "Icon" "octicon-file-diff"))
+			"ToolbarButton" (and $canSuggest (dict "Click" "onInsertCodeSuggestion" "Label" (ctx.Locale.Tr "repo.diff.suggestion.add") "Icon" "octicon-file-diff"))
 		)}}
 		</div>
 		{{if $root.IsAttachmentEnabled}}

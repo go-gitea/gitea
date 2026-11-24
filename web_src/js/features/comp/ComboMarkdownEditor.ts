@@ -1,6 +1,6 @@
 import '@github/markdown-toolbar-element';
 import '@github/text-expander-element';
-import {hideElem, showElem, autosize, isElemVisible, generateElemId} from '../../utils/dom.ts';
+import {hideElem, showElem, toggleElem, autosize, isElemVisible, generateElemId} from '../../utils/dom.ts';
 import {
   EventUploadStateChanged,
   initEasyMDEPaste,
@@ -46,6 +46,12 @@ export function validateTextareaNonEmpty(textarea: HTMLTextAreaElement) {
     return false;
   }
   return true;
+}
+
+export function toggleExtraToolbarButton(button: HTMLButtonElement, visible: boolean) {
+  toggleElem(button.parentElement!, visible);
+  const easyMDEButton = button.closest('.combo-markdown-editor')!.querySelector('.gitea-extra-toolbar-button');
+  if (easyMDEButton) toggleElem([easyMDEButton, easyMDEButton.nextElementSibling!], visible);
 }
 
 type Heights = {
@@ -345,6 +351,15 @@ export class ComboMarkdownEditor {
   parseEasyMDEToolbar(easyMde: typeof EasyMDE, actions: ReadonlyArray<string>) {
     this.easyMDEToolbarActions = this.easyMDEToolbarActions || easyMDEToolbarActions(easyMde, this);
     const processed: EasyMdeToolbarAction[] = [];
+    const extraButton = this.options.easyMDEToolbarButton;
+    if (extraButton) {
+      processed.push({
+        name: 'gitea-extra-toolbar-button',
+        action: () => extraButton.click(),
+        icon: extraButton.innerHTML,
+        title: extraButton.getAttribute('aria-label')!,
+      }, '|');
+    }
     for (const action of actions) {
       const actionButton = this.easyMDEToolbarActions[action];
       if (!actionButton) throw new Error(`Unknown EasyMDE toolbar action ${action}`);
@@ -377,16 +392,6 @@ export class ComboMarkdownEditor {
       import('../tribute.ts'),
       import('../../../css/easymde.css'),
     ]);
-    const toolbar = this.parseEasyMDEToolbar(EasyMDE, this.options.easyMDEOptions?.toolbar ?? this.easyMDEToolbarDefault);
-    const extraButton = this.options.easyMDEToolbarButton;
-    if (extraButton) {
-      toolbar.unshift({
-        name: 'gitea-extra-toolbar-button',
-        action: () => extraButton.click(),
-        icon: extraButton.innerHTML,
-        title: extraButton.getAttribute('aria-label')!,
-      }, '|');
-    }
     const easyMDEOpt: EasyMDE.Options = {
       autoDownloadFontAwesome: false,
       element: this.textarea,
@@ -398,10 +403,12 @@ export class ComboMarkdownEditor {
       inputStyle: 'contenteditable', // nativeSpellcheck requires contenteditable
       nativeSpellcheck: true,
       ...this.options.easyMDEOptions,
-      toolbar: toolbar as EasyMDE.Options['toolbar'],
+      toolbar: this.parseEasyMDEToolbar(EasyMDE, this.options.easyMDEOptions?.toolbar ?? this.easyMDEToolbarDefault) as EasyMDE.Options['toolbar'],
     };
 
     this.easyMDE = new EasyMDE(easyMDEOpt);
+    const extraButton = this.options.easyMDEToolbarButton;
+    if (extraButton) toggleExtraToolbarButton(extraButton, !extraButton.parentElement!.classList.contains('tw-hidden'));
     this.easyMDE.codemirror.on('change', () => triggerEditorContentChanged(this.container));
     this.easyMDE.codemirror.setOption('extraKeys', {
       'Cmd-Enter': () => { handleGlobalEnterQuickSubmit(this.textarea) },

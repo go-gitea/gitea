@@ -3,10 +3,6 @@ import {createTippy} from '../modules/tippy.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
 import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
 
-export function pushLineSelectionHash(hash: string) {
-  if (window.location.hash !== hash) window.history.pushState(null, '', hash);
-}
-
 export function selectLineRows(first: HTMLTableRowElement, last: HTMLTableRowElement) {
   const rows = [first];
   while (rows[rows.length - 1] !== last) rows.push(rows[rows.length - 1].nextElementSibling as HTMLTableRowElement);
@@ -16,8 +12,7 @@ export function selectLineRows(first: HTMLTableRowElement, last: HTMLTableRowEle
 function updateLineMenu(menu: Element, anchor: string, rows: HTMLTableRowElement[]) {
   const copyLines = menu.querySelector('button.copy-lines')!;
   if (rows.length > 1) copyLines.textContent = copyLines.getAttribute('data-text-lines');
-  const lines = rows.map((row) => row.querySelector('.code-inner')!.textContent.replace(/[\r\n]+$/, ''));
-  copyLines.setAttribute('data-clipboard-text', lines.join('\n'));
+  copyLines.setAttribute('data-clipboard-text', rows.map((row) => row.querySelector('.code-inner')!.textContent.replace(/[\r\n]+$/, '')).join('\n'));
 
   const copyPermalink = menu.querySelector('button.copy-line-permalink')!;
   const permalink = new URL(copyPermalink.getAttribute('data-url')!, window.location.origin);
@@ -35,7 +30,7 @@ function updateLineMenu(menu: Element, anchor: string, rows: HTMLTableRowElement
 }
 
 function showLineButton(first: Element, anchor: string, rows: HTMLTableRowElement[]) {
-  const menu = document.querySelector('.code-line-menu');
+  const menu = document.querySelector('.code-line-menu')?.cloneNode(true) as Element | undefined;
   if (!menu) return;
 
   const btn = document.createElement('button');
@@ -44,13 +39,12 @@ function showLineButton(first: Element, anchor: string, rows: HTMLTableRowElemen
   btn.innerHTML = svg('octicon-kebab-horizontal');
   first.parentElement!.prepend(btn);
 
-  const content = menu.cloneNode(true) as Element;
-  updateLineMenu(content, anchor, rows);
+  updateLineMenu(menu, anchor, rows);
   createTippy(btn, {
     theme: 'menu',
     trigger: 'click',
     hideOnClick: true,
-    content,
+    content: menu,
     placement: 'right-start',
     interactive: true,
     onShow: (tippy) => {
@@ -95,7 +89,10 @@ export function initRepoCodeView() {
   addDelegatedEventListener<HTMLElement, MouseEvent>(document, 'click', '.code-view .lines-num span[data-line-number]', (el, e) => {
     if (!selRangeStart || !e.shiftKey) selRangeStart = el.id;
     const selection = selectRange(`#${selRangeStart}-${el.id}`);
-    if (selection) pushLineSelectionHash(`#${selection.anchor}`);
+    if (selection) {
+      const hash = `#${selection.anchor}`;
+      if (window.location.hash !== hash) window.history.pushState(null, '', hash);
+    }
     window.getSelection()!.removeAllRanges();
   });
 

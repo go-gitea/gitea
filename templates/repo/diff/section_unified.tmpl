@@ -20,8 +20,8 @@
 					<td colspan="2" class="lines-num"></td>
 				{{end}}
 			{{else}}
-				<td data-diff-column="unified" class="lines-num lines-num-old">{{if $line.LeftIdx}}{{if $.selectable}}<a class="diff-line-link" href="#diff-{{$file.NameHash}}L{{$line.LeftIdx}}" tabindex="-1" data-global-click="onSelectDiffLine">{{$line.LeftIdx}}</a>{{else}}{{$line.LeftIdx}}{{end}}{{end}}</td>
-				<td data-diff-column="unified" class="lines-num lines-num-new">{{if $line.RightIdx}}{{if $.selectable}}<a class="diff-line-link" href="#diff-{{$file.NameHash}}R{{$line.RightIdx}}" tabindex="-1" data-global-click="onSelectDiffLine">{{$line.RightIdx}}</a>{{else}}{{$line.RightIdx}}{{end}}{{end}}</td>
+				<td data-diff-column="unified" class="lines-num lines-num-old">{{template "repo/diff/line_number" dict "Number" $line.LeftIdx "FileNameHash" (and $.selectable $file.NameHash) "Side" "L"}}</td>
+				<td data-diff-column="unified" class="lines-num lines-num-new">{{template "repo/diff/line_number" dict "Number" $line.RightIdx "FileNameHash" (and $.selectable $file.NameHash) "Side" "R"}}</td>
 			{{end}}
 			{{$inlineDiff := $section.GetComputedInlineDiffFor $line ctx.Locale -}}
 			<td {{if not $line.IsDiffLineSection}}data-diff-column="unified" {{end}}class="lines-escape">

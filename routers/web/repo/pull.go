@@ -378,6 +378,7 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCompareInfo(ctx *context.Conte
 
 	ctx.Data["NumCommits"] = len(prInfo.CompareInfo.Commits)
 	ctx.Data["NumFiles"] = prInfo.CompareInfo.NumFiles
+	ctx.Data["PullHeadCommitID"] = prInfo.CompareInfo.HeadCommitID
 	prInfo.setTemplateDataMergeTarget(ctx)
 }
 
@@ -491,8 +492,6 @@ func (prInfo *pullRequestViewInfo) prepareViewOpenPullInfo(ctx *context.Context)
 	if ctx.Written() {
 		return
 	}
-
-	ctx.Data["PullHeadCommitID"] = prInfo.CompareInfo.HeadCommitID
 
 	if prInfo.CompareInfo.HeadCommitID == prInfo.CompareInfo.CompareBase {
 		ctx.Data["IsNothingToCompare"] = true
@@ -780,10 +779,6 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		return
 	}
 
-	if err := allComments.LoadAttachments(ctx); err != nil {
-		ctx.ServerErrorAuto(err)
-		return
-	}
 	if err := pull_service.LoadCodeSuggestionStates(ctx, ctx.Doer, pull, allComments); err != nil {
 		ctx.ServerErrorAuto(err)
 		return

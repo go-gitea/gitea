@@ -2,7 +2,7 @@ import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observ
 import {performFetchActionRequest} from '../modules/fetch-action.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {showElem, toggleElem} from '../utils/dom.ts';
-import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
+import {getComboMarkdownEditor, initComboMarkdownEditor, toggleExtraToolbarButton} from './comp/ComboMarkdownEditor.ts';
 
 export function codeSuggestionInsertion(value: string, start: number, end: number, source: string) {
   let fenceLength = 3;
@@ -16,9 +16,13 @@ export function codeSuggestionInsertion(value: string, start: number, end: numbe
   return {text: `${opening}\n${fence}${suffix}`, cursor: start + opening.length};
 }
 
+function canInsertCodeSuggestion(form: HTMLFormElement) {
+  return (form.elements.namedItem('start_side') as HTMLInputElement).value === 'proposed';
+}
+
 function codeSuggestionAnchor(form: HTMLFormElement) {
+  if (!canInsertCodeSuggestion(form)) return null;
   const input = (name: string) => form.elements.namedItem(name) as HTMLInputElement | null;
-  if (input('side')!.value !== form.getAttribute('data-code-suggestion-side')!) return null;
   return new URLSearchParams({
     path: input('path')!.value,
     start_line: input('start_line')!.value,
@@ -30,6 +34,7 @@ function codeSuggestionAnchor(form: HTMLFormElement) {
 export function initCodeCommentEditor(form: HTMLFormElement) {
   const container = form.querySelector<HTMLElement>('.combo-markdown-editor')!;
   const button = form.querySelector<HTMLButtonElement>('button[data-global-click="onInsertCodeSuggestion"]');
+  if (button) toggleExtraToolbarButton(button, canInsertCodeSuggestion(form));
   return getComboMarkdownEditor(container) ?? initComboMarkdownEditor(container, button ? {
     easyMDEToolbarButton: button,
     appendPreviewData(data) {
@@ -113,15 +118,13 @@ export function initRepoCodeSuggestions() {
     if (!batch.delete(id)) {
       const item = {
         path: controls.getAttribute('data-path')!,
-        start: Number(controls.getAttributeNode('data-start-line')!.value),
-        end: Number(controls.getAttributeNode('data-end-line')!.value),
+        start: Number(controls.getAttribute('data-start-line')!),
+        end: Number(controls.getAttribute('data-end-line')!),
         version: controls.getAttribute('data-content-version')!,
       };
-      for (const other of batch.values()) {
-        if (item.path === other.path && item.start <= other.end && other.start <= item.end) {
-          showErrorToast(batchButton.getAttribute('data-overlap-text')!);
-          return;
-        }
+      if (Array.from(batch.values()).some((other) => item.path === other.path && item.start <= other.end && other.start <= item.end)) {
+        showErrorToast(batchButton.getAttribute('data-overlap-text')!);
+        return;
       }
       batch.set(id, item);
     }

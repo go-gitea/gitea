@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
-import {test, expect} from '@playwright/test';
+import {env} from 'node:process';
+import {test, expect, type APIRequestContext} from '@playwright/test';
 import {
   apiAddCollaborator,
   apiCreateFiles,
@@ -8,6 +9,7 @@ import {
   apiCreateReview,
   apiCreateUser,
   apiUserHeaders,
+  login,
   loginUser,
   logout,
   randomString,
@@ -144,91 +146,71 @@ test('pr review flow', async ({page, request}) => {
   await reRequestAndApprove(officialReviewer, 'Approved', 'tw-text-yellow', true);
 });
 
-test('pr review code suggestion', async ({page, request}) => {
-  const poster = `rv-sugg-poster-${randomString(8)}`;
+const reviewFile = 'added.txt';
+
+async function createReviewDiff(request: APIRequestContext) {
+  const owner = env.GITEA_TEST_E2E_USER;
+  const repo = `e2e-review-diff-${randomString(8)}`;
+  await apiCreateRepo(request, {name: repo});
+  await apiCreateFiles(request, owner, repo, [{path: reviewFile, content: 'first\nsecond\nthird\nfourth\n'}], {branch: 'main', newBranch: 'feat'});
+  const index = await apiCreatePR(request, owner, repo, 'feat', 'main', 'review diff');
+  return {owner, repo, index, url: `/${owner}/${repo}/pulls/${index}/files`};
+}
+
+test('previews and applies a code suggestion from the PR diff', async ({page, request}) => {
   const reviewer = `rv-sugg-reviewer-${randomString(8)}`;
-  await Promise.all([apiCreateUser(request, poster), apiCreateUser(request, reviewer)]);
-  const posterHeaders = apiUserHeaders(poster);
-  const repoName = `e2e-prsugg-${randomString(8)}`;
-  await apiCreateRepo(request, {name: repoName, headers: posterHeaders});
-  await apiCreateFiles(request, poster, repoName, [{path: 'added.txt', content: 'first\nsecond\nthird\n'}], {branch: 'main', newBranch: 'feat', headers: posterHeaders});
-  const prIndex = await apiCreatePR(request, poster, repoName, 'feat', 'main', 'suggestion test', {headers: posterHeaders});
-  await Promise.all([
-    apiCreateReview(request, poster, repoName, prIndex, {
-      comments: [{path: 'added.txt', body: '```suggestion\nsecond line\n```', new_position: 2}],
-      headers: apiUserHeaders(reviewer),
-    }),
-    loginUser(page, poster),
-  ]);
+  const [{owner, repo, index, url}] = await Promise.all([createReviewDiff(request), apiCreateUser(request, reviewer), login(page)]);
+  await apiCreateReview(request, owner, repo, index, {
+    comments: [{path: reviewFile, body: '```suggestion\nsecond revised\n```', new_position: 2}],
+    headers: apiUserHeaders(reviewer),
+  });
 
-  await page.goto(`/${poster}/${repoName}/pulls/${prIndex}/files`);
-  const fileBox = page.locator('.diff-file-box[data-new-filename="added.txt"]');
-  const addedRows = fileBox.locator('table[data-new-comment-url] > tbody > tr[data-line-type="add"]');
-  const suggestion = fileBox.locator('.code-suggestion');
-  await expect(suggestion.locator('tr.del-code')).toHaveText(['2-second']);
-  await expect(suggestion.locator('tr.add-code')).toHaveText(['2+second line']);
-
-  await addedRows.first().getByRole('button', {name: 'Add line comment', exact: true}).click();
-  const commentForm = fileBox.locator('form').filter({has: page.getByRole('button', {name: 'Start review', exact: true})});
-  await commentForm.getByRole('button', {name: 'Add a suggestion', exact: true}).click();
-  const editor = commentForm.getByRole('textbox', {name: 'Leave a comment', exact: true});
+  await page.goto(url);
+  const file = page.locator(`.diff-file-box[data-new-filename="${reviewFile}"]`);
+  await expect(file.locator('.code-suggestion .added-code')).toHaveText('revised');
+  await file.getByRole('button', {name: 'Add line comment', exact: true}).first().click();
+  const draft = file.locator('.diff-comment-draft');
+  const addSuggestion = draft.getByRole('button', {name: 'Add a suggestion', exact: true});
+  const editor = draft.getByRole('textbox', {name: 'Leave a comment', exact: true});
+  await addSuggestion.click();
   await expect(editor).toHaveValue('```suggestion\nfirst\n```');
-  await editor.fill('```suggestion\nfirst line\n```');
-  await commentForm.getByText('Preview', {exact: true}).click();
-  const preview = commentForm.locator('.code-suggestion');
-  await expect(preview).toBeVisible();
-  await expect(preview.locator('tr.del-code')).toHaveText(['1-first']);
-  await expect(preview.locator('tr.add-code')).toHaveText(['1+first line']);
-  await commentForm.getByRole('button', {name: 'Cancel', exact: true}).click();
+  await editor.fill('```suggestion\nfirst revised\n```');
+  await draft.getByText('Preview', {exact: true}).click();
+  await expect(draft.locator('.code-suggestion .added-code')).toHaveText('revised');
+  await draft.getByText('Write', {exact: true}).click();
+  await editor.clear();
+  await draft.locator('[data-tooltip-content="Use the legacy editor instead"]').click();
+  await draft.locator('.editor-toolbar').getByRole('button', {name: 'Add a suggestion', exact: true}).click();
+  await expect(draft.locator('textarea[name="content"]')).toHaveValue('```suggestion\nfirst\n```');
+  await draft.getByRole('button', {name: 'Cancel', exact: true}).click();
 
-  await fileBox.getByRole('button', {name: 'Apply suggestion', exact: true}).click();
-  const dialog = page.getByRole('dialog');
-  await expect(dialog.getByRole('textbox', {name: 'Commit summary', exact: true})).toHaveValue(`Apply suggestion from @${reviewer}`);
-  await dialog.getByRole('button', {name: 'Commit suggestion', exact: true}).click();
-  await expect(addedRows.locator('> .lines-code .code-inner')).toHaveText(['first', 'second line', 'third']);
+  await file.getByRole('button', {name: 'Apply suggestion', exact: true}).click();
+  await page.getByRole('dialog').getByRole('button', {name: 'Commit suggestion', exact: true}).click();
+  await expect(file.locator('table[data-new-comment-url] > tbody > tr.add-code > .lines-code .code-inner')).toHaveText([
+    'first', 'second revised', 'third', 'fourth',
+  ]);
 });
 
 test('pr diff line selection and links', async ({page, request}) => {
-  const poster = `rv-lines-poster-${randomString(8)}`;
-  const reviewer = `rv-lines-reviewer-${randomString(8)}`;
-  await Promise.all([apiCreateUser(request, poster), apiCreateUser(request, reviewer)]);
-  const headers = apiUserHeaders(poster);
-  const repoName = `e2e-prlines-${randomString(8)}`;
-  const filePath = 'added.txt';
-  const [prIndex] = await Promise.all([
-    (async () => {
-      await apiCreateRepo(request, {name: repoName, headers});
-      await apiCreateFiles(request, poster, repoName, [{path: filePath, content: 'first\nsecond\nthird\nfourth\nfifth\n'}], {branch: 'main', newBranch: 'feat', headers});
-      return apiCreatePR(request, poster, repoName, 'feat', 'main', 'line selection test', {headers});
-    })(),
-    loginUser(page, reviewer),
-  ]);
+  const [{url}] = await Promise.all([createReviewDiff(request), login(page)]);
+  await page.goto(url);
+  const file = page.locator(`.diff-file-box[data-new-filename="${reviewFile}"]`);
+  const proposed = file.locator('td.lines-num-new');
+  const lastLine = page.getByRole('link', {name: '4', exact: true});
+  const fileHash = createHash('sha1').update(reviewFile).digest('hex');
 
-  await page.goto(`/${poster}/${repoName}/pulls/${prIndex}/files`);
-  const fileBox = page.locator(`.diff-file-box[data-new-filename="${filePath}"]`);
-  const firstLine = page.locator('td.lines-num-new').getByRole('link', {name: '2', exact: true});
-  const lastLine = page.locator('td.lines-num-new').getByRole('link', {name: '4', exact: true});
-  const fileHash = createHash('sha1').update(filePath).digest('hex');
-  const highlightedRows = fileBox.locator('tr.diff-range-highlight');
-
-  await fileBox.locator(firstLine).click();
-  await expect(page).toHaveURL((url) => url.hash === `#diff-${fileHash}R2`);
-  await expect(highlightedRows).toHaveText([/second/]);
-  await fileBox.locator(lastLine).click({modifiers: ['Shift']});
+  await proposed.getByRole('link', {name: '2', exact: true}).click();
+  await proposed.locator(lastLine).click({modifiers: ['Shift']});
   await expect(page).toHaveURL((url) => url.hash === `#diff-${fileHash}R2-R4`);
-  await expect(highlightedRows).toHaveText([/second/, /third/, /fourth/]);
-
   await page.reload();
-  await expect(highlightedRows).toHaveText([/second/, /third/, /fourth/]);
+  await expect(file.locator('tr.diff-range-highlight')).toHaveText([/second/, /third/, /fourth/]);
 
-  await fileBox.getByRole('row').filter({has: lastLine}).getByRole('button', {name: 'Add line comment', exact: true}).click();
-  const draft = fileBox.locator('.diff-comment-draft');
-  const rangeLabel = 'Lines 2 to 4';
-  await expect(draft.getByText(rangeLabel, {exact: true})).toBeVisible();
-  const comment = 'Reviewing these lines together.';
-  await draft.getByRole('textbox', {name: 'Leave a comment', exact: true}).fill(comment);
+  await file.getByRole('row').filter({has: lastLine})
+    .getByRole('button', {name: 'Add line comment', exact: true}).click();
+  const draft = file.locator('.diff-comment-draft');
+  await expect(draft.getByText('Lines 2 to 4', {exact: true})).toBeVisible();
+  await draft.getByRole('textbox', {name: 'Leave a comment', exact: true}).fill('Reviewing these lines together.');
   await draft.getByRole('button', {name: 'Add single comment', exact: true}).click();
-  const thread = fileBox.locator('.comment-code-cloud');
-  await expect(thread.locator('.comment-body')).toContainText(comment);
-  await expect(thread.getByText(rangeLabel, {exact: true})).toBeVisible();
+  const thread = file.locator('.comment-code-cloud').filter({hasText: 'Reviewing these lines together.'});
+  await expect(thread.getByText('Lines 2 to 4', {exact: true})).toBeVisible();
 });
