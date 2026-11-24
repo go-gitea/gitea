@@ -234,7 +234,7 @@ type PushOptions struct {
 	Timeout        time.Duration
 }
 
-// Push pushs commits of the given repository to given remote branch.
+// Push pushes commits of the given repository to given remote branch.
 func Push(ctx context.Context, repo RepositoryFacade, opts PushOptions) error {
 	cmd := gitcmd.NewCommand("push")
 	if opts.ForceWithLease != "" {
