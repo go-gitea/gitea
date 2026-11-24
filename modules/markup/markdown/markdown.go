@@ -12,11 +12,13 @@ import (
 	"io"
 	"slices"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/common"
+	"gitea.dev/modules/markup/internal"
 	"gitea.dev/modules/markup/markdown/math"
 	"gitea.dev/modules/setting"
 	giteautil "gitea.dev/modules/util"
@@ -102,8 +104,20 @@ func goldmarkDefaultParser() parser.Parser {
 
 // SpecializedMarkdown sets up the Gitea specific markdown extensions
 func SpecializedMarkdown(ctx *markup.RenderContext) goldmark.Markdown {
-	// TODO: it could use a pool to cache the renderers to reuse them with different contexts
-	// at the moment it is fast enough (see the benchmarks)
+	return newSpecializedMarkdown(&ctx.RenderInternal, currentMathOptions())
+}
+
+func currentMathOptions() math.Options {
+	return math.Options{
+		Enabled:                  setting.Markdown.EnableMath,
+		ParseInlineDollar:        setting.Markdown.MathCodeBlockOptions.ParseInlineDollar,
+		ParseInlineParentheses:   setting.Markdown.MathCodeBlockOptions.ParseInlineParentheses, // this is a bad syntax "\( ... \)", it conflicts with normal markdown escaping
+		ParseBlockDollar:         setting.Markdown.MathCodeBlockOptions.ParseBlockDollar,
+		ParseBlockSquareBrackets: setting.Markdown.MathCodeBlockOptions.ParseBlockSquareBrackets, //  this is a bad syntax "\[ ... \]", it conflicts with normal markdown escaping
+	}
+}
+
+func newSpecializedMarkdown(renderInternal *internal.RenderInternal, mathOptions math.Options) goldmark.Markdown {
 	return goldmark.New(
 		goldmark.WithParser(goldmarkDefaultParser()),
 		goldmark.WithExtensions(
@@ -112,29 +126,52 @@ func SpecializedMarkdown(ctx *markup.RenderContext) goldmark.Markdown {
 			extension.TaskList,
 			extension.DefinitionList,
 			common.FootnoteExtension,
-			math.NewExtension(&ctx.RenderInternal, math.Options{
-				Enabled:                  setting.Markdown.EnableMath,
-				ParseInlineDollar:        setting.Markdown.MathCodeBlockOptions.ParseInlineDollar,
-				ParseInlineParentheses:   setting.Markdown.MathCodeBlockOptions.ParseInlineParentheses, // this is a bad syntax "\( ... \)", it conflicts with normal markdown escaping
-				ParseBlockDollar:         setting.Markdown.MathCodeBlockOptions.ParseBlockDollar,
-				ParseBlockSquareBrackets: setting.Markdown.MathCodeBlockOptions.ParseBlockSquareBrackets, //  this is a bad syntax "\[ ... \]", it conflicts with normal markdown escaping
-			}),
+			math.NewExtension(renderInternal, mathOptions),
 		),
 		goldmark.WithParserOptions(
 			parser.WithAttribute(),
-			parser.WithASTTransformers(util.Prioritized(NewASTTransformer(&ctx.RenderInternal), 10000)),
+			parser.WithASTTransformers(util.Prioritized(NewASTTransformer(renderInternal), 10000)),
 		),
 		goldmark.WithRendererOptions(
 			html.WithUnsafe(),
-			renderer.WithNodeRenderers(util.Prioritized(NewHTMLRenderer(&ctx.RenderInternal), 10)),
+			renderer.WithNodeRenderers(util.Prioritized(NewHTMLRenderer(renderInternal), 10)),
 		),
 	)
+}
+
+// pooledMarkdown is a converter that is reused across renders. Its parts read the
+// render internals from renderInternal, which is set for each render.
+type pooledMarkdown struct {
+	converter      goldmark.Markdown
+	renderInternal internal.RenderInternal
+	mathOptions    math.Options
+}
+
+var markdownPool sync.Pool
+
+// getPooledMarkdown returns a converter for ctx. A pooled converter is reused only
+// when it was built with the current math options.
+func getPooledMarkdown(ctx *markup.RenderContext) *pooledMarkdown {
+	mathOptions := currentMathOptions()
+	pm, _ := markdownPool.Get().(*pooledMarkdown)
+	if pm == nil || pm.mathOptions != mathOptions {
+		pm = &pooledMarkdown{mathOptions: mathOptions}
+		pm.converter = newSpecializedMarkdown(&pm.renderInternal, mathOptions)
+	}
+	pm.renderInternal = ctx.RenderInternal
+	return pm
+}
+
+func putPooledMarkdown(pm *pooledMarkdown) {
+	pm.renderInternal = internal.RenderInternal{}
+	markdownPool.Put(pm)
 }
 
 // render calls goldmark render to convert Markdown to HTML
 // NOTE: The output of this method MUST get sanitized separately!!!
 func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
-	converter := SpecializedMarkdown(ctx)
+	pm := getPooledMarkdown(ctx)
+	converter := pm.converter
 	lw := &limitWriter{
 		w:     output,
 		limit: setting.UI.MaxDisplayFileSize * 3,
@@ -177,6 +214,8 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 		return err
 	}
 
+	// reuse the converter only after a render that succeeded
+	putPooledMarkdown(pm)
 	return nil
 }
 
