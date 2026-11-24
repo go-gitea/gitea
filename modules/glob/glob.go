@@ -56,9 +56,14 @@ func (g *globCompiler) compileChars() error {
 			if g.pos >= len(g.globPattern) {
 				return errors.New("unterminated character class escape")
 			}
-			g.builder.WriteByte('\\')
-			g.builder.WriteRune(g.globPattern[g.pos])
+			r := g.globPattern[g.pos]
 			g.pos++
+			// "-" means a range inside a class, so QuoteMeta alone isn't enough
+			if r == '-' {
+				g.builder.WriteString(`\-`)
+			} else {
+				g.builder.WriteString(regexp.QuoteMeta(string(r)))
+			}
 		} else {
 			g.builder.WriteRune(c)
 		}
@@ -135,8 +140,7 @@ func (g *globCompiler) compile(subPattern bool) error {
 			if g.pos >= len(g.globPattern) {
 				return errors.New("no character to escape")
 			}
-			g.builder.WriteByte('\\')
-			g.builder.WriteRune(g.globPattern[g.pos])
+			g.builder.WriteString(regexp.QuoteMeta(string(g.globPattern[g.pos])))
 			g.pos++
 		case '.', '^', '$', '(', ')', '|':
 			g.builder.WriteByte('\\')
