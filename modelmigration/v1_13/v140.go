@@ -12,7 +12,6 @@ import (
 )
 
 func FixLanguageStatsToSaveSize(_ context.Context, x base.EngineMigration) error {
-	// LanguageStat see models/repo_language_stats.go
 	type LanguageStat struct {
 		Size int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
@@ -22,7 +21,6 @@ func FixLanguageStatsToSaveSize(_ context.Context, x base.EngineMigration) error
 
 	const RepoIndexerTypeStats RepoIndexerType = 1
 
-	// RepoIndexerStatus see models/repo_indexer.go
 	type RepoIndexerStatus struct {
 		IndexerType RepoIndexerType `xorm:"INDEX(s) NOT NULL DEFAULT 0"`
 	}

@@ -14,7 +14,6 @@ import (
 )
 
 func HashAppToken(_ context.Context, x base.EngineMigration) error {
-	// AccessToken see models/token.go
 	type AccessToken struct {
 		ID             int64 `xorm:"pk autoincr"`
 		UID            int64 `xorm:"INDEX"`
@@ -98,7 +97,6 @@ func HashAppToken(_ context.Context, x base.EngineMigration) error {
 }
 
 func resyncHashAppTokenWithUniqueHash(x base.EngineMigration) error {
-	// AccessToken see models/token.go
 	type AccessToken struct {
 		TokenHash string `xorm:"UNIQUE"` // sha256 of token - we will ensure UNIQUE later
 	}

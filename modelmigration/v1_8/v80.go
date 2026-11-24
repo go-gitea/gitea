@@ -10,7 +10,6 @@ import (
 )
 
 func AddIsLockedToIssues(_ context.Context, x base.EngineMigration) error {
-	// Issue see models/issue.go
 	type Issue struct {
 		ID       int64 `xorm:"pk autoincr"`
 		IsLocked bool  `xorm:"NOT NULL DEFAULT false"`

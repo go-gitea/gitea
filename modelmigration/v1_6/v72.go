@@ -12,7 +12,6 @@ import (
 )
 
 func AddReview(_ context.Context, x base.EngineMigration) error {
-	// Review see models/review.go
 	type Review struct {
 		ID          int64 `xorm:"pk autoincr"`
 		Type        string

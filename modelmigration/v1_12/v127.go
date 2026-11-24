@@ -12,7 +12,6 @@ import (
 )
 
 func AddLanguageStats(_ context.Context, x base.EngineMigration) error {
-	// LanguageStat see models/repo_language_stats.go
 	type LanguageStat struct {
 		ID          int64 `xorm:"pk autoincr"`
 		RepoID      int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
@@ -26,7 +25,6 @@ func AddLanguageStats(_ context.Context, x base.EngineMigration) error {
 
 	type RepoIndexerType int
 
-	// RepoIndexerStatus see models/repo_stats_indexer.go
 	type RepoIndexerStatus struct {
 		ID          int64           `xorm:"pk autoincr"`
 		RepoID      int64           `xorm:"INDEX(s)"`
