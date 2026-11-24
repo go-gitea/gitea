@@ -25,6 +25,7 @@ func TestAttention(t *testing.T) {
 	defer svg.MockIcon("octicon-alert")()
 	defer svg.MockIcon("octicon-stop")()
 	defer test.MockVariableValue(&setting.Markdown.MathCodeBlockOptions, setting.MarkdownMathCodeBlockOptions{})()
+	markdown.SharedMarkdownRenderPool.Reset()
 
 	test := func(input, expected string) {
 		result, err := markdown.RenderString(markup.NewTestRenderContext(), input)
