@@ -15,7 +15,7 @@ require (
 	github.com/Azure/go-ntlmssp v0.1.1
 	github.com/Necoro/html2text v0.0.0-20250804200300-7bf1ce1c7347
 	github.com/ProtonMail/go-crypto v1.5.2
-	github.com/PuerkitoBio/goquery v1.13.0
+	github.com/PuerkitoBio/goquery v1.14.0
 	github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.10.0
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/blevesearch/bleve/v2 v2.6.3
@@ -25,7 +25,7 @@ require (
 	github.com/caddyserver/certmagic v0.25.6
 	github.com/charmbracelet/git-lfs-transfer v0.1.1-0.20260812203852-971c0284dc33
 	github.com/coder/websocket v1.8.15
-	github.com/dlclark/regexp2/v2 v2.13.0
+	github.com/dlclark/regexp2/v2 v2.13.1
 	github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707
 	github.com/dustin/go-humanize v1.1.0
 	github.com/editorconfig/editorconfig-core-go/v2 v2.6.5
@@ -39,14 +39,14 @@ require (
 	github.com/go-enry/go-enry/v2 v2.9.6
 	github.com/go-ldap/ldap/v3 v3.4.15
 	github.com/go-redsync/redsync/v4 v4.18.1
-	github.com/go-sql-driver/mysql v1.10.1
+	github.com/go-sql-driver/mysql v1.10.2
 	github.com/go-webauthn/webauthn v0.18.2
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/go-github/v93 v93.0.0
 	github.com/google/licenseclassifier/v2 v2.0.0
-	github.com/google/pprof v0.0.0-20261026192309-dbd0ed30aa88
+	github.com/google/pprof v0.0.0-20261118010117-084b33a85f63
 	github.com/gorilla/feeds v1.2.0
 	github.com/gorilla/sessions v1.4.0
 	github.com/hashicorp/go-version v1.9.0
@@ -62,7 +62,7 @@ require (
 	github.com/meilisearch/meilisearch-go v0.37.0
 	github.com/mholt/archives v0.1.5
 	github.com/microcosm-cc/bluemonday v1.0.27
-	github.com/microsoft/go-mssqldb v1.11.2
+	github.com/microsoft/go-mssqldb v1.12.0
 	github.com/minio/minio-go/v7 v7.4.1
 	github.com/msteinert/pam/v2 v2.1.0
 	github.com/niklasfasching/go-org v1.9.1
@@ -74,7 +74,7 @@ require (
 	github.com/redis/go-redis/v9 v9.23.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
-	github.com/sergi/go-diff v1.4.0
+	github.com/sergi/go-diff v1.4.5
 	github.com/stretchr/testify v1.12.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/ulikunitz/xz v0.5.17
@@ -82,19 +82,19 @@ require (
 	github.com/urfave/cli/v3 v3.14.0
 	github.com/wneessen/go-mail v0.8.2
 	github.com/yuin/goldmark v1.8.7
-	gitlab.com/gitlab-org/api/client-go/v3 v3.48.0
+	gitlab.com/gitlab-org/api/client-go/v3 v3.52.0
 	go.yaml.in/yaml/v4 v4.0.0
 	golang.org/x/crypto v0.59.0
 	golang.org/x/image v0.48.0
 	golang.org/x/mod v0.43.0
-	golang.org/x/net v0.62.0
+	golang.org/x/net v0.63.0
 	golang.org/x/oauth2 v0.38.0
 	golang.org/x/sync v0.25.0
 	golang.org/x/sys v0.50.0
 	golang.org/x/text v0.44.0
 	google.golang.org/grpc v1.85.0
 	google.golang.org/protobuf v1.36.12
-	gopkg.in/ini.v1 v1.67.3
+	gopkg.in/ini.v1 v1.68.0
 	modernc.org/sqlite v1.62.0
 	mvdan.cc/xurls/v2 v2.6.0
 	xorm.io/builder v0.3.13
@@ -107,7 +107,7 @@ require (
 	github.com/RoaringBitmap/roaring/v2 v2.18.2 // indirect
 	github.com/STARRY-S/zip v0.2.3 // indirect
 	github.com/andybalholm/brotli v1.2.7 // indirect
-	github.com/andybalholm/cascadia v1.3.4 // indirect
+	github.com/andybalholm/cascadia v1.3.5 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.24.5 // indirect
