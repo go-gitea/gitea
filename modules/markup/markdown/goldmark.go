@@ -79,7 +79,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 		case *ast.CodeSpan:
 			g.transformCodeSpan(ctx, v, reader)
 		case *ast.FencedCodeBlock:
-			if ctx.RenderOptions.CodeSuggestion != nil && v.Info != nil && isCodeSuggestionInfo(v.Info.Segment.Value(reader.Source())) {
+			if ctx.RenderOptions.CodeSuggestion != nil && isCodeSuggestionFence(v, reader.Source()) {
 				v.SetAttributeString(codeSuggestionAttribute, ctx)
 			}
 			g.transformFencedCodeblock(v, reader)
@@ -157,28 +157,25 @@ func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 }
 
 func (r *HTMLRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
-	fenced, isFenced := n.(*ast.FencedCodeBlock)
-	if isFenced {
-		helpers := markup.DefaultRenderHelperFuncs
-		suggestion, _ := fenced.AttributeString(codeSuggestionAttribute)
-		if ctx, ok := suggestion.(*markup.RenderContext); ok && helpers != nil && helpers.GetCodeSuggestionSource != nil {
-			if !entering {
-				return ast.WalkContinue, nil
-			}
-			anchor := *ctx.RenderOptions.CodeSuggestion
-			original, err := helpers.GetCodeSuggestionSource(ctx, anchor)
-			if err == nil {
-				return ast.WalkContinue, r.renderCodeSuggestion(w, anchor, original, codeSuggestionContent(fenced, source))
-			}
-			if !errors.Is(err, giteautil.ErrNotExist) {
-				log.Error("Unable to render code suggestion: %v", err)
-			}
-			fenced.SetAttributeString(codeSuggestionAttribute, nil)
+	helpers := markup.DefaultRenderHelperFuncs
+	suggestion, _ := n.AttributeString(codeSuggestionAttribute)
+	if ctx, ok := suggestion.(*markup.RenderContext); ok && helpers != nil && helpers.GetCodeSuggestionSource != nil {
+		if !entering {
+			return ast.WalkContinue, nil
 		}
+		anchor := *ctx.RenderOptions.CodeSuggestion
+		original, err := helpers.GetCodeSuggestionSource(ctx, anchor)
+		if err == nil {
+			return ast.WalkContinue, r.renderCodeSuggestion(w, anchor, original, string(n.Lines().Value(source)))
+		}
+		if !errors.Is(err, giteautil.ErrNotExist) {
+			log.Error("Unable to render code suggestion: %v", err)
+		}
+		n.SetAttributeString(codeSuggestionAttribute, nil)
 	}
 	if entering {
 		var language string
-		if isFenced {
+		if fenced, ok := n.(*ast.FencedCodeBlock); ok {
 			language = string(fenced.Language(source))
 		}
 		preAttrs, codeAttrs := highlight.CodeBlockAttributes(language)

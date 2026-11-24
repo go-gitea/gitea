@@ -4,8 +4,11 @@ import DiffFileTreeItem from './DiffFileTreeItem.vue';
 import DiffFileExtensionFilter from './DiffFileExtensionFilter.vue';
 import {onInputDebounce, toggleElem} from '../utils/dom.ts';
 import {diffTreeStore, filterDiffTree, applyFiltersToFileBoxes, extensionFilterToUrl, type DiffFileTreeLocale} from '../modules/diff-file.ts';
+import {setFileFolding} from '../features/file-fold.ts';
 import {onMounted, onUnmounted, computed, watch} from 'vue';
 import {localUserSettings} from '../modules/user-settings.ts';
+import {registerAsyncHashChangeListener, removeAsyncHashChangeListener} from '../modules/hashchange.ts';
+import {parseDiffLineHash} from '../features/repo-diff-selection.ts';
 
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
 
@@ -27,11 +30,28 @@ onMounted(() => {
   // while the tree is hidden there is no control to clear a filter restored from the URL
   if (store.fileTreeIsVisible) applyFiltersToFileBoxes(store); else store.activeExtensions = 'all';
   document.querySelector('.diff-toggle-file-tree-button')!.addEventListener('click', toggleVisibility);
+  registerAsyncHashChangeListener(hashChangeListener);
 });
 
 onUnmounted(() => {
   document.querySelector('.diff-toggle-file-tree-button')!.removeEventListener('click', toggleVisibility);
+  removeAsyncHashChangeListener(hashChangeListener);
 });
+
+function hashChangeListener() {
+  const lines = parseDiffLineHash(window.location.hash);
+  store.selectedItem = lines ? `#diff-${lines.fileHash}` : window.location.hash;
+  expandSelectedFile();
+}
+
+function expandSelectedFile() {
+  // expand file if the selected file is folded
+  if (store.selectedItem) {
+    const box = document.querySelector(store.selectedItem);
+    const folded = box?.getAttribute('data-folded') === 'true';
+    if (folded) setFileFolding(box, box.querySelector('.fold-file')!, false);
+  }
+}
 
 function toggleVisibility() {
   updateVisibility(!store.fileTreeIsVisible);

@@ -76,9 +76,8 @@ export function initMarkupTasklist(elMarkup: HTMLElement): void {
         requestBody.append('content_version', contentVersion);
         const response = await POST(updateUrl, {data: requestBody});
         const data = await response.json();
-        if (!response.ok) {
-          checkbox.checked = !checkbox.checked;
-          showErrorToast(data.errorMessage ?? window.config.i18n.error_occurred);
+        if (response.status === 400) {
+          showErrorToast(data.errorMessage);
           return;
         }
         editContentZone.setAttribute('data-content-version', data.contentVersion);
@@ -87,8 +86,11 @@ export function initMarkupTasklist(elMarkup: HTMLElement): void {
       } catch (err) {
         checkbox.checked = !checkbox.checked;
         console.error('exception occurred when updating markup task list', err);
-      } finally {
-        for (const checkbox of checkboxes) checkbox.removeEventListener('click', preventListener);
+      }
+
+      // Enable input on checkboxes again
+      for (const checkbox of checkboxes) {
+        checkbox.removeEventListener('click', preventListener);
       }
     });
 

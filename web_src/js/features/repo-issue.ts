@@ -7,7 +7,7 @@ import {
   hideElem,
   queryElems,
   showElem,
-  toggleElem,
+  toggleElem, toggleElemClass,
 } from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
@@ -21,9 +21,8 @@ import type {FomanticApiResponse} from '../types.ts';
 import {performFetchActionRequest} from '../modules/fetch-action.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import {
-  diffDraftHolder, registerRepoDiffSelection, repaintDiffRanges, setAddCommentVisibility, type DiffCommentRange,
+  diffDraftHolder, registerRepoDiffSelection, repaintDiffRanges, type DiffCommentRange,
 } from './repo-diff-selection.ts';
-import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
 import {initCodeCommentEditor, refreshCodeSuggestionControls} from './repo-code-suggestion.ts';
 import {trString} from '../modules/i18n.ts';
 
@@ -115,10 +114,8 @@ export function initRepoIssueCommentDelete() {
     // Delete the current comment from the DOM
     const commentHashTag = deleteButton.getAttribute('data-comment-hash-tag')!;
     const deletedComment = document.querySelector(`#${commentHashTag}`);
-    if (deletedComment) {
-      refreshCodeSuggestionControls(deletedComment.querySelector('.code-suggestion-actions'), '');
-      deletedComment.remove();
-    }
+    if (deletedComment) refreshCodeSuggestionControls(deletedComment.querySelector('.code-suggestion-actions'), '');
+    deletedComment?.remove();
 
     // only pr review comments have the "conversation-holder" element, so if it's not found, we can return early
     if (!conversationHolder) return;
@@ -134,12 +131,23 @@ export function initRepoIssueCommentDelete() {
       }
     }
 
-    const codeRow = conversationHolder.closest('tr.add-comment')?.previousElementSibling;
+    // If the conversation holder has no more comments, remove it.
     if (!conversationHolder.querySelector('.comment')) {
-      if (codeRow) setAddCommentVisibility(codeRow, conversationHolder.getAttribute('data-side')!, true);
+      // the conversation holder could appear either on the "Conversation" page, or the "Files Changed" page
+      // on the Conversation page, there is no parent "tr", so no need to do anything for "add-code-comment" button
+      const parentTr = conversationHolder.closest('tr[data-line-type]');
+      if (parentTr) {
+        // allow to add a new comment on the same line after deleting the existing comments
+        // previous element is the "tr" for the code line, and it contains the "add-code-comment" button
+        const isLineSame = parentTr.getAttribute('data-line-type') === 'same';
+        const side = conversationHolder.getAttribute('data-side')!;
+        const selector = isLineSame ? '.add-code-comment' : `.add-code-comment[data-side=${CSS.escape(side)}]`;
+        const addCodeCommentButtons = parentTr.previousElementSibling!.querySelectorAll(selector);
+        toggleElemClass(addCodeCommentButtons, 'tw-invisible', false);
+      }
       conversationHolder.remove();
+      if (parentTr) repaintDiffRanges(parentTr);
     }
-    if (codeRow) repaintDiffRanges(codeRow);
 
     // Check if there is no review content, move the time avatar upward to avoid overlapping the content below.
     if (!parentTimelineGroup?.querySelector('.timeline-item.comment') && !parentTimelineItem?.querySelector('.conversation-holder')) {
@@ -194,27 +202,30 @@ export async function handleCommentReply(el: HTMLElement) {
   return editor;
 }
 
-export function revealReviewComment(comment: HTMLElement) {
-  const group = comment.closest('div[id^="code-comments-"]');
-  if (group) {
-    const id = group.id.slice('code-comments-'.length);
-    hideElem(`#show-outdated-${id}`);
-    showElem(`#code-comments-${id}, #code-preview-${id}, #hide-outdated-${id}`);
-  }
-  const box = comment.closest<HTMLElement>('.diff-file-box[data-folded="true"]');
-  if (box) setFileFolding(box, box.querySelector('.fold-file')!, false);
-  if (window.history.scrollRestoration !== 'manual') window.history.scrollRestoration = 'manual';
-}
-
 export function initRepoPullRequestReview() {
-  registerAsyncHashChangeListener(() => {
-    const hash = window.location.hash;
-    if (!hash.startsWith('#issuecomment-') && !hash.startsWith('#pullrequestreview-')) return;
-    const comment = document.querySelector<HTMLElement>(`#${CSS.escape(hash.slice(1))}`);
-    if (!comment || comment.closest('#diff-file-boxes')) return;
-    revealReviewComment(comment);
-    comment.scrollIntoView({block: 'start'});
-  });
+  const currentHash = window.location.hash;
+  if (currentHash.startsWith('#issuecomment-') || currentHash.startsWith('#pullrequestreview-')) {
+    const commentDiv = document.querySelector(currentHash);
+    if (commentDiv) {
+      // get the name of the parent id
+      const groupID = commentDiv.closest('div[id^="code-comments-"]')?.getAttribute('id');
+      if (groupID?.startsWith('code-comments-')) {
+        const id = groupID.slice(14);
+        const ancestorDiffBox = commentDiv.closest<HTMLElement>('.diff-file-box');
+
+        hideElem(`#show-outdated-${id}`);
+        showElem(`#code-comments-${id}, #code-preview-${id}, #hide-outdated-${id}`);
+        // if the comment box is folded, expand it
+        if (ancestorDiffBox?.getAttribute('data-folded') === 'true') {
+          setFileFolding(ancestorDiffBox, ancestorDiffBox.querySelector('.fold-file')!, false);
+        }
+      }
+      // set scrollRestoration to 'manual' when there is a hash in url, so that the scroll position will not be remembered after refreshing
+      if (window.history.scrollRestoration !== 'manual') window.history.scrollRestoration = 'manual';
+      // wait for a while because some elements (eg: image, editor, etc.) may change the viewport's height.
+      setTimeout(() => commentDiv.scrollIntoView({block: 'start'}), 100);
+    }
+  }
 
   addDelegatedEventListener(document, 'click', '.show-outdated', (el, e) => {
     e.preventDefault();
@@ -277,13 +288,11 @@ async function openDiffComment({start, end}: DiffCommentRange, previousDraft?: H
   const cell = commentRow.querySelector<HTMLTableCellElement>(`.add-comment-${side}`)!;
   if (cell.querySelector(`:scope > .conversation-holder:not(${diffDraftHolder})`)) return;
   const rowDraft = commentRow.querySelector<HTMLElement>(diffDraftHolder);
-  const cellDraft = rowDraft?.parentElement === cell ? rowDraft : undefined;
-  if ((cellDraft && !isRange) || (rowDraft && !cellDraft && rowDraft !== previousDraft)) return;
-  let draft = cellDraft ?? previousDraft;
+  if (rowDraft && (rowDraft.parentElement === cell ? !isRange : rowDraft !== previousDraft)) return;
+  let draft = rowDraft ?? previousDraft;
   const updatingDraft = Boolean(draft);
   if (draft) {
-    const form = draft.querySelector('form');
-    if (!form || form.classList.contains('is-loading')) return;
+    if (!draft.querySelector('form:not(.is-loading)')) return;
     if (draft.parentElement !== cell) cell.append(draft);
   } else {
     draft = document.createElement('div');
@@ -299,19 +308,15 @@ async function openDiffComment({start, end}: DiffCommentRange, previousDraft?: H
       if (!response) return;
       draft.replaceChildren(...createElementFromHTML(await response.text()).children);
     } finally {
-      if (!draft.childElementCount) {
-        draft.remove();
-        repaintDiffRanges(table);
-      }
+      if (!draft.childElementCount) draft.remove();
     }
   }
 
   const form = draft.querySelector('form')!;
   const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement;
-  const sameSide = start.line[0] === line[0];
-  const startSide = start.line[0] === 'L' ? 'previous' : 'proposed';
   const fields = Object.entries({
-    line: line.slice(1), start_line: isRange ? start.line.slice(1) : '', side: side === 'left' ? 'previous' : 'proposed', start_side: startSide,
+    line: line.slice(1), start_line: isRange ? start.line.slice(1) : '',
+    side: side === 'left' ? 'previous' : 'proposed', start_side: start.line[0] === 'L' ? 'previous' : 'proposed',
   });
   const rangeChanged = updatingDraft && fields.some(([name, value]) => field(name).value !== value);
   for (const [name, value] of fields) field(name).value = value;
@@ -319,6 +324,7 @@ async function openDiffComment({start, end}: DiffCommentRange, previousDraft?: H
   const label = form.querySelector('.diff-comment-lines')!;
   toggleElem(label, isRange);
   if (isRange) {
+    const sameSide = start.line[0] === line[0];
     label.textContent = trString(label.getAttribute('data-text-lines')!, sameSide ? start.line.slice(1) : start.line, sameSide ? line.slice(1) : line);
   }
   repaintDiffRanges(table);

@@ -17400,61 +17400,6 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/pulls/{index}/suggestions/apply": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Apply pull request review suggestions in one commit",
-        "operationId": "repoApplyPullReviewSuggestions",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "index of the pull request",
-            "name": "index",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/ApplyPullReviewSuggestionsOptions"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "$ref": "#/responses/ApplyPullReviewSuggestionsResponse"
-          },
-          "default": {
-            "$ref": "#/responses/error"
-          }
-        }
-      }
-    },
     "/repos/{owner}/{repo}/pulls/{index}/update": {
       "post": {
         "produces": [
@@ -25190,46 +25135,6 @@
           "description": "Add a Signed-off-by trailer by the committer at the end of the commit log message.",
           "type": "boolean",
           "x-go-name": "Signoff"
-        }
-      },
-      "x-go-package": "gitea.dev/modules/structs"
-    },
-    "ApplyPullReviewSuggestionsOptions": {
-      "type": "object",
-      "title": "ApplyPullReviewSuggestionsOptions identifies the review comments to apply in one commit.",
-      "required": [
-        "comment_ids"
-      ],
-      "properties": {
-        "comment_ids": {
-          "description": "IDs of the review comments containing the suggestions.",
-          "type": "array",
-          "items": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "x-go-name": "CommentIDs"
-        },
-        "head_commit_id": {
-          "description": "Expected head commit SHA. Defaults to the current head of the pull request.",
-          "type": "string",
-          "x-go-name": "HeadCommitID"
-        },
-        "message": {
-          "description": "Commit message. Defaults to a message based on the selected suggestions.",
-          "type": "string",
-          "x-go-name": "Message"
-        }
-      },
-      "x-go-package": "gitea.dev/modules/structs"
-    },
-    "ApplyPullReviewSuggestionsResponse": {
-      "type": "object",
-      "title": "ApplyPullReviewSuggestionsResponse identifies the resulting commit.",
-      "properties": {
-        "sha": {
-          "type": "string",
-          "x-go-name": "SHA"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -34107,12 +34012,6 @@
       "description": "AnnotatedTag",
       "schema": {
         "$ref": "#/definitions/AnnotatedTag"
-      }
-    },
-    "ApplyPullReviewSuggestionsResponse": {
-      "description": "",
-      "schema": {
-        "$ref": "#/definitions/ApplyPullReviewSuggestionsResponse"
       }
     },
     "Artifact": {

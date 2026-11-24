@@ -200,7 +200,7 @@
 										{{if $.IsSplitStyle}}
 											{{template "repo/diff/section_split" dict "file" $file}}
 										{{else}}
-											{{template "repo/diff/section_unified" dict "file" $file "selectable" true}}
+											{{template "repo/diff/section_unified" dict "file" $file}}
 										{{end}}
 									</table>
 								{{else if $file.IsRenamed}}

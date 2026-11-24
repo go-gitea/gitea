@@ -151,9 +151,7 @@
 	{{template "repo/issue/view_content/sidebar" .}}
 </div>
 
-{{if .Issue.IsPull}}
-	{{template "repo/diff/code_suggestion_modal" dict "HeadCommitID" $.PullHeadCommitID "Origin" "timeline"}}
-{{end}}
+{{template "repo/diff/code_suggestion_modal" dict "HeadCommitID" $.PullHeadCommitID "Origin" "timeline"}}
 
 <template id="issue-comment-editor-template">
 	<form class="ui form comment">

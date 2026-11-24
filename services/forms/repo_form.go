@@ -478,6 +478,7 @@ type CodeCommentForm struct {
 	TreePath       string `form:"path" binding:"Required"`
 	SingleReview   bool   `form:"single_review"`
 	Reply          int64  `form:"reply"`
+	ReplyCommentID int64
 	LatestCommitID string
 	Files          []string
 }
@@ -594,7 +595,7 @@ type AddDeployTokenForm struct {
 type ApplyCodeSuggestionsForm struct {
 	middleware.FormDefaultValidator
 	Origin        string `binding:"Required;In(timeline,diff)"`
-	CommentIDs    string `form:"comment_ids" binding:"Required"` // comma-separated "id:contentVersion" pairs
+	CommentIDs    string `form:"comment_ids" binding:"Required"`
 	HeadCommitID  string `binding:"Required"`
 	CommitSummary string `binding:"MaxSize(100)"`
 	CommitMessage string

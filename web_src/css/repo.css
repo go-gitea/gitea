@@ -845,15 +845,9 @@
   table-layout: fixed;
 }
 
-.lines-num-old,
-.lines-num-new {
-  position: relative;
-}
-
-.diff-line-link::after {
-  content: "";
-  position: absolute;
-  inset: 0;
+.repository .diff-file-box .code-diff tbody tr [data-line-num]::before {
+  content: attr(data-line-num);
+  text-align: right;
 }
 
 .repository .diff-file-box .code-diff tbody tr .lines-type-marker {

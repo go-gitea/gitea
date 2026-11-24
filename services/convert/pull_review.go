@@ -125,9 +125,9 @@ func ToPullReviewComment(ctx context.Context, comment *issues_model.Comment, doe
 	} else {
 		apiComment.LineNum = comment.UnsignedLine()
 	}
-	if comment.CodeStartLine() != comment.Line {
+	if startLine := comment.CodeStartLine(); startLine != comment.Line {
 		apiComment.StartLine = comment.UnsignedCodeStartLine()
-		apiComment.StartSide = util.Iif(comment.CodeStartLine() < 0, "LEFT", "RIGHT")
+		apiComment.StartSide = util.Iif(startLine < 0, "LEFT", "RIGHT")
 	}
 
 	return apiComment

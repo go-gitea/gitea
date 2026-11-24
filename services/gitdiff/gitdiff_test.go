@@ -45,48 +45,6 @@ func TestGetDiffSkipTo(t *testing.T) {
 	assert.Equal(t, "b.txt", diff.Files[0].Name)
 }
 
-func TestGetCodeCommentPatchRange(t *testing.T) {
-	var lines strings.Builder
-	for index := range 39 {
-		lines.WriteString("line " + strconv.Itoa(index+1) + "\n")
-	}
-	base := lines.String()
-	head := strings.NewReplacer(
-		"line 6\n", "changed 6\n",
-		"line 7\n", "changed 7\n",
-		"line 34\n", "line 34\ninserted\nanother\n",
-	).Replace(base)
-	const treePath = "range.txt"
-	repo, err := git.ForceFastImportWithInit(t.Context(), t.TempDir(), []git.FastImportCommit{
-		{Ref: "refs/heads/base", Files: []git.FastImportFile{{Path: treePath, Content: base}}},
-		{Ref: "refs/heads/head", Parent: ":1", Files: []git.FastImportFile{{Path: treePath, Content: head}}},
-	})
-	require.NoError(t, err)
-	gitRepo, err := git.OpenRepository(t.Context(), repo)
-	require.NoError(t, err)
-	defer gitRepo.Close()
-
-	const replacement = "@@ -5,4 +5,4 @@\n line 5\n-line 6\n-line 7\n+changed 6\n+changed 7\n line 8"
-	for _, test := range []struct {
-		name       string
-		start, end int64
-		want       string
-	}{
-		{"NewSideIncludesDeletedRows", 5, 8, replacement},
-		{"OldSideIncludesAddedRows", -5, -8, replacement},
-		{"MixedSides", -7, 7, "@@ -7,1 +6,2 @@\n-line 7\n+changed 6\n+changed 7"},
-		{"ExpandedMixedSides", -38, 41, "@@ -38,2 +40,2 @@\n line 38\n line 39\n"},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			patch, err := GetCodeCommentPatch(t.Context(), gitRepo, "base", "head", treePath, test.end, test.start)
-			require.NoError(t, err)
-			_, hunk, found := strings.Cut(patch, "\n@@ ")
-			require.True(t, found)
-			assert.Equal(t, test.want, "@@ "+hunk)
-		})
-	}
-}
-
 func TestParsePatch_singlefile(t *testing.T) {
 	type testcase struct {
 		name        string
@@ -506,8 +464,7 @@ func TestDiff_LoadComments(t *testing.T) {
 			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
 			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 			diff := setupDefaultDiff()
-			_, err := diff.LoadComments(t.Context(), issue, user, test.showOutdated)
-			assert.NoError(t, err)
+			assert.NoError(t, diff.LoadComments(t.Context(), issue, user, test.showOutdated))
 			assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, test.comments)
 		})
 	}
@@ -673,7 +630,7 @@ func TestGeneratePatchForUnchangedLineFromReader(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			reader := strings.NewReader(tt.content)
-			got, err := generatePatchForUnchangedLineFromReader(reader, tt.treePath, tt.line, tt.contextLines, 0)
+			got, err := generatePatchForUnchangedLineFromReader(reader, tt.treePath, tt.line, tt.contextLines)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {

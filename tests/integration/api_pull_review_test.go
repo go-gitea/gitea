@@ -54,19 +54,18 @@ func TestAPIPullReview(t *testing.T) {
 	})
 	t.Run("General", testAPIPullReviewGeneral)
 	t.Run("CommentReply", testAPIPullReviewCommentReply)
-	t.Run("CrossHunkComment", testAPIPullReviewCrossHunkComment)
 }
 
 func testAPIPullReviewGeneral(t *testing.T) {
 	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
 	assert.NoError(t, pullIssue.LoadAttributes(t.Context()))
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue.RepoID})
-	reviewsURL := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index)
 
 	// test ListPullReviews
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequest(t, http.MethodGet, reviewsURL).AddTokenAuth(token)
+	req := NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	reviews := DecodeJSON(t, resp, []*api.PullReview{})
@@ -117,10 +116,8 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	for _, invalidComment := range []api.CreatePullReviewComment{
 		{Body: "missing path", NewLineNum: 1},
 		{Path: "README.md", Body: "missing line"},
-		{Path: "README.md", Body: "negative start line", NewLineNum: 5, StartLine: -3},
-		{Path: "README.md", Body: "unknown start side", NewLineNum: 5, StartLine: 3, StartSide: "right"},
 	} {
-		req = NewRequestWithJSON(t, http.MethodPost, reviewsURL, &api.CreatePullReviewOptions{
+		req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
 			Comments: []api.CreatePullReviewComment{
 				{Path: "README.md", Body: "comment before invalid anchor", NewLineNum: 1},
 				invalidComment,
@@ -131,37 +128,33 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &issues_model.Comment{IssueID: pullIssue.ID, Content: "comment before invalid anchor"})
 
 	// test CreatePullReview
-	req = NewRequestWithJSON(t, http.MethodPost, reviewsURL, &api.CreatePullReviewOptions{
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
 		Body: "body1",
+		// Event: "" # will result in PENDING
 		Comments: []api.CreatePullReviewComment{
-			{Path: "README.md", Body: "first new line", NewLineNum: 1},
-			{Path: "README.md", Body: "mixed lines", NewLineNum: 3, StartLine: 3, StartSide: "LEFT"},
-			{Path: "README.md", Body: "old lines", OldLineNum: 2, StartLine: 1},
-			{Path: "iso-8859-1.txt", Body: "this line contains a non-utf-8 character", NewLineNum: 1},
+			{
+				Path:       "README.md",
+				Body:       "first new line",
+				OldLineNum: 0,
+				NewLineNum: 1,
+			}, {
+				Path:       "README.md",
+				Body:       "first old line",
+				OldLineNum: 1,
+				NewLineNum: 0,
+			}, {
+				Path:       "iso-8859-1.txt",
+				Body:       "this line contains a non-utf-8 character",
+				OldLineNum: 0,
+				NewLineNum: 1,
+			},
 		},
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	review = DecodeJSON(t, resp, &api.PullReview{})
 	assert.EqualValues(t, 6, review.ID)
 	assert.EqualValues(t, "PENDING", review.State)
-	assert.Equal(t, 4, review.CodeCommentsCount)
-
-	req = NewRequestf(t, http.MethodGet, "%s/%d/comments", reviewsURL, review.ID).AddTokenAuth(token)
-	reviewComments = DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []*api.PullReviewComment{})
-	type commentRange struct {
-		start, newEnd, oldEnd uint64
-		side                  string
-	}
-	ranges := make(map[string]commentRange, len(reviewComments))
-	for _, comment := range reviewComments {
-		ranges[comment.Body] = commentRange{comment.StartLine, comment.LineNum, comment.OldLineNum, comment.StartSide}
-	}
-	assert.Equal(t, map[string]commentRange{
-		"first new line": {0, 1, 0, ""},
-		"old lines":      {1, 0, 2, "LEFT"},
-		"mixed lines":    {3, 3, 0, "LEFT"},
-		"this line contains a non-utf-8 character": {0, 1, 0, ""},
-	}, ranges)
+	assert.Equal(t, 3, review.CodeCommentsCount)
 
 	// test SubmitPullReview
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d", repo.OwnerName, repo.Name, pullIssue.Index, review.ID), &api.SubmitPullReviewOptions{
@@ -172,7 +165,7 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	review = DecodeJSON(t, resp, &api.PullReview{})
 	assert.EqualValues(t, 6, review.ID)
 	assert.EqualValues(t, "APPROVED", review.State)
-	assert.Equal(t, 4, review.CodeCommentsCount)
+	assert.Equal(t, 3, review.CodeCommentsCount)
 
 	unittest.AssertCount(t, &issues_model.Comment{ReviewID: review.ID, Type: issues_model.CommentTypeReview}, 1)
 	reviewComment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ReviewID: review.ID, Type: issues_model.CommentTypeReview})
@@ -211,6 +204,7 @@ func testAPIPullReviewGeneral(t *testing.T) {
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
+	reviewsURL := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index)
 	pendingComment := []api.CreatePullReviewComment{{Path: "README.md", Body: "pending comment", NewLineNum: 1}}
 	req = NewRequestWithJSON(t, http.MethodPost, reviewsURL, &api.CreatePullReviewOptions{Body: "draft"}).AddTokenAuth(token)
 	pendingReviewURL := fmt.Sprintf("%s/%d", reviewsURL, DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{}).ID)
@@ -446,7 +440,7 @@ func TestAPIPullReviewCommentResolveEndpoints(t *testing.T) {
 	latestCommitID, err := gitRepo.GetRefCommitID(t.Context(), pullIssue.PullRequest.GetGitHeadRefName())
 	require.NoError(t, err)
 
-	codeComment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, pullIssue, false, latestCommitID, issues_model.CreateCommentOptions{LineNum: 1, Content: "resolve comment", TreePath: "README.md"})
+	codeComment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, pullIssue, 1, "resolve comment", "README.md", false, 0, latestCommitID, nil)
 	require.NoError(t, err)
 	require.NotNil(t, codeComment)
 
@@ -591,32 +585,35 @@ func TestAPIPullReviewStayDismissed(t *testing.T) {
 func testAPIPullReviewCommentReply(t *testing.T) {
 	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
 	require.NoError(t, pullIssue.LoadRepo(t.Context()))
-	require.NoError(t, pullIssue.LoadPullRequest(t.Context()))
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	gitRepo, err := git.OpenRepository(t.Context(), pullIssue.Repo)
-	require.NoError(t, err)
-	defer gitRepo.Close()
-
-	commitID, err := gitRepo.GetRefCommitID(t.Context(), pullIssue.PullRequest.GetGitHeadRefName())
-	require.NoError(t, err)
-
-	parent, err := pull_service.CreateCodeComment(t.Context(), doer, gitRepo, pullIssue, false, commitID, issues_model.CreateCommentOptions{LineNum: 1, Content: "parent comment", TreePath: "README.md"})
-	require.NoError(t, err)
-	require.NotZero(t, parent.ReviewID)
-
 	repo := pullIssue.Repo
-	session := loginUser(t, doer.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	token := getUserToken(t, repo.OwnerName, auth_model.AccessTokenScopeWriteRepository)
+	pullURL := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", repo.OwnerName, repo.Name, pullIssue.Index)
+	req := NewRequestWithJSON(t, http.MethodPost, pullURL+"/reviews", &api.CreatePullReviewOptions{
+		Event: api.ReviewStateComment,
+		Comments: []api.CreatePullReviewComment{
+			{Path: "README.md", Body: "parent comment", NewLineNum: 3, StartLine: 1, StartSide: "LEFT"},
+		},
+	}).AddTokenAuth(token)
+	review := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{})
+	req = NewRequestf(t, http.MethodGet, "%s/reviews/%d/comments", pullURL, review.ID).AddTokenAuth(token)
+	comments := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []*api.PullReviewComment{})
+	require.Len(t, comments, 1)
+	parent := comments[0]
+	assert.EqualValues(t, 1, parent.StartLine)
+	assert.Equal(t, "LEFT", parent.StartSide)
+	assert.EqualValues(t, 3, parent.LineNum)
 
-	url := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/comments/%d/replies", repo.OwnerName, repo.Name, pullIssue.Index, parent.ID)
+	url := fmt.Sprintf("%s/comments/%d/replies", pullURL, parent.ID)
 
-	// happy path
-	req := NewRequestWithJSON(t, http.MethodPost, url, &api.CreatePullReviewCommentReplyOptions{Body: "the reply"}).AddTokenAuth(token)
+	req = NewRequestWithJSON(t, http.MethodPost, url, &api.CreatePullReviewCommentReplyOptions{Body: "the reply"}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	reply := DecodeJSON(t, resp, &api.PullReviewComment{})
 	assert.Equal(t, "the reply", reply.Body)
 	assert.Equal(t, parent.ReviewID, reply.ReviewID)
 	assert.Equal(t, "README.md", reply.Path)
+	assert.Equal(t, parent.StartLine, reply.StartLine)
+	assert.Equal(t, parent.StartSide, reply.StartSide)
+	assert.Equal(t, parent.LineNum, reply.LineNum)
 
 	// empty body — caught by binding
 	req = NewRequestWithJSON(t, http.MethodPost, url, &api.CreatePullReviewCommentReplyOptions{}).AddTokenAuth(token)
@@ -633,40 +630,6 @@ func testAPIPullReviewCommentReply(t *testing.T) {
 	wrongPR := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/comments/%d/replies", repo.OwnerName, repo.Name, pullIssue.Index, otherCodeComment.ID)
 	req = NewRequestWithJSON(t, http.MethodPost, wrongPR, &api.CreatePullReviewCommentReplyOptions{Body: "x"}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
-}
-
-func testAPIPullReviewCrossHunkComment(t *testing.T) {
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 5})
-	require.NoError(t, pr.LoadBaseRepo(t.Context()))
-	repo := pr.BaseRepo
-	gitRepo, err := git.OpenRepository(t.Context(), repo)
-	require.NoError(t, err)
-	defer gitRepo.Close()
-
-	const treePath, baseRef = "range.txt", "refs/heads/review-range-base"
-	contextLines := strings.Repeat("context\n", 12)
-	require.NoError(t, git.ForceFastImport(t.Context(), repo, []git.FastImportCommit{
-		{Ref: baseRef, Parent: pr.MergeBase, Files: []git.FastImportFile{{Path: treePath, Content: "first old\n" + contextLines + "last old\n"}}},
-		{Ref: pr.GetGitHeadRefName(), Parent: ":1", Files: []git.FastImportFile{{Path: treePath, Content: "first new\n" + contextLines + "last new\n"}}},
-	}))
-	pr.MergeBase, err = gitRepo.GetRefCommitID(t.Context(), baseRef)
-	require.NoError(t, err)
-	require.NoError(t, pr.UpdateCols(t.Context(), "merge_base"))
-
-	token := getUserToken(t, repo.OwnerName, auth_model.AccessTokenScopeWriteRepository)
-	reviewsURL := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pr.Index)
-	req := NewRequestWithJSON(t, http.MethodPost, reviewsURL, &api.CreatePullReviewOptions{
-		Event:    api.ReviewStateComment,
-		Comments: []api.CreatePullReviewComment{{Path: treePath, Body: "cross-hunk range", StartLine: 1, NewLineNum: 14}},
-	}).AddTokenAuth(token)
-	review := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{})
-	req = NewRequestf(t, http.MethodGet, "%s/%d/comments", reviewsURL, review.ID).AddTokenAuth(token)
-	comments := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []*api.PullReviewComment{})
-	require.Len(t, comments, 1)
-	assert.EqualValues(t, 1, comments[0].StartLine)
-	assert.Equal(t, "RIGHT", comments[0].StartSide)
-	assert.EqualValues(t, 14, comments[0].LineNum)
-	assert.Equal(t, "@@ -11,4 +11,4 @@\n context\n context\n context\n-last old\n+last new", comments[0].DiffHunk)
 }
 
 func reviewsCountCheck(t *testing.T, name string, issueID, reviewerID int64, expectedDismissed, expectedRequested, expectedTotal int, expectApproval bool) {

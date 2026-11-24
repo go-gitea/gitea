@@ -209,33 +209,25 @@ func UpdateCommentContent(ctx *context.Context) {
 
 	if comment.Content != "" {
 		if err := comment.RenderContent(ctx, ctx.Repo.Repository); err != nil {
-			ctx.JSONErrorAuto(err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
-	if comment.Type == issues_model.CommentTypeCode && comment.CodeCommitID() != "" {
-		if err := loadCodeSuggestionStates(ctx, comment.Issue, issues_model.CommentList{comment}); err != nil {
+	response := map[string]any{
+		"content":        commentContentHTML(ctx, comment.RenderedContent),
+		"contentVersion": comment.ContentVersion,
+		"attachments":    attachmentsHTML(ctx, comment.Attachments, comment.Content),
+	}
+	if comment.Type == issues_model.CommentTypeCode {
+		pull_service.LoadCodeSuggestionStates(ctx, ctx.Doer, comment.Issue, issues_model.CommentList{comment})
+		controls, err := ctx.RenderToHTML("repo/diff/code_suggestion_controls", comment)
+		if err != nil {
 			ctx.JSONErrorAuto(err)
 			return
 		}
+		response["suggestionControls"] = controls
 	}
-	content, err := ctx.RenderToHTML("repo/diff/comment_body_content", comment)
-	if err != nil {
-		ctx.JSONErrorAuto(err)
-		return
-	}
-	controls, err := ctx.RenderToHTML("repo/diff/code_suggestion_controls", comment)
-	if err != nil {
-		ctx.JSONErrorAuto(err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, map[string]any{
-		"content":            content,
-		"suggestionControls": controls,
-		"contentVersion":     comment.ContentVersion,
-		"attachments":        attachmentsHTML(ctx, comment.Attachments, comment.Content),
-	})
+	ctx.JSON(http.StatusOK, response)
 }
 
 // DeleteComment delete comment of issue

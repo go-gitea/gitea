@@ -63,10 +63,9 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 		ctx.ServerErrorAuto(err)
 		return
 	}
+	ctx.Data["AfterCommitID"] = pullHeadCommitID
 	ctx.Data["ReviewCommitID"] = pullHeadCommitID // it's questionable why it only needs the head commit ID but not correct "AfterCommitID" (single commit review)
-	side := ctx.FormString("side")
-	ctx.Data["CodeCommentSide"] = side
-	ctx.Data["CanSuggestCode"] = side == "proposed" && ctx.FormString("start_side", "proposed") == "proposed" &&
+	ctx.Data["CanSuggestCode"] = ctx.FormString("side") == "proposed" && ctx.FormString("start_side", "proposed") == "proposed" &&
 		ctx.FormBool("all_commits") && ctx.Repo.Permission.CanRead(unit.TypeCode)
 	upload.AddUploadContext(ctx, "comment")
 	ctx.HTML(http.StatusOK, tplNewComment)
@@ -117,29 +116,31 @@ func CreateCodeComment(ctx *context.Context) {
 		ctx.JSONErrorAuto(util.NewInvalidArgumentErrorf("code comment line numbers must be nonnegative"))
 		return
 	}
-	signedStartLine, signedLine := form.StartLine, form.Line
-	if cmp.Or(form.StartSide, form.Side) == "previous" {
-		signedStartLine = -signedStartLine
+	var parent *issues_model.Comment
+	if form.SingleReview && form.ReplyCommentID != 0 {
+		var err error
+		parent, err = issues_model.GetCommentByID(ctx, form.ReplyCommentID)
+		if err != nil {
+			ctx.JSONErrorAuto(err)
+			return
+		}
 	}
-	if form.Side == "previous" {
-		signedLine = -signedLine
-	}
-
-	var attachments []string
-	if setting.Attachment.Enabled {
-		attachments = form.Files
-	}
-
-	comment, err := pull_service.CreateCodeComment(ctx, ctx.Doer, ctx.Repo.GitRepo, issue, !form.SingleReview, form.LatestCommitID, issues_model.CreateCommentOptions{
-		LineNum:       signedLine,
+	comment, err := pull_service.CreateCodeCommentWithOptions(ctx, ctx.Doer, ctx.Repo.GitRepo, issue, !form.SingleReview, form.LatestCommitID, parent, issues_model.CreateCommentOptions{
+		LineNum:       util.Iif(form.Side == "previous", -form.Line, form.Line),
 		Content:       form.Content,
 		TreePath:      form.TreePath,
 		ReviewID:      form.Reply,
-		Attachments:   attachments,
-		CodeStartLine: signedStartLine,
+		Attachments:   util.Iif(setting.Attachment.Enabled, form.Files, nil),
+		CodeStartLine: util.Iif(cmp.Or(form.StartSide, form.Side) == "previous", -form.StartLine, form.StartLine),
 	})
 	if err != nil {
 		ctx.JSONErrorAuto(err)
+		return
+	}
+
+	if comment == nil {
+		log.Trace("Comment not created: %-v #%d[%d]", ctx.Repo.Repository, issue.Index, issue.ID)
+		ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		return
 	}
 
@@ -214,6 +215,11 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return
 	}
 
+	if err := comments.LoadAttachments(ctx); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+
 	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
 	upload.AddUploadContext(ctx, "comment")
 
@@ -223,15 +229,17 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return
 	}
 	ctx.Data["Issue"] = comment.Issue
-	if err = loadCodeSuggestionStates(ctx, comment.Issue, comments); err != nil {
+	if err = comment.Issue.LoadPullRequest(ctx); err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}
+	pull_service.LoadCodeSuggestionStates(ctx, ctx.Doer, comment.Issue, comments)
 	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(ctx, comment.Issue.PullRequest.GetGitHeadRefName())
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}
+	ctx.Data["AfterCommitID"] = pullHeadCommitID
 	ctx.Data["ReviewCommitID"] = pullHeadCommitID // it's questionable why it only needs the head commit ID but not correct "AfterCommitID" (single commit review)
 	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
@@ -495,8 +503,12 @@ func ApplyCodeSuggestions(ctx *context.Context) {
 	if form == nil {
 		return
 	}
-	var commentIDs []int64
-	contentVersions := map[int64]int{}
+	opts := files_service.ApplyCodeSuggestionsOptions{
+		ContentVersions: map[int64]int{},
+		HeadCommitID:    form.HeadCommitID,
+		Summary:         form.CommitSummary,
+		Description:     form.CommitMessage,
+	}
 	for item := range strings.SplitSeq(form.CommentIDs, ",") {
 		idStr, versionStr, _ := strings.Cut(item, ":")
 		id, idErr := strconv.ParseInt(idStr, 10, 64)
@@ -505,17 +517,10 @@ func ApplyCodeSuggestions(ctx *context.Context) {
 			ctx.HTTPError(http.StatusBadRequest)
 			return
 		}
-		commentIDs = append(commentIDs, id)
-		contentVersions[id] = version
+		opts.CommentIDs = append(opts.CommentIDs, id)
+		opts.ContentVersions[id] = version
 	}
-	_, err = files_service.ApplyCodeSuggestions(ctx, ctx.Doer, pr.ID, files_service.ApplyCodeSuggestionsOptions{
-		CommentIDs:      commentIDs,
-		ContentVersions: contentVersions,
-		HeadCommitID:    form.HeadCommitID,
-		Summary:         form.CommitSummary,
-		Description:     form.CommitMessage,
-	})
-	if err != nil {
+	if err := files_service.ApplyCodeSuggestions(ctx, ctx.Doer, pr, opts); err != nil {
 		ctx.JSONErrorAuto(err)
 		return
 	}
@@ -523,13 +528,6 @@ func ApplyCodeSuggestions(ctx *context.Context) {
 	if form.Origin == "diff" {
 		ctx.JSONRedirect(pr.Issue.Link() + "/files")
 	} else {
-		ctx.JSONRedirect(pr.Issue.Link() + "#" + issues_model.CommentHashTag(commentIDs[0]))
+		ctx.JSONRedirect(pr.Issue.Link() + "#" + issues_model.CommentHashTag(opts.CommentIDs[0]))
 	}
-}
-
-func loadCodeSuggestionStates(ctx *context.Context, issue *issues_model.Issue, comments issues_model.CommentList) error {
-	if err := issue.LoadPullRequest(ctx); err != nil {
-		return err
-	}
-	return pull_service.LoadCodeSuggestionStates(ctx, ctx.Doer, issue.PullRequest, comments)
 }

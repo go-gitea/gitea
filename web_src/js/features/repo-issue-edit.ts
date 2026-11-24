@@ -15,15 +15,14 @@ async function onConvContentEdit(clickTarget: HTMLElement) {
   const commentContent = clickTarget.closest('.comment-header')!.nextElementSibling!;
   const editContentZone = commentContent.querySelector('.edit-content-zone')!;
   let renderContent = commentContent.querySelector('.render-content')!;
-  const suggestionActions = commentContent.querySelector('.code-suggestion-actions');
+  const suggestionActions = commentContent.querySelectorAll(':scope > .code-suggestion-actions');
   const rawContent = commentContent.querySelector('.raw-content')!;
 
   let comboMarkdownEditor : ComboMarkdownEditor;
 
   const cancelAndReset = (e: Event) => {
     e.preventDefault();
-    showElem(renderContent);
-    if (suggestionActions) showElem(suggestionActions);
+    showElem([renderContent, ...suggestionActions]);
     hideElem(editContentZone);
     comboMarkdownEditor.dropzoneReloadFiles();
   };
@@ -61,7 +60,7 @@ async function onConvContentEdit(clickTarget: HTMLElement) {
       newRenderContent.innerHTML = data.content;
       renderContent.replaceWith(newRenderContent);
       renderContent = newRenderContent;
-      refreshCodeSuggestionControls(suggestionActions, data.suggestionControls);
+      refreshCodeSuggestionControls(suggestionActions.item(0), data.suggestionControls);
 
       rawContent.textContent = comboMarkdownEditor.value();
 
@@ -80,14 +79,13 @@ async function onConvContentEdit(clickTarget: HTMLElement) {
       console.error(error);
     } finally {
       renderContent.classList.remove('is-loading');
-      if (suggestionActions) showElem(suggestionActions);
+      showElem(suggestionActions);
     }
   };
 
   // Show write/preview tab and copy raw content as needed
   showElem(editContentZone);
-  hideElem(renderContent);
-  if (suggestionActions) hideElem(suggestionActions);
+  hideElem([renderContent, ...suggestionActions]);
 
   comboMarkdownEditor = getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'))!;
   if (!comboMarkdownEditor) {

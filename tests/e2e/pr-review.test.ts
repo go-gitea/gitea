@@ -1,4 +1,3 @@
-import {createHash} from 'node:crypto';
 import {env} from 'node:process';
 import {test, expect, type APIRequestContext} from '@playwright/test';
 import {
@@ -157,60 +156,43 @@ async function createReviewDiff(request: APIRequestContext) {
   return {owner, repo, index, url: `/${owner}/${repo}/pulls/${index}/files`};
 }
 
-test('previews and applies a code suggestion from the PR diff', async ({page, request}) => {
-  const reviewer = `rv-sugg-reviewer-${randomString(8)}`;
-  const [{owner, repo, index, url}] = await Promise.all([createReviewDiff(request), apiCreateUser(request, reviewer), login(page)]);
+test('applies a code suggestion from the PR diff', async ({page, request}) => {
+  const [{owner, repo, index, url}] = await Promise.all([createReviewDiff(request), login(page)]);
   await apiCreateReview(request, owner, repo, index, {
     comments: [{path: reviewFile, body: '```suggestion\nsecond revised\n```', new_position: 2}],
-    headers: apiUserHeaders(reviewer),
   });
 
   await page.goto(url);
   const file = page.locator(`.diff-file-box[data-new-filename="${reviewFile}"]`);
-  await expect(file.locator('.code-suggestion .added-code')).toHaveText('revised');
-  await file.getByRole('button', {name: 'Add line comment', exact: true}).first().click();
-  const draft = file.locator('.diff-comment-draft');
-  const addSuggestion = draft.getByRole('button', {name: 'Add a suggestion', exact: true});
-  const editor = draft.getByRole('textbox', {name: 'Leave a comment', exact: true});
-  await addSuggestion.click();
-  await expect(editor).toHaveValue('```suggestion\nfirst\n```');
-  await editor.fill('```suggestion\nfirst revised\n```');
-  await draft.getByText('Preview', {exact: true}).click();
-  await expect(draft.locator('.code-suggestion .added-code')).toHaveText('revised');
-  await draft.getByText('Write', {exact: true}).click();
-  await editor.clear();
-  await draft.locator('[data-tooltip-content="Use the legacy editor instead"]').click();
-  await draft.locator('.editor-toolbar').getByRole('button', {name: 'Add a suggestion', exact: true}).click();
-  await expect(draft.locator('textarea[name="content"]')).toHaveValue('```suggestion\nfirst\n```');
-  await draft.getByRole('button', {name: 'Cancel', exact: true}).click();
+  await expect(file.getByText('second revised', {exact: true})).toBeVisible();
+  await file.getByRole('row').filter({has: page.getByRole('link', {name: 'R1', exact: true})})
+    .getByRole('button', {name: 'Add line comment', exact: true}).click();
+  await file.getByRole('button', {name: 'Add a suggestion', exact: true}).click();
+  await expect(file.getByRole('textbox', {name: 'Leave a comment', exact: true})).toHaveValue('```suggestion\nfirst\n```');
+  await file.getByRole('button', {name: 'Cancel', exact: true}).click();
 
   await file.getByRole('button', {name: 'Apply suggestion', exact: true}).click();
   await page.getByRole('dialog').getByRole('button', {name: 'Commit suggestion', exact: true}).click();
-  await expect(file.locator('table[data-new-comment-url] > tbody > tr.add-code > .lines-code .code-inner')).toHaveText([
-    'first', 'second revised', 'third', 'fourth',
-  ]);
+  const updatedLine = file.getByRole('row').filter({has: page.getByRole('link', {name: 'R2', exact: true})});
+  await expect(updatedLine.getByText('second revised', {exact: true})).toBeVisible();
 });
 
 test('pr diff line selection and links', async ({page, request}) => {
   const [{url}] = await Promise.all([createReviewDiff(request), login(page)]);
   await page.goto(url);
   const file = page.locator(`.diff-file-box[data-new-filename="${reviewFile}"]`);
-  const proposed = file.locator('td.lines-num-new');
-  const lastLine = page.getByRole('link', {name: '4', exact: true});
-  const fileHash = createHash('sha1').update(reviewFile).digest('hex');
+  const lastLine = page.getByRole('link', {name: 'R4', exact: true});
 
-  await proposed.getByRole('link', {name: '2', exact: true}).click();
-  await proposed.locator(lastLine).click({modifiers: ['Shift']});
-  await expect(page).toHaveURL((url) => url.hash === `#diff-${fileHash}R2-R4`);
+  await file.getByRole('link', {name: 'R2', exact: true}).click();
+  await file.locator(lastLine).click({modifiers: ['Shift']});
+  await expect(page).toHaveURL(/#diff-[a-f0-9]{40}R2-R4$/);
   await page.reload();
   await expect(file.locator('tr.diff-range-highlight')).toHaveText([/second/, /third/, /fourth/]);
 
-  await file.getByRole('row').filter({has: lastLine})
-    .getByRole('button', {name: 'Add line comment', exact: true}).click();
-  const draft = file.locator('.diff-comment-draft');
-  await expect(draft.getByText('Lines 2 to 4', {exact: true})).toBeVisible();
-  await draft.getByRole('textbox', {name: 'Leave a comment', exact: true}).fill('Reviewing these lines together.');
-  await draft.getByRole('button', {name: 'Add single comment', exact: true}).click();
-  const thread = file.locator('.comment-code-cloud').filter({hasText: 'Reviewing these lines together.'});
-  await expect(thread.getByText('Lines 2 to 4', {exact: true})).toBeVisible();
+  await file.getByRole('row').filter({has: lastLine}).getByRole('button', {name: 'Add line comment', exact: true}).click();
+  await file.getByRole('textbox', {name: 'Leave a comment', exact: true}).fill('Reviewing these lines together.');
+  const submit = file.getByRole('button', {name: 'Add single comment', exact: true});
+  await submit.click();
+  await expect(submit).toHaveCount(0);
+  await expect(file.getByText('Lines 2 to 4', {exact: true})).toBeVisible();
 });

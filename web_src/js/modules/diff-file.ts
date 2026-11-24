@@ -35,7 +35,7 @@ type DiffFileTree = {
   diffFileTree: DiffFileTreeData;
   fullNameMap: Record<string, DiffTreeEntry>
   fileTreeIsVisible: boolean;
-  selectedFileHash: string;
+  selectedItem: string;
   filenameFilterQuery: string;
   activeExtensions: ExtensionFilter;
 };
@@ -68,10 +68,6 @@ export function diffTreeStore() {
   return diffTreeStoreReactive;
 }
 
-export function selectDiffTreeFile(fileHash: string) {
-  if (pageData.DiffFileTree) diffTreeStore().selectedFileHash = fileHash;
-}
-
 export function diffTreeStoreSetViewed(store: Reactive<DiffFileTree>, fullName: string, viewed: boolean) {
   const entry = store.fullNameMap[fullName];
   if (!entry) return;
@@ -97,7 +93,7 @@ export function reactiveDiffTreeStore(data: DiffFileTreeData, folderIcon: string
     folderIcon,
     folderOpenIcon,
     fileTreeIsVisible: false,
-    selectedFileHash: '',
+    selectedItem: '',
     filenameFilterQuery: '',
     activeExtensions: 'all',
     fullNameMap: {},

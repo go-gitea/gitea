@@ -36,29 +36,41 @@ func GetRawDiff(ctx context.Context, repo *Repository, commitID string, diffType
 	return cmd.WithStdoutCopy(writer).RunWithStderr(ctx)
 }
 
+// GetFileDiffCutAroundLine cuts the old or new part of the diff of a file around a specific line number
+func GetFileDiffCutAroundLine(
+	ctx context.Context, repo *Repository, startCommit, endCommit, treePath string,
+	line int64, old bool, numbersOfLine int,
+) (ret string, retErr error) {
+	cut, err := getFileDiffCut(ctx, repo, startCommit, endCommit, treePath, line, old, numbersOfLine, 0)
+	return cut.Patch, err
+}
+
 type FileDiffCut struct {
 	Patch                            string
 	OldContextStart, NewContextStart int64
 }
 
-// GetFileDiffCutAroundLine cuts the diff through line, starting at startLine when given.
-func GetFileDiffCutAroundLine(
-	ctx context.Context, repo *Repository, startCommit, endCommit, treePath string,
-	line, startLine int64, numbersOfLine int,
-) (FileDiffCut, error) {
+func GetFileDiffCutAroundRange(ctx context.Context, repo *Repository, startCommit, endCommit, treePath string, startLine, line int64) (FileDiffCut, error) {
+	return getFileDiffCut(ctx, repo, startCommit, endCommit, treePath, max(line, -line), line < 0, 0, startLine)
+}
+
+func getFileDiffCut(ctx context.Context, repo *Repository, startCommit, endCommit, treePath string, line int64, old bool, numbersOfLine int, startLine int64) (FileDiffCut, error) {
+	if treePath != "" {
+		treePath = ":(literal)" + treePath
+	}
 	cmd, err := getRepoRawDiffForFileCmd(ctx, repo, startCommit, endCommit, RawDiffNormal, treePath)
 	if err != nil {
-		return FileDiffCut{}, fmt.Errorf("GetFileDiffCutAroundLine: %w", err)
+		return FileDiffCut{}, fmt.Errorf("getRepoRawDiffForFileCmd: %w", err)
 	}
 	stdoutReader, stdoutClose := cmd.MakeStdoutPipe()
 	defer stdoutClose()
 	var cut FileDiffCut
 	cmd.WithPipelineFunc(func(_ctx gitcmd.Context) error {
-		cut, err = cutDiffAroundLine(stdoutReader, max(line, -line), line < 0, numbersOfLine, startLine)
+		cut, err = cutDiffAroundLine(stdoutReader, line, old, numbersOfLine, startLine)
 		return err
 	})
-	runErr := cmd.RunWithStderr(ctx)
-	return cut, runErr
+	err = cmd.RunWithStderr(ctx)
+	return cut, err
 }
 
 type FileDiffHunk struct {
@@ -76,49 +88,45 @@ func parseFileDiffHunk(header string) FileDiffHunk {
 }
 
 // GetFileDiffHunks returns changes with 1-based starts, pointing to the next line on an empty side.
-func GetFileDiffHunks(ctx context.Context, repo *Repository, startCommit, endCommit, path string) (hunks []FileDiffHunk, err error) {
+func GetFileDiffHunks(ctx context.Context, repo *Repository, startCommit, endCommit, path string) ([]FileDiffHunk, error) {
 	if startCommit == endCommit {
 		return nil, nil
 	}
-	cmd, err := getRepoRawDiffForFileCmd(ctx, repo, startCommit, endCommit, RawDiffNormal, ":(literal)"+path,
-		gitcmd.TrustedCmdArgs{"--unified=0", "--inter-hunk-context=0", "--text", "--no-textconv", "--no-ext-diff", "--no-color"})
-	if err != nil {
-		return nil, err
-	}
+	cmd := gitcmd.NewCommand("diff", "--unified=0", "--inter-hunk-context=0", "--text", "--no-textconv", "--no-ext-diff", "--no-color").
+		WithRepo(repo).AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold).
+		AddDynamicArguments(startCommit, endCommit).AddDashesAndList(":(literal)" + path)
 	stdout, closeStdout := cmd.MakeStdoutPipe()
 	defer closeStdout()
+	var hunks []FileDiffHunk
 	cmd.WithPipelineFunc(func(_ctx gitcmd.Context) error {
 		reader := bufio.NewReader(stdout)
 		var continued bool
 		for {
 			line, more, err := reader.ReadLine()
-			if err == io.EOF {
+			switch {
+			case err == io.EOF:
 				return nil
-			}
-			if err != nil {
+			case err != nil:
 				return err
-			}
-			if !continued && bytes.HasPrefix(line, []byte("@@ ")) {
+			case !continued && bytes.HasPrefix(line, []byte("@@ ")):
 				hunk := parseFileDiffHunk(string(line))
-				if hunk.OldCount == 0 {
-					hunk.OldStart++
-				}
-				if hunk.NewCount == 0 {
-					hunk.NewStart++
-				}
+				hunk.OldStart += util.Iif[int64](hunk.OldCount == 0, 1, 0)
+				hunk.NewStart += util.Iif[int64](hunk.NewCount == 0, 1, 0)
 				hunks = append(hunks, hunk)
 			}
 			continued = more
 		}
 	})
-	err = cmd.RunWithStderr(ctx)
+	err := cmd.RunWithStderr(ctx)
 	if gitcmd.IsStderr(err, gitcmd.StderrBadObject) {
 		return nil, ErrNotExist{ID: startCommit}
 	}
 	return hunks, err
 }
 
-func getRepoRawDiffForFileCmd(ctx context.Context, repo *Repository, startCommit, endCommit string, diffType RawDiffType, file string, diffOptions ...gitcmd.TrustedCmdArgs) (*gitcmd.Command, error) {
+// getRepoRawDiffForFile returns an io.Reader for the diff results of file in given commit ID
+// and a "finish" function to wait for the git command and clean up resources after reading is done.
+func getRepoRawDiffForFileCmd(ctx context.Context, repo *Repository, startCommit, endCommit string, diffType RawDiffType, file string) (*gitcmd.Command, error) {
 	commit, err := repo.GetCommit(ctx, endCommit)
 	if err != nil {
 		return nil, err
@@ -129,15 +137,14 @@ func getRepoRawDiffForFileCmd(ctx context.Context, repo *Repository, startCommit
 	}
 
 	cmd := gitcmd.NewCommand().WithRepo(repo)
-	diffArgs := util.OptionalArg(diffOptions)
 	switch diffType {
 	case RawDiffNormal:
 		if len(startCommit) != 0 {
 			cmd.AddArguments("diff").
 				AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold).
-				AddDynamicArguments(startCommit, endCommit).AddArguments(diffArgs...).AddDashesAndList(files...)
+				AddDynamicArguments(startCommit, endCommit).AddDashesAndList(files...)
 		} else if commit.ParentCount() == 0 {
-			cmd.AddArguments("show").AddDynamicArguments(endCommit).AddArguments(diffArgs...).AddDashesAndList(files...)
+			cmd.AddArguments("show").AddDynamicArguments(endCommit).AddDashesAndList(files...)
 		} else {
 			c, err := commit.Parent(ctx, repo, 0)
 			if err != nil {
@@ -145,7 +152,7 @@ func getRepoRawDiffForFileCmd(ctx context.Context, repo *Repository, startCommit
 			}
 			cmd.AddArguments("diff").
 				AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold).
-				AddDynamicArguments(c.ID.String(), endCommit).AddArguments(diffArgs...).AddDashesAndList(files...)
+				AddDynamicArguments(c.ID.String(), endCommit).AddDashesAndList(files...)
 		}
 	case RawDiffPatch:
 		if len(startCommit) != 0 {
@@ -263,7 +270,7 @@ func cutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 			} else {
 				begin, end, otherLine = section.NewStart, section.NewCount, section.OldStart
 			}
-			if begin+max(end, 1) <= line {
+			if startLine != 0 && begin+max(end, 1) <= line {
 				cut.OldContextStart = section.OldStart + max(section.OldCount, 1)
 				cut.NewContextStart = section.NewStart + max(section.NewCount, 1)
 			}
@@ -273,6 +280,7 @@ func cutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 				}
 				hunk = append(hunk, lof)
 				currentLine = begin
+				continue
 			}
 		} else if len(hunk) > headerLines {
 			hunk = append(hunk, lof)
@@ -345,11 +353,9 @@ func cutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 		}
 		count++
 	}
-	if startLine != 0 && oldNumOfLines == 0 {
-		oldBegin--
-	}
-	if startLine != 0 && newNumOfLines == 0 {
-		newBegin--
+	if startLine != 0 {
+		oldBegin -= util.Iif[int64](oldNumOfLines == 0, 1, 0)
+		newBegin -= util.Iif[int64](newNumOfLines == 0, 1, 0)
 	}
 
 	// "git diff" outputs "@@ -1 +1,3 @@" for "OLD" => "A\nB\nC"

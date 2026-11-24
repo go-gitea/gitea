@@ -31,5 +31,5 @@ func Markup(ctx *context.Context) {
 			EndLine:   uint64(line),
 		}
 	}
-	common.RenderMarkup(ctx.Base, ctx.Repo, mode, form.Text, form.Context, form.FilePath, anchor)
+	common.RenderMarkupWithCodeSuggestion(ctx.Base, ctx.Repo, mode, form.Text, form.Context, form.FilePath, anchor)
 }

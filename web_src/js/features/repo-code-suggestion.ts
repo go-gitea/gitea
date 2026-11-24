@@ -27,7 +27,7 @@ function codeSuggestionAnchor(form: HTMLFormElement) {
     path: input('path')!.value,
     start_line: input('start_line')!.value,
     line: input('line')!.value,
-    commit_id: input('suggestion_commit_id')?.value ?? input('latest_commit_id')!.value,
+    commit_id: (input('suggestion_commit_id') ?? input('latest_commit_id'))!.value,
   });
 }
 
@@ -38,7 +38,7 @@ export function initCodeCommentEditor(form: HTMLFormElement) {
   return getComboMarkdownEditor(container) ?? initComboMarkdownEditor(container, button ? {
     easyMDEToolbarButton: button,
     appendPreviewData(data) {
-      for (const [key, value] of codeSuggestionAnchor(form) ?? []) data.append(`code_suggestion_${key}`, value);
+      codeSuggestionAnchor(form)?.forEach((value, key) => { data.append(`code_suggestion_${key}`, value) });
     },
   } : undefined);
 }
@@ -47,31 +47,18 @@ async function onInsertCodeSuggestion(button: HTMLButtonElement) {
   const form = button.form!;
   const anchor = codeSuggestionAnchor(form)?.toString();
   if (!anchor) return;
-  const errorMessage = form.getAttribute('data-code-suggestion-source-error')!;
   const response = await performFetchActionRequest(button, {
     method: 'GET',
     url: `${form.getAttribute('data-code-suggestion-source-url')!}?${anchor}`,
-    errorMessage,
   });
   if (!response) return;
-  if (!response.headers.get('content-type')?.startsWith('text/plain')) {
-    showErrorToast(errorMessage);
-    return;
-  }
   const source = await response.arrayBuffer();
   if (!button.isConnected || anchor !== codeSuggestionAnchor(form)?.toString()) return;
   const code = new TextDecoder('utf-8', {ignoreBOM: true}).decode(source);
   getComboMarkdownEditor(button.closest('.combo-markdown-editor'))!.replaceSelection((value, start, end) => codeSuggestionInsertion(value, start, end, code));
 }
 
-type BatchItem = {
-  path: string,
-  start: number,
-  end: number,
-  version: string,
-};
-
-const batch = new Map<string, BatchItem>();
+const batch = new Map<string, {path: string; start: number; end: number; version: string}>();
 
 function updateBatch(batchButton: Element) {
   batchButton.setAttribute('data-modal-comment_ids', Array.from(batch, ([id, item]) => `${id}:${item.version}`).join(','));
@@ -85,9 +72,9 @@ function updateBatchToggle(batchButton: Element, toggle: Element, id: string) {
 
 export function refreshCodeSuggestionControls(actions: Element | null, controlsHTML: string) {
   if (!actions) return;
-  const previous = actions.firstElementChild;
+  const previousId = actions.firstElementChild?.getAttribute('data-comment-id');
   actions.innerHTML = controlsHTML;
-  if (previous && !actions.firstElementChild && batch.delete(previous.getAttribute('data-comment-id')!)) {
+  if (previousId && !actions.firstElementChild && batch.delete(previousId)) {
     updateBatch(document.querySelector('#code-suggestion-batch')!);
   }
 }
@@ -105,10 +92,9 @@ export function initRepoCodeSuggestions() {
       batch.delete(id);
       updateBatch(batchButton);
     }
-    if (toggle) {
-      updateBatchToggle(batchButton, toggle, id);
-      showElem(toggle);
-    }
+    if (!toggle) return;
+    updateBatchToggle(batchButton, toggle, id);
+    showElem(toggle);
   });
 
   registerGlobalEventFunc('click', 'toggleCodeSuggestionBatch', (toggle) => {

@@ -18,9 +18,9 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
@@ -102,9 +102,7 @@ func openCodeSuggestionLoader(ctx context.Context, doer *user_model.User, pr *is
 	if err != nil {
 		return nil, err
 	}
-	if canWrite, err := issues_model.CheckMaintainerWriteToBranch(ctx, permission, pr.HeadBranch, doer); err != nil {
-		return nil, err
-	} else if !canWrite {
+	if !issues_model.CanMaintainerWriteToBranch(ctx, permission, pr.HeadBranch, doer) {
 		return nil, util.ErrPermissionDenied
 	}
 
@@ -120,13 +118,12 @@ func openCodeSuggestionLoader(ctx context.Context, doer *user_model.User, pr *is
 		}
 	}()
 	headCommitID, err := headRepo.GetBranchCommitID(ctx, pr.HeadBranch)
-	if err != nil && !errors.Is(err, util.ErrNotExist) {
+	switch {
+	case err != nil && !errors.Is(err, util.ErrNotExist):
 		return nil, err
-	}
-	if expectedHead != "" && headCommitID != expectedHead {
+	case expectedHead != "" && headCommitID != expectedHead:
 		return nil, ErrCodeSuggestionHeadChanged
-	}
-	if err != nil {
+	case err != nil:
 		return nil, util.ErrPermissionDenied
 	}
 
@@ -143,14 +140,12 @@ func openCodeSuggestionLoader(ctx context.Context, doer *user_model.User, pr *is
 	}
 	if protectedBranch != nil {
 		if protectedBranch.RequireSignedCommits {
-			_, _, _, err = asymkey_service.SignCRUDAction(ctx, doer, headRepo, pr.HeadBranch)
-			if asymkey_service.IsErrWontSign(err) {
+			if _, _, _, err := asymkey_service.SignCRUDAction(ctx, doer, headRepo, pr.HeadBranch); asymkey_service.IsErrWontSign(err) {
 				return nil, util.ErrPermissionDenied
 			} else if err != nil {
 				return nil, err
 			}
 		}
-		protectedBranch.Repo = pr.HeadRepo
 		canPush := protectedBranch.CanUserPush(ctx, doer, permission)
 		protectedPaths, unprotectedPaths := protectedBranch.GetProtectedFilePatterns(), protectedBranch.GetUnprotectedFilePatterns()
 		loader.canPushToPath = func(path string) bool {
@@ -167,65 +162,49 @@ func (loader *codeSuggestionLoader) close() {
 	loader.headCloser.Close()
 }
 
-func (loader *codeSuggestionLoader) getBaseRepo(ctx context.Context) (*git.Repository, error) {
-	if loader.pr.BaseRepoID == loader.pr.HeadRepoID {
-		return loader.headRepo, nil
-	}
+func (loader *codeSuggestionLoader) getBaseRepo(ctx context.Context) (_ *git.Repository, err error) {
 	if loader.baseRepo == nil {
 		if err := loader.pr.LoadBaseRepo(ctx); err != nil {
 			return nil, err
 		}
-		var err error
 		loader.baseRepo, loader.baseCloser, err = git.RepositoryFromContextOrOpen(ctx, loader.pr.BaseRepo)
-		if err != nil {
-			return nil, err
-		}
 	}
-	return loader.baseRepo, nil
-}
-
-func (loader *codeSuggestionLoader) getConversation(ctx context.Context, comment *issues_model.Comment) (*issues_model.Comment, error) {
-	return cache.GetWithEphemeralCache(ctx, loader.cache, "conversation", codeSuggestionConversation{comment.TreePath, comment.Line},
-		func(ctx context.Context, key codeSuggestionConversation) (*issues_model.Comment, error) {
-			return issues_model.GetPublishedCodeConversationRoot(ctx, loader.pr.IssueID, key.path, key.line)
-		})
+	return loader.baseRepo, err
 }
 
 func (loader *codeSuggestionLoader) getBlob(ctx context.Context, key codeSuggestionPath) (codeSuggestionBlob, error) {
-	blob, err := cache.GetWithEphemeralCache(ctx, loader.cache, "path", key, loader.readBlob)
+	blob, err := cache.GetWithEphemeralCache(ctx, loader.cache, "blob", key, readCodeSuggestionBlob)
 	return blob, cmp.Or(err, blob.rejection)
 }
 
-func (loader *codeSuggestionLoader) readBlob(ctx context.Context, key codeSuggestionPath) (codeSuggestionBlob, error) {
+func readCodeSuggestionBlob(ctx context.Context, key codeSuggestionPath) (codeSuggestionBlob, error) {
 	commit, err := key.repo.GetCommit(ctx, key.commitID)
 	var entry *git.TreeEntry
 	if err == nil {
 		entry, err = commit.GetTreeEntryByPath(ctx, key.repo, key.path)
 	}
-	if errors.Is(err, util.ErrNotExist) {
+	switch {
+	case errors.Is(err, util.ErrNotExist):
 		return codeSuggestionBlob{rejection: rejectCodeSuggestion("outdated")}, nil
-	} else if err != nil {
+	case err != nil:
 		return codeSuggestionBlob{}, err
-	}
-	if !entry.IsRegular() && !entry.IsExecutable() {
+	case !entry.IsRegular() && !entry.IsExecutable():
 		return codeSuggestionBlob{rejection: rejectCodeSuggestion("unsupported_file")}, nil
 	}
 
-	return cache.GetWithEphemeralCache(ctx, loader.cache, "blob", entry.ID.String(), func(ctx context.Context, id string) (codeSuggestionBlob, error) {
-		entryBlob := entry.Blob(key.repo)
-		if entryBlob.Size(ctx) > setting.UI.MaxDisplayFileSize {
-			return codeSuggestionBlob{rejection: rejectCodeSuggestion("unsupported_file")}, nil
-		}
-		content, err := entryBlob.GetBlobBytes(ctx, setting.UI.MaxDisplayFileSize+1)
-		if err != nil {
-			return codeSuggestionBlob{}, err
-		}
-		_, pointerErr := lfs.ReadPointerFromBuffer(content)
-		if int64(len(content)) > setting.UI.MaxDisplayFileSize || !isCodeSuggestionText(content) || pointerErr == nil {
-			return codeSuggestionBlob{rejection: rejectCodeSuggestion("unsupported_file")}, nil
-		}
-		return codeSuggestionBlob{id: id, content: content}, nil
-	})
+	blob := entry.Blob(key.repo)
+	if blob.Size(ctx) > setting.UI.MaxDisplayFileSize {
+		return codeSuggestionBlob{rejection: rejectCodeSuggestion("unsupported_file")}, nil
+	}
+	content, err := blob.GetBlobBytes(ctx, setting.UI.MaxDisplayFileSize+1)
+	if err != nil {
+		return codeSuggestionBlob{}, err
+	}
+	_, pointerErr := lfs.ReadPointerFromBuffer(content)
+	if int64(len(content)) > setting.UI.MaxDisplayFileSize || !isCodeSuggestionText(content) || pointerErr == nil {
+		return codeSuggestionBlob{rejection: rejectCodeSuggestion("unsupported_file")}, nil
+	}
+	return codeSuggestionBlob{id: entry.ID.String(), content: content}, nil
 }
 
 func isCodeSuggestionText(content []byte) bool {
@@ -250,29 +229,23 @@ func (loader *codeSuggestionLoader) getReview(ctx context.Context, comment *issu
 }
 
 func (loader *codeSuggestionLoader) validate(ctx context.Context, comment *issues_model.Comment, suggestions []string) (codeSuggestionSelection, error) {
-	if loader.pr.HasMerged || loader.pr.Issue.IsClosed {
+	switch {
+	case loader.pr.HasMerged || loader.pr.Issue.IsClosed:
 		return codeSuggestionSelection{}, rejectCodeSuggestion("closed")
-	}
-	if comment.Line <= 0 || comment.CodeStartLine() <= 0 {
+	case comment.Line <= 0 || comment.CodeStartLine() <= 0:
 		return codeSuggestionSelection{}, rejectCodeSuggestion("deleted_line")
-	}
-	if len(suggestions) != 1 {
+	case len(suggestions) != 1:
 		return codeSuggestionSelection{}, rejectCodeSuggestion("multiple")
-	}
-	if comment.ReviewID == 0 || comment.Invalidated {
+	case comment.ReviewID == 0 || comment.Invalidated:
 		return codeSuggestionSelection{}, rejectCodeSuggestion("outdated")
-	}
-	if util.PathJoinRel(comment.TreePath) != comment.TreePath {
+	case util.PathJoinRel(comment.TreePath) != comment.TreePath:
 		return codeSuggestionSelection{}, rejectCodeSuggestion("unsupported_file")
 	}
 	review, err := loader.getReview(ctx, comment)
-	if errors.Is(err, util.ErrNotExist) {
+	if errors.Is(err, util.ErrNotExist) || err == nil && review.IssueID != loader.pr.IssueID {
 		return codeSuggestionSelection{}, rejectCodeSuggestion("outdated")
 	} else if err != nil {
 		return codeSuggestionSelection{}, err
-	}
-	if review.IssueID != loader.pr.IssueID {
-		return codeSuggestionSelection{}, rejectCodeSuggestion("outdated")
 	}
 	switch review.Type {
 	case issues_model.ReviewTypePending:
@@ -281,13 +254,16 @@ func (loader *codeSuggestionLoader) validate(ctx context.Context, comment *issue
 	default:
 		return codeSuggestionSelection{}, rejectCodeSuggestion("outdated")
 	}
-	first, err := loader.getConversation(ctx, comment)
-	if errors.Is(err, util.ErrNotExist) {
+	first, err := cache.GetWithEphemeralCache(ctx, loader.cache, "conversation", codeSuggestionConversation{comment.TreePath, comment.Line},
+		func(ctx context.Context, key codeSuggestionConversation) (*issues_model.Comment, error) {
+			return issues_model.GetPublishedCodeConversationRoot(ctx, loader.pr.IssueID, key.path, key.line)
+		})
+	switch {
+	case errors.Is(err, util.ErrNotExist):
 		return codeSuggestionSelection{}, rejectCodeSuggestion("outdated")
-	} else if err != nil {
+	case err != nil:
 		return codeSuggestionSelection{}, err
-	}
-	if first.IsResolved() {
+	case first.IsResolved():
 		return codeSuggestionSelection{}, rejectCodeSuggestion("resolved")
 	}
 
@@ -296,11 +272,15 @@ func (loader *codeSuggestionLoader) validate(ctx context.Context, comment *issue
 }
 
 func (loader *codeSuggestionLoader) validateEdit(ctx context.Context, comment *issues_model.Comment, suggestion string) (codeSuggestionEdit, error) {
-	baseRepo, err := loader.getBaseRepo(ctx)
-	if err != nil {
-		return codeSuggestionEdit{}, err
+	anchorRepo := loader.headRepo
+	if loader.pr.BaseRepoID != loader.pr.HeadRepoID && comment.CodeCommitID() != loader.headCommitID {
+		var err error
+		anchorRepo, err = loader.getBaseRepo(ctx)
+		if err != nil {
+			return codeSuggestionEdit{}, err
+		}
 	}
-	original, err := loader.getBlob(ctx, codeSuggestionPath{baseRepo, comment.CodeCommitID(), comment.TreePath})
+	original, err := loader.getBlob(ctx, codeSuggestionPath{anchorRepo, comment.CodeCommitID(), comment.TreePath})
 	if err != nil {
 		return codeSuggestionEdit{}, err
 	}
@@ -309,7 +289,7 @@ func (loader *codeSuggestionLoader) validateEdit(ctx context.Context, comment *i
 		return codeSuggestionEdit{}, err
 	}
 	if original.id != blob.id {
-		hunks, err := getCodeCommentDiff(ctx, loader.cache, loader.headRepo, codeCommentDiff{before: comment.CodeCommitID(), after: loader.headCommitID, path: comment.TreePath})
+		hunks, err := git.GetFileDiffHunks(ctx, loader.headRepo, comment.CodeCommitID(), loader.headCommitID, comment.TreePath)
 		if errors.Is(err, util.ErrNotExist) || err == nil && codeSuggestionAnchorMoved(hunks, comment.CodeStartLine(), comment.Line) {
 			return codeSuggestionEdit{}, rejectCodeSuggestion("outdated")
 		} else if err != nil {
@@ -395,17 +375,14 @@ func spliceCodeSuggestions(content []byte, edits []codeSuggestionEdit) ([]byte, 
 	return append(result, content[previousEnd:]...), nil
 }
 
-func LoadCodeSuggestionStates(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comments []*issues_model.Comment) error {
-	for _, comment := range comments {
-		comment.CodeSuggestion = nil
-	}
-	if doer == nil {
-		return nil
+func LoadCodeSuggestionStates(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, comments []*issues_model.Comment) {
+	if doer == nil || !issue.IsPull {
+		return
 	}
 
 	var loader *codeSuggestionLoader
 	for _, comment := range comments {
-		if comment.Type != issues_model.CommentTypeCode || comment.IssueID != pr.IssueID || comment.CodeCommitID() == "" {
+		if comment.Type != issues_model.CommentTypeCode || comment.IssueID != issue.ID || comment.CodeCommitID() == "" {
 			continue
 		}
 		suggestions := markdown.ParseCodeSuggestions(comment.Content)
@@ -413,12 +390,17 @@ func LoadCodeSuggestionStates(ctx context.Context, doer *user_model.User, pr *is
 			continue
 		}
 		if loader == nil {
+			if err := issue.LoadPullRequest(ctx); err != nil {
+				log.Error("LoadCodeSuggestionStates: load pull request for issue %d: %v", issue.ID, err)
+				return
+			}
 			var err error
-			loader, err = openCodeSuggestionLoader(ctx, doer, pr, "")
-			if errors.Is(err, util.ErrPermissionDenied) {
-				return nil
-			} else if err != nil {
-				return err
+			loader, err = openCodeSuggestionLoader(ctx, doer, issue.PullRequest, "")
+			if err != nil {
+				if !errors.Is(err, util.ErrPermissionDenied) {
+					log.Error("LoadCodeSuggestionStates: open loader for pull request %d: %v", issue.PullRequest.ID, err)
+				}
+				return
 			}
 			defer loader.close()
 		}
@@ -430,21 +412,20 @@ func LoadCodeSuggestionStates(ctx context.Context, doer *user_model.User, pr *is
 		if rejection, ok := errors.AsType[codeSuggestionRejection](err); ok {
 			state.Reason = string(rejection)
 		} else if err != nil {
-			return err
+			log.Error("LoadCodeSuggestionStates: validate comment %d: %v", comment.ID, err)
+			continue
 		} else if err := comment.LoadPoster(ctx); err != nil {
-			return err
+			log.Error("LoadCodeSuggestionStates: load poster for comment %d: %v", comment.ID, err)
+			continue
 		}
 		comment.CodeSuggestion = &state
 	}
-	return nil
 }
 
-// PrepareCodeSuggestionChanges validates suggestions and splices them into the head files, contentVersions optionally pins the comment versions the doer saw
 func PrepareCodeSuggestionChanges(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, commentIDs []int64, contentVersions map[int64]int, expectedHead string) (*CodeSuggestionChanges, error) {
 	ids := make([]int64, 0, min(len(commentIDs), maxCodeSuggestions))
-	seen := make(container.Set[int64])
 	for _, id := range commentIDs {
-		if !seen.Add(id) {
+		if slices.Contains(ids, id) {
 			continue
 		}
 		if len(ids) == maxCodeSuggestions {
@@ -466,10 +447,7 @@ func PrepareCodeSuggestionChanges(ctx context.Context, doer *user_model.User, pr
 	if err != nil {
 		return nil, err
 	}
-	changes := &CodeSuggestionChanges{
-		HeadCommitID: loader.headCommitID,
-		Comments:     make(issues_model.CommentList, 0, len(ids)),
-	}
+	changes := &CodeSuggestionChanges{HeadCommitID: loader.headCommitID, Comments: make(issues_model.CommentList, 0, len(ids))}
 	files := make(map[string][]codeSuggestionEdit)
 	for _, id := range ids {
 		comment := commentsByID[id]
@@ -484,7 +462,7 @@ func PrepareCodeSuggestionChanges(ctx context.Context, doer *user_model.User, pr
 		if loader.canPushToPath != nil && !loader.canPushToPath(comment.TreePath) {
 			return nil, util.ErrPermissionDenied
 		}
-		if version, ok := contentVersions[id]; ok && version != comment.ContentVersion {
+		if contentVersions[id] != comment.ContentVersion {
 			return nil, rejectCodeSuggestion("edited")
 		}
 		suggestions := markdown.ParseCodeSuggestions(comment.Content)

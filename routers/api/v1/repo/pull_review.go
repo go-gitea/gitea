@@ -25,7 +25,6 @@ import (
 	"gitea.dev/services/convert"
 	issue_service "gitea.dev/services/issue"
 	pull_service "gitea.dev/services/pull"
-	files_service "gitea.dev/services/repository/files"
 )
 
 // ListPullReviews lists all reviews of a pull request
@@ -271,8 +270,8 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 		return
 	}
 
-	comment, err := pull_service.CreateCodeComment(ctx, ctx.Doer, ctx.Repo.GitRepo, parent.Issue, false, "", issues_model.CreateCommentOptions{
-		LineNum: parent.Line, Content: opts.Body, TreePath: parent.TreePath, ReviewID: parent.ReviewID,
+	comment, err := pull_service.CreateCodeCommentWithOptions(ctx, ctx.Doer, ctx.Repo.GitRepo, parent.Issue, false, "", parent, issues_model.CreateCommentOptions{
+		Content: opts.Body,
 	})
 	if err != nil {
 		ctx.APIErrorAuto(err)
@@ -493,25 +492,24 @@ func CreatePullReview(ctx *context.APIContext) {
 	comments := make([]issues_model.CreateCommentOptions, 0, len(opts.Comments))
 	for _, comment := range opts.Comments {
 		if comment.Path == "" || (comment.NewLineNum <= 0 && comment.OldLineNum <= 0) {
-			ctx.APIErrorAuto(util.ErrorWrap(util.ErrUnprocessableContent, "review comments require a path and a positive new_position or old_position"))
+			ctx.APIError(http.StatusUnprocessableEntity, "review comments require a path and a positive new_position or old_position")
 			return
-		}
-		line, endSide := comment.NewLineNum, "RIGHT"
-		if comment.OldLineNum > 0 {
-			line, endSide = -comment.OldLineNum, "LEFT"
 		}
 		if comment.StartLine < 0 {
 			ctx.APIErrorAuto(util.ErrorWrap(util.ErrUnprocessableContent, "start_line must be nonnegative"))
 			return
 		}
+		line := util.Iif(comment.OldLineNum > 0, -comment.OldLineNum, comment.NewLineNum)
 		startLine := comment.StartLine
-		switch cmp.Or(comment.StartSide, endSide) {
-		case "LEFT":
-			startLine = -startLine
-		case "RIGHT":
-		default:
-			ctx.APIErrorAuto(util.ErrorWrap(util.ErrUnprocessableContent, "start_side must be LEFT or RIGHT"))
-			return
+		if startLine > 0 {
+			switch cmp.Or(comment.StartSide, util.Iif(line < 0, "LEFT", "RIGHT")) {
+			case "LEFT":
+				startLine = -startLine
+			case "RIGHT":
+			default:
+				ctx.APIErrorAuto(util.ErrorWrap(util.ErrUnprocessableContent, "start_side must be LEFT or RIGHT"))
+				return
+			}
 		}
 		if err := pull_service.ValidateCodeCommentRange(startLine, line); err != nil {
 			ctx.APIErrorAuto(util.ErrorWrap(util.ErrUnprocessableContent, "%s", err))
@@ -563,7 +561,7 @@ func CreatePullReview(ctx *context.APIContext) {
 
 	// create review comments
 	for _, comment := range comments {
-		if _, err := pull_service.CreateCodeComment(ctx, ctx.Doer, ctx.Repo.GitRepo, pr.Issue, true, opts.CommitID, comment); err != nil {
+		if _, err := pull_service.CreateCodeCommentWithOptions(ctx, ctx.Doer, ctx.Repo.GitRepo, pr.Issue, true, opts.CommitID, nil, comment); err != nil {
 			ctx.APIErrorAuto(err)
 			return
 		}
@@ -1087,61 +1085,4 @@ func dismissReview(ctx *context.APIContext, msg string, isDismiss, dismissPriors
 		return
 	}
 	ctx.JSON(http.StatusOK, apiReview)
-}
-
-func ApplyPullReviewSuggestions(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/suggestions/apply repository repoApplyPullReviewSuggestions
-	// ---
-	// summary: Apply pull request review suggestions in one commit
-	// consumes:
-	// - application/json
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// - name: index
-	//   in: path
-	//   description: index of the pull request
-	//   type: integer
-	//   format: int64
-	//   required: true
-	// - name: body
-	//   in: body
-	//   required: true
-	//   schema:
-	//     "$ref": "#/definitions/ApplyPullReviewSuggestionsOptions"
-	// responses:
-	//   "201":
-	//     "$ref": "#/responses/ApplyPullReviewSuggestionsResponse"
-	//   default:
-	//     "$ref": "#/responses/error"
-
-	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
-		return
-	}
-
-	form := web.GetForm[*api.ApplyPullReviewSuggestionsOptions](ctx)
-	summary, description, _ := strings.Cut(util.NormalizeStringEOL(form.Message), "\n")
-	commitID, err := files_service.ApplyCodeSuggestions(ctx, ctx.Doer, pr.ID, files_service.ApplyCodeSuggestionsOptions{
-		CommentIDs:   form.CommentIDs,
-		HeadCommitID: form.HeadCommitID,
-		Summary:      summary,
-		Description:  description,
-	})
-	if err != nil {
-		ctx.APIErrorAuto(err)
-		return
-	}
-	ctx.JSON(http.StatusCreated, api.ApplyPullReviewSuggestionsResponse{SHA: commitID})
 }

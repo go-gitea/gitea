@@ -9,15 +9,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
-	"strings"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/log"
@@ -51,81 +48,23 @@ func (err ErrDismissRequestOnClosedPR) Unwrap() error {
 // ErrSubmitReviewOnClosedPR represents an error when a user tries to submit an approve or reject review associated to a closed or merged PR.
 var ErrSubmitReviewOnClosedPR = errors.New("can't submit review for a closed or merged PR")
 
-type codeCommentDiff struct {
-	before, after, path string
-}
-
-func getCodeCommentDiff(ctx context.Context, diffCache *cache.EphemeralCache, gitRepo *git.Repository, diff codeCommentDiff) ([]git.FileDiffHunk, error) {
-	return cache.GetWithEphemeralCache(ctx, diffCache, "codeCommentDiff", diff, func(ctx context.Context, key codeCommentDiff) ([]git.FileDiffHunk, error) {
-		return git.GetFileDiffHunks(ctx, gitRepo, key.before, key.after, key.path)
-	})
-}
-
-func codeCommentLineChanged(ctx context.Context, comment *issues_model.Comment, repo *repo_model.Repository, branch string) (bool, error) {
+// checkInvalidation checks if the line of code comment got changed by another commit.
+// If the line got changed the comment is going to be invalidated.
+func checkInvalidation(ctx context.Context, c *issues_model.Comment, repo *repo_model.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
-	commitID, err := git.LineBlameCommitID(ctx, repo, branch, comment.TreePath, uint(comment.UnsignedLine()))
+	commitID, err := git.LineBlameCommitID(ctx, repo, branch, c.TreePath, uint(c.UnsignedLine()))
 	if isErrBlameInvalidated(err) {
-		return true, nil
+		c.Invalidated = true
+		return issues_model.UpdateCommentInvalidate(ctx, c)
 	}
 	if err != nil {
-		return false, err
+		return err
 	}
-	return comment.CommitSHA != "" && comment.CommitSHA != commitID, nil
-}
-
-func codeCommentRangeChanged(ctx context.Context, diffCache *cache.EphemeralCache, gitRepo *git.Repository, comment *issues_model.Comment, mergeBase, head string) (bool, error) {
-	hunks, err := getCodeCommentDiff(ctx, diffCache, gitRepo, codeCommentDiff{before: comment.CodeCommitID(), after: head, path: comment.TreePath})
-	if errors.Is(err, util.ErrNotExist) {
-		return true, nil
-	} else if err != nil || len(hunks) == 0 {
-		return false, err
+	if c.CommitSHA != "" && c.CommitSHA != commitID {
+		c.Invalidated = true
+		return issues_model.UpdateCommentInvalidate(ctx, c)
 	}
-
-	start, end := int64(comment.UnsignedCodeStartLine()), int64(comment.UnsignedLine())
-	if comment.CodeStartLine() < 0 && comment.Line > 0 {
-		start, err = mixedCodeCommentRangeStart(ctx, diffCache, gitRepo, comment, mergeBase)
-		if errors.Is(err, util.ErrNotExist) {
-			return true, nil
-		} else if err != nil {
-			return false, err
-		}
-	}
-	return slices.ContainsFunc(hunks, func(hunk git.FileDiffHunk) bool {
-		return hunk.OldStart <= end && hunk.OldStart+max(hunk.OldCount, 1) > start
-	}), nil
-}
-
-func mixedCodeCommentRangeStart(ctx context.Context, diffCache *cache.EphemeralCache, gitRepo *git.Repository, comment *issues_model.Comment, mergeBase string) (int64, error) {
-	oldLine := -comment.CodeStartLine()
-	if _, patch, ok := strings.Cut(comment.Patch, "\n@@ "); ok {
-		header, _, _ := strings.Cut(patch, "\n")
-		leftStart, _, rightStart, _ := git.ParseDiffHunkString("@@ " + header)
-		if int64(leftStart) == oldLine {
-			return int64(rightStart), nil
-		}
-	}
-	if mergeBase != "" {
-		anchorBase, err := git.MergeBase(ctx, gitRepo, mergeBase, comment.CodeCommitID())
-		if err != nil {
-			return 0, err
-		}
-		mergeBase = anchorBase
-	}
-	hunks, err := getCodeCommentDiff(ctx, diffCache, gitRepo, codeCommentDiff{before: mergeBase, after: comment.CodeCommitID(), path: comment.TreePath})
-	if err != nil {
-		return 0, err
-	}
-	var offset int64
-	for _, hunk := range hunks {
-		if oldLine < hunk.OldStart {
-			break
-		}
-		if oldLine < hunk.OldStart+hunk.OldCount {
-			return hunk.NewStart, nil
-		}
-		offset = hunk.NewStart + hunk.NewCount - hunk.OldStart - hunk.OldCount
-	}
-	return oldLine + offset, nil
+	return nil
 }
 
 // InvalidateCodeComments will look up the prs for code comments which got invalidated by change
@@ -144,41 +83,9 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 	if err != nil {
 		return fmt.Errorf("find code comments: %v", err)
 	}
-	if len(codeComments) == 0 {
-		return nil
-	}
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo)
-	if err != nil {
-		return err
-	}
-	defer closer.Close()
-	head, err := gitRepo.GetRefCommitID(ctx, branch)
-	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		return err
-	}
-	mergeBases := make(map[int64]string, len(prs))
-	for _, pr := range prs {
-		mergeBases[pr.IssueID] = pr.MergeBase
-	}
-	diffCache := cache.NewEphemeralCache()
 	for _, comment := range codeComments {
-		var changed bool
-		var err error
-		if head == "" {
-			changed = true
-		} else if comment.CodeCommitID() != "" && comment.CodeStartLine() != comment.Line {
-			changed, err = codeCommentRangeChanged(ctx, diffCache, gitRepo, comment, mergeBases[comment.IssueID], head)
-		} else {
-			changed, err = codeCommentLineChanged(ctx, comment, repo, head)
-		}
-		if err != nil {
+		if err := checkInvalidation(ctx, comment, repo, branch); err != nil {
 			return err
-		}
-		if changed {
-			comment.Invalidated = true
-			if err := issues_model.UpdateCommentInvalidate(ctx, comment); err != nil {
-				return err
-			}
 		}
 	}
 	return nil
@@ -189,21 +96,29 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 // * no replyReviewID: create a new review and add the comment to it, and submit the review
 // * replyReviewID is set: add the comment to the existing submitted review
 // When pendingReview=true: get current pending review or create a new one, and add the comment to it
-func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, pendingReview bool, latestCommitID string, opts issues_model.CreateCommentOptions) (_ *issues_model.Comment, err error) {
+func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, line int64, content, treePath string, pendingReview bool, replyReviewID int64, latestCommitID string, attachments []string) (_ *issues_model.Comment, err error) {
+	return CreateCodeCommentWithOptions(ctx, doer, gitRepo, issue, pendingReview, latestCommitID, nil, issues_model.CreateCommentOptions{
+		LineNum: line, Content: content, TreePath: treePath, ReviewID: replyReviewID, Attachments: attachments,
+	})
+}
+
+func CreateCodeCommentWithOptions(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, pendingReview bool, latestCommitID string, parent *issues_model.Comment, opts issues_model.CreateCommentOptions) (_ *issues_model.Comment, err error) {
 	if err := checkReviewerNotBlocked(ctx, doer, issue); err != nil {
 		return nil, err
 	}
-	if opts.CodeStartLine == opts.LineNum {
-		opts.CodeStartLine = 0
+	if parent != nil {
+		if parent.IssueID != issue.ID || parent.Type != issues_model.CommentTypeCode {
+			return nil, issues_model.ErrCommentNotExist{ID: parent.ID}
+		}
+		opts.LineNum, opts.TreePath, opts.ReviewID = parent.Line, parent.TreePath, parent.ReviewID
+		opts.CodeStartLine = parent.CodeStartLine()
 	}
 	if err := ValidateCodeCommentRange(opts.CodeStartLine, opts.LineNum); err != nil {
 		return nil, err
 	}
 	opts.Type, opts.Doer, opts.Repo, opts.Issue = issues_model.CommentTypeCode, doer, issue.Repo, issue
-	replyReviewID := opts.ReviewID
-
-	replyToSubmittedReview := !pendingReview && replyReviewID != 0
-	if replyToSubmittedReview {
+	replyToSubmittedReview := !pendingReview && opts.ReviewID != 0
+	if replyToSubmittedReview && parent == nil {
 		// It's not part of a review; maybe a reply to a review comment or a single comment.
 		// Check if there are reviews for that line already; if there are, this is a reply
 		if replyToSubmittedReview, err = issues_model.ReviewExists(ctx, issue, opts.TreePath, opts.LineNum); err != nil {
@@ -214,14 +129,36 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 	// Comments that are replies don't require a review header to show up in the issue view
 	// Add the code comment to existing submitted review
 	if replyToSubmittedReview {
-		replyReview, err := issues_model.GetReviewByID(ctx, replyReviewID)
+		replyReview, err := issues_model.GetReviewByID(ctx, opts.ReviewID)
 		if err != nil {
 			return nil, err
 		} else if replyReview.IssueID != issue.ID || (replyReview.Type == issues_model.ReviewTypePending && replyReview.ReviewerID != doer.ID) {
-			return nil, issues_model.ErrReviewNotExist{ID: replyReviewID}
+			return nil, issues_model.ErrReviewNotExist{ID: opts.ReviewID}
 		}
 
-		comment, err := createCodeComment(ctx, &opts, replyReview, latestCommitID)
+		if parent == nil {
+			comments, err := issues_model.FindComments(ctx, &issues_model.FindCommentsOptions{
+				ReviewID:    replyReview.ID,
+				Line:        opts.LineNum,
+				TreePath:    opts.TreePath,
+				Type:        issues_model.CommentTypeCode,
+				ListOptions: db.ListOptions{PageSize: 1, Page: 1},
+			})
+			if err != nil {
+				return nil, err
+			}
+			if len(comments) > 0 {
+				parent = comments[0]
+			}
+		}
+		var comment *issues_model.Comment
+		if parent != nil {
+			opts.CodeStartLine = parent.CodeStartLine()
+			opts.CodeCommitID, opts.CommitSHA, opts.Invalidated, opts.Patch = parent.CodeCommitID(), parent.CommitSHA, parent.Invalidated, parent.Patch
+			comment, err = issues_model.CreateComment(ctx, &opts)
+		} else {
+			comment, err = createCodeComment(ctx, &opts, replyReview, latestCommitID)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -290,59 +227,40 @@ func checkReviewerNotBlocked(ctx context.Context, doer *user_model.User, issue *
 }
 
 func ValidateCodeCommentRange(startLine, line int64) error {
-	if startLine > 0 && startLine > line || startLine < 0 && line <= 0 && startLine < line {
+	if line == 0 || startLine > 0 && startLine > line || line < 0 && startLine < line {
 		return util.NewInvalidArgumentErrorf("invalid code comment line range %d to %d", startLine, line)
 	}
 	return nil
 }
 
-// createCodeComment creates a plain code comment at the specified line / path
+func isExistingCommitID(ctx context.Context, repo *git.Repository, commitID string) bool {
+	objectFormat, err := repo.GetObjectFormat(ctx)
+	if err != nil || !git.IsStringValidObjectID(objectFormat, commitID) {
+		return false
+	}
+	commit, err := repo.GetCommit(ctx, commitID)
+	return err == nil && commit.ID.String() == commitID
+}
+
 func createCodeComment(ctx context.Context, opts *issues_model.CreateCommentOptions, review *issues_model.Review, latestCommitID string) (*issues_model.Comment, error) {
 	opts.ReviewID = review.ID
-	line, treePath := opts.LineNum, opts.TreePath
-	if err := opts.Issue.LoadPullRequest(ctx); err != nil {
-		return nil, fmt.Errorf("createCodeComment: load pull request: %w", err)
+	line, treePath, issue := opts.LineNum, opts.TreePath, opts.Issue
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		return nil, fmt.Errorf("LoadPullRequest: %w", err)
 	}
-	pr := opts.Issue.PullRequest
+	pr := issue.PullRequest
 	if err := pr.LoadBaseRepo(ctx); err != nil {
-		return nil, fmt.Errorf("createCodeComment: load base repository: %w", err)
+		return nil, fmt.Errorf("LoadBaseRepo: %w", err)
 	}
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
-		return nil, fmt.Errorf("createCodeComment: open base repository: %w", err)
+		return nil, fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
 	}
 	defer closer.Close()
 
-	comments, err := issues_model.FindComments(ctx, &issues_model.FindCommentsOptions{
-		ReviewID:    review.ID,
-		Line:        line,
-		TreePath:    treePath,
-		Type:        issues_model.CommentTypeCode,
-		ListOptions: db.ListOptions{PageSize: 1, Page: 1},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("createCodeComment: find first comment for review %d, line %d, path %s: %w", review.ID, line, treePath, err)
-	}
-
 	prHeadRef := pr.GetGitHeadRefName()
-	headRef := prHeadRef
-	if len(comments) > 0 {
-		first := comments[0]
-		opts.CodeCommitID = first.CodeCommitID()
-		if opts.CodeStartLine == 0 && first.CodeStartLine() != line {
-			opts.CodeStartLine = first.CodeStartLine()
-		}
-		if line > 0 {
-			opts.CommitSHA, opts.Invalidated = first.CommitSHA, first.Invalidated
-			if cmp.Or(opts.CodeStartLine, line) == first.CodeStartLine() {
-				opts.Patch = first.Patch
-			}
-		}
-	} else if line > 0 {
-		headRef = cmp.Or(review.CommitID, prHeadRef)
-	}
-
 	if line > 0 && opts.CommitSHA == "" {
+		headRef := cmp.Or(review.CommitID, prHeadRef)
 		opts.CommitSHA, err = git.LineBlameCommitID(ctx, pr.BaseRepo, headRef, treePath, uint(line))
 		if err != nil && headRef != prHeadRef {
 			opts.CommitSHA, err = git.LineBlameCommitID(ctx, pr.BaseRepo, prHeadRef, treePath, uint(line))
@@ -352,26 +270,24 @@ func createCodeComment(ctx context.Context, opts *issues_model.CreateCommentOpti
 		}
 	}
 
-	if opts.Patch == "" {
-		headCommitID, err := gitRepo.GetRefCommitID(ctx, prHeadRef)
-		if err != nil {
-			return nil, fmt.Errorf("createCodeComment: resolve head ref %s: %w", prHeadRef, err)
-		}
-		opts.CommitSHA = cmp.Or(opts.CommitSHA, headCommitID)
-		if len(comments) == 0 {
-			opts.CodeCommitID = util.Iif(line < 0, pr.MergeBase, headCommitID)
-			if anchorRef := cmp.Or(latestCommitID, headRef); line > 0 && anchorRef != headCommitID && anchorRef != prHeadRef {
-				if anchorCommitID, err := gitRepo.GetRefCommitID(ctx, anchorRef); err == nil {
-					opts.CodeCommitID = anchorCommitID
-				} else if !errors.Is(err, util.ErrNotExist) {
-					return nil, fmt.Errorf("createCodeComment: resolve anchor %s: %w", anchorRef, err)
-				}
-			}
-		}
-		opts.Patch, err = gitdiff.GetCodeCommentPatch(ctx, gitRepo, pr.MergeBase, headCommitID, treePath, line, opts.CodeStartLine)
-		if err != nil {
-			return nil, err
-		}
+	headCommitID, err := gitRepo.GetRefCommitID(ctx, prHeadRef)
+	if err != nil {
+		return nil, fmt.Errorf("GetRefCommitID[%s]: %w", prHeadRef, err)
+	}
+	opts.CommitSHA = cmp.Or(opts.CommitSHA, headCommitID)
+	opts.CodeCommitID = headCommitID
+	if line < 0 {
+		opts.CodeCommitID = pr.MergeBase
+	} else if latestCommitID != "" && isExistingCommitID(ctx, gitRepo, latestCommitID) {
+		opts.CodeCommitID = latestCommitID
+	}
+	if opts.CodeStartLine != 0 && opts.CodeStartLine != line {
+		opts.Patch, err = gitdiff.GetCodeCommentRangePatch(ctx, gitRepo, pr.MergeBase, headCommitID, treePath, opts.CodeStartLine, line)
+	} else {
+		opts.Patch, err = gitdiff.GetCodeCommentPatch(ctx, gitRepo, pr.MergeBase, headCommitID, treePath, line)
+	}
+	if err != nil {
+		return nil, err
 	}
 	return issues_model.CreateComment(ctx, opts)
 }

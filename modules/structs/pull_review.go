@@ -125,19 +125,3 @@ type PullReviewRequestOptions struct {
 	Reviewers     []string `json:"reviewers"`
 	TeamReviewers []string `json:"team_reviewers"`
 }
-
-// ApplyPullReviewSuggestionsOptions identifies the review comments to apply in one commit.
-type ApplyPullReviewSuggestionsOptions struct {
-	// IDs of the review comments containing the suggestions.
-	// required: true
-	CommentIDs []int64 `json:"comment_ids" binding:"Required"`
-	// Expected head commit SHA. Defaults to the current head of the pull request.
-	HeadCommitID string `json:"head_commit_id"`
-	// Commit message. Defaults to a message based on the selected suggestions.
-	Message string `json:"message"`
-}
-
-// ApplyPullReviewSuggestionsResponse identifies the resulting commit.
-type ApplyPullReviewSuggestionsResponse struct {
-	SHA string `json:"sha"`
-}

@@ -95,15 +95,17 @@ func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang
 		for _, lines := range comment.Comment.Review.CodeComments {
 			for _, comments := range lines {
 				for _, codeComment := range comments {
-					mailComment := *codeComment
-					rctx := renderhelper.NewRenderContextRepoComment(ctx, comment.Issue.Repo, renderhelper.RepoCommentOptions{
-						FootnoteContextID: strconv.FormatInt(codeComment.ID, 10),
-					}).WithUseAbsoluteLink(true)
-					mailComment.RenderedContent, err = markdown.RenderString(rctx, codeComment.Content)
-					if err != nil {
-						return nil, err
+					if len(markdown.ParseCodeSuggestions(codeComment.Content)) != 0 {
+						mailCodeComment := *codeComment
+						rctx := renderhelper.NewRenderContextRepoComment(ctx, comment.Issue.Repo, renderhelper.RepoCommentOptions{
+							FootnoteContextID: strconv.FormatInt(codeComment.ID, 10),
+						})
+						if mailCodeComment.RenderedContent, err = markdown.RenderString(rctx, codeComment.Content); err != nil {
+							return nil, err
+						}
+						codeComment = &mailCodeComment
 					}
-					reviewComments = append(reviewComments, &mailComment)
+					reviewComments = append(reviewComments, codeComment)
 				}
 			}
 		}

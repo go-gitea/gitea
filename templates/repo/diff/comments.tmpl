@@ -60,7 +60,15 @@
 			</div>
 		</div>
 		<div class="ui attached segment comment-body">
-			{{template "repo/diff/comment_body" dict "Comment" $comment "CanEdit" (or $canWrite (eq $signedUserID $comment.PosterID))}}
+			{{$doerIsPoster := eq $signedUserID $comment.PosterID}}
+			<div class="render-content markup" {{if or $canWrite $doerIsPoster}}data-can-edit="true"{{end}}>
+			{{if $comment.RenderedContent}}
+				{{$comment.RenderedContent}}
+			{{else}}
+				<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
+			{{end}}
+			</div>
+			<div class="code-suggestion-actions">{{template "repo/diff/code_suggestion_controls" $comment}}</div>
 			<div id="{{$comment.HashTag}}-raw" class="raw-content tw-hidden">{{$comment.Content}}</div>
 			<div class="edit-content-zone tw-hidden" data-update-url="{{$repoLink}}/comments/{{$comment.ID}}" data-content-version="{{$comment.ContentVersion}}" data-context="{{$repoLink}}" data-attachment-url="{{$repoLink}}/comments/{{$comment.ID}}/attachments"></div>
 			{{if $comment.Attachments}}

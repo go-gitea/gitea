@@ -618,4 +618,10 @@ func TestMarkdownCodeBlock(t *testing.T) {
 	testRender("```js,ignore\ncode\n```", jsCommon)
 	testRender("```js ignore\ncode\n```", jsCommon)
 	testRender("    <any&content>\n", prefix+`<code class="chroma language-text">&lt;any&amp;content&gt;`+nl+`</code>`+suffix)
+
+	t.Run("ParsesSuggestionFences", func(t *testing.T) {
+		assert.Equal(t, []string{"foo ```x```\n```\n", ""}, markdown.ParseCodeSuggestions(
+			"````Suggestion foo=bar\r\nfoo ```x```\r\n```\r\n````\n\n"+
+				"```suggestion:-1+1\nignored\n```\n\n~~~suggestion\n~~~"))
+	})
 }

@@ -1,8 +1,1 @@
 <code class="code-inner{{if .diff.EscapeStatus.Escaped}} has-escaped{{end}}">{{.diff.Content}}</code>
-{{define "repo/diff/line_number" -}}
-	{{- if and .Number .FileNameHash -}}
-		<a class="diff-line-link silenced" href="#diff-{{.FileNameHash}}{{.Side}}{{.Number}}" tabindex="-1" data-global-click="onSelectDiffLine">{{.Number}}</a>
-	{{- else if .Number -}}
-		{{.Number}}
-	{{- end -}}
-{{- end -}}

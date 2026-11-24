@@ -5,6 +5,7 @@ package markup
 
 import (
 	"bufio"
+	"cmp"
 	"context"
 	"errors"
 	"html/template"
@@ -123,7 +124,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 
 func getCodeSuggestionSource(ctx context.Context, anchor markup.CodeSuggestionAnchor) (markup.CodeSuggestionSource, error) {
 	webCtx := gitea_context.GetWebContext(ctx)
-	if webCtx == nil || webCtx.Repo == nil || webCtx.Repo.Repository == nil || !webCtx.Repo.Permission.CanRead(unit.TypeCode) {
+	if webCtx == nil || webCtx.Repo == nil || !webCtx.Repo.Permission.CanRead(unit.TypeCode) {
 		return markup.CodeSuggestionSource{}, util.ErrNotExist
 	}
 	lines, err := ReadCodeSuggestionLines(ctx, webCtx.Repo.GitRepo, anchor)
@@ -138,7 +139,14 @@ func getCodeSuggestionSource(ctx context.Context, anchor markup.CodeSuggestionAn
 }
 
 func ReadCodeSuggestionLines(ctx context.Context, repo *git.Repository, anchor markup.CodeSuggestionAnchor) ([]string, error) {
-	if repo == nil || anchor.StartLine == 0 || anchor.StartLine > anchor.EndLine || !git.IsStringValidObjectID(nil, anchor.CommitID) {
+	if repo == nil || anchor.StartLine == 0 || anchor.StartLine > anchor.EndLine {
+		return nil, util.ErrNotExist
+	}
+	objectFormat, err := repo.GetObjectFormat(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !git.IsStringValidObjectID(objectFormat, anchor.CommitID) {
 		return nil, util.ErrNotExist
 	}
 	type fileKey struct {
@@ -155,19 +163,13 @@ func ReadCodeSuggestionLines(ctx context.Context, repo *git.Repository, anchor m
 			return nil, err
 		}
 		content, err := blob.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize+1)
-		if err != nil {
-			return nil, err
-		}
-		if content == "" || int64(len(content)) > setting.UI.MaxDisplayFileSize || strings.ContainsRune(content, 0) {
-			return nil, util.ErrNotExist
+		if err != nil || content == "" || int64(len(content)) > setting.UI.MaxDisplayFileSize || strings.ContainsRune(content, 0) {
+			return nil, cmp.Or[error](err, util.ErrNotExist)
 		}
 		return strings.Split(strings.TrimSuffix(strings.ReplaceAll(content, "\r\n", "\n"), "\n"), "\n"), nil
 	})
-	if err != nil {
-		return nil, err
-	}
-	if anchor.EndLine > uint64(len(lines)) {
-		return nil, util.ErrNotExist
+	if err != nil || anchor.EndLine > uint64(len(lines)) {
+		return nil, cmp.Or[error](err, util.ErrNotExist)
 	}
 	return lines[anchor.StartLine-1 : anchor.EndLine], nil
 }

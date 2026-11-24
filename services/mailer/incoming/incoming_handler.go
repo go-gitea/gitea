@@ -123,9 +123,19 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, doer *u
 
 		switch comment.Type {
 		case issues_model.CommentTypeCode:
-			_, err := pull_service.CreateCodeComment(ctx, doer, nil, issue, false, "", issues_model.CreateCommentOptions{
-				LineNum: comment.Line, Content: content.Content, TreePath: comment.TreePath, ReviewID: comment.ReviewID, Attachments: attachmentIDs,
-			})
+			_, err := pull_service.CreateCodeComment(
+				ctx,
+				doer,
+				nil,
+				issue,
+				comment.Line,
+				content.Content,
+				comment.TreePath,
+				false, // not pending review but a single review
+				comment.ReviewID,
+				"",
+				attachmentIDs,
+			)
 			if err != nil {
 				return fmt.Errorf("CreateCodeComment failed: %w", err)
 			}

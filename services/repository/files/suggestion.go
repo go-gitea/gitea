@@ -9,11 +9,12 @@ import (
 	"errors"
 	"strings"
 
-	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	pull_service "gitea.dev/services/pull"
 )
@@ -26,23 +27,19 @@ type ApplyCodeSuggestionsOptions struct {
 	Description     string
 }
 
-func ApplyCodeSuggestions(ctx context.Context, doer *user_model.User, prID int64, opts ApplyCodeSuggestionsOptions) (string, error) {
+func ApplyCodeSuggestions(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, opts ApplyCodeSuggestionsOptions) error {
 	if strings.ContainsAny(opts.Summary, "\r\n\x00") || strings.ContainsRune(opts.Description, 0) {
-		return "", util.ErrorWrapTranslatable(util.ErrInvalidArgument, "repo.diff.suggestion.not_appliable.invalid_message")
-	}
-	pr, err := issues_model.GetPullRequestByID(ctx, prID)
-	if err != nil {
-		return "", err
+		return util.ErrorWrapTranslatable(util.ErrInvalidArgument, "repo.diff.suggestion.not_appliable.invalid_message")
 	}
 	if err := pr.LoadBaseRepo(ctx); err != nil {
-		return "", err
+		return err
 	}
 	if err := pr.BaseRepo.MustNotBeArchived(); err != nil {
-		return "", err
+		return err
 	}
 	changes, err := pull_service.PrepareCodeSuggestionChanges(ctx, doer, pr, opts.CommentIDs, opts.ContentVersions, opts.HeadCommitID)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	files := make([]*ChangeRepoFile, 0, len(changes.Files))
@@ -54,14 +51,14 @@ func ApplyCodeSuggestions(ctx context.Context, doer *user_model.User, prID int64
 
 	headRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.HeadRepo)
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer closer.Close()
 	headCommitID, err := headRepo.GetBranchCommitID(ctx, pr.HeadBranch)
 	if errors.Is(err, util.ErrNotExist) || err == nil && headCommitID != changes.HeadCommitID {
-		return "", pull_service.ErrCodeSuggestionHeadChanged
+		return pull_service.ErrCodeSuggestionHeadChanged
 	} else if err != nil {
-		return "", err
+		return err
 	}
 
 	result, err := ChangeRepoFiles(ctx, pr.HeadRepo, doer, &ChangeRepoFilesOptions{
@@ -69,17 +66,16 @@ func ApplyCodeSuggestions(ctx context.Context, doer *user_model.User, prID int64
 		Files: files, Message: codeSuggestionsCommitMessage(doer, opts.Summary, opts.Description, changes.Comments),
 	})
 	if err != nil {
-		if git.IsErrPushOutOfDate(err) || pull_service.IsErrSHADoesNotMatch(err) ||
-			git_model.IsErrBranchNotExist(err) || errors.Is(err, util.ErrNotExist) {
-			return "", pull_service.ErrCodeSuggestionHeadChanged
+		if git.IsErrPushOutOfDate(err) || pull_service.IsErrSHADoesNotMatch(err) || errors.Is(err, util.ErrNotExist) {
+			return pull_service.ErrCodeSuggestionHeadChanged
 		}
 		if rejected, ok := errors.AsType[*git.ErrPushRejected](err); ok {
 			if rejected.Message == "" {
-				return "", util.ErrorWrapTranslatable(util.ErrPermissionDenied, "repo.editor.push_rejected_no_message")
+				return util.ErrorWrapTranslatable(util.ErrPermissionDenied, "repo.editor.push_rejected_no_message")
 			}
-			return "", util.ErrorWrapTranslatable(util.ErrPermissionDenied, "repo.diff.suggestion.push_rejected", rejected.Message)
+			return util.ErrorWrapTranslatable(util.ErrPermissionDenied, "repo.diff.suggestion.push_rejected", rejected.Message)
 		}
-		return "", err
+		return err
 	}
 
 	ctx = context.WithoutCancel(ctx)
@@ -92,7 +88,7 @@ func ApplyCodeSuggestions(ctx context.Context, doer *user_model.User, prID int64
 			}
 		}
 	}
-	return result.Commit.SHA, nil
+	return nil
 }
 
 func codeSuggestionsCommitMessage(doer *user_model.User, summary, description string, comments issues_model.CommentList) string {
@@ -106,10 +102,12 @@ func codeSuggestionsCommitMessage(doer *user_model.User, summary, description st
 	if description = strings.TrimSpace(description); description != "" {
 		message += "\n\n" + description
 	}
-	coAuthors := map[int64]bool{doer.ID: true}
+	if !setting.Repository.PullRequest.AddCoCommitterTrailers {
+		return message
+	}
+	coAuthors := container.SetOf(doer.ID)
 	for _, comment := range comments {
-		if comment.Poster.ID > 0 && !coAuthors[comment.Poster.ID] {
-			coAuthors[comment.Poster.ID] = true
+		if comment.Poster.ID > 0 && coAuthors.Add(comment.Poster.ID) {
 			message = pull_service.AddCommitMessageTailer(message, git.CoAuthoredByTrailer, comment.Poster.NewGitSig().String())
 		}
 	}

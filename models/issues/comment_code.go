@@ -136,9 +136,7 @@ func FetchCodeCommentsByLine(ctx context.Context, issue *Issue, currentUser *use
 	return findCodeComments(ctx, opts, issue, currentUser, nil, showOutdatedComments)
 }
 
-type CodeSuggestionState struct {
-	Reason string
-}
+type CodeSuggestionState struct{ Reason string }
 
 func (c *Comment) CodeSuggestionCommitMessage() string {
 	return "Apply suggestion from @" + c.Poster.Name
@@ -148,9 +146,9 @@ func (c *Comment) RenderContent(ctx context.Context, repo *repo_model.Repository
 	rctx := renderhelper.NewRenderContextRepoComment(ctx, repo, renderhelper.RepoCommentOptions{
 		FootnoteContextID: strconv.FormatInt(c.ID, 10),
 	})
-	if c.Type == CommentTypeCode && c.Line > 0 && c.CodeStartLine() > 0 && c.CodeCommitID() != "" {
+	if startLine, commitID := c.CodeStartLine(), c.CodeCommitID(); c.Type == CommentTypeCode && c.Line > 0 && startLine > 0 && commitID != "" {
 		rctx.RenderOptions.CodeSuggestion = &markup.CodeSuggestionAnchor{
-			CommitID: c.CodeCommitID(), FilePath: c.TreePath, StartLine: c.UnsignedCodeStartLine(), EndLine: c.UnsignedLine(),
+			CommitID: commitID, FilePath: c.TreePath, StartLine: uint64(startLine), EndLine: uint64(c.Line),
 		}
 	}
 	c.RenderedContent, err = markdown.RenderString(rctx, c.Content)
@@ -173,6 +171,5 @@ func GetPublishedCodeConversationRoot(ctx context.Context, issueID int64, treePa
 
 func FindCodeCommentsByIDs(ctx context.Context, issueID int64, ids []int64) (map[int64]*Comment, error) {
 	comments := make(map[int64]*Comment, len(ids))
-	err := db.GetEngine(ctx).In("id", ids).Where(builder.Eq{"issue_id": issueID, "type": CommentTypeCode}).Find(&comments)
-	return comments, err
+	return comments, db.GetEngine(ctx).In("id", ids).Where(builder.Eq{"issue_id": issueID, "type": CommentTypeCode}).Find(&comments)
 }

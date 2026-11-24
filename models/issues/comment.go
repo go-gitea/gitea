@@ -803,7 +803,6 @@ func (c *Comment) UnsignedLine() uint64 {
 	return uint64(c.Line)
 }
 
-// CodeStartLine returns the signed first line of a code comment, which equals Line for single-line comments
 func (c *Comment) CodeStartLine() int64 {
 	if c.CommentMetaData != nil && c.CommentMetaData.CodeStartLine != 0 {
 		return c.CommentMetaData.CodeStartLine
@@ -811,9 +810,9 @@ func (c *Comment) CodeStartLine() int64 {
 	return c.Line
 }
 
-// UnsignedCodeStartLine returns the first line of a code comment without + or -
 func (c *Comment) UnsignedCodeStartLine() uint64 {
-	return uint64(max(c.CodeStartLine(), -c.CodeStartLine()))
+	line := c.CodeStartLine()
+	return uint64(max(line, -line))
 }
 
 func (c *Comment) CodeCommentRangeLabels() [2]string {
@@ -823,7 +822,6 @@ func (c *Comment) CodeCommentRangeLabels() [2]string {
 	return [2]string{strconv.FormatUint(c.UnsignedCodeStartLine(), 10), strconv.FormatUint(c.UnsignedLine(), 10)}
 }
 
-// CodeCommitID returns the commit the line numbers of a code comment refer to, empty for comments created before it was recorded
 func (c *Comment) CodeCommitID() string {
 	if c.CommentMetaData == nil {
 		return ""
@@ -900,7 +898,10 @@ func buildCreateCommentMetaData(ctx context.Context, opts *CreateCommentOptions)
 	if opts.SpecialDoerName != "" {
 		meta.SpecialDoerName = opts.SpecialDoerName
 	}
-	meta.CodeCommitID, meta.CodeStartLine = opts.CodeCommitID, opts.CodeStartLine
+	meta.CodeCommitID = opts.CodeCommitID
+	if opts.CodeStartLine != opts.LineNum {
+		meta.CodeStartLine = opts.CodeStartLine
+	}
 	if meta == (CommentMetaData{}) {
 		return nil
 	}

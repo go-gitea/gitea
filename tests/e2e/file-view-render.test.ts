@@ -1,8 +1,6 @@
 import {env} from 'node:process';
 import {expect, test} from '@playwright/test';
-import {
-  apiCreateRepo, apiCreateFiles, assertClipboardText, assertFlushWithParent, assertNoJsError, login, randomString,
-} from './utils.ts';
+import {apiCreateRepo, apiCreateFiles, assertFlushWithParent, assertNoJsError, login, randomString} from './utils.ts';
 
 test('3d model file', async ({page, request, browserName}) => {
   test.skip(browserName === 'firefox', 'unclear firefox-only CI-only failure'); // eslint-disable-line playwright/no-skipped-test -- conditional skip, the reason is in the message
@@ -45,17 +43,11 @@ test('code line anchors', async ({page, request}) => {
   const repoName = `e2e-line-anchor-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
   await apiCreateRepo(request, {name: repoName});
-  await apiCreateFiles(request, owner, repoName, [{path: 'test.txt', content: 'one\ntwo\nthree\nfour\n'}]);
+  await apiCreateFiles(request, owner, repoName, [{path: 'test.txt', content: 'a\n'}]);
   const url = `/${owner}/${repoName}/src/branch/main/test.txt`;
-  const highlightedRows = page.locator('.code-view tr.active');
   await page.goto(`${url}#L0`);
   await page.goto(`${url}#L1`);
-  await expect(highlightedRows).toHaveCount(1);
-  await page.goto(`${url}#L2-L3`);
-  await expect(highlightedRows.locator('.code-inner')).toHaveText(['two', 'three']);
-  await page.locator('.code-view .code-line-button').click();
-  await page.getByRole('menuitem', {name: 'Copy Lines', exact: true}).click();
-  await assertClipboardText(page, 'two\nthree');
+  await expect(page.locator('.code-view tr.active')).toHaveCount(1);
   await assertNoJsError(page);
 });
 

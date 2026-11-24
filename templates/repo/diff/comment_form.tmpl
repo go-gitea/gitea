@@ -3,19 +3,15 @@
 {{$canAddComment := and $root.SignedUserID (not $root.Repository.IsArchived) -}}
 {{if $canAddComment}}
 	{{$canSuggest := $root.CanSuggestCode}}
-	{{$side := $root.CodeCommentSide}}
-	{{$startSide := $side}}
-	{{if $replyReviewComment}}
-		{{$side = $replyReviewComment.DiffSide}}
-		{{$startSide = Iif (lt $replyReviewComment.CodeStartLine 0) "previous" "proposed"}}
-		{{$canSuggest = and (gt $replyReviewComment.CodeStartLine 0) $replyReviewComment.CodeCommitID ($root.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
+	{{with $replyReviewComment}}
+		{{$canSuggest = and (gt .CodeStartLine 0) .CodeCommitID ($root.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
 	{{end}}
 	<form class="ui form {{if $replyReviewComment}}tw-hidden comment-form{{end}}" action="{{$root.Issue.Link}}/files/reviews/comments" method="post"
-		{{if $canSuggest}}data-code-suggestion-source-url="{{$root.Issue.Link}}/files/reviews/suggestion_source" data-code-suggestion-source-error="{{ctx.Locale.Tr "repo.diff.suggestion.source_unavailable"}}"{{end}}>
+		{{if $canSuggest}}data-code-suggestion-source-url="{{$root.Issue.Link}}/files/reviews/suggestion_source"{{end}}>
 		<input type="hidden" name="origin" value="{{if $root.PageIsPullFiles}}diff{{else}}timeline{{end}}">
 		<input type="hidden" name="latest_commit_id" value="{{$root.ReviewCommitID}}">
-		<input type="hidden" name="side" value="{{$side}}">
-		<input type="hidden" name="start_side" value="{{$startSide}}">
+		<input type="hidden" name="side" value="{{$replyReviewComment.DiffSide}}">
+		<input type="hidden" name="start_side" value="{{with $replyReviewComment}}{{Iif (lt .CodeStartLine 0) "previous" "proposed"}}{{end}}">
 		<input type="hidden" name="start_line" value="{{if and $replyReviewComment (ne $replyReviewComment.CodeStartLine $replyReviewComment.Line)}}{{$replyReviewComment.UnsignedCodeStartLine}}{{end}}">
 		<input type="hidden" name="line" value="{{$replyReviewComment.UnsignedLine}}">
 		<input type="hidden" name="path" value="{{$replyReviewComment.TreePath}}">
@@ -49,6 +45,7 @@
 				{{if $replyReviewComment}}
 					<button class="ui submit primary tiny button" type="submit">{{ctx.Locale.Tr "repo.diff.comment.reply"}}</button>
 					<input type="hidden" name="reply" value="{{$replyReviewComment.ReviewID}}">
+					<input type="hidden" name="reply_comment_id" value="{{$replyReviewComment.ID}}">
 					<input type="hidden" name="single_review" value="true">
 				{{else}}
 					{{if $root.CurrentReview}}
