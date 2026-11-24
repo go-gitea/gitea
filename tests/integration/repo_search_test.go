@@ -160,6 +160,7 @@ func TestWebSearchRepoCommitStatus(t *testing.T) {
       "archived_at": "0001-01-01T00:00:00Z",
       "has_code": false, "has_issues": false, "has_wiki": false, "has_pull_requests": false, "has_projects": false,
       "has_releases": false, "has_packages": false, "has_actions": false,
+      "immutable_releases": false,
       "projects_mode": "",
       "ignore_whitespace_conflicts": false,
       "allow_merge_commits": false, "allow_rebase": false, "allow_rebase_explicit": false, "allow_squash_merge": false,
