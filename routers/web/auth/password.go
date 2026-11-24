@@ -13,6 +13,7 @@ import (
 	"gitea.dev/modules/auth/password"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
@@ -230,6 +231,7 @@ func ResetPasswdPost(ctx *context.Context) {
 
 	log.Trace("User password reset: %s", u.Name)
 	ctx.Data["IsResetFailed"] = true
+	_ = ctx.Session.Delete(session.KeySignInMethod)
 	remember := len(ctx.FormString("remember")) != 0
 
 	if regenerateScratchToken {

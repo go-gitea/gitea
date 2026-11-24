@@ -124,8 +124,11 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 	deleteCookie = false
 
+	auth_service.ClearSessionKeysForSignIn(ctx.Session)
+	_ = ctx.Session.Delete(session.KeySignInMethod)
 	if err := regenerateSession(ctx, map[string]any{
 		session.KeyUID:                  u.ID,
+		session.KeySessionGeneration:    u.SessionGeneration,
 		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 	}); err != nil {
 		return false, fmt.Errorf("unable to updateSession: %w", err)
@@ -323,6 +326,8 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 
+	_ = ctx.Session.Delete(session.KeySignInMethod)
+
 	// Now handle 2FA:
 	// First of all if the source can skip local two fa we're done
 	if source.TwoFactorShouldSkip() {
@@ -346,6 +351,11 @@ func SignInPost(ctx *context.Context) {
 }
 
 func handleTwoFactorRequired(ctx *context.Context, u *user_model.User, remember bool, extra map[string]any) {
+	if extra["linkAccount"] == nil {
+		_ = ctx.Session.Delete("linkAccount")
+		_ = ctx.Session.Delete("linkAccountData")
+	}
+	_ = ctx.Session.Delete(session.KeySignInMethod)
 	updates := map[string]any{"twofaUid": u.ID, "twofaRemember": remember}
 	maps.Copy(updates, extra)
 	if err := regenerateSession(ctx, updates); err != nil {
@@ -396,6 +406,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 	auth_service.ClearSessionKeysForSignIn(ctx.Session)
 	if err := regenerateSession(ctx, map[string]any{
 		session.KeyUID:                  u.ID,
+		session.KeySessionGeneration:    u.SessionGeneration,
 		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 	}); err != nil {
 		ctx.ServerErrorAuto(err)
@@ -483,12 +494,13 @@ func SignOut(ctx *context.Context) {
 	}
 
 	// prepare the sign-out URL before destroying the session
-	redirectTo := buildSignOutRedirectURL(ctx)
+	redirectTo := BuildSignOutRedirectURL(ctx)
 	HandleSignOut(ctx)
 	ctx.Redirect(redirectTo)
 }
 
-func buildSignOutRedirectURL(ctx *context.Context) string {
+// BuildSignOutRedirectURL returns the redirect URL to use after signing out.
+func BuildSignOutRedirectURL(ctx *context.Context) string {
 	if ctx.Doer != nil && shouldRedirectToOIDCEndSession(ctx) {
 		if s := buildOIDCEndSessionURL(ctx, ctx.Doer); s != "" {
 			return s
@@ -614,6 +626,7 @@ func SignUpPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("auth.sign_up_successful"))
+	_ = ctx.Session.Delete(session.KeySignInMethod)
 	handleSignIn(ctx, u, false)
 }
 
@@ -893,7 +906,19 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 	audit.RecordAs(ctx, user, audit_model.UserActive, user, "active", true)
 	log.Trace("User activated: %s", user.Name)
 
-	if err := regenerateSession(ctx, map[string]any{session.KeyUID: user.ID}); err != nil {
+	userHasTwoFactorAuth, err := auth.HasTwoFactorOrWebAuthn(ctx, user.ID)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+
+	auth_service.ClearSessionKeysForSignIn(ctx.Session)
+	_ = ctx.Session.Delete(session.KeySignInMethod)
+	if err := regenerateSession(ctx, map[string]any{
+		session.KeyUID:                  user.ID,
+		session.KeySessionGeneration:    user.SessionGeneration,
+		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
+	}); err != nil {
 		log.Error("Unable to regenerate session for user: %-v with email: %s: %v", user, user.Email, err)
 		ctx.ServerErrorAuto(err)
 		return

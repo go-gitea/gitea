@@ -13,8 +13,6 @@ import (
 	"xorm.io/builder"
 )
 
-var ErrAuthTokenNotExist = util.NewNotExistErrorf("auth token does not exist")
-
 type AuthToken struct { //nolint:revive // export stutter
 	ID          string `xorm:"pk"`
 	TokenHash   string
@@ -42,7 +40,7 @@ func GetAuthTokenByID(ctx context.Context, id string) (*AuthToken, error) {
 		return nil, err
 	}
 	if !has {
-		return nil, ErrAuthTokenNotExist
+		return nil, util.NewNotExistErrorf("auth token does not exist")
 	}
 	return at, nil
 }

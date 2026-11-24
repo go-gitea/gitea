@@ -26,6 +26,7 @@ import (
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/audit"
+	auth_service "gitea.dev/services/auth"
 	source_service "gitea.dev/services/auth/source"
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/context"
@@ -418,8 +419,10 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 			return
 		}
 
+		auth_service.ClearSessionKeysForSignIn(ctx.Session)
 		if err := regenerateSession(ctx, map[string]any{
 			session.KeyUID:                  u.ID,
+			session.KeySessionGeneration:    u.SessionGeneration,
 			session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 			session.KeySignInMethod:         session.SignInMethodOAuth2,
 		}); err != nil {

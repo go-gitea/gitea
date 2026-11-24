@@ -11,29 +11,39 @@ import (
 	"gitea.dev/modules/session"
 )
 
+var impersonatorBackupKeys = []string{
+	session.KeyUID,
+	session.KeySessionGeneration,
+	session.KeyUserHasTwoFactorAuth,
+	session.KeySignInMethod,
+}
+
 func ImpersonateUser(sess SessionStore, u *user_model.User) error {
 	if sess.Get(session.KeyImpersonatorData) != nil {
 		return errors.New("already impersonating a user")
 	}
 	// TODO: in the future, we need to process all sessions keys, but the session store doesn't have the ability to list keys
 	// So we need to refactor all "Session.Get" to use consts, then we can enumerate the pre-defined keys.
-	backupKeys := []string{session.KeyUID, session.KeyUserHasTwoFactorAuth}
 	backup := map[string]any{}
-	for _, key := range backupKeys {
+	for _, key := range impersonatorBackupKeys {
 		v := sess.Get(key)
 		if v != nil {
 			backup[key] = v
 		}
 	}
+
+	ClearSessionKeysForSignIn(sess)
+	_ = sess.Delete(session.KeySignInMethod)
 	err := sess.Set(session.KeyImpersonatorData, backup)
 	if err != nil {
 		return fmt.Errorf("set impersonator data: %w", err)
 	}
 
-	ClearSessionKeysForSignIn(sess)
-	data := map[string]any{}
-	data[session.KeyUID] = u.ID
-	data[session.KeyUserHasTwoFactorAuth] = true // since we are impersonating, we don't want to require 2FA for the impersonated user
+	data := map[string]any{
+		session.KeyUID:                  u.ID,
+		session.KeySessionGeneration:    u.SessionGeneration,
+		session.KeyUserHasTwoFactorAuth: true, // since we are impersonating, we don't want to require 2FA for the impersonated user
+	}
 	for k, v := range data {
 		if err = sess.Set(k, v); err != nil {
 			return fmt.Errorf("set session data: %w", err)
@@ -64,6 +74,9 @@ func ExitImpersonatedUser(sess SessionStore) (bool, error) {
 	}
 
 	ClearSessionKeysForSignIn(sess)
+	for _, key := range impersonatorBackupKeys {
+		_ = sess.Delete(key)
+	}
 	for k, v := range impersonatorData {
 		if err = sess.Set(k, v); err != nil {
 			return false, fmt.Errorf("set impersonator data: %w", err)

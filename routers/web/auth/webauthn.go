@@ -13,6 +13,7 @@ import (
 	user_model "gitea.dev/models/user"
 	wa "gitea.dev/modules/auth/webauthn"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/services/audit"
@@ -156,6 +157,7 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 		return
 	}
 
+	_ = ctx.Session.Delete(session.KeySignInMethod)
 	remember := false // TODO: implement remember me
 	handleSignInFull(ctx, user, remember)
 	ctx.JSONRedirect(consumeAuthRedirectLink(ctx))

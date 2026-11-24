@@ -167,8 +167,15 @@ func newWebAuthMiddleware() *AuthMiddleware {
 		ctx.IsSigned = ar.Doer != nil
 		ctx.IsBasicAuth = ar.IsBasicAuth
 		if ctx.Doer == nil {
-			// ensure the session uid is deleted
+			// ensure the session uid and auth state are deleted
 			_ = ctx.Session.Delete(session.KeyUID)
+			_ = ctx.Session.Delete(session.KeySessionGeneration)
+			_ = ctx.Session.Delete(session.KeyImpersonatorData)
+			_ = ctx.Session.Delete(session.KeyUserHasTwoFactorAuth)
+			ctx.Data["ShowTwoFactorRequiredMessage"] = false
+			if ctx.Session.Get("twofaUid") == nil {
+				_ = ctx.Session.Delete(session.KeySignInMethod)
+			}
 		}
 	}
 	return webAuth
@@ -645,6 +652,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/delete", security.WebauthnDelete)
 			})
 			m.Post("/account_link", security.DeleteAccountLink)
+			m.Post("/sessions/sign_out", security.SignOutSessions)
 		})
 
 		m.Group("/applications", func() {

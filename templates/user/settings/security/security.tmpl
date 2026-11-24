@@ -5,6 +5,7 @@
 		{{template "user/settings/security/twofa" .}}
 		{{template "user/settings/security/webauthn" .}}
 		{{end}}
+		{{template "user/settings/security/sessions" .}}
 		{{if not ($.UserDisabledFeatures.Contains "manage_credentials")}}
 		{{template "user/settings/security/accountlinks" .}}
 		{{end}}

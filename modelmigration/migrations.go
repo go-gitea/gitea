@@ -452,6 +452,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(373, "Repair Debian and RPM signing keys rejected by Sequoia", v29.RepairPackageSigningKeys),
 		newMigration(374, "Add pull_merge_queue_entry table", v29.AddPullMergeQueueEntryTable),
 		newMigration(375, "Update OwnerID as zero for repository level runner tokens", v29.UpdateOwnerIDOfRepoLevelRunnerTokens),
+		newMigration(376, "Add session_generation column to user table", v29.AddSessionGenerationToUser),
 	}
 	return preparedMigrations
 }

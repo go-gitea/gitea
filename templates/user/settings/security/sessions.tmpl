@@ -1,0 +1,20 @@
+<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "settings.sessions"}}
+</h4>
+<div class="ui attached segment">
+	<p>{{ctx.Locale.Tr "settings.sessions_desc"}}</p>
+	<button type="button" class="ui red button link-action" data-modal-confirm="#sign-out-sessions" data-url="{{AppSubUrl}}/user/settings/security/sessions/sign_out">
+		{{ctx.Locale.Tr "settings.sessions_sign_out"}}
+	</button>
+
+	<dialog class="modal-dialog" id="sign-out-sessions">
+		<div class="header">
+			{{svg "octicon-trash"}}
+			{{ctx.Locale.Tr "settings.sessions_sign_out"}}
+		</div>
+		<div class="content">
+			<p>{{ctx.Locale.Tr "settings.sessions_sign_out_desc"}}</p>
+		</div>
+		{{template "base/modal_actions_confirm" .}}
+	</dialog>
+</div>

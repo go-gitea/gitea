@@ -121,7 +121,8 @@ func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store Da
 
 	if r.CreateSession && sess != nil {
 		sessionUID, ok := sess.Get(session.KeyUID).(int64)
-		if !ok || sessionUID != user.ID {
+		sessionGen, _ := sess.Get(session.KeySessionGeneration).(int64)
+		if !ok || sessionUID != user.ID || sessionGen != user.SessionGeneration {
 			handleSignInNonInteractive(w, req, sess, user)
 		}
 	}
