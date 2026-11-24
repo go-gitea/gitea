@@ -93,7 +93,7 @@ func TestWebSocketTopicSubscription(t *testing.T) {
 	require.NoError(t, err)
 	defer conn.CloseNow()
 
-	const readableTopic, unreadableTopic = "pull-2", "pull-6"
+	const readableTopic, unreadableTopic = "pull-head-2", "pull-head-6"
 	for _, topic := range []string{unreadableTopic, readableTopic} {
 		require.NoError(t, conn.Write(t.Context(), websocket.MessageText, fmt.Appendf(nil, `{"type":"subscribe","topic":%q}`, topic)))
 	}

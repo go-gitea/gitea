@@ -18,7 +18,7 @@ import (
 const eventPullHead = "pull-head" // keep in sync with web_src/js/types.ts
 
 func pullTopic(pullID int64) string {
-	return fmt.Sprintf("pull-%d", pullID)
+	return fmt.Sprintf("pull-head-%d", pullID)
 }
 
 func PublishPullHead(pullID int64) {
@@ -27,7 +27,7 @@ func PublishPullHead(pullID int64) {
 
 func pullTopicEventFunc(topic string) func(ctx context.Context, doerID int64) []byte {
 	var pullID int64
-	if _, err := fmt.Sscanf(topic, "pull-%d", &pullID); err != nil || topic != pullTopic(pullID) {
+	if _, err := fmt.Sscanf(topic, "pull-head-%d", &pullID); err != nil || topic != pullTopic(pullID) {
 		return nil
 	}
 	return func(ctx context.Context, doerID int64) []byte {
