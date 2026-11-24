@@ -25673,7 +25673,7 @@
           "x-go-name": "GroupingStrategy"
         },
         "max_entries_to_build": {
-          "description": "Maximum number of queue entries built and tested at the same time",
+          "description": "Maximum number of queue entries built and tested at the same time, 0 pauses new builds",
           "type": "integer",
           "format": "int64",
           "x-go-name": "MaxEntriesToBuild"
@@ -25720,7 +25720,7 @@
           "x-go-name": "GroupingStrategy"
         },
         "max_entries_to_build": {
-          "description": "Maximum number of queue entries built and tested at the same time",
+          "description": "Maximum number of queue entries built and tested at the same time, 0 pauses new builds",
           "type": "integer",
           "format": "int64",
           "x-go-name": "MaxEntriesToBuild"

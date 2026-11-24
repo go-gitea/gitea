@@ -19,7 +19,6 @@ import (
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/glob"
-	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
 	webhook_module "gitea.dev/modules/webhook"
@@ -89,9 +88,6 @@ func GetRunsFromCommitStatuses(ctx context.Context, repoID int64, sha string) (r
 }
 
 func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, commitID string, _ error) {
-	if skipMergeGroupCommitStatus(run) {
-		return "", "", nil
-	}
 	switch run.Event {
 	case webhook_module.HookEventPush:
 		event = "push"
@@ -136,20 +132,6 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 	default: // do nothing, return empty
 	}
 	return event, commitID, nil
-}
-
-func skipMergeGroupCommitStatus(run *actions_model.ActionRun) bool {
-	if run.Event != webhook_module.HookEventMergeGroup {
-		return false
-	}
-	var payload struct {
-		Action api.HookMergeGroupAction `json:"action"`
-	}
-	if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
-		log.Error("decode merge_group payload for run %d: %v", run.ID, err)
-		return true
-	}
-	return payload.Action != api.HookMergeGroupChecksRequested
 }
 
 func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID, scopedPrefix string, run *actions_model.ActionRun, job *actions_model.ActionRunJob, pendingFilter *pendingJobFilter) error {
@@ -256,9 +238,8 @@ func CreateSkippedCommitStatusForFilteredWorkflow(ctx context.Context, repo *rep
 			}
 		}
 	case webhook_module.HookEventMergeGroup:
-		if group, ok := payload.(*api.MergeGroupPayload); ok && group.Action == api.HookMergeGroupChecksRequested && group.MergeGroup != nil {
-			statusEvent, commitID = string(event), group.MergeGroup.HeadSHA
-		}
+		group, _ := payload.(*api.MergeGroupPayload)
+		statusEvent, commitID = string(event), group.MergeGroup.HeadSHA
 	}
 	if statusEvent == "" || commitID == "" {
 		return nil // unsupported event or missing commit id, nothing to post

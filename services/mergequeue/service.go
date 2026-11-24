@@ -45,7 +45,7 @@ func Enqueue(ctx context.Context, doer *user_model.User, pr *issues_model.PullRe
 		EnqueuerID: doer.ID, HeadSHA: headSHA,
 	}
 	added := false
-	err = globallock.LockAndDo(ctx, lockKey(pr.BaseRepoID, pr.BaseBranch), func(ctx context.Context) error {
+	err = globallock.LockAndDo(ctx, pull_model.MergeQueueLockKey(pr.BaseRepoID, pr.BaseBranch), func(ctx context.Context) error {
 		if jump {
 			existing, err := pull_model.GetMergeQueueEntryByPullID(ctx, pr.ID)
 			if err != nil {
@@ -85,7 +85,7 @@ func Jump(ctx context.Context, pr *issues_model.PullRequest) error {
 }
 
 func Clear(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, branch string) error {
-	return globallock.LockAndDo(ctx, lockKey(repo.ID, branch), func(ctx context.Context) error {
+	return globallock.LockAndDo(ctx, pull_model.MergeQueueLockKey(repo.ID, branch), func(ctx context.Context) error {
 		rows, err := pull_model.GetMergeQueueEntries(ctx, repo.ID, branch)
 		if err != nil {
 			return err
@@ -132,8 +132,11 @@ func Dequeue(ctx context.Context, doer *user_model.User, perm access_model.Permi
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return err
 	}
+	if err := pr.LoadIssue(ctx); err != nil {
+		return err
+	}
 	return updateQueuedEntry(ctx, pr, func(ctx context.Context, entry *pull_model.MergeQueueEntry) error {
-		if doer.ID != entry.EnqueuerID {
+		if doer.ID != entry.EnqueuerID && !pr.Issue.IsPoster(doer.ID) {
 			if allowed, err := pull_service.IsUserAllowedToMerge(ctx, pr, perm, doer); err != nil {
 				return err
 			} else if !allowed {
@@ -145,7 +148,7 @@ func Dequeue(ctx context.Context, doer *user_model.User, perm access_model.Permi
 }
 
 func updateQueuedEntry(ctx context.Context, pr *issues_model.PullRequest, update func(context.Context, *pull_model.MergeQueueEntry) error) error {
-	err := globallock.LockAndDo(ctx, lockKey(pr.BaseRepoID, pr.BaseBranch), func(ctx context.Context) error {
+	err := globallock.LockAndDo(ctx, pull_model.MergeQueueLockKey(pr.BaseRepoID, pr.BaseBranch), func(ctx context.Context) error {
 		entry, err := pull_model.GetMergeQueueEntryByPullID(ctx, pr.ID)
 		if err != nil {
 			return err

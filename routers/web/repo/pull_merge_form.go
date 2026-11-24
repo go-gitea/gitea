@@ -185,7 +185,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	}
 	if data.MergeQueueLink != "" {
 		data.MergeFormProps["queue"] = map[string]any{
-			"style":    prInfo.ProtectedBranchRule.MergeQueue.WithDefaults().MergeMethod,
+			"style":    prInfo.ProtectedBranchRule.MergeQueue.MergeMethod,
 			"button":   ctx.Tr("repo.pulls.merge_queue.merge_when_ready"),
 			"confirm":  ctx.Tr("repo.pulls.merge_queue.confirm_merge_when_ready"),
 			"helpHTML": ctx.Tr("repo.pulls.merge_queue.help", htmlutil.HTMLFormat(`<a href="%s">%s</a>`, data.MergeQueueLink, ctx.Tr("repo.pulls.merge_queue.name")), pull.BaseBranch),

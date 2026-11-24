@@ -42,6 +42,9 @@ type queueBranch struct {
 var branchQueue atomic.Pointer[queue.WorkerPoolQueue[queueBranch]]
 
 func Init() error {
+	if ref := pull_model.MergeQueueRefPrefix() + "main"; !git.IsValidRefPattern(ref) {
+		return fmt.Errorf("invalid [repository.pull-request] MERGE_QUEUE_BRANCH_PREFIX, %q is not a valid ref", ref)
+	}
 	notify_service.RegisterNotifier(&notifier{})
 	worker := queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "merge_queue", handleBranches)
 	if worker == nil {
@@ -86,16 +89,12 @@ func handleBranches(items ...queueBranch) []queueBranch {
 func handleBranch(item queueBranch) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("merge queue of repo %d branch %s", item.RepoID, item.Branch))
 	defer finished()
-	err := globallock.LockAndDo(ctx, lockKey(item.RepoID, item.Branch), func(ctx context.Context) error {
+	err := globallock.LockAndDo(ctx, pull_model.MergeQueueLockKey(item.RepoID, item.Branch), func(ctx context.Context) error {
 		return processQueue(ctx, item.RepoID, item.Branch)
 	})
 	if err != nil {
 		log.Error("Merge queue of repo %d branch %s: %v", item.RepoID, item.Branch, err)
 	}
-}
-
-func lockKey(repoID int64, branch string) string {
-	return fmt.Sprintf("merge_queue_%d_%s", repoID, branch)
 }
 
 type queueState struct {
@@ -159,7 +158,7 @@ func (s *queueState) dropStaleEntries(ctx context.Context) error {
 		switch {
 		case pr == nil:
 			reason = issues_model.MergeQueueRemovedClosed
-		case pr.HasMerged && entry.IsBuilt() && pr.MergedCommitID == entry.GroupHeadSHA:
+		case pr.HasMerged && pr.MergedCommitID == entry.GroupHeadSHA:
 			reason = issues_model.MergeQueueRemovedMerged
 		case pr.HasMerged:
 			reason = issues_model.MergeQueueRemovedAlreadyMerged
@@ -304,7 +303,7 @@ func (s *queueState) mergeReadyEntries(ctx context.Context, base string) (bool, 
 		return false, nil
 	}
 	for i, entry := range group {
-		if blocked, err := entry.IsBlocked(ctx, s.rule); err != nil {
+		if blocked, err := entry.IsBlocked(ctx, s.gitRepo, s.rule); err != nil {
 			return false, err
 		} else if blocked {
 			return false, s.dropEntry(ctx, i, issues_model.MergeQueueRemovedNotMergeable)

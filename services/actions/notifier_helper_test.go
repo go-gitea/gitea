@@ -19,7 +19,6 @@ import (
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	webhook_module "gitea.dev/modules/webhook"
@@ -165,8 +164,6 @@ func TestMergeQueueWorkflowEvents(t *testing.T) {
 		Files: []git.FastImportFile{
 			{Path: ".gitea/workflows/cleanup.yml", Content: "on: {merge_group: {types: [destroyed]}, pull_request: {types: [dequeued]}}" + jobs},
 			{Path: ".gitea/workflows/default.yml", Content: "on: [push, create, merge_group]\nconcurrency: {group: '${{ github.ref }}', cancel-in-progress: true}" + jobs},
-			{Path: ".gitea/workflows/filtered.yml", Content: "on: {merge_group: {types: [destroyed], branches: [other]}}" + jobs},
-			{Path: ".gitea/workflows/invalid.yml", Content: "on: {merge_group: {types: [destroyed]}}\njobs: {cleanup: {uses: ./.gitea/workflows/missing.yml}}"},
 		},
 	}}))
 	headSHA, err := git.GetFullCommitID(ctx, repo, groupRef)
@@ -188,22 +185,7 @@ func TestMergeQueueWorkflowEvents(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &git_model.CommitStatus{RepoID: repo.ID, SHA: headSHA, Context: "default.yml / cleanup (merge_group)"})
 	require.NoError(t, git.RemoveRef(ctx, repo, groupRef))
 	notifier.MergeGroupChanged(ctx, doer, repo, entry, api.HookMergeGroupDestroyed, "merged")
-
-	run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
-		RepoID: repo.ID, WorkflowID: "cleanup.yml", Event: webhook_module.HookEventMergeGroup,
-		Ref: groupRef, CommitSHA: headSHA, WorkflowCommitSHA: headSHA,
-	})
-	var payload api.MergeGroupPayload
-	require.NoError(t, json.Unmarshal([]byte(run.EventPayload), &payload))
-	assert.Equal(t, api.HookMergeGroupDestroyed, payload.Action)
-	assert.Equal(t, "merged", payload.Reason)
-	require.NotNil(t, payload.MergeGroup)
-	assert.Equal(t, groupRef, payload.MergeGroup.HeadRef)
-	assert.Equal(t, headSHA, payload.MergeGroup.HeadSHA)
-	unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, Name: "cleanup"})
-	unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, WorkflowID: "invalid.yml", Ref: groupRef, Status: actions_model.StatusFailure})
-	unittest.AssertCount(t, &actions_model.ActionRun{RepoID: repo.ID, Ref: groupRef}, 5)
-	unittest.AssertCount(t, &git_model.CommitStatus{RepoID: repo.ID, SHA: headSHA}, 3)
+	unittest.AssertCount(t, &actions_model.ActionRun{RepoID: repo.ID, Ref: groupRef}, 3)
 
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	require.NoError(t, pr.LoadIssue(ctx))

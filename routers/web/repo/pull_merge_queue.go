@@ -25,7 +25,7 @@ func (prInfo *pullRequestViewInfo) prepareQueuedMergeBox(ctx *context.Context) {
 	}
 	data := prInfo.MergeBoxData
 	data.IsQueued = true
-	data.CanDequeue = ctx.Doer != nil && (ctx.Doer.ID == prInfo.queueEntry.EnqueuerID || data.hasPermToMerge)
+	data.CanDequeue = ctx.Doer != nil && (ctx.Doer.ID == prInfo.queueEntry.EnqueuerID || prInfo.issue.IsPoster(ctx.Doer.ID) || data.hasPermToMerge)
 	detail := ctx.Tr("repo.pulls.merge_queue.next_up", data.MergeQueueLink)
 	if ahead := position - 1; ahead > 0 {
 		detail = ctx.TrN(ahead, "repo.pulls.merge_queue.ahead_1", "repo.pulls.merge_queue.ahead_n", ahead, data.MergeQueueLink)
@@ -124,7 +124,7 @@ func mergeQueueEntryViews(ctx *context.Context, rule *git_model.ProtectedBranch,
 	}
 	views := make([]*mergeQueueEntryView, len(queue))
 	for i, entry := range queue {
-		view := &mergeQueueEntryView{QueueEntry: entry, CanRemove: canMerge || ctx.Doer != nil && ctx.Doer.ID == entry.EnqueuerID}
+		view := &mergeQueueEntryView{QueueEntry: entry, CanRemove: canMerge || ctx.Doer != nil && (ctx.Doer.ID == entry.EnqueuerID || entry.PullRequest.Issue.IsPoster(ctx.Doer.ID))}
 		views[i] = view
 		if !entry.IsBuilt() {
 			continue

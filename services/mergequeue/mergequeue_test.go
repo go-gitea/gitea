@@ -232,6 +232,16 @@ func (events *mergeQueueEvents) MergeGroupChanged(_ctx context.Context, _doer *u
 	}
 }
 
+func failPushesWithConnectionError(t *testing.T, repo *repo_model.Repository) func() {
+	t.Helper()
+	hooks := t.TempDir()
+	require.NoError(t, git.ManagedConfigSet(t.Context(), repo, "core.hooksPath", hooks))
+	require.NoError(t, os.WriteFile(filepath.Join(hooks, "pre-receive"), []byte("#!/bin/sh\necho 'Gitea: "+private.InternalServerConnectionError+"' >&2\nexit 1\n"), 0o755))
+	return func() {
+		require.NoError(t, gitcmd.NewCommand("config", "--unset", "core.hooksPath").WithRepo(repo).RunWithStderr(t.Context()))
+	}
+}
+
 func TestProcessQueueRestoresInterruptedMerge(t *testing.T) {
 	defer test.MockVariableValue(&setting.Repository.PullRequest.DefaultDeleteBranchAfterMerge, false)()
 	ctx := t.Context()
@@ -261,12 +271,7 @@ func TestProcessQueueRestoresInterruptedMerge(t *testing.T) {
 	events := &mergeQueueEvents{branch: branch}
 	notify_service.RegisterNotifier(events)
 	defer func() { events.branch = "" }()
-	hooks := t.TempDir()
-	require.NoError(t, git.ManagedConfigSet(ctx, repo, "core.hooksPath", hooks))
-	defer func() {
-		require.NoError(t, gitcmd.NewCommand("config", "--unset", "core.hooksPath").WithRepo(repo).RunWithStderr(ctx))
-	}()
-	require.NoError(t, os.WriteFile(filepath.Join(hooks, "pre-receive"), []byte("#!/bin/sh\necho 'Gitea: "+private.InternalServerConnectionError+"' >&2\nexit 1\n"), 0o755))
+	defer failPushesWithConnectionError(t, repo)()
 	require.NoError(t, processQueue(ctx, repo.ID, branch))
 	_, err = db.GetEngine(ctx).ID(entries[1].ID).Cols("created_unix").Update(&pull_model.MergeQueueEntry{CreatedUnix: timeutil.TimeStampNow().AddDuration(-time.Hour)})
 	require.NoError(t, err)
@@ -284,6 +289,24 @@ func TestProcessQueueRestoresInterruptedMerge(t *testing.T) {
 	for _, entry := range entries {
 		assert.False(t, git.IsReferenceExist(ctx, repo, entry.GroupRef))
 	}
+}
+
+func TestProcessQueueDropsEntryChangingProtectedFiles(t *testing.T) {
+	ctx := t.Context()
+	const branch = "queue-protected-files"
+	rule, _, pr := prepareQueuePulls(t, branch, 1)
+	repo := rule.Repo
+	require.NoError(t, git.CreateBranch(ctx, repo, branch, repo.DefaultBranch))
+	defer func() { require.NoError(t, git.RemoveRef(ctx, repo, git.BranchPrefix+branch)) }()
+	enqueuePull(t, pr, false)
+	require.NoError(t, processQueue(ctx, repo.ID, branch))
+
+	defer failPushesWithConnectionError(t, repo)()
+	rule.ProtectedFilePatterns = "file-wow"
+	_, err := db.GetEngine(ctx).ID(rule.ID).Cols("config").Update(rule)
+	require.NoError(t, err)
+	require.NoError(t, processQueue(ctx, repo.ID, branch))
+	assertRemoved(t, pr, issues_model.MergeQueueRemovedNotMergeable, 1)
 }
 
 func TestProcessQueueMissingHeads(t *testing.T) {

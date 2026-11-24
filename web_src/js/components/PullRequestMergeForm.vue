@@ -75,9 +75,9 @@ watch(mergeStyle, (val) => {
 });
 
 let menuTippy: Instance | undefined;
-watch(menuTrigger, (trigger) => {
+watch(menuTrigger, (trigger, _oldTrigger, onCleanup) => {
   if (!trigger) return;
-  menuTippy = createTippy(trigger, {
+  const instance = createTippy(trigger, {
     content: menuPanel.value!,
     getReferenceClientRect: () => trigger.parentElement!.getBoundingClientRect(),
     theme: 'menu',
@@ -88,6 +88,11 @@ watch(menuTrigger, (trigger) => {
     trigger: 'click',
     interactive: true,
     hideOnClick: true,
+  });
+  menuTippy = instance;
+  onCleanup(() => {
+    instance.destroy();
+    menuTippy = undefined;
   });
 }, {flush: 'post'});
 

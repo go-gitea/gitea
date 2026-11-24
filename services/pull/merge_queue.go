@@ -56,7 +56,7 @@ func (entry *MergeQueueEntry) RestoreInterruptedMerge(ctx context.Context) error
 	})
 }
 
-func (entry *MergeQueueEntry) IsBlocked(ctx context.Context, rule *git_model.ProtectedBranch) (bool, error) {
+func (entry *MergeQueueEntry) IsBlocked(ctx context.Context, gitRepo *git.Repository, rule *git_model.ProtectedBranch) (bool, error) {
 	if entry.Enqueuer.IsGhost() {
 		return true, nil
 	}
@@ -71,11 +71,21 @@ func (entry *MergeQueueEntry) IsBlocked(ctx context.Context, rule *git_model.Pro
 	if noDeps, err := issues_model.IssueNoDependenciesLeft(ctx, pr.Issue); err != nil || !noDeps {
 		return !noDeps, err
 	}
-	return pr.IsWorkInProgress(ctx) || checkPullReviews(ctx, rule, pr) != nil || !issue_service.HasAllRequiredCodeownerReviews(ctx, rule, pr), nil
+	if pr.IsWorkInProgress(ctx) || checkPullReviews(ctx, rule, pr) != nil || !issue_service.HasAllRequiredCodeownerReviews(ctx, rule, pr) {
+		return true, nil
+	}
+	if !entry.IsBuilt() {
+		return false, nil
+	}
+	_, err = CheckFileProtection(ctx, gitRepo, pr.BaseBranch, entry.BaseSHA, entry.GroupHeadSHA, rule.GetProtectedFilePatterns(), 1, nil) // the final push skips this check when the last enqueuer can bypass protection
+	if IsErrFilePathProtected(err) {
+		return true, nil
+	}
+	return false, err
 }
 
 func (entry *MergeQueueEntry) CreateMergeQueueCommit(ctx context.Context, gitRepo *git.Repository, rule *git_model.ProtectedBranch, base string) (issues_model.MergeQueueRemovalReason, error) {
-	if blocked, err := entry.IsBlocked(ctx, rule); err != nil {
+	if blocked, err := entry.IsBlocked(ctx, gitRepo, rule); err != nil {
 		return "", err
 	} else if blocked {
 		return issues_model.MergeQueueRemovedNotMergeable, nil
@@ -162,7 +172,7 @@ func MergeQueuePullRequests(ctx context.Context, entries []*MergeQueueEntry) err
 		if pr.HasMerged || pr.Issue.IsClosed {
 			return fmt.Errorf("MergeQueuePullRequests: %-v was merged or closed", pr)
 		}
-		if pr.BaseRepoID != repo.ID || pr.BaseBranch != baseBranch {
+		if pr.BaseBranch != baseBranch {
 			return fmt.Errorf("MergeQueuePullRequests: %-v no longer targets %s", pr, baseBranch)
 		}
 		headSHA, err := git.GetFullCommitID(ctx, repo, pr.GetGitHeadRefName())
@@ -181,7 +191,7 @@ func MergeQueuePullRequests(ctx context.Context, entries []*MergeQueueEntry) err
 	if err == nil {
 		baseRef := git.BranchPrefix + baseBranch
 		if err = git.PushManaged(ctx, repo, repo, git.PushOptions{
-			Branch:         last.GroupHeadSHA + ":" + baseRef,
+			Branch:         last.GroupRef + ":" + baseRef,      // a bare SHA would resolve to a branch named like it first
 			ForceWithLease: baseRef + ":" + entries[0].BaseSHA, // A rewound base may still fast-forward to the tested commit.
 			Env:            repo_module.FullPushingEnvironment(last.Enqueuer, last.Enqueuer, repo, repo.Name, last.PullID, last.PullRequest.Index),
 		}); err != nil {

@@ -19,7 +19,6 @@ import (
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
-	"gitea.dev/modules/queue"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
@@ -130,11 +129,9 @@ func TestPullMergeQueue(t *testing.T) {
 			rebuilt := nextPush(t)
 			assert.Equal(t, refPrefix+first.BaseSHA, rebuilt.Ref)
 			assert.False(t, git.IsReferenceExist(ctx, repo, built.Ref))
-			require.NoError(t, queue.GetManager().FlushAll(ctx, 5*time.Second))
 
 			mergeQueueAPI(t, "PATCH", "", api.EditRepoOption{SquashMergeCommitMessage: new(string(repo_model.SquashMergeMessageCommitMessages))}, http.StatusOK)
 			mergeQueueAPI(t, "PATCH", "/branches/master", api.RenameBranchRepoOption{Name: "renamed"}, http.StatusNoContent)
-			require.NoError(t, mergequeue.CheckAllQueues(ctx))
 			renamed := nextPush(t)
 			assert.Contains(t, renamed.Ref, "custom-queue/renamed/")
 			assert.False(t, git.IsReferenceExist(ctx, repo, rebuilt.Ref))

@@ -2585,7 +2585,7 @@
   "repo.settings.merge_queue.merge_method": "Merge method",
   "repo.settings.merge_queue.merge_method_desc": "Method to use when merging changes from queued pull requests.",
   "repo.settings.merge_queue.max_entries_to_build": "Build concurrency",
-  "repo.settings.merge_queue.max_entries_to_build_desc": "Limit the number of queued pull requests requesting checks and workflow runs at the same time.",
+  "repo.settings.merge_queue.max_entries_to_build_desc": "Limit the number of queued pull requests requesting checks and workflow runs at the same time. Set to 0 to pause new builds.",
   "repo.settings.merge_queue.min_entries_to_merge": "Minimum group size",
   "repo.settings.merge_queue.min_entries_to_merge_desc": "The minimum number of pull requests that will be merged together in a group.",
   "repo.settings.merge_queue.max_entries_to_merge": "Maximum group size",

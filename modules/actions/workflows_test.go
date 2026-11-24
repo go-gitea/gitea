@@ -283,17 +283,10 @@ func TestDetectMatched(t *testing.T) {
 			expected:     detectMatched,
 		},
 		{
-			desc:         "merge_group destroyed doesn't match by default",
+			desc:         "merge_group matches the activity type but ignores the base branch",
 			triggedEvent: webhook_module.HookEventMergeGroup,
-			payload:      &api.MergeGroupPayload{Action: api.HookMergeGroupDestroyed},
-			yamlOn:       "on: merge_group",
-			expected:     detectNotApplicable,
-		},
-		{
-			desc:         "merge_group destroyed matches the activity type but ignores the base branch",
-			triggedEvent: webhook_module.HookEventMergeGroup,
-			payload:      &api.MergeGroupPayload{Action: api.HookMergeGroupDestroyed, MergeGroup: &api.MergeGroup{BaseRef: "refs/heads/main"}},
-			yamlOn:       "on: {merge_group: {types: [destroyed], branches-ignore: [main]}}",
+			payload:      &api.MergeGroupPayload{Action: api.HookMergeGroupChecksRequested, MergeGroup: &api.MergeGroup{BaseRef: "refs/heads/main"}},
+			yamlOn:       "on: {merge_group: {types: [checks_requested], branches-ignore: [main]}}",
 			expected:     detectFilteredOut,
 		},
 	}

@@ -659,8 +659,9 @@ func notifyPullRequestChange(ctx context.Context, doer *user_model.User, pr *iss
 }
 
 func (n *actionsNotifier) MergeGroupChanged(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, entry *pull_model.MergeQueueEntry, action api.HookMergeGroupAction, reason string) {
-	if action == api.HookMergeGroupDestroyed {
-		defer n.DeleteRef(ctx, doer, repo, git.RefName(entry.GroupRef)) // the queue branch is removed without hooks
+	if action == api.HookMergeGroupDestroyed { // like GitHub Actions, only checks_requested runs merge_group workflows, the group commit may hold fork code
+		n.DeleteRef(ctx, doer, repo, git.RefName(entry.GroupRef)) // the queue branch is removed without hooks
+		return
 	}
 	ctx = withMethod(ctx, "MergeGroupChanged")
 
@@ -672,11 +673,9 @@ func (n *actionsNotifier) MergeGroupChanged(ctx context.Context, doer *user_mode
 		log.Error("MergeGroupChanged: queue commit of %s is missing", entry.GroupRef)
 		return
 	}
-	if action == api.HookMergeGroupChecksRequested {
-		opts, commits := convert.ToMergeGroupPush(repo, entry, commit)
-		n.PushCommits(ctx, doer, repo, opts, commits)
-		n.CreateRef(ctx, doer, repo, opts.RefFullName, opts.NewCommitID)
-	}
+	opts, commits := convert.ToMergeGroupPush(repo, entry, commit)
+	n.PushCommits(ctx, doer, repo, opts, commits)
+	n.CreateRef(ctx, doer, repo, opts.RefFullName, opts.NewCommitID)
 	newNotifyInput(repo, doer, webhook_module.HookEventMergeGroup).
 		WithRef(entry.GroupRef).
 		WithPayload(payload).

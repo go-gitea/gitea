@@ -78,7 +78,7 @@ func ToMergeGroupPush(repo *repo_model.Repository, entry *pull_model.MergeQueueE
 	}, commits
 }
 
-func ToMergeQueueEntry(ctx context.Context, entry *pull_model.MergeQueueEntry, position int, prIndex int64, enqueuer, viewer *user_model.User) *api.MergeQueueEntry {
+func ToMergeQueueEntry(ctx context.Context, entry *pull_model.MergeQueueEntry, position int, prIndex int64, enqueuer *user_model.User) *api.MergeQueueEntry {
 	return &api.MergeQueueEntry{
 		Position:          position,
 		State:             string(entry.State),
@@ -88,7 +88,7 @@ func ToMergeQueueEntry(ctx context.Context, entry *pull_model.MergeQueueEntry, p
 		MergeGroupHeadSHA: entry.GroupHeadSHA,
 		MergeGroupHeadRef: entry.GroupRef,
 		Jump:              entry.JumpUnix > 0,
-		Enqueuer:          ToUser(ctx, enqueuer, viewer),
+		Enqueuer:          ToUser(ctx, enqueuer, nil),
 		EnqueuedAt:        entry.CreatedUnix.AsTime(),
 	}
 }

@@ -55,6 +55,10 @@ func (e *MergeQueueEntry) IsBuilt() bool {
 	return e.GroupHeadSHA != ""
 }
 
+func MergeQueueLockKey(repoID int64, branch string) string {
+	return fmt.Sprintf("merge_queue_%d_%s", repoID, branch)
+}
+
 func MergeQueueRefPrefix() string {
 	return git.BranchPrefix + setting.Repository.PullRequest.MergeQueueBranchPrefix
 }

@@ -192,7 +192,7 @@ type MergeUpstreamResponse struct {
 type BranchProtectionMergeQueue struct {
 	// merge, rebase, rebase-merge or squash
 	MergeMethod string `json:"merge_method"`
-	// Maximum number of queue entries built and tested at the same time
+	// Maximum number of queue entries built and tested at the same time, 0 pauses new builds
 	MaxEntriesToBuild int `json:"max_entries_to_build"`
 	// Minimum number of pull requests merged together
 	MinEntriesToMerge int `json:"min_entries_to_merge"`
@@ -210,7 +210,7 @@ type BranchProtectionMergeQueue struct {
 type BranchProtectionMergeQueueOption struct {
 	// merge, rebase, rebase-merge or squash
 	MergeMethod *string `json:"merge_method"`
-	// Maximum number of queue entries built and tested at the same time
+	// Maximum number of queue entries built and tested at the same time, 0 pauses new builds
 	MaxEntriesToBuild *int `json:"max_entries_to_build"`
 	// Minimum number of pull requests merged together
 	MinEntriesToMerge *int `json:"min_entries_to_merge"`

@@ -543,20 +543,22 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		return "", git_model.ErrBranchIsProtected
 	}
 
-	if err := git_model.RenameBranch(ctx, repo, from, to, func(ctx context.Context, isDefault bool) error {
-		err2 := git.RenameBranch(ctx, repo, from, to)
-		if err2 != nil {
-			return err2
-		}
-
-		if isDefault {
-			err2 = git.SetDefaultBranch(ctx, repo, to)
+	if err := globallock.LockAndDo(ctx, pull_model.MergeQueueLockKey(repo.ID, from), func(ctx context.Context) error { // a running queue pass of the old branch must not see it half renamed
+		return git_model.RenameBranch(ctx, repo, from, to, func(ctx context.Context, isDefault bool) error {
+			err2 := git.RenameBranch(ctx, repo, from, to)
 			if err2 != nil {
 				return err2
 			}
-		}
 
-		return nil
+			if isDefault {
+				err2 = git.SetDefaultBranch(ctx, repo, to)
+				if err2 != nil {
+					return err2
+				}
+			}
+
+			return nil
+		})
 	}); err != nil {
 		return "", err
 	}

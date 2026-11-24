@@ -350,7 +350,7 @@ func (msteamsConvertor) WorkflowRun(p *api.WorkflowRunPayload) (MSTeamsPayload, 
 func (msteamsConvertor) MergeGroup(payload *api.MergeGroupPayload) (MSTeamsPayload, error) {
 	title, color, commitURL := getMergeGroupPayloadInfo(payload, noneLinkFormatter, false)
 	return createMSTeamsPayload(payload.Repo, payload.Sender, title, "", commitURL, color,
-		&MSTeamsFact{"MergeGroup:", payload.MergeGroup.HeadRef}), nil
+		&MSTeamsFact{"MergeGroup:", git.RefName(payload.MergeGroup.HeadRef).ShortName()}), nil
 }
 
 func (msteamsConvertor) WorkflowJob(p *api.WorkflowJobPayload) (MSTeamsPayload, error) {

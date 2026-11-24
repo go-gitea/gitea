@@ -86,7 +86,7 @@ func AddPullRequestToMergeQueue(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, convert.ToMergeQueueEntry(ctx, entry, position, pr.Index, enqueuer, ctx.Doer))
+	ctx.JSON(http.StatusCreated, convert.ToMergeQueueEntry(ctx, entry, position, pr.Index, enqueuer))
 }
 
 func RemovePullRequestFromMergeQueue(ctx *context.APIContext) {
@@ -181,7 +181,7 @@ func ListMergeQueue(ctx *context.APIContext) {
 
 	result := make([]*api.MergeQueueEntry, len(page))
 	for i, entry := range page {
-		result[i] = convert.ToMergeQueueEntry(ctx, entry.MergeQueueEntry, entry.Position, entry.PullRequest.Index, entry.Enqueuer, ctx.Doer)
+		result[i] = convert.ToMergeQueueEntry(ctx, entry.MergeQueueEntry, entry.Position, entry.PullRequest.Index, entry.Enqueuer)
 	}
 	ctx.SetLinkHeader(int64(len(queue)), listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(len(queue)))

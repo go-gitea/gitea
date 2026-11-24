@@ -57,6 +57,10 @@ func (*notifier) PushCommits(ctx context.Context, _pusher *user_model.User, repo
 	checkQueueOfBranch(ctx, repo, opts.RefFullName)
 }
 
+func (*notifier) CreateRef(ctx context.Context, _doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, _refID string) {
+	checkQueueOfBranch(ctx, repo, refFullName)
+}
+
 func (*notifier) DeleteRef(ctx context.Context, _doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
 	checkQueueOfBranch(ctx, repo, refFullName)
 }
