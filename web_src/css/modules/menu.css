@@ -316,11 +316,16 @@
   }
 }
 
+.ui.pagination.menu.narrow {
+  max-width: 100%;
+}
+
 .ui.pagination.menu.narrow .item {
-  padding-left: 8px;
-  padding-right: 8px;
-  min-width: 1em;
-  text-align: center;
+  flex-shrink: 1;
+  width: 2.5em;
+  justify-content: center;
+  padding-inline: 0;
+  min-width: min-content;
 }
 
 .ui.secondary.menu {

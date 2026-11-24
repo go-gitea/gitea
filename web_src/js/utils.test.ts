@@ -1,5 +1,5 @@
 import {
-  dirname, basename, extname, formatBytes, isObject, stripTags, parseIssueHref,
+  dirname, basename, extname, formatBytes, getPaginationPages, isObject, stripTags, parseIssueHref,
   translateMonth, translateDay, blobToDataURI,
   encodeURLEncodedBase64, decodeURLEncodedBase64, isImageFile, isVideoFile, parseRepoOwnerPathInfo,
 } from './utils.ts';
@@ -116,6 +116,13 @@ test('formatBytes', () => {
   expect(formatBytes(10 * 1024)).toBe('10 KiB');
   expect(formatBytes(1024 * 1024)).toBe('1.0 MiB');
   expect(formatBytes(1024 * 1024 * 1024)).toBe('1.0 GiB');
+});
+
+test('getPaginationPages', () => {
+  expect(getPaginationPages(1, 5)).toEqual([1, 2, 3, 4, 5]);
+  expect(getPaginationPages(3, 20)).toEqual([1, 2, 3, 4, 5, null]);
+  expect(getPaginationPages(4, 7)).toEqual([null, 2, 3, 4, 5, 6, null]);
+  expect(getPaginationPages(20, 20)).toEqual([null, 16, 17, 18, 19, 20]);
 });
 
 test('file detection', () => {

@@ -3,7 +3,7 @@ import {computed, nextTick, onMounted, shallowRef, useTemplateRef, type ShallowR
 import SvgIcon from './SvgIcon.vue';
 import {GET} from '../modules/fetch.ts';
 import {urlQueryEscape} from '../utils/url.ts';
-import {getPaginationPages} from '../utils/pagination.ts';
+import {getPaginationPages} from '../utils.ts';
 import type {SvgName} from '../svg.ts';
 
 const {appSubUrl, pageData} = window.config;
@@ -151,7 +151,6 @@ const elSearch = useTemplateRef('elSearch') as Readonly<ShallowRef<HTMLInputElem
 const countsKey = computed(() => `${reposFilter.value}:${archivedFilter.value}:${privateFilter.value}`);
 const repoTypeCount = computed(() => counts.value[countsKey.value]);
 const showMoreReposLink = computed(() => repos.value.length > 0 && repos.value.length < repoTypeCount.value);
-const pageItems = computed(() => getPaginationPages(page.value, finalPage.value));
 const checkboxArchivedFilterTitle = computed(() => textArchivedFilterTitles.get(archivedFilter.value));
 const checkboxArchivedFilterProps = computed(() => ({checked: archivedFilter.value === 'archived', indeterminate: archivedFilter.value === 'both'}));
 const checkboxPrivateFilterTitle = computed(() => textPrivateFilterTitles.get(privateFilter.value));
@@ -481,7 +480,7 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
             </a>
           </li>
         </ul>
-        <div v-if="showMoreReposLink" class="tw-text-center repos-pagination">
+        <div v-if="showMoreReposLink" class="tw-text-center">
           <div class="divider tw-my-0"/>
           <div class="ui borderless pagination menu narrow tw-my-2">
             <a
@@ -496,10 +495,11 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
             >
               <svg-icon name="octicon-chevron-left" :size="16" class="tw-mr-1"/>
             </a>
-            <template v-for="(item, idx) in pageItems" :key="idx">
-              <a v-if="item === null" class="disabled item tw-py-1">...</a>
-              <a v-else class="item tw-py-1" :class="{active: item === page}" :aria-current="item === page ? 'page' : undefined" @click="changePage(item)">{{ item }}</a>
-            </template>
+            <a
+              v-for="(item, idx) in getPaginationPages(page, finalPage)" :key="idx"
+              class="item tw-py-1" :class="{active: item === page, disabled: item === null}"
+              @click="item && changePage(item)"
+            >{{ item ?? '...' }}</a>
             <a
               class="item navigation" :class="{'disabled': page === finalPage}"
               @click="changePage(page + 1)" :title="textNextPage"
@@ -581,25 +581,6 @@ ul li:not(:last-child) {
 .repos-filter .item {
   padding-left: 6px !important;
   padding-right: 6px !important;
-}
-
-.repos-pagination {
-  container-type: inline-size;
-}
-
-/* page numbers need less padding when the sidebar gets narrow */
-@container (max-width: 330px) {
-  .repos-pagination .ui.pagination.menu.narrow .item {
-    padding-left: 5px;
-    padding-right: 5px;
-  }
-}
-
-@container (max-width: 270px) {
-  .repos-pagination .ui.pagination.menu.narrow .item {
-    padding-left: 2px;
-    padding-right: 2px;
-  }
 }
 
 .repo-list-link {

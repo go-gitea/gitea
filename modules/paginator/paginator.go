@@ -149,7 +149,6 @@ func getMiddleIdx(numPages int) int {
 
 // Pages returns a list of nearby page numbers relative to current page.
 // If value is -1 means "..." that more pages are not showing.
-// web_src/js/utils/pagination.ts mirrors this for client rendered lists.
 func (p *Paginator) Pages() []*Page {
 	if p.numPages == 0 {
 		return nil
