@@ -36,7 +36,7 @@ func AddImmutableReleases(ctx context.Context, x base.EngineMigration) error {
 	}
 
 	exist, err := x.Dialect().IsColumnExist(x.DB(), ctx, "release", "lower_tag_name")
-	if err != nil || !exist { // dropping an absent column fails outside sqlite
+	if err != nil || !exist {
 		return err
 	}
 	return base.EngineTransaction(x, func(sess base.Session) error {

@@ -114,7 +114,7 @@ func Transfer(ctx *context.APIContext) {
 		case errors.Is(err, user_model.ErrBlockedUser):
 			ctx.APIError(http.StatusForbidden, err.Error())
 		default:
-			ctx.APIErrorAuto(err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -163,7 +163,7 @@ func AcceptTransfer(ctx *context.APIContext) {
 		case repo_service.IsRepositoryLimitReached(err):
 			ctx.APIError(http.StatusForbidden, err.Error())
 		default:
-			ctx.APIErrorAuto(err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

@@ -20,31 +20,29 @@ import (
 	"gitea.dev/services/convert"
 )
 
-func checkReleaseAssetsMutable(ctx *context.APIContext, releaseID int64, immutableMsg string) bool {
-	release := checkReleaseMatchRepo(ctx, releaseID)
-	if release != nil && release.IsImmutable {
-		ctx.APIError(http.StatusUnprocessableEntity, immutableMsg)
-		return false
-	}
-	return release != nil
-}
-
-// checkReleaseMatchRepo returns nil once it has written the response itself.
-func checkReleaseMatchRepo(ctx *context.APIContext, releaseID int64) *repo_model.Release {
-	release, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, releaseID)
+func checkReleaseMatchRepo(ctx *context.APIContext, releaseID int64, immutableMsg string) bool {
+	release, err := repo_model.GetReleaseByID(ctx, releaseID)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
+			return false
 		}
-		return nil
+		ctx.APIErrorInternal(err)
+		return false
+	}
+	if release.RepoID != ctx.Repo.Repository.ID {
+		ctx.APIErrorNotFound()
+		return false
 	}
 	if release.IsDraft && !canAccessReleaseDraft(ctx) {
 		ctx.APIErrorNotFound()
-		return nil
+		return false
 	}
-	return release
+	if immutableMsg != "" && release.IsImmutable {
+		ctx.APIError(http.StatusUnprocessableEntity, immutableMsg)
+		return false
+	}
+	return true
 }
 
 // GetReleaseAttachment gets a single attachment of the release
@@ -84,7 +82,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	releaseID := ctx.PathParamInt64("id")
-	if checkReleaseMatchRepo(ctx, releaseID) == nil {
+	if !checkReleaseMatchRepo(ctx, releaseID, "") {
 		return
 	}
 
@@ -137,8 +135,22 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 
-	release := checkReleaseMatchRepo(ctx, ctx.PathParamInt64("id"))
-	if release == nil {
+	releaseID := ctx.PathParamInt64("id")
+	release, err := repo_model.GetReleaseByID(ctx, releaseID)
+	if err != nil {
+		if repo_model.IsErrReleaseNotExist(err) {
+			ctx.APIErrorNotFound()
+			return
+		}
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if release.RepoID != ctx.Repo.Repository.ID {
+		ctx.APIErrorNotFound()
+		return
+	}
+	if release.IsDraft && !canAccessReleaseDraft(ctx) {
+		ctx.APIErrorNotFound()
 		return
 	}
 	if err := release.LoadAttributes(ctx); err != nil {
@@ -199,7 +211,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.PathParamInt64("id")
-	if !checkReleaseAssetsMutable(ctx, releaseID, "Cannot upload assets to an immutable release.") {
+	if !checkReleaseMatchRepo(ctx, releaseID, "Cannot upload assets to an immutable release.") {
 		return
 	}
 
@@ -248,14 +260,6 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 		}
 
 		ctx.APIErrorInternal(err)
-		return
-	}
-
-	// publication may have locked or removed the release while the body streamed
-	if !checkReleaseAssetsMutable(ctx, releaseID, "Cannot upload assets to an immutable release.") {
-		if err := repo_model.DeleteAttachment(ctx, attach, true); err != nil {
-			log.Error("DeleteAttachment %s: %v", attach.UUID, err)
-		}
 		return
 	}
 
@@ -308,7 +312,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.PathParamInt64("id")
-	if !checkReleaseAssetsMutable(ctx, releaseID, "name cannot be changed when release is immutable") {
+	if !checkReleaseMatchRepo(ctx, releaseID, "name cannot be changed when release is immutable") {
 		return
 	}
 
@@ -381,7 +385,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.PathParamInt64("id")
-	if !checkReleaseAssetsMutable(ctx, releaseID, "Cannot delete asset from an immutable release") {
+	if !checkReleaseMatchRepo(ctx, releaseID, "Cannot delete asset from an immutable release") {
 		return
 	}
 

@@ -165,20 +165,10 @@ func IsReleaseExist(ctx context.Context, repoID int64, tagName string) (bool, er
 	return db.GetEngine(ctx).Exist(&Release{RepoID: repoID, TagName: tagName})
 }
 
-// HasImmutableRelease needs the release to still exist, unlike IsTagImmutable.
-func HasImmutableRelease(ctx context.Context, repoID int64, tagName string) (bool, error) {
-	return db.Exist[Release](ctx, builder.Eq{
-		"repo_id":      repoID,
-		"tag_name":     tagName,
-		"is_immutable": true,
-		"is_tag":       false,
-	})
-}
-
-// UpdateRelease updates all columns of a release, except the server owned immutable flag
+// UpdateRelease updates all columns of a release
 func UpdateRelease(ctx context.Context, rel *Release) error {
 	rel.Title = util.EllipsisDisplayString(rel.Title, 255)
-	_, err := db.GetEngine(ctx).ID(rel.ID).AllCols().Omit("is_immutable").Update(rel)
+	_, err := db.GetEngine(ctx).ID(rel.ID).AllCols().Update(rel)
 	return err
 }
 
@@ -215,20 +205,14 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 		if attachments[i].RepoID != rel.RepoID {
 			return util.NewPermissionDeniedErrorf("attachment belongs to different repository")
 		}
-
 		attachments[i].ReleaseID = releaseID
-		affected, err := db.GetEngine(ctx).ID(attachments[i].ID).
-			Where("release_id = 0 AND issue_id = 0 AND comment_id = 0"). // an issue or comment keeps its own mutation routes
-			Cols("release_id").Update(attachments[i])
-		if err != nil {
+		// No assign value could be 0, so ignore AllCols().
+		if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Cols("release_id").Update(attachments[i]); err != nil {
 			return fmt.Errorf("update attachment [%d]: %w", attachments[i].ID, err)
-		}
-		if affected == 0 {
-			return util.NewPermissionDeniedErrorf("release permission denied")
 		}
 	}
 
-	return nil
+	return err
 }
 
 // GetRelease returns release by given ID.
@@ -524,9 +508,8 @@ func PushUpdateDeleteTags(ctx context.Context, repo *Repository, tags []string) 
 		return fmt.Errorf("Delete: %w", err)
 	}
 
-	// an immutable release stays published, reverting it to a draft would leave it uneditable
 	if _, err := db.GetEngine(ctx).
-		Where("repo_id = ? AND is_tag = ? AND is_immutable = ?", repo.ID, false, false).
+		Where("repo_id = ? AND is_tag = ?", repo.ID, false).
 		In("tag_name", tags).
 		Cols("is_draft", "num_commits", "sha1", "published_unix").
 		Update(&Release{

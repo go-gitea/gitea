@@ -270,8 +270,7 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 		}
 
 		for _, tag := range updates {
-			// an immutable release keeps the commit it was published at, a locked tag has none to pin
-			if _, err := db.GetEngine(ctx).Where("repo_id = ? AND tag_name = ? AND NOT (is_immutable = ? AND is_tag = ?)", repo.ID, tag.Name, true, false).
+			if _, err := db.GetEngine(ctx).Where("repo_id = ? AND tag_name = ?", repo.ID, tag.Name).
 				Cols("sha1", "created_unix", "published_unix").
 				Update(&repo_model.Release{
 					Sha1:          tag.Object.String(),

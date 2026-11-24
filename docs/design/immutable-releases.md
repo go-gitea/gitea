@@ -4,7 +4,7 @@ A published immutable release never changes its tag, target, draft state or asse
 
 ## Data
 
-- `release.is_immutable` is only set by `LockRelease`, never by `UpdateRelease`. On an `is_tag` row it marks the tag of a deleted immutable release.
+- `release.is_immutable` is only set by `LockRelease`. On an `is_tag` row it marks the tag of a deleted immutable release.
 - `immutable_tag` permanently claims an exact tag name for a `repo_id` and for the lowercased owner and repository name at lock time.
 - The Releases unit config `ImmutableReleases` enables it, `immutable_releases` in the API. Pull mirrors cannot enable it.
 
@@ -20,9 +20,9 @@ A published immutable release never changes its tag, target, draft state or asse
 - The tag of an existing immutable release cannot be moved or deleted.
 - Once the release is deleted, its tag can be deleted but never becomes a release again.
 - A claimed name cannot be created again by the claiming repository or at the claimed path.
-- A repository cannot arrive at a path with claims on its tag names. Fork, migration and adoption fail in `SyncReleasesWithTags`. Rename, transfer, owner rename and mirror conversion are rejected up front. A pull mirror itself is not covered.
+- A repository cannot arrive at a path with claims on its tag names. Fork and migration fail in `SyncReleasesWithTags`. Rename, transfer, owner rename and mirror conversion are rejected up front. A pull mirror itself is not covered.
 
 ## Limits
 
-- Ref updates and API asset edits are not serialized with publication, so a push past the pre-receive check or an asset edit past its check can still change a release that locks meanwhile.
+- Checks are not serialized with publication, so a push, edit or asset change that passed its check can still change a release that locks meanwhile.
 - No release attestations.

@@ -349,18 +349,18 @@ func preReceiveTag(ctx *preReceiveContext, newCommitID string, refFullName git.R
 		}
 	}
 	// a claimed name can never be created or moved again, and its tag is deletable once its release is gone
-	if ctx.immutableTags.Contains(tagName) {
-		immutable := !git.IsEmptyCommitID(newCommitID)
-		if !immutable {
-			if immutable, err = repo_model.HasImmutableRelease(ctx, ctx.Repo.Repository.ID, tagName); err != nil {
-				ctx.PrivateInternalErrorf("Unable to check immutable release %s: %v", tagName, err)
-				return
-			}
-		}
-		if immutable {
-			ctx.PrivateUserErrorf(http.StatusForbidden, "Tag %s is immutable", tagName)
+	immutable := ctx.immutableTags.Contains(tagName)
+	if immutable && git.IsEmptyCommitID(newCommitID) {
+		rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
+		if err != nil && !repo_model.IsErrReleaseNotExist(err) {
+			ctx.PrivateInternalErrorf("Unable to check immutable release %s: %v", tagName, err)
 			return
 		}
+		immutable = rel != nil && rel.IsImmutable && !rel.IsTag
+	}
+	if immutable {
+		ctx.PrivateUserErrorf(http.StatusForbidden, "Tag %s is immutable", tagName)
+		return
 	}
 
 	if ctx.protectedTags == nil {

@@ -7,13 +7,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
@@ -330,11 +328,9 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	if err != nil {
 		return fmt.Errorf("db.Find[repo_model.Release]: %w", err)
 	}
-	relMap := make(map[string]*repo_model.Release, len(releases))
-	foldedTagNames := make(container.Set[string], len(releases))
+	relMap := make(map[string]*repo_model.Release)
 	for _, rel := range releases {
 		relMap[rel.TagName] = rel
-		foldedTagNames.Add(strings.ToLower(rel.TagName))
 	}
 
 	newReleases := make([]*repo_model.Release, 0, len(tags)-len(relMap))
@@ -356,13 +352,6 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		}
 
 		rel, has := relMap[tagName]
-		if !has && foldedTagNames.Contains(strings.ToLower(tagName)) {
-			rel, err = repo_model.GetRelease(ctx, repo.ID, tagName)
-			if err != nil && !repo_model.IsErrReleaseNotExist(err) {
-				return fmt.Errorf("pushUpdateAddTags: %w", err)
-			}
-			has = err == nil
-		}
 		title, note := git.SplitCommitTitleBody(tag.MessageUTF8(), 255)
 		if !has {
 			rel = &repo_model.Release{
@@ -382,8 +371,6 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			}
 
 			newReleases = append(newReleases, rel)
-		} else if rel.IsImmutable && !rel.IsTag {
-			continue
 		} else {
 			wasLatestCandidate := rel.CanBeLatest()
 			rel.Sha1 = commit.ID.String()
@@ -392,7 +379,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 				rel.Title = title
 				rel.Note = note
 				rel.PublishedUnix = publishedUnix
-			} else if !rel.IsDraft || !repo.IsImmutableReleasesEnabled(ctx) { // with immutability a draft locks on explicit publication only, like on GitHub
+			} else if !rel.IsDraft || !repo.IsImmutableReleasesEnabled(ctx) { // with immutability a tag push does not publish a draft, like on GitHub
 				rel.IsDraft = false
 				if rel.PublishedUnix.IsZero() {
 					rel.PublishedUnix = timeutil.TimeStampNow()

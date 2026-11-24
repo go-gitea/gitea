@@ -37,15 +37,10 @@ func init() {
 
 // LockRelease must run in the transaction writing the release, so row and claim commit together.
 func LockRelease(ctx context.Context, repo *Repository, rel *Release) error {
-	if rel.IsDraft || rel.IsTag || !repo.IsImmutableReleasesEnabled(ctx) {
+	if rel.IsImmutable || rel.IsDraft || rel.IsTag || !repo.IsImmutableReleasesEnabled(ctx) {
 		return nil
 	}
 	rel.IsImmutable = true
-	if rel.ID != 0 { // UpdateRelease never writes the flag
-		if _, err := db.GetEngine(ctx).ID(rel.ID).Cols("is_immutable").Update(rel); err != nil {
-			return err
-		}
-	}
 	return db.Insert(ctx, &ImmutableTag{
 		RepoID:         repo.ID,
 		LowerOwnerName: strings.ToLower(repo.OwnerName),
@@ -61,8 +56,12 @@ func immutableTagCond(repo *Repository) builder.Cond {
 	)
 }
 
-func IsTagImmutable(ctx context.Context, repo *Repository, tagName string) (bool, error) {
-	return db.Exist[ImmutableTag](ctx, immutableTagCond(repo).And(builder.Eq{"tag_name": tagName}))
+func CheckTagMutable(ctx context.Context, repo *Repository, tagName string) error {
+	immutable, err := db.Exist[ImmutableTag](ctx, immutableTagCond(repo).And(builder.Eq{"tag_name": tagName}))
+	if err != nil || !immutable {
+		return err
+	}
+	return ErrImmutableTag
 }
 
 func GetImmutableTagNames(ctx context.Context, repo *Repository) (container.Set[string], error) {

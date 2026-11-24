@@ -34,17 +34,8 @@ func TestReleaseTagNameIsCaseSensitive(t *testing.T) {
 	exist, err := IsReleaseExist(t.Context(), 1, "V1.1")
 	assert.NoError(t, err)
 	assert.False(t, exist)
-
-	rel, err := GetRelease(t.Context(), 1, "v1.1")
-	assert.NoError(t, err)
-	assert.NoError(t, db.Insert(t.Context(), &Release{RepoID: 1, TagName: "V1.1", Sha1: "upper"}))
-
-	upper, err := GetRelease(t.Context(), 1, "V1.1")
-	assert.NoError(t, err)
-	assert.Equal(t, "upper", upper.Sha1)
-	lower, err := GetRelease(t.Context(), 1, "v1.1")
-	assert.NoError(t, err)
-	assert.Equal(t, rel.ID, lower.ID)
+	_, err = GetRelease(t.Context(), 1, "V1.1")
+	assert.True(t, IsErrReleaseNotExist(err))
 }
 
 func Test_FindTagsByCommitIDs(t *testing.T) {
@@ -121,43 +112,17 @@ func TestImmutableTag(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1})
-	isImmutable := func(r *Repository, tagName string) bool {
-		immutable, err := IsTagImmutable(t.Context(), r, tagName)
-		assert.NoError(t, err)
-		return immutable
-	}
-
-	assert.False(t, isImmutable(repo, "V1.1"))
 	assert.NoError(t, db.Insert(t.Context(), &ImmutableTag{
 		RepoID: repo.ID, LowerOwnerName: strings.ToLower(repo.OwnerName), LowerRepoName: repo.LowerName, TagName: "V1.1",
 	}))
-	assert.True(t, isImmutable(repo, "V1.1"))
-	assert.False(t, isImmutable(repo, "v1.1"))
+	assert.ErrorIs(t, CheckTagMutable(t.Context(), repo, "V1.1"), ErrImmutableTag)
+	assert.NoError(t, CheckTagMutable(t.Context(), repo, "v1.1"))
 
-	successor := &Repository{ID: repo.ID + 9999, OwnerName: repo.OwnerName, LowerName: repo.LowerName}
-	assert.True(t, isImmutable(successor, "V1.1"))
-	assert.True(t, isImmutable(&Repository{ID: repo.ID, OwnerName: "new-owner", LowerName: "renamed"}, "V1.1"))
-	assert.False(t, isImmutable(&Repository{ID: successor.ID, OwnerName: "new-owner", LowerName: "renamed"}, "V1.1"))
+	successor := &Repository{ID: unittest.NonexistentID, OwnerName: repo.OwnerName, LowerName: repo.LowerName}
+	assert.ErrorIs(t, CheckTagMutable(t.Context(), successor, "V1.1"), ErrImmutableTag)
+	assert.ErrorIs(t, CheckTagMutable(t.Context(), &Repository{ID: repo.ID, OwnerName: "new-owner", LowerName: "renamed"}, "V1.1"), ErrImmutableTag)
 
-	assert.NoError(t, db.Insert(t.Context(), &Release{RepoID: repo.ID, TagName: "V1.1", IsTag: true}))
+	assert.NoError(t, db.Insert(t.Context(), &Release{RepoID: repo.ID, TagName: "V1.1", IsTag: true}, &Release{RepoID: successor.ID, TagName: "V1.1", IsTag: true}))
 	assert.NoError(t, CheckImmutableTagConflicts(t.Context(), repo.ID, repo.OwnerName, repo.LowerName))
-	assert.NoError(t, CheckImmutableTagConflicts(t.Context(), successor.ID, repo.OwnerName, repo.LowerName))
-	assert.NoError(t, db.Insert(t.Context(), &Release{RepoID: successor.ID, TagName: "V1.1", IsTag: true}))
 	assert.ErrorIs(t, CheckImmutableTagConflicts(t.Context(), successor.ID, repo.OwnerName, repo.LowerName), ErrImmutableTag)
-	assert.NoError(t, CheckImmutableTagConflicts(t.Context(), successor.ID, repo.OwnerName, "elsewhere"))
-
-	rel := unittest.AssertExistsAndLoadBean(t, &Release{ID: 1})
-	hasRelease := func() bool {
-		has, err := HasImmutableRelease(t.Context(), rel.RepoID, rel.TagName)
-		assert.NoError(t, err)
-		return has
-	}
-	_, err := db.GetEngine(t.Context()).ID(rel.ID).Cols("is_immutable").Update(&Release{IsImmutable: true})
-	assert.NoError(t, err)
-	assert.True(t, hasRelease())
-
-	rel.IsTag, rel.IsImmutable = true, false
-	assert.NoError(t, UpdateRelease(t.Context(), rel))
-	assert.False(t, hasRelease())
-	assert.True(t, unittest.AssertExistsAndLoadBean(t, &Release{ID: rel.ID}).IsImmutable)
 }

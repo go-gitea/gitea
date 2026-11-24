@@ -726,8 +726,6 @@ func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 	if err := release_service.DeleteReleaseByID(ctx, ctx.Repo.Repository, rel, ctx.Doer, isDelTag); err != nil {
 		if release_service.IsErrProtectedTagName(err) {
 			ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
-		} else if errors.Is(err, repo_model.ErrImmutableTag) {
-			ctx.Flash.Error(ctx.Tr("repo.release.tag_name_immutable_delete"))
 		} else {
 			ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
 		}
