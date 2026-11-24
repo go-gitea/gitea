@@ -5,6 +5,7 @@ package actions
 
 import (
 	"archive/zip"
+	"cmp"
 	"compress/gzip"
 	"context"
 	"errors"
@@ -248,7 +249,8 @@ func ViewWorkflowFile(ctx *context_module.Context) {
 		return
 	}
 
-	commit, err := ctx.Repo.GitRepo.GetCommit(ctx, run.CommitSHA)
+	workflowCommitSHA := cmp.Or(run.WorkflowCommitSHA, run.CommitSHA)
+	commit, err := ctx.Repo.GitRepo.GetCommit(ctx, workflowCommitSHA)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
@@ -260,7 +262,7 @@ func ViewWorkflowFile(ctx *context_module.Context) {
 	}
 	for _, entry := range entries {
 		if entry.Name() == run.WorkflowID {
-			ctx.Redirect(fmt.Sprintf("%s/src/commit/%s/%s/%s", ctx.Repo.RepoLink, url.PathEscape(run.CommitSHA), util.PathEscapeSegments(rpath), util.PathEscapeSegments(run.WorkflowID)))
+			ctx.Redirect(fmt.Sprintf("%s/src/commit/%s/%s/%s", ctx.Repo.RepoLink, url.PathEscape(workflowCommitSHA), util.PathEscapeSegments(rpath), util.PathEscapeSegments(run.WorkflowID)))
 			return
 		}
 	}
@@ -1287,12 +1289,7 @@ func ApproveAllChecks(ctx *context_module.Context) {
 	repo := ctx.Repo.Repository
 	commitID := ctx.FormString("commit_id")
 
-	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commitID, db.ListOptionsAll)
-	if err != nil {
-		ctx.ServerErrorAuto(err)
-		return
-	}
-	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, repo.ID, commitStatuses)
+	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, repo.ID, commitID)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return

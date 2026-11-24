@@ -57,6 +57,7 @@ type ActionRun struct {
 	// Always filled (repo-level run = the repo itself; scoped run = the source repo).
 	WorkflowRepoID    int64  `xorm:"NOT NULL DEFAULT 0"`
 	WorkflowCommitSHA string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+	WorkflowRef       string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"` // the default branch ref a pull_request_target run read its workflow from, empty for scoped and older runs
 
 	IsScopedRun bool `xorm:"NOT NULL DEFAULT false"` // IsScopedRun explicitly classifies scoped runs.
 

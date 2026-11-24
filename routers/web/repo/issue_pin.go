@@ -8,7 +8,7 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/log"
 	"gitea.dev/services/context"
 )
@@ -89,8 +89,8 @@ func IssuePinMove(ctx *context.Context) {
 	}
 
 	form := &movePinIssueForm{}
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
-		ctx.ServerErrorAuto(err)
+	if err := jsonlimit.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &form); err != nil {
+		ctx.JSONError("invalid request body")
 		return
 	}
 

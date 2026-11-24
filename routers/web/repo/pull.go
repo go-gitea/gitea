@@ -425,7 +425,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	data.StatusCheckData = statusCheckData
 	statusCheckData.ApproveLink = fmt.Sprintf("%s/actions/approve-all-checks?commit_id=%s", ctx.Repo.Repository.Link(), headCommitID)
 
-	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, ctx.Repo.Repository.ID, commitStatuses)
+	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, ctx.Repo.Repository.ID, headCommitID)
 	if err != nil {
 		log.Error("GetRunsFromCommitStatuses: %v", err)
 	}

@@ -11,7 +11,6 @@ import (
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/util"
 
@@ -38,13 +37,10 @@ func init() {
 }
 
 func (group *ActionRunnerGroup) runsOnSelectors() []string {
-	selectors := []string{group.LowerName}
-	for prefix, ownerLevel := range jobparser.RunsOnGroupScopes {
-		if ownerLevel == (group.OwnerID != 0) {
-			selectors = append(selectors, prefix+"/"+group.LowerName)
-		}
+	if group.OwnerID != 0 {
+		return []string{group.LowerName, "org/" + group.LowerName, "organization/" + group.LowerName}
 	}
-	return selectors
+	return []string{group.LowerName, "ent/" + group.LowerName, "enterprise/" + group.LowerName}
 }
 
 func FindRunnerGroups(ctx context.Context, ownerID int64) ([]*ActionRunnerGroup, error) {

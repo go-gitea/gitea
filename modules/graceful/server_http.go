@@ -24,7 +24,7 @@ func newHTTPServer(network, address, name string, handler http.Handler) (*Server
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	server.OnShutdown = func() {
-		httpServer.SetKeepAlivesEnabled(false)
+		_ = httpServer.Shutdown(GetManager().HammerContext()) // unlike SetKeepAlivesEnabled(false), it also closes idle HTTP/2 connections
 	}
 	return server, httpServer.Serve
 }

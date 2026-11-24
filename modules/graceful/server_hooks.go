@@ -24,9 +24,7 @@ func (srv *Server) awaitShutdown() {
 	srv.doHammer()
 }
 
-// shutdown closes the listener so that no new connections are accepted
-// and starts a goroutine that will hammer (stop all running requests) the server
-// after setting.GracefulHammerTime.
+// doShutdown closes the listener so that no new connections are accepted, then runs OnShutdown
 func (srv *Server) doShutdown() {
 	// only shutdown if we're running.
 	if srv.getState() != stateRunning {
@@ -35,14 +33,14 @@ func (srv *Server) doShutdown() {
 
 	srv.setState(stateShuttingDown)
 
-	if srv.OnShutdown != nil {
-		srv.OnShutdown()
-	}
 	err := srv.listener.Close()
 	if err != nil {
 		log.Error("PID: %d Listener.Close() error: %v", os.Getpid(), err)
 	} else {
 		log.Info("PID: %d Listener (%s) closed.", os.Getpid(), srv.listener.Addr())
+	}
+	if srv.OnShutdown != nil {
+		srv.OnShutdown()
 	}
 }
 
