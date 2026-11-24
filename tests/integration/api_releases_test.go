@@ -333,7 +333,6 @@ func testAPIGetDraftReleaseByTag(t *testing.T) {
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, tag))
 	MakeRequest(t, req, http.StatusNotFound)
 
-	// user 40 has write access to the repository, but a read-only token must not reveal drafts
 	readToken := getUserToken(t, "user40", auth_model.AccessTokenScopeReadRepository)
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, tag)).AddTokenAuth(readToken)
 	MakeRequest(t, req, http.StatusNotFound)

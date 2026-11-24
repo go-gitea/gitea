@@ -266,8 +266,8 @@ func testGetAttachment(t *testing.T) {
 	}
 
 	t.Run("DraftReleaseByOwnerToken", func(t *testing.T) {
-		readToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
-		writeToken := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+		readToken := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeReadRepository)
+		writeToken := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository)
 		for _, link := range []string{"/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a23", "/user2/repo1/releases/download/draft-release/draft-attach"} {
 			MakeRequest(t, NewRequest(t, "GET", link).AddTokenAuth(readToken), http.StatusNotFound)
 			MakeRequest(t, NewRequest(t, "GET", link).AddTokenAuth(writeToken), http.StatusOK)

@@ -22,7 +22,7 @@ func CanAccessReleaseDraft(doer *user_model.User, perm access_model.Permission) 
 	if !hasAPITokenScope {
 		return true
 	}
-	allow, _ := scope.HasScope(auth_model.GetRequiredScopes(auth_model.Write, auth_model.AccessTokenScopeCategoryRepository)...) // err (invalid token) can be safely ignored
+	allow, _ := scope.HasScope(auth_model.AccessTokenScopeWriteRepository) // err (invalid token) can be safely ignored
 	return allow
 }
 
