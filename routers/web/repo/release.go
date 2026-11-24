@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -19,9 +20,11 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/references"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
@@ -76,6 +79,7 @@ type ReleaseInfo struct {
 	CommitStatus   *git_model.CommitStatus
 	CommitStatuses []*git_model.CommitStatus
 	Reactions      issues_model.ReactionList
+	Contributors   []*user_model.User
 }
 
 func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions) ([]*ReleaseInfo, error) {
@@ -130,8 +134,29 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 		}
 	}
 
+	mentionsByRelease := make([][]string, len(releases))
+	mentionedNames := container.Set[string]{}
+	for i, release := range releases {
+		for _, name := range references.FindAllMentionsMarkdown(release.Note) {
+			mentionsByRelease[i] = append(mentionsByRelease[i], strings.ToLower(name))
+		}
+		mentionedNames.AddMultiple(mentionsByRelease[i]...)
+	}
+	mentionedUsers := make(map[string]*user_model.User, len(mentionedNames))
+	for names := range slices.Chunk(mentionedNames.Values(), db.DefaultMaxInSize) {
+		users, err := user_model.GetRealDoerUsersByNames(ctx, names)
+		if err != nil && !user_model.IsErrUserNotExist(err) {
+			return nil, err
+		}
+		for _, user := range users {
+			if user.IsActive && !user.ProhibitLogin && user_model.IsUserVisibleToViewer(ctx, user, ctx.Doer) {
+				mentionedUsers[user.LowerName] = user
+			}
+		}
+	}
+
 	releaseInfos := make([]*ReleaseInfo, 0, len(releases))
-	for _, r := range releases {
+	for i, r := range releases {
 		if r.Publisher, ok = cacheUsers[r.PublisherID]; !ok {
 			r.PublisherID, r.Publisher, err = user_model.GetPossibleUserByID(ctx, r.PublisherID)
 			if err != nil {
@@ -157,6 +182,10 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 		info := &ReleaseInfo{
 			Release:   r,
 			Reactions: reactionsByRelease[r.ID],
+			Contributors: container.FilterSlice(mentionsByRelease[i], func(name string) (*user_model.User, bool) {
+				user := mentionedUsers[name]
+				return user, user != nil
+			}),
 		}
 
 		if canReadCode {

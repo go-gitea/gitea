@@ -8,9 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 	"time"
 
+	"gitea.dev/actionslib/pkg/model"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -236,18 +236,13 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 	return nil, errNotExist
 }
 
-func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
-	if step.Name != "" {
-		name = step.Name // the step has an explicit name
-	} else {
-		// for unnamed step, its "String()" method tries to get a display name by its "name", "uses",
-		// "run" or "id" (last fallback), we add the "Run " prefix for unnamed steps for better display
-		// for multi-line "run" scripts, only use the first line to match GitHub's behavior
-		// https://github.com/actions/runner/blob/66800900843747f37591b077091dd2c8cf2c1796/src/Runner.Worker/Handlers/ScriptHandler.cs#L45-L58
-		runStr, _, _ := strings.Cut(strings.TrimSpace(step.Run), "\n")
-		name = "Run " + util.IfZero(strings.TrimSpace(runStr), step.String())
-	}
-	return util.EllipsisDisplayString(name, limit) // database column has a length limit
+func makeTaskStepDisplayName(step *jobparser.Step, limit int) string {
+	return util.EllipsisDisplayString(model.StepDisplayName(&model.Step{
+		ID:   step.ID,
+		Name: step.Name,
+		Uses: step.Uses,
+		Run:  step.Run,
+	}, ""), limit)
 }
 
 // errJobAlreadyClaimed is a sentinel used inside claimJobForRunner to signal that

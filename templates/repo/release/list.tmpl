@@ -76,6 +76,16 @@
 							{{$release.RenderedNote}}
 						</div>
 						<div class="divider"></div>
+						{{if $info.Contributors}}
+							<div class="release-contributors tw-mb-4">
+								<div class="tw-font-semibold tw-mb-2">{{ctx.Locale.Tr "repo.activity.navbar.contributors"}}</div>
+								<div class="flex-text-block tw-flex-wrap">
+									{{range $user := $info.Contributors}}
+										{{template "shared/user/avatarlink" dict "user" $user "size" 32 "tooltip" true}}
+									{{end}}
+								</div>
+							</div>
+						{{end}}
 						{{$showArchives := and (not $.DisableDownloadSourceArchives) (not $release.IsDraft) ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
 						<details {{if eq $idx 0}}open{{end}}>
 							<summary>
