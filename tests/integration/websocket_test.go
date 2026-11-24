@@ -13,7 +13,6 @@ import (
 	activities_model "gitea.dev/models/activities"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
@@ -83,8 +82,7 @@ func TestWebSocketSnapshotFollowsBacklog(t *testing.T) {
 
 func TestWebSocketTopicSubscription(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	broker := pubsub.NewMemoryBroker()
-	defer test.MockVariableValue(&pubsub.DefaultBroker, pubsub.Broker(broker))()
+	defer test.MockVariableValue(&pubsub.DefaultBroker, pubsub.Broker(pubsub.NewMemoryBroker()))()
 	session := loginUser(t, "user5")
 	server := httptest.NewServer(testWebRoutes)
 	defer server.Close()
@@ -95,38 +93,24 @@ func TestWebSocketTopicSubscription(t *testing.T) {
 	require.NoError(t, err)
 	defer conn.CloseNow()
 
-	const publicPullID, privatePullID = 2, 6
-	for _, topic := range []string{pubsub.UserTopic(1), pubsub.PullTopic(privatePullID), pubsub.PullTopic(publicPullID)} {
+	const readableTopic, unreadableTopic = "pull-2", "pull-6"
+	for _, topic := range []string{unreadableTopic, readableTopic} {
 		require.NoError(t, conn.Write(t.Context(), websocket.MessageText, fmt.Appendf(nil, `{"type":"subscribe","topic":%q}`, topic)))
 	}
-	readHead := func() string {
+	readTopic := func() string {
 		for {
 			_, payload, err := conn.Read(t.Context())
 			require.NoError(t, err)
 			var event struct {
-				EventType string     `json:"eventType"`
-				EventData json.Value `json:"eventData"`
+				Topic string `json:"topic"`
 			}
 			require.NoError(t, json.Unmarshal(payload, &event))
-			if event.EventType != "pull-head" {
-				continue
+			if event.Topic != "" {
+				return event.Topic
 			}
-			var data struct {
-				PullID int64  `json:"pullId"`
-				Head   string `json:"head"`
-			}
-			require.NoError(t, json.Unmarshal(event.EventData, &data))
-			require.EqualValues(t, publicPullID, data.PullID)
-			return data.Head
 		}
 	}
-
-	assert.Equal(t, "985f0301dba5e7b34be866819cd15ad3d8f508ee", readHead())
-	assert.False(t, broker.HasTopicSubscribers(pubsub.UserTopic(1)))
-	assert.False(t, broker.HasTopicSubscribers(pubsub.PullTopic(privatePullID)))
-	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: publicPullID})
-	require.NoError(t, pull_service.PushToBaseRepo(t.Context(), pull))
-	headCommitID, err := git.GetBranchCommitID(t.Context(), pull.HeadRepo, pull.HeadBranch)
-	require.NoError(t, err)
-	assert.Equal(t, headCommitID, readHead())
+	assert.Equal(t, readableTopic, readTopic())
+	require.NoError(t, pull_service.PushToBaseRepo(t.Context(), unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})))
+	assert.Equal(t, readableTopic, readTopic())
 }

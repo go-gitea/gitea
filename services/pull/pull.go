@@ -597,7 +597,11 @@ func PushToBaseRepo(ctx context.Context, pr *issues_model.PullRequest) error {
 		return fmt.Errorf("unable to fetch head branch %s:%s into base repo %s, err: %w",
 			pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
-	return updatePullHeadRef(ctx, pr, headCommitID)
+	if err := git.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), headCommitID); err != nil {
+		return err
+	}
+	pubsub.DefaultBroker.Publish(pubsub.PullTopic(pr.ID), nil)
+	return nil
 }
 
 // UpdatePullsRefs update all the PRs head file pointers like /refs/pull/1/head so that it will be dependent by other operations
@@ -628,18 +632,11 @@ func UpdateRefForAgit(ctx context.Context, pr *issues_model.PullRequest) (err er
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return err
 	}
-	if err := updatePullHeadRef(ctx, pr, pr.HeadCommitID); err != nil {
+	if err := git.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadCommitID); err != nil {
 		return fmt.Errorf("unable to update ref %s for base repo %s, err: %w", pr.GetGitHeadRefName(), pr.BaseRepo.FullName(), err)
 	}
-	return syncCommitDivergence(ctx, pr)
-}
-
-func updatePullHeadRef(ctx context.Context, pr *issues_model.PullRequest, headCommitID string) error {
-	if err := git.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), headCommitID); err != nil {
-		return err
-	}
 	pubsub.DefaultBroker.Publish(pubsub.PullTopic(pr.ID), nil)
-	return nil
+	return syncCommitDivergence(ctx, pr)
 }
 
 // retargetBranchPulls change target branch for all pull requests whose base branch is the branch

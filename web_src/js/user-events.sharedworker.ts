@@ -76,7 +76,7 @@ class WsSource {
   failuresWithoutConnect: number;
   fallbackSignalled: boolean;
   closed: boolean;
-  topicPorts: Map<string, Set<MessagePort>>;
+  topics = new Map<string, {ports: Set<MessagePort>, lastEvent?: UserEventMessage}>();
 
   constructor(wsUrl: string, source: Source) {
     this.wsUrl = wsUrl;
@@ -87,7 +87,6 @@ class WsSource {
     this.failuresWithoutConnect = 0;
     this.fallbackSignalled = false;
     this.closed = false;
-    this.topicPorts = new Map();
     this.connect();
   }
 
@@ -98,7 +97,7 @@ class WsSource {
     this.ws.addEventListener('open', () => {
       this.reconnectDelay = 1000;
       this.failuresWithoutConnect = 0;
-      for (const topic of this.topicPorts.keys()) this.sendClientMessage('subscribe', topic);
+      for (const name of this.topics.keys()) this.sendClientMessage('subscribe', name);
       this.source.notifyClientsUserEvent({eventType: 'worker-connected'});
     });
 
@@ -110,7 +109,14 @@ class WsSource {
           console.error('websocket message is not a valid server user event', msg);
           return;
         }
-        this.source.notifyClientsUserEvent(msg);
+        if (!('topic' in msg)) {
+          this.source.notifyClientsUserEvent(msg);
+          return;
+        }
+        const topic = this.topics.get(msg.topic);
+        if (!topic) return;
+        topic.lastEvent = msg;
+        for (const port of topic.ports) postUserEventMessage(port, msg);
       } catch (err) {
         console.error('user-events: dropping malformed WebSocket message', err);
       }
@@ -141,16 +147,22 @@ class WsSource {
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify({type, topic}));
   }
 
-  subscribe(port: MessagePort, topic: string) {
-    this.topicPorts.set(topic, (this.topicPorts.get(topic) ?? new Set()).add(port));
-    this.sendClientMessage('subscribe', topic); // also when already subscribed, so the server resends the current state for the new port
+  subscribe(port: MessagePort, name: string) {
+    const topic = this.topics.get(name);
+    if (!topic) {
+      this.topics.set(name, {ports: new Set([port])});
+      this.sendClientMessage('subscribe', name);
+      return;
+    }
+    topic.ports.add(port);
+    if (topic.lastEvent) postUserEventMessage(port, topic.lastEvent);
   }
 
   unsubscribe(port: MessagePort) {
-    for (const [topic, ports] of this.topicPorts) {
-      if (ports.delete(port) && !ports.size) {
-        this.topicPorts.delete(topic);
-        this.sendClientMessage('unsubscribe', topic);
+    for (const [name, topic] of this.topics) {
+      if (topic.ports.delete(port) && !topic.ports.size) {
+        this.topics.delete(name);
+        this.sendClientMessage('unsubscribe', name);
       }
     }
   }

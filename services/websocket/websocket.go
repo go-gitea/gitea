@@ -47,12 +47,13 @@ func EventForSession(brokerPayload []byte, sessionID string) []byte {
 }
 
 // makeEventMessage prefixes the client JSON with its target session, empty for all sessions.
-func makeEventMessage(eventType, targetSession string, eventData any) []byte {
+func makeEventMessage(eventType, targetSession, topic string, eventData any) []byte {
 	buf := bytes.NewBufferString(targetSession + "\n")
 	err := json.MarshalWriteRelaxed(buf, &struct {
 		EventType string `json:"eventType"`
+		Topic     string `json:"topic,omitzero"`
 		EventData any    `json:"eventData,omitzero"`
-	}{eventType, eventData})
+	}{eventType, topic, eventData})
 	if err != nil {
 		setting.PanicInDevOrTesting("websocket: marshal event: %v", err)
 		return nil

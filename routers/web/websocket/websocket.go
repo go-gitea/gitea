@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/services/context"
 	"gitea.dev/services/pubsub"
@@ -21,6 +22,8 @@ const (
 	pingInterval = 30 * time.Second
 	pingTimeout  = 10 * time.Second
 	writeTimeout = 10 * time.Second
+
+	maxTopicSubscriptions = 64
 
 	// First code in the IANA library/framework reserved range (3000–3999).
 	// Sentinel for an unauthenticated session so the SharedWorker can tell
@@ -121,4 +124,57 @@ func rejectUnauthenticated(ctx *context.Context) {
 		return
 	}
 	_ = conn.Close(closeCodeUnauthenticated, "unauthenticated")
+}
+
+type clientMessage struct { // keep in sync with web_src/js/user-events.sharedworker.ts
+	Type  string `json:"type"`
+	Topic string `json:"topic"`
+}
+
+func readClientMessages(ctx gocontext.Context, cancelConnection gocontext.CancelFunc, conn *gitea_ws.Conn, doerID int64, canSubscribe bool, send func([]byte) error) {
+	defer cancelConnection()
+	subscriptions := map[string]gocontext.CancelFunc{}
+	for {
+		messageType, data, err := conn.Read(ctx)
+		if err != nil {
+			return
+		}
+		var msg clientMessage
+		if !canSubscribe || messageType != gitea_ws.MessageText || json.Unmarshal(data, &msg) != nil {
+			continue
+		}
+		switch msg.Type {
+		case "subscribe":
+			currentEvent := websocket_service.TopicEventFunc(msg.Topic)
+			if currentEvent != nil && subscriptions[msg.Topic] == nil && len(subscriptions) < maxTopicSubscriptions {
+				topicCtx, cancel := gocontext.WithCancel(ctx)
+				subscriptions[msg.Topic] = cancel
+				go streamTopic(topicCtx, cancelConnection, msg.Topic, func() []byte { return currentEvent(topicCtx, doerID) }, send)
+			}
+		case "unsubscribe":
+			if cancel := subscriptions[msg.Topic]; cancel != nil {
+				cancel()
+				delete(subscriptions, msg.Topic)
+			}
+		}
+	}
+}
+
+func streamTopic(ctx gocontext.Context, cancelConnection gocontext.CancelFunc, topic string, currentEvent func() []byte, send func([]byte) error) {
+	ch, unsubscribe := pubsub.DefaultBroker.Subscribe(topic)
+	defer unsubscribe()
+	for {
+		if send(currentEvent()) != nil {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case _, ok := <-ch:
+			if !ok {
+				cancelConnection()
+				return
+			}
+		}
+	}
 }

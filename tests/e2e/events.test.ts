@@ -1,9 +1,6 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {
-  login, loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, apiCloseIssue,
-  apiCreateFiles, apiCreatePR, randomString,
-} from './utils.ts';
+import {login, loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, apiCloseIssue, apiCreateFiles, apiCreatePR, randomString} from './utils.ts';
 
 test.describe('events', () => {
   test('notification count increases on new notification', async ({page, request}) => {

@@ -250,9 +250,8 @@ async function onLocationHashChange() {
 }
 
 function initDiffRefresh(el: HTMLElement) {
-  const pullId = Number(el.getAttribute('data-pull-id'));
-  subscribeTopic(`pull-${pullId}`, 'pull-head', ({eventData}) => {
-    if (eventData.pullId === pullId) toggleElem(el, eventData.head !== el.getAttribute('data-head'));
+  subscribeTopic(`pull-${el.getAttribute('data-pull-id')}`, 'pull-head', ({eventData}) => {
+    toggleElem(el, eventData.head !== el.getAttribute('data-head'));
   });
   el.addEventListener('click', () => window.location.reload());
 }

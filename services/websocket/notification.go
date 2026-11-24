@@ -26,7 +26,7 @@ func notificationCountEvent(ctx context.Context, userID int64) []byte {
 		log.Error("websocket: count notifications for user %d: %v", userID, err)
 		return nil
 	}
-	return makeEventMessage(eventNotificationCount, "", struct {
+	return makeEventMessage(eventNotificationCount, "", "", struct {
 		Count int64 `json:"count"`
 	}{count})
 }

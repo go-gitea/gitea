@@ -292,10 +292,6 @@ button:disabled,
   background: var(--color-orange-dark-1);
 }
 
-.ui.orange.button:active {
-  background: var(--color-orange-dark-2);
-}
-
 .ui.buttons {
   display: inline-flex;
   flex-direction: row;

@@ -37,5 +37,5 @@ func stopwatchesEvent(ctx context.Context, user *user_model.User) []byte {
 		}
 		return nil
 	}
-	return makeEventMessage(eventStopwatches, "", util.SliceNilAsEmpty(apiStopWatches))
+	return makeEventMessage(eventStopwatches, "", "", util.SliceNilAsEmpty(apiStopWatches))
 }

@@ -6,5 +6,5 @@ package websocket
 const eventLogout = "logout" // keep in sync with web_src/js/types.ts
 
 func PublishLogout(userID int64, sessionID string) {
-	publishUserEvent(userID, func() []byte { return makeEventMessage(eventLogout, sessionID, nil) })
+	publishUserEvent(userID, func() []byte { return makeEventMessage(eventLogout, sessionID, "", nil) })
 }
