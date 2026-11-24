@@ -52,10 +52,8 @@ test('preview and propose a markdown edit', async ({page, request}) => {
   );
 
   await main.getByText('Preview Changes', {exact: true}).click();
-  const addedRow = main.getByRole('row', {name: `3 + ### ${proposedHeading}`, exact: true});
-  const unchangedRow = main.getByRole('row', {name: `1 1 ${unchangedLine}`, exact: true});
-  await expect(addedRow).toBeVisible();
-  await expect(unchangedRow).toBeVisible();
+  await expect(main.getByRole('row', {name: `3 + ### ${proposedHeading}`, exact: true})).toBeVisible();
+  await expect(main.getByRole('row', {name: `1 1 ${unchangedLine}`, exact: true})).toBeVisible();
 
   await main.getByRole('radio', {
     name: 'Create a new branch for this commit and start a pull request.', exact: true,
@@ -63,8 +61,8 @@ test('preview and propose a markdown edit', async ({page, request}) => {
   await main.getByPlaceholder('New branch name…', {exact: true}).fill('docs-preview');
   await main.getByRole('button', {name: 'Propose file change', exact: true}).click();
   await page.waitForURL(`${repoPath}/compare/main...docs-preview`);
-  await expect(addedRow).toBeVisible();
-  await expect(unchangedRow).toBeVisible();
+  await expect(main.getByRole('row', {name: `3 R3 + ### ${proposedHeading}`, exact: true})).toBeVisible();
+  await expect(main.getByRole('row', {name: `1 L1 1 R1 ${unchangedLine}`, exact: true})).toBeVisible();
 
   await main.getByRole('button', {name: 'New Pull Request', exact: true}).click();
   await expect(main.getByPlaceholder('Title', {exact: true})).toBeVisible();
