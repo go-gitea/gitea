@@ -1,8 +1,8 @@
 {{if .CodeSuggestion}}
 	<div class="code-suggestion-controls flex-text-block tw-flex-wrap" data-global-init="initCodeSuggestionControls" data-comment-id="{{.ID}}"
 		data-content-version="{{.ContentVersion}}" data-path="{{.TreePath}}" data-start-line="{{.UnsignedCodeStartLine}}" data-end-line="{{.UnsignedLine}}">
-		{{if .CodeSuggestion.Reason}}
-			<span class="tw-text-text-light">{{ctx.Locale.Tr .CodeSuggestion.Reason}}</span>
+		{{with .CodeSuggestion.Reason}}
+			<span class="tw-text-text-light">{{ctx.Locale.Tr .}}</span>
 		{{else}}
 			<button type="button" class="ui tiny primary button show-modal" data-modal="#code-suggestion-modal"
 				data-modal-comment_ids="{{.ID}}:{{.ContentVersion}}" data-modal-commit_summary="{{.CodeSuggestionCommitMessage}}">

@@ -31,10 +31,6 @@ func TestCodeSuggestionAnchorMovesForShiftOrOverlap(t *testing.T) {
 	assert.False(t, codeSuggestionAnchorMoved([]git.FileDiffHunk{{OldStart: 1, OldCount: 1, NewCount: 1}}, 4, 5))
 }
 
-func TestValidateCodeCommentRangeRejectsLineZero(t *testing.T) {
-	assert.Error(t, validateCodeCommentRange(0, 0))
-}
-
 func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 	ctx := t.Context()
 	require.NoError(t, unittest.PrepareTestDatabase())

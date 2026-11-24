@@ -23,7 +23,6 @@ import (
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/context/upload"
@@ -108,13 +107,29 @@ func CreateCodeComment(ctx *context.Context) {
 		return
 	}
 
-	if form.Line < 0 {
-		ctx.JSONErrorAuto(util.NewInvalidArgumentErrorf("code comment line number must be nonnegative"))
-		return
+	signedLine := form.Line
+	if form.Side == "previous" {
+		signedLine *= -1
 	}
-	line := util.Iif(form.Side == "previous", -form.Line, form.Line)
-	comment, err := pull_service.CreateCodeComment(ctx, ctx.Doer, ctx.Repo.GitRepo, issue, line, form.Content, form.TreePath,
-		!form.SingleReview, form.Reply, form.LatestCommitID, util.Iif(setting.Attachment.Enabled, form.Files, nil), form.StartLine)
+
+	var attachments []string
+	if setting.Attachment.Enabled {
+		attachments = form.Files
+	}
+
+	comment, err := pull_service.CreateCodeComment(ctx,
+		ctx.Doer,
+		ctx.Repo.GitRepo,
+		issue,
+		signedLine,
+		form.Content,
+		form.TreePath,
+		!form.SingleReview,
+		form.Reply,
+		form.LatestCommitID,
+		attachments,
+		form.StartLine,
+	)
 	if err != nil {
 		ctx.JSONErrorAuto(err)
 		return
@@ -215,7 +230,6 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	pull_service.LoadCodeSuggestionStates(ctx, ctx.Doer, comment.Issue, comments)
 	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(ctx, comment.Issue.PullRequest.GetGitHeadRefName())
 	if err != nil {
 		ctx.ServerErrorAuto(err)
@@ -223,6 +237,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
 	ctx.Data["ReviewCommitID"] = pullHeadCommitID // it's questionable why it only needs the head commit ID but not correct "AfterCommitID" (single commit review)
+	pull_service.LoadCodeSuggestionStates(ctx, ctx.Doer, comment.Issue, comments)
 	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}

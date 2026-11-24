@@ -18,7 +18,7 @@ import (
 
 const codeSuggestionAttribute = "gitea-code-suggestion"
 
-// GitHub treats "suggestion:-1+2" as a plain fence
+// only the exact first info word counts, so "suggestion:-1+2" stays a plain fence
 func isCodeSuggestionFence(fenced *ast.FencedCodeBlock, source []byte) bool {
 	if fenced.Info == nil {
 		return false
@@ -60,10 +60,8 @@ func (r *HTMLRenderer) renderCodeSuggestion(w util.BufWriter, anchor markup.Code
 		return lines
 	}
 	deletions, additions := highlightLines(strings.Join(suggestion.OriginalLines, "\n")+"\n"), highlightLines(replacement)
-	if suggestion.HighlightLinePair != nil {
-		for i := range min(len(deletions), len(additions)) {
-			deletions[i], additions[i] = suggestion.HighlightLinePair(deletions[i], additions[i])
-		}
+	for lineIndex := range min(len(deletions), len(additions)) {
+		deletions[lineIndex], additions[lineIndex] = suggestion.HighlightLinePair(deletions[lineIndex], additions[lineIndex])
 	}
 	for _, change := range []struct {
 		class, marker string

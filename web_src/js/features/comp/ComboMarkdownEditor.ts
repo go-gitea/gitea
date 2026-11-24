@@ -1,6 +1,6 @@
 import '@github/markdown-toolbar-element';
 import '@github/text-expander-element';
-import {hideElem, showElem, toggleElem, autosize, isElemVisible, generateElemId} from '../../utils/dom.ts';
+import {hideElem, showElem, autosize, isElemVisible, generateElemId} from '../../utils/dom.ts';
 import {
   EventUploadStateChanged,
   initEasyMDEPaste,
@@ -46,12 +46,6 @@ export function validateTextareaNonEmpty(textarea: HTMLTextAreaElement) {
     return false;
   }
   return true;
-}
-
-export function toggleExtraToolbarButton(button: HTMLButtonElement, visible: boolean) {
-  toggleElem(button.parentElement!, visible);
-  const easyMDEButton = button.closest('.combo-markdown-editor')!.querySelector('.gitea-extra-toolbar-button');
-  if (easyMDEButton) toggleElem([easyMDEButton, easyMDEButton.nextElementSibling!], visible);
 }
 
 type Heights = {
@@ -407,8 +401,6 @@ export class ComboMarkdownEditor {
     };
 
     this.easyMDE = new EasyMDE(easyMDEOpt);
-    const extraButton = this.options.easyMDEToolbarButton;
-    if (extraButton) toggleExtraToolbarButton(extraButton, !extraButton.parentElement!.classList.contains('tw-hidden'));
     this.easyMDE.codemirror.on('change', () => triggerEditorContentChanged(this.container));
     this.easyMDE.codemirror.setOption('extraKeys', {
       'Cmd-Enter': () => { handleGlobalEnterQuickSubmit(this.textarea) },

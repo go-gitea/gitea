@@ -456,8 +456,7 @@ func TestApplyPullReviewSuggestions(t *testing.T) {
 			"origin": "diff", "content": "Review these lines", "path": treePath,
 			"side": "proposed", "line": "2", "start_line": "-1", "single_review": "true", "latest_commit_id": initialHead,
 		}), http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
-		assert.Equal(t, "-1", doc.Find(".conversation-holder input[name='start_line']").AttrOr("value", ""))
+		assert.Equal(t, "Lines L1 to R2", NewHTMLParser(t, resp.Body).Find(".code-comment-range").Text())
 
 		apply := func(ids, head string, status int) {
 			t.Helper()
@@ -469,9 +468,8 @@ func TestApplyPullReviewSuggestions(t *testing.T) {
 			t.Helper()
 			commit, err := gitRepo.GetBranchCommit(ctx, pr.HeadBranch)
 			require.NoError(t, err)
-			parentID, err := commit.ParentID(0)
-			require.NoError(t, err)
-			assert.Equal(t, parent, parentID.String())
+			require.Len(t, commit.Parents, 1)
+			assert.Equal(t, parent, commit.Parents[0].String())
 			actual, err := commit.GetFileContent(ctx, gitRepo, treePath, 1024)
 			require.NoError(t, err)
 			assert.Equal(t, expected, actual)

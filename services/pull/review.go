@@ -104,9 +104,10 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		Type: issues_model.CommentTypeCode, Doer: doer, Repo: issue.Repo, Issue: issue,
 		LineNum: line, Content: content, TreePath: treePath, Attachments: attachments, CodeStartLine: util.OptionalArg(startLines),
 	}
-	if err := validateCodeCommentRange(opts.CodeStartLine, line); err != nil {
-		return nil, err
+	if startLine := opts.CodeStartLine; line == 0 || startLine > 0 && startLine > line || line < 0 && startLine < line {
+		return nil, util.NewInvalidArgumentErrorf("invalid code comment line range %d to %d", startLine, line)
 	}
+
 	replyToSubmittedReview := !pendingReview && replyReviewID != 0
 	if replyToSubmittedReview {
 		// It's not part of a review; maybe a reply to a review comment or a single comment.
@@ -194,26 +195,10 @@ func checkReviewerNotBlocked(ctx context.Context, doer *user_model.User, issue *
 	return util.ErrorWrapTranslatable(user_model.ErrBlockedUser, "repo.issues.comment.blocked_user")
 }
 
-func validateCodeCommentRange(startLine, line int64) error {
-	if line == 0 || startLine > 0 && startLine > line || line < 0 && startLine < line {
-		return util.NewInvalidArgumentErrorf("invalid code comment line range %d to %d", startLine, line)
-	}
-	return nil
-}
-
-func isExistingCommitID(ctx context.Context, repo *git.Repository, commitID string) bool {
-	objectFormat, err := repo.GetObjectFormat(ctx)
-	if err != nil || !git.IsStringValidObjectID(objectFormat, commitID) {
-		return false
-	}
-	commit, err := repo.GetCommit(ctx, commitID)
-	return err == nil && commit.ID.String() == commitID
-}
-
 func createCodeComment(ctx context.Context, opts *issues_model.CreateCommentOptions, review *issues_model.Review, latestCommitID string) (*issues_model.Comment, error) {
 	opts.ReviewID = review.ID
 	line, treePath, issue := opts.LineNum, opts.TreePath, opts.Issue
-	first, err := issues_model.FindComments(ctx, &issues_model.FindCommentsOptions{
+	comments, err := issues_model.FindComments(ctx, &issues_model.FindCommentsOptions{
 		ReviewID:    review.ID,
 		Line:        line,
 		TreePath:    treePath,
@@ -223,10 +208,10 @@ func createCodeComment(ctx context.Context, opts *issues_model.CreateCommentOpti
 	if err != nil {
 		return nil, fmt.Errorf("createCodeComment: find first comment for review %d line %d path %s: %w", review.ID, line, treePath, err)
 	}
-	if len(first) > 0 {
-		opts.CodeStartLine = first[0].CodeStartLine()
-		opts.CodeCommitID = first[0].CodeCommitID()
-		opts.CommitSHA, opts.Invalidated, opts.Patch = first[0].CommitSHA, first[0].Invalidated, first[0].Patch
+	if len(comments) > 0 {
+		first := comments[0]
+		opts.CodeStartLine, opts.CodeCommitID = first.CodeStartLine(), first.CodeCommitID()
+		opts.CommitSHA, opts.Invalidated, opts.Patch = first.CommitSHA, first.Invalidated, first.Patch
 		return issues_model.CreateComment(ctx, opts)
 	}
 	if err := issue.LoadPullRequest(ctx); err != nil {
@@ -262,8 +247,10 @@ func createCodeComment(ctx context.Context, opts *issues_model.CreateCommentOpti
 	opts.CodeCommitID = headCommitID
 	if line < 0 {
 		opts.CodeCommitID = pr.MergeBase
-	} else if latestCommitID != "" && isExistingCommitID(ctx, gitRepo, latestCommitID) {
-		opts.CodeCommitID = latestCommitID
+	} else if latestCommitID != headCommitID && len(latestCommitID) == len(headCommitID) && git.IsStringValidObjectID(nil, latestCommitID) {
+		if commit, err := gitRepo.GetCommit(ctx, latestCommitID); err == nil && commit.ID.String() == latestCommitID {
+			opts.CodeCommitID = latestCommitID
+		}
 	}
 	if opts.CodeStartLine != 0 && opts.CodeStartLine != line {
 		opts.Patch, err = gitdiff.GetCodeCommentRangePatch(ctx, gitRepo, pr.MergeBase, headCommitID, treePath, opts.CodeStartLine, line)

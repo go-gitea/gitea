@@ -21,8 +21,7 @@ func Markup(ctx *context.Context) {
 	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck // form.Wiki is deprecated
 	var anchor *markup.CodeSuggestionAnchor
 	line := ctx.FormInt64("code_suggestion_line")
-	startLine := cmp.Or(ctx.FormInt64("code_suggestion_start_line"), line)
-	if mode == "comment" && startLine > 0 && line >= startLine {
+	if startLine := cmp.Or(ctx.FormInt64("code_suggestion_start_line"), line); mode == "comment" && startLine > 0 && line >= startLine {
 		anchor = &markup.CodeSuggestionAnchor{
 			CommitID:  ctx.FormString("code_suggestion_commit_id"),
 			FilePath:  ctx.FormString("code_suggestion_path"),
@@ -30,5 +29,5 @@ func Markup(ctx *context.Context) {
 			EndLine:   uint64(line),
 		}
 	}
-	common.RenderMarkupWithCodeSuggestion(ctx.Base, ctx.Repo, mode, form.Text, form.Context, form.FilePath, anchor)
+	common.RenderMarkup(ctx.Base, ctx.Repo, mode, form.Text, form.Context, form.FilePath, anchor)
 }

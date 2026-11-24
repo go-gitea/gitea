@@ -899,9 +899,7 @@ func buildCreateCommentMetaData(ctx context.Context, opts *CreateCommentOptions)
 		meta.SpecialDoerName = opts.SpecialDoerName
 	}
 	meta.CodeCommitID = opts.CodeCommitID
-	if opts.CodeStartLine != opts.LineNum {
-		meta.CodeStartLine = opts.CodeStartLine
-	}
+	meta.CodeStartLine = util.Iif(opts.CodeStartLine != opts.LineNum, opts.CodeStartLine, 0)
 	if meta == (CommentMetaData{}) {
 		return nil
 	}

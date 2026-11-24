@@ -17,7 +17,7 @@ import {initImageDiff} from './imagediff.ts';
 import DiffCommitSelector from '../components/DiffCommitSelector.vue';
 import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
 import {
-  findDiffLine, findDiffLineExpander, isDiffLineSelected, parseDiffLineHash, resolveDiffRange,
+  findDiffLine, findDiffLineExpander, initRepoDiffReview, isDiffLineSelected, parseDiffLineHash, resolveDiffRange,
   setDiffLineSelection, type DiffLineHash,
 } from './repo-diff-review.ts';
 
@@ -202,15 +202,15 @@ async function diffLoadFileBody(el: Element) {
   }
 }
 
-async function scrollToDiffLines(box: HTMLElement, range: DiffLineHash, hash: string) {
+async function scrollToDiffLines(box: HTMLElement, {start, end}: DiffLineHash, hash: string) {
   if (box.getAttribute('data-folded') === 'true') setFileFolding(box, box.querySelector('.fold-file')!, false);
-  const loadButton = box.querySelector('.diff-load-file-body');
+  const loadButton = box.querySelector('[data-global-click="diffLoadFileBody"]');
   if (loadButton) await diffLoadFileBody(loadButton);
   const table = box.querySelector<HTMLTableElement>('.diff-review-table');
   if (!table) return;
 
-  for (const line of [range.start, range.end]) {
-    while (hash === window.location.hash && !findDiffLine(table, range.fileHash, line)) {
+  for (const line of [start, end]) {
+    while (hash === window.location.hash && !findDiffLine(table, line)) {
       const button = findDiffLineExpander(table, line);
       if (!button) return;
       await performFetchActionTrigger(button, 'load');
@@ -218,14 +218,15 @@ async function scrollToDiffLines(box: HTMLElement, range: DiffLineHash, hash: st
     }
   }
   if (hash !== window.location.hash) return;
-  const resolved = resolveDiffRange(table, range)!;
+  const resolved = resolveDiffRange(table, start, end)!;
   showElem(box);
-  if (table.closest('.code-diff')!.classList.contains('tw-hidden')) {
-    box.querySelector<HTMLButtonElement>('.file-view-source-toggle')!.click();
+  const source = table.closest('.code-diff')!;
+  if (source.classList.contains('tw-hidden')) {
+    box.querySelector<HTMLButtonElement>(`[data-toggle-selector="${CSS.escape(`#${source.id}`)}"]`)!.click();
   }
-  setDiffLineSelection(table, resolved);
+  setDiffLineSelection(resolved);
   window.history.scrollRestoration = 'manual';
-  findDiffLine(table, range.fileHash, resolved.start.line)!.focus({preventScroll: true});
+  findDiffLine(table, resolved.start.line)!.focus({preventScroll: true});
   resolved.start.row.scrollIntoView({block: 'start'});
 }
 
@@ -293,6 +294,7 @@ function initDiffCommitSelect(el: HTMLElement) {
 }
 
 export function initRepoDiffView() {
+  initRepoDiffReview();
   initRepoDiffConversationForm(); // such form appears on the "conversation" page and "diff" page
   registerGlobalEventFunc('click', 'diffLoadMoreFiles', (el) => { diffLoadMoreFiles(el) });
   registerGlobalEventFunc('click', 'diffLoadFileBody', diffLoadFileBody);

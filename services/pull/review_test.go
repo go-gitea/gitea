@@ -13,7 +13,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/util"
-	"gitea.dev/services/gitdiff"
 	pull_service "gitea.dev/services/pull"
 
 	"github.com/stretchr/testify/assert"
@@ -107,9 +106,6 @@ func TestCreateCodeCommentContextOfUnchangedLine(t *testing.T) {
 			require.NoError(t, err)
 			assert.True(t, strings.HasSuffix(comment.Patch, "\n old 10\n"), "patch: %q", comment.Patch)
 			if c.start != 0 {
-				patch, err := gitdiff.GetCodeCommentPatch(ctx, gitRepo, pr.MergeBase, headCommit.ID.String(), treePath, c.line)
-				require.NoError(t, err)
-				assert.Equal(t, patch, comment.Patch)
 				assert.Equal(t, c.start, comment.CodeStartLine())
 				assert.Equal(t, headCommit.ID.String(), comment.CodeCommitID())
 

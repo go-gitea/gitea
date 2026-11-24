@@ -146,7 +146,7 @@ func (c *Comment) RenderContent(ctx context.Context, repo *repo_model.Repository
 	rctx := renderhelper.NewRenderContextRepoComment(ctx, repo, renderhelper.RepoCommentOptions{
 		FootnoteContextID: strconv.FormatInt(c.ID, 10),
 	})
-	if startLine, commitID := c.CodeStartLine(), c.CodeCommitID(); c.Type == CommentTypeCode && c.Line > 0 && startLine > 0 && commitID != "" {
+	if startLine, commitID := c.CodeStartLine(), c.CodeCommitID(); c.Type == CommentTypeCode && startLine > 0 && commitID != "" {
 		rctx.RenderOptions.CodeSuggestion = &markup.CodeSuggestionAnchor{
 			CommitID: commitID, FilePath: c.TreePath, StartLine: uint64(startLine), EndLine: uint64(c.Line),
 		}

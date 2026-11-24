@@ -41,7 +41,10 @@
   opacity: 1;
 }
 
-.repository .diff-file-box .code-diff .diff-range-highlight td {
+.code-diff .diff-review-table .diff-range-highlight .lines-num,
+.code-diff .diff-review-table .diff-range-highlight .lines-escape,
+.code-diff .diff-review-table .diff-range-highlight .lines-type-marker,
+.code-diff .diff-review-table .diff-range-highlight .lines-code {
   background: var(--color-highlight-bg);
 }
 
@@ -221,14 +224,12 @@
 }
 
 .code-suggestion-lines {
-  display: grid;
-  grid-template-columns: auto auto 1fr;
+  width: max-content;
+  min-width: 100%;
 }
 
 .code-suggestion-row {
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
+  display: flex;
 }
 
 .code-suggestion-cell {
@@ -240,12 +241,11 @@
   user-select: none;
 }
 
-.markup .code-suggestion code {
+.code-suggestion .code-inner {
   padding: 0;
   font-size: inherit;
   white-space: pre;
   background: none;
-  border-radius: 0;
 }
 
 .code-suggestion-controls {

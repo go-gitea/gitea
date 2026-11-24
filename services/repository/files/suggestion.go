@@ -69,9 +69,8 @@ func ApplyCodeSuggestions(ctx context.Context, doer *user_model.User, pr *issues
 	return nil
 }
 
-func codeSuggestionsCommitMessage(doer *user_model.User, summary, description string, comments issues_model.CommentList) string {
-	message := strings.TrimSpace(summary)
-	if message == "" {
+func codeSuggestionsCommitMessage(doer *user_model.User, message, description string, comments issues_model.CommentList) string {
+	if message = strings.TrimSpace(message); message == "" {
 		message = pull_service.CodeSuggestionsBatchCommitMessage
 		if len(comments) == 1 {
 			message = comments[0].CodeSuggestionCommitMessage()

@@ -27,7 +27,7 @@ import (
 	asymkey_service "gitea.dev/services/asymkey"
 )
 
-const CodeSuggestionsBatchCommitMessage = "Apply suggestions from code review"
+const CodeSuggestionsBatchCommitMessage = "Apply batched suggestions from code review"
 
 const (
 	codeSuggestionReasonPrefix = "repo.diff.suggestion.not_appliable."
@@ -120,7 +120,7 @@ func openCodeSuggestionLoader(ctx context.Context, doer *user_model.User, pr *is
 	}()
 	headCommitID, err := headRepo.GetBranchCommitID(ctx, pr.HeadBranch)
 	if errors.Is(err, util.ErrNotExist) {
-		return nil, git.ErrBranchNotExist{Name: pr.HeadBranch}
+		return nil, ErrCodeSuggestionHeadChanged
 	} else if err != nil {
 		return nil, err
 	}
@@ -169,15 +169,11 @@ func (loader *codeSuggestionLoader) readBlob(ctx context.Context, key codeSugges
 		return codeSuggestionBlob{rejection: rejectCodeSuggestion("outdated")}, nil
 	case err != nil:
 		return codeSuggestionBlob{}, err
-	case !entry.IsRegular() && !entry.IsExecutable():
+	case !entry.IsRegular() && !entry.IsExecutable(), entry.GetSize(ctx, loader.headRepo) > setting.UI.MaxDisplayFileSize:
 		return codeSuggestionBlob{rejection: rejectCodeSuggestion("unsupported_file")}, nil
 	}
 
-	blob := entry.Blob(loader.headRepo)
-	if blob.Size(ctx) > setting.UI.MaxDisplayFileSize {
-		return codeSuggestionBlob{rejection: rejectCodeSuggestion("unsupported_file")}, nil
-	}
-	content, err := blob.GetBlobBytes(ctx, setting.UI.MaxDisplayFileSize+1)
+	content, err := entry.Blob(loader.headRepo).GetBlobBytes(ctx, setting.UI.MaxDisplayFileSize+1)
 	if err != nil {
 		return codeSuggestionBlob{}, err
 	}
@@ -288,7 +284,7 @@ func codeSuggestionAnchorMoved(hunks []git.FileDiffHunk, startLine, endLine int6
 }
 
 func suggestionLineRange(content []byte, startLine, endLine int64) (start, end int, ok bool) {
-	if startLine < 1 || endLine < startLine {
+	if endLine < startLine {
 		return 0, 0, false
 	}
 	var lineNumber int64
@@ -365,6 +361,10 @@ func LoadCodeSuggestionStates(ctx context.Context, doer *user_model.User, issue 
 		if len(suggestions) == 0 {
 			continue
 		}
+		if issue.IsClosed {
+			comment.CodeSuggestion = &issues_model.CodeSuggestionState{Reason: codeSuggestionReasonPrefix + "closed"}
+			continue
+		}
 		if loader == nil {
 			if err := issue.LoadPullRequest(ctx); err != nil {
 				log.Error("LoadCodeSuggestionStates: load pull request for issue %d: %v", issue.ID, err)
@@ -373,7 +373,7 @@ func LoadCodeSuggestionStates(ctx context.Context, doer *user_model.User, issue 
 			var err error
 			loader, err = openCodeSuggestionLoader(ctx, doer, issue.PullRequest)
 			if err != nil {
-				if !errors.Is(err, util.ErrPermissionDenied) && !git.IsErrBranchNotExist(err) {
+				if !errors.Is(err, util.ErrPermissionDenied) && !errors.Is(err, ErrCodeSuggestionHeadChanged) {
 					log.Error("LoadCodeSuggestionStates: open loader for pull request %d: %v", issue.PullRequest.ID, err)
 				}
 				return
@@ -403,9 +403,7 @@ func PrepareCodeSuggestionChanges(ctx context.Context, doer *user_model.User, pr
 		return nil, util.ErrorWrapTranslatable(util.ErrInvalidArgument, codeSuggestionReasonPrefix+"batch_limit", maxCodeSuggestions)
 	}
 	loader, err := openCodeSuggestionLoader(ctx, doer, pr)
-	if git.IsErrBranchNotExist(err) {
-		return nil, ErrCodeSuggestionHeadChanged
-	} else if err != nil {
+	if err != nil {
 		return nil, err
 	}
 	defer loader.headCloser.Close()
@@ -428,10 +426,10 @@ func PrepareCodeSuggestionChanges(ctx context.Context, doer *user_model.User, pr
 		if comment == nil {
 			return nil, util.ErrNotExist
 		}
-		if review, err := loader.getReview(ctx, comment); err != nil && !errors.Is(err, util.ErrNotExist) {
+		if comment.Review, err = loader.getReview(ctx, comment); err != nil && !errors.Is(err, util.ErrNotExist) {
 			return nil, err
-		} else if review != nil && review.Type == issues_model.ReviewTypePending && review.ReviewerID != doer.ID {
-			return nil, util.ErrNotExist // other users' pending reviews are invisible
+		} else if review := comment.Review; review != nil && review.Type == issues_model.ReviewTypePending && review.ReviewerID != doer.ID {
+			return nil, util.ErrNotExist
 		}
 		if loader.canPushToPath != nil && !loader.canPushToPath(comment.TreePath) {
 			return nil, util.ErrPermissionDenied

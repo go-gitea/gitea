@@ -49,9 +49,6 @@ func GetFileDiffCutAroundRange(ctx context.Context, repo *Repository, startCommi
 }
 
 func getFileDiffCut(ctx context.Context, repo *Repository, startCommit, endCommit, treePath string, line int64, old bool, numbersOfLine int, startLine int64) (string, error) {
-	if treePath != "" {
-		treePath = ":(literal)" + treePath
-	}
 	cmd, err := getRepoRawDiffForFileCmd(ctx, repo, startCommit, endCommit, RawDiffNormal, treePath)
 	if err != nil {
 		return "", fmt.Errorf("getRepoRawDiffForFileCmd: %w", err)
@@ -72,12 +69,14 @@ type FileDiffHunk struct {
 	NewStart, NewCount int64
 }
 
-func parseFileDiffHunk(header string) FileDiffHunk {
+func parseFileDiffHunk(header string, advanceEmptySide bool) FileDiffHunk {
 	fields := globalVars().hunkRegex.FindStringSubmatch(header)
 	oldStart, _ := strconv.ParseInt(fields[1], 10, 64)
 	oldCount, _ := strconv.ParseInt(cmp.Or(fields[3], "1"), 10, 64)
 	newStart, _ := strconv.ParseInt(fields[4], 10, 64)
 	newCount, _ := strconv.ParseInt(cmp.Or(fields[6], "1"), 10, 64)
+	oldStart += util.Iif[int64](advanceEmptySide && oldCount == 0, 1, 0)
+	newStart += util.Iif[int64](advanceEmptySide && newCount == 0, 1, 0)
 	return FileDiffHunk{OldStart: oldStart, OldCount: oldCount, NewStart: newStart, NewCount: newCount}
 }
 
@@ -91,8 +90,7 @@ func GetFileDiffHunks(ctx context.Context, repo *Repository, startCommit, endCom
 	var hunks []FileDiffHunk
 	cmd.WithPipelineFunc(func(_ctx gitcmd.Context) error {
 		reader := bufio.NewReader(stdout)
-		var continued bool
-		for {
+		for continued := false; ; {
 			line, more, err := reader.ReadLine()
 			switch {
 			case err == io.EOF:
@@ -100,10 +98,7 @@ func GetFileDiffHunks(ctx context.Context, repo *Repository, startCommit, endCom
 			case err != nil:
 				return err
 			case !continued && bytes.HasPrefix(line, []byte("@@ ")):
-				hunk := parseFileDiffHunk(string(line))
-				hunk.OldStart += util.Iif[int64](hunk.OldCount == 0, 1, 0)
-				hunk.NewStart += util.Iif[int64](hunk.NewCount == 0, 1, 0)
-				hunks = append(hunks, hunk)
+				hunks = append(hunks, parseFileDiffHunk(string(line), true))
 			}
 			continued = more
 		}
@@ -121,7 +116,7 @@ func getRepoRawDiffForFileCmd(ctx context.Context, repo *Repository, startCommit
 	}
 	var files []string
 	if len(file) > 0 {
-		files = append(files, file)
+		files = append(files, ":(literal)"+file)
 	}
 
 	cmd := gitcmd.NewCommand().WithRepo(repo)
@@ -250,16 +245,13 @@ func cutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 			if len(hunk) > headerLines {
 				break
 			}
-			section := parseFileDiffHunk(lof)
+			section := parseFileDiffHunk(lof, startLine != 0)
 			if old {
 				begin, end, otherLine = section.OldStart, section.OldCount, section.NewStart
 			} else {
 				begin, end, otherLine = section.NewStart, section.NewCount, section.OldStart
 			}
 			if begin <= line && line < begin+end {
-				if startLine != 0 && (section.OldCount == 0 || section.NewCount == 0) {
-					otherLine++
-				}
 				hunk = append(hunk, lof)
 				currentLine = begin
 				continue

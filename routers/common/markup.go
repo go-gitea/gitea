@@ -21,11 +21,7 @@ import (
 )
 
 // RenderMarkup renders markup text for the /markup and /markdown endpoints
-func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, urlPathContext, filePath string) {
-	RenderMarkupWithCodeSuggestion(ctx, ctxRepo, mode, text, urlPathContext, filePath, nil)
-}
-
-func RenderMarkupWithCodeSuggestion(ctx *context.Base, ctxRepo *context.Repository, mode, text, urlPathContext, filePath string, codeSuggestion *markup.CodeSuggestionAnchor) {
+func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, urlPathContext, filePath string, codeSuggestion ...*markup.CodeSuggestionAnchor) {
 	// urlPathContext format is "/subpath/{user}/{repo}/src/{branch, commit, tag}/{identifier/path}/{file/dir}"
 	// filePath is the path of the file to render if the end user is trying to preview a repo file (mode == "file")
 	// filePath will be used as RenderContext.RelativePath
@@ -88,7 +84,7 @@ func RenderMarkupWithCodeSuggestion(ctx *context.Base, ctxRepo *context.Reposito
 			FootnoteContextID:   "preview",
 		})
 		rctx = rctx.WithMarkupType(markdown.MarkupName)
-		rctx.RenderOptions.CodeSuggestion = codeSuggestion
+		rctx.RenderOptions.CodeSuggestion = util.OptionalArg(codeSuggestion)
 	case "wiki":
 		rctx = renderhelper.NewRenderContextRepoWiki(ctx, repoModel, renderhelper.RepoWikiOptions{DeprecatedOwnerName: repoOwnerName, DeprecatedRepoName: repoName})
 		rctx = rctx.WithMarkupType(markdown.MarkupName)

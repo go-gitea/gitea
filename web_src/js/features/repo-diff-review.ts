@@ -3,10 +3,10 @@ import {performFetchActionRequest} from '../modules/fetch-action.ts';
 import {trString} from '../modules/i18n.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {
-  addDelegatedEventListener, createElementFromAttrs, createElementFromHTML, showElem, toggleElem,
+  addDelegatedEventListener, createElementFromAttrs, createElementFromHTML, hideElem, showElem, toggleElem,
 } from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
-import {getComboMarkdownEditor, initComboMarkdownEditor, toggleExtraToolbarButton} from './comp/ComboMarkdownEditor.ts';
+import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 
 type DiffLine = `${'L' | 'R'}${number}`;
 export type DiffLineHash = {fileHash: string; start: DiffLine; end: DiffLine};
@@ -27,7 +27,7 @@ export function parseDiffLineHash(hash: string): DiffLineHash | undefined {
 }
 
 function toEndpoint(link: HTMLAnchorElement): Endpoint {
-  return {row: link.closest<HTMLTableRowElement>('.diff-review-line')!, line: parseDiffLineHash(link.hash)!.start};
+  return {row: link.closest('tr')!, line: parseDiffLineHash(link.hash)!.start};
 }
 
 function orderRange(start: Endpoint, end: Endpoint): DiffCommentRange {
@@ -38,8 +38,8 @@ function orderRange(start: Endpoint, end: Endpoint): DiffCommentRange {
   return {start, end};
 }
 
-export function findDiffLine(table: Element, fileHash: string, line: DiffLine) {
-  return table.querySelector<HTMLAnchorElement>(`${lineLink}[href="${CSS.escape(`#diff-${fileHash}${line}`)}"]`);
+export function findDiffLine(table: Element, line: DiffLine) {
+  return table.querySelector<HTMLAnchorElement>(`${lineLink}[href$="${CSS.escape(line)}"]`);
 }
 
 export function findDiffLineExpander(table: Element, line: DiffLine) {
@@ -58,9 +58,9 @@ export function findDiffLineExpander(table: Element, line: DiffLine) {
   return undefined;
 }
 
-export function resolveDiffRange(table: Element, {fileHash, start, end}: DiffLineHash): DiffCommentRange | undefined {
-  const first = findDiffLine(table, fileHash, start);
-  const last = findDiffLine(table, fileHash, end);
+export function resolveDiffRange(table: Element, start: DiffLine, end: DiffLine): DiffCommentRange | undefined {
+  const first = findDiffLine(table, start);
+  const last = findDiffLine(table, end);
   if (!first || !last) return;
   return orderRange(toEndpoint(first), toEndpoint(last));
 }
@@ -69,17 +69,19 @@ export function isDiffLineSelected(hash: string) {
   return selection?.hash === hash && selection.table.isConnected;
 }
 
-export function setDiffLineSelection(table?: HTMLTableElement, range?: DiffCommentRange, anchor = range?.start) {
+export function setDiffLineSelection(range?: DiffCommentRange, anchor = range?.start) {
   const previous = selection?.table;
-  if (table && range) {
+  if (range) {
     const {start, end} = range;
-    const fileId = table.closest('.diff-file-box')!.id;
-    selection = {table, range, anchor: anchor!, hash: `#${fileId}${start.line}${start.line === end.line ? '' : `-${end.line}`}`};
+    selection = {
+      table: start.row.closest('table')!, range, anchor: anchor!,
+      hash: `#${start.row.closest('.diff-file-box')!.id}${start.line}${start.line === end.line ? '' : `-${end.line}`}`,
+    };
   } else {
     selection = undefined;
   }
-  if (previous && previous !== table) repainters.get(previous)?.();
-  if (table) repainters.get(table)?.();
+  if (previous && previous !== selection?.table) repainters.get(previous)?.();
+  if (selection) repainters.get(selection.table)?.();
 }
 
 function signedDiffLine(number: number): DiffLine {
@@ -91,7 +93,6 @@ function sideLine(side: string, line: string): DiffLine {
 }
 
 function initDiffSelection(table: HTMLTableElement) {
-  const fileHash = table.closest('.diff-file-box')!.id.slice('diff-'.length);
   const split = table.closest('.code-diff-split') !== null;
   const body = table.tBodies[0];
   let hovered: Element | null = null;
@@ -114,19 +115,15 @@ function initDiffSelection(table: HTMLTableElement) {
     for (const form of table.querySelectorAll<HTMLFormElement>('.diff-comment-draft form')) {
       const field = (name: string) => (form.elements.namedItem(name) as HTMLInputElement).value;
       const start = Number(field('start_line'));
-      if (start) paint(resolveDiffRange(table, {
-        fileHash, start: signedDiffLine(start), end: sideLine(field('side'), field('line')),
-      }));
+      if (start) paint(resolveDiffRange(table, signedDiffLine(start), sideLine(field('side'), field('line'))));
     }
     for (const holder of new Set([hovered, focused])) {
       if (!holder || !table.contains(holder)) continue;
-      paint(resolveDiffRange(table, {
-        fileHash, start: signedDiffLine(Number(holder.getAttribute('data-range-start'))),
-        end: signedDiffLine(Number(holder.getAttribute('data-range-end'))),
-      }));
+      paint(resolveDiffRange(table, signedDiffLine(Number(holder.getAttribute('data-range-start'))),
+        signedDiffLine(Number(holder.getAttribute('data-range-end')))));
     }
-    for (const row of body.querySelectorAll('.diff-range-highlight')) {
-      if (row.parentElement === body && !rows.has(row)) row.classList.remove('diff-range-highlight');
+    for (const row of body.querySelectorAll(':scope > .diff-range-highlight')) {
+      if (!rows.has(row)) row.classList.remove('diff-range-highlight');
     }
     for (const row of rows) row.classList.add('diff-range-highlight');
   }
@@ -140,21 +137,20 @@ function initDiffSelection(table: HTMLTableElement) {
   }).observe(body, {childList: true, subtree: true});
 
   function select(range: DiffCommentRange, anchor: Endpoint) {
-    setDiffLineSelection(table, range, anchor);
+    setDiffLineSelection(range, anchor);
     window.location.hash = selection!.hash;
   }
 
   function buttonEndpoint(button: HTMLElement): Endpoint {
     return {
-      row: button.closest<HTMLTableRowElement>('.diff-review-line')!,
+      row: button.closest('tr')!,
       line: sideLine(button.getAttribute('data-side')!, button.getAttribute('data-idx')!),
     };
   }
 
   function canComment({row, line}: Endpoint) {
     const side = line[0] === 'L' ? 'left' : 'right';
-    return Array.from(row.querySelectorAll(commentButton)).some((button) =>
-      button.getAttribute('data-side') === side && !button.classList.contains('tw-invisible'));
+    return row.querySelector(`${commentButton}[data-side="${CSS.escape(side)}"]:not(.tw-invisible)`) !== null;
   }
 
   function onSide(endpoint: Endpoint, side: 'old' | 'new') {
@@ -194,7 +190,7 @@ function initDiffSelection(table: HTMLTableElement) {
       row.after(commentRow);
     }
 
-    const cell = commentRow.querySelector<HTMLTableCellElement>(`.add-comment-${side}`)!;
+    const cell = commentRow.querySelector(`.add-comment-${side}`)!;
     if (cell.querySelector('.conversation-holder')) return;
     const draft = createElementFromAttrs('div', {class: 'conversation-holder diff-comment-draft'});
     cell.append(draft);
@@ -219,19 +215,13 @@ function initDiffSelection(table: HTMLTableElement) {
     field('start_line').value = isRange ? `${start.line[0] === 'L' ? '-' : ''}${start.line.slice(1)}` : '';
     field('side').value = side === 'left' ? 'previous' : 'proposed';
     field('path').value = table.getAttribute('data-path')!;
-    const label = form.querySelector('.diff-comment-lines')!;
-    toggleElem(label, isRange);
     if (isRange) {
+      const label = form.querySelector('.diff-comment-lines')!;
+      showElem(label);
       const sameSide = start.line[0] === line[0];
       label.textContent = trString(label.getAttribute('data-text-lines')!, sameSide ? start.line.slice(1) : start.line, sameSide ? line.slice(1) : line);
     }
     (await initCodeCommentEditor(form)).focus();
-  }
-
-  function extendComment(start: Endpoint, end: Endpoint) {
-    const range = commentRange(orderRange(start, end), end);
-    select(range, range.start.row === start.row ? range.start : range.end);
-    return openDiffComment(range);
   }
 
   addDelegatedEventListener<HTMLAnchorElement, MouseEvent>(table, 'click', lineLink, (link, e) => {
@@ -248,27 +238,22 @@ function initDiffSelection(table: HTMLTableElement) {
     e.preventDefault();
     if (suppressClick && e.detail > 0) return;
     const endpoint = buttonEndpoint(button);
-    const active = selection?.table === table ? selection : undefined;
+    const single = {start: endpoint, end: endpoint};
+    const active = selection?.range;
+    if (active?.end.row !== endpoint.row) return openDiffComment(single);
 
-    if (active?.range.end.row === endpoint.row) {
-      if (active.range.end.line === endpoint.line || endpoint.row.matches('.same-code')) {
-        const range = commentRange(active.range, endpoint);
-        if (range.start.line !== range.end.line) return openDiffComment(range);
-      }
-      if (active.range.start.line !== endpoint.line || active.range.end.line !== endpoint.line) {
-        select({start: endpoint, end: endpoint}, endpoint);
-      }
+    const range = active.end.line === endpoint.line || endpoint.row.matches('.same-code') ? commentRange(active, endpoint) : single;
+    if (range.start.line === range.end.line && (active.start.line !== endpoint.line || active.end.line !== endpoint.line)) {
+      select(single, endpoint);
     }
-    return openDiffComment({start: endpoint, end: endpoint});
+    return openDiffComment(range);
   });
 
   function pointerTarget(e: PointerEvent): Endpoint | undefined {
-    const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLTableCellElement>(
-      '.lines-num, .lines-escape, .lines-type-marker, .lines-code',
-    );
-    if (cell?.parentElement?.parentElement !== body || cell.parentElement.classList.contains('tag-code')) return;
+    const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest('td');
+    if (cell?.parentElement?.parentElement !== body || cell.parentElement.matches('.tag-code, .add-comment')) return;
     const column = split ? (cell.cellIndex < 4 ? '.lines-code-old' : '.lines-code-new') : '.lines-code';
-    const button = cell.parentElement.querySelector<HTMLElement>(`${column} .add-code-comment`);
+    const button = cell.parentElement.querySelector<HTMLElement>(`${column} ${commentButton}`);
     return button ? buttonEndpoint(button) : undefined;
   }
 
@@ -297,16 +282,20 @@ function initDiffSelection(table: HTMLTableElement) {
       drag = undefined;
       const end = event === 'pointerup' ? pointerTarget(e) : undefined;
       if (event === 'pointerup') suppressClick = end?.line !== start.line;
-      if (end && suppressClick) extendComment(start, end);
-      else repaint();
+      if (end && suppressClick) {
+        const range = commentRange(orderRange(start, end), end);
+        select(range, range.start.row === start.row ? range.start : range.end);
+        openDiffComment(range);
+      } else {
+        repaint();
+      }
     });
   }
 
+  const savedRange = '.conversation-holder[data-range-start]';
   for (const event of ['pointerover', 'pointerout', 'focusin', 'focusout']) {
-    addDelegatedEventListener<HTMLElement, PointerEvent | FocusEvent>(table, event, '.conversation-holder', (holder, e) => {
-      if (!holder.hasAttribute('data-range-start')) return;
-      const target = e.relatedTarget instanceof Element ? e.relatedTarget.closest('.conversation-holder') : null;
-      const related = target?.hasAttribute('data-range-start') ? target : null;
+    addDelegatedEventListener<HTMLElement, PointerEvent | FocusEvent>(table, event, savedRange, (holder, e) => {
+      const related = e.relatedTarget instanceof Element ? e.relatedTarget.closest(savedRange) : null;
       if (related === holder) return;
       const active = event === 'pointerout' || event === 'focusout' ? related : holder;
       if (e instanceof FocusEvent) focused = active;
@@ -328,17 +317,14 @@ export function codeSuggestionInsertion(value: string, start: number, end: numbe
   return {text: `${opening}\n${fence}${suffix}`, cursor: start + opening.length};
 }
 
-function canInsertCodeSuggestion(form: HTMLFormElement) {
-  const start = Number((form.elements.namedItem('start_line') as HTMLInputElement).value);
-  return start === 0 ? (form.elements.namedItem('side') as HTMLInputElement).value === 'proposed' : start > 0;
-}
-
 function codeSuggestionAnchor(form: HTMLFormElement) {
-  if (!canInsertCodeSuggestion(form)) return null;
   const input = (name: string) => (form.elements.namedItem(name) as HTMLInputElement).value;
+  const startLine = input('start_line');
+  const start = Number(startLine);
+  if (!(start > 0 || (start === 0 && input('side') === 'proposed'))) return null;
   return new URLSearchParams({
     path: input('path'),
-    start_line: input('start_line'),
+    start_line: startLine,
     line: input('line'),
     commit_id: input('latest_commit_id'),
   });
@@ -347,27 +333,31 @@ function codeSuggestionAnchor(form: HTMLFormElement) {
 export function initCodeCommentEditor(form: HTMLFormElement) {
   const container = form.querySelector<HTMLElement>('.combo-markdown-editor')!;
   const button = form.querySelector<HTMLButtonElement>('.markdown-toolbar-extra-button');
-  if (button) toggleExtraToolbarButton(button, canInsertCodeSuggestion(form));
-  return getComboMarkdownEditor(container) ?? initComboMarkdownEditor(container, button ? {
+  const anchor = button && codeSuggestionAnchor(form);
+  if (button && !anchor) hideElem(button.parentElement!);
+  return getComboMarkdownEditor(container) ?? initComboMarkdownEditor(container, anchor ? {
     easyMDEToolbarButton: button,
     appendPreviewData(data) {
-      codeSuggestionAnchor(form)?.forEach((value, key) => { data.append(`code_suggestion_${key}`, value) });
+      for (const [key, value] of anchor) data.append(`code_suggestion_${key}`, value);
     },
   } : undefined);
 }
 
 async function onInsertCodeSuggestion(button: HTMLButtonElement) {
   const form = button.form!;
-  const anchor = codeSuggestionAnchor(form)?.toString();
-  if (!anchor) return;
-  const response = await performFetchActionRequest(button, {
-    method: 'GET',
-    url: `${form.getAttribute('data-code-suggestion-source-url')!}?${anchor}`,
-  });
-  if (!response) return;
-  const source = await response.arrayBuffer();
-  if (!button.isConnected || anchor !== codeSuggestionAnchor(form)?.toString()) return;
-  const code = new TextDecoder('utf-8', {ignoreBOM: true}).decode(source);
+  let code = '';
+  if (!form.classList.contains('comment-form')) {
+    const anchor = codeSuggestionAnchor(form);
+    if (!anchor) return;
+    const response = await performFetchActionRequest(button, {
+      method: 'GET',
+      url: `${form.getAttribute('data-code-suggestion-source-url')!}?${anchor}`,
+    });
+    if (!response) return;
+    const source = await response.arrayBuffer();
+    if (!button.isConnected) return;
+    code = new TextDecoder('utf-8', {ignoreBOM: true}).decode(source);
+  }
   getComboMarkdownEditor(button.closest('.combo-markdown-editor'))!.replaceSelection((value, start, end) => codeSuggestionInsertion(value, start, end, code));
 }
 
@@ -393,13 +383,13 @@ export function refreshCodeSuggestionControls(actions: Element | null, controlsH
 }
 
 export function initRepoDiffReview() {
-  registerGlobalSelectorFunc('.diff-review-table .diff-line-marker', (marker) => {
-    const rel = marker.getAttribute('rel');
-    if (!rel || marker.nextElementSibling?.classList.contains('diff-line-link')) return;
-    const link = createElementFromAttrs<HTMLAnchorElement>('a', {class: 'diff-line-link tw-absolute tw-inset-0', href: `#${rel}`});
-    link.setAttribute('aria-label', parseDiffLineHash(link.hash)!.start);
+  registerGlobalSelectorFunc('.diff-review-table td.lines-num > span[rel^="diff-"]', (marker) => {
+    if (marker.nextElementSibling?.matches(lineLink)) return;
+    const href = `#${marker.getAttribute('rel')!}`;
     marker.parentElement!.classList.add('tw-relative');
-    marker.after(link);
+    marker.after(createElementFromAttrs('a', {
+      class: 'diff-line-link tw-absolute tw-inset-0', href, 'aria-label': parseDiffLineHash(href)!.start,
+    }));
   });
   registerGlobalInitFunc('initDiffSelection', initDiffSelection);
 

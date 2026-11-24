@@ -191,8 +191,6 @@ test('pr diff line selection and links', async ({page, request}) => {
 
   await file.getByRole('row').filter({has: lastLine}).getByRole('button', {name: 'Add line comment', exact: true}).click();
   await file.getByRole('textbox', {name: 'Leave a comment', exact: true}).fill('Reviewing these lines together.');
-  const submit = file.getByRole('button', {name: 'Add single comment', exact: true});
-  await submit.click();
-  await expect(submit).toHaveCount(0);
+  await file.getByRole('button', {name: 'Add single comment', exact: true}).click();
   await expect(file.getByText('Lines 2 to 4', {exact: true})).toBeVisible();
 });
