@@ -47,6 +47,23 @@ type CreditInput struct {
 	URL      string // external person's optional link
 }
 
+// InputFromDisclosure builds an input carrying the disclosure's current field values,
+// e.g. for a status change that must not alter the content
+func InputFromDisclosure(d *disclosure_model.Disclosure) *Input {
+	return &Input{
+		Title:            d.Title,
+		Summary:          d.Summary,
+		Content:          d.Content,
+		Severity:         d.Severity,
+		CVSSVector:       d.CVSSVector,
+		CweIds:           d.CweIds,
+		CveID:            d.CveID,
+		References:       d.References,
+		AffectedVersions: d.AffectedVersions(),
+		FixedVersions:    d.FixedVersions(),
+	}
+}
+
 const (
 	// TitleMaxLength is the maximum length of a disclosure title
 	TitleMaxLength = 255

@@ -55,14 +55,8 @@
 						<a href="{{$.RepoLink}}/security/disclosures/{{.ID}}">{{.Title}}</a>
 					</h4>
 					<div class="tw-flex tw-gap-2">
-						<span class="ui small {{.Severity.LabelClass}} label">{{ctx.Locale.Tr (print "repo.security.severity_" .Severity)}}</span>
-						{{if .IsDraft}}
-							<span class="ui small orange label">{{ctx.Locale.Tr "repo.security.status_draft"}}</span>
-						{{else if eq .Status "withdrawn"}}
-							<span class="ui small label">{{ctx.Locale.Tr "repo.security.status_withdrawn"}}</span>
-						{{else}}
-							<span class="ui small green label">{{ctx.Locale.Tr "repo.security.status_published"}}</span>
-						{{end}}
+						{{template "repo/security/disclosures/severity_label" .}}
+						{{template "repo/security/disclosures/status_label" .}}
 					</div>
 				</div>
 				{{if .Summary}}<p class="tw-mb-0 tw-text-text-light">{{.Summary}}</p>{{end}}

@@ -2,7 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository security">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<h2 class="ui dividing header">{{ctx.Locale.Tr "repo.security.new_disclosure"}}</h2>
+		<h2 class="ui dividing header">{{if .IsNew}}{{ctx.Locale.Tr "repo.security.new_disclosure"}}{{else}}{{ctx.Locale.Tr "repo.security.edit_disclosure" .Disclosure.Identifier}}{{end}}</h2>
 		{{template "repo/security/disclosures/form" .}}
 	</div>
 </div>

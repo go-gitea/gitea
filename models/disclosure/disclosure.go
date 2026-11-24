@@ -350,13 +350,26 @@ func (d *Disclosure) LoadAttributes(ctx context.Context) error {
 }
 
 // LoadCreditUsers resolves the local users referenced by the credits
-func (d *Disclosure) LoadCreditUsers(ctx context.Context) error {
-	userIDs := make([]int64, 0, len(d.Credits))
-	for _, c := range d.Credits {
+// creditUserIDs returns the IDs of the local users referenced by the credits
+func creditUserIDs(credits CreditList) []int64 {
+	userIDs := make([]int64, 0, len(credits))
+	for _, c := range credits {
 		if c.UserID > 0 {
 			userIDs = append(userIDs, c.UserID)
 		}
 	}
+	return userIDs
+}
+
+// attachCreditUsers resolves the credit users from the map (nil if the user was deleted, the name is the fallback)
+func attachCreditUsers(credits CreditList, userMap map[int64]*user_model.User) {
+	for _, c := range credits {
+		c.User = userMap[c.UserID]
+	}
+}
+
+func (d *Disclosure) LoadCreditUsers(ctx context.Context) error {
+	userIDs := creditUserIDs(d.Credits)
 	if len(userIDs) == 0 {
 		return nil
 	}
@@ -364,9 +377,7 @@ func (d *Disclosure) LoadCreditUsers(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	for _, c := range d.Credits {
-		c.User = userMap[c.UserID] // nil if the user was deleted, the name is the fallback
-	}
+	attachCreditUsers(d.Credits, userMap)
 	return nil
 }
 
@@ -387,11 +398,7 @@ func loadAttributes(ctx context.Context, list []*Disclosure) error {
 		if d.PublishedByID > 0 {
 			userIDs = append(userIDs, d.PublishedByID)
 		}
-		for _, c := range d.Credits {
-			if c.UserID > 0 {
-				userIDs = append(userIDs, c.UserID)
-			}
-		}
+		userIDs = append(userIDs, creditUserIDs(d.Credits)...)
 	}
 	repoMap, err := repo_model.GetRepositoriesMapByIDs(ctx, repoIDs)
 	if err != nil {
@@ -410,9 +417,7 @@ func loadAttributes(ctx context.Context, list []*Disclosure) error {
 		d.Author = userMap[d.AuthorID]
 		d.Publisher = userMap[d.PublishedByID]
 		d.Versions = versionsMap[d.ID]
-		for _, c := range d.Credits {
-			c.User = userMap[c.UserID] // nil if the user was deleted, the name is the fallback
-		}
+		attachCreditUsers(d.Credits, userMap)
 	}
 	return nil
 }
@@ -430,6 +435,27 @@ type ListDisclosuresOptions struct {
 	OrderBy       string // "newest" (default), "oldest", "severity", "updated"
 
 	affectedIDs []int64 // internal: result of the Version filter
+}
+
+// NewListDisclosuresOptions builds the list options from raw filter strings, silently ignoring invalid values
+func NewListDisclosuresOptions(listOptions db.ListOptions, keyword, version, orderBy, status string, severities []string) ListDisclosuresOptions {
+	opts := ListDisclosuresOptions{
+		ListOptions: listOptions,
+		Keyword:     keyword,
+		Version:     version,
+		OrderBy:     orderBy,
+	}
+	for _, s := range severities {
+		if severity, err := ParseSeverity(s); err == nil {
+			opts.Severities = append(opts.Severities, severity)
+		}
+	}
+	if status != "" {
+		if st, err := ParseStatus(status); err == nil {
+			opts.Status = st
+		}
+	}
+	return opts
 }
 
 // ToConds implements the db.FindOptions interface

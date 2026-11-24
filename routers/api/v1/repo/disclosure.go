@@ -19,23 +19,7 @@ import (
 )
 
 func parseListDisclosuresOptions(ctx *context.APIContext) disclosure_model.ListDisclosuresOptions {
-	opts := disclosure_model.ListDisclosuresOptions{
-		ListOptions: utils.GetListOptions(ctx),
-		Keyword:     ctx.FormTrim("q"),
-		Version:     ctx.FormTrim("version"),
-		OrderBy:     ctx.FormTrim("sort"),
-	}
-	for s := range strings.SplitSeq(ctx.FormTrim("severity"), ",") {
-		if severity, err := disclosure_model.ParseSeverity(strings.TrimSpace(s)); err == nil {
-			opts.Severities = append(opts.Severities, severity)
-		}
-	}
-	if s := ctx.FormTrim("status"); s != "" {
-		if status, err := disclosure_model.ParseStatus(s); err == nil {
-			opts.Status = status
-		}
-	}
-	return opts
+	return disclosure_model.NewListDisclosuresOptions(utils.GetListOptions(ctx), ctx.FormTrim("q"), ctx.FormTrim("version"), ctx.FormTrim("sort"), ctx.FormTrim("status"), strings.Split(ctx.FormTrim("severity"), ","))
 }
 
 // canSeeDraftDisclosures reports whether the current user may see draft disclosures (maintainers only)

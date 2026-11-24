@@ -92,16 +92,24 @@ func GetVersionsByDisclosureIDs(ctx context.Context, disclosureIDs []int64) (map
 // rangeOperatorChars mark a string as an intended semver range rather than a literal version
 const rangeOperatorChars = "<>=~^,"
 
+// validateVersionLength checks the common length rules of a version entry
+func validateVersionLength(s, kind string) error {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return util.NewInvalidArgumentErrorf("%s version is empty", kind)
+	}
+	if len(s) > MaxVersionLength {
+		return util.NewInvalidArgumentErrorf("%s version too long", kind)
+	}
+	return nil
+}
+
 // ValidateAffectedVersion checks an affected version entry. Entries containing constraint
 // operators must be valid semver constraints; anything else is kept as a literal string
 // (exact match only), so non-semver versions like tags or commit SHAs are supported.
 func ValidateAffectedVersion(s string) error {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return util.NewInvalidArgumentErrorf("affected version is empty")
-	}
-	if len(s) > MaxVersionLength {
-		return util.NewInvalidArgumentErrorf("affected version too long")
+	if err := validateVersionLength(s, "affected"); err != nil {
+		return err
 	}
 	if strings.ContainsAny(s, rangeOperatorChars) {
 		if _, err := version.NewConstraint(s); err != nil {
@@ -113,12 +121,8 @@ func ValidateAffectedVersion(s string) error {
 
 // ValidateFixedVersion checks a fixed version entry: it must be a single version, not a range
 func ValidateFixedVersion(s string) error {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return util.NewInvalidArgumentErrorf("fixed version is empty")
-	}
-	if len(s) > MaxVersionLength {
-		return util.NewInvalidArgumentErrorf("fixed version too long")
+	if err := validateVersionLength(s, "fixed"); err != nil {
+		return err
 	}
 	if strings.ContainsAny(s, rangeOperatorChars) {
 		return util.NewInvalidArgumentErrorf("fixed version %q must be an exact version, not a range", s)
@@ -162,22 +166,20 @@ func SetDisclosureVersions(ctx context.Context, disclosureID int64, affected, fi
 		if _, err := db.GetEngine(ctx).Where(builder.Eq{"disclosure_id": disclosureID}).Delete(new(Version)); err != nil {
 			return err
 		}
-		for _, s := range SanitizeVersions(affected) {
-			if err := ValidateAffectedVersion(s); err != nil {
-				return err
+		setVersions := func(kind VersionKind, entries []string, validate func(string) error) error {
+			for _, s := range SanitizeVersions(entries) {
+				if err := validate(s); err != nil {
+					return err
+				}
+				if err := db.Insert(ctx, &Version{DisclosureID: disclosureID, Kind: kind, Version: s}); err != nil {
+					return err
+				}
 			}
-			if err := db.Insert(ctx, &Version{DisclosureID: disclosureID, Kind: VersionKindAffected, Version: s}); err != nil {
-				return err
-			}
+			return nil
 		}
-		for _, s := range SanitizeVersions(fixed) {
-			if err := ValidateFixedVersion(s); err != nil {
-				return err
-			}
-			if err := db.Insert(ctx, &Version{DisclosureID: disclosureID, Kind: VersionKindFixed, Version: s}); err != nil {
-				return err
-			}
+		if err := setVersions(VersionKindAffected, affected, ValidateAffectedVersion); err != nil {
+			return err
 		}
-		return nil
+		return setVersions(VersionKindFixed, fixed, ValidateFixedVersion)
 	})
 }

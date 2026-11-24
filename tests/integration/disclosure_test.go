@@ -41,14 +41,9 @@ func createTestDisclosure(t *testing.T, repo *repo_model.Repository, doer *user_
 	return d
 }
 
-func TestDisclosureWeb(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	owner, repo := setupDisclosureTestRepo(t, "disclosure-web", false)
-	_, privateRepo := setupDisclosureTestRepo(t, "disclosure-private", true)
-	disclosuresURL := repo.Link() + "/security/disclosures"
-
-	published := createTestDisclosure(t, repo, owner, &disclosure_service.Input{
+// publishedDisclosureInput is the standard published disclosure used by the web and API tests
+func publishedDisclosureInput() *disclosure_service.Input {
+	return &disclosure_service.Input{
 		Title:            "Buffer overflow in URL parser",
 		Summary:          "A crafted URL can overflow a stack buffer in the URL parser",
 		Content:          "## Description\n\nA crafted URL can overflow a stack buffer.\n\n## Impact\n\nRemote code execution.",
@@ -59,14 +54,29 @@ func TestDisclosureWeb(t *testing.T) {
 		AffectedVersions: []string{">= 1.0.0, < 1.4.0", "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3"},
 		FixedVersions:    []string{"1.4.0"},
 		Status:           disclosure_model.StatusPublished,
-	})
-	draft := createTestDisclosure(t, repo, owner, &disclosure_service.Input{
+	}
+}
+
+// draftDisclosureInput is the standard draft disclosure used by the web and API tests
+func draftDisclosureInput() *disclosure_service.Input {
+	return &disclosure_service.Input{
 		Title:            "TLS certificate verification bypass",
 		Summary:          "Certificate hostname checks can be skipped for crafted certificates",
 		Content:          "Draft content about the TLS bypass.",
 		Severity:         disclosure_model.SeverityHigh,
 		AffectedVersions: []string{">= 2.0.0"},
-	})
+	}
+}
+
+func TestDisclosureWeb(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	owner, repo := setupDisclosureTestRepo(t, "disclosure-web", false)
+	_, privateRepo := setupDisclosureTestRepo(t, "disclosure-private", true)
+	disclosuresURL := repo.Link() + "/security/disclosures"
+
+	published := createTestDisclosure(t, repo, owner, publishedDisclosureInput())
+	draft := createTestDisclosure(t, repo, owner, draftDisclosureInput())
 	createTestDisclosure(t, privateRepo, owner, &disclosure_service.Input{
 		Title:    "Private repo disclosure",
 		Summary:  "A disclosure in another repo",

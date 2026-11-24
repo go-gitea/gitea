@@ -28,8 +28,7 @@ const (
 	tplSecurityHome   templates.TplName = "repo/security/home"
 	tplDisclosureList templates.TplName = "repo/security/disclosures/list"
 	tplDisclosureView templates.TplName = "repo/security/disclosures/view"
-	tplDisclosureNew  templates.TplName = "repo/security/disclosures/new"
-	tplDisclosureEdit templates.TplName = "repo/security/disclosures/edit"
+	tplDisclosureForm templates.TplName = "repo/security/disclosures/form_page"
 )
 
 // AllSeverities lists the severities for the form dropdown
@@ -58,6 +57,24 @@ func prepareDisclosureFormData(ctx *context.Context, isNew bool, action, cancelL
 	ctx.Data["SubmitText"] = submitText
 }
 
+// prepareDisclosureFormPage sets the shared data of the new/edit form pages and returns the template and the base link
+func prepareDisclosureFormPage(ctx *context.Context, isNew bool, d *disclosure_model.Disclosure) (templates.TplName, string) {
+	prepareDisclosurePage(ctx)
+	if isNew {
+		ctx.Data["PageIsSecurityNew"] = true
+		ctx.Data["Title"] = ctx.Tr("repo.security.new_disclosure")
+		link := ctx.Repo.RepoLink + "/security/disclosures"
+		prepareDisclosureFormData(ctx, true, link+"/new", link, ctx.Locale.TrString("repo.security.create"))
+		return tplDisclosureForm, link
+	}
+	ctx.Data["PageIsSecurityEdit"] = true
+	ctx.Data["Disclosure"] = d
+	ctx.Data["Title"] = ctx.Tr("repo.security.edit_disclosure", d.Identifier())
+	link := ctx.Repo.RepoLink + "/security/disclosures/" + strconv.FormatInt(d.ID, 10)
+	prepareDisclosureFormData(ctx, false, link+"/edit", link, ctx.Locale.TrString("repo.security.save"))
+	return tplDisclosureForm, link
+}
+
 // SecurityHome renders the landing page of the repository security section
 func SecurityHome(ctx *context.Context) {
 	ctx.Data["PageIsSecurity"] = true
@@ -77,23 +94,7 @@ func disclosureListOptions(ctx *context.Context) disclosure_model.ListDisclosure
 	if listOptions.PageSize > setting.API.MaxResponseItems {
 		listOptions.PageSize = setting.API.MaxResponseItems
 	}
-	opts := disclosure_model.ListDisclosuresOptions{
-		ListOptions: listOptions,
-		Keyword:     ctx.FormTrim("q"),
-		Version:     ctx.FormTrim("version"),
-		OrderBy:     ctx.FormTrim("sort"),
-	}
-	for _, s := range ctx.FormStrings("severity") {
-		if severity, err := disclosure_model.ParseSeverity(s); err == nil {
-			opts.Severities = append(opts.Severities, severity)
-		}
-	}
-	if s := ctx.FormTrim("status"); s != "" {
-		if status, err := disclosure_model.ParseStatus(s); err == nil {
-			opts.Status = status
-		}
-	}
-	return opts
+	return disclosure_model.NewListDisclosuresOptions(listOptions, ctx.FormTrim("q"), ctx.FormTrim("version"), ctx.FormTrim("sort"), ctx.FormTrim("status"), ctx.FormStrings("severity"))
 }
 
 // Disclosures renders the list of security disclosures of the repo
@@ -276,26 +277,20 @@ func disclosureFormToInput(formTitle, formSummary, formContent, formSeverity, fo
 
 // NewDisclosure renders the form for a new disclosure
 func NewDisclosure(ctx *context.Context) {
-	prepareDisclosurePage(ctx)
-	ctx.Data["PageIsSecurityNew"] = true
-	ctx.Data["Title"] = ctx.Tr("repo.security.new_disclosure")
-	prepareDisclosureFormData(ctx, true, ctx.Repo.RepoLink+"/security/disclosures/new", ctx.Repo.RepoLink+"/security/disclosures", ctx.Locale.TrString("repo.security.create"))
+	tpl, _ := prepareDisclosureFormPage(ctx, true, nil)
 	setCreditFormRows(ctx, nil)
-	ctx.HTML(http.StatusOK, tplDisclosureNew)
+	ctx.HTML(http.StatusOK, tpl)
 }
 
 // NewDisclosurePost handles the creation of a disclosure
 func NewDisclosurePost(ctx *context.Context) {
-	prepareDisclosurePage(ctx)
-	ctx.Data["PageIsSecurityNew"] = true
-	ctx.Data["Title"] = ctx.Tr("repo.security.new_disclosure")
-	prepareDisclosureFormData(ctx, true, ctx.Repo.RepoLink+"/security/disclosures/new", ctx.Repo.RepoLink+"/security/disclosures", ctx.Locale.TrString("repo.security.create"))
+	tpl, _ := prepareDisclosureFormPage(ctx, true, nil)
 	creditRows := parseCreditFormRows(ctx)
 	setCreditFormRows(ctx, creditRows)
 
 	form := web.GetForm[*forms.NewDisclosureForm](ctx)
 	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplDisclosureNew)
+		ctx.HTML(http.StatusOK, tpl)
 		return
 	}
 	input := disclosureFormToInput(form.Title, form.Summary, form.Content, form.Severity, form.CVSSVector, form.CweIds, form.CveID, form.References, form.AffectedVersions, form.FixedVersions, creditRows)
@@ -306,7 +301,7 @@ func NewDisclosurePost(ctx *context.Context) {
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Flash.Error(err.Error(), true)
-			ctx.HTML(http.StatusOK, tplDisclosureNew)
+			ctx.HTML(http.StatusOK, tpl)
 			return
 		}
 		ctx.ServerErrorAuto(err)
@@ -318,17 +313,11 @@ func NewDisclosurePost(ctx *context.Context) {
 
 // EditDisclosure renders the edit form of a disclosure
 func EditDisclosure(ctx *context.Context) {
-	prepareDisclosurePage(ctx)
-	ctx.Data["PageIsSecurityEdit"] = true
-
 	d := getVisibleDisclosure(ctx)
 	if d == nil {
 		return
 	}
-	ctx.Data["Disclosure"] = d
-	ctx.Data["Title"] = ctx.Tr("repo.security.edit_disclosure", d.Identifier())
-	link := ctx.Repo.RepoLink + "/security/disclosures/" + strconv.FormatInt(d.ID, 10)
-	prepareDisclosureFormData(ctx, false, link+"/edit", link, ctx.Locale.TrString("repo.security.save"))
+	tpl, _ := prepareDisclosureFormPage(ctx, false, d)
 	// prefill the form fields, POST binding overwrites them on error re-render
 	ctx.Data["title"] = d.Title
 	ctx.Data["summary"] = d.Summary
@@ -342,28 +331,22 @@ func EditDisclosure(ctx *context.Context) {
 	ctx.Data["fixed_versions"] = strings.Join(d.FixedVersions(), "\n")
 	ctx.Data["status"] = string(d.Status)
 	setCreditFormRows(ctx, creditFormRowsFromDisclosure(d))
-	ctx.HTML(http.StatusOK, tplDisclosureEdit)
+	ctx.HTML(http.StatusOK, tpl)
 }
 
 // EditDisclosurePost handles saving edits of a disclosure
 func EditDisclosurePost(ctx *context.Context) {
-	prepareDisclosurePage(ctx)
-	ctx.Data["PageIsSecurityEdit"] = true
-
 	d := getVisibleDisclosure(ctx)
 	if d == nil {
 		return
 	}
-	ctx.Data["Disclosure"] = d
-	ctx.Data["Title"] = ctx.Tr("repo.security.edit_disclosure", d.Identifier())
-	link := ctx.Repo.RepoLink + "/security/disclosures/" + strconv.FormatInt(d.ID, 10)
-	prepareDisclosureFormData(ctx, false, link+"/edit", link, ctx.Locale.TrString("repo.security.save"))
+	tpl, _ := prepareDisclosureFormPage(ctx, false, d)
 	creditRows := parseCreditFormRows(ctx)
 	setCreditFormRows(ctx, creditRows)
 
 	form := web.GetForm[*forms.EditDisclosureForm](ctx)
 	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplDisclosureEdit)
+		ctx.HTML(http.StatusOK, tpl)
 		return
 	}
 	input := disclosureFormToInput(form.Title, form.Summary, form.Content, form.Severity, form.CVSSVector, form.CweIds, form.CveID, form.References, form.AffectedVersions, form.FixedVersions, creditRows)
@@ -371,7 +354,7 @@ func EditDisclosurePost(ctx *context.Context) {
 	if err := disclosure_service.UpdateDisclosure(ctx, d, ctx.Doer, input); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Flash.Error(err.Error(), true)
-			ctx.HTML(http.StatusOK, tplDisclosureEdit)
+			ctx.HTML(http.StatusOK, tpl)
 			return
 		}
 		ctx.ServerErrorAuto(err)
@@ -397,20 +380,9 @@ func ChangeDisclosureStatusPost(ctx *context.Context) {
 		ctx.NotFound()
 		return
 	}
-	input := &disclosure_service.Input{
-		Title:            d.Title,
-		Summary:          d.Summary,
-		Content:          d.Content,
-		Severity:         d.Severity,
-		CVSSVector:       d.CVSSVector,
-		CweIds:           d.CweIds,
-		CveID:            d.CveID,
-		References:       d.References,
-		AffectedVersions: d.AffectedVersions(),
-		FixedVersions:    d.FixedVersions(),
-		Status:           status,
-		WithdrawReason:   ctx.FormTrim("reason"),
-	}
+	input := disclosure_service.InputFromDisclosure(d)
+	input.Status = status
+	input.WithdrawReason = ctx.FormTrim("reason")
 	if err := disclosure_service.UpdateDisclosure(ctx, d, ctx.Doer, input); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Flash.Error(err.Error(), true)

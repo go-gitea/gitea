@@ -33,22 +33,8 @@ func TestAPIDisclosures(t *testing.T) {
 	baseURL := fmt.Sprintf("/api/v1/repos/%s/%s/security/disclosures", repo.OwnerName, repo.Name)
 	privateBaseURL := fmt.Sprintf("/api/v1/repos/%s/%s/security/disclosures", privateRepo.OwnerName, privateRepo.Name)
 
-	published := createTestDisclosure(t, repo, owner, &disclosure_service.Input{
-		Title:            "Buffer overflow in URL parser",
-		Summary:          "A crafted URL can overflow a stack buffer in the URL parser",
-		Content:          "## Description\n\nA crafted URL can overflow a stack buffer.",
-		CVSSVector:       "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
-		CweIds:           []string{"CWE-120"},
-		CveID:            "CVE-2026-0001",
-		AffectedVersions: []string{">= 1.0.0, < 1.4.0", "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3"},
-		FixedVersions:    []string{"1.4.0"},
-		Status:           disclosure_model.StatusPublished,
-	})
-	draft := createTestDisclosure(t, repo, owner, &disclosure_service.Input{
-		Title:            "TLS certificate verification bypass",
-		Severity:         disclosure_model.SeverityHigh,
-		AffectedVersions: []string{">= 2.0.0"},
-	})
+	published := createTestDisclosure(t, repo, owner, publishedDisclosureInput())
+	draft := createTestDisclosure(t, repo, owner, draftDisclosureInput())
 	privateDisclosure := createTestDisclosure(t, privateRepo, owner, &disclosure_service.Input{
 		Title:    "Private repo disclosure",
 		Severity: disclosure_model.SeverityLow,
