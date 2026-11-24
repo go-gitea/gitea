@@ -77,7 +77,7 @@ test('matchEmoji', () => {
     ]
   `);
 
-  expect(matchEmoji('car')[0]).toEqual('car');
+  expect(['uk', 'raised_hand'].map((query) => matchEmoji(query)[0])).toEqual(['gb', 'hand']);
 });
 
 test('matchMention', async () => {
