@@ -102,6 +102,14 @@ type ApplyDiffPatchFileOptions struct {
 	Content string `json:"content"`
 }
 
+// CherryPickOptions options for cherry-picking or reverting a commit
+// Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
+type CherryPickOptions struct {
+	FileOptions
+	// dry_run (optional) only checks whether the commit can be applied cleanly, nothing is committed or pushed
+	DryRun bool `json:"dry_run"`
+}
+
 // FileLinksResponse contains the links for a repo's file
 type FileLinksResponse struct {
 	// Self is the API URL for this file

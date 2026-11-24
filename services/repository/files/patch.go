@@ -50,6 +50,8 @@ type ApplyDiffPatchOptions struct {
 	Committer    *IdentityOptions
 	Dates        *CommitDateOptions
 	Signoff      bool
+	DryRun       bool // only check that the change applies without conflicts, nothing is committed or pushed
+	FailOnEmpty  bool // fail with ErrCherryPickNoChanges instead of creating a commit that changes nothing
 }
 
 // Validate validates the provided options

@@ -1518,6 +1518,10 @@ func Routes() *web.Router {
 					m.Get("/tags/{sha}", repo.GetAnnotatedTag)
 					m.Get("/notes/{sha}", repo.GetNote)
 				}, context.ReferencesGitRepo(true), reqRepoReader(unit.TypeCode))
+				m.Group("/commits/{sha}", func() {
+					m.Post("/cherry-pick", repo.CherryPick)
+					m.Post("/revert", repo.RevertCommit)
+				}, mustEnableEditor, reqToken(), bind(api.CherryPickOptions{}), repo.ReqChangeRepoFileOptionsAndCheck, context.ReferencesGitRepo())
 				m.Post("/diffpatch", mustEnableEditor, reqToken(), bind(api.ApplyDiffPatchFileOptions{}), repo.ReqChangeRepoFileOptionsAndCheck, repo.ApplyDiffPatch)
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)
