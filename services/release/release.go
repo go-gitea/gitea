@@ -70,7 +70,6 @@ func (err ErrProtectedTagName) Unwrap() error {
 	return util.ErrPermissionDenied
 }
 
-// doer creates the tag, it is not the publisher when another user publishes or edits the release
 func createTag(ctx context.Context, gitRepo *git.Repository, doer *user_model.User, rel *repo_model.Release, msg string) error {
 	err := rel.LoadAttributes(ctx)
 	if err != nil {
