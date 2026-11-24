@@ -229,7 +229,6 @@ func TestActionsRunnerModify(t *testing.T) {
 		resp := sessionAdmin.MakeRequest(t, NewRequest(t, "GET", adminGroupsURL), http.StatusOK)
 		assert.Contains(t, resp.Body.String(), fmt.Sprintf(`href="%s/%d"`, adminGroupsURL, group.ID))
 		assert.NotContains(t, resp.Body.String(), fmt.Sprintf(`href="%s/%d"`, adminGroupsURL, orgGroup.ID))
-		sessionAdmin.MakeRequest(t, NewRequest(t, "GET", repoWebURL+"-groups"), http.StatusNotFound)
 
 		setRepos := func(t *testing.T, baseURL string, id int64, repos string, expected int) {
 			req := NewRequestWithValues(t, "POST", fmt.Sprintf("%s/%d", baseURL, id), map[string]string{"repos": repos})

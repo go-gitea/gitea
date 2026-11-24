@@ -148,14 +148,14 @@ func PruneRunnerAccessOutsideOwner(ctx context.Context, repoID int64) error {
 	return err
 }
 
-func CountRunnerGroupUsage(ctx context.Context, groupIDs []int64) (runners, repos map[int64]int64, err error) {
+func CountRunnerGroupUsage(ctx context.Context, ownerID int64) (runners, repos map[int64]int64, err error) {
+	ownerGroups := builder.In("group_id", builder.Select("id").From("action_runner_group").Where(builder.Eq{"owner_id": ownerID}))
 	countBy := func(bean any) (map[int64]int64, error) {
 		var rows []struct {
 			GroupID int64
 			Count   int64
 		}
-		if err := db.GetEngine(ctx).Table(bean).Select("group_id, COUNT(*) AS count").
-			Where(builder.In("group_id", groupIDs)).GroupBy("group_id").Find(&rows); err != nil {
+		if err := db.GetEngine(ctx).Table(bean).Select("group_id, COUNT(*) AS count").Where(ownerGroups).GroupBy("group_id").Find(&rows); err != nil {
 			return nil, err
 		}
 		counts := make(map[int64]int64, len(rows))
@@ -163,9 +163,6 @@ func CountRunnerGroupUsage(ctx context.Context, groupIDs []int64) (runners, repo
 			counts[row.GroupID] = row.Count
 		}
 		return counts, nil
-	}
-	if len(groupIDs) == 0 {
-		return nil, nil, nil
 	}
 	if runners, err = countBy(new(ActionRunner)); err != nil {
 		return nil, nil, err

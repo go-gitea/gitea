@@ -3861,7 +3861,6 @@
   "actions.runners.description": "Description",
   "actions.runners.labels": "Labels",
   "actions.runners.groups.column": "Group",
-  "actions.runners.groups.name_placeholder": "example-group",
   "actions.runners.groups": "Runner Groups",
   "actions.runners.groups.create": "Create group",
   "actions.runners.groups.edit": "Runner group",

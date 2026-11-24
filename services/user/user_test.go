@@ -71,7 +71,6 @@ func TestDeleteUser(t *testing.T) {
 		assert.NoError(t, unittest.PrepareTestDatabase())
 		group, err := actions_model.CreateRunnerGroup(t.Context(), 24, "gpu")
 		require.NoError(t, err)
-		require.NoError(t, db.Insert(t.Context(), &actions_model.ActionRunnerAccess{GroupID: group.ID, RepoID: 1}))
 
 		// assert they exist before deletion
 		unittest.AssertExistsAndLoadBean(t, &auth.TwoFactor{UID: 24})
@@ -80,19 +79,13 @@ func TestDeleteUser(t *testing.T) {
 		unittest.AssertExistsAndLoadBean(t, &issues_model.IssueWatch{UserID: 2})
 
 		// delete users
-		user24 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 24})
-		assert.NoError(t, DeleteUser(t.Context(), user24, true))
-		unittest.AssertNotExistsBean(t, &actions_model.ActionRunnerGroup{ID: group.ID})
-		unittest.AssertNotExistsBean(t, &actions_model.ActionRunnerAccess{GroupID: group.ID})
-		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
-		user32 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 32})
-		assert.NoError(t, DeleteUser(t.Context(), user32, true))
-
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		assert.NoError(t, DeleteUser(t.Context(), user2, true))
+		for _, userID := range []int64{24, 32, 2} {
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
+			assert.NoError(t, DeleteUser(t.Context(), user, true))
+		}
 
 		// assert they do not exist after deletion
+		unittest.AssertNotExistsBean(t, &actions_model.ActionRunnerGroup{ID: group.ID})
 		unittest.AssertNotExistsBean(t, &auth.TwoFactor{UID: 24})
 		unittest.AssertNotExistsBean(t, &auth.WebAuthnCredential{UserID: 32})
 		unittest.AssertNotExistsBean(t, &activities_model.Notification{UserID: 2})

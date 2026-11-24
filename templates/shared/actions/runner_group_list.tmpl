@@ -2,13 +2,7 @@
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "actions.runners.groups"}} ({{ctx.Locale.Tr "admin.total" (len .RunnerGroups)}})
 		<div class="ui right">
-			<button type="button" class="ui primary tiny button show-modal"
-				data-modal="#create-runner-group-modal"
-				data-modal-form.url="{{.Link}}"
-				data-modal-dialog-group-name=""
-			>
-				{{ctx.Locale.Tr "actions.runners.groups.create"}}
-			</button>
+			<button type="button" class="ui primary tiny button show-modal" data-modal="#create-runner-group-modal">{{ctx.Locale.Tr "actions.runners.groups.create"}}</button>
 		</div>
 	</h4>
 	{{if .RunnerGroups}}
@@ -19,16 +13,14 @@
 					<th>{{ctx.Locale.Tr "actions.runners.name"}}</th>
 					<th>{{ctx.Locale.Tr "actions.runners"}}</th>
 					<th>{{ctx.Locale.Tr "settings.repos"}}</th>
-					<th>{{ctx.Locale.Tr "edit"}}</th>
 				</tr>
 			</thead>
 			<tbody>
 				{{range $group := .RunnerGroups}}
 					<tr>
-						<td>{{$group.Name}}</td>
+						<td><a href="{{$.Link}}/{{$group.ID}}">{{$group.Name}}</a></td>
 						<td>{{index $.RunnerGroupRunnerCounts $group.ID}}</td>
 						<td>{{if $group.IncludesAllRepositories}}{{ctx.Locale.Tr "org.teams.all_repositories"}}{{else}}{{index $.RunnerGroupRepoCounts $group.ID}}{{end}}</td>
-						<td><a href="{{$.Link}}/{{$group.ID}}" aria-label="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a></td>
 					</tr>
 				{{end}}
 			</tbody>
@@ -45,7 +37,7 @@
 		<div class="content">
 			<div class="field">
 				<label for="dialog-group-name">{{ctx.Locale.Tr "actions.runners.name"}}</label>
-				<input autofocus required name="name" id="dialog-group-name" maxlength="200" placeholder="{{ctx.Locale.Tr "actions.runners.groups.name_placeholder"}}">
+				<input autofocus required name="name" id="dialog-group-name" maxlength="200">
 			</div>
 		</div>
 		{{template "base/modal_actions_confirm" .}}

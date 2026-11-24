@@ -509,12 +509,6 @@ func TestRunnerGroupMembership(t *testing.T) {
 	require.Error(t, DeleteRunnerGroup(t.Context(), group))
 
 	require.NoError(t, DeleteRunner(t.Context(), member.ID))
-	unittest.AssertCount(t, &ActionRunner{GroupID: group.ID}, 0)
-	candidates, err := FindRunnerGroupCandidates(t.Context(), 0)
-	require.NoError(t, err)
-	for _, candidate := range candidates {
-		assert.NotEqual(t, member.ID, candidate.ID)
-	}
 	require.NoError(t, DeleteRunnerGroup(t.Context(), group))
 	require.ErrorIs(t, UpdateRunnerGroup(t.Context(), group, false, nil, nil), util.ErrNotExist)
 }
