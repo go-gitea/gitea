@@ -49,28 +49,13 @@ func TestSlackPayload(t *testing.T) {
 			"[<http://localhost:3000/test/repo|test/repo>] Pull request opened: <http://localhost:3000/test/repo/pulls/12|#12 Fix bug> by <https://try.gitea.io/user1|user1>", true,
 		},
 		{
-			"PullRequestReviewRequest", func() (SlackPayload, error) {
+			"PullRequestReviewRequestRemoved", func() (SlackPayload, error) {
 				p := pullRequestTestPayload()
-				p.Action = api.HookIssueReviewRequested
-				p.RequestedReviewer = &api.User{
-					UserName: "reviewer1",
-					FullName: "Reviewer One",
-				}
+				p.Action = api.HookIssueReviewRequestRemoved
+				p.RequestedReviewer = &api.User{UserName: "reviewer1"}
 				return sc.PullRequest(p)
 			},
-			"[<http://localhost:3000/test/repo|test/repo>] Pull request review requested: <http://localhost:3000/test/repo/pulls/12|#12 Fix bug> by <https://try.gitea.io/user1|user1> (Requested Reviewer: reviewer1 (Reviewer One))", false,
-		},
-		{
-			"PullRequestReviewRequestEscapesReviewerName", func() (SlackPayload, error) {
-				p := pullRequestTestPayload()
-				p.Action = api.HookIssueReviewRequested
-				p.RequestedReviewer = &api.User{
-					UserName: "reviewer1",
-					FullName: "A & B <evil>",
-				}
-				return sc.PullRequest(p)
-			},
-			"[<http://localhost:3000/test/repo|test/repo>] Pull request review requested: <http://localhost:3000/test/repo/pulls/12|#12 Fix bug> by <https://try.gitea.io/user1|user1> (Requested Reviewer: reviewer1 (A &amp; B &lt;evil&gt;))", false,
+			"[<http://localhost:3000/test/repo|test/repo>] Pull request review request removed from <https://try.gitea.io/reviewer1|reviewer1>: <http://localhost:3000/test/repo/pulls/12|#12 Fix bug> by <https://try.gitea.io/user1|user1>", false,
 		},
 		{
 			"PullRequestComment", func() (SlackPayload, error) { return sc.IssueComment(pullRequestCommentTestPayload()) },
