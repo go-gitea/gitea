@@ -1106,17 +1106,18 @@ func GetCommentWithRepoID(ctx context.Context, repoID, commentID int64) (*Commen
 // FindCommentsOptions describes the conditions to Find comments
 type FindCommentsOptions struct {
 	db.ListOptions
-	RepoID      int64
-	IssueID     int64
-	ReviewID    int64
-	Since       int64
-	Before      int64
-	Line        int64
-	TreePath    string
-	Type        CommentType
-	IssueIDs    []int64
-	Invalidated optional.Option[bool]
-	IsPull      optional.Option[bool]
+	RepoID       int64
+	IssueID      int64
+	ReviewID     int64
+	Since        int64
+	Before       int64
+	Line         int64
+	TreePath     string
+	Type         CommentType
+	ExcludeTypes []CommentType
+	IssueIDs     []int64
+	Invalidated  optional.Option[bool]
+	IsPull       optional.Option[bool]
 }
 
 func (opts FindCommentsOptions) ToOrders() string {
@@ -1145,6 +1146,9 @@ func (opts FindCommentsOptions) ToConds() builder.Cond {
 	}
 	if opts.Type != CommentTypeUndefined {
 		cond = cond.And(builder.Eq{"comment.type": opts.Type})
+	}
+	if len(opts.ExcludeTypes) > 0 {
+		cond = cond.And(builder.NotIn("comment.type", opts.ExcludeTypes))
 	}
 	if opts.Line != 0 {
 		cond = cond.And(builder.Eq{"comment.line": opts.Line})
