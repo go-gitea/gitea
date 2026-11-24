@@ -158,11 +158,13 @@ func TestPullCreate(t *testing.T) {
 
 		// test create the pull request again and it should fail now
 		link := "/user2/repo1/compare/master...user1/repo1:master"
-		req := NewRequestWithValues(t, "POST", link, map[string]string{
+		req := NewRequestWithValues(t, "POST", link+"?lang=de-DE", map[string]string{
 			"title": "This is a pull title",
 		})
 		resp = session.MakeRequest(t, req, http.StatusBadRequest)
-		assert.Contains(t, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage, `<a href="`+url+`">user2/repo1#`+path.Base(url)+`</a>`)
+		errorMessage := test.ParseJSONError(resp.Body.Bytes()).ErrorMessage
+		assert.Contains(t, errorMessage, `<a href="`+url+`">user2/repo1#`+path.Base(url)+`</a>`)
+		assert.NotContains(t, errorMessage, "%!")
 
 		// check .diff can be accessed and matches performed change
 		req = NewRequest(t, "GET", url+".diff")
@@ -179,12 +181,13 @@ func TestPullCreate(t *testing.T) {
 		assert.Regexp(t, `Subject: \[PATCH\] Update README.md`, resp.Body)
 		assert.NotRegexp(t, "diff.*diff", resp.Body) // not two diffs, just one
 
-		// reopening is blocked by a newer pull request for the same branches, which should be linked
 		testIssueClose(t, session, "user2", "repo1", path.Base(url))
-		newURL := test.RedirectURL(testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title"))
-		req = NewRequestWithValues(t, "POST", url+"/comments", map[string]string{"status": "reopen"})
+		newURL := test.RedirectURL(session.MakeRequest(t, NewRequestWithValues(t, "POST", link, map[string]string{"title": "This is a pull title"}), http.StatusOK))
+		req = NewRequestWithValues(t, "POST", url+"/comments?lang=de-DE", map[string]string{"status": "reopen"})
 		session.MakeRequest(t, req, http.StatusOK)
-		assert.Contains(t, session.GetCookieFlashMessage().ErrorMsg, `<a href="`+newURL+`">#`+path.Base(newURL)+`</a>`)
+		errorMessage = session.GetCookieFlashMessage().ErrorMsg
+		assert.Contains(t, errorMessage, `<a href="`+newURL+`">#`+path.Base(newURL)+`</a>`)
+		assert.NotContains(t, errorMessage, "%!")
 	})
 }
 

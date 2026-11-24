@@ -1494,7 +1494,7 @@ func DownloadPullDiffOrPatch(ctx *context.Context, patch bool) {
 
 func existingPullRequestMessage(ctx *context.Context, index int64) template.HTML {
 	link := htmlutil.HTMLFormat(`<a href="%s/pulls/%d">%s#%d</a>`, ctx.Repo.RepoLink, index, ctx.Repo.Repository.FullName(), index)
-	return ctx.Tr("repo.pulls.has_pull_request", link)
+	return ctx.Tr("repo.pulls.has_pull_request_link", link)
 }
 
 // UpdatePullRequestTarget change pull request's target branch

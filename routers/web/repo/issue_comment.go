@@ -93,7 +93,7 @@ func NewComment(ctx *context.Context) {
 			}
 
 			if branchOtherUnmergedPR != nil {
-				ctx.Flash.Error(ctx.Tr("repo.pulls.open_unmerged_pull_exists", htmlutil.HTMLFormat(`<a href="%s/pulls/%d">#%d</a>`, ctx.Repo.RepoLink, branchOtherUnmergedPR.Index, branchOtherUnmergedPR.Index)))
+				ctx.Flash.Error(ctx.Tr("repo.pulls.open_unmerged_pull_exists_link", htmlutil.HTMLFormat(`<a href="%s/pulls/%d">#%d</a>`, ctx.Repo.RepoLink, branchOtherUnmergedPR.Index, branchOtherUnmergedPR.Index)))
 			} else {
 				// sync ref of PR <refs/pulls/pr_index/head> in base repo for a reopened PR
 				if pull.Flow == issues_model.PullRequestFlowGithub {
