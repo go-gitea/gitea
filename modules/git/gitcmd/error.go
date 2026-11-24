@@ -55,7 +55,6 @@ func ErrorAsStderr(err error) (string, bool) {
 	return "", false
 }
 
-// exitCoder is implemented by *exec.ExitError and by any other error which reports a process exit code
 type exitCoder interface {
 	error
 	ExitCode() int

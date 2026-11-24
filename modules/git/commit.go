@@ -112,7 +112,7 @@ func (c *Commit) HasPreviousCommit(ctx context.Context, gitRepo *Repository, obj
 	if err == nil {
 		return true, nil
 	}
-	if stderr, _ := gitcmd.ErrorAsStderr(err); gitcmd.IsErrorExitCode(err, 1) && stderr == "" {
+	if gitcmd.IsErrorExitCode(err, 1) {
 		return false, nil
 	}
 	return false, err
