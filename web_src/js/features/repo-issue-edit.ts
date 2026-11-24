@@ -9,7 +9,7 @@ import {convertHtmlToMarkdown} from '../markup/html2markdown.ts';
 import {applyAreYouSure} from '../modules/are-you-sure.ts';
 import {registerShortcutHandler} from '../modules/shortcut.ts';
 import {registerGlobalEventFunc} from '../modules/observer.ts';
-import {refreshCodeSuggestionControls} from './repo-code-suggestion.ts';
+import {refreshCodeSuggestionControls} from './repo-diff-review.ts';
 
 async function onConvContentEdit(clickTarget: HTMLElement) {
   const commentContent = clickTarget.closest('.comment-header')!.nextElementSibling!;

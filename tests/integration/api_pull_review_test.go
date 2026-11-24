@@ -585,35 +585,32 @@ func TestAPIPullReviewStayDismissed(t *testing.T) {
 func testAPIPullReviewCommentReply(t *testing.T) {
 	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
 	require.NoError(t, pullIssue.LoadRepo(t.Context()))
+	require.NoError(t, pullIssue.LoadPullRequest(t.Context()))
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	gitRepo, err := git.OpenRepository(t.Context(), pullIssue.Repo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	commitID, err := gitRepo.GetRefCommitID(t.Context(), pullIssue.PullRequest.GetGitHeadRefName())
+	require.NoError(t, err)
+
+	parent, err := pull_service.CreateCodeComment(t.Context(), doer, gitRepo, pullIssue, 1, "parent comment", "README.md", false, 0, commitID, nil)
+	require.NoError(t, err)
+	require.NotZero(t, parent.ReviewID)
+
 	repo := pullIssue.Repo
-	token := getUserToken(t, repo.OwnerName, auth_model.AccessTokenScopeWriteRepository)
-	pullURL := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", repo.OwnerName, repo.Name, pullIssue.Index)
-	req := NewRequestWithJSON(t, http.MethodPost, pullURL+"/reviews", &api.CreatePullReviewOptions{
-		Event: api.ReviewStateComment,
-		Comments: []api.CreatePullReviewComment{
-			{Path: "README.md", Body: "parent comment", NewLineNum: 3, StartLine: 1, StartSide: "LEFT"},
-		},
-	}).AddTokenAuth(token)
-	review := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{})
-	req = NewRequestf(t, http.MethodGet, "%s/reviews/%d/comments", pullURL, review.ID).AddTokenAuth(token)
-	comments := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []*api.PullReviewComment{})
-	require.Len(t, comments, 1)
-	parent := comments[0]
-	assert.EqualValues(t, 1, parent.StartLine)
-	assert.Equal(t, "LEFT", parent.StartSide)
-	assert.EqualValues(t, 3, parent.LineNum)
+	session := loginUser(t, doer.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	url := fmt.Sprintf("%s/comments/%d/replies", pullURL, parent.ID)
+	url := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/comments/%d/replies", repo.OwnerName, repo.Name, pullIssue.Index, parent.ID)
 
-	req = NewRequestWithJSON(t, http.MethodPost, url, &api.CreatePullReviewCommentReplyOptions{Body: "the reply"}).AddTokenAuth(token)
+	// happy path
+	req := NewRequestWithJSON(t, http.MethodPost, url, &api.CreatePullReviewCommentReplyOptions{Body: "the reply"}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	reply := DecodeJSON(t, resp, &api.PullReviewComment{})
 	assert.Equal(t, "the reply", reply.Body)
 	assert.Equal(t, parent.ReviewID, reply.ReviewID)
 	assert.Equal(t, "README.md", reply.Path)
-	assert.Equal(t, parent.StartLine, reply.StartLine)
-	assert.Equal(t, parent.StartSide, reply.StartSide)
-	assert.Equal(t, parent.LineNum, reply.LineNum)
 
 	// empty body — caught by binding
 	req = NewRequestWithJSON(t, http.MethodPost, url, &api.CreatePullReviewCommentReplyOptions{}).AddTokenAuth(token)

@@ -1,6 +1,6 @@
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {refreshCodeSuggestionControls} from '../features/repo-code-suggestion.ts';
+import {refreshCodeSuggestionControls} from '../features/repo-diff-review.ts';
 
 const preventListener = (e: Event) => e.preventDefault();
 

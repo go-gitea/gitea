@@ -1,14 +1,7 @@
 import {errorMessage} from '../modules/errors.ts';
-import {html, htmlEscape, htmlRaw} from '../utils/html.ts';
+import {htmlEscape} from '../utils/html.ts';
 import {createTippy} from '../modules/tippy.ts';
-import {
-  addDelegatedEventListener,
-  createElementFromHTML,
-  hideElem,
-  queryElems,
-  showElem,
-  toggleElem, toggleElemClass,
-} from '../utils/dom.ts';
+import {addDelegatedEventListener, hideElem, queryElems, showElem, toggleElem, toggleElemClass} from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {POST} from '../modules/fetch.ts';
@@ -20,11 +13,7 @@ import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observ
 import type {FomanticApiResponse} from '../types.ts';
 import {performFetchActionRequest} from '../modules/fetch-action.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
-import {
-  diffDraftHolder, registerRepoDiffSelection, repaintDiffRanges, type DiffCommentRange,
-} from './repo-diff-selection.ts';
-import {initCodeCommentEditor, refreshCodeSuggestionControls} from './repo-code-suggestion.ts';
-import {trString} from '../modules/i18n.ts';
+import {initCodeCommentEditor, refreshCodeSuggestionControls} from './repo-diff-review.ts';
 
 const {appSubUrl} = window.config;
 
@@ -146,7 +135,6 @@ export function initRepoIssueCommentDelete() {
         toggleElemClass(addCodeCommentButtons, 'tw-invisible', false);
       }
       conversationHolder.remove();
-      if (parentTr) repaintDiffRanges(parentTr);
     }
 
     // Check if there is no review content, move the time avatar upward to avoid overlapping the content below.
@@ -164,9 +152,7 @@ export function initRepoIssueCodeCommentCancel() {
       hideElem(form);
       showElem(form.closest('.comment-code-cloud')!.querySelectorAll('button.comment-form-reply'));
     } else {
-      const table = form.closest('table')!;
-      form.closest(diffDraftHolder)!.remove();
-      repaintDiffRanges(table);
+      form.closest('.diff-comment-draft')!.remove();
     }
   });
 }
@@ -265,73 +251,6 @@ export function initRepoPullRequestReview() {
     });
     elReviewPanel.querySelector('.close-review-panel')!.addEventListener('click', () => tippy.hide());
   });
-
-  registerRepoDiffSelection(openDiffComment);
-}
-
-async function openDiffComment({start, end}: DiffCommentRange, previousDraft?: HTMLElement) {
-  const {row, line} = end;
-  const table = row.closest('table')!;
-  const side = line[0] === 'L' ? 'left' : 'right';
-  const isRange = start.line !== line;
-  let commentRow = row.nextElementSibling;
-  if (!commentRow?.classList.contains('add-comment')) {
-    const cells = table.closest('.code-diff-split') ?
-      html`<td class="add-comment-left" colspan="4"></td><td class="add-comment-right" colspan="4"></td>` :
-      html`<td class="add-comment-left add-comment-right" colspan="5"></td>`;
-    commentRow = createElementFromHTML(html`
-      <tr class="add-comment" data-line-type="${row.getAttribute('data-line-type')!}">${htmlRaw(cells)}</tr>
-    `);
-    row.after(commentRow);
-  }
-
-  const cell = commentRow.querySelector<HTMLTableCellElement>(`.add-comment-${side}`)!;
-  if (cell.querySelector(`:scope > .conversation-holder:not(${diffDraftHolder})`)) return;
-  const rowDraft = commentRow.querySelector<HTMLElement>(diffDraftHolder);
-  if (rowDraft && (rowDraft.parentElement === cell ? !isRange : rowDraft !== previousDraft)) return;
-  let draft = rowDraft ?? previousDraft;
-  const updatingDraft = Boolean(draft);
-  if (draft) {
-    if (!draft.querySelector('form:not(.is-loading)')) return;
-    if (draft.parentElement !== cell) cell.append(draft);
-  } else {
-    draft = document.createElement('div');
-    draft.className = `conversation-holder ${diffDraftHolder.substring(1)}`;
-    cell.append(draft);
-    try {
-      const params = new URLSearchParams({side: 'proposed', all_commits: table.getAttribute('data-all-commits')!});
-      const response = await performFetchActionRequest(cell, {
-        method: 'GET',
-        url: `${table.getAttribute('data-new-comment-url')!}?${params}`,
-        loadingIndicator: '$this',
-      });
-      if (!response) return;
-      draft.replaceChildren(...createElementFromHTML(await response.text()).children);
-    } finally {
-      if (!draft.childElementCount) draft.remove();
-    }
-  }
-
-  const form = draft.querySelector('form')!;
-  const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement;
-  const fields = Object.entries({
-    line: line.slice(1), start_line: isRange ? start.line.slice(1) : '',
-    side: side === 'left' ? 'previous' : 'proposed', start_side: start.line[0] === 'L' ? 'previous' : 'proposed',
-  });
-  const rangeChanged = updatingDraft && fields.some(([name, value]) => field(name).value !== value);
-  for (const [name, value] of fields) field(name).value = value;
-  field('path').value = table.getAttribute('data-path')!;
-  const label = form.querySelector('.diff-comment-lines')!;
-  toggleElem(label, isRange);
-  if (isRange) {
-    const sameSide = start.line[0] === line[0];
-    label.textContent = trString(label.getAttribute('data-text-lines')!, sameSide ? start.line.slice(1) : start.line, sameSide ? line.slice(1) : line);
-  }
-  repaintDiffRanges(table);
-
-  const editor = await initCodeCommentEditor(form);
-  if (rangeChanged) editor.switchTabToEditor();
-  else editor.focus();
 }
 
 export function initRepoIssueReferenceIssue() {

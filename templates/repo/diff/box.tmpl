@@ -46,7 +46,7 @@
 				</div>
 			{{end}}
 			{{if and .PageIsPullFiles $.SignedUserID}}
-				<button type="button" id="code-suggestion-batch" class="ui tiny primary button show-modal tw-hidden" data-modal="#code-suggestion-modal"
+				<button type="button" class="ui tiny primary button show-modal code-suggestion-batch tw-hidden" data-modal="#code-suggestion-modal"
 					data-modal-comment_ids="" data-modal-header="{{ctx.Locale.Tr "repo.diff.suggestion.commit_batch"}}" data-modal-commit_summary="{{$.CodeSuggestionBatchCommitMessage}}"
 					data-add-text="{{ctx.Locale.Tr "repo.diff.suggestion.add_to_batch"}}" data-remove-text="{{ctx.Locale.Tr "repo.diff.suggestion.remove_from_batch"}}"
 					data-overlap-text="{{ctx.Locale.Tr "repo.diff.suggestion.not_appliable.overlap"}}">
@@ -136,7 +136,7 @@
 
 								{{if $showFileViewToggle}}
 									<div class="ui compact icon buttons" data-global-init="initDiffFileViewToggle">
-										<button type="button" class="ui tiny basic button file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code"}}</button>
+										<button type="button" class="ui tiny basic button file-view-toggle file-view-source-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code"}}</button>
 										<button type="button" class="ui tiny basic button file-view-toggle active" data-toggle-selector="#diff-rendered-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_rendered"}}">{{svg "octicon-file"}}</button>
 									</div>
 								{{end}}
@@ -179,7 +179,7 @@
 									<div class="tw-p-3">
 										{{if $file.IsIncomplete}}
 											{{ctx.Locale.Tr "repo.diff.file_suppressed"}}
-											<button type="button" class="ui basic tiny button" data-global-click="diffLoadFileBody" data-href="?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</button>
+											<button type="button" class="ui basic tiny button diff-load-file-body" data-global-click="diffLoadFileBody" data-href="?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</button>
 										{{else}}
 											{{ctx.Locale.Tr "repo.diff.bin_not_shown"}}
 										{{end}}
@@ -196,7 +196,7 @@
 										{{end}}
 									</div>
 								{{else if $file.Sections}}
-									<table class="chroma" data-global-init="initDiffSelection" {{if $.PageIsPullFiles}}data-all-commits="{{$.IsShowingAllCommits}}"{{end}} data-paste-markdown-skip data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}">
+									<table class="chroma diff-review-table" data-global-init="initDiffSelection" data-paste-markdown-skip data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment{{if $.IsShowingAllCommits}}?all_commits=true{{end}}" data-path="{{$file.Name}}">
 										{{if $.IsSplitStyle}}
 											{{template "repo/diff/section_split" dict "file" $file}}
 										{{else}}

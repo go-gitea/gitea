@@ -8,7 +8,7 @@ import {setFileFolding} from '../features/file-fold.ts';
 import {onMounted, onUnmounted, computed, watch} from 'vue';
 import {localUserSettings} from '../modules/user-settings.ts';
 import {registerAsyncHashChangeListener, removeAsyncHashChangeListener} from '../modules/hashchange.ts';
-import {parseDiffLineHash} from '../features/repo-diff-selection.ts';
+import {parseDiffLineHash} from '../features/repo-diff-review.ts';
 
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
 

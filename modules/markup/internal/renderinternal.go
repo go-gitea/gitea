@@ -21,6 +21,10 @@ var reAttrClass = sync.OnceValue(func() *regexp.Regexp {
 	return regexp.MustCompile(`(<[^>]+)\s+class="([^"]+)"([^>]*>)`)
 })
 
+type RenderVarMutable[T any] struct {
+	Value *T
+}
+
 // RenderInternal also works without initialization
 // If no initialization (no secureID), it will not protect any attributes and return the original name&value
 type RenderInternal struct {

@@ -32,7 +32,7 @@ func TestCodeSuggestionAnchorMovesForShiftOrOverlap(t *testing.T) {
 }
 
 func TestValidateCodeCommentRangeRejectsLineZero(t *testing.T) {
-	assert.Error(t, ValidateCodeCommentRange(0, 0))
+	assert.Error(t, validateCodeCommentRange(0, 0))
 }
 
 func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {

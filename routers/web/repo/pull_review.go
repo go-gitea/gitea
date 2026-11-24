@@ -17,6 +17,7 @@ import (
 	pull_model "gitea.dev/models/pull"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
@@ -65,18 +66,13 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
 	ctx.Data["ReviewCommitID"] = pullHeadCommitID // it's questionable why it only needs the head commit ID but not correct "AfterCommitID" (single commit review)
-	ctx.Data["CanSuggestCode"] = ctx.FormString("side") == "proposed" && ctx.FormString("start_side", "proposed") == "proposed" &&
-		ctx.FormBool("all_commits") && ctx.Repo.Permission.CanRead(unit.TypeCode)
+	ctx.Data["CanSuggestCode"] = ctx.FormBool("all_commits") && ctx.Repo.Permission.CanRead(unit.TypeCode)
 	upload.AddUploadContext(ctx, "comment")
 	ctx.HTML(http.StatusOK, tplNewComment)
 }
 
 // RenderCodeSuggestionSource responds with the raw code a new suggestion replaces, to prefill it in the comment editor
 func RenderCodeSuggestionSource(ctx *context.Context) {
-	if ctx.FormString("side", "proposed") != "proposed" || ctx.FormString("start_side", "proposed") != "proposed" {
-		ctx.ServerErrorAuto(util.NewInvalidArgumentErrorf("suggestions require lines on the proposed side"))
-		return
-	}
 	line := uint64(ctx.FormInt64("line"))
 	lines, err := markup_service.ReadCodeSuggestionLines(ctx, ctx.Repo.GitRepo, markup.CodeSuggestionAnchor{
 		CommitID:  ctx.FormString("commit_id"),
@@ -112,27 +108,13 @@ func CreateCodeComment(ctx *context.Context) {
 		return
 	}
 
-	if form.StartLine < 0 || form.Line < 0 {
-		ctx.JSONErrorAuto(util.NewInvalidArgumentErrorf("code comment line numbers must be nonnegative"))
+	if form.Line < 0 {
+		ctx.JSONErrorAuto(util.NewInvalidArgumentErrorf("code comment line number must be nonnegative"))
 		return
 	}
-	var parent *issues_model.Comment
-	if form.SingleReview && form.ReplyCommentID != 0 {
-		var err error
-		parent, err = issues_model.GetCommentByID(ctx, form.ReplyCommentID)
-		if err != nil {
-			ctx.JSONErrorAuto(err)
-			return
-		}
-	}
-	comment, err := pull_service.CreateCodeCommentWithOptions(ctx, ctx.Doer, ctx.Repo.GitRepo, issue, !form.SingleReview, form.LatestCommitID, parent, issues_model.CreateCommentOptions{
-		LineNum:       util.Iif(form.Side == "previous", -form.Line, form.Line),
-		Content:       form.Content,
-		TreePath:      form.TreePath,
-		ReviewID:      form.Reply,
-		Attachments:   util.Iif(setting.Attachment.Enabled, form.Files, nil),
-		CodeStartLine: util.Iif(cmp.Or(form.StartSide, form.Side) == "previous", -form.StartLine, form.StartLine),
-	})
+	line := util.Iif(form.Side == "previous", -form.Line, form.Line)
+	comment, err := pull_service.CreateCodeComment(ctx, ctx.Doer, ctx.Repo.GitRepo, issue, line, form.Content, form.TreePath,
+		!form.SingleReview, form.Reply, form.LatestCommitID, util.Iif(setting.Attachment.Enabled, form.Files, nil), form.StartLine)
 	if err != nil {
 		ctx.JSONErrorAuto(err)
 		return
@@ -504,21 +486,20 @@ func ApplyCodeSuggestions(ctx *context.Context) {
 		return
 	}
 	opts := files_service.ApplyCodeSuggestionsOptions{
-		ContentVersions: map[int64]int{},
-		HeadCommitID:    form.HeadCommitID,
-		Summary:         form.CommitSummary,
-		Description:     form.CommitMessage,
+		HeadCommitID: form.HeadCommitID,
+		Summary:      form.CommitSummary,
+		Description:  form.CommitMessage,
 	}
+	seen := container.SetOf[int64]()
 	for item := range strings.SplitSeq(form.CommentIDs, ",") {
 		idStr, versionStr, _ := strings.Cut(item, ":")
 		id, idErr := strconv.ParseInt(idStr, 10, 64)
 		version, versionErr := strconv.Atoi(versionStr)
-		if idErr != nil || versionErr != nil {
+		if idErr != nil || versionErr != nil || !seen.Add(id) {
 			ctx.HTTPError(http.StatusBadRequest)
 			return
 		}
-		opts.CommentIDs = append(opts.CommentIDs, id)
-		opts.ContentVersions[id] = version
+		opts.Suggestions = append(opts.Suggestions, pull_service.CodeSuggestionVersion{CommentID: id, ContentVersion: version})
 	}
 	if err := files_service.ApplyCodeSuggestions(ctx, ctx.Doer, pr, opts); err != nil {
 		ctx.JSONErrorAuto(err)
@@ -528,6 +509,6 @@ func ApplyCodeSuggestions(ctx *context.Context) {
 	if form.Origin == "diff" {
 		ctx.JSONRedirect(pr.Issue.Link() + "/files")
 	} else {
-		ctx.JSONRedirect(pr.Issue.Link() + "#" + issues_model.CommentHashTag(opts.CommentIDs[0]))
+		ctx.JSONRedirect(pr.Issue.Link() + "#" + issues_model.CommentHashTag(opts.Suggestions[0].CommentID))
 	}
 }

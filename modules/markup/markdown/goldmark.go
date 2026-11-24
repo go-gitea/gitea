@@ -26,13 +26,13 @@ import (
 
 // ASTTransformer is a default transformer of the goldmark tree.
 type ASTTransformer struct {
-	renderInternal *internal.RenderInternal
+	internalVar    *internal.RenderVarMutable[internal.RenderInternal]
 	attentionTypes container.Set[string]
 }
 
-func NewASTTransformer(renderInternal *internal.RenderInternal) *ASTTransformer {
+func NewASTTransformer(internalVar *internal.RenderVarMutable[internal.RenderInternal]) *ASTTransformer {
 	return &ASTTransformer{
-		renderInternal: renderInternal,
+		internalVar:    internalVar,
 		attentionTypes: container.SetOf("note", "tip", "important", "warning", "caution"),
 	}
 }
@@ -125,10 +125,10 @@ func filterFeedExcerpt(parent ast.Node) {
 }
 
 // NewHTMLRenderer creates a HTMLRenderer to render in the gitea form.
-func NewHTMLRenderer(renderInternal *internal.RenderInternal, opts ...html.Option) renderer.NodeRenderer {
+func NewHTMLRenderer(internalVar *internal.RenderVarMutable[internal.RenderInternal], opts ...html.Option) renderer.NodeRenderer {
 	r := &HTMLRenderer{
-		renderInternal: renderInternal,
-		Config:         html.NewConfig(),
+		internalVar: internalVar,
+		Config:      html.NewConfig(),
 	}
 	for _, opt := range opts {
 		opt.SetHTMLOption(&r.Config)
@@ -140,7 +140,7 @@ func NewHTMLRenderer(renderInternal *internal.RenderInternal, opts ...html.Optio
 // renders gitea specific features.
 type HTMLRenderer struct {
 	html.Config
-	renderInternal *internal.RenderInternal
+	internalVar *internal.RenderVarMutable[internal.RenderInternal]
 }
 
 // RegisterFuncs implements renderer.NodeRenderer.RegisterFuncs.
@@ -179,7 +179,7 @@ func (r *HTMLRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.No
 			language = string(fenced.Language(source))
 		}
 		preAttrs, codeAttrs := highlight.CodeBlockAttributes(language)
-		err := r.renderInternal.FormatWithSafeAttrsf(w, `<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs)
+		err := r.internalVar.Value.FormatWithSafeAttrsf(w, `<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs)
 		if err != nil {
 			return ast.WalkStop, err
 		}
@@ -260,7 +260,7 @@ func (r *HTMLRenderer) renderRawHTML(w util.BufWriter, source []byte, node ast.N
 		return ast.WalkContinue, nil
 	}
 	n := node.(*RawHTML) //nolint:forcetypeassert // registered for KindRawHTML only
-	_, err := w.WriteString(string(r.renderInternal.ProtectSafeAttrs(n.rawHTML)))
+	_, err := w.WriteString(string(r.internalVar.Value.ProtectSafeAttrs(n.rawHTML)))
 	if err != nil {
 		return ast.WalkStop, err
 	}

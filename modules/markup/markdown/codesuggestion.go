@@ -45,7 +45,7 @@ func ParseCodeSuggestions(content string) (suggestions []string) {
 }
 
 func (r *HTMLRenderer) renderCodeSuggestion(w util.BufWriter, anchor markup.CodeSuggestionAnchor, suggestion markup.CodeSuggestionSource, replacement string) error {
-	if err := r.renderInternal.FormatWithSafeAttrsf(w,
+	if err := r.internalVar.Value.FormatWithSafeAttrsf(w,
 		`<div class="code-suggestion"><div class="code-suggestion-heading">%s</div><div class="code-suggestion-diff"><div class="code-suggestion-lines chroma code-diff-unified">`,
 		suggestion.Heading); err != nil {
 		return err
@@ -70,8 +70,8 @@ func (r *HTMLRenderer) renderCodeSuggestion(w util.BufWriter, anchor markup.Code
 		lines         []template.HTML
 	}{{"del-code", "-", deletions}, {"add-code", "+", additions}} {
 		for lineIndex, line := range change.lines {
-			if err := r.renderInternal.FormatWithSafeAttrsf(w,
-				`<div class="code-suggestion-row %s"><div class="lines-num">%d</div><div class="lines-type-marker">%s</div><div class="lines-code"><code class="code-inner">%s</code></div></div>`,
+			if err := r.internalVar.Value.FormatWithSafeAttrsf(w,
+				`<div class="code-suggestion-row %s"><div class="code-suggestion-cell lines-num">%d</div><div class="code-suggestion-cell lines-type-marker">%s</div><div class="code-suggestion-cell lines-code"><code class="code-inner">%s</code></div></div>`,
 				change.class, anchor.StartLine+uint64(lineIndex), change.marker, line); err != nil {
 				return err
 			}

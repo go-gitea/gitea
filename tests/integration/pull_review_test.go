@@ -452,6 +452,13 @@ func TestApplyPullReviewSuggestions(t *testing.T) {
 		}
 
 		session := loginUser(t, pr.Issue.Repo.OwnerName)
+		resp := session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, pr.Issue.Link()+"/files/reviews/comments", map[string]string{
+			"origin": "diff", "content": "Review these lines", "path": treePath,
+			"side": "proposed", "line": "2", "start_line": "-1", "single_review": "true", "latest_commit_id": initialHead,
+		}), http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+		assert.Equal(t, "-1", doc.Find(".conversation-holder input[name='start_line']").AttrOr("value", ""))
+
 		apply := func(ids, head string, status int) {
 			t.Helper()
 			session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, pr.Issue.Link()+"/suggestions/apply", map[string]string{
@@ -471,6 +478,7 @@ func TestApplyPullReviewSuggestions(t *testing.T) {
 			return commit.ID.String()
 		}
 
+		apply(commentIDs[0]+","+commentIDs[0], initialHead, http.StatusBadRequest)
 		apply(commentIDs[0], initialHead, http.StatusOK)
 		singleHead := assertCommit(initialHead, "# Repository\n\nDescription for repo1\n\nAnd change for branch2\nand a second one\n")
 		batchIDs := strings.Join(commentIDs[1:], ",")

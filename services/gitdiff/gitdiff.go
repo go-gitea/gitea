@@ -1612,34 +1612,15 @@ func GetCodeCommentPatch(ctx context.Context, gitRepo *git.Repository, mergeBase
 }
 
 func GetCodeCommentRangePatch(ctx context.Context, gitRepo *git.Repository, mergeBase, headCommitID, treePath string, startLine, line int64) (string, error) {
-	cut, err := git.GetFileDiffCutAroundRange(ctx, gitRepo, mergeBase, headCommitID, treePath, startLine, line)
-	contextCommitID := util.Iif(line < 0, mergeBase, headCommitID)
-	if err != nil || cut.Patch != "" || contextCommitID == "" {
-		return cut.Patch, err
+	patch, err := git.GetFileDiffCutAroundRange(ctx, gitRepo, mergeBase, headCommitID, treePath, startLine, line)
+	if err != nil || patch != "" {
+		return patch, err
 	}
-	lineOffset := cut.NewContextStart - cut.OldContextStart
-	var contextLines int
-	if line < 0 {
-		contextLines = int(-line - max(cut.OldContextStart, -startLine))
-	} else {
-		if startLine < 0 {
-			startLine = -startLine + lineOffset
-		}
-		contextLines = int(line - max(cut.NewContextStart, startLine))
-	}
-	patch, err := generatePatchForUnchangedLine(ctx, gitRepo, contextCommitID, treePath, line, contextLines, lineOffset)
-	if err != nil {
-		log.Debug("Unable to generate patch for unchanged line (file=%s, line=%d, commit=%s): %v", treePath, line, contextCommitID, err)
-	}
-	return patch, nil
+	return GetCodeCommentPatch(ctx, gitRepo, mergeBase, headCommitID, treePath, line)
 }
 
 // GeneratePatchForUnchangedLine creates a patch showing code context for an unchanged line
 func GeneratePatchForUnchangedLine(ctx context.Context, gitRepo *git.Repository, commitID, treePath string, line int64, contextLines int) (string, error) {
-	return generatePatchForUnchangedLine(ctx, gitRepo, commitID, treePath, line, contextLines, 0)
-}
-
-func generatePatchForUnchangedLine(ctx context.Context, gitRepo *git.Repository, commitID, treePath string, line int64, contextLines int, lineOffset int64) (string, error) {
 	commit, err := gitRepo.GetCommit(ctx, commitID)
 	if err != nil {
 		return "", fmt.Errorf("GetCommit: %w", err)
@@ -1657,15 +1638,11 @@ func generatePatchForUnchangedLine(ctx context.Context, gitRepo *git.Repository,
 	}
 	defer dataRc.Close()
 
-	return generatePatchForUnchangedLineFromReaderWithOffset(dataRc, treePath, line, contextLines, lineOffset)
+	return generatePatchForUnchangedLineFromReader(dataRc, treePath, line, contextLines)
 }
 
 // generatePatchForUnchangedLineFromReader is the testable core logic that generates a patch from a reader
 func generatePatchForUnchangedLineFromReader(reader io.Reader, treePath string, line int64, contextLines int) (string, error) {
-	return generatePatchForUnchangedLineFromReaderWithOffset(reader, treePath, line, contextLines, 0)
-}
-
-func generatePatchForUnchangedLineFromReaderWithOffset(reader io.Reader, treePath string, line int64, contextLines int, lineOffset int64) (string, error) {
 	// Calculate line range (commented line + lines above it)
 	commentLine := int(line)
 	if line < 0 {
@@ -1700,13 +1677,7 @@ func generatePatchForUnchangedLineFromReaderWithOffset(reader io.Reader, treePat
 	fmt.Fprintf(&patchBuilder, "diff --git a/%s b/%s\n", treePath, treePath)
 	fmt.Fprintf(&patchBuilder, "--- a/%s\n", treePath)
 	fmt.Fprintf(&patchBuilder, "+++ b/%s\n", treePath)
-	leftStart, rightStart := int64(startLine), int64(startLine)
-	if line < 0 {
-		rightStart += lineOffset
-	} else {
-		leftStart -= lineOffset
-	}
-	fmt.Fprintf(&patchBuilder, "@@ -%d,%d +%d,%d @@\n", leftStart, len(lines), rightStart, len(lines))
+	fmt.Fprintf(&patchBuilder, "@@ -%d,%d +%d,%d @@\n", startLine, len(lines), startLine, len(lines))
 
 	for _, lineContent := range lines {
 		patchBuilder.WriteString(" ")

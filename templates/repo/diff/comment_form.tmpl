@@ -9,18 +9,15 @@
 	<form class="ui form {{if $replyReviewComment}}tw-hidden comment-form{{end}}" action="{{$root.Issue.Link}}/files/reviews/comments" method="post"
 		{{if $canSuggest}}data-code-suggestion-source-url="{{$root.Issue.Link}}/files/reviews/suggestion_source"{{end}}>
 		<input type="hidden" name="origin" value="{{if $root.PageIsPullFiles}}diff{{else}}timeline{{end}}">
-		<input type="hidden" name="latest_commit_id" value="{{$root.ReviewCommitID}}">
+		<input type="hidden" name="latest_commit_id" value="{{if $replyReviewComment}}{{$replyReviewComment.CodeCommitID}}{{else}}{{$root.ReviewCommitID}}{{end}}">
 		<input type="hidden" name="side" value="{{$replyReviewComment.DiffSide}}">
-		<input type="hidden" name="start_side" value="{{with $replyReviewComment}}{{Iif (lt .CodeStartLine 0) "previous" "proposed"}}{{end}}">
-		<input type="hidden" name="start_line" value="{{if and $replyReviewComment (ne $replyReviewComment.CodeStartLine $replyReviewComment.Line)}}{{$replyReviewComment.UnsignedCodeStartLine}}{{end}}">
+		<input type="hidden" name="start_line" value="{{if and $replyReviewComment (ne $replyReviewComment.CodeStartLine $replyReviewComment.Line)}}{{$replyReviewComment.CodeStartLine}}{{end}}">
 		<input type="hidden" name="line" value="{{$replyReviewComment.UnsignedLine}}">
 		<input type="hidden" name="path" value="{{$replyReviewComment.TreePath}}">
 		<input type="hidden" name="diff_start_cid">
 		<input type="hidden" name="diff_end_cid">
 		<input type="hidden" name="diff_base_cid">
-		{{if $replyReviewComment}}
-			<input type="hidden" name="suggestion_commit_id" value="{{$replyReviewComment.CodeCommitID}}">
-		{{else}}
+		{{if not $replyReviewComment}}
 			<div class="field diff-comment-lines tw-hidden" data-text-lines="{{ctx.Locale.TrString "repo.diff.comment.lines"}}"></div>
 		{{end}}
 		<div class="field">
@@ -45,7 +42,6 @@
 				{{if $replyReviewComment}}
 					<button class="ui submit primary tiny button" type="submit">{{ctx.Locale.Tr "repo.diff.comment.reply"}}</button>
 					<input type="hidden" name="reply" value="{{$replyReviewComment.ReviewID}}">
-					<input type="hidden" name="reply_comment_id" value="{{$replyReviewComment.ID}}">
 					<input type="hidden" name="single_review" value="true">
 				{{else}}
 					{{if $root.CurrentReview}}

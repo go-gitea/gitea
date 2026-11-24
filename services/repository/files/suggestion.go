@@ -20,24 +20,14 @@ import (
 )
 
 type ApplyCodeSuggestionsOptions struct {
-	CommentIDs      []int64
-	ContentVersions map[int64]int
-	HeadCommitID    string
-	Summary         string
-	Description     string
+	Suggestions  []pull_service.CodeSuggestionVersion
+	HeadCommitID string
+	Summary      string
+	Description  string
 }
 
 func ApplyCodeSuggestions(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, opts ApplyCodeSuggestionsOptions) error {
-	if strings.ContainsAny(opts.Summary, "\r\n\x00") || strings.ContainsRune(opts.Description, 0) {
-		return util.ErrorWrapTranslatable(util.ErrInvalidArgument, "repo.diff.suggestion.not_appliable.invalid_message")
-	}
-	if err := pr.LoadBaseRepo(ctx); err != nil {
-		return err
-	}
-	if err := pr.BaseRepo.MustNotBeArchived(); err != nil {
-		return err
-	}
-	changes, err := pull_service.PrepareCodeSuggestionChanges(ctx, doer, pr, opts.CommentIDs, opts.ContentVersions, opts.HeadCommitID)
+	changes, err := pull_service.PrepareCodeSuggestionChanges(ctx, doer, pr, opts.Suggestions, opts.HeadCommitID)
 	if err != nil {
 		return err
 	}
@@ -49,20 +39,8 @@ func ApplyCodeSuggestions(ctx context.Context, doer *user_model.User, pr *issues
 		})
 	}
 
-	headRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.HeadRepo)
-	if err != nil {
-		return err
-	}
-	defer closer.Close()
-	headCommitID, err := headRepo.GetBranchCommitID(ctx, pr.HeadBranch)
-	if errors.Is(err, util.ErrNotExist) || err == nil && headCommitID != changes.HeadCommitID {
-		return pull_service.ErrCodeSuggestionHeadChanged
-	} else if err != nil {
-		return err
-	}
-
 	result, err := ChangeRepoFiles(ctx, pr.HeadRepo, doer, &ChangeRepoFilesOptions{
-		OldBranch: pr.HeadBranch, LastCommitID: changes.HeadCommitID,
+		OldBranch: pr.HeadBranch, LastCommitID: opts.HeadCommitID,
 		Files: files, Message: codeSuggestionsCommitMessage(doer, opts.Summary, opts.Description, changes.Comments),
 	})
 	if err != nil {

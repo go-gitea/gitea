@@ -70,10 +70,6 @@ type PullReviewComment struct {
 	DiffHunk     string `json:"diff_hunk"`
 	LineNum      uint64 `json:"position"`
 	OldLineNum   uint64 `json:"original_position"`
-	// First line of a multi-line comment.
-	StartLine uint64 `json:"start_line,omitempty"`
-	// Side of the first line of a multi-line comment, LEFT or RIGHT.
-	StartSide string `json:"start_side,omitempty"`
 
 	HTMLURL     string `json:"html_url"`
 	HTMLPullURL string `json:"pull_request_url"`
@@ -97,10 +93,6 @@ type CreatePullReviewComment struct {
 	OldLineNum int64 `json:"old_position"`
 	// if comment to new file line or 0
 	NewLineNum int64 `json:"new_position"`
-	// First line of a multi-line comment, or 0 for a single-line comment.
-	StartLine int64 `json:"start_line,omitempty"`
-	// Side of start_line, LEFT or RIGHT. Defaults to the side of the end line.
-	StartSide string `json:"start_side,omitempty"`
 }
 
 // CreatePullReviewCommentReplyOptions are options to reply to a pull request review comment

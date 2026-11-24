@@ -221,21 +221,21 @@
 }
 
 .code-suggestion-lines {
-  display: table;
-  width: 100%;
+  display: grid;
+  grid-template-columns: auto auto 1fr;
 }
 
 .code-suggestion-row {
-  display: table-row;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
 }
 
-.code-suggestion-row > div {
-  display: table-cell;
+.code-suggestion-cell {
   padding: 0 8px;
 }
 
 .code-suggestion-diff .lines-type-marker {
-  width: 1%;
   font-family: var(--fonts-monospace);
   user-select: none;
 }

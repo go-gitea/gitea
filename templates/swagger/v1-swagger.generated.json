@@ -27172,17 +27172,6 @@
           "description": "the tree path",
           "type": "string",
           "x-go-name": "Path"
-        },
-        "start_line": {
-          "description": "First line of a multi-line comment, or 0 for a single-line comment.",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "StartLine"
-        },
-        "start_side": {
-          "description": "Side of start_line, LEFT or RIGHT. Defaults to the side of the end line.",
-          "type": "string",
-          "x-go-name": "StartSide"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -32101,17 +32090,6 @@
         },
         "resolver": {
           "$ref": "#/definitions/User"
-        },
-        "start_line": {
-          "description": "First line of a multi-line comment.",
-          "type": "integer",
-          "format": "uint64",
-          "x-go-name": "StartLine"
-        },
-        "start_side": {
-          "description": "Side of the first line of a multi-line comment, LEFT or RIGHT.",
-          "type": "string",
-          "x-go-name": "StartSide"
         },
         "updated_at": {
           "type": "string",

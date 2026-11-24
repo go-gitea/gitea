@@ -17,9 +17,9 @@ import {initImageDiff} from './imagediff.ts';
 import DiffCommitSelector from '../components/DiffCommitSelector.vue';
 import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
 import {
-  findDiffLine, findDiffLineExpander, isDiffLineSelected, parseDiffLineHash, repaintDiffRanges, resolveDiffRange,
+  findDiffLine, findDiffLineExpander, isDiffLineSelected, parseDiffLineHash, resolveDiffRange,
   setDiffLineSelection, type DiffLineHash,
-} from './repo-diff-selection.ts';
+} from './repo-diff-review.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -55,20 +55,31 @@ function initRepoDiffConversationForm() {
         formData.append(submitter.name, submitter.value);
       }
 
-      const codeRow = form.closest('tr.add-comment')?.previousElementSibling;
+      // on the diff page, the form is inside a "tr" and need to get the line-type ahead
+      // but on the conversation page, there is no parent "tr"
+      const trLineType = form.closest('tr')?.getAttribute('data-line-type');
       const response = await performFetchActionRequest(form, {method: 'POST', url: form.getAttribute('action')!, data: formData});
       if (!response) return;
       const newConversationHolder = createElementFromHTML(await response.text());
+      const path = newConversationHolder.getAttribute('data-path');
+      const side = newConversationHolder.getAttribute('data-side');
+      const idx = newConversationHolder.getAttribute('data-idx');
 
       form.closest('.conversation-holder')!.replaceWith(newConversationHolder);
       (form as any) = null; // prevent further usage of the form because it should have been replaced
 
-      if (codeRow) {
-        const side = newConversationHolder.getAttribute('data-side')!;
-        const buttons = codeRow.getAttribute('data-line-type') === 'same' ? '.add-code-comment' :
-          `.add-code-comment[data-side="${CSS.escape(side)}"]`;
-        for (const button of codeRow.querySelectorAll(buttons)) button.classList.add('tw-invisible');
-        repaintDiffRanges(codeRow);
+      if (trLineType) {
+        // if there is a line-type for the "tr", it means the form is on the diff page
+        // then hide the "add-code-comment" [+] button for current code line by adding "tw-invisible" because the conversation has been added
+        let selector;
+        if (trLineType === 'same') {
+          selector = `[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`;
+        } else {
+          selector = `[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`;
+        }
+        for (const el of document.querySelectorAll(selector)) {
+          el.classList.add('tw-invisible');
+        }
       }
 
       // the default behavior is to add a pending review, so if no submitter, it also means "pending_review"
@@ -104,7 +115,6 @@ function initRepoDiffConversationForm() {
       if (elConversationHolder) {
         const elNewConversation = createElementFromHTML(data);
         elConversationHolder.replaceWith(elNewConversation);
-        repaintDiffRanges(elNewConversation);
       } else {
         window.location.reload();
       }
@@ -148,31 +158,10 @@ function onDiffFileBodyChange() {
   initRepoIssueContentHistory(); // it scans the whole page via a fetch, so it doesn't fit the per-element observer pattern
 }
 
-const diffLoads = new WeakMap<Element, Promise<unknown>>();
-
-async function loadDiffPart<T>(button: Element, load: () => Promise<T>) {
-  const pending = diffLoads.get(button) as Promise<T> | undefined;
-  if (pending) return pending;
-  const request = load();
-  diffLoads.set(button, request);
-  try {
-    return await request;
-  } finally {
-    diffLoads.delete(button);
-  }
-}
-
-function diffFragmentUrl(button: Element) {
-  const url = new URL(button.getAttribute('data-href')!, window.location.href);
-  const style = new URLSearchParams(window.location.search).get('style');
-  if (style === 'split') url.searchParams.set('style', style);
-  return url.href;
-}
-
 async function diffLoadMoreFiles(btn: Element): Promise<boolean> {
   if (btn.classList.contains('disabled')) return false;
   btn.classList.add('disabled');
-  const url = diffFragmentUrl(btn);
+  const url = btn.getAttribute('data-href')!;
   try {
     const resp = await GET(url);
     if (!resp.ok) return false;
@@ -196,7 +185,7 @@ async function diffLoadMoreFiles(btn: Element): Promise<boolean> {
 async function diffLoadFileBody(el: Element) {
   if (el.classList.contains('disabled')) return;
   el.classList.add('disabled');
-  const url = diffFragmentUrl(el);
+  const url = el.getAttribute('data-href')!;
   try {
     const resp = await GET(url);
     if (!resp.ok) return;
@@ -215,25 +204,24 @@ async function diffLoadFileBody(el: Element) {
 
 async function scrollToDiffLines(box: HTMLElement, range: DiffLineHash, hash: string) {
   if (box.getAttribute('data-folded') === 'true') setFileFolding(box, box.querySelector('.fold-file')!, false);
-  const loadButton = box.querySelector('[data-global-click="diffLoadFileBody"]');
-  if (loadButton) await loadDiffPart(loadButton, () => diffLoadFileBody(loadButton));
-  const table = box.querySelector<HTMLTableElement>('table[data-new-comment-url]');
+  const loadButton = box.querySelector('.diff-load-file-body');
+  if (loadButton) await diffLoadFileBody(loadButton);
+  const table = box.querySelector<HTMLTableElement>('.diff-review-table');
   if (!table) return;
 
   for (const line of [range.start, range.end]) {
     while (hash === window.location.hash && !findDiffLine(table, range.fileHash, line)) {
       const button = findDiffLineExpander(table, line);
       if (!button) return;
-      await loadDiffPart(button, () => performFetchActionTrigger(button, 'load'));
+      await performFetchActionTrigger(button, 'load');
       if (button.isConnected) return;
     }
   }
   if (hash !== window.location.hash) return;
   const resolved = resolveDiffRange(table, range)!;
   showElem(box);
-  const source = table.closest('.code-diff')!;
-  if (source.classList.contains('tw-hidden')) {
-    box.querySelector<HTMLButtonElement>(`.file-view-toggle[data-toggle-selector="#${CSS.escape(source.id)}"]`)!.click();
+  if (table.closest('.code-diff')!.classList.contains('tw-hidden')) {
+    box.querySelector<HTMLButtonElement>('.file-view-source-toggle')!.click();
   }
   setDiffLineSelection(table, resolved);
   window.history.scrollRestoration = 'manual';
@@ -290,7 +278,7 @@ async function onLocationHashChange(event: HashChangeEvent) {
     }
 
     // Load more files, await ensures we don't block progress
-    const ok = await loadDiffPart(showMoreButton, () => diffLoadMoreFiles(showMoreButton));
+    const ok = await diffLoadMoreFiles(showMoreButton);
     if (!ok) return; // failed to load more files
   }
 }
@@ -306,8 +294,8 @@ function initDiffCommitSelect(el: HTMLElement) {
 
 export function initRepoDiffView() {
   initRepoDiffConversationForm(); // such form appears on the "conversation" page and "diff" page
-  registerGlobalEventFunc('click', 'diffLoadMoreFiles', (el) => { loadDiffPart(el, () => diffLoadMoreFiles(el)) });
-  registerGlobalEventFunc('click', 'diffLoadFileBody', (el) => loadDiffPart(el, () => diffLoadFileBody(el)));
+  registerGlobalEventFunc('click', 'diffLoadMoreFiles', (el) => { diffLoadMoreFiles(el) });
+  registerGlobalEventFunc('click', 'diffLoadFileBody', diffLoadFileBody);
   registerGlobalEventFunc('click', 'diffFileViewFold', (el) => invertFileFolding(el.closest('.file-content')!, el));
   registerGlobalInitFunc('initDiffHeaderPopupMenu', initDiffHeaderPopupMenu);
   registerGlobalInitFunc('initDiffFileViewedForm', initDiffFileViewedForm);
