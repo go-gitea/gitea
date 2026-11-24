@@ -814,25 +814,6 @@
   height: 30px;
 }
 
-.repository .diff-detail-box .diff-refresh-button {
-  padding: 0 8px;
-  height: 26px;
-  color: color-mix(in srgb, var(--color-orange) 55%, var(--color-text));
-  background: var(--color-orange-badge-bg);
-}
-
-.repository .diff-detail-box .diff-refresh-button:is(:hover, :active) {
-  background: color-mix(in srgb, var(--color-orange-badge) 18%, transparent);
-}
-
-@media (min-width: 1024px) {
-  .repository .diff-detail-box .diff-refresh-button {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-}
-
 .repository .diff-file-box .header {
   background-color: var(--color-box-header);
 }

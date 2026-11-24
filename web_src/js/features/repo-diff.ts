@@ -16,7 +16,7 @@ import {applyFiltersToFileBoxes, type DiffFileTreeLocale, diffTreeStore} from '.
 import {initImageDiff} from './imagediff.ts';
 import DiffCommitSelector from '../components/DiffCommitSelector.vue';
 import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
-import {watchPullHead} from '../modules/worker.ts';
+import {subscribeTopic} from '../modules/worker.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -249,10 +249,12 @@ async function onLocationHashChange() {
   }
 }
 
-function initDiffRefresh(button: HTMLElement) {
-  const head = button.getAttribute('data-head');
-  watchPullHead(Number(button.getAttribute('data-pull-id')), (latestHead) => toggleElem(button, latestHead !== head));
-  button.addEventListener('click', () => window.location.reload());
+function initDiffRefresh(el: HTMLElement) {
+  const pullId = Number(el.getAttribute('data-pull-id'));
+  subscribeTopic(`pull-${pullId}`, 'pull-head', ({eventData}) => {
+    if (eventData.pullId === pullId) toggleElem(el, eventData.head !== el.getAttribute('data-head'));
+  });
+  el.addEventListener('click', () => window.location.reload());
 }
 
 function initDiffFileTree(el: HTMLElement) {

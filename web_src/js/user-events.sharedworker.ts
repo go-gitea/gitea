@@ -1,6 +1,5 @@
 import {
   serverUserEventTypes,
-  type PullHeadCommand,
   type SharedWorkerControlMessage,
   type UserEventMessage,
   type WorkerEventMessage,
@@ -77,7 +76,7 @@ class WsSource {
   failuresWithoutConnect: number;
   fallbackSignalled: boolean;
   closed: boolean;
-  pullHeadWatches = new Map<MessagePort, number>();
+  topicPorts: Map<string, Set<MessagePort>>;
 
   constructor(wsUrl: string, source: Source) {
     this.wsUrl = wsUrl;
@@ -88,6 +87,7 @@ class WsSource {
     this.failuresWithoutConnect = 0;
     this.fallbackSignalled = false;
     this.closed = false;
+    this.topicPorts = new Map();
     this.connect();
   }
 
@@ -98,9 +98,7 @@ class WsSource {
     this.ws.addEventListener('open', () => {
       this.reconnectDelay = 1000;
       this.failuresWithoutConnect = 0;
-      for (const pullId of new Set(this.pullHeadWatches.values())) {
-        this.sendPullHeadCommand('watch-pull-head', pullId);
-      }
+      for (const topic of this.topicPorts.keys()) this.sendClientMessage('subscribe', topic);
       this.source.notifyClientsUserEvent({eventType: 'worker-connected'});
     });
 
@@ -139,22 +137,21 @@ class WsSource {
     });
   }
 
-  sendPullHeadCommand(type: PullHeadCommand['type'], pullId: number) {
-    if (this.ws?.readyState !== WebSocket.OPEN) return;
-    const command: PullHeadCommand = {type, pullId};
-    this.ws.send(JSON.stringify(command));
+  sendClientMessage(type: 'subscribe' | 'unsubscribe', topic: string) {
+    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify({type, topic}));
   }
 
-  setPullHeadWatch(port: MessagePort, pullId?: number) {
-    const previous = this.pullHeadWatches.get(port);
-    if (previous === pullId) return;
-    this.pullHeadWatches.delete(port);
-    if (previous !== undefined && !Array.from(this.pullHeadWatches.values()).includes(previous)) {
-      this.sendPullHeadCommand('unwatch-pull-head', previous);
-    }
-    if (pullId !== undefined) {
-      this.pullHeadWatches.set(port, pullId);
-      this.sendPullHeadCommand('watch-pull-head', pullId); // A new tab needs the latest head even if another tab is already watching.
+  subscribe(port: MessagePort, topic: string) {
+    this.topicPorts.set(topic, (this.topicPorts.get(topic) ?? new Set()).add(port));
+    this.sendClientMessage('subscribe', topic); // also when already subscribed, so the server resends the current state for the new port
+  }
+
+  unsubscribe(port: MessagePort) {
+    for (const [topic, ports] of this.topicPorts) {
+      if (ports.delete(port) && !ports.size) {
+        this.topicPorts.delete(topic);
+        this.sendClientMessage('unsubscribe', topic);
+      }
     }
   }
 
@@ -222,7 +219,6 @@ const wsSourcesByUrl = new Map<string, WsSource>();
 
           // How this has happened I don't understand...
           // deregister from that source
-          wsSourcesByUrl.get(source.url)?.setPullHeadWatch(port);
           const count = source.deregister(port);
           // Clean-up
           if (count === 0) {
@@ -240,15 +236,15 @@ const wsSourcesByUrl = new Map<string, WsSource>();
         sourcesByUrl.set(url, source);
         sourcesByPort.set(port, source);
         wsSourcesByUrl.set(url, new WsSource(url, source));
-      } else if (event.data.type === 'watch-pull-head') {
+      } else if (event.data.type === 'subscribe') {
         const source = sourcesByPort.get(port);
-        if (source) wsSourcesByUrl.get(source.url)!.setPullHeadWatch(port, event.data.pullId);
+        if (source) wsSourcesByUrl.get(source.url)!.subscribe(port, event.data.topic);
       } else if (event.data.type === 'close') {
         logDebug('received control message close', event.data);
         const source = sourcesByPort.get(port);
         if (!source) return;
 
-        wsSourcesByUrl.get(source.url)?.setPullHeadWatch(port);
+        wsSourcesByUrl.get(source.url)!.unsubscribe(port);
         const count = source.deregister(port);
         sourcesByPort.delete(port);
         if (count === 0) {

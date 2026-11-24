@@ -115,6 +115,4 @@ export type SharedWorkerControlMessage = {
   type: 'start',
   url: string,
   showDebugLog: boolean,
-} | {type: 'close'} | {type: 'watch-pull-head', pullId: number};
-
-export type PullHeadCommand = {type: 'watch-pull-head' | 'unwatch-pull-head', pullId: number};
+} | {type: 'close'} | {type: 'subscribe', topic: string};

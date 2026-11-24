@@ -38,6 +38,6 @@ func UserTopic(userID int64) string {
 	return fmt.Sprintf("user-%d", userID)
 }
 
-func PullHeadTopic(prID int64) string {
-	return fmt.Sprintf("pull-head-%d", prID)
+func PullTopic(pullID int64) string {
+	return fmt.Sprintf("pull-%d", pullID)
 }

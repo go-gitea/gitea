@@ -283,6 +283,19 @@ button:disabled,
   border-color: var(--color-green-dark-2);
 }
 
+.ui.orange.button {
+  color: var(--color-white);
+  background: var(--color-orange);
+}
+
+.ui.orange.button:hover {
+  background: var(--color-orange-dark-1);
+}
+
+.ui.orange.button:active {
+  background: var(--color-orange-dark-2);
+}
+
 .ui.buttons {
   display: inline-flex;
   flex-direction: row;

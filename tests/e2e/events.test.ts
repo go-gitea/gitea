@@ -1,9 +1,10 @@
+import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, apiCloseIssue, randomString} from './utils.ts';
+import {
+  login, loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, apiCloseIssue,
+  apiCreateFiles, apiCreatePR, randomString,
+} from './utils.ts';
 
-// The /-/ws WebSocket pipeline is push-only: every event is fired by the server
-// immediately on the DB write. These tests exercise that each event type
-// (notification-count, stopwatches, logout) reaches a connected tab.
 test.describe('events', () => {
   test('notification count increases on new notification', async ({page, request}) => {
     const owner = `ev-notif-owner-${randomString(8)}`;
@@ -109,6 +110,26 @@ test.describe('events', () => {
     await expect(page.getByRole('button', {name: 'Stop timer'})).toBeVisible();
     await expect(page.getByRole('button', {name: 'Discard timer'})).toBeVisible();
     await expect(page.getByTitle('Active Time Tracker')).toBeVisible();
+  });
+
+  test('pull request diff offers a refresh after a push', async ({page, request}) => {
+    const repoName = `ev-pull-head-${randomString(8)}`;
+    const owner = env.GITEA_TEST_E2E_USER;
+    const [index] = await Promise.all([
+      (async () => {
+        await apiCreateRepo(request, {name: repoName});
+        await apiCreateFiles(request, owner, repoName, [{path: 'first.txt', content: 'first\n'}], {newBranch: 'feature'});
+        return apiCreatePR(request, owner, repoName, 'feature', 'main', repoName);
+      })(),
+      login(page),
+    ]);
+    await page.goto(`/${owner}/${repoName}/pulls/${index}/files`);
+    const refresh = page.getByRole('button', {name: 'Refresh', exact: true});
+    await expect(refresh).toBeHidden();
+
+    await apiCreateFiles(request, owner, repoName, [{path: 'second.txt', content: 'second\n'}], {branch: 'feature'});
+    await refresh.click();
+    await expect(page.getByText(/2 changed files/)).toBeVisible();
   });
 
   test('logout propagation', async ({browser, request}) => {

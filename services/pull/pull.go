@@ -36,7 +36,7 @@ import (
 	git_service "gitea.dev/services/git"
 	issue_service "gitea.dev/services/issue"
 	notify_service "gitea.dev/services/notify"
-	websocket_service "gitea.dev/services/websocket"
+	"gitea.dev/services/pubsub"
 
 	"xorm.io/builder"
 )
@@ -638,9 +638,7 @@ func updatePullHeadRef(ctx context.Context, pr *issues_model.PullRequest, headCo
 	if err := git.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), headCommitID); err != nil {
 		return err
 	}
-	if pr.ID != 0 {
-		websocket_service.PublishPullHead(pr.ID, headCommitID)
-	}
+	pubsub.DefaultBroker.Publish(pubsub.PullTopic(pr.ID), nil)
 	return nil
 }
 

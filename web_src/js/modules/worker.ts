@@ -129,10 +129,7 @@ export function onUserEvent<T extends UserEventType>(type: T, cb: Subscriber<T>)
   return () => { set.delete(wrapped) };
 }
 
-export function watchPullHead(pullId: number, onHead: (head: string) => void) {
-  onUserEvent('pull-head', ({eventData}) => {
-    if (eventData.pullId === pullId) onHead(eventData.head);
-  });
-  const message: SharedWorkerControlMessage = {type: 'watch-pull-head', pullId};
-  sharedWorker?.port.postMessage(message);
+export function subscribeTopic<T extends UserEventType>(topic: string, type: T, cb: Subscriber<T>) {
+  onUserEvent(type, cb);
+  sharedWorker?.port.postMessage({type: 'subscribe', topic} satisfies SharedWorkerControlMessage);
 }
