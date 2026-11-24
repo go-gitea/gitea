@@ -60,18 +60,24 @@ var (
 	maxSeverityEq4    = map[int]float64{0: 6, 1: 5, 2: 4}
 )
 
-// severity distance weights of each metric value: 0.0 is the most severe value
-var (
-	severityLevelsAV  = map[string]float64{"N": 0.0, "A": 0.1, "L": 0.2, "P": 0.3}
-	severityLevelsPR  = map[string]float64{"N": 0.0, "L": 0.1, "H": 0.2}
-	severityLevelsUI  = map[string]float64{"N": 0.0, "P": 0.1, "A": 0.2}
-	severityLevelsAC  = map[string]float64{"L": 0.0, "H": 0.1}
-	severityLevelsAT  = map[string]float64{"N": 0.0, "P": 0.1}
-	severityLevelsCIA = map[string]float64{"H": 0.0, "L": 0.1, "N": 0.2}
-	severityLevelsSC  = map[string]float64{"H": 0.1, "L": 0.2, "N": 0.3}
-	severityLevelsSI  = map[string]float64{"S": 0.0, "H": 0.1, "L": 0.2, "N": 0.3}
-	severityLevelsCR  = map[string]float64{"H": 0.0, "M": 0.1, "L": 0.2}
-)
+// severityLevelsByMetric maps each metric to the severity distance weights of its
+// values: 0.0 is the most severe value
+var severityLevelsByMetric = map[string]map[string]float64{
+	"AV": {"N": 0.0, "A": 0.1, "L": 0.2, "P": 0.3},
+	"PR": {"N": 0.0, "L": 0.1, "H": 0.2},
+	"UI": {"N": 0.0, "P": 0.1, "A": 0.2},
+	"AC": {"L": 0.0, "H": 0.1},
+	"AT": {"N": 0.0, "P": 0.1},
+	"VC": {"H": 0.0, "L": 0.1, "N": 0.2},
+	"VI": {"H": 0.0, "L": 0.1, "N": 0.2},
+	"VA": {"H": 0.0, "L": 0.1, "N": 0.2},
+	"SC": {"H": 0.1, "L": 0.2, "N": 0.3},
+	"SI": {"S": 0.0, "H": 0.1, "L": 0.2, "N": 0.3},
+	"SA": {"S": 0.0, "H": 0.1, "L": 0.2, "N": 0.3},
+	"CR": {"H": 0.0, "M": 0.1, "L": 0.2},
+	"IR": {"H": 0.0, "M": 0.1, "L": 0.2},
+	"AR": {"H": 0.0, "M": 0.1, "L": 0.2},
+}
 
 // worstCaseDefaults are the values assumed for absent optional metrics
 // (the base score assumes the worst case for threat/environmental metrics)
@@ -132,6 +138,21 @@ func extractValueMetric(metric, s string) string {
 	rest := s[i+len(metric)+1:]
 	value, _, _ := strings.Cut(rest, "/")
 	return value
+}
+
+// severityDistance returns the severity distance of the vector to a highest-severity
+// (max) vector, per metric; ok is false if the vector exceeds the max vector in any metric
+func (v *Vector) severityDistance(maxVector string) (dist map[string]float64, ok bool) {
+	m := v.m4
+	dist = make(map[string]float64, len(severityLevelsByMetric))
+	for metric, levels := range severityLevelsByMetric {
+		d := levels[m(metric)] - levels[extractValueMetric(metric, maxVector)]
+		if d < 0 {
+			return nil, false
+		}
+		dist[metric] = d
+	}
+	return dist, true
 }
 
 func (v *Vector) baseScore4() float64 {
@@ -200,23 +221,10 @@ func (v *Vector) baseScore4() float64 {
 	}
 	var distEq1, distEq2, distEq3eq6, distEq4 float64
 	found := false
-maxVectorsLoop:
 	for _, maxVector := range maxVectors {
-		// severity distance of the vector to the max vector, per metric
-		dist := make(map[string]float64, 14)
-		for metric, levels := range map[string]map[string]float64{
-			"AV": severityLevelsAV, "PR": severityLevelsPR, "UI": severityLevelsUI,
-			"AC": severityLevelsAC, "AT": severityLevelsAT,
-			"VC": severityLevelsCIA, "VI": severityLevelsCIA, "VA": severityLevelsCIA,
-			"SC": severityLevelsSC, "SI": severityLevelsSI, "SA": severityLevelsSI,
-			"CR": severityLevelsCR, "IR": severityLevelsCR, "AR": severityLevelsCR,
-		} {
-			dist[metric] = levels[m(metric)] - levels[extractValueMetric(metric, maxVector)]
-		}
-		for _, d := range dist {
-			if d < 0 {
-				continue maxVectorsLoop
-			}
+		dist, ok := v.severityDistance(maxVector)
+		if !ok {
+			continue
 		}
 		distEq1 = dist["AV"] + dist["PR"] + dist["UI"]
 		distEq2 = dist["AC"] + dist["AT"]
