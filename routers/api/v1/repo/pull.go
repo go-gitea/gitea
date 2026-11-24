@@ -1577,7 +1577,7 @@ func GetPullRequestConflicts(ctx *context.APIContext) {
 		ctx.APIError(http.StatusNotImplemented, err.Error())
 		return
 	case errors.Is(err, pull_service.ErrConflictRefNotFound):
-		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+		ctx.APIError(http.StatusUnprocessableEntity, pull_service.ErrConflictRefNotFound.Error())
 		return
 	case errors.Is(err, util.ErrNotExist):
 		ctx.APIError(http.StatusUnprocessableEntity, "pull request has no common history with its base branch")
