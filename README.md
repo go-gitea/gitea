@@ -196,3 +196,12 @@ for the full license text.
 ![Home](https://dl.gitea.com/screenshots/org_home.png)
 
 </details>
+
+## Star History
+
+<a href="https://starry.direct-img.link">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://starry.direct-img.link/go-gitea/gitea/dark.svg">
+    <img alt="go-gitea/gitea star history" src="https://starry.direct-img.link/go-gitea/gitea.svg">
+  </picture>
+</a>
