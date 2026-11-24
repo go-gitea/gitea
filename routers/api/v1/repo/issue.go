@@ -360,7 +360,13 @@ func ListIssues(ctx *context.APIContext) {
 
 	var excludedLabelIDs []int64
 	if names := ctx.FormTrim("exclude_labels"); names != "" {
-		excludedLabelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, strings.Split(names, ","))
+		excludedLabelNames := strings.Split(names, ",")
+		excludedLabelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, excludedLabelNames)
+		if err == nil && ctx.Repo.Owner.IsOrganization() {
+			var orgLabelIDs []int64
+			orgLabelIDs, err = issues_model.GetLabelIDsInOrgByNames(ctx, ctx.Repo.Owner.ID, excludedLabelNames)
+			excludedLabelIDs = append(excludedLabelIDs, orgLabelIDs...)
+		}
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
