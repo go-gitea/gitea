@@ -10,11 +10,9 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
@@ -126,61 +124,27 @@ func TestRetrieveRepoIssueMetaDataWithPrefill(t *testing.T) {
 
 func TestRetrieveReviewersDataCrossOrgTeam(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
+	require.NoError(t, db.Insert(t.Context(), []*issues_model.Review{
+		{IssueID: 501, Type: issues_model.ReviewTypeRequest, ReviewerTeamID: 1},
+		{IssueID: 501, Type: issues_model.ReviewTypeRequest, ReviewerTeamID: 9},
+		{IssueID: 501, Type: issues_model.ReviewTypeRequest, ReviewerTeamID: 16},
+	}))
 
-	org1 := &user_model.User{ID: 501, Name: "org1", LowerName: "org1", Type: user_model.UserTypeOrganization, IsActive: true}
-	org2 := &user_model.User{ID: 502, Name: "org2", LowerName: "org2", Type: user_model.UserTypeOrganization, IsActive: true}
-	team1 := &organization.Team{ID: 501, OrgID: org1.ID, Name: "admins", LowerName: "admins", AccessMode: perm.AccessModeAdmin}
-	team2 := &organization.Team{ID: 502, OrgID: org2.ID, Name: "admins", LowerName: "admins", AccessMode: perm.AccessModeAdmin}
-	repo := &repo_model.Repository{ID: 501, OwnerID: org1.ID, OwnerName: org1.Name, Name: "cross-org-repo", LowerName: "cross-org-repo"}
-	issue := &issues_model.Issue{ID: 501, RepoID: repo.ID, Index: 1, PosterID: 2, IsPull: true, Title: "test pr"}
-	pr := &issues_model.PullRequest{ID: 501, IssueID: issue.ID, BaseRepoID: repo.ID, HeadRepoID: repo.ID}
-	review1 := &issues_model.Review{ID: 501, IssueID: issue.ID, Type: issues_model.ReviewTypeRequest, ReviewerTeamID: team1.ID}
-	review2 := &issues_model.Review{ID: 502, IssueID: issue.ID, Type: issues_model.ReviewTypeRequest, ReviewerTeamID: team2.ID}
-
-	require.NoError(t, db.Insert(t.Context(),
-		[]*user_model.User{org1, org2},
-		[]*organization.Team{team1, team2},
-		[]*organization.TeamUser{{OrgID: org1.ID, TeamID: team1.ID, UID: 2}},
-		[]*organization.TeamRepo{{OrgID: org1.ID, TeamID: team1.ID, RepoID: repo.ID}},
-		repo,
-		issue,
-		pr,
-		[]*issues_model.Review{review1, review2},
-	))
-
-	ctx, _ := contexttest.MockContext(t, "/org1/cross-org-repo/pulls/1", contexttest.MockContextOption{Render: templates.PageRenderer()})
+	ctx, _ := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
 	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadRepo(t, ctx, repo.ID)
-	require.NoError(t, issue.LoadAttributes(ctx))
-
-	data := retrieveRepoIssueMetaData(ctx, ctx.Repo.Repository, issue, true)
-	require.False(t, ctx.Written())
-
-	teamOrgByID := map[int64]string{}
-	for _, item := range data.ReviewersData.CurrentPullReviewers {
-		if item.Team != nil {
-			teamOrgByID[item.Team.ID] = item.TeamOrgName
-		}
+	contexttest.LoadRepo(t, ctx, 3)
+	data := &IssuePageMetaData{
+		RepoLink:      ctx.Repo.RepoLink,
+		Repository:    ctx.Repo.Repository,
+		Issue:         &issues_model.Issue{ID: 501, PosterID: ctx.Doer.ID, PullRequest: &issues_model.PullRequest{}},
+		ReviewersData: &issueSidebarReviewersData{},
 	}
-	assert.Equal(t, map[int64]string{
-		team1.ID: "org1",
-		team2.ID: "org2",
-	}, teamOrgByID)
+	data.retrieveReviewersData(ctx)
+	require.False(t, ctx.Written())
 
 	rendered, err := ctx.RenderToHTML("repo/issue/sidebar/reviewer_list", data)
 	require.NoError(t, err)
-	assert.Contains(t, string(rendered), "org1/admins")
-	assert.Contains(t, string(rendered), "org2/admins")
-	assert.Equal(t, map[int64]string{
-		team1.ID: "org1",
-		team2.ID: "org2",
-	}, func() map[int64]string {
-		m := map[int64]string{}
-		for _, item := range data.ReviewersData.TeamReviewers {
-			if item.Team != nil {
-				m[item.Team.ID] = item.TeamOrgName
-			}
-		}
-		return m
-	}())
+	assert.Contains(t, string(rendered), "org3/Owners")
+	assert.Contains(t, string(rendered), "org17/review_team")
+	assert.NotContains(t, string(rendered), "privated_org")
 }

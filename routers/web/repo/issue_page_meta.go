@@ -5,6 +5,7 @@ package repo
 
 import (
 	"html/template"
+	"maps"
 	"net/url"
 	"slices"
 	"sort"
@@ -543,34 +544,22 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 		data.TeamReviewers = teamReviewersResult
 	}
 
-	otherOrgIDs := make(container.Set[int64])
-	for _, list := range [][]*repoReviewerSelection{data.CurrentPullReviewers, data.TeamReviewers} {
-		for _, item := range list {
-			if item.Team != nil {
-				if item.Team.OrgID == repo.OwnerID {
-					item.TeamOrgName = repo.OwnerName
-				} else if item.Team.OrgID > 0 {
-					otherOrgIDs.Add(item.Team.OrgID)
-				}
-			}
-		}
+	teamItems := slices.DeleteFunc(slices.Concat(data.CurrentPullReviewers, data.TeamReviewers), func(item *repoReviewerSelection) bool { return item.Team == nil })
+	otherOrgs, err := user_model.GetUsersMapByIDs(ctx, container.FilterSlice(teamItems, func(item *repoReviewerSelection) (int64, bool) {
+		return item.Team.OrgID, item.Team.OrgID != repo.OwnerID
+	}))
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
 	}
-	if len(otherOrgIDs) > 0 {
-		orgs, err := user_model.GetUsersByIDs(ctx, otherOrgIDs.Values())
-		if err != nil {
-			ctx.ServerErrorAuto(err)
-			return
-		}
-		orgNames := make(map[int64]string, len(orgs))
-		for _, org := range orgs {
-			orgNames[org.ID] = org.Name
-		}
-		for _, list := range [][]*repoReviewerSelection{data.CurrentPullReviewers, data.TeamReviewers} {
-			for _, item := range list {
-				if item.Team != nil && item.TeamOrgName == "" {
-					item.TeamOrgName = orgNames[item.Team.OrgID]
-				}
-			}
+	maps.DeleteFunc(otherOrgs, func(_orgID int64, org *user_model.User) bool {
+		return !organization.HasOrgOrUserVisible(ctx, org, ctx.Doer)
+	})
+	for _, item := range teamItems {
+		if item.Team.OrgID == repo.OwnerID {
+			item.TeamOrgName = repo.OwnerName
+		} else if org, ok := otherOrgs[item.Team.OrgID]; ok {
+			item.TeamOrgName = org.Name
 		}
 	}
 }
