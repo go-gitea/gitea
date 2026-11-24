@@ -9,9 +9,9 @@ import (
 	"crypto/rsa"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 
+	"gitea.dev/modules/consts"
 	"gitea.dev/modules/generate"
 
 	"github.com/stretchr/testify/assert"
@@ -73,7 +73,7 @@ func TestInitKeys(t *testing.T) {
 	keyFiles, err := InitDefaultHostKeys(tempDir)
 	require.NoError(t, err)
 	assert.Len(t, keyFiles, len(keyTypes))
-	if runtime.GOOS != "windows" { // Windows has no POSIX permission bits
+	if !consts.IsWindows {
 		info, err := os.Stat(tempDir)
 		require.NoError(t, err)
 		assert.Equal(t, os.FileMode(0o700), info.Mode().Perm())
