@@ -136,19 +136,16 @@ type ActionRunJob struct {
 	Updated timeutil.TimeStamp `xorm:"updated index index(pickup)"`
 }
 
-// RunsOnLabelsWithGroup keeps the API labels as they were before runner groups, when the group was a label
-func (job *ActionRunJob) RunsOnLabelsWithGroup() []string {
+// RunsOnLabelsWithGroup lists the lowercased group after the labels, the API showed the group as a label before runner groups
+func (job *ActionRunJob) RunsOnLabelsWithGroup(prefix string) []string {
 	if job.RunsOnGroup == "" {
 		return job.RunsOn
 	}
-	return append(slices.Clone(job.RunsOn), job.RunsOnGroup)
+	return append(slices.Clone(job.RunsOn), prefix+job.RunsOnGroup)
 }
 
 func (job *ActionRunJob) RunsOnDisplay() []string {
-	if job.RunsOnGroup == "" {
-		return job.RunsOn
-	}
-	return append(slices.Clone(job.RunsOn), "group: "+job.RunsOnGroup)
+	return job.RunsOnLabelsWithGroup("group: ")
 }
 
 // ActionRunAttemptJobIDIndex backs the run-wide AttemptJobID counter, keyed by ActionRun.ID.

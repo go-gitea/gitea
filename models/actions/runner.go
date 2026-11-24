@@ -212,11 +212,7 @@ func (r *ActionRunner) CanRunJob(runsOnGroup string, runsOnLabels []string) bool
 }
 
 func runnerGroupGrantsCond(repoCond builder.Cond) builder.Cond {
-	return builder.Or(
-		builder.Eq{"group_id": 0},
-		builder.In("group_id", builder.Select("id").From("action_runner_group").Where(builder.Eq{"includes_all_repositories": true})),
-		builder.In("group_id", builder.Select("group_id").From("action_runner_access").Where(repoCond)),
-	)
+	return builder.Eq{"group_id": 0}.Or(builder.In("group_id", builder.Select("id").From("action_runner_group").Where(groupGrantsCond(repoCond))))
 }
 
 func init() {
@@ -234,6 +230,7 @@ type FindRunnerOptions struct {
 	IDs           []int64
 	RepoID        int64
 	OwnerID       int64 // it will be ignored if RepoID is set
+	GroupID       optional.Option[int64]
 	Sort          string
 	Filter        string
 	IsOnline      optional.Option[bool]
@@ -252,6 +249,10 @@ func (opts FindRunnerOptions) ToConds() builder.Cond {
 		}
 	}
 
+	if opts.GroupID.Has() {
+		cond = cond.And(builder.Eq{"group_id": opts.GroupID.Value()})
+	}
+
 	if opts.RepoID > 0 {
 		c := builder.NewCond().And(builder.Eq{"repo_id": opts.RepoID})
 		if opts.WithAvailable {
@@ -263,8 +264,7 @@ func (opts FindRunnerOptions) ToConds() builder.Cond {
 	} else if opts.OwnerID > 0 { // OwnerID is ignored if RepoID is set
 		c := builder.NewCond().And(builder.Eq{"owner_id": opts.OwnerID})
 		if opts.WithAvailable {
-			ownerRepos := builder.In("repo_id", builder.Select("id").From("repository").Where(builder.Eq{"owner_id": opts.OwnerID}))
-			c = c.Or(builder.Eq{"repo_id": 0, "owner_id": 0}.And(runnerGroupGrantsCond(ownerRepos)))
+			c = c.Or(builder.Eq{"repo_id": 0, "owner_id": 0}.And(runnerGroupGrantsCond(builder.In("repo_id", builder.Select("id").From("repository").Where(builder.Eq{"owner_id": opts.OwnerID})))))
 		}
 		cond = cond.And(c)
 	}

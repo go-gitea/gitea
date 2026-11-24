@@ -9,11 +9,13 @@ import (
 	"slices"
 	"testing"
 
+	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
@@ -27,6 +29,49 @@ func TestAPIActionsRunner(t *testing.T) {
 	t.Run("UserRunner", testActionsRunnerUser)
 	t.Run("OwnerRunner", testActionsRunnerOwner)
 	t.Run("RepoRunner", testActionsRunnerRepo)
+	t.Run("RunnerGroups", testActionsRunnerGroups)
+}
+
+func testActionsRunnerGroups(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization)
+	groupRunners := func(groupID int64) map[int64]int64 {
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/org3/actions/runner-groups/%d/runners", groupID)).AddTokenAuth(token)
+		runners := map[int64]int64{}
+		for _, runner := range DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ActionRunnersResponse{}).Entries {
+			runners[runner.ID] = runner.RunnerGroupID
+		}
+		return runners
+	}
+	assert.Equal(t, map[int64]int64{34347: 0, 34349: 0, 34350: 0}, groupRunners(0))
+
+	global, err := actions_model.CreateRunnerGroup(t.Context(), 0, "global-gpu")
+	require.NoError(t, err)
+	require.NoError(t, actions_model.UpdateRunnerGroup(t.Context(), global, false, []int64{3}, []int64{34349}))
+	unused, err := actions_model.CreateRunnerGroup(t.Context(), 0, "unused")
+	require.NoError(t, err)
+	_, err = actions_model.CreateRunnerGroup(t.Context(), 3, "org-gpu")
+	require.NoError(t, err)
+	assert.Equal(t, map[int64]int64{34349: global.ID}, groupRunners(global.ID))
+
+	listGroups := func(url, token string) map[string]bool {
+		res := DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(token), http.StatusOK), &api.ActionRunnerGroupsResponse{})
+		inherited := map[string]bool{}
+		for _, group := range res.Entries {
+			inherited[group.Name] = group.Inherited
+		}
+		return inherited
+	}
+	assert.Equal(t, map[string]bool{"Default": false, "global-gpu": true, "org-gpu": false}, listGroups("/api/v1/orgs/org3/actions/runner-groups", token))
+	assert.Equal(t, map[string]bool{"Default": false, "global-gpu": true}, listGroups("/api/v1/orgs/org3/actions/runner-groups?visible_to_repository=repo3", token))
+	assert.Equal(t, map[string]bool{"Default": false, "global-gpu": false, "unused": false}, listGroups("/api/v1/admin/actions/runner-groups", getUserToken(t, "user1", auth_model.AccessTokenScopeReadAdmin)))
+
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/org3/actions/runner-groups/%d", global.ID)).AddTokenAuth(token)
+	assert.Equal(t, &api.ActionRunnerGroup{
+		ID: global.ID, Name: "global-gpu", Visibility: "selected", Inherited: true, AllowsPublicRepositories: true,
+		RunnersURL: fmt.Sprintf("%sapi/v1/orgs/org3/actions/runner-groups/%d/runners", setting.AppURL, global.ID),
+	}, DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ActionRunnerGroup{}))
+	MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/org3/actions/runner-groups/%d", unused.ID)).AddTokenAuth(token), http.StatusNotFound)
 }
 
 func loginRepoAdmin(t *testing.T, repo *repo_model.Repository) *TestSession {

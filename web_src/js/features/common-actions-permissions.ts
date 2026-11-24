@@ -6,16 +6,17 @@ import {repoSearchUrl, type RepoSearchResponse} from './comp/SearchRepoBox.ts';
 export function initActionsPermissionsForm(): void {
   registerGlobalInitFunc('initRepoActionsPermissionsForm', initRepoActionsPermissionsForm);
   registerGlobalInitFunc('initOwnerActionsPermissionsForm', initOwnerActionsPermissionsForm);
-  registerGlobalInitFunc('initRunnerRepoAccess', initRunnerRepoAccess);
+  registerGlobalInitFunc('initRunnerGroupForm', initRunnerGroupForm);
 }
 
-function initRunnerRepoAccess(section: HTMLElement) {
-  const dropdown = section.querySelector<HTMLElement>('.ui.dropdown')!;
-  const uid = dropdown.getAttribute('data-uid')!;
-  queryElems<HTMLInputElement>(section, 'input[name=repo_access]', (radio) => {
-    radio.addEventListener('change', () => toggleElem(dropdown, radio.value === 'selected'));
+function initRunnerGroupForm(form: HTMLFormElement) {
+  const [runnerDropdown, repoDropdown] = form.querySelectorAll<HTMLElement>('.ui.dropdown');
+  fomanticQuery(runnerDropdown).dropdown({preserveHTML: false});
+  const uid = repoDropdown.getAttribute('data-uid')!;
+  queryElems<HTMLInputElement>(form, 'input[name=repo_access]', (radio) => {
+    radio.addEventListener('change', () => toggleElem(repoDropdown, radio.value === 'selected'));
   });
-  fomanticQuery(dropdown).dropdown({
+  fomanticQuery(repoDropdown).dropdown({
     preserveHTML: false,
     apiSettings: {
       url: repoSearchUrl(uid, uid !== '0'),

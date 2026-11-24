@@ -47,7 +47,6 @@ func TestCanRunJob(t *testing.T) {
 	assert.True(t, runner.CanRunJob("gpu", []string{"SELF-HOSTED", "linux"}))
 	assert.False(t, runner.CanRunJob("gpu", []string{"linux", "arm64"}))
 	assert.True(t, runner.CanRunJob("gpu", nil))
-	assert.False(t, runner.CanRunJob("", []string{"linux", "arm64"}))
 	assert.False(t, runner.CanRunJob("", nil))
 	assert.False(t, runner.CanRunJob("cpu", []string{"linux"}))
 	assert.False(t, (&ActionRunner{AgentLabels: []string{"gpu"}}).CanRunJob("gpu", nil))

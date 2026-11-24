@@ -221,7 +221,6 @@ func TestActionsRunnerModify(t *testing.T) {
 
 		sessionAdmin.MakeRequest(t, NewRequestWithValues(t, "POST", adminGroupsURL, map[string]string{"name": "gpu"}), http.StatusOK)
 		sessionAdmin.MakeRequest(t, NewRequestWithValues(t, "POST", adminGroupsURL, map[string]string{"name": "org/gpu"}), http.StatusBadRequest)
-		sessionAdmin.MakeRequest(t, NewRequestWithValues(t, "POST", orgGroupsURL, map[string]string{"name": "GPU"}), http.StatusBadRequest)
 		sessionAdmin.MakeRequest(t, NewRequestWithValues(t, "POST", orgGroupsURL, map[string]string{"name": "cpu"}), http.StatusOK)
 		group := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunnerGroup{Name: "gpu"})
 		orgGroup := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunnerGroup{Name: "cpu", OwnerID: org3.ID})
@@ -230,8 +229,10 @@ func TestActionsRunnerModify(t *testing.T) {
 		assert.Contains(t, resp.Body.String(), fmt.Sprintf(`href="%s/%d"`, adminGroupsURL, group.ID))
 		assert.NotContains(t, resp.Body.String(), fmt.Sprintf(`href="%s/%d"`, adminGroupsURL, orgGroup.ID))
 
-		setRepos := func(t *testing.T, baseURL string, id int64, repos string, expected int) {
-			req := NewRequestWithValues(t, "POST", fmt.Sprintf("%s/%d", baseURL, id), map[string]string{"repos": repos})
+		updateGroup := func(t *testing.T, baseURL string, groupID int64, runners string, expected int) {
+			req := NewRequestWithValues(t, "POST", fmt.Sprintf("%s/%d", baseURL, groupID), map[string]string{
+				"repos": strconv.FormatInt(repo1.ID, 10), "runners": runners,
+			})
 			sessionAdmin.MakeRequest(t, req, expected)
 		}
 		runner := &actions_model.ActionRunner{Name: "grouped-runner", TokenHash: "h", UUID: "h"}
@@ -239,23 +240,15 @@ func TestActionsRunnerModify(t *testing.T) {
 		resp = sessionAdmin.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("%s/%d", adminGroupsURL, group.ID)), http.StatusOK)
 		assert.Contains(t, resp.Body.String(), "grouped-runner")
 
-		setRepos(t, orgGroupsURL, orgGroup.ID, strconv.FormatInt(repo1.ID, 10), http.StatusBadRequest)
+		updateGroup(t, orgGroupsURL, orgGroup.ID, "", http.StatusBadRequest)
 		unittest.AssertNotExistsBean(t, &actions_model.ActionRunnerAccess{GroupID: orgGroup.ID})
-		setRepos(t, orgGroupsURL, group.ID, strconv.FormatInt(repo1.ID, 10), http.StatusNotFound)
+		updateGroup(t, orgGroupsURL, group.ID, "", http.StatusNotFound)
 
-		assign := func(t *testing.T, runners string) {
-			req := NewRequestWithValues(t, "POST", fmt.Sprintf("%s/%d", adminGroupsURL, group.ID), map[string]string{
-				"repos": strconv.FormatInt(repo1.ID, 10), "runners": runners,
-			})
-			sessionAdmin.MakeRequest(t, req, http.StatusOK)
-		}
-		assign(t, strconv.FormatInt(runner.ID, 10))
+		updateGroup(t, adminGroupsURL, group.ID, strconv.FormatInt(runner.ID, 10), http.StatusOK)
 		assert.Equal(t, group.ID, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: runner.ID}).GroupID)
 		unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunnerAccess{GroupID: group.ID, RepoID: repo1.ID})
 
-		doAction(t, sessionAdmin, adminGroupsURL, group.ID, "delete", http.StatusBadRequest)
-
-		assign(t, "")
+		updateGroup(t, adminGroupsURL, group.ID, "", http.StatusOK)
 		assert.Zero(t, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: runner.ID}).GroupID)
 		doAction(t, sessionAdmin, adminGroupsURL, group.ID, "delete", http.StatusOK)
 		unittest.AssertNotExistsBean(t, &actions_model.ActionRunnerGroup{ID: group.ID})

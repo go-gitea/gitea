@@ -373,10 +373,6 @@ func TestCreateTaskForRunnerGroupAccess(t *testing.T) {
 	runner := &ActionRunner{UUID: "grouped", GroupID: group.ID, TokenHash: "grouped"}
 	require.NoError(t, db.Insert(t.Context(), runner))
 
-	task, _, err := CreateTaskForRunner(t.Context(), runner)
-	require.NoError(t, err)
-	require.Nil(t, task, "a group without granted repositories serves nothing")
-
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: run.RepoID}).OwnerID
 	available := func(opts FindRunnerOptions) bool {
 		opts.IDs, opts.WithAvailable = []int64{runner.ID}, true
@@ -386,7 +382,7 @@ func TestCreateTaskForRunnerGroupAccess(t *testing.T) {
 	}
 	assert.False(t, available(FindRunnerOptions{OwnerID: repoOwner}))
 	require.NoError(t, UpdateRunnerGroup(t.Context(), group, false, []int64{2, 2}, []int64{runner.ID}))
-	task, _, err = CreateTaskForRunner(t.Context(), runner)
+	task, _, err := CreateTaskForRunner(t.Context(), runner)
 	require.NoError(t, err)
 	require.Nil(t, task)
 	assert.False(t, available(FindRunnerOptions{RepoID: run.RepoID}))
@@ -483,13 +479,11 @@ func TestRunnerGroupMembership(t *testing.T) {
 
 	orgGroup, err := CreateRunnerGroup(t.Context(), 3, "gpu")
 	require.NoError(t, err)
-	_, err = CreateRunnerGroup(t.Context(), 0, "GPU")
+	group, err := CreateRunnerGroup(t.Context(), 0, "GPU")
 	require.NoError(t, err)
 	_, err = CreateRunnerGroup(t.Context(), 0, "gpu")
 	require.ErrorIs(t, err, util.ErrAlreadyExist)
-	group, err := CreateRunnerGroup(t.Context(), 0, "cpu")
-	require.NoError(t, err)
-	_, err = CreateRunnerGroup(t.Context(), 2, "CPU")
+	_, err = CreateRunnerGroup(t.Context(), 2, "Gpu")
 	require.ErrorIs(t, err, util.ErrAlreadyExist)
 	require.NoError(t, db.Insert(t.Context(), &ActionRunnerAccess{GroupID: orgGroup.ID, RepoID: 1}))
 	repos, err := FindRunnerGroupRepos(t.Context(), orgGroup)

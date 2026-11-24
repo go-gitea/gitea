@@ -50,6 +50,10 @@ func ListRunners(ctx *context.APIContext, ownerID, repoID int64) {
 		ListOptions: utils.GetListOptions(ctx),
 	}
 	opts.IsDisabled = ctx.FormOptionalBool("disabled")
+	listRunners(ctx, opts)
+}
+
+func listRunners(ctx *context.APIContext, opts *actions_model.FindRunnerOptions) {
 	runners, total, err := db.FindAndCount[actions_model.ActionRunner](ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)

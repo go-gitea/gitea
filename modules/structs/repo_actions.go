@@ -232,13 +232,34 @@ type ActionRunnerLabel struct {
 
 // ActionRunner represents a Runner
 type ActionRunner struct {
-	ID        int64                `json:"id"`
-	Name      string               `json:"name"`
-	Status    string               `json:"status"`
-	Busy      bool                 `json:"busy"`
-	Disabled  bool                 `json:"disabled"`
-	Ephemeral bool                 `json:"ephemeral"`
-	Labels    []*ActionRunnerLabel `json:"labels"`
+	ID int64 `json:"id"`
+	// RunnerGroupID is 0 for runners outside of a group
+	RunnerGroupID int64                `json:"runner_group_id"`
+	Name          string               `json:"name"`
+	Status        string               `json:"status"`
+	Busy          bool                 `json:"busy"`
+	Disabled      bool                 `json:"disabled"`
+	Ephemeral     bool                 `json:"ephemeral"`
+	Labels        []*ActionRunnerLabel `json:"labels"`
+}
+
+// ActionRunnerGroup represents a runner group
+type ActionRunnerGroup struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+	// Visibility is "all" when the group serves all repositories in its scope, "selected" otherwise
+	Visibility string `json:"visibility"`
+	Default    bool   `json:"default"`
+	// Inherited is true for global groups listed for an organization
+	Inherited                bool   `json:"inherited"`
+	AllowsPublicRepositories bool   `json:"allows_public_repositories"`
+	RunnersURL               string `json:"runners_url"`
+}
+
+// ActionRunnerGroupsResponse returns runner groups
+type ActionRunnerGroupsResponse struct {
+	Entries    []*ActionRunnerGroup `json:"runner_groups"`
+	TotalCount int64                `json:"total_count"`
 }
 
 // EditActionRunnerOption represents the editable fields for a runner.

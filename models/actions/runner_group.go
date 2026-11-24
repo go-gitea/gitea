@@ -17,6 +17,8 @@ import (
 	"xorm.io/builder"
 )
 
+const maxRunnerGroupNameLength = 200 // leaves room for "organization/" in the 255 character runs_on_group
+
 type ActionRunnerGroup struct {
 	ID                      int64  `xorm:"pk autoincr"`
 	OwnerID                 int64  `xorm:"UNIQUE(owner_name) NOT NULL DEFAULT 0"`
@@ -46,6 +48,25 @@ func (group *ActionRunnerGroup) runsOnSelectors() []string {
 func FindRunnerGroups(ctx context.Context, ownerID int64) ([]*ActionRunnerGroup, error) {
 	var groups []*ActionRunnerGroup
 	err := db.GetEngine(ctx).Where("owner_id = ?", ownerID).Asc("name").Find(&groups)
+	return groups, err
+}
+
+func groupGrantsCond(repoCond builder.Cond) builder.Cond {
+	return builder.Eq{"includes_all_repositories": true}.Or(builder.In("id", builder.Select("group_id").From("action_runner_access").Where(repoCond)))
+}
+
+// FindVisibleRunnerGroups returns the owner's groups and the global groups granting one of its repositories, narrowed to repoID and groupID when set
+func FindVisibleRunnerGroups(ctx context.Context, ownerID, repoID, groupID int64) ([]*ActionRunnerGroup, error) {
+	grants := groupGrantsCond(builder.In("repo_id", builder.Select("id").From("repository").Where(builder.Eq{"owner_id": ownerID})))
+	cond := builder.Eq{"owner_id": ownerID}.Or(builder.Eq{"owner_id": 0}.And(grants))
+	if repoID != 0 {
+		cond = builder.In("owner_id", 0, ownerID).And(groupGrantsCond(builder.Eq{"repo_id": repoID}))
+	}
+	if groupID != 0 {
+		cond = cond.And(builder.Eq{"id": groupID})
+	}
+	var groups []*ActionRunnerGroup
+	err := db.GetEngine(ctx).Where(cond).Asc("name").Find(&groups)
 	return groups, err
 }
 
@@ -100,16 +121,14 @@ func setRunnerGroupMembers(ctx context.Context, group *ActionRunnerGroup, runner
 			return util.NewPermissionDeniedErrorf("runner is outside the group's scope")
 		}
 	}
-	released := builder.Eq{"group_id": group.ID}.And(builder.NotIn("id", runnerIDs))
-	if _, err := db.GetEngine(ctx).Where(released).Cols("group_id").Update(&ActionRunner{GroupID: 0}); err != nil {
+	if _, err := db.GetEngine(ctx).Where(builder.Eq{"group_id": group.ID}.And(builder.NotIn("id", runnerIDs))).Cols("group_id").Update(&ActionRunner{GroupID: 0}); err != nil {
 		return err
 	}
-	if len(runnerIDs) > 0 {
-		if _, err := db.GetEngine(ctx).In("id", runnerIDs).Cols("group_id").Update(&ActionRunner{GroupID: group.ID}); err != nil {
-			return err
-		}
+	if len(runnerIDs) == 0 {
+		return nil
 	}
-	return nil
+	_, err := db.GetEngine(ctx).In("id", runnerIDs).Cols("group_id").Update(&ActionRunner{GroupID: group.ID})
+	return err
 }
 
 func setRunnerAccess(ctx context.Context, group *ActionRunnerGroup, repoIDs []int64) error {
@@ -142,20 +161,20 @@ func setRunnerAccess(ctx context.Context, group *ActionRunnerGroup, repoIDs []in
 }
 
 func PruneRunnerAccessOutsideOwner(ctx context.Context, repoID int64) error {
-	stale := builder.Select("id").From("action_runner_group").Where(builder.Neq{"owner_id": 0})
-	_, err := db.GetEngine(ctx).Where(builder.Eq{"repo_id": repoID}).And(builder.In("group_id", stale)).
+	_, err := db.GetEngine(ctx).Where(builder.Eq{"repo_id": repoID}).And(builder.In("group_id", builder.Select("id").From("action_runner_group").Where(builder.Neq{"owner_id": 0}))).
 		Delete(new(ActionRunnerAccess))
 	return err
 }
 
 func CountRunnerGroupUsage(ctx context.Context, ownerID int64) (runners, repos map[int64]int64, err error) {
-	ownerGroups := builder.In("group_id", builder.Select("id").From("action_runner_group").Where(builder.Eq{"owner_id": ownerID}))
 	countBy := func(bean any) (map[int64]int64, error) {
 		var rows []struct {
 			GroupID int64
 			Count   int64
 		}
-		if err := db.GetEngine(ctx).Table(bean).Select("group_id, COUNT(*) AS count").Where(ownerGroups).GroupBy("group_id").Find(&rows); err != nil {
+		if err := db.GetEngine(ctx).Table(bean).Select("group_id, COUNT(*) AS count").
+			Where(builder.In("group_id", builder.Select("id").From("action_runner_group").Where(builder.Eq{"owner_id": ownerID}))).
+			GroupBy("group_id").Find(&rows); err != nil {
 			return nil, err
 		}
 		counts := make(map[int64]int64, len(rows))
@@ -172,12 +191,11 @@ func CountRunnerGroupUsage(ctx context.Context, ownerID int64) (runners, repos m
 }
 
 func CreateRunnerGroup(ctx context.Context, ownerID int64, name string) (*ActionRunnerGroup, error) {
-	if name == "" || utf8.RuneCountInString(name) > 200 || strings.Contains(name, "/") { // 200 leaves room for "organization/" in runs_on_group
+	if name == "" || utf8.RuneCountInString(name) > maxRunnerGroupNameLength || strings.Contains(name, "/") {
 		return nil, util.NewInvalidArgumentErrorf("invalid runner group name %q", name)
 	}
 	group := &ActionRunnerGroup{OwnerID: ownerID, Name: name, LowerName: strings.ToLower(name)}
-	cond := builder.Eq{"lower_name": group.LowerName, "owner_id": []int64{ownerID, 0}}
-	exists, err := db.GetEngine(ctx).Where(cond).Exist(new(ActionRunnerGroup)) // like github.com, owners can't take a global name, but global names may shadow owner ones so users can't squat them
+	exists, err := db.Exist[ActionRunnerGroup](ctx, builder.Eq{"lower_name": group.LowerName, "owner_id": []int64{ownerID, 0}}) // owners can't take a global name, but global names may shadow owner ones so users can't squat them
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +210,7 @@ func DeleteRunnerGroup(ctx context.Context, group *ActionRunnerGroup) error {
 		if err := lockRunnerGroup(ctx, group); err != nil {
 			return err
 		}
-		hasRunners, err := db.GetEngine(ctx).Where(builder.Eq{"group_id": group.ID}).Exist(new(ActionRunner))
+		hasRunners, err := db.Exist[ActionRunner](ctx, builder.Eq{"group_id": group.ID})
 		if err != nil {
 			return err
 		}

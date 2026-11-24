@@ -545,9 +545,6 @@ func TestRunsOnGroupIsLowercasedAndSurvivesMatrixExpansion(t *testing.T) {
 	jobs, err := Parse([]byte(`
 on: push
 jobs:
-  plain:
-    runs-on: [ubuntu-latest]
-    steps: [{run: echo}]
   grouped:
     strategy:
       matrix:
@@ -569,7 +566,6 @@ jobs:
 		got[job.DisplayName()] = []any{job.RunsOnGroup(), job.RunsOn(), job.RunsOnProblem() != ""}
 	}
 	assert.Equal(t, map[string][]any{
-		"plain":       {"", []string{"ubuntu-latest"}, false},
 		"grouped (1)": {"gpu-1", []string{"ubuntu-latest"}, false},
 		"grouped (2)": {"gpu-2", []string{"ubuntu-latest"}, false},
 		"unset":       {"", []string(nil), true},

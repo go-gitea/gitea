@@ -50,20 +50,16 @@ func RunnerGroupCreate(ctx *context.Context) {
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	group, err := actions_model.CreateRunnerGroup(ctx, rCtx.OwnerID, ctx.FormTrim("name"))
-	switch {
+	switch group, err := actions_model.CreateRunnerGroup(ctx, rCtx.OwnerID, ctx.FormTrim("name")); {
 	case err == nil:
+		ctx.JSONRedirect(fmt.Sprintf("%s/%d", rCtx.RunnerGroupsLink, group.ID))
 	case errors.Is(err, util.ErrInvalidArgument):
 		ctx.JSONError(ctx.Tr("actions.runners.groups.name_invalid"))
-		return
 	case errors.Is(err, util.ErrAlreadyExist):
 		ctx.JSONError(ctx.Tr("actions.runners.groups.name_taken"))
-		return
 	default:
 		ctx.ServerErrorAuto(err)
-		return
 	}
-	ctx.JSONRedirect(fmt.Sprintf("%s/%d", rCtx.RunnerGroupsLink, group.ID))
 }
 
 func RunnerGroupEdit(ctx *context.Context) {
@@ -112,15 +108,13 @@ func RunnerGroupEditPost(ctx *context.Context) {
 	}
 	switch err := actions_model.UpdateRunnerGroup(ctx, group, ctx.FormString("repo_access") == "all", repoIDs, runnerIDs); {
 	case err == nil:
+		ctx.Flash.Success(ctx.Tr("actions.runners.groups.update_success"))
+		ctx.JSONRedirect("")
 	case errors.Is(err, util.ErrPermissionDenied):
 		ctx.JSONError(ctx.Tr("actions.runners.groups.target_invalid"))
-		return
 	default:
 		ctx.ServerErrorAuto(err)
-		return
 	}
-	ctx.Flash.Success(ctx.Tr("actions.runners.groups.update_success"))
-	ctx.JSONRedirect("")
 }
 
 func RunnerGroupDelete(ctx *context.Context) {
@@ -130,15 +124,13 @@ func RunnerGroupDelete(ctx *context.Context) {
 	}
 	switch err := actions_model.DeleteRunnerGroup(ctx, group); {
 	case err == nil:
+		ctx.Flash.Success(ctx.Tr("actions.runners.groups.delete_success"))
+		ctx.JSONRedirect(rCtx.RunnerGroupsLink)
 	case errors.Is(err, util.ErrInvalidArgument):
 		ctx.JSONError(ctx.Tr("actions.runners.groups.delete_not_empty"))
-		return
 	default:
 		ctx.ServerErrorAuto(err)
-		return
 	}
-	ctx.Flash.Success(ctx.Tr("actions.runners.groups.delete_success"))
-	ctx.JSONRedirect(rCtx.RunnerGroupsLink)
 }
 
 func runnerGroupInScope(ctx *context.Context) (*runnersCtx, *actions_model.ActionRunnerGroup) {
