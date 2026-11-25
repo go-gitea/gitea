@@ -250,6 +250,9 @@ func FindAllMentionsBytes(content []byte) []RefSpan {
 // FindFirstMentionBytes matches the first mention in then given content
 // and returns the location of the unvalidated username, including the @ prefix.
 func FindFirstMentionBytes(content []byte) (bool, RefSpan) {
+	if bytes.IndexByte(content, '@') == -1 { // the regexp is slow, skip texts which can't match
+		return false, RefSpan{}
+	}
 	mention := globalVars().mentionPattern.FindSubmatchIndex(content)
 	if mention == nil {
 		return false, RefSpan{}
@@ -402,6 +405,9 @@ func FindRenderizableReferenceNumeric(content string, prOnly, crossLinkOnly bool
 
 // FindRenderizableCommitCrossReference returns the first unvalidated commit cross reference found in a string.
 func FindRenderizableCommitCrossReference(content string) (bool, *RenderizableReference) {
+	if !strings.Contains(content, "@") { // the regexp is slow, skip texts which can't match
+		return false, nil
+	}
 	m := globalVars().crossReferenceCommitPattern.FindStringSubmatchIndex(content)
 	if len(m) < 8 {
 		return false, nil

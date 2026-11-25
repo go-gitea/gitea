@@ -1971,7 +1971,7 @@
   "repo.release.tag_name_invalid": "Nekorekts taga nosaukums.",
   "repo.release.tag_name_protected": "Taga nosaukums ir aizsargāts.",
   "repo.release.tag_already_exist": "Tags ar šādu nosaukumu jau eksistē.",
-  "repo.release.downloads": "Lejupielādes",
+  "repo.release.assets": "Resursi",
   "repo.release.download_count": "Lejupielādes: %s",
   "repo.release.add_tag_msg": "Izmantot laidiena nosaukumu un saturu kā taga aprakstu.",
   "repo.release.add_tag": "Izveidot tikai tagu",

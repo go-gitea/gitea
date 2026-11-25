@@ -62,7 +62,7 @@ Contributions made with the assistance of AI tools are welcome, but contributors
    Ensure your responses are concise, accurate, and thoughtful, avoiding generic or low-quality AI-generated content.
 6. AI may be used to help draft issues and pull requests, but contributors remain responsible for the accuracy, completeness, and intent of what they submit.
 
-Maintainers reserve the right to close pull requests and issues that do not disclose AI assistance, that appear to be low-quality AI-generated content, or where the contributor cannot explain or defend the proposed changes themselves.
+Collaborators and maintainers reserve the right to close pull requests and issues that do not disclose AI assistance, that appear to be low-quality AI-generated content, or where the contributor cannot explain or defend the proposed changes themselves.
 
 We welcome new contributors, but cannot sustain the effort of supporting contributors who primarily defer to AI rather than engaging substantively with the review process.
 
@@ -106,7 +106,7 @@ Pull requests should not be the place for architecture discussions.
 ### Issue locking
 
 Commenting on closed or merged issues/PRs is strongly discouraged.
-Such comments will likely be overlooked as some maintainers may not view notifications on closed issues, thinking that the item is resolved.
+Such comments will likely be overlooked as some collaborators and maintainers may not view notifications on closed issues, thinking that the item is resolved.
 As such, commenting on closed/merged issues/PRs may be disabled prior to the scheduled auto-locking if a discussion starts or if unrelated comments are posted.
 If further discussion is needed, we encourage you to open a new issue instead and we recommend linking to the issue/PR in question for context.
 
@@ -216,7 +216,7 @@ If you think that your PR was labeled incorrectly, or notice that it was merged 
 
 For pull requests that use a valid Conventional Commits title, CI automatically applies a matching `type/…` label when the title prefix is `feat`, `enhance`, `fix`, `docs`, or `test` (for example `enhance(web): …` receives `type/enhancement`).\
 That label is kept in sync with the PR title when the title is edited.\
-Other title prefixes do not get an automatic `type/…` label; the merger still assigns the correct labels (including `type/…` when needed) for changelog and backport decisions.
+Other title prefixes do not get an automatic `type/…` label; the maintainer who merges still assigns the correct labels (including `type/…` when needed) for changelog and backport decisions.
 
 If your PR closes some issues, you must note that in a way that both GitHub and Gitea understand, i.e. by appending a paragraph like
 
@@ -260,11 +260,11 @@ Code review starts when you open a non-draft PR or move a draft out of draft sta
 
 Merge the base branch into yours only when you need to, for example because of conflicting changes elsewhere. That limits unnecessary CI runs.
 
-Every PR is squash-merged, so merge commits on your branch do not matter for final history. The squash produces a single commit; mergers follow the [commit message format](docs/community-governance.md#commit-messages) in the governance guide.
+Every PR is squash-merged, so merge commits on your branch do not matter for final history. The squash produces a single commit; maintainers follow the [commit message format](docs/community-governance.md#commit-messages) in the governance guide.
 
 ### Reviewing PRs
 
-Maintainers are encouraged to review pull requests in areas where they have expertise or particular interest.
+Collaborators and maintainers are encouraged to review pull requests in areas where they have expertise or particular interest.
 
 #### For PR authors
 

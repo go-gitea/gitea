@@ -529,6 +529,7 @@ func (n *actionsNotifier) PushCommits(ctx context.Context, pusher *user_model.Us
 
 	newNotifyInput(repo, pusher, webhook_module.HookEventPush).
 		WithRef(opts.RefFullName.String()).
+		WithCommitID(opts.NewCommitID).
 		WithPayload(&api.PushPayload{
 			Ref:        opts.RefFullName.String(),
 			Before:     opts.OldCommitID,
@@ -551,6 +552,7 @@ func (n *actionsNotifier) CreateRef(ctx context.Context, pusher *user_model.User
 
 	newNotifyInput(repo, pusher, webhook_module.HookEventCreate).
 		WithRef(refFullName.String()).
+		WithCommitID(refID).
 		WithPayload(&api.CreatePayload{
 			Ref:     refFullName.String(), // HINT: here is inconsistent with the Webhook's payload: webhook uses ShortName
 			Sha:     refID,
@@ -590,6 +592,7 @@ func (n *actionsNotifier) SyncPushCommits(ctx context.Context, pusher *user_mode
 
 	newNotifyInput(repo, pusher, webhook_module.HookEventPush).
 		WithRef(opts.RefFullName.String()).
+		WithCommitID(opts.NewCommitID).
 		WithPayload(&api.PushPayload{
 			Ref:          opts.RefFullName.String(),
 			Before:       opts.OldCommitID,
@@ -662,13 +665,20 @@ func (n *actionsNotifier) PullRequestSynchronized(ctx context.Context, doer *use
 		return
 	}
 
+	apiPullRequest := convert.ToPayloadPullRequest(ctx, pr, nil)
+	if apiPullRequest == nil {
+		return
+	}
+	apiPullRequest.Head.Sha = after
+
 	newNotifyInput(pr.Issue.Repo, doer, webhook_module.HookEventPullRequestSync).
+		WithCommitID(after).
 		WithPayload(&api.PullRequestPayload{
 			Action:      api.HookIssueSynchronized,
 			Before:      before,
 			After:       after,
 			Index:       pr.Issue.Index,
-			PullRequest: convert.ToPayloadPullRequest(ctx, pr, nil),
+			PullRequest: apiPullRequest,
 			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
 			Sender:      convert.ToUser(ctx, doer, nil),
 		}).

@@ -30,6 +30,7 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/timeutil"
 	webhook_module "gitea.dev/modules/webhook"
 	"gitea.dev/services/actions"
 	"gitea.dev/tests"
@@ -65,6 +66,63 @@ func TestNewWebHookLink(t *testing.T) {
 			assert.True(t, strings.HasPrefix(foundHref, webhooksBaseHref))
 		})
 	}
+}
+
+func TestWebhookDeliveryHistory(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	hook := &webhook.Webhook{
+		RepoID:      1,
+		URL:         "http://localhost/webhook",
+		ContentType: webhook.ContentTypeJSON,
+		Type:        webhook_module.GITEA,
+		Events:      `{}`,
+	}
+	require.NoError(t, webhook.CreateWebhook(t.Context(), hook))
+	stale := timeutil.TimeStampNano(time.Now().Add(-time.Hour).UnixNano())
+	queued, err := webhook.CreateHookTask(t.Context(), &webhook.HookTask{HookID: hook.ID, Delivered: stale, PayloadVersion: 1})
+	require.NoError(t, err)
+	interrupted, err := webhook.CreateHookTask(t.Context(), &webhook.HookTask{HookID: hook.ID, Delivered: stale, IsDelivered: true, PayloadVersion: 1})
+	require.NoError(t, err)
+	legacy, err := webhook.CreateHookTask(t.Context(), &webhook.HookTask{
+		HookID: hook.ID, Delivered: stale, IsDelivered: true, PayloadVersion: 1,
+		RequestContent: `{}`, ResponseContent: `{"status":0,"body":"Delivery: connection refused"}`,
+	})
+	require.NoError(t, err)
+
+	session := loginUser(t, "user2")
+	hookURL := fmt.Sprintf("/user2/repo1/settings/hooks/%d", hook.ID)
+	historyURL := hookURL + "/history"
+	row := func(task *webhook.HookTask) string { return fmt.Sprintf("#webhook-history-delivery-%d", task.ID) }
+	read := func(url string) *goquery.Selection {
+		response := session.MakeRequest(t, NewRequest(t, "GET", url), http.StatusOK)
+		return NewHTMLParser(t, response.Body).doc.Find("#webhook-history")
+	}
+	const poll = `[data-fetch-trigger="every 5s"]`
+	history := read(hookURL)
+	assert.Contains(t, history.Find(row(queued)).Text(), "Queued")
+	assert.Contains(t, history.Find(row(interrupted)).Text(), "Failed")
+	assert.Contains(t, history.Find(row(legacy)).Text(), "Failed")
+	assert.Equal(t, historyURL, history.Filter(poll).AttrOr("data-fetch-url", ""))
+
+	claimed, err := webhook.MarkTaskDelivered(t.Context(), queued)
+	require.NoError(t, err)
+	require.True(t, claimed)
+	history = read(historyURL)
+	assert.Contains(t, history.Find(row(queued)).Text(), "In progress")
+	assert.True(t, history.Is(poll))
+
+	queued.IsDelivered = true
+	queued.RequestInfo = &webhook.HookRequest{}
+	queued.ResponseInfo = &webhook.HookResponse{Status: http.StatusBadGateway}
+	require.NoError(t, webhook.UpdateHookTask(t.Context(), queued))
+	history = read(historyURL)
+	assert.Contains(t, history.Find(row(queued)).Text(), "Failed")
+	assert.Equal(t, "502", history.Find(row(queued)+" .ui.red.label").Text())
+	assert.False(t, history.Is(poll))
+
+	response := session.MakeRequest(t, NewRequest(t, "POST", hookURL+"/test"), http.StatusOK)
+	history = NewHTMLParser(t, response.Body).doc.Find("#webhook-history")
+	assert.Equal(t, 4, history.Find(".flex-divided-list > .item").Length())
 }
 
 func testAPICreateWebhookForRepo(t *testing.T, session *TestSession, userName, repoName, url, event string, branchFilter ...string) {

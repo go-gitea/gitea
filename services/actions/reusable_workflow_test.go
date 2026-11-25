@@ -14,9 +14,7 @@ import (
 	"gitea.dev/models/unittest"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	webhook_module "gitea.dev/modules/webhook"
 
@@ -330,74 +328,35 @@ func TestUndoExpansion(t *testing.T) {
 }
 
 func TestResolveSameRepoWorkflowSourceCommit(t *testing.T) {
-	prtRun := func(baseSHA string) *actions_model.ActionRun {
-		payload, err := json.Marshal(api.PullRequestPayload{
-			PullRequest: &api.PullRequest{
-				Base: &api.PRBranchInfo{Sha: baseSHA},
-			},
-		})
-		require.NoError(t, err)
-		// a run recorded before the fix points at the PR head commit
+	prtRun := func(workflowSHA string) *actions_model.ActionRun {
 		return &actions_model.ActionRun{
-			ID:                42,
 			RepoID:            1,
 			Event:             webhook_module.HookEventPullRequest,
 			TriggerEvent:      actions_module.GithubEventPullRequestTarget,
-			EventPayload:      string(payload),
-			WorkflowCommitSHA: "head-sha",
+			EventPayload:      `{"pull_request":{"base":{"sha":"base-sha"},"head":{"sha":"head-sha"}}}`,
+			CommitSHA:         "head-sha",
+			WorkflowCommitSHA: workflowSHA,
 		}
 	}
-	pushRun := &actions_model.ActionRun{
-		RepoID:            1,
-		TriggerEvent:      "push",
-		WorkflowCommitSHA: "head-sha",
+	scopedRun, payloadlessRun, defaultRun := prtRun("head-sha"), prtRun("default-sha"), prtRun("default-sha")
+	scopedRun.IsScopedRun, payloadlessRun.EventPayload, defaultRun.WorkflowRef = true, "{}", "refs/heads/main"
+	for _, tc := range []struct {
+		name               string
+		run                *actions_model.ActionRun
+		sourceRepoID       int64
+		sourceCommit, want string
+	}{
+		{"legacy pull_request_target recording the head resolves at the base", prtRun("head-sha"), 1, "head-sha", "base-sha"},
+		{"pull_request_target resolves at its default branch commit", defaultRun, 1, "default-sha", "default-sha"},
+		{"pull_request_target without a pull request payload resolves nowhere", payloadlessRun, 1, "default-sha", ""},
+		{"non pull_request_target keeps stored SHA", &actions_model.ActionRun{RepoID: 1, TriggerEvent: "push", WorkflowCommitSHA: "head-sha"}, 1, "head-sha", "head-sha"},
+		{"scoped run keeps stored SHA", scopedRun, 1, "head-sha", "head-sha"},
+		{"cross-repo caller keeps stored SHA", prtRun("head-sha"), 2, "head-sha", "head-sha"},
+		{"caller resolved from a uses: ref keeps its own SHA", prtRun("head-sha"), 1, "tag-v1-sha", "tag-v1-sha"},
+	} {
+		caller := &actions_model.ActionRunJob{WorkflowSourceRepoID: tc.sourceRepoID, WorkflowSourceCommitSHA: tc.sourceCommit}
+		assert.Equal(t, tc.want, resolveSameRepoWorkflowSourceCommit(tc.run, caller), tc.name)
 	}
-	caller := func(sourceRepoID int64, sourceCommitSHA string) *actions_model.ActionRunJob {
-		return &actions_model.ActionRunJob{WorkflowSourceRepoID: sourceRepoID, WorkflowSourceCommitSHA: sourceCommitSHA}
-	}
-
-	t.Run("pull_request_target pins to base commit", func(t *testing.T) {
-		got := resolveSameRepoWorkflowSourceCommit(prtRun("base-sha"), caller(1, "head-sha"))
-		assert.Equal(t, "base-sha", got)
-	})
-
-	t.Run("legacy nested caller (with head-sha) pins to base commit", func(t *testing.T) {
-		nested := caller(1, "head-sha")
-		nested.ParentJobID = 99
-		got := resolveSameRepoWorkflowSourceCommit(prtRun("base-sha"), nested)
-		assert.Equal(t, "base-sha", got)
-	})
-
-	t.Run("pull_request_target keeps stored SHA when already base", func(t *testing.T) {
-		run := prtRun("base-sha")
-		run.WorkflowCommitSHA = "base-sha"
-		got := resolveSameRepoWorkflowSourceCommit(run, caller(1, "base-sha"))
-		assert.Equal(t, "base-sha", got)
-	})
-
-	t.Run("non pull_request_target keeps stored SHA", func(t *testing.T) {
-		got := resolveSameRepoWorkflowSourceCommit(pushRun, caller(1, "head-sha"))
-		assert.Equal(t, "head-sha", got)
-	})
-
-	t.Run("scoped run keeps stored SHA", func(t *testing.T) {
-		run := prtRun("base-sha")
-		run.IsScopedRun = true
-		got := resolveSameRepoWorkflowSourceCommit(run, caller(1, "head-sha"))
-		assert.Equal(t, "head-sha", got)
-	})
-
-	t.Run("cross-repo caller keeps stored SHA", func(t *testing.T) {
-		got := resolveSameRepoWorkflowSourceCommit(prtRun("base-sha"), caller(2, "head-sha"))
-		assert.Equal(t, "head-sha", got)
-	})
-
-	t.Run("caller resolved from a uses: ref keeps its own SHA", func(t *testing.T) {
-		nested := caller(1, "tag-v1-sha")
-		nested.ParentJobID = 99
-		got := resolveSameRepoWorkflowSourceCommit(prtRun("base-sha"), nested)
-		assert.Equal(t, "tag-v1-sha", got)
-	})
 }
 
 func TestQualifyRef(t *testing.T) {

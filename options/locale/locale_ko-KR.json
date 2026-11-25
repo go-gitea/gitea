@@ -2645,7 +2645,7 @@
   "repo.release.tag_name_invalid": "태그명이 올바르지 않습니다.",
   "repo.release.tag_name_protected": "태그명이 보호되어 있습니다.",
   "repo.release.tag_already_exist": "이 태그명은 이미 존재합니다.",
-  "repo.release.downloads": "다운로드",
+  "repo.release.assets": "에셋",
   "repo.release.download_count": "다운로드: %s",
   "repo.release.add_tag_msg": "릴리스의 제목과 내용을 태그 메시지로 사용합니다.",
   "repo.release.add_tag": "태그만 생성",

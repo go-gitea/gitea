@@ -2449,7 +2449,7 @@
   "repo.release.tag_name_invalid": "Etiket adı geçerli değil.",
   "repo.release.tag_name_protected": "Etiket ismi korumalıdır.",
   "repo.release.tag_already_exist": "Bu etiket adı zaten var.",
-  "repo.release.downloads": "İndirmeler",
+  "repo.release.assets": "Varlıklar",
   "repo.release.download_count": "İndirilen: %s",
   "repo.release.add_tag_msg": "Sürümün başlığını ve içeriğini etiket mesajı olarak kullanın.",
   "repo.release.add_tag": "Yalnızca Etiket Oluştur",

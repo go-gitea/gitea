@@ -238,14 +238,12 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []model.MatrixCombinatio
 			return nil, fmt.Errorf("interpolate name for job %q: %w", jobID, err)
 		}
 		if gitCtx != nil { // callers without one don't read runs-on
-			rawRunsOn := model.CloneYamlNode(src.RawRunsOn)
-			if err := evaluator.EvaluateYamlNode(&rawRunsOn); err != nil {
+			combo.RawRunsOn = model.CloneYamlNode(src.RawRunsOn)
+			if err := evaluator.EvaluateYamlNode(&combo.RawRunsOn); err != nil {
 				return nil, fmt.Errorf("interpolate runs-on for job %q: %w", jobID, err)
 			}
-			if rawRunsOn.Kind != 0 && runsOnProblem(&rawRunsOn) != "" {
-				combo.RawRunsOn = rawRunsOn
-			} else {
-				runsOn := model.RunsOnFromNode(rawRunsOn)
+			if combo.RunsOnProblem() == "" {
+				runsOn := model.RunsOnFromNode(combo.RawRunsOn)
 				for i := range runsOn {
 					runsOn[i] = escapeExpressions(runsOn[i])
 				}

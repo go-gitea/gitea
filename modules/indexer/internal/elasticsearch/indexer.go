@@ -18,6 +18,7 @@ import (
 
 	"gitea.dev/modules/indexer/internal"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 )
 
 var _ internal.Indexer = &Indexer{}
@@ -151,7 +152,7 @@ func (i *Indexer) Bulk(ctx context.Context, ops []BulkOp) error {
 			Error  json.Value `json:"error"`
 		} `json:"items"`
 	}
-	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+	if err := jsonlimit.DecodeWithLimit(res.Body, 100*1024*1024, &body); err != nil {
 		return err
 	}
 	if !body.Errors {
@@ -318,7 +319,7 @@ func (i *Indexer) doJSON(ctx context.Context, method, path string, body io.Reade
 	if out == nil {
 		return nil
 	}
-	return json.NewDecoder(res.Body).Decode(out)
+	return jsonlimit.DecodeWithLimit(res.Body, 100*1024*1024, out)
 }
 
 // drainAndClose discards any unread response body before closing so the
@@ -367,7 +368,7 @@ func decodeSearchResponse(r io.Reader) (*SearchResponse, error) {
 			} `json:"buckets"`
 		} `json:"aggregations"`
 	}
-	if err := json.NewDecoder(r).Decode(&raw); err != nil {
+	if err := jsonlimit.DecodeWithLimit(r, 100*1024*1024, &raw); err != nil {
 		return nil, err
 	}
 
