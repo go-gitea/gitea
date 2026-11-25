@@ -25834,6 +25834,11 @@
         "grouping_strategy": {
           "description": "ALLGREEN requires every entry to pass, HEADGREEN only the last entry of a group",
           "type": "string",
+          "enum": [
+            "ALLGREEN",
+            "HEADGREEN"
+          ],
+          "x-go-enum-desc": "ALLGREEN MergeQueueGroupingAllGreen\nHEADGREEN MergeQueueGroupingHeadGreen",
           "x-go-name": "GroupingStrategy"
         },
         "max_entries_to_build": {
@@ -25851,6 +25856,13 @@
         "merge_method": {
           "description": "merge, rebase, rebase-merge or squash",
           "type": "string",
+          "enum": [
+            "merge",
+            "rebase",
+            "rebase-merge",
+            "squash"
+          ],
+          "x-go-enum-desc": "merge MergeQueueMergeMethodMerge\nrebase MergeQueueMergeMethodRebase\nrebase-merge MergeQueueMergeMethodRebaseMerge\nsquash MergeQueueMergeMethodSquash",
           "x-go-name": "MergeMethod"
         },
         "min_entries_to_merge": {
@@ -25881,6 +25893,11 @@
         "grouping_strategy": {
           "description": "ALLGREEN requires every entry to pass, HEADGREEN only the last entry of a group",
           "type": "string",
+          "enum": [
+            "ALLGREEN",
+            "HEADGREEN"
+          ],
+          "x-go-enum-desc": "ALLGREEN MergeQueueGroupingAllGreen\nHEADGREEN MergeQueueGroupingHeadGreen",
           "x-go-name": "GroupingStrategy"
         },
         "max_entries_to_build": {
@@ -25898,6 +25915,13 @@
         "merge_method": {
           "description": "merge, rebase, rebase-merge or squash",
           "type": "string",
+          "enum": [
+            "merge",
+            "rebase",
+            "rebase-merge",
+            "squash"
+          ],
+          "x-go-enum-desc": "merge MergeQueueMergeMethodMerge\nrebase MergeQueueMergeMethodRebase\nrebase-merge MergeQueueMergeMethodRebaseMerge\nsquash MergeQueueMergeMethodSquash",
           "x-go-name": "MergeMethod"
         },
         "min_entries_to_merge": {
@@ -31009,6 +31033,13 @@
         "state": {
           "description": "queued, awaiting_checks, mergeable or unmergeable",
           "type": "string",
+          "enum": [
+            "queued",
+            "awaiting_checks",
+            "mergeable",
+            "unmergeable"
+          ],
+          "x-go-enum-desc": "queued MergeQueueStateQueued\nawaiting_checks MergeQueueStateAwaitingChecks\nmergeable MergeQueueStateMergeable\nunmergeable MergeQueueStateUnmergeable",
           "x-go-name": "State"
         }
       },

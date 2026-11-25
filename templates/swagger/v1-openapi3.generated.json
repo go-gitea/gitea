@@ -3066,9 +3066,12 @@
             "x-go-name": "CheckResponseTimeoutMinutes"
           },
           "grouping_strategy": {
-            "description": "ALLGREEN requires every entry to pass, HEADGREEN only the last entry of a group",
-            "type": "string",
-            "x-go-name": "GroupingStrategy"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MergeQueueGroupingStrategy"
+              }
+            ],
+            "description": "ALLGREEN requires every entry to pass, HEADGREEN only the last entry of a group"
           },
           "max_entries_to_build": {
             "description": "Maximum number of queue entries built and tested at the same time, 0 pauses new builds",
@@ -3083,9 +3086,12 @@
             "x-go-name": "MaxEntriesToMerge"
           },
           "merge_method": {
-            "description": "merge, rebase, rebase-merge or squash",
-            "type": "string",
-            "x-go-name": "MergeMethod"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MergeQueueMergeMethod"
+              }
+            ],
+            "description": "merge, rebase, rebase-merge or squash"
           },
           "min_entries_to_merge": {
             "description": "Minimum number of pull requests merged together",
@@ -3113,9 +3119,12 @@
             "x-go-name": "CheckResponseTimeoutMinutes"
           },
           "grouping_strategy": {
-            "description": "ALLGREEN requires every entry to pass, HEADGREEN only the last entry of a group",
-            "type": "string",
-            "x-go-name": "GroupingStrategy"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MergeQueueGroupingStrategy"
+              }
+            ],
+            "description": "ALLGREEN requires every entry to pass, HEADGREEN only the last entry of a group"
           },
           "max_entries_to_build": {
             "description": "Maximum number of queue entries built and tested at the same time, 0 pauses new builds",
@@ -3130,9 +3139,12 @@
             "x-go-name": "MaxEntriesToMerge"
           },
           "merge_method": {
-            "description": "merge, rebase, rebase-merge or squash",
-            "type": "string",
-            "x-go-name": "MergeMethod"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MergeQueueMergeMethod"
+              }
+            ],
+            "description": "merge, rebase, rebase-merge or squash"
           },
           "min_entries_to_merge": {
             "description": "Minimum number of pull requests merged together",
@@ -8225,12 +8237,35 @@
           },
           "state": {
             "description": "queued, awaiting_checks, mergeable or unmergeable",
+            "enum": [
+              "queued",
+              "awaiting_checks",
+              "mergeable",
+              "unmergeable"
+            ],
             "type": "string",
+            "x-go-enum-desc": "queued MergeQueueStateQueued\nawaiting_checks MergeQueueStateAwaitingChecks\nmergeable MergeQueueStateMergeable\nunmergeable MergeQueueStateUnmergeable",
             "x-go-name": "State"
           }
         },
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
+      },
+      "MergeQueueGroupingStrategy": {
+        "enum": [
+          "ALLGREEN",
+          "HEADGREEN"
+        ],
+        "type": "string"
+      },
+      "MergeQueueMergeMethod": {
+        "enum": [
+          "merge",
+          "rebase",
+          "rebase-merge",
+          "squash"
+        ],
+        "type": "string"
       },
       "MergeUpstreamRequest": {
         "properties": {

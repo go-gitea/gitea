@@ -223,12 +223,12 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		Updated:                       bp.UpdatedUnix.AsTime(),
 		RequireMergeQueue:             bp.RequireMergeQueue,
 		MergeQueue: &api.BranchProtectionMergeQueue{
-			MergeMethod:                  string(queueConfig.MergeMethod),
+			MergeMethod:                  api.MergeQueueMergeMethod(queueConfig.MergeMethod),
 			MaxEntriesToBuild:            queueConfig.MaxEntriesToBuild,
 			MinEntriesToMerge:            queueConfig.MinEntriesToMerge,
 			MaxEntriesToMerge:            queueConfig.MaxEntriesToMerge,
 			MinEntriesToMergeWaitMinutes: queueConfig.MinEntriesToMergeWaitMinutes,
-			GroupingStrategy:             string(queueConfig.GroupingStrategy),
+			GroupingStrategy:             api.MergeQueueGroupingStrategy(queueConfig.GroupingStrategy),
 			CheckResponseTimeoutMinutes:  queueConfig.CheckResponseTimeoutMinutes,
 		},
 	}

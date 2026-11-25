@@ -80,7 +80,7 @@ func ToMergeGroupPush(repo *repo_model.Repository, entry *pull_model.MergeQueueE
 func ToMergeQueueEntry(ctx context.Context, entry *pull_model.MergeQueueEntry, position int, prIndex int64, enqueuer *user_model.User) *api.MergeQueueEntry {
 	return &api.MergeQueueEntry{
 		Position:          position,
-		State:             string(entry.State),
+		State:             api.MergeQueueEntryState(entry.State),
 		PullRequestIndex:  prIndex,
 		BaseBranch:        entry.BaseBranch,
 		HeadSHA:           entry.HeadSHA,

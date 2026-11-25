@@ -5,12 +5,22 @@ package structs
 
 import "time"
 
+// swagger:enum MergeQueueEntryState
+type MergeQueueEntryState string
+
+const (
+	MergeQueueStateQueued         MergeQueueEntryState = "queued"
+	MergeQueueStateAwaitingChecks MergeQueueEntryState = "awaiting_checks"
+	MergeQueueStateMergeable      MergeQueueEntryState = "mergeable"
+	MergeQueueStateUnmergeable    MergeQueueEntryState = "unmergeable"
+)
+
 // MergeQueueEntry is a pull request waiting in a merge queue
 type MergeQueueEntry struct {
 	// Position in the queue, starting at 1
 	Position int `json:"position"`
 	// queued, awaiting_checks, mergeable or unmergeable
-	State string `json:"state"`
+	State MergeQueueEntryState `json:"state"`
 	// Index of the pull request
 	PullRequestIndex int64 `json:"pull_request_index"`
 	// Branch the pull request merges into

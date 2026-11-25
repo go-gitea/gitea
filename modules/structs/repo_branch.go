@@ -188,10 +188,28 @@ type MergeUpstreamResponse struct {
 	MergeStyle string `json:"merge_type"`
 }
 
+// swagger:enum MergeQueueMergeMethod
+type MergeQueueMergeMethod string
+
+const (
+	MergeQueueMergeMethodMerge       MergeQueueMergeMethod = "merge"
+	MergeQueueMergeMethodRebase      MergeQueueMergeMethod = "rebase"
+	MergeQueueMergeMethodRebaseMerge MergeQueueMergeMethod = "rebase-merge"
+	MergeQueueMergeMethodSquash      MergeQueueMergeMethod = "squash"
+)
+
+// swagger:enum MergeQueueGroupingStrategy
+type MergeQueueGroupingStrategy string
+
+const (
+	MergeQueueGroupingAllGreen  MergeQueueGroupingStrategy = "ALLGREEN"
+	MergeQueueGroupingHeadGreen MergeQueueGroupingStrategy = "HEADGREEN"
+)
+
 // BranchProtectionMergeQueue holds the merge queue settings of a branch protection, named like GitHub's merge queue rule
 type BranchProtectionMergeQueue struct {
 	// merge, rebase, rebase-merge or squash
-	MergeMethod string `json:"merge_method"`
+	MergeMethod MergeQueueMergeMethod `json:"merge_method"`
 	// Maximum number of queue entries built and tested at the same time, 0 pauses new builds
 	MaxEntriesToBuild int `json:"max_entries_to_build"`
 	// Minimum number of pull requests merged together
@@ -201,7 +219,7 @@ type BranchProtectionMergeQueue struct {
 	// Minutes to wait for the minimum group size before merging anyway
 	MinEntriesToMergeWaitMinutes int `json:"min_entries_to_merge_wait_minutes"`
 	// ALLGREEN requires every entry to pass, HEADGREEN only the last entry of a group
-	GroupingStrategy string `json:"grouping_strategy"`
+	GroupingStrategy MergeQueueGroupingStrategy `json:"grouping_strategy"`
 	// Minutes after which required checks that did not report count as failed
 	CheckResponseTimeoutMinutes int `json:"check_response_timeout_minutes"`
 }
@@ -209,7 +227,7 @@ type BranchProtectionMergeQueue struct {
 // BranchProtectionMergeQueueOption sets merge queue settings of a branch protection, unset fields are kept
 type BranchProtectionMergeQueueOption struct {
 	// merge, rebase, rebase-merge or squash
-	MergeMethod *string `json:"merge_method"`
+	MergeMethod *MergeQueueMergeMethod `json:"merge_method"`
 	// Maximum number of queue entries built and tested at the same time, 0 pauses new builds
 	MaxEntriesToBuild *int `json:"max_entries_to_build"`
 	// Minimum number of pull requests merged together
@@ -219,7 +237,7 @@ type BranchProtectionMergeQueueOption struct {
 	// Minutes to wait for the minimum group size before merging anyway
 	MinEntriesToMergeWaitMinutes *int `json:"min_entries_to_merge_wait_minutes"`
 	// ALLGREEN requires every entry to pass, HEADGREEN only the last entry of a group
-	GroupingStrategy *string `json:"grouping_strategy"`
+	GroupingStrategy *MergeQueueGroupingStrategy `json:"grouping_strategy"`
 	// Minutes after which required checks that did not report count as failed
 	CheckResponseTimeoutMinutes *int `json:"check_response_timeout_minutes"`
 }

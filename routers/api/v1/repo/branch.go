@@ -1311,12 +1311,12 @@ func applyMergeQueueOption(ctx *context.APIContext, pb *git_model.ProtectedBranc
 	}
 	cfg := pb.MergeQueue.WithDefaults()
 	if opt != nil {
-		cfg.MergeMethod = repo_model.MergeStyle(optional.FromPtr(opt.MergeMethod).ValueOrDefault(string(cfg.MergeMethod)))
+		cfg.MergeMethod = repo_model.MergeStyle(string(optional.FromPtr(opt.MergeMethod).ValueOrDefault(api.MergeQueueMergeMethod(cfg.MergeMethod))))
 		cfg.MaxEntriesToBuild = optional.FromPtr(opt.MaxEntriesToBuild).ValueOrDefault(cfg.MaxEntriesToBuild)
 		cfg.MinEntriesToMerge = optional.FromPtr(opt.MinEntriesToMerge).ValueOrDefault(cfg.MinEntriesToMerge)
 		cfg.MaxEntriesToMerge = optional.FromPtr(opt.MaxEntriesToMerge).ValueOrDefault(cfg.MaxEntriesToMerge)
 		cfg.MinEntriesToMergeWaitMinutes = optional.FromPtr(opt.MinEntriesToMergeWaitMinutes).ValueOrDefault(cfg.MinEntriesToMergeWaitMinutes)
-		cfg.GroupingStrategy = git_model.MergeQueueGroupingStrategy(optional.FromPtr(opt.GroupingStrategy).ValueOrDefault(string(cfg.GroupingStrategy)))
+		cfg.GroupingStrategy = git_model.MergeQueueGroupingStrategy(string(optional.FromPtr(opt.GroupingStrategy).ValueOrDefault(api.MergeQueueGroupingStrategy(cfg.GroupingStrategy))))
 		cfg.CheckResponseTimeoutMinutes = optional.FromPtr(opt.CheckResponseTimeoutMinutes).ValueOrDefault(cfg.CheckResponseTimeoutMinutes)
 	}
 	return pb.SetMergeQueue(optional.FromPtr(require).ValueOrDefault(pb.RequireMergeQueue), cfg, ctx.Repo.Repository.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig())
