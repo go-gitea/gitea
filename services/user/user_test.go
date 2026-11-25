@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
@@ -68,6 +69,8 @@ func TestDeleteUser(t *testing.T) {
 
 	t.Run("CleanupOrphanedTables", func(t *testing.T) {
 		assert.NoError(t, unittest.PrepareTestDatabase())
+		group, err := actions_model.CreateRunnerGroup(t.Context(), 24, "gpu")
+		require.NoError(t, err)
 
 		// assert they exist before deletion
 		unittest.AssertExistsAndLoadBean(t, &auth.TwoFactor{UID: 24})
@@ -82,6 +85,7 @@ func TestDeleteUser(t *testing.T) {
 		}
 
 		// assert they do not exist after deletion
+		unittest.AssertNotExistsBean(t, &actions_model.ActionRunnerGroup{ID: group.ID})
 		unittest.AssertNotExistsBean(t, &auth.TwoFactor{UID: 24})
 		unittest.AssertNotExistsBean(t, &auth.WebAuthnCredential{UserID: 32})
 		unittest.AssertNotExistsBean(t, &activities_model.Notification{UserID: 2})

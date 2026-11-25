@@ -1770,6 +1770,11 @@ func Routes() *web.Router {
 				reqOrgOwnership(),
 				org.NewAction(),
 			)
+			m.Group("/actions/runner-groups", func() {
+				m.Get("", org.ListRunnerGroups)
+				m.Get("/{runner_group_id}", org.GetRunnerGroup)
+				m.Get("/{runner_group_id}/runners", org.ListRunnerGroupRunners)
+			}, reqToken(), reqOrgOwnership())
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)
 				m.Combo("/{username}").Get(org.IsPublicMember).
@@ -1884,6 +1889,11 @@ func Routes() *web.Router {
 					m.Get("/{runner_id}", admin.GetRunner)
 					m.Delete("/{runner_id}", admin.DeleteRunner)
 					m.Patch("/{runner_id}", bind(api.EditActionRunnerOption{}), admin.UpdateRunner)
+				})
+				m.Group("/runner-groups", func() {
+					m.Get("", admin.ListRunnerGroups)
+					m.Get("/{runner_group_id}", admin.GetRunnerGroup)
+					m.Get("/{runner_group_id}/runners", admin.ListRunnerGroupRunners)
 				})
 				m.Get("/runs", admin.ListWorkflowRuns)
 				m.Get("/jobs", admin.ListWorkflowJobs)

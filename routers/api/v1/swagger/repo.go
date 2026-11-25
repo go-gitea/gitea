@@ -505,6 +505,20 @@ type swaggerRunner struct {
 	Body api.ActionRunner `json:"body"`
 }
 
+// RunnerGroupList
+// swagger:response RunnerGroupList
+type swaggerRunnerGroupList struct {
+	// in:body
+	Body api.ActionRunnerGroupsResponse `json:"body"`
+}
+
+// RunnerGroup
+// swagger:response RunnerGroup
+type swaggerRunnerGroup struct {
+	// in:body
+	Body api.ActionRunnerGroup `json:"body"`
+}
+
 // swagger:response Compare
 type swaggerCompare struct {
 	// in:body

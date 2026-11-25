@@ -59,7 +59,9 @@ type ActionRunner struct {
 	LastActive timeutil.TimeStamp `xorm:"index"`
 
 	// Store labels defined in state file (default: .runner file) of the `runner`
-	AgentLabels []string `xorm:"TEXT"`
+	AgentLabels []string           `xorm:"TEXT"`
+	GroupID     int64              `xorm:"INDEX NOT NULL DEFAULT 0"`
+	Group       *ActionRunnerGroup `xorm:"-"`
 	// Store if this is a runner that only ever get one single job assigned
 	Ephemeral bool `xorm:"ephemeral NOT NULL DEFAULT false"`
 	// Store if this runner is disabled and should not pick up new jobs
@@ -197,10 +199,20 @@ func (r *ActionRunner) GenerateAndFillToken() {
 	r.Token, r.TokenSalt, r.TokenHash, _ = generateSaltedToken()
 }
 
-// CanMatchLabels checks whether the runner's labels can match a job's "runs-on"
+// CanRunJob requires Group to be loaded.
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idruns-on
-func (r *ActionRunner) CanMatchLabels(jobRunsOn []string) bool {
-	return len(jobRunsOn) > 0 && !slices.ContainsFunc(jobRunsOn, func(label string) bool { return !util.SliceContainsString(r.AgentLabels, label, true) })
+func (r *ActionRunner) CanRunJob(runsOnGroup string, runsOnLabels []string) bool {
+	if runsOnGroup == "" && len(runsOnLabels) == 0 {
+		return false
+	}
+	if runsOnGroup != "" && (r.Group == nil || !slices.Contains(r.Group.runsOnSelectors(), runsOnGroup)) {
+		return false
+	}
+	return !slices.ContainsFunc(runsOnLabels, func(label string) bool { return !util.SliceContainsString(r.AgentLabels, label, true) })
+}
+
+func runnerGroupGrantsCond(repoCond builder.Cond) builder.Cond {
+	return builder.Eq{"group_id": 0}.Or(builder.In("group_id", builder.Select("id").From("action_runner_group").Where(groupGrantsCond(repoCond))))
 }
 
 func init() {
@@ -210,14 +222,15 @@ func init() {
 // FindRunnerOptions
 // ownerID == 0 and repoID == 0 means any runner including global runners
 // repoID != 0 and WithAvailable == false means any runner for the given repo
-// repoID != 0 and WithAvailable == true means any runner for the given repo, parent user/org, and global runners
+// repoID != 0 and WithAvailable == true means any runner for the given repo, parent user/org, and global runners, grouped ones only if their group grants the repo
 // ownerID != 0 and repoID == 0 and WithAvailable == false means any runner for the given user/org
-// ownerID != 0 and repoID == 0 and WithAvailable == true means any runner for the given user/org and global runners
+// ownerID != 0 and repoID == 0 and WithAvailable == true means any runner for the given user/org and global runners, grouped global ones only if their group grants one of its repos
 type FindRunnerOptions struct {
 	db.ListOptions
 	IDs           []int64
 	RepoID        int64
 	OwnerID       int64 // it will be ignored if RepoID is set
+	GroupID       optional.Option[int64]
 	Sort          string
 	Filter        string
 	IsOnline      optional.Option[bool]
@@ -236,17 +249,22 @@ func (opts FindRunnerOptions) ToConds() builder.Cond {
 		}
 	}
 
+	if opts.GroupID.Has() {
+		cond = cond.And(builder.Eq{"group_id": opts.GroupID.Value()})
+	}
+
 	if opts.RepoID > 0 {
 		c := builder.NewCond().And(builder.Eq{"repo_id": opts.RepoID})
 		if opts.WithAvailable {
 			c = c.Or(builder.Eq{"owner_id": builder.Select("owner_id").From("repository").Where(builder.Eq{"id": opts.RepoID})})
 			c = c.Or(builder.Eq{"repo_id": 0, "owner_id": 0})
+			c = builder.And(c, runnerGroupGrantsCond(builder.Eq{"repo_id": opts.RepoID}))
 		}
 		cond = cond.And(c)
 	} else if opts.OwnerID > 0 { // OwnerID is ignored if RepoID is set
 		c := builder.NewCond().And(builder.Eq{"owner_id": opts.OwnerID})
 		if opts.WithAvailable {
-			c = c.Or(builder.Eq{"repo_id": 0, "owner_id": 0})
+			c = c.Or(builder.Eq{"repo_id": 0, "owner_id": 0}.And(runnerGroupGrantsCond(builder.In("repo_id", builder.Select("id").From("repository").Where(builder.Eq{"owner_id": opts.OwnerID})))))
 		}
 		cond = cond.And(c)
 	}

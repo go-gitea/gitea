@@ -559,7 +559,7 @@ func toActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		// Missing api endpoint for this location, artifacts are available under a nested url
 		RunURL:      fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(ctx), job.RunID),
 		Name:        job.Name,
-		Labels:      job.RunsOn,
+		Labels:      job.RunsOnLabelsWithGroup(""),
 		RunAttempt:  job.Attempt,
 		HeadSha:     job.Run.CommitSHA,
 		HeadBranch:  git.RefName(job.Run.Ref).BranchName(),
@@ -789,13 +789,27 @@ func ToActionRunner(runner *actions_model.ActionRunner) *api.ActionRunner {
 		}
 	}
 	return &api.ActionRunner{
-		ID:        runner.ID,
-		Name:      runner.Name,
-		Status:    apiStatus,
-		Busy:      status == runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE,
-		Disabled:  runner.IsDisabled,
-		Ephemeral: runner.Ephemeral,
-		Labels:    labels,
+		ID:            runner.ID,
+		RunnerGroupID: runner.GroupID,
+		Name:          runner.Name,
+		Status:        apiStatus,
+		Busy:          status == runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE,
+		Disabled:      runner.IsDisabled,
+		Ephemeral:     runner.Ephemeral,
+		Labels:        labels,
+	}
+}
+
+// ToActionRunnerGroup converts a runner group listed for ownerID, groupsURL is the API URL of that owner's runner groups
+func ToActionRunnerGroup(group *actions_model.ActionRunnerGroup, ownerID int64, groupsURL string) *api.ActionRunnerGroup {
+	return &api.ActionRunnerGroup{
+		ID:                       group.ID,
+		Name:                     group.Name,
+		Visibility:               util.Iif(group.IncludesAllRepositories, "all", "selected"),
+		Default:                  group.ID == 0,
+		Inherited:                group.OwnerID != ownerID,
+		AllowsPublicRepositories: true,
+		RunnersURL:               fmt.Sprintf("%s/%d/runners", groupsURL, group.ID),
 	}
 }
 

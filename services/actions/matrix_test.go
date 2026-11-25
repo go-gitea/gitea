@@ -36,7 +36,7 @@ jobs:
     steps: [{run: echo}]
   build:
     needs: generate
-    runs-on: ubuntu-latest
+    runs-on: {group: "gpu-${{ matrix.value }}", labels: ubuntu-latest}
     strategy:
       matrix:
         value: %s
@@ -113,9 +113,9 @@ func TestExpandDeferredMatrix(t *testing.T) {
 		assert.False(t, job.IsMatrixDeferred)
 		assert.Equal(t, actions_model.StatusBlocked, job.Status)
 
-		names := []string{job.Name}
+		groups := map[string]string{job.Name: job.RunsOnGroup}
 		for _, sibling := range siblings {
-			names = append(names, sibling.Name)
+			groups[sibling.Name] = sibling.RunsOnGroup
 			assert.Equal(t, actions_model.StatusBlocked, sibling.Status)
 			assert.False(t, sibling.IsMatrixDeferred, "a sibling must not be expanded again")
 			assert.Equal(t, []string{"generate"}, sibling.Needs)
@@ -125,15 +125,17 @@ func TestExpandDeferredMatrix(t *testing.T) {
 			assert.Greater(t, sibling.AttemptJobID, job.AttemptJobID, "siblings take fresh ids from the run-wide counter")
 			assert.Empty(t, sibling.DeferredMatrixPayload, "only the placeholder anchors the group with the raw payload")
 		}
-		assert.ElementsMatch(t, []string{"build (a)", "build (b)", "build (c)"}, names)
+		assert.Equal(t, map[string]string{"build (a)": "gpu-a", "build (b)": "gpu-b", "build (c)": "gpu-c"}, groups)
 
 		reloaded := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID})
 		assert.Equal(t, "build (a)", reloaded.Name)
+		assert.Equal(t, "gpu-a", reloaded.RunsOnGroup)
 		assert.False(t, reloaded.IsMatrixDeferred)
 		assert.NotEmpty(t, reloaded.DeferredMatrixPayload, "the claim must not erase the raw payload")
 		reloaded.MaxParallel = 3
 		require.NoError(t, restoreDeferredMatrixPlaceholder(reloaded))
 		assert.Equal(t, "build", reloaded.Name)
+		assert.Equal(t, "gpu-${{ matrix.value }}", reloaded.RunsOnGroup)
 		assert.Zero(t, reloaded.MaxParallel)
 		assert.True(t, reloaded.IsMatrixDeferred)
 	})

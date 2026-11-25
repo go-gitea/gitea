@@ -73,6 +73,98 @@
         }
       }
     },
+    "/admin/actions/runner-groups": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List the global runner groups",
+        "operationId": "getAdminRunnerGroups",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RunnerGroupList"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/admin/actions/runner-groups/{runner_group_id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get a global runner group",
+        "operationId": "getAdminRunnerGroup",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the runner group, 0 for the default group of ungrouped runners",
+            "name": "runner_group_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RunnerGroup"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/admin/actions/runner-groups/{runner_group_id}/runners": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List the runners in a global runner group",
+        "operationId": "getAdminRunnerGroupRunners",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the runner group, 0 for the default group of ungrouped runners",
+            "name": "runner_group_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RunnerList"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/admin/actions/runners": {
       "get": {
         "produces": [
@@ -2020,6 +2112,127 @@
         "responses": {
           "200": {
             "$ref": "#/responses/WorkflowJobsList"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/actions/runner-groups": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "List the runner groups an organization can use, including inherited global groups",
+        "operationId": "getOrgRunnerGroups",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "only return the groups that can run jobs of this repository of the organization",
+            "name": "visible_to_repository",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RunnerGroupList"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/actions/runner-groups/{runner_group_id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Get a runner group an organization can use",
+        "operationId": "getOrgRunnerGroup",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the runner group, 0 for the default group of ungrouped runners",
+            "name": "runner_group_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RunnerGroup"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/actions/runner-groups/{runner_group_id}/runners": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "List the runners in a runner group an organization can use",
+        "operationId": "getOrgRunnerGroupRunners",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the runner group, 0 for the default group of ungrouped runners",
+            "name": "runner_group_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RunnerList"
           },
           "default": {
             "$ref": "#/responses/error"
@@ -24510,9 +24723,72 @@
           "type": "string",
           "x-go-name": "Name"
         },
+        "runner_group_id": {
+          "description": "RunnerGroupID is 0 for runners outside of a group",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RunnerGroupID"
+        },
         "status": {
           "type": "string",
           "x-go-name": "Status"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "ActionRunnerGroup": {
+      "description": "ActionRunnerGroup represents a runner group",
+      "type": "object",
+      "properties": {
+        "allows_public_repositories": {
+          "type": "boolean",
+          "x-go-name": "AllowsPublicRepositories"
+        },
+        "default": {
+          "type": "boolean",
+          "x-go-name": "Default"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "inherited": {
+          "description": "Inherited is true for global groups listed for an organization",
+          "type": "boolean",
+          "x-go-name": "Inherited"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "runners_url": {
+          "type": "string",
+          "x-go-name": "RunnersURL"
+        },
+        "visibility": {
+          "description": "Visibility is \"all\" when the group serves all repositories in its scope, \"selected\" otherwise",
+          "type": "string",
+          "x-go-name": "Visibility"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "ActionRunnerGroupsResponse": {
+      "description": "ActionRunnerGroupsResponse returns runner groups",
+      "type": "object",
+      "properties": {
+        "runner_groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ActionRunnerGroup"
+          },
+          "x-go-name": "Entries"
+        },
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -34968,6 +35244,18 @@
       "description": "Runner",
       "schema": {
         "$ref": "#/definitions/ActionRunner"
+      }
+    },
+    "RunnerGroup": {
+      "description": "RunnerGroup",
+      "schema": {
+        "$ref": "#/definitions/ActionRunnerGroup"
+      }
+    },
+    "RunnerGroupList": {
+      "description": "RunnerGroupList",
+      "schema": {
+        "$ref": "#/definitions/ActionRunnerGroupsResponse"
       }
     },
     "RunnerList": {

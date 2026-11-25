@@ -243,11 +243,8 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []model.MatrixCombinatio
 				return nil, fmt.Errorf("interpolate runs-on for job %q: %w", jobID, err)
 			}
 			if combo.RunsOnProblem() == "" {
-				runsOn := model.RunsOnFromNode(combo.RawRunsOn)
-				for i := range runsOn {
-					runsOn[i] = escapeExpressions(runsOn[i])
-				}
-				combo.RawRunsOn = model.RunsOnNode(runsOn, "")
+				combo.RawRunsOn = model.RunsOnNode(model.RunsOnLabelsFromNode(combo.RawRunsOn), model.RunsOnGroupFromNode(combo.RawRunsOn))
+				replaceScalars(&combo.RawRunsOn, escapeExpressions)
 			}
 		}
 		if err := evaluator.EvaluateYamlNode(&combo.RawContinueOnError); err != nil {

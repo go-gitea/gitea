@@ -122,7 +122,7 @@ func TestPrepareRunAndInsert_JobIfAndRunsOn(t *testing.T) {
 jobs:
   start:
     if: github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: {group: gpu, labels: ubuntu-latest}
     steps:
       - run: echo
   skip:
@@ -150,6 +150,7 @@ jobs:
 		jobs[job.JobID] = job
 	}
 	assert.Equal(t, actions_model.StatusWaiting, jobs["start"].Status)
+	assert.Equal(t, "gpu", jobs["start"].RunsOnGroup)
 	assert.Equal(t, actions_model.StatusSkipped, jobs["skip"].Status)
 	assert.False(t, jobs["skip"].IsConcurrencyEvaluated)
 	assert.Equal(t, actions_model.StatusSkipped, jobs["skip-caller"].Status)
