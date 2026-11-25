@@ -198,20 +198,23 @@ func toAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	}
 
 	if pr.HeadRepo != nil && pr.Flow == issues_model.PullRequestFlowGithub {
-		p, err := access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, doer)
-		if err != nil {
-			log.Error("GetDoerRepoPermission[%d]: %v", pr.HeadRepoID, err)
-			p.AccessMode = perm.AccessModeNone
+		var headRepoPerm access_model.Permission
+		if pr.IsFromFork() {
+			if headRepoPerm, err = access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, doer); err != nil {
+				log.Error("GetDoerRepoPermission[%d]: %v", pr.HeadRepoID, err)
+				headRepoPerm.AccessMode = perm.AccessModeNone
+			}
 		}
 
 		// a hidden head repository is read from the base repository's PR ref
 		headGitRepo := gitRepo
 		exist = false
-		if isPayload || pr.HeadRepoID == pr.BaseRepoID || p.HasAnyUnitAccessOrPublicAccess() {
+		if isPayload || pr.IsSameRepo() || headRepoPerm.HasAnyUnitAccessOrPublicAccess() {
 			apiPullRequest.Head.RepoID = pr.HeadRepo.ID
-			apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
+			apiPullRequest.Head.Repository = apiPullRequest.Base.Repository
 
-			if pr.HeadRepoID != pr.BaseRepoID { // not request-cached, a lingering cat-file would block deleting the fork on Windows
+			if pr.IsFromFork() { // not request-cached, a lingering cat-file would block deleting the fork on Windows
+				apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, headRepoPerm)
 				headGitRepo, err = git.OpenRepository(ctx, pr.HeadRepo)
 				if err != nil {
 					log.Error("OpenRepository[%s]: %v", pr.HeadRepo.FullName(), err)
@@ -296,7 +299,7 @@ func toAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	return apiPullRequest
 }
 
-func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs issues_model.PullRequestList, doer *user_model.User) ([]*api.PullRequest, error) {
+func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, baseRepoPerm access_model.Permission, prs issues_model.PullRequestList, doer *user_model.User) ([]*api.PullRequest, error) {
 	for _, pr := range prs {
 		pr.BaseRepo = baseRepo
 		if pr.BaseRepoID == pr.HeadRepoID {
@@ -357,12 +360,6 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 		return nil, err
 	}
 	defer closer.Close()
-
-	baseRepoPerm, err := access_model.GetDoerRepoPermission(ctx, baseRepo, doer)
-	if err != nil {
-		log.Error("GetDoerRepoPermission[%d]: %v", baseRepo.ID, err)
-		baseRepoPerm.AccessMode = perm.AccessModeNone
-	}
 
 	apiRepo := ToRepo(ctx, baseRepo, baseRepoPerm)
 

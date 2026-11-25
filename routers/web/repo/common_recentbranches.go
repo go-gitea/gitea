@@ -5,7 +5,6 @@ package repo
 
 import (
 	git_model "gitea.dev/models/git"
-	access_model "gitea.dev/models/perm/access"
 	unit_model "gitea.dev/models/unit"
 	"gitea.dev/modules/log"
 	"gitea.dev/services/context"
@@ -20,10 +19,6 @@ func prepareRecentlyPushedNewBranches(ctx *context.Context) {
 	if ctx.Doer == nil {
 		return
 	}
-	if err := ctx.Repo.Repository.GetBaseRepo(ctx); err != nil {
-		log.Error("GetBaseRepo: %v", err)
-		return
-	}
 
 	opts := git_model.FindRecentlyPushedNewBranchesOptions{
 		Repo:     ctx.Repo.Repository,
@@ -33,7 +28,7 @@ func prepareRecentlyPushedNewBranches(ctx *context.Context) {
 		opts.BaseRepo = ctx.Repo.Repository.BaseRepo
 	}
 
-	baseRepoPerm, err := access_model.GetDoerRepoPermission(ctx, opts.BaseRepo, ctx.Doer)
+	baseRepoPerm, err := ctx.DoerRepoPermission(opts.BaseRepo)
 	if err != nil {
 		log.Error("GetDoerRepoPermission: %v", err)
 		return

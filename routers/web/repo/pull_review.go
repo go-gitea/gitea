@@ -143,7 +143,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 	}
 
 	var permResult bool
-	if permResult, err = issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer); err != nil {
+	if permResult, err = issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer, ctx.Repo.Permission); err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}
@@ -195,7 +195,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 	upload.AddUploadContext(ctx, "comment")
 
 	ctx.Data["comments"] = comments
-	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer); err != nil {
+	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer, ctx.Repo.Permission); err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}

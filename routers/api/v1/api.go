@@ -76,6 +76,8 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/cachegroup"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -213,6 +215,9 @@ func repoAssignment() func(ctx *context.APIContext) {
 					ctx.APIErrorInternal(err)
 					return
 				}
+			}
+			if contextCache := cache.GetContextCache(ctx); contextCache != nil {
+				contextCache.Put(cachegroup.RepoUserPermission, access_model.RepoUserPermissionCacheKey(repo.ID, ctx.Doer), ctx.Repo.Permission)
 			}
 		}
 

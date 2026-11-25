@@ -357,7 +357,7 @@ func updatePullReviewCommentResolve(ctx *context.APIContext, isResolve bool) {
 		return
 	}
 
-	canMarkConv, err := issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer)
+	canMarkConv, err := issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer, ctx.Repo.Permission)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
