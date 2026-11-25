@@ -17,6 +17,24 @@ test('update profile biography', async ({page, request}) => {
   await expect(page.getByLabel('Biography')).toHaveText('');
 });
 
+test('crop avatar before upload', async ({page, request}) => {
+  const username = `e2e-avatar-${randomString(8)}`;
+  await apiCreateUser(request, username);
+  await loginUser(page, username);
+  await page.goto('/user/settings');
+  await expect(page.locator('image-crop:defined')).toBeAttached();
+  await page.getByLabel('Choose new avatar').setInputFiles({
+    name: 'avatar.gif',
+    mimeType: 'image/gif',
+    buffer: Buffer.from('R0lGODlhKAAUAPAAAEGDxAAAACH5BAAAAAAALAAAAAAoABQAAAIahI+py+0Po5y02ouz3rz7D4biSJbmiabqihUAOw==', 'base64'),
+  });
+  const cropBox = page.locator('image-crop[loaded] .crop-box');
+  await cropBox.dragTo(cropBox, {sourcePosition: {x: 100, y: 100}, targetPosition: {x: 20, y: 100}, steps: 4});
+  await page.getByRole('button', {name: 'Update Avatar'}).click();
+  await expect(page.getByText('Your avatar has been updated.', {exact: true})).toBeVisible();
+  expect((await request.get(`/user/avatar/${username}/0`)).headers()['content-type']).toBe('image/png');
+});
+
 test('select and deselect all webhook events', async ({page}) => {
   await login(page);
   await page.goto('/user/settings/hooks/gitea/new');

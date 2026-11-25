@@ -1,6 +1,3 @@
-@import "cropperjs/dist/cropper.css";
-
-.avatar-file-with-cropper + .cropper-panel .cropper-wrapper {
+.cropper-panel image-crop {
   max-width: 400px;
-  max-height: 400px;
 }
