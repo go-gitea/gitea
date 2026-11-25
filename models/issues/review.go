@@ -715,7 +715,7 @@ func UpsertReviews(ctx context.Context, reviews []*Review) error {
 
 		for _, review := range reviews {
 			existing := &Review{}
-			has, err := sess.Where("original_id = ?", review.OriginalID).Get(existing)
+			has, err := findSyncedReview(sess, review).Get(existing)
 			if err != nil {
 				return err
 			}
@@ -753,6 +753,20 @@ func UpsertReviews(ctx context.Context, reviews []*Review) error {
 		}
 		return nil
 	})
+}
+
+// findSyncedReview matches a synced review within its own issue: by remote id, or for an id-less review request by its reviewer
+func findSyncedReview(sess db.Engine, review *Review) db.Engine {
+	cond := sess.Where("issue_id = ?", review.IssueID)
+	if review.OriginalID != 0 {
+		return cond.And("original_id = ?", review.OriginalID)
+	}
+	// review requests (and any other id-less review) never match an ordinary review, whose original_id is 0 too
+	cond = cond.And("original_id = 0 AND `type` = ?", review.Type)
+	if review.OriginalAuthorID != 0 {
+		return cond.And("original_author_id = ?", review.OriginalAuthorID)
+	}
+	return cond.And("original_author_id = 0 AND reviewer_id = ?", review.ReviewerID)
 }
 
 // upsertReviewComment inserts or updates a synced review's comment, matched on (issue_id, review_id, type, original_id)

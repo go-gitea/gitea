@@ -22,6 +22,7 @@ import (
 	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"xorm.io/builder"
 )
 
@@ -481,4 +482,17 @@ func TestUpsertIssuesPersistsUpdatedUnix(t *testing.T) {
 
 	stored := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: existing.ID})
 	assert.Equal(t, remote, stored.UpdatedUnix, "re-upsert must persist the remote updated timestamp (the sync watermark)")
+}
+
+func TestUpsertIssuesKeepsTheCommentCount(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	stored := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	require.Positive(t, stored.NumComments)
+
+	// a re-synced issue arrives without its derived comment count
+	resynced := &issues_model.Issue{RepoID: stored.RepoID, Index: stored.Index, PosterID: stored.PosterID, Title: "renamed upstream", UpdatedUnix: stored.UpdatedUnix + 60}
+	require.NoError(t, issues_model.UpsertIssues(t.Context(), resynced))
+	after := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	assert.Equal(t, "renamed upstream", after.Title)
+	assert.Equal(t, stored.NumComments, after.NumComments)
 }

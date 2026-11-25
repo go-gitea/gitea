@@ -533,7 +533,7 @@ func TestGiteaSyncRepository(t *testing.T) {
 	defer uploader.Close()
 	require.NoError(t, uploader.loadExistingLabelsAndMilestones(ctx))
 
-	marks, err := newSyncWatermarks(ctx, repo.ID)
+	marks, err := newSyncWatermarks(ctx, repo.ID, noResumeCap)
 	require.NoError(t, err)
 	// after every stream's watermark, so issues, pulls and comments all include them
 	latest := marks.issues
@@ -688,7 +688,7 @@ func TestGiteaSyncResumesStoppedPullRequestSync(t *testing.T) {
 	defer uploader.Close()
 	require.NoError(t, uploader.loadExistingLabelsAndMilestones(ctx))
 
-	marks, err := newSyncWatermarks(ctx, repo.ID)
+	marks, err := newSyncWatermarks(ctx, repo.ID, noResumeCap)
 	require.NoError(t, err)
 	base0 := marks.pulls
 	for _, mark := range []time.Time{marks.issues, marks.comments} {
@@ -723,7 +723,7 @@ func TestGiteaSyncResumesStoppedPullRequestSync(t *testing.T) {
 	// a download failure stops the sync before anything of the batch is written
 	require.Error(t, syncRepository(ctx, downloader, uploader, opts, nil, marks))
 	unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 201})
-	after, err := newSyncWatermarks(ctx, repo.ID)
+	after, err := newSyncWatermarks(ctx, repo.ID, noResumeCap)
 	require.NoError(t, err)
 	assert.False(t, after.pulls.After(base0), "a stopped sync must not move the pull request watermark")
 	assert.Equal(t, []int64{201, 202, 203}, downloader.fetched, "pull requests are fetched oldest first")
@@ -761,7 +761,7 @@ func TestGiteaSyncCatchesCommentOnlyChanges(t *testing.T) {
 	defer uploader.Close()
 	require.NoError(t, uploader.loadExistingLabelsAndMilestones(ctx))
 
-	marks, err := newSyncWatermarks(ctx, repo.ID)
+	marks, err := newSyncWatermarks(ctx, repo.ID, noResumeCap)
 	require.NoError(t, err)
 	latest := marks.issues
 	for _, mark := range []time.Time{marks.pulls, marks.comments} {
@@ -798,7 +798,7 @@ func TestGiteaSyncCatchesCommentOnlyChanges(t *testing.T) {
 	)
 	downloader.unlisted = container.SetOf[int64](300, 301)
 
-	marks, err = newSyncWatermarks(ctx, repo.ID)
+	marks, err = newSyncWatermarks(ctx, repo.ID, noResumeCap)
 	require.NoError(t, err)
 	require.NoError(t, syncRepository(ctx, downloader, uploader, opts, nil, marks))
 
@@ -809,6 +809,71 @@ func TestGiteaSyncCatchesCommentOnlyChanges(t *testing.T) {
 	assert.True(t, pull.IsPull)
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pull.ID, OriginalID: 990303})
 	assert.Equal(t, 1, unittest.GetCount(t, &issues_model.Comment{IssueID: issue.ID, OriginalID: 990300}))
+}
+
+// noResumeCap leaves the stored watermarks uncapped, as after a long run of complete syncs
+var noResumeCap = timeutil.TimeStampNow() + 365*24*3600
+
+func TestSyncWatermarksResumeFromLastCompleteSync(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	stored, err := newSyncWatermarks(ctx, repo.ID, noResumeCap)
+	require.NoError(t, err)
+	require.False(t, stored.issues.IsZero(), "the fixture repository has synced issues")
+
+	// an interrupted sync wrote entities past the last complete one: resume from that one
+	lastComplete := timeutil.TimeStamp(stored.issues.Unix() - 3600)
+	capped, err := newSyncWatermarks(ctx, repo.ID, lastComplete)
+	require.NoError(t, err)
+	assert.Equal(t, time.Unix(int64(lastComplete)-int64(syncResumeSkew/time.Second), 0), capped.issues)
+
+	// a mirror that never completed a sync starts over
+	fresh, err := newSyncWatermarks(ctx, repo.ID, 0)
+	require.NoError(t, err)
+	assert.True(t, fresh.issues.IsZero() && fresh.pulls.IsZero() && fresh.comments.IsZero())
+}
+
+func TestCommentedEntitiesScanWithoutStoredComments(t *testing.T) {
+	synced := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+	downloader := &syncTestDownloader{comments: []*base.Comment{{IssueIndex: 7, Index: 1, Content: "first comment", Created: synced.Add(time.Hour), Updated: synced.Add(time.Hour)}}}
+	opts := base.MigrateOptions{Issues: true, Comments: true}
+
+	// issues are synced but none had a comment yet: a first comment must still be discovered
+	issues, _, err := getCommentedEntities(t.Context(), downloader, opts, syncWatermarks{issues: synced})
+	require.NoError(t, err)
+	assert.Len(t, issues, 1)
+
+	// a first sync scans nothing, the listings take everything
+	issues, _, err = getCommentedEntities(t.Context(), downloader, opts, syncWatermarks{})
+	require.NoError(t, err)
+	assert.Empty(t, issues)
+}
+
+func TestSyncRefreshesLabelColorAndDescription(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	uploader := NewGiteaLocalUploader(ctx, doer, "user2", repo.Name)
+	uploader.repo = repo
+	uploader.syncMode = true
+	require.NoError(t, uploader.loadExistingLabelsAndMilestones(ctx))
+
+	// the source recolored and redescribed an existing label
+	labels, err := uploader.ensureLabels(ctx, []*base.Label{{Name: "label1", Color: "112233", Description: "recolored upstream"}})
+	require.NoError(t, err)
+	require.Len(t, labels, 1)
+	stored := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
+	assert.Equal(t, "#112233", stored.Color)
+	assert.Equal(t, "recolored upstream", stored.Description)
+	assert.Equal(t, "label1", stored.Name)
+
+	// a migration (not a sync) leaves existing labels alone
+	uploader.syncMode = false
+	_, err = uploader.ensureLabels(ctx, []*base.Label{{Name: "label1", Color: "445566", Description: "ignored"}})
+	require.NoError(t, err)
+	assert.Equal(t, "#112233", unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1}).Color)
 }
 
 func repoTopicNames(t *testing.T, repoID int64) []string {

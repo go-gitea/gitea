@@ -198,6 +198,11 @@ func MigratePost(ctx *context.Context) {
 		opts.SyncPullRequests = form.SyncPullRequests
 		opts.SyncTopics = form.SyncTopics
 	}
+	// the form offers syncing only for GitHub; a mirror of anything else would just turn read-only
+	if (opts.SyncIssues || opts.SyncPullRequests || opts.SyncTopics) && !migrations.SupportsMetadataSync(form.Service) {
+		ctx.HTTPError(http.StatusBadRequest, "MigratePost: syncing is not supported for "+form.Service.Title()+" mirrors")
+		return
+	}
 	if form.Service == structs.CodeCommitService {
 		opts.AWSAccessKeyID = form.AWSAccessKeyID
 		opts.AWSSecretAccessKey = form.AWSSecretAccessKey

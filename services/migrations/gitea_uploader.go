@@ -533,10 +533,27 @@ func (g *GiteaLocalUploader) ensureLabels(ctx context.Context, labels []*base.La
 				return nil, err
 			}
 			g.labels[l.Name] = lb
+		} else if g.syncMode {
+			if err := g.refreshLabel(ctx, lb, l); err != nil {
+				return nil, err
+			}
 		}
 		result = append(result, lb)
 	}
 	return result, nil
+}
+
+// refreshLabel brings a synced label's color and description up to the source's, which can change without the name
+func (g *GiteaLocalUploader) refreshLabel(ctx context.Context, lb *issues_model.Label, l *base.Label) error {
+	color, err := label.NormalizeColor(l.Color)
+	if err != nil {
+		color = lb.Color // keep the stored color rather than overwrite it with an invalid one
+	}
+	if color == lb.Color && l.Description == lb.Description {
+		return nil
+	}
+	lb.Color, lb.Description = color, l.Description
+	return issues_model.UpdateLabel(ctx, lb)
 }
 
 // ensureMilestone resolves a milestone id by title, creating it in sync mode

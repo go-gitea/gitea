@@ -399,20 +399,14 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		return false
 	}
 
-	if m.SyncsMetadata() {
-		log.Trace("SyncMirrors [repo: %-v]: Running metadata sync", m.Repo)
-		if ok := runSyncMetadata(ctx, m); !ok {
-			if err = repo_model.TouchMirror(ctx, m); err != nil {
-				log.Error("SyncMirrors [repo: %-v]: failed to TouchMirror: %v", m.Repo, err)
-			}
-			return false
-		}
-	}
-
+	// a metadata mirror's last sync time is the metadata watermark cap, so it only advances once the
+	// metadata sync has completed too, which runs after the git results are processed
+	syncStart := m.UpdatedUnix
 	log.Trace("SyncMirrors [repo: %-v]: Scheduling next update", m.Repo)
 	m.ScheduleNextUpdate()
-	m.LastSyncUnix = m.UpdatedUnix
-	m.LastSyncUnix = m.UpdatedUnix
+	if !m.SyncsMetadata() {
+		m.LastSyncUnix = m.UpdatedUnix
+	}
 	if err = repo_model.UpdateMirror(ctx, m); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to UpdateMirror with next update date: %v", m.Repo, err)
 		return false
@@ -512,6 +506,21 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	}); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: unable to add repo to license updater queue: %v", m.Repo, err)
 		return false
+	}
+
+	if m.SyncsMetadata() {
+		log.Trace("SyncMirrors [repo: %-v]: Running metadata sync", m.Repo)
+		if ok := runSyncMetadata(ctx, m); !ok {
+			if err = repo_model.TouchMirror(ctx, m); err != nil {
+				log.Error("SyncMirrors [repo: %-v]: failed to TouchMirror: %v", m.Repo, err)
+			}
+			return false
+		}
+		m.LastSyncUnix = syncStart
+		if err = repo_model.UpdateMirrorLastSync(ctx, m); err != nil {
+			log.Error("SyncMirrors [repo: %-v]: failed to update the last sync time: %v", m.Repo, err)
+			return false
+		}
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: Successfully updated", m.Repo)

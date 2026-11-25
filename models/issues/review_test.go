@@ -449,3 +449,37 @@ func TestTeamReviewRequestOfficial(t *testing.T) {
 	assert.NoError(t, issues_model.RecalculateReviewsOfficial(t.Context(), issue))
 	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: comment.ReviewID}).Official)
 }
+
+func TestUpsertReviewsKeepsEachReviewOnItsIssue(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	local := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 1}) // an ordinary review: original_id 0
+	request := func(issueID, githubUserID int64) *issues_model.Review {
+		return &issues_model.Review{Type: issues_model.ReviewTypeRequest, IssueID: issueID, ReviewerID: 1, OriginalAuthorID: githubUserID, OriginalAuthor: "gh-user"}
+	}
+	countRequests := func(issueID int64) int64 {
+		n, err := db.GetEngine(t.Context()).Where("issue_id = ? AND `type` = ?", issueID, issues_model.ReviewTypeRequest).Count(&issues_model.Review{})
+		assert.NoError(t, err)
+		return n
+	}
+
+	// id-less review requests neither take over the local review nor collapse into one another
+	before := countRequests(3)
+	for range 2 {
+		assert.NoError(t, issues_model.UpsertReviews(t.Context(), []*issues_model.Review{request(3, 101), request(3, 102)}))
+	}
+	assert.Equal(t, before+2, countRequests(3))
+	after := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 1})
+	assert.Equal(t, local.IssueID, after.IssueID)
+	assert.Equal(t, local.Type, after.Type)
+	assert.Equal(t, local.Content, after.Content)
+
+	// the same remote review id on two issues (one repo mirrored twice) stays two rows
+	assert.NoError(t, issues_model.UpsertReviews(t.Context(), []*issues_model.Review{
+		{Type: issues_model.ReviewTypeApprove, IssueID: 3, ReviewerID: 1, OriginalID: 7777, Content: "first mirror"},
+		{Type: issues_model.ReviewTypeApprove, IssueID: 8, ReviewerID: 1, OriginalID: 7777, Content: "second mirror"},
+	}))
+	first := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: 3, OriginalID: 7777})
+	second := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: 8, OriginalID: 7777})
+	assert.NotEqual(t, first.ID, second.ID)
+	assert.Equal(t, "first mirror", first.Content)
+}

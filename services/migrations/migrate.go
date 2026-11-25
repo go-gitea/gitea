@@ -26,6 +26,7 @@ import (
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 )
 
@@ -430,7 +431,11 @@ func SyncRepository(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	// each stream resumes from its own watermark so a partly synced one is not skipped;
 	// zero fetches everything, GitHub rejects since=1970-01-01
-	marks, err := newSyncWatermarks(ctx, repo.ID)
+	mirror, err := repo_model.GetMirrorByRepoID(ctx, repo.ID)
+	if err != nil {
+		return nil, err
+	}
+	marks, err := newSyncWatermarks(ctx, repo.ID, mirror.LastSyncUnix)
 	if err != nil {
 		return nil, err
 	}
@@ -453,8 +458,13 @@ type syncWatermarks struct {
 	comments time.Time
 }
 
-// newSyncWatermarks derives the resume points from the stored data, so a sync needs no extra state
-func newSyncWatermarks(ctx context.Context, repoID int64) (syncWatermarks, error) {
+// syncResumeSkew allows for clock skew between the remote's timestamps and this instance's sync time
+const syncResumeSkew = 5 * time.Minute
+
+// newSyncWatermarks derives the resume points from the stored data, so a sync needs no extra state.
+// Each is capped at the start of the last complete sync: the data is written out of update order,
+// so after an interrupted sync the stored maximum can lie past entities that were never written.
+func newSyncWatermarks(ctx context.Context, repoID int64, lastComplete timeutil.TimeStamp) (syncWatermarks, error) {
 	issueMax, err := issues_model.GetMaxIssueUpdatedUnix(ctx, repoID, false)
 	if err != nil {
 		return syncWatermarks{}, err
@@ -467,10 +477,14 @@ func newSyncWatermarks(ctx context.Context, repoID int64) (syncWatermarks, error
 	if err != nil {
 		return syncWatermarks{}, err
 	}
+	capAt := int64(0) // never completed: start over, the upserts are idempotent
+	if lastComplete > 0 {
+		capAt = max(int64(lastComplete)-int64(syncResumeSkew/time.Second), 1)
+	}
 	return syncWatermarks{
-		issues:   watermarkTime(issueMax),
-		pulls:    watermarkTime(prMax),
-		comments: watermarkTime(commentMax),
+		issues:   watermarkTime(min(issueMax, capAt)),
+		pulls:    watermarkTime(min(prMax, capAt)),
+		comments: watermarkTime(min(commentMax, capAt)),
 	}, nil
 }
 
@@ -577,16 +591,22 @@ func syncRepository(ctx context.Context, downloader base.Downloader, uploader ba
 // getCommentedEntities finds the issues and pull requests changed only by a new comment, which the issue and
 // pull request listings can miss; nothing on a first sync, the listings take everything then
 func getCommentedEntities(ctx context.Context, downloader base.Downloader, opts base.MigrateOptions, marks syncWatermarks) (issues, pulls []base.CommentedEntity, err error) {
-	if !opts.Comments || marks.comments.IsZero() || (!opts.Issues && !opts.PullRequests) {
+	if !opts.Comments || (!opts.Issues && !opts.PullRequests) {
 		return nil, nil, nil
 	}
-	// from the oldest stream watermark, a stream a stopped sync left behind may have comments older than the newest one
-	since := marks.comments
-	if opts.Issues && !marks.issues.IsZero() && marks.issues.Before(since) {
-		since = marks.issues
+	// from the oldest stream watermark, a stream a stopped sync left behind may have comments older than the newest one;
+	// a repository whose synced entities have no comments yet has no comment watermark but still needs the scan
+	var since time.Time
+	for _, mark := range []struct {
+		at   time.Time
+		used bool
+	}{{marks.comments, true}, {marks.issues, opts.Issues}, {marks.pulls, opts.PullRequests}} {
+		if mark.used && !mark.at.IsZero() && (since.IsZero() || mark.at.Before(since)) {
+			since = mark.at
+		}
 	}
-	if opts.PullRequests && !marks.pulls.IsZero() && marks.pulls.Before(since) {
-		since = marks.pulls
+	if since.IsZero() {
+		return nil, nil, nil
 	}
 	entities, err := downloader.GetCommentedEntities(ctx, since)
 	if err != nil {

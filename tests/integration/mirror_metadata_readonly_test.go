@@ -10,6 +10,7 @@ import (
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -64,10 +65,17 @@ func TestReadOnlyMirrorRejectsIssueWrites(t *testing.T) {
 		session.MakeRequest(t, NewRequest(t, "GET", issueURL), http.StatusOK)
 		home := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/%s/%s", owner.Name, repo.Name)), http.StatusOK).Body)
 		assert.Zero(t, home.doc.Find("#manage_topic").Length(), "synced topics are not editable")
+		// a local pull request opened through the compare page would take a number the sync owns
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/compare/master...branch2", owner.Name, repo.Name), map[string]string{"title": "local"}), http.StatusNotFound)
+		unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: repo.ID, Title: "local"})
 		// a mirror has no pull request context, so the list must not try to offer creation or compare
 		pulls := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls", owner.Name, repo.Name)), http.StatusOK).Body)
 		assert.Zero(t, pulls.doc.Find(".issue-list-new").Length(), "read-only mirrors offer no new or compare button")
 		session.MakeRequest(t, NewRequestWithValues(t, "POST", issueURL+"/watch", map[string]string{"watch": "1"}), http.StatusOK)
+		// marking files viewed is the viewer's own state: offered, while reviewing is not
+		files := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/3/files", owner.Name, repo.Name)), http.StatusOK).Body)
+		assert.Positive(t, files.doc.Find(".viewed-file-form").Length(), "the Viewed checkbox stays on mirrored pull requests")
+		assert.Zero(t, files.doc.Find(".review-box-button").Length(), "no review on a mirrored pull request")
 	})
 
 	t.Run("TopicsEditableWithoutSyncTopics", func(t *testing.T) {

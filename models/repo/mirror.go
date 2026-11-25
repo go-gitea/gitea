@@ -120,6 +120,12 @@ func UpdateMirror(ctx context.Context, m *Mirror) error {
 	return err
 }
 
+// UpdateMirrorLastSync records when the mirror's last complete sync started
+func UpdateMirrorLastSync(ctx context.Context, m *Mirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("last_sync_unix").Update(m)
+	return err
+}
+
 // TouchMirror updates the mirror updatedUnix
 func TouchMirror(ctx context.Context, m *Mirror) error {
 	m.UpdatedUnix = timeutil.TimeStampNow()

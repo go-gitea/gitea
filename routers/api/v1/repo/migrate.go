@@ -164,6 +164,11 @@ func Migrate(ctx *context.APIContext) {
 		opts.SyncPullRequests = form.SyncPullRequests
 		opts.SyncTopics = form.SyncTopics
 	}
+	// only GitHub mirrors sync; a mirror of anything else would still turn read-only
+	if (opts.SyncIssues || opts.SyncPullRequests || opts.SyncTopics) && !migrations.SupportsMetadataSync(gitServiceType) {
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("syncing is not supported for %s mirrors", gitServiceType.Title()))
+		return
+	}
 	if gitServiceType == api.CodeCommitService {
 		opts.AWSAccessKeyID = form.AWSAccessKeyID
 		opts.AWSSecretAccessKey = form.AWSSecretAccessKey

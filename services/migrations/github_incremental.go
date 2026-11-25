@@ -15,11 +15,18 @@ import (
 
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/structs"
 
 	"github.com/google/go-github/v93/github"
 )
 
 // The incremental layer resumes a metadata sync from the max updated time already stored per stream.
+
+// SupportsMetadataSync reports whether a mirror of this service type can sync its issues and pull requests,
+// matching the downloaders whose SupportSyncing is true
+func SupportsMetadataSync(serviceType structs.GitServiceType) bool {
+	return serviceType == structs.GithubService
+}
 
 func (g *GithubDownloaderV3) SupportSyncing() bool {
 	return true

@@ -847,7 +847,8 @@ func upsertIssue(ctx context.Context, issue *Issue) (isInsert bool, err error) {
 // updateMigratedIssue overwrites a synced issue with the remote state, replacing its labels and reactions
 func updateMigratedIssue(ctx context.Context, issue *Issue) error {
 	sess := db.GetEngine(ctx)
-	if _, err := sess.NoAutoTime().ID(issue.ID).AllCols().Update(issue); err != nil {
+	// num_comments is derived from the stored comments and recounted where they are written
+	if _, err := sess.NoAutoTime().ID(issue.ID).AllCols().Omit("num_comments").Update(issue); err != nil {
 		return err
 	}
 	// NoAutoTime drops `updated` columns even under AllCols, and updated_unix is the sync watermark

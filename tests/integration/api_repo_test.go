@@ -753,3 +753,37 @@ func TestAPIGenerateRepo(t *testing.T) {
 		assert.Equal(t, apiRepo.DefaultBranch, branch.Name)
 	}
 }
+
+func TestAPIRepoMigrateRejectsUnsupportedMetadataSync(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	token := getTokenForLoggedInUser(t, loginUser(t, user.Name), auth_model.AccessTokenScopeWriteRepository)
+
+	// only GitHub mirrors sync issues and pull requests; elsewhere the mirror would just turn read-only
+	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", &api.MigrateRepoOptions{
+		CloneAddr:   "https://github.com/go-gitea/test_repo.git",
+		RepoOwnerID: user.ID,
+		RepoName:    "unsupported-metadata-sync",
+		Service:     "gitea",
+		Mirror:      true,
+		SyncIssues:  true,
+	}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusUnprocessableEntity)
+	assert.Contains(t, DecodeJSON(t, resp, map[string]string{})["message"], "not supported for Gitea mirrors")
+	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerID: user.ID, Name: "unsupported-metadata-sync"})
+
+	// synced topics turn read-only the same way
+	req = NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", &api.MigrateRepoOptions{
+		CloneAddr: "https://github.com/go-gitea/test_repo.git", RepoOwnerID: user.ID, RepoName: "unsupported-topic-sync",
+		Service: "gitea", Mirror: true, SyncTopics: true,
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	// the web form only offers syncing for GitHub, a crafted post for another service is refused
+	session := loginUser(t, user.Name)
+	session.MakeRequest(t, NewRequestWithValues(t, "POST", "/repo/migrate", map[string]string{
+		"clone_addr": "https://github.com/go-gitea/test_repo.git", "uid": "2", "repo_name": "unsupported-web-sync",
+		"service": "3", "mirror": "on", "sync_issues": "on",
+	}), http.StatusBadRequest)
+	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerID: user.ID, Name: "unsupported-web-sync"})
+}
