@@ -382,7 +382,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			if !issue.Repo.Owner.IsOrganization() {
+			if action == "attach" && !issue.Repo.Owner.IsOrganization() {
 				log.Warn(
 					"UpdatePullReviewRequest: refusing to add team review request for %s#%d owned by non organization UID[%d]",
 					issue.Repo.FullName(), issue.Index, issue.Repo.ID,
@@ -397,7 +397,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			if team.OrgID != issue.Repo.OwnerID {
+			if action == "attach" && team.OrgID != issue.Repo.OwnerID {
 				log.Warn(
 					"UpdatePullReviewRequest: refusing to add team review request for UID[%d] team %s to %s#%d owned by UID[%d]",
 					team.OrgID, team.Name, issue.Repo.FullName(), issue.Index, issue.Repo.ID)

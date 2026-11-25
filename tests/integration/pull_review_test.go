@@ -38,6 +38,12 @@ func TestPullReview(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	t.Run("ReviewerMissed", testPullReviewReviewerMissed)
 	t.Run("LockedOrBlocked", testPullReviewLockedOrBlocked)
+	t.Run("DetachTeamFromAnotherOrg", func(t *testing.T) {
+		review := &issues_model.Review{Type: issues_model.ReviewTypeRequest, IssueID: 2, ReviewerTeamID: 2}
+		require.NoError(t, db.Insert(t.Context(), review))
+		loginUser(t, "user2").MakeRequest(t, NewRequestf(t, "POST", "/user2/repo1/issues/request_review?action=detach&issue_ids=%d&id=%d", review.IssueID, -review.ReviewerTeamID), http.StatusOK)
+		unittest.AssertNotExistsBean(t, &issues_model.Review{ID: review.ID})
+	})
 }
 
 func testPullReviewReviewerMissed(t *testing.T) {
