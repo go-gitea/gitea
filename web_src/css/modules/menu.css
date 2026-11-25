@@ -328,6 +328,11 @@
   min-width: min-content;
 }
 
+/* the arrows hold only an icon, so they can be a little narrower than a page number */
+.ui.pagination.menu.narrow .item.navigation {
+  width: 2.25em;
+}
+
 .ui.secondary.menu {
   background: none;
   margin-left: 0;

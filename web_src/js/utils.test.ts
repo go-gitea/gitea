@@ -119,10 +119,14 @@ test('formatBytes', () => {
 });
 
 test('getPaginationPages', () => {
+  expect(getPaginationPages(1, 0)).toEqual([]);
   expect(getPaginationPages(1, 3)).toEqual([1, 2, 3]);
-  expect(getPaginationPages(2, 20)).toEqual([1, 2, 3, null]);
-  expect(getPaginationPages(3, 5)).toEqual([null, 2, 3, 4, null]);
-  expect(getPaginationPages(20, 20)).toEqual([null, 18, 19, 20]);
+  expect(getPaginationPages(2, 20)).toEqual([1, 2, 3, 4, 5]);
+  expect(getPaginationPages(3, 5)).toEqual([1, 2, 3, 4, 5]);
+  expect(getPaginationPages(10, 20)).toEqual([8, 9, 10, 11, 12]);
+  expect(getPaginationPages(20, 20)).toEqual([16, 17, 18, 19, 20]);
+  // a page from the address bar past the end still ends on the last pages
+  expect(getPaginationPages(99, 20)).toEqual([16, 17, 18, 19, 20]);
 });
 
 test('file detection', () => {

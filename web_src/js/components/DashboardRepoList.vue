@@ -496,10 +496,11 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
               <svg-icon name="octicon-chevron-left" :size="16" class="tw-mr-1"/>
             </a>
             <a
-              v-for="(item, idx) in getPaginationPages(page, finalPage)" :key="idx"
-              class="item tw-py-1" :class="{active: item === page, disabled: item === null}"
-              @click="item && changePage(item)"
-            >{{ item ?? '...' }}</a>
+              v-for="item in getPaginationPages(page, finalPage)" :key="item"
+              class="item tw-py-1" :class="{active: item === page}"
+              :aria-current="item === page ? 'page' : undefined"
+              @click="changePage(item)"
+            >{{ item }}</a>
             <a
               class="item navigation" :class="{'disabled': page === finalPage}"
               @click="changePage(page + 1)" :title="textNextPage"
