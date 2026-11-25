@@ -1449,6 +1449,13 @@ func Routes() *web.Router {
 							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseByTag)
 					})
 				}, mustEnableUnit(unit.TypeReleases), mustNotBeArchived)
+				m.Group("/security/disclosures", func() {
+					m.Combo("").Get(repo.ListDisclosures).
+						Post(reqToken(), reqAdmin(), mustNotBeArchived, bind(api.CreateSecurityDisclosureOption{}), repo.CreateDisclosure)
+					m.Combo("/{id}").Get(repo.GetDisclosure).
+						Patch(reqToken(), reqAdmin(), mustNotBeArchived, bind(api.EditSecurityDisclosureOption{}), repo.EditDisclosure).
+						Delete(reqToken(), reqAdmin(), mustNotBeArchived, repo.DeleteDisclosure)
+				}, mustEnableUnit(unit.TypeSecurity))
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.MirrorSync)
 				m.Post("/push_mirrors-sync", reqAdmin(), reqToken(), mustNotBeArchived, repo.PushMirrorSync)
 				m.Group("/push_mirrors", func() {

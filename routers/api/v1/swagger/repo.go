@@ -523,3 +523,17 @@ type swaggerResponseCodeSearchResults struct {
 	// in:body
 	Body api.CodeSearchResults `json:"body"`
 }
+
+// SecurityDisclosure
+// swagger:response SecurityDisclosure
+type swaggerResponseSecurityDisclosure struct {
+	// in:body
+	Body api.SecurityDisclosure `json:"body"`
+}
+
+// SecurityDisclosureList
+// swagger:response SecurityDisclosureList
+type swaggerResponseSecurityDisclosureList struct {
+	// in:body
+	Body []api.SecurityDisclosure `json:"body"`
+}

@@ -900,6 +900,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	reqRepoProjectsWriter := context.RequireUnitWriter(unit.TypeProjects)
 	reqRepoActionsReader := context.RequireUnitReader(unit.TypeActions)
 	reqRepoActionsWriter := context.RequireUnitWriter(unit.TypeActions)
+	reqRepoSecurityReader := context.RequireUnitReader(unit.TypeSecurity)
 
 	// the legacy names "reqRepoXxx" should be renamed to the correct name "reqUnitXxx", these permissions are for units, not repos
 	reqUnitsWithMarkdown := context.RequireUnitReader(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases, unit.TypeWiki)
@@ -1500,6 +1501,27 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}, reqSignIn, context.RepoMustNotBeArchived(), reqRepoReleaseWriter)
 	}, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqRepoReleaseReader)
 	// end "/{username}/{reponame}": repo releases
+
+	m.Group("/{username}/{reponame}", func() { // repo security section
+		m.Group("/security", func() {
+			m.Get("", repo.SecurityHome)
+			m.Group("/disclosures", func() {
+				m.Get("", repo.Disclosures)
+				m.Get(".rss", webAuth.AllowBasic, feedEnabled, repo.DisclosuresFeedRSS)
+				m.Get(".atom", webAuth.AllowBasic, feedEnabled, repo.DisclosuresFeedAtom)
+				m.Get("/{id}", repo.ViewDisclosure)
+			})
+		}, optSignIn, reqRepoSecurityReader, ctxDataSet(reqctx.ContextData{"EnableFeed": setting.Other.EnableFeed}))
+		m.Group("/security/disclosures", func() {
+			m.Get("/new", repo.NewDisclosure)
+			m.Post("/new", web.Bind[*forms.NewDisclosureForm](), repo.NewDisclosurePost)
+			m.Get("/{id}/edit", repo.EditDisclosure)
+			m.Post("/{id}/edit", web.Bind[*forms.EditDisclosureForm](), repo.EditDisclosurePost)
+			m.Post("/{id}/{action}", repo.ChangeDisclosureStatusPost) // action: publish, withdraw
+			m.Post("/{id}/delete", repo.DeleteDisclosurePost)
+		}, reqSignIn, reqRepoAdmin, context.RepoMustNotBeArchived(), reqRepoSecurityReader)
+	}, optSignIn, context.RepoAssignment)
+	// end "/{username}/{reponame}": repo security section
 
 	m.Group("/{username}/{reponame}", func() { // to maintain compatibility with old attachments
 		m.Get("/attachments/{uuid}", webAuth.AllowBasic, webAuth.AllowOAuth2, repo.GetAttachment)

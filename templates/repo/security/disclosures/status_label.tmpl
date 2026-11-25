@@ -1,0 +1,1 @@
+{{if .IsDraft}}<span class="ui small orange label">{{ctx.Locale.Tr "repo.security.status_draft"}}</span>{{else if eq .Status "withdrawn"}}<span class="ui small label">{{ctx.Locale.Tr "repo.security.status_withdrawn"}}</span>{{else}}<span class="ui small green label">{{ctx.Locale.Tr "repo.security.status_published"}}</span>{{end}}

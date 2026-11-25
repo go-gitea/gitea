@@ -1362,6 +1362,29 @@
         },
         "description": "SecretList"
       },
+      "SecurityDisclosure": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SecurityDisclosure"
+            }
+          }
+        },
+        "description": "SecurityDisclosure"
+      },
+      "SecurityDisclosureList": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/SecurityDisclosure"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "description": "SecurityDisclosureList"
+      },
       "ServerVersion": {
         "content": {
           "application/json": {
@@ -4916,6 +4939,93 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "CreateSecurityDisclosureOption": {
+        "description": "CreateSecurityDisclosureOption options for creating a security disclosure",
+        "properties": {
+          "affected_versions": {
+            "description": "Affected version ranges, e.g. [\"\u003e= 1.2.3, \u003c 1.4.0\"]",
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "AffectedVersions"
+          },
+          "credits": {
+            "description": "Credits for the disclosure; null keeps, [] clears",
+            "items": {
+              "$ref": "#/components/schemas/SecurityDisclosureCreditInput"
+            },
+            "type": "array",
+            "x-go-name": "Credits"
+          },
+          "cve_id": {
+            "description": "An optional reference to an existing CVE record",
+            "type": "string",
+            "x-go-name": "CveID"
+          },
+          "cvss_vector": {
+            "description": "Optional CVSS vector, e.g. \"CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H\" (CVSS 3.0/3.1/4.0)",
+            "type": "string",
+            "x-go-name": "CVSSVector"
+          },
+          "cwe_ids": {
+            "description": "CWE identifiers, e.g. [\"CWE-79\"]",
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "CweIds"
+          },
+          "description": {
+            "description": "The full description, in markdown",
+            "type": "string",
+            "x-go-name": "Description"
+          },
+          "fixed_versions": {
+            "description": "Fixed versions, e.g. [\"1.4.0\"]",
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "FixedVersions"
+          },
+          "publish": {
+            "description": "Publish immediately instead of saving as draft",
+            "type": "boolean",
+            "x-go-name": "Publish"
+          },
+          "references": {
+            "description": "External references (URLs)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "References"
+          },
+          "severity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SecurityDisclosureSeverity"
+              }
+            ],
+            "description": "Required when cvss_vector is not set; when a CVSS vector is set, the severity is derived from it"
+          },
+          "summary": {
+            "description": "A short plain-text summary",
+            "type": "string",
+            "x-go-name": "Summary"
+          },
+          "title": {
+            "type": "string",
+            "x-go-name": "Title"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "CreateStatusOption": {
         "description": "CreateStatusOption holds the information needed to create a new CommitStatus for a Commit",
         "properties": {
@@ -6292,6 +6402,90 @@
             "description": "a URL with more information about the repository.",
             "type": "string",
             "x-go-name": "Website"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "EditSecurityDisclosureOption": {
+        "description": "EditSecurityDisclosureOption options for editing a security disclosure; empty fields are left unchanged",
+        "properties": {
+          "affected_versions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "AffectedVersions"
+          },
+          "credits": {
+            "items": {
+              "$ref": "#/components/schemas/SecurityDisclosureCreditInput"
+            },
+            "type": "array",
+            "x-go-name": "Credits"
+          },
+          "cve_id": {
+            "type": "string",
+            "x-go-name": "CveID"
+          },
+          "cvss_vector": {
+            "type": "string",
+            "x-go-name": "CVSSVector"
+          },
+          "cwe_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "CweIds"
+          },
+          "description": {
+            "type": "string",
+            "x-go-name": "Description"
+          },
+          "fixed_versions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "FixedVersions"
+          },
+          "references": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "References"
+          },
+          "severity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SecurityDisclosureSeverity"
+              }
+            ],
+            "description": "When cvss_vector is set, the severity is derived from it instead"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "published",
+              "withdrawn"
+            ],
+            "type": "string",
+            "x-go-name": "Status"
+          },
+          "summary": {
+            "type": "string",
+            "x-go-name": "Summary"
+          },
+          "title": {
+            "type": "string",
+            "x-go-name": "Title"
+          },
+          "withdraw_reason": {
+            "description": "The reason for withdrawing the disclosure, required when status is set to \"withdrawn\"",
+            "type": "string",
+            "x-go-name": "WithdrawReason"
           }
         },
         "type": "object",
@@ -10389,6 +10583,238 @@
         },
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
+      },
+      "SecurityDisclosure": {
+        "description": "SecurityDisclosure represents a repository security disclosure",
+        "properties": {
+          "affected_versions": {
+            "description": "Affected version ranges, e.g. [\"\u003e= 1.2.3, \u003c 1.4.0\"]",
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "AffectedVersions"
+          },
+          "author": {
+            "$ref": "#/components/schemas/User"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string",
+            "x-go-name": "CreatedAt"
+          },
+          "credits": {
+            "description": "Credits: who is credited for the disclosure and their role",
+            "items": {
+              "$ref": "#/components/schemas/SecurityDisclosureCredit"
+            },
+            "type": "array",
+            "x-go-name": "Credits"
+          },
+          "cve_id": {
+            "description": "An optional reference to an existing CVE record",
+            "type": "string",
+            "x-go-name": "CveID"
+          },
+          "cvss": {
+            "$ref": "#/components/schemas/SecurityDisclosureCVSS"
+          },
+          "cwe_ids": {
+            "description": "CWE identifiers, e.g. [\"CWE-79\"]",
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "CweIds"
+          },
+          "description": {
+            "description": "The full description, in markdown",
+            "type": "string",
+            "x-go-name": "Description"
+          },
+          "fixed_versions": {
+            "description": "Fixed versions, e.g. [\"1.4.0\"]",
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "FixedVersions"
+          },
+          "html_url": {
+            "description": "The HTML URL of the disclosure",
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "HTMLURL"
+          },
+          "id": {
+            "description": "The unique identifier of the disclosure",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ID"
+          },
+          "identifier": {
+            "description": "The short per-repository identifier, e.g. \"SD-0001\"",
+            "type": "string",
+            "x-go-name": "Identifier"
+          },
+          "published_at": {
+            "format": "date-time",
+            "type": "string",
+            "x-go-name": "PublishedAt"
+          },
+          "published_by": {
+            "$ref": "#/components/schemas/User"
+          },
+          "references": {
+            "description": "External references (URLs)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "References"
+          },
+          "severity": {
+            "description": "The severity: \"informative\", \"low\", \"moderate\", \"high\" or \"critical\"",
+            "type": "string",
+            "x-go-name": "Severity"
+          },
+          "status": {
+            "description": "The status: \"draft\", \"published\" or \"withdrawn\"",
+            "type": "string",
+            "x-go-name": "Status"
+          },
+          "summary": {
+            "description": "A short plain-text summary",
+            "type": "string",
+            "x-go-name": "Summary"
+          },
+          "title": {
+            "description": "The title of the disclosure",
+            "type": "string",
+            "x-go-name": "Title"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string",
+            "x-go-name": "UpdatedAt"
+          },
+          "url": {
+            "description": "The API URL of the disclosure",
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "URL"
+          },
+          "withdraw_reason": {
+            "description": "The reason for withdrawing the disclosure, required when status is \"withdrawn\"",
+            "type": "string",
+            "x-go-name": "WithdrawReason"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "SecurityDisclosureCVSS": {
+        "description": "with the CVSS version encoded in the vector prefix",
+        "properties": {
+          "score": {
+            "description": "The CVSS base score computed from the vector (0.0 - 10.0)",
+            "format": "double",
+            "type": "number",
+            "x-go-name": "Score"
+          },
+          "vector": {
+            "description": "The CVSS vector string, e.g. \"CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H\"",
+            "type": "string",
+            "x-go-name": "Vector"
+          },
+          "version": {
+            "description": "The CVSS version: \"3.0\", \"3.1\" or \"4.0\"",
+            "type": "string",
+            "x-go-name": "Version"
+          }
+        },
+        "title": "SecurityDisclosureCVSS is the optional CVSS vector of a security disclosure,",
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "SecurityDisclosureCredit": {
+        "description": "SecurityDisclosureCredit is one credit entry of a security disclosure: either a\nlocal Gitea user (User set) or an external person (Name, optionally with URL)",
+        "properties": {
+          "name": {
+            "description": "The display name (always set, also as fallback for deleted users)",
+            "type": "string",
+            "x-go-name": "Name"
+          },
+          "role": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SecurityDisclosureCreditRole"
+              }
+            ],
+            "description": "The role the person played"
+          },
+          "url": {
+            "description": "Optional link, external people only",
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "URL"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "SecurityDisclosureCreditInput": {
+        "description": "SecurityDisclosureCreditInput is one credit entry when creating or editing a disclosure",
+        "properties": {
+          "name": {
+            "description": "The display name of an external person (not a Gitea user); required when user_name is not set",
+            "type": "string",
+            "x-go-name": "Name"
+          },
+          "role": {
+            "$ref": "#/components/schemas/SecurityDisclosureCreditRole"
+          },
+          "url": {
+            "description": "Optional link of an external person",
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "URL"
+          },
+          "user_name": {
+            "description": "The name of a local Gitea user; when set, Name/URL are ignored",
+            "type": "string",
+            "x-go-name": "UserName"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "SecurityDisclosureCreditRole": {
+        "enum": [
+          "finder",
+          "reporter",
+          "analyst",
+          "coordinator",
+          "sponsor",
+          "other"
+        ],
+        "type": "string"
+      },
+      "SecurityDisclosureSeverity": {
+        "enum": [
+          "informative",
+          "low",
+          "moderate",
+          "high",
+          "critical"
+        ],
+        "type": "string"
       },
       "ServerVersion": {
         "description": "ServerVersion wraps the version of the server",
@@ -31628,6 +32054,291 @@
           }
         },
         "summary": "Return all users that can be requested to review in this repo",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/security/disclosures": {
+      "get": {
+        "operationId": "repoListSecurityDisclosures",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "keyword to search in title, summary and description",
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "comma-separated list of severities to filter by (informative, low, moderate, high, critical)",
+            "in": "query",
+            "name": "severity",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "filter by status (draft, published, withdrawn); drafts are only visible to maintainers",
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "only include disclosures whose affected versions match this version (semver or exact)",
+            "in": "query",
+            "name": "version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "sort order (newest, oldest, severity, updated)",
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SecurityDisclosureList"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "List a repository's security disclosures",
+        "tags": [
+          "repository"
+        ]
+      },
+      "post": {
+        "operationId": "repoCreateSecurityDisclosure",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSecurityDisclosureOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/SecurityDisclosure"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Create a new security disclosure (maintainers only)",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/security/disclosures/{id}": {
+      "delete": {
+        "operationId": "repoDeleteSecurityDisclosure",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "id of the disclosure to delete",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/empty"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Delete a security disclosure (maintainers only, drafts only)",
+        "tags": [
+          "repository"
+        ]
+      },
+      "get": {
+        "operationId": "repoGetSecurityDisclosure",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "id of the disclosure to get",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SecurityDisclosure"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Get a single security disclosure",
+        "tags": [
+          "repository"
+        ]
+      },
+      "patch": {
+        "operationId": "repoEditSecurityDisclosure",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "id of the disclosure to edit",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditSecurityDisclosureOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SecurityDisclosure"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Edit a security disclosure (maintainers only)",
         "tags": [
           "repository"
         ]

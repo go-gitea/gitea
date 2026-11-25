@@ -101,6 +101,7 @@ func NewTemplateContextForWeb(ctx reqctx.RequestContext, req *http.Request, loca
 		"RepoUnitTypeProjects":        unit.TypeProjects,
 		"RepoUnitTypePackages":        unit.TypePackages,
 		"RepoUnitTypeActions":         unit.TypeActions,
+		"RepoUnitTypeSecurity":        unit.TypeSecurity,
 	}
 	return tmplCtx
 }

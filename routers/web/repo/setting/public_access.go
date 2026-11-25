@@ -101,6 +101,11 @@ func repoUnitPublicAccesses(ctx *context.Context) []*repoUnitPublicAccess {
 			DisplayName:       ctx.Locale.TrString("repo.actions"),
 			PublicAccessTypes: []string{paAnonymousRead, paEveryoneRead},
 		},
+		{
+			UnitType:          unit.TypeSecurity,
+			DisplayName:       ctx.Locale.TrString("repo.security"),
+			PublicAccessTypes: []string{paAnonymousRead, paEveryoneRead},
+		},
 	}
 	for _, ua := range accesses {
 		ua.FormKey = "repo-unit-access-" + strconv.Itoa(int(ua.UnitType))

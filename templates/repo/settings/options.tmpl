@@ -521,6 +521,16 @@
 					</div>
 				</div>
 
+				{{$isSecurityEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeSecurity}}
+				{{$isSecurityGlobalDisabled := ctx.Consts.RepoUnitTypeSecurity.UnitGlobalDisabled}}
+				<div class="inline field">
+					<label>{{ctx.Locale.Tr "repo.security"}}</label>
+					<div class="ui checkbox{{if $isSecurityGlobalDisabled}} disabled{{end}}"{{if $isSecurityGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
+						<input class="enable-system" name="enable_security" type="checkbox" {{if $isSecurityEnabled}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "repo.settings.security_desc"}}</label>
+					</div>
+				</div>
+
 				{{if not .IsMirror}}
 					<div class="divider"></div>
 					{{$pullRequestEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypePullRequests}}

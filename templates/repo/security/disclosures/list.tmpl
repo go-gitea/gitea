@@ -1,0 +1,75 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository security">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<div class="flex-left-right tw-mb-4">
+			<h2 class="tw-mb-0">{{ctx.Locale.Tr "repo.security.disclosures"}}</h2>
+			<div class="flex-text-block">
+				{{if .EnableFeed}}
+					<a class="ui small button" href="{{.RepoLink}}/security/disclosures.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss" 16}}</a>
+				{{end}}
+				{{if .CanManageDisclosures}}
+					<a class="ui primary button" href="{{.RepoLink}}/security/disclosures/new">{{svg "octicon-plus" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security.new_disclosure"}}</a>
+				{{end}}
+			</div>
+		</div>
+
+		<form class="ui form tw-mb-4" method="get" action="{{.RepoLink}}/security/disclosures">
+			<div class="flex-text-block tw-flex-wrap tw-gap-2">
+				<div class="ui input tw-flex-1 tw-min-w-52">
+					<input type="text" name="q" value="{{.Query}}" placeholder="{{ctx.Locale.Tr "repo.security.search_placeholder"}}" aria-label="{{ctx.Locale.Tr "repo.security.search_placeholder"}}">
+				</div>
+				<div class="ui input">
+					<input type="text" name="version" value="{{.VersionFilter}}" placeholder="{{ctx.Locale.Tr "repo.security.version_placeholder"}}" aria-label="{{ctx.Locale.Tr "repo.security.version_placeholder"}}">
+				</div>
+				<select class="ui selection dropdown" name="severity" aria-label="{{ctx.Locale.Tr "repo.security.severity"}}">
+					<option value="" {{if not .SeverityFilters}}selected{{end}}>{{ctx.Locale.Tr "repo.security.all_severities"}}</option>
+					{{range .AllSeverities}}
+						<option value="{{.}}" {{if index $.SeverityFilterSet (printf "%s" .)}}selected{{end}}>{{ctx.Locale.Tr (print "repo.security.severity_" .)}}</option>
+					{{end}}
+				</select>
+				{{if .Permission.IsAdmin}}
+					<select class="ui selection dropdown" name="status" aria-label="{{ctx.Locale.Tr "repo.security.status"}}">
+						<option value="" {{if not .StatusFilter}}selected{{end}}>{{ctx.Locale.Tr "repo.security.all_statuses"}}</option>
+						<option value="draft" {{if eq .StatusFilter "draft"}}selected{{end}}>{{ctx.Locale.Tr "repo.security.status_draft"}}</option>
+						<option value="published" {{if eq .StatusFilter "published"}}selected{{end}}>{{ctx.Locale.Tr "repo.security.status_published"}}</option>
+						<option value="withdrawn" {{if eq .StatusFilter "withdrawn"}}selected{{end}}>{{ctx.Locale.Tr "repo.security.status_withdrawn"}}</option>
+					</select>
+				{{end}}
+				<select class="ui selection dropdown" name="sort" aria-label="{{ctx.Locale.Tr "repo.security.sort"}}">
+					<option value="" {{if not .SortOrder}}selected{{end}}>{{ctx.Locale.Tr "repo.security.sort_newest"}}</option>
+					<option value="oldest" {{if eq .SortOrder "oldest"}}selected{{end}}>{{ctx.Locale.Tr "repo.security.sort_oldest"}}</option>
+					<option value="severity" {{if eq .SortOrder "severity"}}selected{{end}}>{{ctx.Locale.Tr "repo.security.sort_severity"}}</option>
+					<option value="updated" {{if eq .SortOrder "updated"}}selected{{end}}>{{ctx.Locale.Tr "repo.security.sort_updated"}}</option>
+				</select>
+				<button class="ui primary button" type="submit">{{ctx.Locale.Tr "repo.security.filter"}}</button>
+			</div>
+		</form>
+
+		{{range .Disclosures}}
+			<div class="ui segment tw-flex tw-flex-col tw-gap-1">
+				<div class="flex-left-right">
+					<h4 class="tw-mb-0 tw-break-anywhere">
+						<a class="muted tw-font-mono tw-mr-1" href="{{$.RepoLink}}/security/disclosures/{{.ID}}">{{.Identifier}}</a>
+						<a href="{{$.RepoLink}}/security/disclosures/{{.ID}}">{{.Title}}</a>
+					</h4>
+					<div class="tw-flex tw-gap-2">
+						{{template "repo/security/disclosures/severity_label" .}}
+						{{template "repo/security/disclosures/status_label" .}}
+					</div>
+				</div>
+				{{if .Summary}}<p class="tw-mb-0 tw-text-text-light">{{.Summary}}</p>{{end}}
+				<div class="tw-text-sm tw-text-text-light">
+					{{if .Author}}{{ctx.Locale.Tr "repo.security.published_by" .Author.GetDisplayName}}{{end}}
+					{{range .Versions}}{{if eq .Kind "affected"}}<span class="ui tiny label">{{ctx.Locale.Tr "repo.security.affected" .Version}}</span>{{end}}{{end}}
+				</div>
+			</div>
+		{{else}}
+			<p class="tw-text-center tw-text-text-light">{{ctx.Locale.Tr "repo.security.no_disclosures"}}</p>
+		{{end}}
+
+		{{template "base/paginate" .}}
+	</div>
+</div>
+{{template "base/footer" .}}
