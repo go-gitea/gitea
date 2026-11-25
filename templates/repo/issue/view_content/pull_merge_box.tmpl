@@ -50,21 +50,28 @@
 						{{if $mergeBoxData.CanCancelAutoMerge}}
 							<button type="button" class="ui button link-action tw-shrink-0" data-url="{{$issue.Link}}/cancel_auto_merge">{{ctx.Locale.Tr "repo.pulls.auto_merge_cancel_schedule"}}</button>
 						{{end}}
-						<span class="merge-box-auto-merge-desc">
-							{{if $mergeBoxData.MergeQueueLink}}{{ctx.Locale.Tr "repo.pulls.merge_queue.auto_merge_desc" $mergeBoxData.AutoMerge.Doer.GetDisplayName}}
-							{{else}}{{ctx.Locale.Tr "repo.pulls.auto_merge_enabled_desc" $mergeBoxData.AutoMerge.Doer.GetDisplayName $mergeBoxData.AutoMergeStyleName}}{{end}}
-						</span>
 					{{else if $mergeBoxData.MergeFormProps}}
 						{{/* The merge form is a Vue component, these invisible copies of its initial rows avoid layout shifting until it is mounted */}}
 						<div class="tw-flex-auto tw-min-w-0" data-merge-form-props="{{JsonUtils.EncodeToString $mergeBoxData.MergeFormProps}}">
 							{{if $mergeBoxData.MergeFormProps.canBypassMerge}}<div class="ui checkbox tw-flex tw-mb-4 tw-invisible"><label>{{$mergeBoxData.MergeFormProps.textBypassRules}}</label></div>{{end}}
-							<div class="ui buttons tw-invisible"><button type="button" class="ui button">&nbsp;</button></div>
+							<div class="flex-text-block tw-flex-wrap tw-invisible">
+								<div class="ui buttons"><button type="button" class="ui button">&nbsp;</button></div>
+								<span class="merge-box-footer-text">{{with $mergeBoxData.MergeFormProps.queue}}{{.helpHTML}}{{else}}{{$mergeBoxData.MergeFormProps.textCmdMergeHint}}{{end}} {{$mergeBoxData.MergeFormProps.textCmdInstructions}}</span>
+							</div>
 						</div>
 					{{end}}
-					{{if $mergeBoxData.ShowPullCommands}}
-						<span class="merge-box-command-link tw-text-12 tw-text-text-light-2">
-							{{if $mergeBoxData.ShowMergeInstructions}}{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_hint"}}{{end}}
-							<button type="button" class="interact-link show-modal tw-whitespace-nowrap" data-modal="#pull-merge-cmd-modal">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_hint"}}</button>
+					{{if or $mergeBoxData.AutoMerge (not $mergeBoxData.MergeFormProps)}}
+						<span class="merge-box-footer-text">
+							{{if $mergeBoxData.AutoMerge}}
+								{{if $mergeBoxData.MergeQueueLink}}{{ctx.Locale.Tr "repo.pulls.merge_queue.auto_merge_desc" $mergeBoxData.AutoMerge.Doer.GetDisplayName}}
+								{{else}}{{ctx.Locale.Tr "repo.pulls.auto_merge_enabled_desc" $mergeBoxData.AutoMerge.Doer.GetDisplayName $mergeBoxData.AutoMergeStyleName}}{{end}}
+							{{end}}
+							{{if $mergeBoxData.ShowPullCommands}}
+								<span class="tw-text-text-light">
+									{{if $mergeBoxData.ShowMergeInstructions}}{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_hint"}}{{end}}
+									<button type="button" class="interact-link show-modal tw-whitespace-nowrap" data-modal="#pull-merge-cmd-modal">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_hint"}}</button>
+								</span>
+							{{end}}
 						</span>
 					{{end}}
 				</div>

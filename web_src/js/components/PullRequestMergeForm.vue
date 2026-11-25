@@ -30,6 +30,8 @@ type MergeForm = {
   showAutoMerge: boolean,
   textBypassRules: string,
   textCancel: string,
+  textCmdInstructions: string,
+  textCmdMergeHint: string,
   textMergeBlocked: string,
   textMergeCommitId: string,
   textMergeTitle: string,
@@ -147,7 +149,9 @@ async function toggleActionForm(show: boolean) {
           <svg-icon name="octicon-triangle-down" :size="14"/>
         </button>
       </div>
-      <span v-if="queue" class="tw-text-text-light" v-html="queue.helpHTML"/><!-- eslint-disable-line vue/no-v-html -- translation escapes interpolation arguments -->
+      <span v-if="queue || mergeForm.textCmdInstructions" class="merge-box-footer-text tw-text-text-light">
+        <span v-if="queue" v-html="queue.helpHTML"/><span v-else>{{ mergeForm.textCmdMergeHint }}</span> <button v-if="mergeForm.textCmdInstructions" type="button" class="interact-link show-modal tw-whitespace-nowrap" data-modal="#pull-merge-cmd-modal">{{ mergeForm.textCmdInstructions }}</button><!-- eslint-disable-line vue/no-v-html -- translation escapes interpolation arguments -->
+      </span>
     </div>
     <div v-if="mergeForm.mergeStyles.length > 1" ref="menuPanel" class="tippy-target merge-box-menu" @click="hideMenu">
       <button v-for="msd in mergeForm.mergeStyles" :key="msd.name" type="button" class="item" role="menuitemradio" :aria-checked="msd.name === mergeStyle" @click="mergeStyle = msd.name">

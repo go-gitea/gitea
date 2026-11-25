@@ -181,6 +181,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		"defaultMergeStyle":            mergeStyle,
 		"mergeStyles":                  mergeStyles,
 		"mergeMessageFieldPlaceHolder": ctx.Locale.Tr("repo.editor.commit_message_desc"),
+		"textCmdMergeHint":             util.Iif(data.ShowMergeInstructions, ctx.Locale.Tr("repo.pulls.cmd_instruction_merge_hint"), ""),
+		"textCmdInstructions":          util.Iif(data.ShowPullCommands, ctx.Locale.Tr("repo.pulls.cmd_instruction_hint"), ""),
 	}
 	if data.MergeQueueLink != "" {
 		data.MergeFormProps["queue"] = map[string]any{
