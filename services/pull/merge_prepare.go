@@ -91,8 +91,13 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 		}
 	}
 
+	mergeCtx.outbuf.Reset()
+	if err := prepareTemporaryRepoForMerge(mergeCtx); err != nil {
+		defer cancel()
+		return nil, nil, err
+	}
+
 	mergeCtx.sig = doer.NewGitSig()
-	mergeCtx.committer = mergeCtx.sig
 
 	gitRepo, err := git.OpenRepositoryLocal(ctx, mergeCtx.tmpBasePath)
 	if err != nil {
@@ -101,17 +106,7 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	}
 	defer gitRepo.Close()
 
-	// Determine if we should sign, using the temp repo's own refs (see SignMerge for why)
-	sign, key, signer, err := asymkey_service.SignMerge(ctx, pr, doer, gitRepo, git.BranchPrefix+tmpRepoBaseBranch, git.BranchPrefix+tmpRepoTrackingBranch)
-	if err != nil && !asymkey_service.IsErrWontSign(err) {
-		log.Error("%-v SignMerge: %v", mergeCtx.pr, err) // the merge proceeds unsigned regardless, so log it here
-	}
-	if sign {
-		mergeCtx.signKey = key
-		if pr.BaseRepo.GetTrustModel() == repo_model.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
-			mergeCtx.committer = signer
-		}
-	}
+	mergeCtx.committer, mergeCtx.signKey = getMergeCommitter(ctx, pr, doer, gitRepo, git.BranchPrefix+tmpRepoBaseBranch, git.BranchPrefix+tmpRepoTrackingBranch)
 
 	commitTimeStr := time.Now().Format(time.RFC3339)
 
@@ -126,6 +121,20 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	)
 
 	return mergeCtx, cancel, nil
+}
+
+func getMergeCommitter(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, gitRepo *git.Repository, baseRef, headRef string) (*git.Signature, *git.SigningKey) {
+	sign, key, signer, err := asymkey_service.SignMerge(ctx, pr, doer, gitRepo, baseRef, headRef)
+	if err != nil && !asymkey_service.IsErrWontSign(err) {
+		log.Error("%-v SignMerge: %v", pr, err) // the merge proceeds unsigned regardless, so log it here
+	}
+	if !sign {
+		return doer.NewGitSig(), nil
+	}
+	if pr.BaseRepo.GetTrustModel() == repo_model.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
+		return signer, key
+	}
+	return doer.NewGitSig(), key
 }
 
 // prepareTemporaryRepoForMerge takes a repository that has been created using createTemporaryRepo

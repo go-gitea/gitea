@@ -154,7 +154,6 @@ func CommitMessageMerge(m1, m2 string) string {
 	return out.String()
 }
 
-// CommitMessageAddTrailer appends a "key: value" trailer unless the message's trailers already contain it
 func CommitMessageAddTrailer(message, key, value string) string {
 	line := key + ": " + value
 	content, _, trailer := CommitMessageSplitTrailer(message)

@@ -166,8 +166,8 @@ func TestCommitMessageAddTrailer(t *testing.T) {
 		{"fix-up\n\nbody\nOther: xxx", "fix-up\n\nbody\nOther: xxx\n\nKey: v"},
 		{"title\n\nSigned-off-by: a\n folded\nKey: v1", "title\n\nSigned-off-by: a\n folded\nKey: v1\nKey: v"},
 	}
-	for _, c := range cases {
-		assert.Equal(t, c.out, CommitMessageAddTrailer(c.message, "Key", "v"), "message=%q", c.message)
+	for _, tc := range cases {
+		assert.Equal(t, tc.out, CommitMessageAddTrailer(tc.message, "Key", "v"), "message=%q", tc.message)
 	}
 }
 
@@ -180,7 +180,7 @@ func TestCleanupObjectMessage(t *testing.T) {
 		{"title\rbody", "title\nbody\n"},
 		{"  indented\v\n", "  indented\v\n"},
 	}
-	for _, c := range cases {
-		assert.Equal(t, c.out, CleanupObjectMessage(c.message), "message=%q", c.message)
+	for _, tc := range cases {
+		assert.Equal(t, tc.out, CleanupObjectMessage(tc.message), "message=%q", tc.message)
 	}
 }

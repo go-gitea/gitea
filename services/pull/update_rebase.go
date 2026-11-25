@@ -26,9 +26,6 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 		return err
 	}
 	defer cancel()
-	if err := prepareTemporaryRepoForMerge(mergeCtx); err != nil {
-		return err
-	}
 
 	// Determine the old merge-base before the rebase - we use this for LFS push later on
 	oldMergeBase, _, _ := gitcmd.NewCommand("merge-base").AddDashesAndList(tmpRepoBaseBranch, tmpRepoTrackingBranch).
@@ -45,7 +42,7 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 		// It's questionable about where this should go - either after or before the push
 		// I think in the interests of data safety - failures to push to the lfs should prevent
 		// the push as you can always re-rebase.
-		if err := LFSPush(ctx, mergeCtx.tmpBasePath, mergeCtx.tmpRepo, tmpRepoBaseBranch, oldMergeBase, &issues_model.PullRequest{
+		if err := LFSPush(ctx, mergeCtx.tmpRepo, tmpRepoBaseBranch, oldMergeBase, &issues_model.PullRequest{
 			HeadRepoID: pr.BaseRepoID,
 			BaseRepoID: pr.HeadRepoID,
 		}); err != nil {

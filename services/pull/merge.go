@@ -313,7 +313,7 @@ func Merge(outerCtx context.Context, prID int64, doer *user_model.User, mergeSty
 		if !hasCommitBeenMerged {
 			_, err = doMergeAndPush(ctx, pr, doer, mergeStyle, message, mergeAndPushOptions{
 				expectedHeadCommitID: expectedHeadCommitID,
-				onMergedIntoTempBase: func(commitID string) error {
+				onMergeCommitCreated: func(commitID string) error {
 					return recordMergeIntent(ctx, pr, doer, commitID, wasAutoMerged)
 				},
 			})
@@ -409,11 +409,15 @@ func handleCloseCrossReferences(ctx context.Context, pr *issues_model.PullReques
 
 type mergeAndPushOptions struct {
 	expectedHeadCommitID string
-	onMergedIntoTempBase func(commitID string) error
+	onMergeCommitCreated func(commitID string) error
 }
 
 // doMergeAndPush performs the merge operation without changing any pull information in database and pushes it up to the base repository
 func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, message string, opts mergeAndPushOptions) (string, error) { //nolint:unparam // non-error result is never used
+	if git.DefaultFeatures().SupportGitMergeTree && (mergeStyle == repo_model.MergeStyleMerge || mergeStyle == repo_model.MergeStyleSquash) {
+		return doMergeTreeAndPush(ctx, pr, doer, mergeStyle, message, opts)
+	}
+
 	// Clone base repo.
 	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, opts.expectedHeadCommitID)
 	if err != nil {
@@ -447,23 +451,78 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	if err != nil {
 		return "", fmt.Errorf("failed to get full commit id for the new merge: %w", err)
 	}
+	return pushMergeCommit(ctx, pr, doer, mergeCtx.tmpRepo, mergeCommitID, git.BranchPrefix+"original_"+tmpRepoBaseBranch, opts)
+}
 
+// doMergeTreeAndPush merges or squashes in the base repo, without a temp repo
+func doMergeTreeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, message string, opts mergeAndPushOptions) (string, error) {
+	baseGitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
+	if err != nil {
+		return "", err
+	}
+	defer baseGitRepo.Close()
+
+	baseCommitID, err := baseGitRepo.GetBranchCommitID(ctx, pr.BaseBranch)
+	if err != nil {
+		return "", err
+	}
+	headCommitID, err := git.GetFullCommitID(ctx, pr.HeadRepo, getPullHeadRef(pr))
+	if err != nil {
+		return "", err
+	}
+	if opts.expectedHeadCommitID != "" && headCommitID != opts.expectedHeadCommitID {
+		return "", ErrSHADoesNotMatch{GivenSHA: opts.expectedHeadCommitID, CurrentSHA: headCommitID}
+	}
+	if !pr.IsSameRepo() && !baseGitRepo.IsReferenceExist(ctx, headCommitID) {
+		if err := git.FetchRemoteTempCommit(ctx, pr.BaseRepo, pr.HeadRepo, headCommitID); err != nil {
+			return "", err
+		}
+	}
+
+	author := doer.NewGitSig()
+	committer, signKey := getMergeCommitter(ctx, pr, doer, baseGitRepo, baseCommitID, headCommitID)
+	parents := []string{baseCommitID}
+	if mergeStyle == repo_model.MergeStyleSquash {
+		if author, err = getAuthorSignatureSquash(ctx, pr, baseGitRepo, git.RefName(baseCommitID), git.RefName(headCommitID)); err != nil {
+			return "", err
+		}
+		message = squashCommitMessage(message, author, committer)
+	} else {
+		parents = append(parents, headCommitID)
+	}
+
+	treeID, hasConflicts, conflictFiles, err := git.MergeTree(ctx, pr.BaseRepo, baseCommitID, headCommitID, "")
+	if gitcmd.IsStderr(err, gitcmd.StderrUnrelatedHistories) {
+		return "", ErrMergeUnrelatedHistories{Style: mergeStyle, Err: err}
+	} else if err != nil {
+		return "", err
+	} else if hasConflicts {
+		return "", ErrMergeConflicts{Style: mergeStyle, StdOut: strings.Join(conflictFiles, "\n")}
+	}
+	mergeCommitID, err := git.CommitTree(ctx, pr.BaseRepo, author, committer, treeID, git.CommitTreeOpts{
+		Parents:   parents,
+		Message:   message,
+		Key:       signKey,
+		NoGPGSign: signKey == nil,
+	})
+	if err != nil {
+		return "", err
+	}
+	return pushMergeCommit(ctx, pr, doer, pr.BaseRepo, mergeCommitID.String(), baseCommitID, opts)
+}
+
+func pushMergeCommit(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, fromRepo git.RepositoryFacade, mergeCommitID, mergeBase string, opts mergeAndPushOptions) (string, error) {
 	// Now it's questionable about where this should go - either after or before the push
 	// I think in the interests of data safety - failures to push to the lfs should prevent
 	// the merge as you can always remerge.
 	if setting.LFS.StartServer {
-		mergeBaseSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, "original_"+tmpRepoBaseBranch)
-		if err != nil {
-			return "", fmt.Errorf("failed to get full commit id for origin/%s: %w", pr.BaseBranch, err)
-		}
-		if err := LFSPush(ctx, mergeCtx.tmpBasePath, mergeCtx.tmpRepo, mergeCommitID, mergeBaseSHA, pr); err != nil {
+		if err := LFSPush(ctx, fromRepo, mergeCommitID, mergeBase, pr); err != nil {
 			return "", err
 		}
 	}
 
 	var headUser *user_model.User
-	err = pr.HeadRepo.LoadOwner(ctx)
-	if err != nil {
+	if err := pr.HeadRepo.LoadOwner(ctx); err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("Can't find user: %d for head repository in %-v: %v", pr.HeadRepo.OwnerID, pr, err)
 			return "", err
@@ -474,44 +533,21 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		headUser = pr.HeadRepo.Owner
 	}
 
-	if opts.onMergedIntoTempBase != nil {
-		if err := opts.onMergedIntoTempBase(mergeCommitID); err != nil {
+	if opts.onMergeCommitCreated != nil {
+		if err := opts.onMergeCommitCreated(mergeCommitID); err != nil {
 			return "", err
 		}
 	}
-
-	mergeCtx.env = repo_module.FullPushingEnvironment(
-		headUser,
-		doer,
-		pr.BaseRepo,
-		pr.BaseRepo.Name,
-		pr.ID,
-		pr.Index,
-	)
-	pushCmd := gitcmd.NewCommand("push", "origin").AddDynamicArguments(tmpRepoBaseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
 
 	// Push back to upstream.
 	// This cause an api call to "/api/internal/hook/post-receive/...",
 	// If it's merge, all db transaction and operations should be there but not here to prevent deadlock.
-	if err := mergeCtx.PrepareGitCmd(pushCmd).RunWithStderr(ctx); err != nil {
-		if strings.Contains(err.Stderr(), "non-fast-forward") {
-			return "", &git.ErrPushOutOfDate{
-				StdOut: mergeCtx.outbuf.String(),
-				StdErr: err.Stderr(),
-				Err:    err,
-			}
-		} else if strings.Contains(err.Stderr(), "! [remote rejected]") {
-			err := &git.ErrPushRejected{
-				StdOut: mergeCtx.outbuf.String(),
-				StdErr: err.Stderr(),
-				Err:    err,
-			}
-			err.GenerateMessage()
-			return "", err
-		}
-		return "", fmt.Errorf("git push: %s", err.Stderr())
+	if err := git.PushManaged(ctx, fromRepo, pr.BaseRepo, git.PushOptions{
+		Branch: mergeCommitID + ":" + git.BranchPrefix + pr.BaseBranch,
+		Env:    repo_module.FullPushingEnvironment(headUser, doer, pr.BaseRepo, pr.BaseRepo.Name, pr.ID, pr.Index),
+	}); err != nil {
+		return "", err
 	}
-	mergeCtx.outbuf.Reset()
 	return mergeCommitID, nil
 }
 
@@ -525,30 +561,6 @@ func commitAndSignNoAuthor(ctx *mergeContext, message string) error {
 		return fmt.Errorf("git commit %v: %w\n%s", ctx.pr, err, ctx.outbuf.String())
 	}
 	return nil
-}
-
-func commitMergeTree(ctx *mergeContext, mergeStyle repo_model.MergeStyle, message string, author *git.Signature, parents ...string) error {
-	if strings.TrimSpace(message) == "" {
-		return util.NewInvalidArgumentErrorf("empty commit message")
-	}
-	treeID, hasConflicts, conflictFiles, err := git.MergeTree(ctx, ctx.tmpRepo, tmpRepoBaseBranch, tmpRepoTrackingBranch, "")
-	if gitcmd.IsStderr(err, gitcmd.StderrUnrelatedHistories) {
-		return ErrMergeUnrelatedHistories{Style: mergeStyle, Err: err}
-	} else if err != nil {
-		return err
-	} else if hasConflicts {
-		return ErrMergeConflicts{Style: mergeStyle, StdOut: strings.Join(conflictFiles, "\n")}
-	}
-	commitID, err := git.CommitTree(ctx, ctx.tmpRepo, author, ctx.committer, treeID, git.CommitTreeOpts{
-		Parents:   parents,
-		Message:   message,
-		Key:       ctx.signKey,
-		NoGPGSign: ctx.signKey == nil,
-	})
-	if err != nil {
-		return err
-	}
-	return git.UpdateRef(ctx, ctx.tmpRepo, git.BranchPrefix+tmpRepoBaseBranch, commitID.String())
 }
 
 func addCommitSigningOptions(cmd *gitcmd.Command, signKey *git.SigningKey) {
