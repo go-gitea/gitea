@@ -897,7 +897,6 @@
   "repo.release.deletion_success": "A kiadás törölve.",
   "repo.release.deletion_tag_success": "A cimke törölve lett.",
   "repo.release.tag_name_invalid": "Ez a címkenév érvénytelen.",
-  "repo.release.downloads": "Letöltések",
   "repo.release.download_count": "Letöltések: %s",
   "repo.branch.delete_head": "Törlés",
   "repo.branch.delete_html": "Ág törlése",

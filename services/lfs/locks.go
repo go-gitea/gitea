@@ -11,7 +11,7 @@ import (
 	auth_model "gitea.dev/models/auth"
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	lfs_module "gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -165,11 +165,7 @@ func PostLockHandler(ctx *context.Context) {
 	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
 	var req api.LFSLockRequest
-	bodyReader := ctx.Req.Body
-	defer bodyReader.Close()
-
-	dec := json.NewDecoder(bodyReader)
-	if err := dec.Decode(&req); err != nil {
+	if err := jsonlimit.DecodeWithLimit(ctx.Req.Body, 100*1024*1024, &req); err != nil {
 		log.Warn("Failed to decode lock request as json. Error: %v", err)
 		writeStatus(ctx, http.StatusBadRequest)
 		return
@@ -298,11 +294,7 @@ func UnLockHandler(ctx *context.Context) {
 	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
 	var req api.LFSLockDeleteRequest
-	bodyReader := ctx.Req.Body
-	defer bodyReader.Close()
-
-	dec := json.NewDecoder(bodyReader)
-	if err := dec.Decode(&req); err != nil {
+	if err := jsonlimit.DecodeWithLimit(ctx.Req.Body, 100*1024*1024, &req); err != nil {
 		log.Warn("Failed to decode lock request as json. Error: %v", err)
 		writeStatus(ctx, http.StatusBadRequest)
 		return

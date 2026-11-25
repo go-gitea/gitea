@@ -1506,7 +1506,6 @@
   "repo.release.tag_name_invalid": "نام برچسب معتبر نمی‌باشد.",
   "repo.release.tag_name_protected": "نام تگ محافظت می شود.",
   "repo.release.tag_already_exist": "این نام تگ از قبل وجود دارد.",
-  "repo.release.downloads": "بارگیری‌ها",
   "repo.release.download_count": "دانلودها: %s",
   "repo.release.add_tag_msg": "از عنوان و محتوای انتشار به عنوان پیام تگ استفاده کنید.",
   "repo.release.add_tag": "فقط تگ ایجاد کنید",

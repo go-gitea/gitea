@@ -20,6 +20,7 @@ import (
 
 	"gitea.dev/modules/egress/policy"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 
@@ -207,7 +208,7 @@ func (g *GithubGraphQLDownloader) doGraphQL(ctx context.Context, query string, v
 			Data   any            `json:"data"`
 			Errors []graphQLError `json:"errors"`
 		}{Data: out}
-		decodeErr := json.NewDecoder(resp.Body).Decode(&envelope)
+		decodeErr := jsonlimit.DecodeWithLimit(resp.Body, 100*1024*1024, &envelope)
 		resp.Body.Close()
 		if decodeErr != nil {
 			if err := g.waitGraphQLTransient(ctx, &transientRetries, fmt.Sprintf("truncated response: %v", decodeErr)); err != nil {
