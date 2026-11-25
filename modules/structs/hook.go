@@ -511,7 +511,6 @@ type PullRequestPayload struct {
 	// The index number of the pull request
 	Index int64 `json:"number"`
 	// GitHub merge queue removal reason, only for the dequeued action
-	// enum: ["UNKNOWN_REMOVAL_REASON","MANUAL","MERGE","MERGE_CONFLICT","CI_FAILURE","CI_TIMEOUT","ALREADY_MERGED","QUEUE_CLEARED","ROLL_BACK","BRANCH_PROTECTIONS","GIT_TREE_INVALID","INVALID_MERGE_COMMIT"]
 	Reason string `json:"reason,omitempty"`
 	// Changes made to the pull request
 	Changes *ChangesPayload `json:"changes,omitempty"`

@@ -32,14 +32,11 @@ import (
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
+
+	"xorm.io/builder"
 )
 
-type queueBranch struct {
-	RepoID int64
-	Branch string
-}
-
-var branchQueue atomic.Pointer[queue.WorkerPoolQueue[queueBranch]]
+var branchQueue atomic.Pointer[queue.WorkerPoolQueue[pull_model.MergeQueueBranch]]
 
 func Init() error {
 	if ref := pull_model.MergeQueueRefPrefix() + "main"; !git.IsValidRefPattern(ref) {
@@ -56,15 +53,16 @@ func Init() error {
 }
 
 func CheckAllQueues(ctx context.Context) error {
-	return scheduleQueues(pull_model.GetMergeQueueBranches(ctx))
+	return scheduleQueues(ctx, builder.NewCond())
 }
 
-func scheduleQueues(branches []*pull_model.MergeQueueEntry, err error) error {
+func scheduleQueues(ctx context.Context, cond builder.Cond) error {
+	branches, err := pull_model.GetMergeQueueBranches(ctx, cond)
 	if err != nil {
 		return err
 	}
 	for _, branch := range branches {
-		addToQueue(branch.RepoID, branch.BaseBranch)
+		addToQueue(branch.RepoID, branch.Branch)
 	}
 	return nil
 }
@@ -74,19 +72,19 @@ func addToQueue(repoID int64, branch string) {
 	if worker == nil {
 		return
 	}
-	if err := worker.Push(queueBranch{RepoID: repoID, Branch: branch}); err != nil && !errors.Is(err, queue.ErrAlreadyInQueue) {
+	if err := worker.Push(pull_model.MergeQueueBranch{RepoID: repoID, Branch: branch}); err != nil && !errors.Is(err, queue.ErrAlreadyInQueue) {
 		log.Error("Unable to push merge queue of repo %d branch %s: %v", repoID, branch, err)
 	}
 }
 
-func handleBranches(items ...queueBranch) []queueBranch {
+func handleBranches(items ...pull_model.MergeQueueBranch) []pull_model.MergeQueueBranch {
 	for _, item := range items {
 		handleBranch(item)
 	}
 	return nil
 }
 
-func handleBranch(item queueBranch) {
+func handleBranch(item pull_model.MergeQueueBranch) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("merge queue of repo %d branch %s", item.RepoID, item.Branch))
 	defer finished()
 	err := globallock.LockAndDo(ctx, pull_model.MergeQueueLockKey(item.RepoID, item.Branch), func(ctx context.Context) error {
@@ -158,10 +156,8 @@ func (s *queueState) dropStaleEntries(ctx context.Context) error {
 		switch {
 		case pr == nil:
 			reason = issues_model.MergeQueueRemovedClosed
-		case pr.HasMerged && pr.MergedCommitID == entry.GroupHeadSHA:
-			reason = issues_model.MergeQueueRemovedMerged
 		case pr.HasMerged:
-			reason = issues_model.MergeQueueRemovedAlreadyMerged
+			reason = util.Iif(pr.MergedCommitID == entry.GroupHeadSHA, issues_model.MergeQueueRemovedMerged, issues_model.MergeQueueRemovedAlreadyMerged)
 		case disabled:
 			reason = issues_model.MergeQueueRemovedNotMergeable
 		case pr.BaseBranch != s.branch:
@@ -215,9 +211,7 @@ func (s *queueState) readyGroup(ctx context.Context, base string) ([]*QueueEntry
 	cfg := s.rule.MergeQueue
 	timeout := time.Duration(cfg.CheckResponseTimeoutMinutes) * time.Minute
 	headGreen := cfg.GroupingStrategy == git_model.MergeQueueGroupingHeadGreen
-	var group []*QueueEntry
-	firstFailed := -1
-	canAdvance := true
+	var ready, failedAt int
 	var failureReason issues_model.MergeQueueRemovalReason
 	for i, entry := range built {
 		state := commitstatus.CommitStatusSuccess
@@ -230,11 +224,12 @@ func (s *queueState) readyGroup(ctx context.Context, base string) ([]*QueueEntry
 		}
 		nextState := pull_model.MergeQueueStateAwaitingChecks
 		var reason issues_model.MergeQueueRemovalReason
+		canAdvance := headGreen || i == ready
 		switch {
 		case state.IsSuccess():
 			nextState = pull_model.MergeQueueStateMergeable
-			if canAdvance && i < cfg.MaxEntriesToMerge {
-				group = built[:i+1]
+			if canAdvance && (!headGreen || i < cfg.MaxEntriesToMerge) {
+				ready = i + 1
 			}
 		case state.IsFailure() || state.IsError():
 			reason = issues_model.MergeQueueRemovedChecksFailed
@@ -243,13 +238,12 @@ func (s *queueState) readyGroup(ctx context.Context, base string) ([]*QueueEntry
 		}
 		if reason != "" {
 			nextState = pull_model.MergeQueueStateUnmergeable
-			if firstFailed < 0 && canAdvance {
-				firstFailed, failureReason = i, reason
+			if failureReason == "" && canAdvance {
+				failedAt, failureReason = i, reason
 			}
 		} else if headGreen && i < cfg.MaxEntriesToMerge {
-			firstFailed = -1 // The later group can cover an earlier failure.
+			failureReason = "" // The later group can cover an earlier failure.
 		}
-		canAdvance = headGreen || (canAdvance && state.IsSuccess())
 		if entry.State != nextState {
 			entry.State = nextState
 			if err := pull_model.UpdateMergeQueueEntry(ctx, entry.MergeQueueEntry); err != nil {
@@ -257,8 +251,9 @@ func (s *queueState) readyGroup(ctx context.Context, base string) ([]*QueueEntry
 			}
 		}
 	}
-	if firstFailed >= 0 {
-		return group, s.dropEntry(ctx, firstFailed, failureReason)
+	group := built[:min(ready, cfg.MaxEntriesToMerge)]
+	if failureReason != "" {
+		return group, s.dropEntry(ctx, failedAt, failureReason)
 	}
 	return group, nil
 }

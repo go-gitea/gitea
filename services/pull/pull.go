@@ -266,9 +266,9 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		}
 	}
 
-	if queued, err := db.Exist[pull_model.MergeQueueEntry](ctx, builder.Eq{"pull_id": pr.ID}); err != nil {
+	if entry, err := pull_model.GetMergeQueueEntryByPullID(ctx, pr.ID); err != nil {
 		return err
-	} else if queued {
+	} else if entry != nil {
 		if err := pr.LoadBaseRepo(ctx); err != nil {
 			return err
 		}
@@ -405,7 +405,7 @@ func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *
 		} else if n == 0 {
 			return nil
 		}
-		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer, reason)
+		_, err := issues_model.CreatePullRequestComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer, reason)
 		return err
 	})
 }

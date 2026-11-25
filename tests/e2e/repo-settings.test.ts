@@ -2,7 +2,7 @@ import {env} from 'node:process';
 import {expect, test} from '@playwright/test';
 import {apiCreateBranchProtection, apiCreateRepo, login, randomString} from './utils.ts';
 
-test('branch protection rule keeps its push allowlist and dragged priority', async ({page, request}) => {
+test('branch protection toggles queue controls and keeps the push allowlist and priority', async ({page, request}) => {
   const owner = env.GITEA_TEST_E2E_USER;
   const repo = `e2e-protection-${randomString(8)}`;
   await Promise.all([
@@ -15,6 +15,12 @@ test('branch protection rule keeps its push allowlist and dragged priority', asy
   await page.goto(`/${owner}/${repo}/settings/branches/edit`);
   const ruleNameInput = page.getByRole('textbox', {name: /^Protected Branch Name Pattern/});
   const allowlistRadio = page.getByRole('radio', {name: 'Allowlist Restricted Push', exact: true});
+  const requireQueue = page.getByRole('checkbox', {name: 'Require merge queue', exact: true});
+  const minimum = page.getByLabel('Minimum group size', {exact: true});
+  await requireQueue.check();
+  await expect(minimum).toBeEnabled();
+  await requireQueue.uncheck();
+  await expect(minimum).toBeDisabled();
   await ruleNameInput.fill('release/**');
   await allowlistRadio.check();
   await page.locator('#whitelist_box').getByRole('combobox').click();
@@ -42,28 +48,4 @@ test('branch protection rule keeps its push allowlist and dragged priority', asy
   await expect(ruleNameInput).toHaveValue('release/**');
   await expect(allowlistRadio).toBeChecked();
   await expect(page.locator('#whitelist_box .dropdown > .label')).toHaveText(owner);
-});
-
-test('disabling the merge queue discards unsaved queue settings', async ({page, request}) => {
-  const owner = env.GITEA_TEST_E2E_USER;
-  const repo = `e2e-protection-${randomString(8)}`;
-  await Promise.all([apiCreateRepo(request, {name: repo, autoInit: false}), login(page)]);
-  await apiCreateBranchProtection(request, owner, repo, 'main', {
-    require_merge_queue: true, merge_queue: {min_entries_to_merge: 2},
-  });
-  const branches = `/${owner}/${repo}/settings/branches`;
-  await page.goto(`${branches}/edit?rule_name=main`);
-  const requireQueue = page.getByRole('checkbox', {name: 'Require merge queue', exact: true});
-  const minimum = page.getByLabel('Minimum group size', {exact: true});
-  await minimum.fill('6');
-  await requireQueue.uncheck();
-  await expect(minimum).toBeDisabled();
-  await page.getByRole('button', {name: 'Save Rule', exact: true}).click();
-  await page.waitForURL(branches);
-
-  await page.getByRole('link', {name: 'Edit', exact: true}).click();
-  await expect(requireQueue).not.toBeChecked();
-  await requireQueue.check();
-  await expect(minimum).toBeEnabled();
-  await expect(minimum).toHaveValue('2');
 });

@@ -1273,24 +1273,16 @@ func UpdateCommentsMigrationsByType(ctx context.Context, tp structs.GitServiceTy
 	return err
 }
 
-// CreateAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
-func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User, content string) (comment *Comment, err error) {
-	if typ != CommentTypePRScheduledToAutoMerge && typ != CommentTypePRUnScheduledToAutoMerge {
-		return nil, fmt.Errorf("comment type %d cannot be used to create an auto merge comment", typ)
-	}
-	return CreatePullRequestComment(ctx, typ, pr, doer, content)
-}
-
-func CreatePullRequestComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User, content string) (comment *Comment, err error) {
-	if err = pr.LoadIssue(ctx); err != nil {
+func CreatePullRequestComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User, content string) (*Comment, error) {
+	if err := pr.LoadIssue(ctx); err != nil {
 		return nil, err
 	}
 
-	if err = pr.LoadBaseRepo(ctx); err != nil {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, err
 	}
 
-	comment, err = CreateComment(ctx, &CreateCommentOptions{
+	return CreateComment(ctx, &CreateCommentOptions{
 		Type:  typ,
 		Doer:  doer,
 		Repo:  pr.BaseRepo,
@@ -1298,7 +1290,6 @@ func CreatePullRequestComment(ctx context.Context, typ CommentType, pr *PullRequ
 
 		Content: content,
 	})
-	return comment, err
 }
 
 type MergeQueueRemovalReason string

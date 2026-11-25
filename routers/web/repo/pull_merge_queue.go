@@ -70,17 +70,9 @@ func ClearMergeQueue(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
-type mergeQueueEntryView struct {
-	*mergequeue.QueueEntry
-	CanRemove  bool
-	Status     *git_model.CommitStatus
-	Statuses   []*git_model.CommitStatus
-	WaitingFor []string
-}
-
 func MergeQueue(ctx *context.Context) {
-	branch := ctx.PathParam("*")
-	rule, err := mergequeue.GetEnabledRule(ctx, ctx.Repo.Repository, branch)
+	branch, repo := ctx.PathParam("*"), ctx.Repo.Repository
+	rule, err := mergequeue.GetEnabledRule(ctx, repo, branch)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
@@ -88,49 +80,47 @@ func MergeQueue(ctx *context.Context) {
 		ctx.NotFound()
 		return
 	}
-	entries, err := mergeQueueEntryViews(ctx, rule, branch)
+	queue, err := mergequeue.GetQueue(ctx, repo, branch)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	ctx.Data["Title"] = ctx.Tr("repo.pulls.merge_queue.title")
-	ctx.Data["PageIsPullList"] = true
-	ctx.Data["MergeQueueBranch"] = branch
-	ctx.Data["MergeQueueEntries"] = entries
-	ctx.HTML(http.StatusOK, "repo/pulls/merge_queue")
-}
-
-func mergeQueueEntryViews(ctx *context.Context, rule *git_model.ProtectedBranch, branch string) ([]*mergeQueueEntryView, error) {
-	queue, err := mergequeue.GetQueue(ctx, ctx.Repo.Repository, branch)
-	if err != nil || len(queue) == 0 {
-		return nil, err
-	}
+	entries := make([]struct {
+		*mergequeue.QueueEntry
+		CanRemove  bool
+		Status     *git_model.CommitStatus
+		Statuses   []*git_model.CommitStatus
+		WaitingFor []string
+	}, len(queue))
 	issues := make(issues_model.IssueList, len(queue))
 	for i, entry := range queue {
 		issues[i] = entry.PullRequest.Issue
 	}
 	if err := issues.LoadPosters(ctx); err != nil {
-		return nil, err
+		ctx.ServerErrorAuto(err)
+		return
 	}
 	canMerge := ctx.Doer != nil && git_model.IsUserMergeWhitelisted(ctx, rule, ctx.Doer.ID, ctx.Repo.Permission)
-	required, err := pull_service.EffectiveRequiredContexts(ctx, ctx.Repo.Repository, rule)
+	required, err := pull_service.EffectiveRequiredContexts(ctx, repo, rule)
 	if err != nil {
-		return nil, err
+		ctx.ServerErrorAuto(err)
+		return
 	}
 	required = pull_service.MergeQueueRequiredContexts(required)
 	matchers := make([]func(string) bool, len(required))
 	for i, name := range required {
 		matchers[i] = createRequiredContextMatcher(name)
 	}
-	views := make([]*mergeQueueEntryView, len(queue))
 	for i, entry := range queue {
-		view := &mergeQueueEntryView{QueueEntry: entry, CanRemove: canMerge || ctx.Doer != nil && (ctx.Doer.ID == entry.EnqueuerID || entry.PullRequest.Issue.IsPoster(ctx.Doer.ID))}
-		views[i] = view
+		view := &entries[i]
+		view.QueueEntry = entry
+		view.CanRemove = canMerge || ctx.Doer != nil && (ctx.Doer.ID == entry.EnqueuerID || entry.PullRequest.Issue.IsPoster(ctx.Doer.ID))
 		if !entry.IsBuilt() {
 			continue
 		}
-		if view.Statuses, err = pull_service.GetLatestPullCommitStatuses(ctx, ctx.Repo.Repository.ID, entry.GroupHeadSHA); err != nil {
-			return nil, err
+		if view.Statuses, err = pull_service.GetLatestPullCommitStatuses(ctx, repo.ID, entry.GroupHeadSHA); err != nil {
+			ctx.ServerErrorAuto(err)
+			return
 		}
 		git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, view.Statuses)
 		view.Status = git_model.CalcCommitStatus(view.Statuses)
@@ -143,5 +133,9 @@ func mergeQueueEntryViews(ctx *context.Context, rule *git_model.ProtectedBranch,
 			}
 		}
 	}
-	return views, nil
+	ctx.Data["Title"] = ctx.Tr("repo.pulls.merge_queue.title")
+	ctx.Data["PageIsPullList"] = true
+	ctx.Data["MergeQueueBranch"] = branch
+	ctx.Data["MergeQueueEntries"] = entries
+	ctx.HTML(http.StatusOK, "repo/pulls/merge_queue")
 }

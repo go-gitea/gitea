@@ -474,11 +474,6 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 	return nil
 }
 
-func checkMergeQueueBranch(ctx context.Context, repoID int64, branch string) error {
-	owned, err := pull_model.IsMergeQueueRef(ctx, repoID, git.RefNameFromBranch(branch))
-	return util.Iif(owned, git_model.ErrBranchIsProtected, err)
-}
-
 // RenameBranch rename a branch
 func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, from, to string) (string, error) {
 	err := repo.MustNotBeArchived()
@@ -494,8 +489,8 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	}
 
 	for _, branch := range []string{from, to} {
-		if err := checkMergeQueueBranch(ctx, repo.ID, branch); err != nil {
-			return "", err
+		if owned, err := pull_model.IsMergeQueueRef(ctx, repo.ID, git.RefNameFromBranch(branch)); err != nil || owned {
+			return "", util.Iif(owned, git_model.ErrBranchIsProtected, err)
 		}
 	}
 
@@ -543,22 +538,26 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		return "", git_model.ErrBranchIsProtected
 	}
 
-	if err := globallock.LockAndDo(ctx, pull_model.MergeQueueLockKey(repo.ID, from), func(ctx context.Context) error { // a running queue pass of the old branch must not see it half renamed
-		return git_model.RenameBranch(ctx, repo, from, to, func(ctx context.Context, isDefault bool) error {
-			err2 := git.RenameBranch(ctx, repo, from, to)
+	release, err := globallock.Lock(ctx, pull_model.MergeQueueLockKey(repo.ID, from)) // a running queue pass of the old branch must not see it half renamed
+	if err != nil {
+		return "", err
+	}
+	defer release()
+
+	if err := git_model.RenameBranch(ctx, repo, from, to, func(ctx context.Context, isDefault bool) error {
+		err2 := git.RenameBranch(ctx, repo, from, to)
+		if err2 != nil {
+			return err2
+		}
+
+		if isDefault {
+			err2 = git.SetDefaultBranch(ctx, repo, to)
 			if err2 != nil {
 				return err2
 			}
+		}
 
-			if isDefault {
-				err2 = git.SetDefaultBranch(ctx, repo, to)
-				if err2 != nil {
-					return err2
-				}
-			}
-
-			return nil
-		})
+		return nil
 	}); err != nil {
 		return "", err
 	}
@@ -640,8 +639,8 @@ func CanDeleteBranchWithPermission(ctx context.Context, repo *repo_model.Reposit
 	if branchName == repo.DefaultBranch || branchName == repo.GetPullRequestTargetBranch(ctx) {
 		return ErrBranchIsDefault
 	}
-	if err := checkMergeQueueBranch(ctx, repo.ID, branchName); err != nil {
-		return err
+	if owned, err := pull_model.IsMergeQueueRef(ctx, repo.ID, git.RefNameFromBranch(branchName)); err != nil || owned {
+		return util.Iif(owned, git_model.ErrBranchIsProtected, err)
 	}
 	if !permissionInRepo.CanWrite(unit.TypeCode) {
 		return util.NewPermissionDeniedErrorf("permission denied to access repo %d unit %s", repo.ID, unit.TypeCode.LogString())

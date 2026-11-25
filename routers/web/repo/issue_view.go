@@ -898,20 +898,20 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		return
 	}
 
-	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, pull.BaseBranch)
+	rule, err := git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, pull.BaseBranch)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	if pb != nil {
-		pb.Repo = pull.BaseRepo
-		prInfo.ProtectedBranchRule = pb
-		if pb.RequireMergeQueue && !pull.HasMerged {
-			data.MergeQueueLink = ctx.Repo.RepoLink + "/queue/" + util.PathEscapeSegments(pull.BaseBranch)
-			if prInfo.queueEntry != nil {
-				prInfo.prepareQueuedMergeBox(ctx)
-				return
-			}
+	prInfo.ProtectedBranchRule = rule
+	if rule != nil {
+		rule.Repo = pull.BaseRepo
+	}
+	if rule != nil && rule.RequireMergeQueue && !pull.HasMerged {
+		data.MergeQueueLink = ctx.Repo.RepoLink + "/queue/" + util.PathEscapeSegments(pull.BaseBranch)
+		if prInfo.queueEntry != nil {
+			prInfo.prepareQueuedMergeBox(ctx)
+			return
 		}
 	}
 	if pull.CommitsBehind > 0 && !prInfo.IsPullRequestBroken && !pull.IsChecking() && !pull.IsFilesConflicted() {
@@ -943,12 +943,12 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	// admin can merge without checks, writer can merge when checks succeed
 	// admin and writer both can make an auto merge schedule (not affected by overridable blockers)
 	data.canBypassProtection = isRepoAdmin
-	if ctx.IsSigned && pb != nil {
-		data.canBypassProtection = git_model.CanBypassBranchProtection(ctx, pb, ctx.Doer, isRepoAdmin)
+	if ctx.IsSigned && rule != nil {
+		data.canBypassProtection = git_model.CanBypassBranchProtection(ctx, rule, ctx.Doer, isRepoAdmin)
 	}
 	data.ShowPullCommands = pull.HeadRepo != nil
 	data.ShowMergeInstructions = data.ShowPullCommands && ctx.Repo.Permission.CanWrite(unit.TypeCode) &&
-		(data.MergeQueueLink == "" || data.canBypassProtection) && (pb == nil || pb.CanUserPush(ctx, ctx.Doer, ctx.Repo.Permission))
+		(data.MergeQueueLink == "" || data.canBypassProtection) && (rule == nil || rule.CanUserPush(ctx, ctx.Doer, ctx.Repo.Permission))
 
 	if _, data.AutoMerge, err = pull_model.GetScheduledMergeByPullID(ctx, pull.ID); err != nil {
 		ctx.ServerErrorAuto(err)

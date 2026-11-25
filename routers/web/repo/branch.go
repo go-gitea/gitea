@@ -78,9 +78,7 @@ func Branches(ctx *context.Context) {
 		commitStatus[commitID] = git_model.CalcCommitStatus(cs)
 	}
 
-	canReadMergeQueue := ctx.Repo.Permission.CanRead(unit.TypePullRequests) && ctx.Repo.Repository.AllowsPulls(ctx)
-	ctx.Data["CanReadMergeQueue"] = canReadMergeQueue
-	if canReadMergeQueue {
+	if ctx.Repo.Repository.AllowsPulls(ctx) && ctx.Repo.Permission.CanRead(unit.TypePullRequests) {
 		if ctx.Data["MergeQueueSizes"], err = pull_model.CountMergeQueueEntries(ctx, ctx.Repo.Repository.ID); err != nil {
 			ctx.ServerErrorAuto(err)
 			return

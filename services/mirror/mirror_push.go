@@ -204,8 +204,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	if err != nil {
 		return fmt.Errorf("GetMergeQueueGroupRefs failed: %w", err)
 	}
-	err = performPush(m.Repo.CodeStorageRepo(), queueRefs)
-	if err != nil {
+	if err := performPush(m.Repo.CodeStorageRepo(), queueRefs); err != nil {
 		return fmt.Errorf("performPush(code) failed: %w", err)
 	}
 

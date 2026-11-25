@@ -9,7 +9,6 @@ import (
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
@@ -188,7 +187,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 			"style":    prInfo.ProtectedBranchRule.MergeQueue.MergeMethod,
 			"button":   ctx.Tr("repo.pulls.merge_queue.merge_when_ready"),
 			"confirm":  ctx.Tr("repo.pulls.merge_queue.confirm_merge_when_ready"),
-			"helpHTML": ctx.Tr("repo.pulls.merge_queue.help", htmlutil.HTMLFormat(`<a href="%s">%s</a>`, data.MergeQueueLink, ctx.Tr("repo.pulls.merge_queue.name")), pull.BaseBranch),
+			"helpHTML": ctx.Tr("repo.pulls.merge_queue.help", data.MergeQueueLink, pull.BaseBranch),
 		}
 	}
 }

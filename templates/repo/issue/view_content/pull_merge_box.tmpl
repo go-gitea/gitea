@@ -26,9 +26,8 @@
 					<button type="button" class="ui button link-action delete-branch-after-merge tw-shrink-0" data-url="{{$.DeleteBranchLink}}">{{ctx.Locale.Tr "repo.branch.delete_html"}}</button>
 				{{end}}
 				{{if $mergeBoxData.CanDequeue}}
-					<button type="button" class="ui button link-action tw-shrink-0" data-url="{{$issue.Link}}/merge_queue/remove"
-						data-modal-confirm-header="{{ctx.Locale.Tr "repo.pulls.merge_queue.remove_confirm_title"}}"
-						data-modal-confirm-content="{{ctx.Locale.Tr "repo.pulls.merge_queue.remove_confirm_desc"}}"
+					<button type="button" class="ui button link-action tw-shrink-0"
+						{{template "repo/pulls/merge_queue_action_attrs" dict "url" (print $issue.Link "/merge_queue/remove") "action" "remove"}}
 					>{{ctx.Locale.Tr "repo.pulls.merge_queue.remove"}}</button>
 				{{end}}
 			</div>

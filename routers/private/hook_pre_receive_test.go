@@ -19,6 +19,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/private"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/contexttest"
@@ -89,9 +90,12 @@ func testPreReceiveActionsBranch(t *testing.T) {
 		targetBranch  bool
 		defaultBranch bool
 		allowed       bool
+		errorMessage  string
 	}{
 		{name: "push", protection: &git_model.ProtectedBranchConfig{CanPush: true}, allowed: true},
 		{name: "push allowlist", protection: &git_model.ProtectedBranchConfig{CanPush: true, EnableWhitelist: true}},
+		{name: "merge queue requires bypass", protection: &git_model.ProtectedBranchConfig{CanPush: true, RequireMergeQueue: true}, errorMessage: "Changes must be made through the merge queue"},
+		{name: "merge queue bypass allowlist", protection: &git_model.ProtectedBranchConfig{CanPush: true, RequireMergeQueue: true, EnableBypassAllowlist: true, BypassAllowlistUserIDs: []int64{user_model.ActionsUserID}}, allowed: true},
 		{name: "force push", protection: &git_model.ProtectedBranchConfig{CanPush: true, CanForcePush: true}, forcePush: true, allowed: true},
 		{name: "force push allowlist", protection: &git_model.ProtectedBranchConfig{CanPush: true, CanForcePush: true, EnableForcePushAllowlist: true}, forcePush: true},
 		{name: "deletion disabled", protection: &git_model.ProtectedBranchConfig{CanPush: true}, deleteBranch: true},
@@ -142,7 +146,7 @@ func testPreReceiveActionsBranch(t *testing.T) {
 			} else if tc.deleteBranch {
 				assert.Equal(t, http.StatusForbidden, resp.Code)
 			} else {
-				assert.Contains(t, resp.Body.String(), "Not allowed to")
+				assert.Contains(t, resp.Body.String(), util.IfZero(tc.errorMessage, "Not allowed to"))
 			}
 		})
 	}

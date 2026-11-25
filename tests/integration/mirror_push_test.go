@@ -112,17 +112,15 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 
 	session := loginUser(t, user.Name)
 
-	const queueBranch, ordinaryBranch = "gitea-merge-queue/master/pr-1-test", "gitea-merge-queue/ordinary"
-	require.NoError(t, git.CreateBranch(t.Context(), srcRepo, queueBranch, "master"))
-	defer func() { assert.NoError(t, git.DeleteBranch(t.Context(), srcRepo, queueBranch, true)) }()
-	require.NoError(t, git.CreateBranch(t.Context(), srcRepo, ordinaryBranch, "master"))
-	defer func() { assert.NoError(t, git.DeleteBranch(t.Context(), srcRepo, ordinaryBranch, true)) }()
-	queueEntry := &pull_model.MergeQueueEntry{RepoID: srcRepo.ID, BaseBranch: "master", PullID: 2, EnqueuerID: user.ID, State: pull_model.MergeQueueStateAwaitingChecks, HeadSHA: "head", GroupRef: git.BranchPrefix + queueBranch}
+	branchPrefix := setting.Repository.PullRequest.MergeQueueBranchPrefix
+	queueBranch, ordinaryBranch := branchPrefix+"queued", branchPrefix+"ordinary"
+	for _, branch := range []string{queueBranch, ordinaryBranch} {
+		require.NoError(t, git.CreateBranch(t.Context(), srcRepo, branch, "master"))
+		defer func() { assert.NoError(t, git.DeleteBranch(t.Context(), srcRepo, branch, true)) }()
+	}
+	queueEntry := &pull_model.MergeQueueEntry{RepoID: srcRepo.ID, PullID: 2, GroupRef: git.BranchPrefix + queueBranch}
 	require.NoError(t, db.Insert(t.Context(), queueEntry))
-	defer func() {
-		_, err := db.DeleteByID[pull_model.MergeQueueEntry](t.Context(), queueEntry.ID)
-		assert.NoError(t, err)
-	}()
+	defer func() { assert.NoError(t, db.DeleteByIDs[pull_model.MergeQueueEntry](t.Context(), queueEntry.ID)) }()
 
 	pushMirrorURL := fmt.Sprintf("%s%s/%s", u.String(), url.PathEscape(user.Name), url.PathEscape(mirrorRepo.Name))
 	testCreatePushMirror(t, session, user.Name, srcRepo.Name, pushMirrorURL, user.LowerName, userPassword, "0")

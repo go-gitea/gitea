@@ -42,31 +42,34 @@ func Enqueue(ctx context.Context, doer *user_model.User, pr *issues_model.PullRe
 
 	entry := &pull_model.MergeQueueEntry{
 		RepoID: pr.BaseRepoID, BaseBranch: pr.BaseBranch, PullID: pr.ID,
-		EnqueuerID: doer.ID, HeadSHA: headSHA,
+		EnqueuerID: doer.ID, HeadSHA: headSHA, State: pull_model.MergeQueueStateQueued,
 	}
-	added := false
+	added := true
 	err = globallock.LockAndDo(ctx, pull_model.MergeQueueLockKey(pr.BaseRepoID, pr.BaseBranch), func(ctx context.Context) error {
-		if jump {
+		return db.WithTx(ctx, func(ctx context.Context) error {
 			existing, err := pull_model.GetMergeQueueEntryByPullID(ctx, pr.ID)
 			if err != nil {
 				return err
-			} else if existing != nil {
-				entry = existing
+			}
+			if existing != nil {
+				if !jump {
+					return pull_model.ErrAlreadyInMergeQueue
+				}
+				entry, added = existing, false
 				return pull_model.JumpMergeQueueEntry(ctx, entry)
 			}
-			if entry.JumpUnix, err = pull_model.NextJumpUnix(ctx, pr.BaseRepoID, pr.BaseBranch); err != nil {
-				return err
+			if jump {
+				if err := pull_model.JumpMergeQueueEntry(ctx, entry); err != nil {
+					return err
+				}
 			}
-		}
-		added = true
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			if err := pull_model.AddToMergeQueue(ctx, entry); err != nil {
+			if err := db.Insert(ctx, entry); err != nil {
 				return err
 			}
 			if _, err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil {
 				return err
 			}
-			_, err := issues_model.CreatePullRequestComment(ctx, issues_model.CommentTypePRAddedToMergeQueue, pr, doer, "")
+			_, err = issues_model.CreatePullRequestComment(ctx, issues_model.CommentTypePRAddedToMergeQueue, pr, doer, "")
 			return err
 		})
 	})
@@ -86,11 +89,7 @@ func Jump(ctx context.Context, pr *issues_model.PullRequest) error {
 
 func Clear(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, branch string) error {
 	return globallock.LockAndDo(ctx, pull_model.MergeQueueLockKey(repo.ID, branch), func(ctx context.Context) error {
-		rows, err := pull_model.GetMergeQueueEntries(ctx, repo.ID, branch)
-		if err != nil {
-			return err
-		}
-		entries, err := loadEntries(ctx, rows, repo)
+		entries, err := loadQueue(ctx, repo, branch)
 		if err != nil {
 			return err
 		}
@@ -181,7 +180,7 @@ func loadEntries(ctx context.Context, rows []*pull_model.MergeQueueEntry, baseRe
 	}
 	prs := issues_model.PullRequestList(util.ValuesOfMap(pulls))
 	prs.SetBaseRepo(baseRepo)
-	if _, err := prs.LoadIssues(ctx); err != nil {
+	if err := prs.LoadAttributes(ctx); err != nil {
 		return nil, err
 	}
 	users, err := user_model.GetUsersMapByIDs(ctx, enqueuerIDs.Values())
@@ -198,11 +197,15 @@ func loadEntries(ctx context.Context, rows []*pull_model.MergeQueueEntry, baseRe
 	return entries, nil
 }
 
-func GetQueue(ctx context.Context, repo *repo_model.Repository, branch string) ([]*QueueEntry, error) {
+func loadQueue(ctx context.Context, repo *repo_model.Repository, branch string) ([]*QueueEntry, error) {
 	rows, err := pull_model.GetMergeQueueEntries(ctx, repo.ID, branch)
 	if err != nil {
 		return nil, err
 	}
-	entries, err := loadEntries(ctx, rows, repo)
+	return loadEntries(ctx, rows, repo)
+}
+
+func GetQueue(ctx context.Context, repo *repo_model.Repository, branch string) ([]*QueueEntry, error) {
+	entries, err := loadQueue(ctx, repo, branch)
 	return slices.DeleteFunc(entries, func(entry *QueueEntry) bool { return entry.PullRequest == nil }), err
 }

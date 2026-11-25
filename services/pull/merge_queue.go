@@ -151,7 +151,7 @@ func MergeQueueRequiredContexts(required []string) []string {
 	return adapted
 }
 
-func MergeQueuePullRequests(ctx context.Context, entries []*MergeQueueEntry) error {
+func MergeQueuePullRequests(ctx context.Context, entries []*MergeQueueEntry) (err error) {
 	last := entries[len(entries)-1]
 	repo, baseBranch := last.PullRequest.BaseRepo, last.PullRequest.BaseBranch
 	for _, entry := range entries {
@@ -182,30 +182,29 @@ func MergeQueuePullRequests(ctx context.Context, entries []*MergeQueueEntry) err
 			return ErrSHADoesNotMatch{GivenSHA: entry.HeadSHA, CurrentSHA: headSHA}
 		}
 	}
-	var err error
-	for _, entry := range entries {
-		if err = recordMergeIntent(ctx, entry.PullRequest, entry.Enqueuer, entry.GroupHeadSHA, false); err != nil {
-			break
+	defer func() {
+		if err == nil {
+			return
 		}
-	}
-	if err == nil {
-		baseRef := git.BranchPrefix + baseBranch
-		if err = git.PushManaged(ctx, repo, repo, git.PushOptions{
-			Branch:         last.GroupRef + ":" + baseRef,      // a bare SHA would resolve to a branch named like it first
-			ForceWithLease: baseRef + ":" + entries[0].BaseSHA, // A rewound base may still fast-forward to the tested commit.
-			Env:            repo_module.FullPushingEnvironment(last.Enqueuer, last.Enqueuer, repo, repo.Name, last.PullID, last.PullRequest.Index),
-		}); err != nil {
-			if rejected, ok := errors.AsType[*git.ErrPushRejected](err); ok && (strings.Contains(rejected.StdErr, "(stale info)") || strings.Contains(rejected.StdErr, "incorrect old value provided")) {
-				err = &git.ErrPushOutOfDate{StdOut: rejected.StdOut, StdErr: rejected.StdErr, Err: rejected.Err}
-			}
-			err = fmt.Errorf("push to %s: %w", baseBranch, err)
-		}
-	}
-	if err != nil {
 		for _, entry := range entries {
 			clearUnmergedIntent(ctx, entry.PullRequest)
 		}
-		return fmt.Errorf("MergeQueuePullRequests: %w", err)
+	}()
+	for _, entry := range entries {
+		if err := recordMergeIntent(ctx, entry.PullRequest, entry.Enqueuer, entry.GroupHeadSHA, false); err != nil {
+			return fmt.Errorf("MergeQueuePullRequests: %w", err)
+		}
+	}
+	baseRef := git.BranchPrefix + baseBranch
+	if err := git.PushManaged(ctx, repo, repo, git.PushOptions{
+		Branch:         last.GroupRef + ":" + baseRef, // The full ref avoids SHA-named branches, and the lease guards fast-forwards from a rewound base.
+		ForceWithLease: baseRef + ":" + entries[0].BaseSHA,
+		Env:            repo_module.FullPushingEnvironment(last.Enqueuer, last.Enqueuer, repo, repo.Name, last.PullID, last.PullRequest.Index),
+	}); err != nil {
+		if rejected, ok := errors.AsType[*git.ErrPushRejected](err); ok && (strings.Contains(rejected.StdErr, "(stale info)") || strings.Contains(rejected.StdErr, "incorrect old value provided")) {
+			err = &git.ErrPushOutOfDate{StdOut: rejected.StdOut, StdErr: rejected.StdErr, Err: rejected.Err}
+		}
+		return fmt.Errorf("MergeQueuePullRequests: push to %s: %w", baseBranch, err)
 	}
 
 	for _, entry := range entries {

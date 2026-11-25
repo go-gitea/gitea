@@ -399,16 +399,13 @@ func matchMergeGroupEvent(payload *api.MergeGroupPayload, evt *jobparser.Event) 
 		return detectNotApplicable
 	}
 
-	branch := git.RefName(payload.MergeGroup.BaseRef).ShortName()
-	for cond, vals := range acts {
+	branches := []string{git.RefName(payload.MergeGroup.BaseRef).ShortName()}
+	for cond, values := range acts {
 		switch cond {
 		case "types":
-		case "branches":
-			if patterns, err := workflowpattern.CompilePatterns(vals...); err != nil || workflowpattern.Skip(patterns, []string{branch}) {
-				return detectFilteredOut
-			}
-		case "branches-ignore":
-			if patterns, err := workflowpattern.CompilePatterns(vals...); err != nil || workflowpattern.Filter(patterns, []string{branch}) {
+		case "branches", "branches-ignore":
+			skip := util.Iif(cond == "branches", workflowpattern.Skip, workflowpattern.Filter)
+			if patterns, err := workflowpattern.CompilePatterns(values...); err != nil || skip(patterns, branches) {
 				return detectFilteredOut
 			}
 		default:

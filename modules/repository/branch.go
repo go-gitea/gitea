@@ -58,14 +58,16 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 		}
 	}
 
-	var allBranches container.Set[string]
+	allBranches := container.Set[string]{}
 	{
 		branches, _, err := gitRepo.GetBranchNames(ctx, 0, 0)
 		if err != nil {
 			return 0, nil, err
 		}
 		log.Trace("SyncRepoBranches[%s]: branches[%d]: %v", repo.FullName(), len(branches), branches)
-		allBranches = container.SetOf(branches...)
+		for _, branch := range branches {
+			allBranches.Add(branch)
+		}
 		if slices.ContainsFunc(branches, func(branch string) bool {
 			return strings.HasPrefix(git.BranchPrefix+branch, pull_model.MergeQueueRefPrefix())
 		}) {

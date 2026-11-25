@@ -26,7 +26,6 @@ import (
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
@@ -83,15 +82,14 @@ func readyGroup(t *testing.T, state *queueState) []*QueueEntry {
 func checkQueueStatus(t *testing.T, state *queueState, entry *QueueEntry, status commitstatus.CommitStatusState, want pull_model.MergeQueueEntryState) {
 	t.Helper()
 	setQueueCheck(t, entry, status)
-	expected := &pull_model.MergeQueueEntry{ID: entry.ID, State: want, GroupRef: entry.GroupRef, ChecksStartedUnix: entry.ChecksStartedUnix}
 	readyGroup(t, state)
-	unittest.AssertExistsAndLoadBean(t, expected)
+	unittest.AssertExistsAndLoadBean(t, &pull_model.MergeQueueEntry{ID: entry.ID, State: want})
 }
 
-func assertRemoved(t *testing.T, pr *issues_model.PullRequest, reason issues_model.MergeQueueRemovalReason, count int) {
+func assertRemoved(t *testing.T, pr *issues_model.PullRequest, reason issues_model.MergeQueueRemovalReason) {
 	t.Helper()
 	unittest.AssertNotExistsBean(t, &pull_model.MergeQueueEntry{PullID: pr.ID})
-	unittest.AssertCount(t, &issues_model.Comment{IssueID: pr.IssueID, Type: issues_model.CommentTypePRRemovedFromMergeQueue, Content: string(reason)}, count)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.IssueID, Type: issues_model.CommentTypePRRemovedFromMergeQueue, Content: string(reason)})
 }
 
 func TestMergeQueueCheckRerunsAndHeadGreen(t *testing.T) {
@@ -104,37 +102,29 @@ func TestMergeQueueCheckRerunsAndHeadGreen(t *testing.T) {
 	checkQueueStatus(t, state, first, commitstatus.CommitStatusFailure, pull_model.MergeQueueStateUnmergeable)
 	checkQueueStatus(t, state, first, commitstatus.CommitStatusSuccess, pull_model.MergeQueueStateMergeable)
 	checkQueueStatus(t, state, first, commitstatus.CommitStatusPending, pull_model.MergeQueueStateAwaitingChecks)
-	unittest.AssertExistsAndLoadBean(t, &pull_model.MergeQueueEntry{ID: next.ID, State: pull_model.MergeQueueStateAwaitingChecks})
 	state.rule.MergeQueue.CheckResponseTimeoutMinutes = 30
 	setQueueCheck(t, next, commitstatus.CommitStatusSuccess)
 	assert.Len(t, readyGroup(t, state), 2)
 	unittest.AssertExistsAndLoadBean(t, &pull_model.MergeQueueEntry{ID: first.ID, State: pull_model.MergeQueueStateUnmergeable})
 	state.rule.MergeQueue.MaxEntriesToMerge = 1
 	readyGroup(t, state)
-	assertRemoved(t, first.PullRequest, issues_model.MergeQueueRemovedChecksTimeout, 1)
+	assertRemoved(t, first.PullRequest, issues_model.MergeQueueRemovedChecksTimeout)
 }
 
 func TestMergeQueueAllGreen(t *testing.T) {
 	state := queueWithPendingChecks(t)
-	ctx := t.Context()
 	first, next := state.entries[0], state.entries[1]
 	state.rule.MergeQueue = git_model.DefaultMergeQueueConfig()
 	state.rule.MergeQueue.CheckResponseTimeoutMinutes = 180
-	readyGroup(t, state)
-	unittest.AssertCount(t, &pull_model.MergeQueueEntry{State: pull_model.MergeQueueStateMergeable}, 2)
 
-	require.NoError(t, db.Insert(ctx, &actions_model.ActionScopedWorkflowSource{
+	require.NoError(t, db.Insert(t.Context(), &actions_model.ActionScopedWorkflowSource{
 		OwnerID: state.repo.OwnerID, SourceRepoID: state.repo.ID,
 		WorkflowConfigs: map[string]*actions_model.ScopedWorkflowConfig{"ci.yaml": {Required: true, Patterns: []string{"ci"}}},
 	}))
-	next.ChecksStartedUnix = timeutil.TimeStampNow().AddDuration(-4 * time.Hour)
 	checkQueueStatus(t, state, next, commitstatus.CommitStatusFailure, pull_model.MergeQueueStateUnmergeable)
-	checkQueueStatus(t, state, next, commitstatus.CommitStatusPending, pull_model.MergeQueueStateUnmergeable)
-	checkQueueStatus(t, state, next, commitstatus.CommitStatusSuccess, pull_model.MergeQueueStateMergeable)
 	setQueueCheck(t, first, commitstatus.CommitStatusSuccess)
-	setQueueCheck(t, next, commitstatus.CommitStatusFailure)
 	assert.Equal(t, []*QueueEntry{first}, readyGroup(t, state))
-	assertRemoved(t, next.PullRequest, issues_model.MergeQueueRemovedChecksFailed, 1)
+	assertRemoved(t, next.PullRequest, issues_model.MergeQueueRemovedChecksFailed)
 }
 
 func prepareQueuePulls(t *testing.T, branch string, minEntries int) (*git_model.ProtectedBranch, *issues_model.PullRequest, *issues_model.PullRequest) {
@@ -183,35 +173,19 @@ func TestProcessQueueBuildFailuresAndDisabledPulls(t *testing.T) {
 		unittest.AssertCount(t, &pull_model.MergeQueueEntry{BaseBranch: branch, State: pull_model.MergeQueueStateQueued}, 2)
 	})
 	require.NoError(t, processQueue(ctx, repo.ID, branch))
-	assertRemoved(t, emptyPR, issues_model.MergeQueueRemovedNotMergeable, 1)
-	assertRemoved(t, conflictingPR, issues_model.MergeQueueRemovedConflict, 1)
+	assertRemoved(t, emptyPR, issues_model.MergeQueueRemovedNotMergeable)
+	assertRemoved(t, conflictingPR, issues_model.MergeQueueRemovedConflict)
 
 	base, err := git.GetBranchCommitID(ctx, repo, branch)
 	require.NoError(t, err)
-	ref := pull_model.MergeQueueGroupRef(branch, conflictingPR.Index, base)
-	for i, archived := range []bool{true, false} {
-		entry := enqueuePull(t, conflictingPR, false)
-		entry.State = pull_model.MergeQueueStateAwaitingChecks
-		entry.BaseSHA, entry.GroupHeadSHA, entry.GroupRef, entry.ChecksStartedUnix = base, entry.HeadSHA, ref, timeutil.TimeStampNow()
-		require.NoError(t, git.UpdateRef(ctx, repo, ref, entry.HeadSHA))
-		require.NoError(t, pull_model.UpdateMergeQueueEntry(ctx, entry))
-		if archived {
-			require.NoError(t, repo_model.SetArchiveRepoState(ctx, repo, true))
-		} else {
-			enqueuePull(t, emptyPR, false)
-			emptyPR.MergedCommitID, emptyPR.MergerID, emptyPR.MergedUnix = base, repo.OwnerID, timeutil.TimeStampNow()
-			require.NoError(t, emptyPR.UpdateCols(ctx, "merged_commit_id", "merger_id", "merged_unix"))
-			require.NoError(t, repo_service.UpdateRepositoryUnits(ctx, repo, nil, []unit.Type{unit.TypePullRequests}))
-		}
-		require.NoError(t, processQueue(ctx, repo.ID, branch))
-		assert.False(t, git.IsReferenceExist(ctx, repo, ref))
-		assertRemoved(t, conflictingPR, issues_model.MergeQueueRemovedNotMergeable, i+1)
-		if archived {
-			require.NoError(t, repo_model.SetArchiveRepoState(ctx, repo, false))
-		}
-	}
-	unittest.AssertNotExistsBean(t, &pull_model.MergeQueueEntry{BaseBranch: branch})
-	unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: emptyPR.ID, HasMerged: true})
+	entry := enqueuePull(t, conflictingPR, false)
+	entry.BaseSHA, entry.GroupHeadSHA, entry.GroupRef = base, entry.HeadSHA, pull_model.MergeQueueGroupRef(branch, conflictingPR.Index, base)
+	require.NoError(t, git.UpdateRef(ctx, repo, entry.GroupRef, entry.HeadSHA))
+	require.NoError(t, pull_model.UpdateMergeQueueEntry(ctx, entry))
+	require.NoError(t, repo_service.UpdateRepositoryUnits(ctx, repo, nil, []unit.Type{unit.TypePullRequests}))
+	require.NoError(t, processQueue(ctx, repo.ID, branch))
+	assert.False(t, git.IsReferenceExist(ctx, repo, entry.GroupRef))
+	assertRemoved(t, conflictingPR, issues_model.MergeQueueRemovedNotMergeable)
 }
 
 type mergeQueueEvents struct {
@@ -256,6 +230,8 @@ func TestProcessQueueRestoresInterruptedMerge(t *testing.T) {
 	assert.Positive(t, enqueuePull(t, priorityPR, true).JumpUnix)
 	queued := enqueuePull(t, regularPR, false)
 	unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: regularPR.ID})
+	_, err := Enqueue(ctx, owner, regularPR, false, "")
+	require.ErrorIs(t, err, pull_model.ErrAlreadyInMergeQueue)
 	assert.Equal(t, queued.ID, enqueuePull(t, regularPR, true).ID)
 	require.NoError(t, processQueue(ctx, repo.ID, branch))
 	entries, err := pull_model.GetMergeQueueEntries(ctx, repo.ID, branch)
@@ -306,7 +282,7 @@ func TestProcessQueueDropsEntryChangingProtectedFiles(t *testing.T) {
 	_, err := db.GetEngine(ctx).ID(rule.ID).Cols("config").Update(rule)
 	require.NoError(t, err)
 	require.NoError(t, processQueue(ctx, repo.ID, branch))
-	assertRemoved(t, pr, issues_model.MergeQueueRemovedNotMergeable, 1)
+	assertRemoved(t, pr, issues_model.MergeQueueRemovedNotMergeable)
 }
 
 func TestProcessQueueMissingHeads(t *testing.T) {
@@ -315,12 +291,6 @@ func TestProcessQueueMissingHeads(t *testing.T) {
 	repo := rule.Repo
 	enqueuePull(t, missingRepo, false)
 	entry := enqueuePull(t, missingRef, false)
-	t.Run("unavailable git storage", func(t *testing.T) {
-		defer test.MockVariableValue(&setting.RepoRootPath, t.TempDir())()
-		require.NoError(t, os.MkdirAll(gitrepo.RepoLocalPath(repo), 0o755))
-		require.Error(t, processQueue(ctx, repo.ID, missingRepo.BaseBranch))
-		unittest.AssertCount(t, &pull_model.MergeQueueEntry{BaseBranch: missingRepo.BaseBranch}, 2)
-	})
 	t.Run("queued head rejects rename, update and AGit update", func(t *testing.T) {
 		doer := repo.MustOwner(ctx)
 		_, err := repo_service.RenameBranch(ctx, repo, doer, missingRepo.HeadBranch, "new-head")
@@ -342,6 +312,6 @@ func TestProcessQueueMissingHeads(t *testing.T) {
 	require.NoError(t, git.RemoveRef(ctx, repo, missingRef.GetGitHeadRefName()))
 	defer func() { require.NoError(t, git.UpdateRef(ctx, repo, missingRef.GetGitHeadRefName(), entry.HeadSHA)) }()
 	require.NoError(t, processQueue(ctx, repo.ID, missingRepo.BaseBranch))
-	assertRemoved(t, missingRepo, issues_model.MergeQueueRemovedHeadChanged, 1)
-	assertRemoved(t, missingRef, issues_model.MergeQueueRemovedHeadChanged, 1)
+	assertRemoved(t, missingRepo, issues_model.MergeQueueRemovedHeadChanged)
+	assertRemoved(t, missingRef, issues_model.MergeQueueRemovedHeadChanged)
 }

@@ -740,13 +740,12 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 }
 
 func checkPullReviews(ctx context.Context, pb *git_model.ProtectedBranch, pr *issues_model.PullRequest) error {
-	if !issues_model.HasEnoughApprovals(ctx, pb, pr) {
+	switch {
+	case !issues_model.HasEnoughApprovals(ctx, pb, pr):
 		return util.ErrorWrap(ErrNotReadyToMerge, "Does not have enough approvals")
-	}
-	if issues_model.MergeBlockedByRejectedReview(ctx, pb, pr) {
+	case issues_model.MergeBlockedByRejectedReview(ctx, pb, pr):
 		return util.ErrorWrap(ErrNotReadyToMerge, "There are requested changes")
-	}
-	if issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pr) {
+	case issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pr):
 		return util.ErrorWrap(ErrNotReadyToMerge, "There are official review requests")
 	}
 	return nil

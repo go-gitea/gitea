@@ -82,29 +82,9 @@ func GetMergeQueueGroupRefs(ctx context.Context, repoID int64) ([]string, error)
 
 var ErrAlreadyInMergeQueue = util.NewAlreadyExistErrorf("pull request is already in the merge queue")
 
-func AddToMergeQueue(ctx context.Context, entry *MergeQueueEntry) error {
-	if exist, err := db.Exist[MergeQueueEntry](ctx, builder.Eq{"pull_id": entry.PullID}); err != nil {
-		return err
-	} else if exist {
-		return ErrAlreadyInMergeQueue
-	}
-	entry.State = MergeQueueStateQueued
-	return db.Insert(ctx, entry)
-}
-
 func GetMergeQueueEntryByPullID(ctx context.Context, pullID int64) (*MergeQueueEntry, error) {
 	entry, _, err := db.Get[MergeQueueEntry](ctx, builder.Eq{"pull_id": pullID})
 	return entry, err
-}
-
-func findMergeQueueEntries(query db.Session) ([]*MergeQueueEntry, error) {
-	entries := []*MergeQueueEntry{}
-	err := query.Find(&entries)
-	return entries, err
-}
-
-func GetMergeQueueEntriesByGroupHeadSHA(ctx context.Context, repoID int64, sha string) ([]*MergeQueueEntry, error) {
-	return findMergeQueueEntries(db.GetEngine(ctx).Where("repo_id = ? AND group_head_sha = ?", repoID, sha))
 }
 
 func mergeQueueForBranch(ctx context.Context, repoID int64, baseBranch string) db.Session {
@@ -118,11 +98,20 @@ func GetMergeQueuePosition(ctx context.Context, entry *MergeQueueEntry) (int, er
 }
 
 func GetMergeQueueEntries(ctx context.Context, repoID int64, baseBranch string) ([]*MergeQueueEntry, error) {
-	return findMergeQueueEntries(mergeQueueForBranch(ctx, repoID, baseBranch).OrderBy("jump_unix DESC, id ASC"))
+	entries := []*MergeQueueEntry{}
+	err := mergeQueueForBranch(ctx, repoID, baseBranch).OrderBy("jump_unix DESC, id ASC").Find(&entries)
+	return entries, err
 }
 
-func GetMergeQueueBranches(ctx context.Context) ([]*MergeQueueEntry, error) {
-	return findMergeQueueEntries(db.GetEngine(ctx).Select("repo_id, base_branch").GroupBy("repo_id, base_branch"))
+type MergeQueueBranch struct {
+	RepoID int64
+	Branch string `xorm:"'base_branch'"`
+}
+
+func GetMergeQueueBranches(ctx context.Context, cond builder.Cond) ([]MergeQueueBranch, error) {
+	var branches []MergeQueueBranch
+	err := db.GetEngine(ctx).Table(new(MergeQueueEntry)).Where(cond).Distinct("repo_id", "base_branch").Find(&branches)
+	return branches, err
 }
 
 func UpdateMergeQueueEntry(ctx context.Context, entry *MergeQueueEntry) error {
@@ -130,17 +119,16 @@ func UpdateMergeQueueEntry(ctx context.Context, entry *MergeQueueEntry) error {
 	return err
 }
 
-func NextJumpUnix(ctx context.Context, repoID int64, baseBranch string) (timeutil.TimeStamp, error) {
+func JumpMergeQueueEntry(ctx context.Context, entry *MergeQueueEntry) error {
 	var last MergeQueueEntry
-	_, err := mergeQueueForBranch(ctx, repoID, baseBranch).Cols("jump_unix").Desc("jump_unix").Get(&last)
-	return max(timeutil.TimeStampNow(), last.JumpUnix+1), err // Keep jumps in order within the same second.
-}
-
-func JumpMergeQueueEntry(ctx context.Context, entry *MergeQueueEntry) (err error) {
-	if entry.JumpUnix, err = NextJumpUnix(ctx, entry.RepoID, entry.BaseBranch); err != nil {
+	if _, err := mergeQueueForBranch(ctx, entry.RepoID, entry.BaseBranch).Cols("jump_unix").Desc("jump_unix").Get(&last); err != nil {
 		return err
 	}
-	_, err = db.GetEngine(ctx).ID(entry.ID).Cols("jump_unix").Update(entry)
+	entry.JumpUnix = max(timeutil.TimeStampNow(), last.JumpUnix+1) // Keep jumps in order within the same second.
+	if entry.ID == 0 {
+		return nil
+	}
+	_, err := db.GetEngine(ctx).ID(entry.ID).Cols("jump_unix").Update(entry)
 	return err
 }
 

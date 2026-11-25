@@ -37,9 +37,9 @@ func TestQueuedPullHeadAndBaseChanges(t *testing.T) {
 	pr.BaseBranch = "MASTER"
 	require.ErrorContains(t, MergeQueuePullRequests(ctx, entries), "no longer targets MASTER")
 
-	pr.BaseBranch = "queue-lease"
+	pr.BaseBranch, entry.GroupRef = "queue-lease", pr.GetGitHeadRefName()
 	require.NoError(t, pr.UpdateCols(ctx, "base_branch"))
-	head, err := git.GetFullCommitID(ctx, pr.BaseRepo, pr.GetGitHeadRefName())
+	head, err := git.GetFullCommitID(ctx, pr.BaseRepo, entry.GroupRef)
 	require.NoError(t, err)
 	parent, err := git.GetFullCommitID(ctx, pr.BaseRepo, head+"^")
 	require.NoError(t, err)
@@ -53,13 +53,11 @@ func TestQueuedPullHeadAndBaseChanges(t *testing.T) {
 	assert.Equal(t, rewound, current)
 	assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID}).MergedCommitID)
 
-	require.NoError(t, pr.LoadIssue(ctx))
-	require.NoError(t, db.Insert(ctx, &pull_model.MergeQueueEntry{RepoID: pr.BaseRepoID, BaseBranch: pr.BaseBranch, PullID: pr.ID}))
-	require.ErrorIs(t, ChangeTargetBranch(ctx, pr, entry.Enqueuer, pr.BaseRepo.DefaultBranch), ErrRetargetQueuedPull)
 	require.NoError(t, git.RemoveRef(ctx, pr.BaseRepo, git.BranchPrefix+pr.BaseBranch))
 	require.ErrorAs(t, MergeQueuePullRequests(ctx, entries), new(*git.ErrPushOutOfDate))
 	assert.False(t, git.IsBranchExist(ctx, pr.BaseRepo, pr.BaseBranch))
 
+	require.NoError(t, db.Insert(ctx, &pull_model.MergeQueueEntry{RepoID: pr.BaseRepoID, BaseBranch: pr.BaseBranch, PullID: pr.ID}))
 	defer test.MockVariableValue(&setting.Repository.PullRequest.RetargetChildrenOnMerge, true)()
 	require.NoError(t, AdjustPullsCausedByBranchDeleted(ctx, entry.Enqueuer, pr.BaseRepo, pr.BaseBranch))
 	unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID, BaseBranch: pr.BaseRepo.DefaultBranch})

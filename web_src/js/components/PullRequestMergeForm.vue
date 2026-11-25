@@ -1,8 +1,7 @@
 <script lang="ts" setup>
 import {computed, nextTick, shallowRef, useTemplateRef, watch} from 'vue';
 import SvgIcon from './SvgIcon.vue';
-import {createTippy} from '../modules/tippy.ts';
-import type {Instance} from 'tippy.js';
+import {createTippy, getAttachedTippyInstance} from '../modules/tippy.ts';
 
 type MergeStyle = {
   name: string,
@@ -74,10 +73,9 @@ watch(mergeStyle, (val) => {
   emit('mergeStyleChange', val);
 });
 
-let menuTippy: Instance | undefined;
 watch(menuTrigger, (trigger, _oldTrigger, onCleanup) => {
   if (!trigger) return;
-  const instance = createTippy(trigger, {
+  const menuTippy = createTippy(trigger, {
     content: menuPanel.value!,
     getReferenceClientRect: () => trigger.parentElement!.getBoundingClientRect(),
     theme: 'menu',
@@ -89,15 +87,15 @@ watch(menuTrigger, (trigger, _oldTrigger, onCleanup) => {
     interactive: true,
     hideOnClick: true,
   });
-  menuTippy = instance;
-  onCleanup(() => {
-    instance.destroy();
-    menuTippy = undefined;
-  });
+  onCleanup(() => menuTippy.destroy());
 }, {flush: 'post'});
 
+function hideMenu() {
+  if (menuTrigger.value) getAttachedTippyInstance(menuTrigger.value)?.hide();
+}
+
 async function toggleActionForm(show: boolean) {
-  menuTippy?.hide();
+  hideMenu();
   showActionForm.value = show;
   await nextTick();
   (show ? actionForm.value!.querySelector<HTMLElement>('input:not([type="hidden"]), button[type="submit"]')! : mergeButton.value!).focus();
@@ -149,9 +147,9 @@ async function toggleActionForm(show: boolean) {
           <svg-icon name="octicon-triangle-down" :size="14"/>
         </button>
       </div>
-      <span v-if="queue" class="tw-text-text-light" v-html="queue.helpHTML"/><!-- eslint-disable-line vue/no-v-html -- server-rendered translation -->
+      <span v-if="queue" class="tw-text-text-light" v-html="queue.helpHTML"/><!-- eslint-disable-line vue/no-v-html -- translation escapes interpolation arguments -->
     </div>
-    <div v-if="mergeForm.mergeStyles.length > 1" ref="menuPanel" class="tippy-target merge-box-menu" @click="menuTippy!.hide()">
+    <div v-if="mergeForm.mergeStyles.length > 1" ref="menuPanel" class="tippy-target merge-box-menu" @click="hideMenu">
       <button v-for="msd in mergeForm.mergeStyles" :key="msd.name" type="button" class="item" role="menuitemradio" :aria-checked="msd.name === mergeStyle" @click="mergeStyle = msd.name">
         <svg-icon name="octicon-check"/>
         <div><strong>{{ msd.textDoMerge }}</strong><small>{{ msd.textDescription }}</small></div>

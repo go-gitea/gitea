@@ -21,7 +21,6 @@ import (
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/repository"
-	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
@@ -677,25 +676,12 @@ func (m *webhookNotifier) IssueChangeMilestone(ctx context.Context, doer *user_m
 }
 
 func (m *webhookNotifier) PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
-	apiPusher := convert.ToUser(ctx, pusher, nil)
-	apiCommits, apiHeadCommit, err := commits.ToAPIPayloadCommits(ctx, repo)
+	payload, err := convert.ToPushPayload(ctx, repo, pusher, opts, commits)
 	if err != nil {
-		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
+		log.Error("ToPushPayload: %v", err)
 		return
 	}
-
-	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{
-		Ref:          opts.RefFullName.String(),
-		Before:       opts.OldCommitID,
-		After:        opts.NewCommitID,
-		CompareURL:   setting.AppURL + commits.CompareURL,
-		Commits:      apiCommits,
-		TotalCommits: commits.Len,
-		HeadCommit:   apiHeadCommit,
-		Repo:         convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}),
-		Pusher:       apiPusher,
-		Sender:       apiPusher,
-	}); err != nil {
+	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventPush, payload); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}
 }
@@ -851,15 +837,11 @@ func (m *webhookNotifier) CreateRef(ctx context.Context, pusher *user_model.User
 }
 
 func (m *webhookNotifier) PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, before, after string) {
-	notifyPullRequestChange(ctx, doer, pr, webhook_module.HookEventPullRequestSync, &api.PullRequestPayload{
-		Action: api.HookIssueSynchronized, Before: before, After: after,
-	})
+	notifyPullRequestChange(ctx, doer, pr, webhook_module.HookEventPullRequestSync, &api.PullRequestPayload{Action: api.HookIssueSynchronized, Before: before, After: after})
 }
 
 func (m *webhookNotifier) PullRequestMergeQueueChanged(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, action api.HookIssueAction, reason issues_model.MergeQueueRemovalReason) {
-	notifyPullRequestChange(ctx, doer, pr, webhook_module.HookEventPullRequest, &api.PullRequestPayload{
-		Action: action, Reason: convert.ToMergeQueueRemovalReason(reason),
-	})
+	notifyPullRequestChange(ctx, doer, pr, webhook_module.HookEventPullRequest, &api.PullRequestPayload{Action: action, Reason: convert.ToMergeQueueRemovalReason(reason)})
 }
 
 func notifyPullRequestChange(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, event webhook_module.HookEventType, payload *api.PullRequestPayload) {
@@ -945,27 +927,7 @@ func (m *webhookNotifier) DeleteRelease(ctx context.Context, doer *user_model.Us
 }
 
 func (m *webhookNotifier) SyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
-	apiPusher := convert.ToUser(ctx, pusher, nil)
-	apiCommits, apiHeadCommit, err := commits.ToAPIPayloadCommits(ctx, repo)
-	if err != nil {
-		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
-		return
-	}
-
-	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{
-		Ref:          opts.RefFullName.String(),
-		Before:       opts.OldCommitID,
-		After:        opts.NewCommitID,
-		CompareURL:   setting.AppURL + commits.CompareURL,
-		Commits:      apiCommits,
-		TotalCommits: commits.Len,
-		HeadCommit:   apiHeadCommit,
-		Repo:         convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}),
-		Pusher:       apiPusher,
-		Sender:       apiPusher,
-	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
-	}
+	m.PushCommits(ctx, pusher, repo, opts, commits)
 }
 
 func (m *webhookNotifier) CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit *repository.PushCommit, sender *user_model.User, status *git_model.CommitStatus) {

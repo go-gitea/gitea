@@ -158,13 +158,13 @@ func TestMergeQueueWorkflowEvents(t *testing.T) {
 	}))
 
 	const groupRef = "refs/heads/gitea-merge-queue/master/pr-1"
-	const jobs = "\njobs: {cleanup: {runs-on: linux, steps: [{run: echo done}]}}"
 	require.NoError(t, git.ForceFastImport(ctx, repo, []git.FastImportCommit{{
 		Ref: groupRef,
-		Files: []git.FastImportFile{
-			{Path: ".gitea/workflows/cleanup.yml", Content: "on: {merge_group: {types: [destroyed]}, pull_request: {types: [dequeued]}}" + jobs},
-			{Path: ".gitea/workflows/default.yml", Content: "on: [push, create, merge_group]\nconcurrency: {group: '${{ github.ref }}', cancel-in-progress: true}" + jobs},
-		},
+		Files: []git.FastImportFile{{Path: ".gitea/workflows/queue.yml", Content: `
+on: {push: {}, create: {}, merge_group: {types: [checks_requested, destroyed]}, pull_request: {types: [dequeued]}}
+concurrency: {group: '${{ github.ref }}', cancel-in-progress: true}
+jobs: {check: {runs-on: linux, steps: [{run: echo done}]}}
+`}},
 	}}))
 	headSHA, err := git.GetFullCommitID(ctx, repo, groupRef)
 	require.NoError(t, err)
@@ -178,11 +178,10 @@ func TestMergeQueueWorkflowEvents(t *testing.T) {
 	assert.Equal(t, webhook_module.HookEventCreate, runs[1].Event)
 	assert.Equal(t, webhook_module.HookEventPush, runs[2].Event)
 	assert.Equal(t, actions_model.StatusWaiting, runs[0].Status)
-	assert.Equal(t, actions_model.StatusCancelled, runs[2].Status)
 	push, err := runs[2].GetPushEventPayload()
 	require.NoError(t, err)
 	assert.Equal(t, 1, push.TotalCommits)
-	unittest.AssertExistsAndLoadBean(t, &git_model.CommitStatus{RepoID: repo.ID, SHA: headSHA, Context: "default.yml / cleanup (merge_group)"})
+	unittest.AssertExistsAndLoadBean(t, &git_model.CommitStatus{RepoID: repo.ID, SHA: headSHA, Context: "queue.yml / check (merge_group)"})
 	require.NoError(t, git.RemoveRef(ctx, repo, groupRef))
 	notifier.MergeGroupChanged(ctx, doer, repo, entry, api.HookMergeGroupDestroyed, "merged")
 	unittest.AssertCount(t, &actions_model.ActionRun{RepoID: repo.ID, Ref: groupRef}, 3)
@@ -198,7 +197,7 @@ func TestMergeQueueWorkflowEvents(t *testing.T) {
 	pr.HasMerged, pr.Issue.IsClosed, pr.MergedCommitID = true, true, headSHA
 	notifier.PullRequestMergeQueueChanged(ctx, doer, pr, api.HookIssueDequeued, issues_model.MergeQueueRemovedMerged)
 	unittest.AssertCount(t, &actions_model.ActionRun{
-		RepoID: repo.ID, WorkflowID: "cleanup.yml", Event: webhook_module.HookEventPullRequest,
+		RepoID: repo.ID, WorkflowID: "queue.yml", Event: webhook_module.HookEventPullRequest,
 		Ref: headSHA, CommitSHA: headSHA, WorkflowCommitSHA: headSHA,
 	}, 1)
 }

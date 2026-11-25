@@ -317,22 +317,20 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	protectBranch.UnprotectedFilePatterns = f.UnprotectedFilePatterns
 	protectBranch.BlockOnOutdatedBranch = f.BlockOnOutdatedBranch
 	protectBranch.BlockAdminMergeOverride = f.BlockAdminMergeOverride
-	if f.RequireMergeQueue {
-		if err := protectBranch.SetMergeQueue(true, git_model.MergeQueueConfig{
-			MergeMethod:                  repo_model.MergeStyle(f.MergeQueueMergeMethod),
-			MaxEntriesToBuild:            f.MergeQueueMaxEntriesToBuild,
-			MinEntriesToMerge:            f.MergeQueueMinEntriesToMerge,
-			MaxEntriesToMerge:            f.MergeQueueMaxEntriesToMerge,
-			MinEntriesToMergeWaitMinutes: f.MergeQueueMinEntriesToMergeWaitMinutes,
-			GroupingStrategy:             util.Iif(f.MergeQueueGroupingStrategy == string(git_model.MergeQueueGroupingAllGreen), git_model.MergeQueueGroupingAllGreen, git_model.MergeQueueGroupingHeadGreen),
-			CheckResponseTimeoutMinutes:  f.MergeQueueCheckResponseTimeoutMinutes,
-		}, ctx.Repo.Repository.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()); err != nil {
-			errKey := util.Iif(errors.Is(err, git_model.ErrMergeQueueMethodNotAllowed), "repo.settings.merge_queue.merge_method_not_allowed", "repo.settings.merge_queue.invalid_settings")
-			ctx.JSONErrorWithField(ctx.Tr(errKey), "require_merge_queue")
-			return
-		}
-	} else {
+	if !f.RequireMergeQueue {
 		protectBranch.RequireMergeQueue = false
+	} else if err := protectBranch.SetMergeQueue(true, git_model.MergeQueueConfig{
+		MergeMethod:                  repo_model.MergeStyle(f.MergeQueueMergeMethod),
+		MaxEntriesToBuild:            f.MergeQueueMaxEntriesToBuild,
+		MinEntriesToMerge:            f.MergeQueueMinEntriesToMerge,
+		MaxEntriesToMerge:            f.MergeQueueMaxEntriesToMerge,
+		MinEntriesToMergeWaitMinutes: f.MergeQueueMinEntriesToMergeWaitMinutes,
+		GroupingStrategy:             util.Iif(f.MergeQueueGroupingStrategy == string(git_model.MergeQueueGroupingAllGreen), git_model.MergeQueueGroupingAllGreen, git_model.MergeQueueGroupingHeadGreen),
+		CheckResponseTimeoutMinutes:  f.MergeQueueCheckResponseTimeoutMinutes,
+	}, ctx.Repo.Repository.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()); err != nil {
+		errKey := util.Iif(errors.Is(err, git_model.ErrMergeQueueMethodNotAllowed), "repo.settings.merge_queue.merge_method_not_allowed", "repo.settings.merge_queue.invalid_settings")
+		ctx.JSONErrorWithField(ctx.Tr(errKey), "require_merge_queue")
+		return
 	}
 
 	if err = pull_service.CreateOrUpdateProtectedBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{

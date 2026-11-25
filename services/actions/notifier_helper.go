@@ -182,11 +182,15 @@ func notify(ctx context.Context, input *notifyInput) error {
 		ref = git.RefNameFromBranch(input.Repo.DefaultBranch)
 	}
 
-	commitRef := ref.String()
+	var commitID string
 	if payload, ok := input.Payload.(*api.MergeGroupPayload); ok {
-		commitRef = payload.MergeGroup.HeadSHA
+		commitID = payload.MergeGroup.HeadSHA
+	} else if commitID, err = gitRepo.GetRefCommitID(ctx, ref.String()); err != nil {
+		return fmt.Errorf("gitRepo.GetRefCommitID: %w", err)
 	}
-	commit, err := gitRepo.GetCommit(ctx, commitRef)
+
+	// Get the commit object for the ref
+	commit, err := gitRepo.GetCommit(ctx, commitID)
 	if err != nil {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}

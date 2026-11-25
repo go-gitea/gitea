@@ -52,11 +52,10 @@ func ToMergeGroupPayload(ctx context.Context, doer *user_model.User, repo *repo_
 		BaseRef: git.RefNameFromBranch(entry.BaseBranch).String(),
 	}
 	commit, err := gitRepo.GetCommit(ctx, entry.GroupHeadSHA)
-	if err != nil && !git.IsErrNotExist(err) { // a destroyed group's commit may have been pruned
-		return nil, nil, err
-	}
-	if commit != nil {
+	if err == nil {
 		group.HeadCommit = ToPayloadCommit(ctx, repo, commit)
+	} else if !git.IsErrNotExist(err) { // a destroyed group's commit may have been pruned
+		return nil, nil, err
 	}
 	return &api.MergeGroupPayload{
 		Action:     action,
