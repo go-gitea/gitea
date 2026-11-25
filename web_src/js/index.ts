@@ -71,6 +71,7 @@ import {initRepoWatch} from './features/repo-watch.ts';
 import {initPackagesView} from './features/packages.ts';
 import {initAsyncHashChangeListeners} from './modules/hashchange.ts';
 import {initGlobalModal} from './modules/modal.ts';
+import {initFileLinesWrap} from './features/toggle-wrap-file-lines.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
@@ -110,6 +111,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepoFileSearch,
   initCopyContent,
   initPackagesView,
+  initFileLinesWrap,
 
   initAdminCommon,
   initAdminUserListSearchForm,

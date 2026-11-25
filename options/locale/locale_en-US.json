@@ -1188,6 +1188,8 @@
   "repo.file_permalink": "Permalink",
   "repo.file_too_large": "The file is too large to be shown.",
   "repo.file_is_empty": "The file is empty.",
+  "repo.file_wrap_lines": "Wrap lines",
+  "repo.file_nowrap_lines": "No wrap",
   "repo.code_preview_line_from_to": "Lines %[1]d to %[2]d in %[3]s",
   "repo.code_preview_line_in": "Line %[1]d in %[2]s",
   "repo.invisible_runes_header": "This file contains invisible Unicode characters",
