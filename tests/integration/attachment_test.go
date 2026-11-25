@@ -265,6 +265,15 @@ func testGetAttachment(t *testing.T) {
 		})
 	}
 
+	t.Run("DraftReleaseByOwnerToken", func(t *testing.T) {
+		readToken := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeReadRepository)
+		writeToken := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository)
+		for _, link := range []string{"/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a23", "/user2/repo1/releases/download/draft-release/draft-attach"} {
+			MakeRequest(t, NewRequest(t, "GET", link).AddTokenAuth(readToken), http.StatusNotFound)
+			MakeRequest(t, NewRequest(t, "GET", link).AddTokenAuth(writeToken), http.StatusOK)
+		}
+	})
+
 	attachment, err := repo_model.GetAttachmentByUUID(t.Context(), "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12")
 	require.NoError(t, err)
 	defer func() {

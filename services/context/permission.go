@@ -8,9 +8,23 @@ import (
 	"slices"
 
 	auth_model "gitea.dev/models/auth"
+	access_model "gitea.dev/models/perm/access"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 )
+
+// CanAccessReleaseDraft checks whether the doer can see draft releases, which requires release write access and, for tokens, the repository write scope
+func CanAccessReleaseDraft(doer *user_model.User, perm access_model.Permission) bool {
+	if doer == nil || !perm.CanWrite(unit.TypeReleases) {
+		return false
+	}
+	scope, hasAPITokenScope := user_model.GetDoerTokenScope(doer)
+	if !hasAPITokenScope {
+		return true
+	}
+	allow, _ := scope.HasScope(auth_model.AccessTokenScopeWriteRepository) // err (invalid token) can be safely ignored
+	return allow
+}
 
 // CheckTokenScopes checks whether the authenticated API token contains any of the given scopes.
 func CheckTokenScopes(ctx *Context, scopes ...auth_model.AccessTokenScope) {

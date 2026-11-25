@@ -9,6 +9,8 @@ import (
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/tests"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRepoWebTokenScopes(t *testing.T) {
@@ -33,6 +35,11 @@ func TestRepoWebTokenScopes(t *testing.T) {
 	}
 
 	assertBasicAuthStatus(t, "/user2/repo1/actions/workflows/test.yml/badge.svg", publicOnlyToken, http.StatusOK)
+
+	for token, numReleases := range map[string]string{readToken: "2", getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository): "3"} {
+		resp := MakeRequest(t, NewRequest(t, http.MethodGet, "/user2/repo1").AddBasicAuth("user2", token), http.StatusOK)
+		assert.Equal(t, numReleases, NewHTMLParser(t, resp.Body).Find(`a[href="/user2/repo1/releases"] .ui.small.label`).Text())
+	}
 }
 
 func assertBasicAuthStatus(t *testing.T, url, token string, status int) {

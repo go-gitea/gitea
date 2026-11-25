@@ -299,7 +299,7 @@ func RedirectDownload(ctx *context.Context) {
 	tagNames := []string{vTag}
 	curRepo := ctx.Repo.Repository
 	releases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
-		IncludeDrafts: ctx.Repo.Permission.CanWrite(unit.TypeReleases),
+		IncludeDrafts: context.CanAccessReleaseDraft(ctx.Doer, ctx.Repo.Permission),
 		RepoID:        curRepo.ID,
 		TagNames:      tagNames,
 	})

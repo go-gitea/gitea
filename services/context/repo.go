@@ -646,8 +646,7 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 		return
 	}
 	ctx.Data["NumReleases"], err = db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
-		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
-		IncludeDrafts: ctx.Repo.Permission.CanWrite(unit_model.TypeReleases),
+		IncludeDrafts: CanAccessReleaseDraft(ctx.Doer, ctx.Repo.Permission),
 		RepoID:        ctx.Repo.Repository.ID,
 	})
 	if err != nil {

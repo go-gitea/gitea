@@ -6,11 +6,8 @@ package repo
 import (
 	"net/http"
 
-	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
@@ -21,17 +18,7 @@ import (
 )
 
 func canAccessReleaseDraft(ctx *context.APIContext) bool {
-	if !ctx.IsSigned || !ctx.Repo.Permission.CanWrite(unit.TypeReleases) {
-		return false
-	}
-	scope, hasApiTokenScope := user_model.GetDoerTokenScope(ctx.Doer)
-	if !hasApiTokenScope {
-		// not API token request, the request is from a user session with write access
-		return true
-	}
-	requiredScopes := auth_model.GetRequiredScopes(auth_model.Write, auth_model.AccessTokenScopeCategoryRepository)
-	allow, _ := scope.HasScope(requiredScopes...) // err (invalid token) can be safely ignored
-	return allow
+	return context.CanAccessReleaseDraft(ctx.Doer, ctx.Repo.Permission)
 }
 
 // GetRelease get a single release of a repository

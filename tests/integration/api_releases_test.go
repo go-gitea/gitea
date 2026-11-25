@@ -334,8 +334,11 @@ func testAPIGetDraftReleaseByTag(t *testing.T) {
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, tag))
 	MakeRequest(t, req, http.StatusNotFound)
 
-	// user 40 should be able to get draft release because he has write access to the repository
-	token := getUserToken(t, "user40", auth_model.AccessTokenScopeReadRepository)
+	readToken := getUserToken(t, "user40", auth_model.AccessTokenScopeReadRepository)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, tag)).AddTokenAuth(readToken)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	token := getUserToken(t, "user40", auth_model.AccessTokenScopeWriteRepository)
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, tag)).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	release := DecodeJSON(t, resp, &api.Release{})
@@ -350,7 +353,7 @@ func testAPIGetDraftReleaseByTag(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// user 2 should be able to get draft release because he is the publisher
-	user2Token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
+	user2Token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, tag)).AddTokenAuth(user2Token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	release = DecodeJSON(t, resp, &api.Release{})
