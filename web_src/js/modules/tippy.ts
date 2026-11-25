@@ -133,7 +133,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
     arrow: resolvedArrow,
     popperOptions: {modifiers: [
       {name: 'arrow', options: {padding: arrowPadding}},
-      ...limitSizeToViewport ? [sizeModifier(limitSizeToViewport)] : [],
+      ...(limitSizeToViewport ? [sizeModifier(limitSizeToViewport)] : []),
     ]},
     // HTML role attribute, ideally the default role would be "popover" but it does not exist
     role: role || 'menu',

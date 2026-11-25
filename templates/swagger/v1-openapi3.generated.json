@@ -11826,6 +11826,167 @@
         ]
       }
     },
+    "/admin/actions/variables": {
+      "get": {
+        "operationId": "getAdminVariablesList",
+        "parameters": [
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/VariableList"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Get the instance-level variables list",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/admin/actions/variables/{variablename}": {
+      "delete": {
+        "operationId": "deleteAdminVariable",
+        "parameters": [
+          {
+            "description": "name of the variable",
+            "in": "path",
+            "name": "variablename",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "response when deleting an instance-level variable"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Delete an instance-level variable",
+        "tags": [
+          "admin"
+        ]
+      },
+      "get": {
+        "operationId": "getAdminVariable",
+        "parameters": [
+          {
+            "description": "name of the variable",
+            "in": "path",
+            "name": "variablename",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ActionVariable"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Get an instance-level variable",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "operationId": "createAdminVariable",
+        "parameters": [
+          {
+            "description": "name of the variable",
+            "in": "path",
+            "name": "variablename",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateVariableOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "201": {
+            "description": "successfully created the instance-level variable"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Create an instance-level variable",
+        "tags": [
+          "admin"
+        ]
+      },
+      "put": {
+        "operationId": "updateAdminVariable",
+        "parameters": [
+          {
+            "description": "name of the variable",
+            "in": "path",
+            "name": "variablename",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateVariableOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "204": {
+            "description": "response when updating an instance-level variable"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Update an instance-level variable",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/admin/cron": {
       "get": {
         "operationId": "adminCronList",

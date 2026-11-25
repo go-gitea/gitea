@@ -9,7 +9,7 @@ import (
 	"net/http"
 
 	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 )
 
 // ResponseText is used to get the response as text, instead of parsing it as JSON.
@@ -66,7 +66,7 @@ func requestJSONResp[T any](req *httplib.ClientRequest, res *T) (ret *T, extra R
 	// if the status code is not 2xx, try to parse the error response
 	if resp.StatusCode/100 != 2 {
 		var respErr Response
-		if err := json.NewDecoder(resp.Body).Decode(&respErr); err != nil {
+		if err := jsonlimit.DecodeWithLimit(resp.Body, 100*1024*1024, &respErr); err != nil {
 			extra.UserMsg = "Internal Server Error Decoding Failed"
 			extra.Error = fmt.Errorf("unable to decode error response %q: %w", req.GoString(), err)
 			return nil, extra
@@ -96,7 +96,7 @@ func requestJSONResp[T any](req *httplib.ClientRequest, res *T) (ret *T, extra R
 		extra.StatusCode = resp.StatusCode
 		cb.Callback(resp, &extra)
 		return nil, extra
-	} else if err := json.NewDecoder(resp.Body).Decode(res); err != nil {
+	} else if err := jsonlimit.DecodeWithLimit(resp.Body, 100*1024*1024, res); err != nil {
 		// decode the response into the given struct
 		extra.UserMsg = "Internal Server Response Decoding Failed"
 		extra.Error = fmt.Errorf("unable to decode response %q: %w", req.GoString(), err)
