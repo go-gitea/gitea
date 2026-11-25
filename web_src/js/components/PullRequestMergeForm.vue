@@ -2,6 +2,7 @@
 import {computed, nextTick, shallowRef, useTemplateRef, watch} from 'vue';
 import SvgIcon from './SvgIcon.vue';
 import {createTippy, getAttachedTippyInstance} from '../modules/tippy.ts';
+import {TrSlots} from '../modules/i18n.ts';
 
 type MergeStyle = {
   name: string,
@@ -26,7 +27,7 @@ type MergeForm = {
   mergeMessageFieldPlaceHolder: string,
   mergeStyles: MergeStyle[],
   pullHeadCommitID: string,
-  queue?: {style: string, button: string, confirm: string, helpHTML: string},
+  queue?: {style: string, button: string, confirm: string, help: string, linkText: string, link: string, branch: string},
   showAutoMerge: boolean,
   textBypassRules: string,
   textCancel: string,
@@ -150,7 +151,11 @@ async function toggleActionForm(show: boolean) {
         </button>
       </div>
       <span v-if="queue || mergeForm.textCmdInstructions" class="merge-box-footer-text tw-text-text-light">
-        <span v-if="queue" v-html="queue.helpHTML"/><span v-else>{{ mergeForm.textCmdMergeHint }}</span> <button v-if="mergeForm.textCmdInstructions" type="button" class="interact-link show-modal" data-modal="#pull-merge-cmd-modal">{{ mergeForm.textCmdInstructions }}</button><!-- eslint-disable-line vue/no-v-html -- translation escapes interpolation arguments -->
+        <tr-slots v-if="queue" :text="queue.help">
+          <template #1><a :href="queue.link">{{ queue.linkText }}</a></template>
+          <template #2>{{ queue.branch }}</template>
+        </tr-slots>
+        <span v-else>{{ mergeForm.textCmdMergeHint }}</span> <button v-if="mergeForm.textCmdInstructions" type="button" class="interact-link show-modal" data-modal="#pull-merge-cmd-modal">{{ mergeForm.textCmdInstructions }}</button>
       </span>
     </div>
     <div v-if="mergeForm.mergeStyles.length > 1" ref="menuPanel" class="tippy-target merge-box-menu" @click="hideMenu">

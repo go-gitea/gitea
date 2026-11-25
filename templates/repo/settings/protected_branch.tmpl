@@ -307,7 +307,7 @@
 						<div class="ui checkbox">
 							<input name="require_merge_queue" type="checkbox" class="toggle-target-enabled" data-target="#merge_queue_box" {{if .Rule.RequireMergeQueue}}checked{{end}}>
 							<label>{{ctx.Locale.Tr "repo.settings.merge_queue.require"}}</label>
-							<p class="help">{{ctx.Locale.Tr "repo.settings.merge_queue.require_desc" .MergeQueueBranchPrefix}}</p>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.merge_queue.require_desc" (HTMLFormat "<code>%s</code>" "merge_group") (HTMLFormat "<code>%s**</code>" .MergeQueueBranchPrefix)}}</p>
 						</div>
 					</div>
 					{{$queue := .Rule.MergeQueue.WithDefaults}}

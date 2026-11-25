@@ -684,7 +684,7 @@
 			</div>
 		{{else if eq .Type 39 40}}
 			{{$byUser := or (eq .Type 39) (eq .Content "dequeued" "queue_cleared")}}
-			{{$queueLink := printf "%s/queue/%s" $.RepoLink (PathEscapeSegments $.Issue.PullRequest.BaseBranch)}}
+			{{$queueLink := HTMLFormat `<a href="%s/queue/%s">%s</a>` $.RepoLink (PathEscapeSegments $.Issue.PullRequest.BaseBranch) (ctx.Locale.Tr "repo.pulls.merge_queue.link_text")}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-git-merge-queue" 16}}</span>
 				{{if $byUser}}{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}{{end}}

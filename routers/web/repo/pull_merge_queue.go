@@ -12,6 +12,7 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	pull_model "gitea.dev/models/pull"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/services/context"
 	"gitea.dev/services/mergequeue"
 	pull_service "gitea.dev/services/pull"
@@ -26,9 +27,10 @@ func (prInfo *pullRequestViewInfo) prepareQueuedMergeBox(ctx *context.Context) {
 	data := prInfo.MergeBoxData
 	data.IsQueued = true
 	data.CanDequeue = ctx.Doer != nil && (ctx.Doer.ID == prInfo.queueEntry.EnqueuerID || prInfo.issue.IsPoster(ctx.Doer.ID) || data.hasPermToMerge)
-	detail := ctx.Tr("repo.pulls.merge_queue.next_up", data.MergeQueueLink)
+	queueLink := htmlutil.HTMLFormat(`<a href="%s">%s</a>`, data.MergeQueueLink, ctx.Tr("repo.pulls.merge_queue.link_text"))
+	detail := ctx.Tr("repo.pulls.merge_queue.next_up", queueLink)
 	if ahead := position - 1; ahead > 0 {
-		detail = ctx.TrN(ahead, "repo.pulls.merge_queue.ahead_1", "repo.pulls.merge_queue.ahead_n", ahead, data.MergeQueueLink)
+		detail = ctx.TrN(ahead, "repo.pulls.merge_queue.ahead_1", "repo.pulls.merge_queue.ahead_n", ahead, queueLink)
 	}
 	data.MergeSection = &pullMergeBoxSection{
 		StatusIcon: "octicon-git-merge-queue", StatusIconClass: "tw-bg-yellow",

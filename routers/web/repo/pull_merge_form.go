@@ -189,7 +189,10 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 			"style":    prInfo.ProtectedBranchRule.MergeQueue.MergeMethod,
 			"button":   ctx.Tr("repo.pulls.merge_queue.merge_when_ready"),
 			"confirm":  ctx.Tr("repo.pulls.merge_queue.confirm_merge_when_ready"),
-			"helpHTML": ctx.Tr("repo.pulls.merge_queue.help", data.MergeQueueLink, pull.BaseBranch),
+			"help":     ctx.Locale.TrString("repo.pulls.merge_queue.help"),
+			"linkText": ctx.Locale.TrString("repo.pulls.merge_queue.link_text"),
+			"link":     data.MergeQueueLink,
+			"branch":   pull.BaseBranch,
 		}
 	}
 }

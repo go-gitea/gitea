@@ -56,7 +56,7 @@
 							{{if $mergeBoxData.MergeFormProps.canBypassMerge}}<div class="ui checkbox tw-flex tw-mb-4 tw-invisible"><label>{{$mergeBoxData.MergeFormProps.textBypassRules}}</label></div>{{end}}
 							<div class="flex-text-block tw-flex-wrap tw-invisible">
 								<div class="ui buttons"><button type="button" class="ui button">&nbsp;</button></div>
-								<span class="merge-box-footer-text">{{with $mergeBoxData.MergeFormProps.queue}}{{.helpHTML}}{{else}}{{$mergeBoxData.MergeFormProps.textCmdMergeHint}}{{end}} {{$mergeBoxData.MergeFormProps.textCmdInstructions}}</span>
+								<span class="merge-box-footer-text">{{with $mergeBoxData.MergeFormProps.queue}}{{ctx.Locale.Tr "repo.pulls.merge_queue.help" .linkText .branch}}{{else}}{{$mergeBoxData.MergeFormProps.textCmdMergeHint}}{{end}} {{$mergeBoxData.MergeFormProps.textCmdInstructions}}</span>
 							</div>
 						</div>
 					{{end}}
