@@ -241,7 +241,6 @@ space</p>
 `
 	assert.Equal(t, expected, string(newTestRenderUtils(t).MarkdownToHtml(testInput())))
 
-	defer test.MockVariableValue(&setting.Markdown.MathCodeBlockOptions, setting.MarkdownMathCodeBlockOptions{ParseBlockDollar: true})()
 	for _, tc := range []struct {
 		name     string
 		input    string
