@@ -99,7 +99,13 @@
 }
 
 .merge-box-footer-text {
-  flex: 1 1 240px; /* follows the buttons like on GitHub, wraps below them on narrow screens */
+  flex: 1 1 0; /* beside the buttons like on GitHub, wrapping within itself */
+}
+
+@media (max-width: 767.98px) {
+  .merge-box-footer-text {
+    flex-basis: 100%;
+  }
 }
 
 .merge-box-menu .item > .svg {
