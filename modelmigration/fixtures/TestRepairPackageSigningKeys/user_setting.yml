@@ -1,0 +1,145 @@
+-
+  id: 1
+  user_id: 1
+  setting_key: debian.key.private
+  setting_value: |
+    -----BEGIN PGP PRIVATE KEY BLOCK-----
+
+    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
+    =uInA
+    -----END PGP PRIVATE KEY BLOCK-----
+
+-
+  id: 2
+  user_id: 1
+  setting_key: debian.key.public
+  setting_value: malformed
+
+-
+  id: 3
+  user_id: 2
+  setting_key: rpm.key.private
+  setting_value: |
+    -----BEGIN PGP PRIVATE KEY BLOCK-----
+
+    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
+    =1eG7
+    -----END PGP PRIVATE KEY BLOCK-----
+
+-
+  id: 4
+  user_id: 2
+  setting_key: rpm.key.public
+  setting_value: valid
+
+-
+  id: 5
+  user_id: 3
+  setting_key: debian.key.private
+  setting_value: unreadable
+
+-
+  id: 6
+  user_id: 3
+  setting_key: debian.key.public
+  setting_value: untouched
