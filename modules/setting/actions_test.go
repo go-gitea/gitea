@@ -20,33 +20,33 @@ func Test_getStorageInheritNameSectionTypeForActions(t *testing.T) {
 	}{
 		{`
 	[storage]
-	STORAGE_TYPE = minio
-	`, "minio", "minio"},
+	STORAGE_TYPE = s3
+	`, "s3", "s3"},
 		{`
 [storage.actions_log]
-STORAGE_TYPE = minio
-`, "minio", "local"},
+STORAGE_TYPE = s3
+`, "s3", "local"},
 		{`
 [storage.actions_log]
 STORAGE_TYPE = my_storage
 
 [storage.my_storage]
-STORAGE_TYPE = minio
-`, "minio", "local"},
+STORAGE_TYPE = s3
+`, "s3", "local"},
 		{`
 [storage.actions_artifacts]
 STORAGE_TYPE = my_storage
 
 [storage.my_storage]
-STORAGE_TYPE = minio
-`, "local", "minio"},
+STORAGE_TYPE = s3
+`, "local", "s3"},
 		{`
 [storage.actions_artifacts]
 STORAGE_TYPE = my_storage
 
 [storage.my_storage]
-STORAGE_TYPE = minio
-`, "local", "minio"},
+STORAGE_TYPE = s3
+`, "local", "s3"},
 		{``, "local", "local"},
 	} {
 		cfg, err := NewConfigProviderFromData(tc.iniStr)
@@ -54,14 +54,14 @@ STORAGE_TYPE = minio
 		assert.NoError(t, loadActionsFrom(cfg))
 
 		assert.EqualValues(t, tc.logType, Actions.LogStorage.Type)
-		if tc.logType == "minio" {
-			assert.Equal(t, "actions_log/", Actions.LogStorage.MinioConfig.BasePath)
+		if tc.logType == "s3" {
+			assert.Equal(t, "actions_log/", Actions.LogStorage.S3Config.BasePath)
 		} else {
 			assert.Equal(t, "actions_log", filepath.Base(Actions.LogStorage.Path))
 		}
 		assert.EqualValues(t, tc.artifactType, Actions.ArtifactStorage.Type)
-		if tc.artifactType == "minio" {
-			assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.MinioConfig.BasePath)
+		if tc.artifactType == "s3" {
+			assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.S3Config.BasePath)
 		} else {
 			assert.Equal(t, "actions_artifacts", filepath.Base(Actions.ArtifactStorage.Path))
 		}

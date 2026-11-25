@@ -18,17 +18,17 @@ import (
 
 // InlineRenderer is an inline renderer
 type InlineRenderer struct {
-	renderInternal *internal.RenderInternal
+	internalVar *internal.RenderVarMutable[internal.RenderInternal]
 }
 
 // NewInlineRenderer returns a new renderer for inline math
-func NewInlineRenderer(renderInternal *internal.RenderInternal) renderer.NodeRenderer {
-	return &InlineRenderer{renderInternal: renderInternal}
+func NewInlineRenderer(internalVar *internal.RenderVarMutable[internal.RenderInternal]) renderer.NodeRenderer {
+	return &InlineRenderer{internalVar: internalVar}
 }
 
 func (r *InlineRenderer) renderInline(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		_, _ = w.WriteString(string(r.renderInternal.ProtectSafeAttrs(`<code class="language-math">`)))
+		_, _ = w.WriteString(string(r.internalVar.Value.ProtectSafeAttrs(`<code class="language-math">`)))
 		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
 			segment := c.(*ast.Text).Segment //nolint:forcetypeassert // an inline math node only holds text children
 			value := util.EscapeHTML(segment.Value(source))

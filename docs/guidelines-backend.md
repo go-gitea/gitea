@@ -168,6 +168,11 @@ In general, choose HTTP methods as follows:
 
 ### Requirements for API routes
 
+- API routes may not be more powerful than the web UI.
+  If an action is not possible from the UI, it cannot be an API route
+  Such PRs will be rejected until the functionality exists in the UI
+  This rule does not apply to features which are meant to be used via automated means only such as:
+  packages which have their own tooling to upload, endpoints that are used by external tools only
 - All parameters of endpoints that edit an object must be optional, except those
   needed to identify the object, which are required.
 - Endpoints returning lists must support pagination (`page` and `limit` query
