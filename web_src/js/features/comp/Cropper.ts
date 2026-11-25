@@ -2,7 +2,7 @@ import {toggleElem} from '../../utils/dom.ts';
 
 type CropArea = {x: number, y: number, width: number};
 
-export async function initAvatarUploaderWithCropper(fileInput: HTMLInputElement) {
+export async function initAvatarUploader(fileInput: HTMLInputElement) {
   const panel = fileInput.nextElementSibling as HTMLElement;
   if (!panel?.matches('.cropper-panel')) throw new Error('Missing cropper panel for avatar uploader');
   await import('@github/image-crop-element');
