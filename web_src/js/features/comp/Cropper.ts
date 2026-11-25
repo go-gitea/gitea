@@ -12,11 +12,10 @@ export async function initAvatarUploader(fileInput: HTMLInputElement) {
   let crop: CropArea | null = null;
   let cropping = false;
 
-  cropper.addEventListener('image-crop-change', (e) => {
-    const area = (e as CustomEvent<CropArea>).detail;
-    const key = JSON.stringify(area);
+  cropper.addEventListener('image-crop-change', ({detail}) => {
+    const key = JSON.stringify(detail);
     initialCrop ||= key;
-    crop = key === initialCrop || !area.width ? null : area; // untouched selection uploads the original to keep animated images
+    crop = key === initialCrop || !detail.width ? null : detail; // untouched selection uploads the original to keep animated images
   });
 
   fileInput.addEventListener('input', () => {
