@@ -4,7 +4,10 @@ import {initRepoIssueContentHistory} from './repo-issue-content.ts';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
 import {initExpandAndCollapseFilesButton, initDiffFileViewedForm} from './pull-view-file.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {queryElemSiblings, hideElem, showElem, toggleElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
+import {
+  queryElemSiblings, hideElem, showElem, toggleElem, animateOnce, addDelegatedEventListener, createElementFromHTML,
+  queryElems,
+} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
@@ -16,7 +19,7 @@ import {applyFiltersToFileBoxes, type DiffFileTreeLocale, diffTreeStore} from '.
 import {initImageDiff} from './imagediff.ts';
 import DiffCommitSelector from '../components/DiffCommitSelector.vue';
 import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
-import {subscribeTopic} from '../modules/worker.ts';
+import {subscribeUserEvent} from '../modules/worker.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -250,10 +253,10 @@ async function onLocationHashChange() {
 }
 
 function initDiffRefresh(el: HTMLElement) {
-  subscribeTopic(`pull-head-${el.getAttribute('data-pull-id')}`, 'pull-head', ({eventData}) => {
-    toggleElem(el, eventData.head !== el.getAttribute('data-head'));
+  const pullID = Number(el.getAttribute('data-pull-id'));
+  subscribeUserEvent('pull-head', {pullID}, ({eventData}) => {
+    if (eventData.pullID === pullID) toggleElem(el, eventData.head !== el.getAttribute('data-head'));
   });
-  el.addEventListener('click', () => window.location.reload());
 }
 
 function initDiffFileTree(el: HTMLElement) {

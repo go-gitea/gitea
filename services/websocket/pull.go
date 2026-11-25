@@ -17,38 +17,32 @@ import (
 
 const eventPullHead = "pull-head" // keep in sync with web_src/js/types.ts
 
-func pullTopic(pullID int64) string {
+func PullHeadTopic(pullID int64) string {
 	return fmt.Sprintf("pull-head-%d", pullID)
 }
 
 func PublishPullHead(pullID int64) {
-	pubsub.DefaultBroker.Publish(pullTopic(pullID), nil)
+	pubsub.DefaultBroker.Publish(PullHeadTopic(pullID), nil)
 }
 
-func pullTopicEventFunc(topic string) func(ctx context.Context, doerID int64) []byte {
-	var pullID int64
-	if _, err := fmt.Sscanf(topic, "pull-head-%d", &pullID); err != nil || topic != pullTopic(pullID) {
+func PullHeadEvent(ctx context.Context, doerID, pullID int64) []byte {
+	pull, err := issues_model.GetPullRequestByID(ctx, pullID)
+	if err != nil || pull.LoadBaseRepo(ctx) != nil || !pull.BaseRepo.CanEnablePulls() {
 		return nil
 	}
-	return func(ctx context.Context, doerID int64) []byte {
-		pull, err := issues_model.GetPullRequestByID(ctx, pullID)
-		if err != nil || pull.LoadBaseRepo(ctx) != nil || !pull.BaseRepo.CanEnablePulls() {
-			return nil
-		}
-		doer, err := user_model.GetValidDoerUserByID(ctx, doerID)
-		if err != nil {
-			return nil
-		}
-		if perm, err := access_model.GetDoerRepoPermission(ctx, pull.BaseRepo, doer); err != nil || !perm.CanRead(unit.TypePullRequests) {
-			return nil
-		}
-		head, err := git.GetFullCommitID(ctx, pull.BaseRepo, pull.GetGitHeadRefName())
-		if err != nil {
-			return nil
-		}
-		return makeEventMessage(eventPullHead, "", struct {
-			Topic string `json:"topic"`
-			Head  string `json:"head"`
-		}{topic, head})
+	doer, err := user_model.GetValidDoerUserByID(ctx, doerID)
+	if err != nil {
+		return nil
 	}
+	if perm, err := access_model.GetDoerRepoPermission(ctx, pull.BaseRepo, doer); err != nil || !perm.CanRead(unit.TypePullRequests) {
+		return nil
+	}
+	head, err := git.GetFullCommitID(ctx, pull.BaseRepo, pull.GetGitHeadRefName())
+	if err != nil {
+		return nil
+	}
+	return makeEventMessage(eventPullHead, "", struct {
+		PullID int64  `json:"pullID"`
+		Head   string `json:"head"`
+	}{pullID, head})
 }

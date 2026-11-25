@@ -91,7 +91,7 @@ export type StopwatchData = {
 export type ServerUserEventMessage =
   {eventType: 'notification-count', eventData: {count: number}} |
   {eventType: 'stopwatches', eventData: Array<StopwatchData>} |
-  {eventType: 'pull-head', eventData: {topic: string, head: string}} |
+  {eventType: 'pull-head', eventData: {pullID: number, head: string}} |
   {eventType: 'logout'};
 
 export const serverUserEventTypes = ['notification-count', 'stopwatches', 'pull-head', 'logout'] as const satisfies ReadonlyArray<ServerUserEventMessage['eventType']>;
@@ -115,4 +115,4 @@ export type SharedWorkerControlMessage = {
   type: 'start',
   url: string,
   showDebugLog: boolean,
-} | {type: 'close'} | {type: 'subscribe', topic: string};
+} | {type: 'close'} | {type: 'subscribe', eventType: string, params: Record<string, unknown>};

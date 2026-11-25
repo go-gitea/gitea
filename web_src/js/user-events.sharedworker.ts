@@ -76,7 +76,7 @@ class WsSource {
   failuresWithoutConnect: number;
   fallbackSignalled: boolean;
   closed: boolean;
-  topics = new Map<string, {ports: Set<MessagePort>, lastEvent?: UserEventMessage}>();
+  subscriptions = new Map<string, Set<MessagePort>>();
 
   constructor(wsUrl: string, source: Source) {
     this.wsUrl = wsUrl;
@@ -97,7 +97,7 @@ class WsSource {
     this.ws.addEventListener('open', () => {
       this.reconnectDelay = 1000;
       this.failuresWithoutConnect = 0;
-      for (const name of this.topics.keys()) this.sendClientMessage('subscribe', name);
+      for (const key of this.subscriptions.keys()) this.sendClientMessage('subscribe', key);
       this.source.notifyClientsUserEvent({eventType: 'worker-connected'});
     });
 
@@ -109,14 +109,7 @@ class WsSource {
           console.error('websocket message is not a valid server user event', msg);
           return;
         }
-        if (!('eventData' in msg && 'topic' in msg.eventData)) {
-          this.source.notifyClientsUserEvent(msg);
-          return;
-        }
-        const topic = this.topics.get(msg.eventData.topic);
-        if (!topic) return;
-        topic.lastEvent = msg;
-        for (const port of topic.ports) postUserEventMessage(port, msg);
+        this.source.notifyClientsUserEvent(msg);
       } catch (err) {
         console.error('user-events: dropping malformed WebSocket message', err);
       }
@@ -143,26 +136,21 @@ class WsSource {
     });
   }
 
-  sendClientMessage(type: 'subscribe' | 'unsubscribe', topic: string) {
-    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify({type, topic}));
+  sendClientMessage(action: 'subscribe' | 'unsubscribe', key: string) { // keep in sync with routers/web/websocket
+    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(`${action}-${key}`);
   }
 
-  subscribe(port: MessagePort, name: string) {
-    const topic = this.topics.get(name);
-    if (!topic) {
-      this.topics.set(name, {ports: new Set([port])});
-      this.sendClientMessage('subscribe', name);
-      return;
-    }
-    topic.ports.add(port);
-    if (topic.lastEvent) postUserEventMessage(port, topic.lastEvent);
+  subscribe(port: MessagePort, eventType: string, params: Record<string, unknown>) {
+    const key = `${eventType}\n${JSON.stringify(params)}`;
+    this.subscriptions.set(key, (this.subscriptions.get(key) ?? new Set()).add(port));
+    this.sendClientMessage('subscribe', key); // per tab, so the server sends each tab the current event
   }
 
   unsubscribe(port: MessagePort) {
-    for (const [name, topic] of this.topics) {
-      if (topic.ports.delete(port) && !topic.ports.size) {
-        this.topics.delete(name);
-        this.sendClientMessage('unsubscribe', name);
+    for (const [key, ports] of this.subscriptions) {
+      if (ports.delete(port) && !ports.size) {
+        this.subscriptions.delete(key);
+        this.sendClientMessage('unsubscribe', key);
       }
     }
   }
@@ -250,7 +238,7 @@ const wsSourcesByUrl = new Map<string, WsSource>();
         wsSourcesByUrl.set(url, new WsSource(url, source));
       } else if (event.data.type === 'subscribe') {
         const source = sourcesByPort.get(port);
-        if (source) wsSourcesByUrl.get(source.url)!.subscribe(port, event.data.topic);
+        if (source) wsSourcesByUrl.get(source.url)!.subscribe(port, event.data.eventType, event.data.params);
       } else if (event.data.type === 'close') {
         logDebug('received control message close', event.data);
         const source = sourcesByPort.get(port);

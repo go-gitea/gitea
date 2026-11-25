@@ -129,7 +129,7 @@ export function onUserEvent<T extends UserEventType>(type: T, cb: Subscriber<T>)
   return () => { set.delete(wrapped) };
 }
 
-export function subscribeTopic<T extends UserEventType>(topic: string, type: T, cb: Subscriber<T>) {
+export function subscribeUserEvent<T extends UserEventType>(type: T, params: Record<string, unknown>, cb: Subscriber<T>) {
   onUserEvent(type, cb);
-  sharedWorker?.port.postMessage({type: 'subscribe', topic} satisfies SharedWorkerControlMessage);
+  sharedWorker?.port.postMessage({type: 'subscribe', eventType: type, params} satisfies SharedWorkerControlMessage);
 }

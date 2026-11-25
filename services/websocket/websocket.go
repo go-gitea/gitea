@@ -38,11 +38,6 @@ func UserData(ctx context.Context, user *user_model.User) (data [][]byte) {
 	return data
 }
 
-// TopicEventFunc returns the reader of a topic's current event, nil for unknown topics. The event is nil if the doer can't read it.
-func TopicEventFunc(topic string) func(ctx context.Context, doerID int64) []byte {
-	return pullTopicEventFunc(topic)
-}
-
 func EventForSession(brokerPayload []byte, sessionID string) []byte {
 	target, eventData, _ := bytes.Cut(brokerPayload, []byte("\n"))
 	if len(target) > 0 && string(target) != sessionID {

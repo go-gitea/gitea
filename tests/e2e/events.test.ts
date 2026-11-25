@@ -1,6 +1,9 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, apiCloseIssue, apiCreateFiles, apiCreatePR, randomString} from './utils.ts';
+import {
+  login, loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch,
+  apiCloseIssue, apiCreateFiles, apiCreatePR, randomString,
+} from './utils.ts';
 
 test.describe('events', () => {
   test('notification count increases on new notification', async ({page, request}) => {
@@ -121,11 +124,8 @@ test.describe('events', () => {
       login(page),
     ]);
     await page.goto(`/${owner}/${repoName}/pulls/${index}/files`);
-    const refresh = page.getByRole('button', {name: 'Refresh', exact: true});
-    await expect(refresh).toBeHidden();
-
     await apiCreateFiles(request, owner, repoName, [{path: 'second.txt', content: 'second\n'}], {branch: 'feature'});
-    await refresh.click();
+    await page.getByRole('link', {name: 'Refresh', exact: true}).click();
     await expect(page.getByText(/2 changed files/)).toBeVisible();
   });
 

@@ -4,6 +4,7 @@
 package websocket
 
 import (
+	"bytes"
 	gocontext "context"
 	"net/http"
 	"time"
@@ -126,9 +127,8 @@ func rejectUnauthenticated(ctx *context.Context) {
 	_ = conn.Close(closeCodeUnauthenticated, "unauthenticated")
 }
 
-type clientMessage struct { // keep in sync with web_src/js/user-events.sharedworker.ts
-	Type  string `json:"type"`
-	Topic string `json:"topic"`
+type pullHeadMessage struct { // keep in sync with web_src/js/features/repo-diff.ts
+	PullID int64 `json:"pullID"`
 }
 
 func readClientMessages(ctx gocontext.Context, cancelConnection gocontext.CancelFunc, conn *gitea_ws.Conn, doerID int64, canSubscribe bool, send func([]byte) error) {
@@ -139,32 +139,35 @@ func readClientMessages(ctx gocontext.Context, cancelConnection gocontext.Cancel
 		if err != nil {
 			return
 		}
-		var msg clientMessage
-		if !canSubscribe || messageType != gitea_ws.MessageText || json.Unmarshal(data, &msg) != nil {
+		if !canSubscribe || messageType != gitea_ws.MessageText {
 			continue
 		}
-		switch msg.Type {
-		case "subscribe":
-			currentEvent := websocket_service.TopicEventFunc(msg.Topic)
-			if currentEvent != nil && subscriptions[msg.Topic] == nil && len(subscriptions) < maxTopicSubscriptions {
-				topicCtx, cancel := gocontext.WithCancel(ctx)
-				subscriptions[msg.Topic] = cancel
-				go streamTopic(topicCtx, cancelConnection, msg.Topic, func() []byte { return currentEvent(topicCtx, doerID) }, send)
+		msgType, msgJSON, _ := bytes.Cut(data, []byte("\n"))
+		switch string(msgType) {
+		case "subscribe-pull-head", "unsubscribe-pull-head":
+			var msg pullHeadMessage
+			if json.Unmarshal(msgJSON, &msg) != nil {
+				continue
 			}
-		case "unsubscribe":
-			if cancel := subscriptions[msg.Topic]; cancel != nil {
+			topic := websocket_service.PullHeadTopic(msg.PullID)
+			if cancel := subscriptions[topic]; cancel != nil {
 				cancel()
-				delete(subscriptions, msg.Topic)
+				delete(subscriptions, topic)
+			}
+			if string(msgType) == "subscribe-pull-head" && len(subscriptions) < maxTopicSubscriptions { // a restarted stream sends a joining tab the current event
+				topicCtx, cancel := gocontext.WithCancel(ctx)
+				subscriptions[topic] = cancel
+				go streamTopic(topicCtx, cancelConnection, topic, func(ctx gocontext.Context) []byte { return websocket_service.PullHeadEvent(ctx, doerID, msg.PullID) }, send)
 			}
 		}
 	}
 }
 
-func streamTopic(ctx gocontext.Context, cancelConnection gocontext.CancelFunc, topic string, currentEvent func() []byte, send func([]byte) error) {
+func streamTopic(ctx gocontext.Context, cancelConnection gocontext.CancelFunc, topic string, currentEvent func(gocontext.Context) []byte, send func([]byte) error) {
 	ch, unsubscribe := pubsub.DefaultBroker.Subscribe(topic)
 	defer unsubscribe()
 	for {
-		if send(currentEvent()) != nil {
+		if send(currentEvent(ctx)) != nil {
 			return
 		}
 		select {
