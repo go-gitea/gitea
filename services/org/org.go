@@ -43,6 +43,7 @@ func deleteOrganization(ctx context.Context, org *org_model.Organization) error 
 		&actions_model.ActionRunner{OwnerID: org.ID},
 		&actions_model.ActionRunnerToken{OwnerID: org.ID},
 		&actions_model.ActionScopedWorkflowSource{OwnerID: org.ID},
+		&org_model.OrgBadge{OrgID: org.ID},
 	); err != nil {
 		return fmt.Errorf("DeleteBeans: %w", err)
 	}

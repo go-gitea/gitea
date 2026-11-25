@@ -104,6 +104,13 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 		ctx.ContextUser = org.AsUser()
 		ctx.Data["Org"] = org
 
+		orgBadges, err := organization.GetOrgBadges(ctx, org)
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+		ctx.Data["Badges"] = orgBadges
+
 		// Admin has super access.
 		if ctx.IsSigned && ctx.Doer.IsAdmin {
 			ctx.Org.IsOwner = true

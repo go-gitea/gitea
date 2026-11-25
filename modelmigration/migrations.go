@@ -449,6 +449,12 @@ func prepareMigrationTasks() []*migration {
 		newMigration(370, "Change raw_concurrency of action_run and action_run_job to TEXT on MSSQL", v29.ChangeActionsRawConcurrencyToText),
 		newMigration(371, "Add hash_sha256 column to attachment", v29.AddHashSHA256ToAttachment),
 		newMigration(372, "Add workflow_ref to action_run", v29.AddWorkflowRefToActionRun),
+		newMigration(373, "Add repository and organization badges and colors", func(ctx context.Context, x base.EngineMigration) error {
+			if err := v29.AddRepositoryAndOrganizationBadges(ctx, x); err != nil {
+				return err
+			}
+			return v29.AddColorToBadges(ctx, x)
+		}),
 	}
 	return preparedMigrations
 }

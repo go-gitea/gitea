@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 
+	"gitea.dev/models/badges"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -192,8 +193,9 @@ type Repository struct {
 
 	commonRenderingMetas map[string]string `xorm:"-"`
 
-	Units           []*RepoUnit   `xorm:"-"`
-	PrimaryLanguage *LanguageStat `xorm:"-"`
+	Units           []*RepoUnit     `xorm:"-"`
+	PrimaryLanguage *LanguageStat   `xorm:"-"`
+	Badges          []*badges.Badge `xorm:"-"`
 
 	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	ForkID                          int64              `xorm:"INDEX"`
