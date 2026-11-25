@@ -10,6 +10,7 @@ import (
 	"time"
 
 	org_model "gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/optional"
@@ -22,7 +23,7 @@ import (
 // Return warning messages on parsing errors
 // We're trying to do the best we can when parsing a file.
 // Invalid lines are skipped. Non-existent users and teams too.
-func GetCodeOwnersFromContent(ctx context.Context, data string) (rules []*CodeOwnerRule, warnings []string) {
+func GetCodeOwnersFromContent(ctx context.Context, repo *repo_model.Repository, data string) (rules []*CodeOwnerRule, warnings []string) {
 	globalReview := optional.None[bool]()
 	sectionReview := optional.None[bool]()
 	section := ""
@@ -65,7 +66,7 @@ func GetCodeOwnersFromContent(ctx context.Context, data string) (rules []*CodeOw
 			warnings = append(warnings, fmt.Sprintf("Line: %d: incorrect format", lineNum))
 			continue
 		}
-		rule, wr := ParseCodeOwnersLine(ctx, tokens)
+		rule, wr := ParseCodeOwnersLine(ctx, repo, tokens)
 		for _, w := range wr {
 			warnings = append(warnings, fmt.Sprintf("Line: %d: %s", lineNum, w))
 		}
@@ -107,7 +108,7 @@ type CodeOwnerRule struct {
 	Teams []*org_model.Team
 }
 
-func ParseCodeOwnersLine(ctx context.Context, tokens []string) (rule *CodeOwnerRule, warnings []string) {
+func ParseCodeOwnersLine(ctx context.Context, repo *repo_model.Repository, tokens []string) (rule *CodeOwnerRule, warnings []string) {
 	rule = &CodeOwnerRule{Negative: strings.HasPrefix(tokens[0], "!")}
 
 	// Strip leading "!" for negative rules, then strip leading "/" since
@@ -142,31 +143,21 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (rule *CodeOwnerR
 		user = strings.TrimPrefix(user, "@")
 
 		// Only @org/team can contain slashes
-		if strings.Contains(user, "/") {
-			s := strings.Split(user, "/")
-			if len(s) != 2 {
+		if orgName, teamName, isTeam := strings.Cut(user, "/"); isTeam {
+			if strings.Contains(teamName, "/") {
 				warnings = append(warnings, "incorrect codeowner group: "+user)
 				continue
 			}
-			orgName := s[0]
-			teamName := s[1]
-
-			org, err := org_model.GetOrgByName(ctx, orgName)
-			if err != nil {
-				warnings = append(warnings, "incorrect codeowner organization: "+user)
+			if !strings.EqualFold(orgName, repo.OwnerName) {
+				warnings = append(warnings, "codeowner team must belong to the repository owner: "+user)
 				continue
 			}
-			teams, err := org.LoadTeams(ctx)
+			team, err := org_model.GetTeam(ctx, repo.OwnerID, teamName)
 			if err != nil {
 				warnings = append(warnings, "incorrect codeowner team: "+user)
 				continue
 			}
-
-			for _, team := range teams {
-				if team.Name == teamName {
-					rule.Teams = append(rule.Teams, team)
-				}
-			}
+			rule.Teams = append(rule.Teams, team)
 		} else {
 			u, err := user_model.GetUserByName(ctx, user)
 			if err != nil {

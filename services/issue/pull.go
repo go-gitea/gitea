@@ -44,7 +44,7 @@ func IsCodeOwnerFile(f string) bool {
 }
 
 // Get all code owner rules for a given pr + repo combination.
-func getCodeOwnerRules(ctx context.Context, repo *git.Repository, pr *issues_model.PullRequest) ([]*issues_model.CodeOwnerRule, []string, error) {
+func getCodeOwnerRules(ctx context.Context, gitRepo *git.Repository, pr *issues_model.PullRequest) ([]*issues_model.CodeOwnerRule, []string, error) {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, nil, err
 	}
@@ -59,11 +59,11 @@ func getCodeOwnerRules(ctx context.Context, repo *git.Repository, pr *issues_mod
 		return nil, nil, nil
 	}
 
-	commit, err := repo.GetBranchCommit(ctx, pr.BaseBranch)
+	commit, err := gitRepo.GetBranchCommit(ctx, pr.BaseBranch)
 	if err != nil {
 		return nil, nil, err
 	}
-	return GetCodeOwnerRules(ctx, repo, commit)
+	return GetCodeOwnerRules(ctx, pr.BaseRepo, gitRepo, commit)
 }
 
 const maxCodeOwnersFileSize = 3 * 1024 * 1024 // 3M as GitHub
@@ -104,11 +104,11 @@ func getCodeOwnerRulesContent(ctx context.Context, repo *git.Repository, commit 
 }
 
 // GetCodeOwnerRules reads CODEOWNERS from the supplied commit.
-func GetCodeOwnerRules(ctx context.Context, repo *git.Repository, commit *git.Commit) (rules []*issues_model.CodeOwnerRule, warnings []string, err error) {
-	key := fmt.Sprintf("%s:%s", repo.GitRepoManagedID(), commit.ID)
+func GetCodeOwnerRules(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit) (rules []*issues_model.CodeOwnerRule, warnings []string, err error) {
+	key := fmt.Sprintf("%s:%s", gitRepo.GitRepoManagedID(), commit.ID)
 	it, ok := repoCommitCodeOwnersCache().Get(key)
 	if !ok {
-		content, err := getCodeOwnerRulesContent(ctx, repo, commit)
+		content, err := getCodeOwnerRulesContent(ctx, gitRepo, commit)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -118,7 +118,7 @@ func GetCodeOwnerRules(ctx context.Context, repo *git.Repository, commit *git.Co
 	if len(it.warnings) != 0 {
 		return nil, it.warnings, nil
 	}
-	rules, warnings = issues_model.GetCodeOwnersFromContent(ctx, it.content) // it loads database for users and teams, so we can't cache the rules
+	rules, warnings = issues_model.GetCodeOwnersFromContent(ctx, repo, it.content) // it loads database for users and teams, so we can't cache the rules
 	return rules, warnings, nil
 }
 

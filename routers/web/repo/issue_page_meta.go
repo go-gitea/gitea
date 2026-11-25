@@ -5,7 +5,6 @@ package repo
 
 import (
 	"html/template"
-	"maps"
 	"net/url"
 	"slices"
 	"sort"
@@ -343,7 +342,6 @@ func (d *IssuePageMetaData) retrieveProjectsDataForIssueWriter(ctx *context.Cont
 type repoReviewerSelection struct {
 	IsTeam         bool
 	Team           *organization.Team
-	TeamOrgName    string
 	User           *user_model.User
 	Review         *issues_model.Review
 	CanBeDismissed bool
@@ -542,25 +540,6 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 		}
 
 		data.TeamReviewers = teamReviewersResult
-	}
-
-	teamItems := slices.DeleteFunc(slices.Concat(data.CurrentPullReviewers, data.TeamReviewers), func(item *repoReviewerSelection) bool { return item.Team == nil })
-	otherOrgs, err := user_model.GetUsersMapByIDs(ctx, container.FilterSlice(teamItems, func(item *repoReviewerSelection) (int64, bool) {
-		return item.Team.OrgID, item.Team.OrgID != repo.OwnerID
-	}))
-	if err != nil {
-		ctx.ServerErrorAuto(err)
-		return
-	}
-	maps.DeleteFunc(otherOrgs, func(_orgID int64, org *user_model.User) bool {
-		return !organization.HasOrgOrUserVisible(ctx, org, ctx.Doer)
-	})
-	for _, item := range teamItems {
-		if item.Team.OrgID == repo.OwnerID {
-			item.TeamOrgName = repo.OwnerName
-		} else if org, ok := otherOrgs[item.Team.OrgID]; ok {
-			item.TeamOrgName = org.Name
-		}
 	}
 }
 

@@ -106,7 +106,7 @@ func TestPullRequestCodeOwnersReview(t *testing.T) {
 
 func TestMatchCodeOwnerRules(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	rules, warnings := issues_model.GetCodeOwnersFromContent(t.Context(), strings.TrimSpace(`
+	rules, warnings := issues_model.GetCodeOwnersFromContent(t.Context(), &repo_model.Repository{}, strings.TrimSpace(`
 *.md @user1
 [Docs] @user5
 *.md
@@ -168,7 +168,7 @@ func TestPullRequestCodeOwnersReviewWatch(t *testing.T) {
 			require.NoError(t, repo_model.WatchRepoWithOptions(ctx, reviewer, pr.BaseRepo, repo_model.WatchOptions{
 				Mode: tc.mode, WatchPullRequests: tc.includePullRequests, WatchIssues: true,
 			}))
-			rules, warnings := issues_model.GetCodeOwnersFromContent(ctx, tc.content)
+			rules, warnings := issues_model.GetCodeOwnersFromContent(ctx, pr.BaseRepo, tc.content)
 			require.Empty(t, warnings)
 			notifiers, err := pullRequestCodeOwnersReview(ctx, pr, rules)
 			require.NoError(t, err)

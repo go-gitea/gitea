@@ -14,7 +14,6 @@ import (
 
 	git_model "gitea.dev/models/git"
 	issue_model "gitea.dev/models/issues"
-	org_model "gitea.dev/models/organization"
 	"gitea.dev/models/renderhelper"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/actions"
@@ -162,7 +161,7 @@ type fileCodeOwner struct {
 }
 
 func prepareFileCodeOwners(ctx *context.Context) {
-	rules, warnings1, err := issue_service.GetCodeOwnerRules(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit)
+	rules, warnings1, err := issue_service.GetCodeOwnerRules(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.Commit)
 	if msg, _ := util.ErrorUnwrapForHTML(err, ctx.Locale); msg != "" {
 		ctx.Flash.Error(msg, true)
 		return
@@ -189,11 +188,7 @@ func prepareFileCodeOwners(ctx *context.Context) {
 			add("@"+user.Name, user.HomeLink(), true)
 		}
 		for _, team := range rule.Teams {
-			org, err := org_model.GetOrgByID(ctx, team.OrgID)
-			if err != nil {
-				continue
-			}
-			add("@"+org.Name+"/"+team.Name, org.HomeLink()+"/teams/"+util.PathEscapeSegments(team.LowerName), false)
+			add("@"+ctx.Repo.Owner.Name+"/"+team.Name, ctx.Repo.Owner.OrganisationLink()+"/teams/"+util.PathEscapeSegments(team.LowerName), false)
 		}
 	}
 	ctx.Data["FileCodeOwners"] = owners
@@ -238,7 +233,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 		}
 	} else if issue_service.IsCodeOwnerFile(ctx.Repo.TreePath) {
 		if data, err := blob.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize); err == nil {
-			_, warnings := issue_model.GetCodeOwnersFromContent(ctx, data)
+			_, warnings := issue_model.GetCodeOwnersFromContent(ctx, ctx.Repo.Repository, data)
 			if len(warnings) > 0 {
 				ctx.Data["FileWarning"] = strings.Join(warnings, "\n")
 			}

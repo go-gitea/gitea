@@ -16,7 +16,6 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
-	"gitea.dev/modules/templates"
 	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
@@ -120,31 +119,4 @@ func TestRetrieveRepoIssueMetaDataWithPrefill(t *testing.T) {
 			assert.Equal(t, base.JoinInt64s(tc.assigneeIDs, ","), data.AssigneesData.SelectedAssigneeIDs)
 		})
 	}
-}
-
-func TestRetrieveReviewersDataCrossOrgTeam(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-	require.NoError(t, db.Insert(t.Context(), []*issues_model.Review{
-		{IssueID: 501, Type: issues_model.ReviewTypeRequest, ReviewerTeamID: 1},
-		{IssueID: 501, Type: issues_model.ReviewTypeRequest, ReviewerTeamID: 9},
-		{IssueID: 501, Type: issues_model.ReviewTypeRequest, ReviewerTeamID: 16},
-	}))
-
-	ctx, _ := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
-	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadRepo(t, ctx, 3)
-	data := &IssuePageMetaData{
-		RepoLink:      ctx.Repo.RepoLink,
-		Repository:    ctx.Repo.Repository,
-		Issue:         &issues_model.Issue{ID: 501, PosterID: ctx.Doer.ID, PullRequest: &issues_model.PullRequest{}},
-		ReviewersData: &issueSidebarReviewersData{},
-	}
-	data.retrieveReviewersData(ctx)
-	require.False(t, ctx.Written())
-
-	rendered, err := ctx.RenderToHTML("repo/issue/sidebar/reviewer_list", data)
-	require.NoError(t, err)
-	assert.Contains(t, string(rendered), "org3/Owners")
-	assert.Contains(t, string(rendered), "org17/review_team")
-	assert.NotContains(t, string(rendered), "privated_org")
 }
