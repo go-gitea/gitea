@@ -23,11 +23,9 @@
 				{{range $entry := .MergeQueueEntries}}
 					{{$issue := $entry.PullRequest.Issue}}
 					<div class="item">
-						<div class="item-leading" data-tooltip-content="{{ctx.Locale.Tr (printf "repo.pulls.merge_queue.state.%s" $entry.State)}}">
-							{{if eq $entry.State "awaiting_checks"}}{{svg "octicon-dot-fill" 16 "tw-text-yellow"}}
-							{{else if eq $entry.State "mergeable"}}{{svg "octicon-check" 16 "tw-text-green"}}
-							{{else if eq $entry.State "unmergeable"}}{{svg "octicon-x" 16 "tw-text-red"}}
-							{{else}}{{svg "octicon-git-merge-queue" 16 "tw-text-yellow"}}{{end}}
+						<div class="item-leading merge-queue-avatar">
+							{{ctx.AvatarUtils.Avatar (Iif $issue.OriginalAuthor nil $issue.Poster) 32}}
+							{{template "repo/commit_statuses" dict "Status" $entry.Status "Statuses" $entry.Statuses "AdditionalClasses" "merge-queue-avatar-status"}}
 						</div>
 						<div class="item-main">
 							<div class="item-header">
@@ -48,7 +46,6 @@
 							</div>
 						</div>
 						<div class="item-trailing">
-							{{template "repo/commit_statuses" dict "Status" $entry.Status "Statuses" $entry.Statuses}}
 							{{if or $.Permission.IsAdmin $entry.CanRemove}}
 								<div class="ui dropdown jump tw-p-2" aria-label="{{ctx.Locale.Tr "repo.pulls.merge_queue.entry_actions"}}">
 									{{svg "octicon-kebab-horizontal"}}
