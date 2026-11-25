@@ -23,13 +23,15 @@
 				{{range $entry := .MergeQueueEntries}}
 					{{$issue := $entry.PullRequest.Issue}}
 					<div class="item">
-						<div class="item-leading merge-queue-avatar">
+						<div class="item-leading">
 							{{ctx.AvatarUtils.Avatar (Iif $issue.OriginalAuthor nil $issue.Poster) 32}}
-							{{template "repo/commit_statuses" dict "Status" $entry.Status "Statuses" $entry.Statuses "AdditionalClasses" "merge-queue-avatar-status"}}
 						</div>
 						<div class="item-main">
 							<div class="item-header">
-								<a class="list-item-large-title" href="{{$issue.Link}}">{{$issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
+								<div class="tw-min-w-0">
+									<a class="list-item-large-title" href="{{$issue.Link}}">{{$issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
+									{{template "repo/commit_statuses" dict "Status" $entry.Status "Statuses" $entry.Statuses "AdditionalClasses" "tw-text-16 tw-align-[calc(0.5cap-9px)]"}}
+								</div>
 							</div>
 							<div class="item-body tw-gap-2">
 								<a class="index" href="{{$issue.Link}}">#{{$issue.Index}}</a>
