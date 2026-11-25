@@ -19,19 +19,15 @@ import (
 func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 	start := 0
 	next := node.NextSibling
-	for node != nil && node != next && start < len(node.Data) {
-		m := globalVars().shortLinkPattern.FindStringSubmatchIndex(node.Data[start:])
+	for node != nil && node != next {
+		data := node.Data[start:]
+		m := globalVars().shortLinkPattern.FindStringSubmatchIndex(data)
 		if m == nil {
 			return
 		}
-		for idx := range m {
-			if m[idx] != -1 {
-				m[idx] += start
-			}
-		}
 
-		content := node.Data[m[2]:m[3]]
-		tail := node.Data[m[4]:m[5]]
+		content := data[m[2]:m[3]]
+		tail := data[m[4]:m[5]]
 		props := make(map[string]string)
 
 		// MediaWiki uses [[link|text]], while GitHub uses [[text|link]]
@@ -110,7 +106,7 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 
 		checkLink := common.CheckLinkURLScheme(link)
 		if !checkLink.AllowToLinkify {
-			start = m[1]
+			start += m[1]
 			continue
 		}
 
@@ -165,7 +161,7 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 			childNode.Data = name
 		}
 		linkNode.Attr = []html.Attribute{{Key: "href", Val: link}}
-		replaceContent(node, m[0], m[1], linkNode)
+		replaceContent(node, start+m[0], start+m[1], linkNode)
 		start = 0
 		node = node.NextSibling.NextSibling
 	}
@@ -174,27 +170,19 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 // linkProcessor creates links for any HTTP or HTTPS URL not captured by
 // markdown.
 func linkProcessor(ctx *RenderContext, node *html.Node) {
-	start := 0
+	truncatedWordLen := 0
+	if util.IsLikelyEllipsisLeftPart(node.Data) {
+		truncatedWordLen = len(node.Data) - 1 - strings.LastIndexFunc(node.Data, unicode.IsSpace)
+	}
 	next := node.NextSibling
-	for node != nil && node != next && start < len(node.Data) {
-		m := common.GlobalVars().LinkifyRegex.FindStringIndex(node.Data[start:])
-		if m == nil {
+	for node != nil && node != next {
+		m := common.GlobalVars().LinkifyRegex.FindStringIndex(node.Data)
+		if m == nil || len(node.Data)-m[0] <= truncatedWordLen {
 			return
 		}
-		m[0] += start
-		m[1] += start
 
 		uri := node.Data[m[0]:m[1]]
-		remaining := node.Data[m[1]:]
-		if i := strings.IndexFunc(remaining, unicode.IsSpace); i != -1 {
-			remaining = remaining[:i]
-		}
-		if util.IsLikelyEllipsisLeftPart(remaining) {
-			start = m[1]
-			continue
-		}
 		replaceContent(node, m[0], m[1], createLink(ctx, uri, uri, "" /*link*/))
-		start = 0
 		node = node.NextSibling.NextSibling
 	}
 }

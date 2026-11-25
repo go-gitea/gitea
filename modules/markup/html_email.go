@@ -13,7 +13,7 @@ import (
 func emailAddressProcessor(ctx *RenderContext, node *html.Node) {
 	start := 0
 	next := node.NextSibling
-	for node != nil && node != next && start < len(node.Data) {
+	for node != nil && node != next {
 		if !strings.Contains(node.Data[start:], "@") { // the regexp is slow, skip texts which can't match
 			return
 		}
@@ -21,8 +21,7 @@ func emailAddressProcessor(ctx *RenderContext, node *html.Node) {
 		if m == nil {
 			return
 		}
-		m[2] += start
-		m[3] += start
+		m[2], m[3] = m[2]+start, m[3]+start
 
 		var nextByte byte
 		if len(node.Data) > m[3] {
