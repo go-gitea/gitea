@@ -25,6 +25,8 @@ func TestAttention(t *testing.T) {
 	defer svg.MockIcon("octicon-alert")()
 	defer svg.MockIcon("octicon-stop")()
 	defer test.MockVariableValue(&setting.Markdown.MathCodeBlockOptions, setting.MarkdownMathCodeBlockOptions{})()
+	markdown.SharedMarkdownRenderPool.Reset()
+	defer markdown.SharedMarkdownRenderPool.Reset()
 
 	test := func(input, expected string) {
 		result, err := markdown.RenderString(markup.NewTestRenderContext(), input)
@@ -52,6 +54,7 @@ func TestAttention(t *testing.T) {
 
 	for _, parseInlineParentheses := range []bool{false, true} {
 		setting.Markdown.MathCodeBlockOptions.ParseInlineParentheses = parseInlineParentheses
+		markdown.SharedMarkdownRenderPool.Reset()
 		test("> \\[!NOTE\\]\n> text", renderAttention("note", "octicon-info")+"\n<p>text</p>\n</blockquote>")
 		test(`> \[!UNKNOWN\]`, "<blockquote>\n<p>[!UNKNOWN]</p>\n</blockquote>")
 		test(`> \[NOTE\]`, "<blockquote>\n<p>[NOTE]</p>\n</blockquote>")

@@ -529,6 +529,7 @@ func (n *actionsNotifier) CreateRef(ctx context.Context, pusher *user_model.User
 
 	newNotifyInput(repo, pusher, webhook_module.HookEventCreate).
 		WithRef(refFullName.String()).
+		WithCommitID(refID).
 		WithPayload(&api.CreatePayload{
 			Ref:     refFullName.String(), // HINT: here is inconsistent with the Webhook's payload: webhook uses ShortName
 			Sha:     refID,
@@ -563,7 +564,7 @@ func (n *actionsNotifier) SyncPushCommits(ctx context.Context, pusher *user_mode
 		log.Error("ToPushPayload: %v", err)
 		return
 	}
-	newNotifyInput(repo, pusher, webhook_module.HookEventPush).WithRef(payload.Ref).WithPayload(payload).Notify(ctx)
+	newNotifyInput(repo, pusher, webhook_module.HookEventPush).WithRef(payload.Ref).WithCommitID(opts.NewCommitID).WithPayload(payload).Notify(ctx)
 }
 
 func (n *actionsNotifier) SyncCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
@@ -611,14 +612,14 @@ func (n *actionsNotifier) AutoMergePullRequest(ctx context.Context, doer *user_m
 }
 
 func (n *actionsNotifier) PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, before, after string) {
-	notifyPullRequestChange(withMethod(ctx, "PullRequestSynchronized"), doer, pr, webhook_module.HookEventPullRequestSync, &api.PullRequestPayload{Action: api.HookIssueSynchronized, Before: before, After: after})
+	notifyPullRequestChange(withMethod(ctx, "PullRequestSynchronized"), doer, pr, webhook_module.HookEventPullRequestSync, after, &api.PullRequestPayload{Action: api.HookIssueSynchronized, Before: before, After: after})
 }
 
 func (n *actionsNotifier) PullRequestMergeQueueChanged(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, action api.HookIssueAction, reason issues_model.MergeQueueRemovalReason) {
-	notifyPullRequestChange(withMethod(ctx, "PullRequestMergeQueueChanged"), doer, pr, webhook_module.HookEventPullRequest, &api.PullRequestPayload{Action: action, Reason: convert.ToMergeQueueRemovalReason(reason)})
+	notifyPullRequestChange(withMethod(ctx, "PullRequestMergeQueueChanged"), doer, pr, webhook_module.HookEventPullRequest, util.Iif(pr.HasMerged, pr.MergedCommitID, ""), &api.PullRequestPayload{Action: action, Reason: convert.ToMergeQueueRemovalReason(reason)})
 }
 
-func notifyPullRequestChange(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, event webhook_module.HookEventType, payload *api.PullRequestPayload) {
+func notifyPullRequestChange(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, event webhook_module.HookEventType, commitID string, payload *api.PullRequestPayload) {
 	if err := pr.LoadIssue(ctx); err != nil {
 		log.Error("pr.LoadIssue: %v", err)
 		return
@@ -629,11 +630,16 @@ func notifyPullRequestChange(ctx context.Context, doer *user_model.User, pr *iss
 		return
 	}
 
+	if payload.PullRequest = convert.ToPayloadPullRequest(ctx, pr, nil); payload.PullRequest == nil {
+		return
+	}
+	if payload.After != "" {
+		payload.PullRequest.Head.Sha = payload.After
+	}
 	payload.Index = pr.Issue.Index
-	payload.PullRequest = convert.ToPayloadPullRequest(ctx, pr, nil)
 	payload.Repository = convert.ToRepo(ctx, pr.Issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone})
 	payload.Sender = convert.ToUser(ctx, doer, nil)
-	newNotifyInput(pr.Issue.Repo, doer, event).WithRef(util.Iif(pr.HasMerged, pr.MergedCommitID, "")).WithPayload(payload).WithPullRequest(pr).Notify(ctx)
+	newNotifyInput(pr.Issue.Repo, doer, event).WithCommitID(commitID).WithPayload(payload).WithPullRequest(pr).Notify(ctx)
 }
 
 func (n *actionsNotifier) MergeGroupChanged(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, entry *pull_model.MergeQueueEntry, action api.HookMergeGroupAction, reason string) {
@@ -654,7 +660,7 @@ func (n *actionsNotifier) MergeGroupChanged(ctx context.Context, doer *user_mode
 	opts, commits := convert.ToMergeGroupPush(repo, entry, commit)
 	n.PushCommits(ctx, doer, repo, opts, commits)
 	n.CreateRef(ctx, doer, repo, opts.RefFullName, opts.NewCommitID)
-	newNotifyInput(repo, doer, webhook_module.HookEventMergeGroup).WithRef(entry.GroupRef).WithPayload(payload).Notify(ctx)
+	newNotifyInput(repo, doer, webhook_module.HookEventMergeGroup).WithRef(entry.GroupRef).WithCommitID(entry.GroupHeadSHA).WithPayload(payload).Notify(ctx)
 }
 
 func (n *actionsNotifier) PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch, oldSHA string) {

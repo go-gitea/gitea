@@ -1891,6 +1891,14 @@ func Routes() *web.Router {
 				})
 				m.Get("/runs", admin.ListWorkflowRuns)
 				m.Get("/jobs", admin.ListWorkflowJobs)
+				m.Group("/variables", func() {
+					m.Get("", admin.ListVariables)
+					m.Combo("/{variablename}").
+						Get(admin.GetVariable).
+						Delete(admin.DeleteVariable).
+						Post(bind(api.CreateVariableOption{}), admin.CreateVariable).
+						Put(bind(api.UpdateVariableOption{}), admin.UpdateVariable)
+				})
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryAdmin), reqToken(), reqSiteAdmin(), rejectPublicOnly())
 

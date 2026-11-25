@@ -198,6 +198,6 @@ jobs: {check: {runs-on: linux, steps: [{run: echo done}]}}
 	notifier.PullRequestMergeQueueChanged(ctx, doer, pr, api.HookIssueDequeued, issues_model.MergeQueueRemovedMerged)
 	unittest.AssertCount(t, &actions_model.ActionRun{
 		RepoID: repo.ID, WorkflowID: "queue.yml", Event: webhook_module.HookEventPullRequest,
-		Ref: headSHA, CommitSHA: headSHA, WorkflowCommitSHA: headSHA,
+		Ref: pr.GetGitHeadRefName(), CommitSHA: headSHA, WorkflowCommitSHA: headSHA,
 	}, 1)
 }
