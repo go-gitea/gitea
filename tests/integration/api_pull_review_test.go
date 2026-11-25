@@ -12,9 +12,11 @@ import (
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -403,9 +405,25 @@ func TestAPIPullReviewRequest(t *testing.T) {
 		Reviewers: []string{"user38"},
 	}, http.StatusNoContent) // user39 is from a team with read permission on pull requests unit
 
-	// non-candidate reviewer is rejected
+	// non-candidate reviewer is rejected (public/everyone access only)
 	requestReview(http.MethodPost, pull22Repo, pullIssue22.Index, user39Token, &api.PullReviewRequestOptions{
 		Reviewers: []string{"user8"},
+	}, http.StatusUnprocessableEntity)
+
+	// site admin who is not otherwise eligible is rejected
+	requestReview(http.MethodPost, pull22Repo, pullIssue22.Index, user39Token, &api.PullReviewRequestOptions{
+		Reviewers: []string{"user1"},
+	}, http.StatusUnprocessableEntity)
+
+	// code-only team member on a public org repo is rejected (UI GetReviewers parity)
+	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	codeOnlyTeam := &organization.Team{OrgID: 41, LowerName: "code-only-api", Name: "code-only-api", AccessMode: perm.AccessModeNone}
+	require.NoError(t, db.Insert(t.Context(), codeOnlyTeam))
+	require.NoError(t, db.Insert(t.Context(), &organization.TeamUser{OrgID: 41, TeamID: codeOnlyTeam.ID, UID: user5.ID}))
+	require.NoError(t, db.Insert(t.Context(), &organization.TeamRepo{OrgID: 41, TeamID: codeOnlyTeam.ID, RepoID: pull22Repo.ID}))
+	require.NoError(t, db.Insert(t.Context(), &organization.TeamUnit{OrgID: 41, TeamID: codeOnlyTeam.ID, Type: unit.TypeCode, AccessMode: perm.AccessModeRead}))
+	requestReview(http.MethodPost, pull22Repo, pullIssue22.Index, user39Token, &api.PullReviewRequestOptions{
+		Reviewers: []string{"user5"},
 	}, http.StatusUnprocessableEntity)
 
 	// eligible team is rejected when the doer cannot manage review requests

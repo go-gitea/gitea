@@ -5,8 +5,6 @@ package issue
 
 import (
 	"context"
-	"fmt"
-	"slices"
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
@@ -91,9 +89,13 @@ func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 		}
 
 		if canDoerChangeReviewRequests {
-			if !isReviewerCandidate(permReviewer, issue.PosterID, reviewer) {
+			ok, err := issues_model.IsUserReviewerCandidate(ctx, issue.Repo, issue.PosterID, reviewer)
+			if err != nil {
+				return err
+			}
+			if !ok {
 				return issues_model.ErrNotValidReviewRequest{
-					Reason: "Reviewer must be a repository member or collaborator with pull request access",
+					Reason: "Reviewer must be a collaborator, team member with pull request access, or the repository owner",
 					UserID: doer.ID,
 					RepoID: issue.Repo.ID,
 				}
@@ -153,7 +155,7 @@ func isValidTeamReviewRequest(ctx context.Context, reviewer *organization.Team, 
 
 	if isAdd {
 		if canDoerChangeReviewRequests {
-			ok, err := isTeamReviewerCandidate(ctx, issue.Repo, reviewer.ID)
+			ok, err := issues_model.IsTeamReviewerCandidate(ctx, issue.Repo, reviewer.ID)
 			if err != nil {
 				return err
 			}
@@ -249,32 +251,6 @@ func teamReviewRequestNotify(ctx context.Context, issue *issues_model.Issue, doe
 	}
 
 	return err
-}
-
-// isReviewerCandidate reports whether reviewer may be requested: an active non-poster
-// who is a member/collaborator with pull-request read access.
-func isReviewerCandidate(permReviewer access_model.Permission, posterID int64, reviewer *user_model.User) bool {
-	if reviewer.ID == posterID || !reviewer.IsActive {
-		return false
-	}
-	return permReviewer.IsMemberOrCollaborator() && permReviewer.CanAccess(perm.AccessModeRead, unit.TypePullRequests)
-}
-
-// isTeamReviewerCandidate matches services/pull.GetReviewerTeams eligibility.
-func isTeamReviewerCandidate(ctx context.Context, repo *repo_model.Repository, teamID int64) (bool, error) {
-	if err := repo.LoadOwner(ctx); err != nil {
-		return false, fmt.Errorf("isTeamReviewerCandidate: %w", err)
-	}
-	if !repo.Owner.IsOrganization() {
-		return false, nil
-	}
-	teams, err := organization.GetTeamsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypePullRequests)
-	if err != nil {
-		return false, fmt.Errorf("isTeamReviewerCandidate: %w", err)
-	}
-	return slices.ContainsFunc(teams, func(team *organization.Team) bool {
-		return team.ID == teamID
-	}), nil
 }
 
 // CanDoerChangeReviewRequests returns if the doer can add/remove review requests of a PR
