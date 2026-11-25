@@ -234,8 +234,8 @@ type PushOptions struct {
 	Timeout        time.Duration
 }
 
-// Push pushs local commits to given remote branch.
-func Push(ctx context.Context, localRepoPath string, opts PushOptions) error {
+// Push pushes commits of the given repository to given remote branch.
+func Push(ctx context.Context, repo RepositoryFacade, opts PushOptions) error {
 	cmd := gitcmd.NewCommand("push")
 	if opts.ForceWithLease != "" {
 		cmd.AddOptionFormat("--force-with-lease=%s", opts.ForceWithLease)
@@ -251,7 +251,7 @@ func Push(ctx context.Context, localRepoPath string, opts PushOptions) error {
 	}
 	cmd.AddDashesAndList(remoteBranchArgs...)
 
-	stdout, stderr, err := cmd.WithEnv(opts.Env).WithTimeout(opts.Timeout).WithDir(localRepoPath).RunStdString(ctx)
+	stdout, stderr, err := cmd.WithEnv(opts.Env).WithTimeout(opts.Timeout).WithRepo(repo).RunStdString(ctx)
 	if err != nil {
 		if strings.Contains(stderr, "non-fast-forward") {
 			return &ErrPushOutOfDate{StdOut: stdout, StdErr: stderr, Err: err}

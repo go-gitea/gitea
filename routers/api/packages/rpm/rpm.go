@@ -16,6 +16,7 @@ import (
 	"gitea.dev/models/db"
 	packages_model "gitea.dev/models/packages"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	packages_module "gitea.dev/modules/packages"
 	rpm_module "gitea.dev/modules/packages/rpm"
 	"gitea.dev/modules/setting"
@@ -334,7 +335,7 @@ func UploadErrata(ctx *context.Context) {
 	group := ctx.PathParam("group")
 
 	var updates []*rpm_module.Update
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&updates); err != nil {
+	if err := jsonlimit.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &updates); err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}

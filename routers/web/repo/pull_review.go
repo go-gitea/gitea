@@ -13,7 +13,7 @@ import (
 	"gitea.dev/models/perm"
 	pull_model "gitea.dev/models/pull"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
@@ -319,10 +319,9 @@ func UpdateViewedFiles(ctx *context.Context) {
 	pull := issue.PullRequest
 
 	var data *viewedFilesUpdate
-	err := json.NewDecoder(ctx.Req.Body).Decode(&data)
+	err := jsonlimit.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &data)
 	if err != nil {
-		log.Warn("Attempted to update a review but could not parse request body: %v", err)
-		ctx.Resp.WriteHeader(http.StatusBadRequest)
+		ctx.JSONError("invalid request body")
 		return
 	}
 

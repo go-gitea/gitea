@@ -2618,7 +2618,7 @@
   "repo.release.tag_name_invalid": "Der Tag-Name ist ungültig.",
   "repo.release.tag_name_protected": "Der Tag-Name ist geschützt.",
   "repo.release.tag_already_exist": "Dieser Tag-Name existiert bereits.",
-  "repo.release.downloads": "Downloads",
+  "repo.release.assets": "Dateien",
   "repo.release.download_count": "Downloads: %s",
   "repo.release.add_tag_msg": "Titel und Beschreibung des Releases als Tag Nachricht verwenden.",
   "repo.release.add_tag": "Nur Tag erstellen",

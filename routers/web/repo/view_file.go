@@ -158,6 +158,7 @@ func handleFileViewRenderImage(ctx *context.Context, fInfo *fileInfo, prefetchBu
 type fileCodeOwner struct {
 	CodeOwnerName string
 	CodeOwnerLink string
+	IsUser        bool
 }
 
 func prepareFileCodeOwners(ctx *context.Context) {
@@ -177,22 +178,22 @@ func prepareFileCodeOwners(ctx *context.Context) {
 
 	var owners []fileCodeOwner
 	seen := make(map[string]bool)
-	add := func(name, link string) {
+	add := func(name, link string, isUser bool) {
 		if !seen[link] {
-			owners = append(owners, fileCodeOwner{name, link})
+			owners = append(owners, fileCodeOwner{name, link, isUser})
 			seen[link] = true
 		}
 	}
 	for _, rule := range matching {
 		for _, user := range rule.Users {
-			add("@"+user.Name, user.HomeLink())
+			add("@"+user.Name, user.HomeLink(), true)
 		}
 		for _, team := range rule.Teams {
 			org, err := org_model.GetOrgByID(ctx, team.OrgID)
 			if err != nil {
 				continue
 			}
-			add("@"+org.Name+"/"+team.Name, org.HomeLink()+"/teams/"+util.PathEscapeSegments(team.LowerName))
+			add("@"+org.Name+"/"+team.Name, org.HomeLink()+"/teams/"+util.PathEscapeSegments(team.LowerName), false)
 		}
 	}
 	ctx.Data["FileCodeOwners"] = owners

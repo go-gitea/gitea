@@ -2568,7 +2568,7 @@
   "repo.release.tag_name_invalid": "Nazwa tagu jest niewłaściwa.",
   "repo.release.tag_name_protected": "Nazwa tagu jest chroniona.",
   "repo.release.tag_already_exist": "Ta nazwa tag'a już istnieje.",
-  "repo.release.downloads": "Pliki do pobrania",
+  "repo.release.assets": "Zasoby",
   "repo.release.download_count": "Pobrania: %s",
   "repo.release.add_tag_msg": "Użyj tytułu i zawartości wydania jako wiadomości znacznika.",
   "repo.release.add_tag": "Utwórz tylko znacznik",
