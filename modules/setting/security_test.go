@@ -32,5 +32,5 @@ CONTENT_SECURITY_POLICY_GENERAL = "script-src *; foo"
 	assert.Equal(t, "unset", Security.XContentTypeOptions)
 	assert.Equal(t, "strict", Security.EgressMode)
 	assert.Equal(t, "foo", Security.AllowedHostList)
-	assert.Equal(t, `"script-src *`, Security.ContentSecurityPolicyGeneral) // holy shit ini package bug
+	assert.Equal(t, "script-src *; foo", Security.ContentSecurityPolicyGeneral)
 }
