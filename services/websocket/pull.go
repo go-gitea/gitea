@@ -12,20 +12,33 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
 	"gitea.dev/services/pubsub"
 )
 
 const eventPullHead = "pull-head" // keep in sync with web_src/js/types.ts
 
-func PullHeadTopic(pullID int64) string {
+type pullHeadMessage struct { // keep in sync with web_src/js/features/repo-diff.ts
+	PullID int64 `json:"pullID"`
+}
+
+func pullTopic(pullID int64) string {
 	return fmt.Sprintf("pull-head-%d", pullID)
 }
 
 func PublishPullHead(pullID int64) {
-	pubsub.DefaultBroker.Publish(PullHeadTopic(pullID), nil)
+	pubsub.DefaultBroker.Publish(pullTopic(pullID), nil)
 }
 
-func PullHeadEvent(ctx context.Context, doerID, pullID int64) []byte {
+func pullHeadSubscription(doerID int64, msgJSON []byte) (string, func(context.Context) []byte) {
+	var msg pullHeadMessage
+	if json.Unmarshal(msgJSON, &msg) != nil {
+		return "", nil
+	}
+	return pullTopic(msg.PullID), func(ctx context.Context) []byte { return pullHeadEvent(ctx, doerID, msg.PullID) }
+}
+
+func pullHeadEvent(ctx context.Context, doerID, pullID int64) []byte {
 	pull, err := issues_model.GetPullRequestByID(ctx, pullID)
 	if err != nil || pull.LoadBaseRepo(ctx) != nil || !pull.BaseRepo.CanEnablePulls() {
 		return nil

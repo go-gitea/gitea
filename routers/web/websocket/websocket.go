@@ -7,10 +7,10 @@ import (
 	"bytes"
 	gocontext "context"
 	"net/http"
+	"strings"
 	"time"
 
 	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/services/context"
 	"gitea.dev/services/pubsub"
@@ -127,10 +127,6 @@ func rejectUnauthenticated(ctx *context.Context) {
 	_ = conn.Close(closeCodeUnauthenticated, "unauthenticated")
 }
 
-type pullHeadMessage struct { // keep in sync with web_src/js/features/repo-diff.ts
-	PullID int64 `json:"pullID"`
-}
-
 func readClientMessages(ctx gocontext.Context, cancelConnection gocontext.CancelFunc, conn *gitea_ws.Conn, doerID int64, canSubscribe bool, send func([]byte) error) {
 	defer cancelConnection()
 	subscriptions := map[string]gocontext.CancelFunc{}
@@ -143,22 +139,19 @@ func readClientMessages(ctx gocontext.Context, cancelConnection gocontext.Cancel
 			continue
 		}
 		msgType, msgJSON, _ := bytes.Cut(data, []byte("\n"))
-		switch string(msgType) {
-		case "subscribe-pull-head", "unsubscribe-pull-head":
-			var msg pullHeadMessage
-			if json.Unmarshal(msgJSON, &msg) != nil {
-				continue
-			}
-			topic := websocket_service.PullHeadTopic(msg.PullID)
-			if cancel := subscriptions[topic]; cancel != nil {
-				cancel()
-				delete(subscriptions, topic)
-			}
-			if string(msgType) == "subscribe-pull-head" && len(subscriptions) < maxTopicSubscriptions { // a restarted stream sends a joining tab the current event
-				topicCtx, cancel := gocontext.WithCancel(ctx)
-				subscriptions[topic] = cancel
-				go streamTopic(topicCtx, cancelConnection, topic, func(ctx gocontext.Context) []byte { return websocket_service.PullHeadEvent(ctx, doerID, msg.PullID) }, send)
-			}
+		action, eventType, _ := strings.Cut(string(msgType), "-") // keep in sync with web_src/js/user-events.sharedworker.ts
+		topic, currentEvent := websocket_service.Subscription(eventType, doerID, msgJSON)
+		if topic == "" || (action != "subscribe" && action != "unsubscribe") {
+			continue
+		}
+		if cancel := subscriptions[topic]; cancel != nil {
+			cancel()
+			delete(subscriptions, topic)
+		}
+		if action == "subscribe" && len(subscriptions) < maxTopicSubscriptions { // a restarted stream sends a joining tab the current event
+			topicCtx, cancel := gocontext.WithCancel(ctx)
+			subscriptions[topic] = cancel
+			go streamTopic(topicCtx, cancelConnection, topic, currentEvent, send)
 		}
 	}
 }

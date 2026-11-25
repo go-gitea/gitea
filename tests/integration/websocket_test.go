@@ -90,8 +90,10 @@ func TestWebSocketPullHeadSubscription(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	defer test.MockVariableValue(&pubsub.DefaultBroker, pubsub.Broker(pubsub.NewMemoryBroker()))()
 	require.NoError(t, pull_service.PushToBaseRepo(t.Context(), unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 6})))
-	assert.NotNil(t, websocket_service.PullHeadEvent(t.Context(), 2, 6))
-	assert.Nil(t, websocket_service.PullHeadEvent(t.Context(), 5, 6))
+	_, readableEvent := websocket_service.Subscription("pull-head", 2, []byte(`{"pullID":6}`))
+	_, deniedEvent := websocket_service.Subscription("pull-head", 5, []byte(`{"pullID":6}`))
+	assert.NotNil(t, readableEvent(t.Context()))
+	assert.Nil(t, deniedEvent(t.Context()))
 
 	conn, closeConn := dialWebSocket(t, "user5")
 	defer closeConn()
