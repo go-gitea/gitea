@@ -114,7 +114,8 @@ func GetBadgeRepos(ctx context.Context, opts *GetBadgeReposOptions) ([]*Reposito
 		Select("`repository`.*").
 		Join("INNER", "repo_badge", "`repo_badge`.repo_id=`repository`.id").
 		Join("INNER", "badge", "`repo_badge`.badge_id=badge.id").
-		Where("badge.slug=?", opts.BadgeSlug)
+		Where("badge.slug=?", opts.BadgeSlug).
+		OrderBy(db.SearchOrderByAlphabetically.String())
 
 	if opts.Page > 0 {
 		db.SetSessionPagination(sess, opts)

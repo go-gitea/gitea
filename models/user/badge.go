@@ -57,7 +57,8 @@ func GetBadgeUsers(ctx context.Context, opts *GetBadgeUsersOptions) ([]*User, in
 		Select("`user`.*").
 		Join("INNER", "user_badge", "`user_badge`.user_id=`user`.id").
 		Join("INNER", "badge", "`user_badge`.badge_id=badge.id").
-		Where("badge.slug=?", opts.BadgeSlug)
+		Where("badge.slug=?", opts.BadgeSlug).
+		OrderBy("`user`.lower_name ASC")
 
 	if opts.Page > 0 {
 		db.SetSessionPagination(sess, opts)

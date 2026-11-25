@@ -42,6 +42,9 @@ func TestRepositoryBadges(t *testing.T) {
 	assert.GreaterOrEqual(t, count, int64(1))
 	assert.NotEmpty(t, results)
 	assert.Equal(t, repo.ID, results[0].ID)
+	assert.NotNil(t, results[0].Badges)
+	assert.Len(t, results[0].Badges, 1)
+	assert.Equal(t, badge.Slug, results[0].Badges[0].Slug)
 
 	assert.NoError(t, repo_model.RemoveRepoBadge(t.Context(), repo, badge))
 	got, err = repo_model.GetRepoBadges(t.Context(), repo)

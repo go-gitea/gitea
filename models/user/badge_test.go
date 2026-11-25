@@ -80,6 +80,7 @@ func testGetBadgeUsers(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, count)
 	assert.Len(t, users, 1)
+	page1ID := users[0].ID
 
 	// Test second page
 	opts.Page = 2
@@ -87,6 +88,7 @@ func testGetBadgeUsers(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, count)
 	assert.Len(t, users, 1)
+	assert.NotEqual(t, page1ID, users[0].ID)
 
 	// Test with non-existent badge
 	opts.BadgeSlug = "non-existent"

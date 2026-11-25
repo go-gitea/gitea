@@ -387,6 +387,10 @@ func Forks(ctx *context.Context) {
 		ctx.ServerErrorAuto(err)
 		return
 	}
+	if err := repo_model.RepositoryList(forks).LoadBadges(ctx); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
 
 	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(pageSize).CurPage(page).Build()
 	ctx.Data["ShowRepoOwnerAvatar"] = true

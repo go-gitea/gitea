@@ -160,7 +160,8 @@ func GetBadgeOrgs(ctx context.Context, opts *GetBadgeOrgsOptions) ([]*Organizati
 		Select("`user`.*").
 		Join("INNER", "org_badge", "`org_badge`.org_id=`user`.id").
 		Join("INNER", "badge", "`org_badge`.badge_id=badge.id").
-		Where("badge.slug=?", opts.BadgeSlug)
+		Where("badge.slug=?", opts.BadgeSlug).
+		OrderBy("`user`.lower_name ASC")
 
 	if opts.Page > 0 {
 		db.SetSessionPagination(sess, opts)

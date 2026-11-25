@@ -11,6 +11,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 // ListUserBadges lists all badges belonging to a user
@@ -32,14 +33,14 @@ func ListUserBadges(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 
-	badges, maxResults, err := user_model.GetUserBadges(ctx, ctx.ContextUser)
+	badgeList, maxResults, err := user_model.GetUserBadges(ctx, ctx.ContextUser)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
 	ctx.SetTotalCountHeader(maxResults)
-	ctx.JSON(http.StatusOK, &badges)
+	ctx.JSON(http.StatusOK, convert.ToBadges(badgeList))
 }
 
 // AddUserBadges add badges to a user

@@ -148,7 +148,11 @@ func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
 		return err
 	}
 
-	return repos.LoadLanguageStats(ctx)
+	if err := repos.LoadLanguageStats(ctx); err != nil {
+		return err
+	}
+
+	return repos.LoadBadges(ctx)
 }
 
 // SearchRepoOptions holds the search options
