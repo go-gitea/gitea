@@ -518,20 +518,15 @@ function buildRoutedEdges(
   return {routedEdges, sharedSegments: []};
 }
 
-export function createWorkflowGraphModel(
-  jobs: ActionsJob[],
-  expandedMatrixNodeIds: ReadonlySet<string> = new Set(),
-  partialOptions: Partial<WorkflowGraphLayoutOptions> = {},
-): WorkflowGraphModel {
-  const options = {...defaultLayoutOptions, ...partialOptions};
-  const {nodes, edges} = buildVisualGraph(jobs, expandedMatrixNodeIds, options);
+export function createWorkflowGraphModel(jobs: ActionsJob[], expandedMatrixNodeIds: ReadonlySet<string> = new Set()): WorkflowGraphModel {
+  const {nodes, edges} = buildVisualGraph(jobs, expandedMatrixNodeIds, defaultLayoutOptions);
   const nodesById = new Map(nodes.map((n) => [n.id, n]));
   const adjacency = buildNodeAdjacency(edges);
   assignNodeLevels(nodes, adjacency);
-  assignNodeCoordinates(nodesById, nodes, adjacency, options);
-  return {nodes, edges, ...buildRoutedEdges(nodesById, edges, options), adjacency};
+  assignNodeCoordinates(nodesById, nodes, adjacency, defaultLayoutOptions);
+  return {nodes, edges, ...buildRoutedEdges(nodesById, edges, defaultLayoutOptions), adjacency};
 }
 
-export function getWorkflowGraphLayoutOptions(partialOptions: Partial<WorkflowGraphLayoutOptions> = {}): WorkflowGraphLayoutOptions {
-  return {...defaultLayoutOptions, ...partialOptions};
+export function getWorkflowGraphLayoutOptions(): WorkflowGraphLayoutOptions {
+  return {...defaultLayoutOptions};
 }

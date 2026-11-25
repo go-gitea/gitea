@@ -55,8 +55,13 @@ func ErrorAsStderr(err error) (string, bool) {
 	return "", false
 }
 
+type exitCoder interface {
+	error
+	ExitCode() int
+}
+
 func IsErrorExitCode(err error, code int) bool {
-	if exitError, ok := errors.AsType[*exec.ExitError](err); ok {
+	if exitError, ok := errors.AsType[exitCoder](err); ok {
 		return exitError.ExitCode() == code
 	}
 	return false

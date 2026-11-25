@@ -1483,7 +1483,6 @@
   "repo.release.tag_name_invalid": "ටැග් නම වලංගු නොවේ.",
   "repo.release.tag_name_protected": "ටැග් නම ආරක්ෂා කර ඇත.",
   "repo.release.tag_already_exist": "මෙම ටැග් නාමය දැනටමත් පවතී.",
-  "repo.release.downloads": "බාගැනීම්",
   "repo.release.download_count": "බාගැනීම්: %s",
   "repo.release.add_tag_msg": "ටැග් පණිවිඩයක් ලෙස නිකුත් කිරීමේ මාතෘකාව සහ අන්තර්ගතය භාවිතා කරන්න.",
   "repo.release.add_tag": "ටැග පමණක් සාදන්න",

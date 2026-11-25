@@ -88,7 +88,7 @@ func nodeToDetails(g *ASTTransformer, meta *yaml.Node) ast.Node {
 		}
 	}
 	details := NewDetails()
-	details.SetAttributeString(g.renderInternal.SafeAttr("class"), g.renderInternal.SafeValue("frontmatter-content"))
+	details.SetAttributeString(g.internalVar.Value.SafeAttr("class"), g.internalVar.Value.SafeValue("frontmatter-content"))
 	summary := NewSummary()
 	summaryInnerHTML := htmlutil.HTMLFormat("%s %s", svg.RenderHTML("octicon-table", 12), strings.Join(keys, ", "))
 	summary.AppendChild(summary, NewRawHTML(summaryInnerHTML))

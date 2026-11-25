@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 50
     services:
       pgsql:
-        image: postgres:14@sha256:156f0b253fd61366d5fc2107ad45955027d5612f695a8436ce20167f3fa79bff
+        image: postgres:14@sha256:c0e9c0e9bac7e4c1834b698217a03ee5c708de30d313c84a506972de0e24b059
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -35,13 +35,11 @@ jobs:
         ports:
           - "389:389"
           - "636:636"
-      minio:
-        # as github actions doesn't support "entrypoint", we need to use a non-official image
-        # that has a custom entrypoint set to "minio server /data"
-        image: bitnamilegacy/minio:2025.7.23@sha256:8935e75fa5d11295c17171e4aa49efe390a1193cd7f12e4d21b92af9ffef09d7
+      s3:
+        image: rustfs/rustfs:1.0.6@sha256:ee717072290bec9b11abfc0365f8310b00df1cd9b3639943edae47bdef05044a
         env:
-          MINIO_ROOT_USER: 123456
-          MINIO_ROOT_PASSWORD: 12345678
+          RUSTFS_ACCESS_KEY: 123456
+          RUSTFS_SECRET_KEY: 12345678
         ports:
           - "9000:9000"
     steps:
@@ -60,7 +58,7 @@ jobs:
     timeout-minutes: 50
     services:
       pgsql:
-        image: postgres:14@sha256:156f0b253fd61366d5fc2107ad45955027d5612f695a8436ce20167f3fa79bff
+        image: postgres:14@sha256:c0e9c0e9bac7e4c1834b698217a03ee5c708de30d313c84a506972de0e24b059
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -73,13 +71,11 @@ jobs:
         ports:
           - "389:389"
           - "636:636"
-      minio:
-        # as github actions doesn't support "entrypoint", we need to use a non-official image
-        # that has a custom entrypoint set to "minio server /data"
-        image: bitnamilegacy/minio:2025.7.23@sha256:8935e75fa5d11295c17171e4aa49efe390a1193cd7f12e4d21b92af9ffef09d7
+      s3:
+        image: rustfs/rustfs:1.0.6@sha256:ee717072290bec9b11abfc0365f8310b00df1cd9b3639943edae47bdef05044a
         env:
-          MINIO_ROOT_USER: 123456
-          MINIO_ROOT_PASSWORD: 12345678
+          RUSTFS_ACCESS_KEY: 123456
+          RUSTFS_SECRET_KEY: 12345678
         ports:
           - "9000:9000"
     steps:
@@ -142,22 +138,22 @@ jobs:
           --health-retries 10
         ports:
           - 6379:6379
-      minio:
-        image: bitnamilegacy/minio:2025.7.23@sha256:8935e75fa5d11295c17171e4aa49efe390a1193cd7f12e4d21b92af9ffef09d7
+      s3:
+        image: rustfs/rustfs:1.0.6@sha256:ee717072290bec9b11abfc0365f8310b00df1cd9b3639943edae47bdef05044a
         env:
-          MINIO_ROOT_USER: 123456
-          MINIO_ROOT_PASSWORD: 12345678
+          RUSTFS_ACCESS_KEY: 123456
+          RUSTFS_SECRET_KEY: 12345678
         ports:
           - "9000:9000"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:f9791d0a0613e93057c06ae31f7ac0c0222f0530590e67e020b0986c66a36fa6
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:a60e44b56e24a6fdd7c13c3e05c2009fa1e6111f0092fdf92f8793b2dda0bfe5
         ports:
           - 10000:10000
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
-        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 minio devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 s3 devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make generate-go
         env:
@@ -231,7 +227,7 @@ jobs:
         ports:
           - "1433:1433"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:f9791d0a0613e93057c06ae31f7ac0c0222f0530590e67e020b0986c66a36fa6
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:a60e44b56e24a6fdd7c13c3e05c2009fa1e6111f0092fdf92f8793b2dda0bfe5
         ports:
           - 10000:10000
     steps:
