@@ -279,6 +279,10 @@
   margin-bottom: 1rem;
 }
 
+.issue-title-header h1 {
+  overflow-wrap: anywhere;
+}
+
 .repository.view.issue .issue-title-buttons {
   display: flex;
   gap: 0.5em;
@@ -304,7 +308,6 @@
   line-height: 36px; /* vertically center single-line text with .issue-title-buttons */
   margin: 0;
   padding-right: 0.25rem;
-  overflow-wrap: anywhere;
 }
 
 @media (max-width: 767.98px) {
@@ -996,6 +999,7 @@
   list-style: none;
   display: flex;
   gap: var(--gap-block);
+  overflow-wrap: anywhere;
 }
 
 #search-user-box .results .result .image {
