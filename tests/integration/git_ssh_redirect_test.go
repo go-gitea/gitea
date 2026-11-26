@@ -20,7 +20,7 @@ func TestGitSSHRedirect(t *testing.T) {
 }
 
 func testGitSSHRedirect(t *testing.T, u *url.URL) {
-	apiTestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteOrganization)
+	apiTestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeAll)
 	session := loginUser(t, "user2")
 
 	withKeyFile(t, "my-testing-key", func(keyFile string) {

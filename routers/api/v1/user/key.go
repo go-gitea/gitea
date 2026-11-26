@@ -10,6 +10,7 @@ import (
 
 	asymkey_model "gitea.dev/models/asymkey"
 	audit_model "gitea.dev/models/audit"
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	user_model "gitea.dev/models/user"
@@ -206,6 +207,20 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
 		ctx.APIErrorNotFound("ssh keys setting is not allowed to be changed")
 		return
+	}
+
+	// an SSH key authenticates as its owner without any token scope (git over SSH, HTTP signatures),
+	// so a token-authenticated request must hold the full scope to add one
+	if apiTokenScope, hasApiTokenScope := user_model.GetDoerTokenScope(ctx.Doer); hasApiTokenScope {
+		hasScope, err := apiTokenScope.CanCreateChildScope(auth_model.AccessTokenScopeAll)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if !hasScope {
+			ctx.APIError(http.StatusForbidden, "cannot add an SSH key with a token that does not have the \"all\" scope")
+			return
+		}
 	}
 
 	content, err := asymkey_model.CheckPublicKeyString(form.Key)

@@ -52,7 +52,7 @@ func TestGitGeneral(t *testing.T) {
 
 func testGitGeneral(t *testing.T, u *url.URL) {
 	username := "user2"
-	baseAPITestContext := NewAPITestContext(t, username, "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	baseAPITestContext := NewAPITestContext(t, username, "repo1", auth_model.AccessTokenScopeAll)
 
 	u.Path = baseAPITestContext.GitPath()
 
