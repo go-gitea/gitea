@@ -2,7 +2,7 @@ import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
 import {login, apiCreateIssue, apiCreateLabel, apiCreateRepo, randomString} from './utils.ts';
 
-test('create a label in the modal with a color from the picker popup, exclusive scoped labels replace each other in the issue sidebar', async ({page, request}) => {
+test('create and assign scoped labels', async ({page, request}) => {
   const repoName = `e2e-label-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
   await Promise.all([

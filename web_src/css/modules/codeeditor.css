@@ -2,6 +2,10 @@
   flex-wrap: wrap;
 }
 
+.code-editor-options .select-field > select {
+  min-height: auto;
+}
+
 .editor-loading {
   padding: 1rem;
   text-align: center;

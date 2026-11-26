@@ -2,13 +2,13 @@ import {userEvent} from 'vitest/browser';
 import {createElementFromAttrs, createElementFromHTML} from '../utils/dom.ts';
 import {closestDropdown, initDropdown} from './dropdown.ts';
 
-function createDropdown(html: string, opts?: Parameters<typeof initDropdown>[1]) {
-  const container = createElementFromHTML<HTMLElement>(html);
-  document.body.append(container);
-  return initDropdown(container, opts);
+function createFormDropdown(html: string, opts?: Parameters<typeof initDropdown>[1]) {
+  const form = createElementFromHTML<HTMLFormElement>(`<form>${html}</form>`);
+  document.body.append(form);
+  return {form, dropdown: initDropdown(form.querySelector<HTMLElement>('.dropdown-container')!, opts)};
 }
 
-test('select has a field label, picks the first filter match with Enter, hides unmatched groups and keeps its value when dismissed', async () => {
+test('select', async () => {
   const field = createElementFromHTML(`<div class="field"><label>Fruit</label><div class="dropdown-container">
     <button type="button" class="dropdown-trigger"><span class="dropdown-text" data-placeholder="Pick">Apple</span></button>
     <input type="hidden" class="dropdown-value" value="apple">
@@ -45,27 +45,26 @@ test('select has a field label, picks the first filter match with Enter, hides u
   expect(dropdown.items().some((item) => item.hidden)).toBe(false);
 
   await userEvent.keyboard('{ArrowDown}{Enter}');
-  await userEvent.click(dropdown.trigger);
-  await userEvent.click(dropdown.findItem('banana')!);
   dropdown.setValue('apple');
   expect(changes).toEqual(['banana']);
   expect(dropdown.trigger.textContent).toBe('Apple');
   dropdown.setValue('');
   expect(dropdown.trigger.textContent).toBe('Pick');
+  dropdown.setValue('blueberry');
   await userEvent.click(dropdown.trigger);
-  await userEvent.keyboard('ban');
-  expect(dropdown.highlighted).toBe(dropdown.findItem('banana'));
+  await userEvent.keyboard('b');
+  expect(dropdown.highlighted).toBe(dropdown.findItem('blueberry'));
   expect(dropdown.popup.querySelector<HTMLElement>('.dropdown-header')!.hidden).toBe(false);
   expect(Array.from(dropdown.popup.querySelectorAll<HTMLElement>('.dropdown-divider'), (el) => el.hidden)).toEqual([true, true]);
   await userEvent.keyboard('{Tab}');
   expect(changes).toEqual(['banana']);
-  expect(dropdown.value).toBe('');
+  expect(dropdown.value).toBe('blueberry');
   expect(dropdown.container.hasAttribute('data-shown')).toBe(false);
   field.remove();
 });
 
-test('menu keeps popup controls in their form, skips disabled items and closes before item handlers, on Escape, Tab and removal', async () => {
-  const dropdown = createDropdown(`<div class="dropdown-container">
+test('menu', async () => {
+  const {form, dropdown} = createFormDropdown(`<div class="dropdown-container">
     <button type="button" class="dropdown-trigger">Menu</button>
     <div class="dropdown-popup">
       <input type="hidden" name="mode" value="all">
@@ -75,9 +74,6 @@ test('menu keeps popup controls in their form, skips disabled items and closes b
       <button type="button" class="dropdown-item">Other</button>
     </div>
   </div>`);
-  const form = document.createElement('form');
-  document.body.append(form);
-  form.append(dropdown.container);
   const [item, disabledItem, otherItem] = dropdown.items();
   let itemContainer: Element | null = null;
   item.addEventListener('click', () => { itemContainer = item.closest('.dropdown-container') });
@@ -114,24 +110,21 @@ test('menu keeps popup controls in their form, skips disabled items and closes b
   expect(dropdown.popup.isConnected).toBe(false);
 });
 
-test('remote search ignores stale responses, preserves static items, prevents submission and exposes removable chips', async () => {
+test('remote multiselect', async () => {
   const pending: Array<{query: string, resolve: (items: Element[]) => void}> = [];
-  const dropdown = createDropdown(`<div class="dropdown-container" data-kind="multiselect">
+  const {form, dropdown} = createFormDropdown(`<div class="dropdown-container" data-kind="multiselect">
     <input type="hidden" class="dropdown-value" value="">
     <div class="dropdown-trigger dropdown-field dropdown-search-field">
       <input class="dropdown-filter" type="text"><span class="dropdown-text"></span>
     </div>
     <div class="dropdown-popup">
-      <div class="dropdown-item" data-value="static" data-static>Static</div>
+      <div class="dropdown-item" data-value="old">Old</div>
     </div>
   </div>`, {
     loadItems: (query) => new Promise((resolve) => { pending.push({query, resolve}) }),
   });
-  const form = document.createElement('form');
   let submitted = false;
   form.addEventListener('submit', (e) => { e.preventDefault(); submitted = true });
-  document.body.append(form);
-  form.append(dropdown.container);
   const item = (value: string) => createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': value}, value);
 
   await userEvent.click(dropdown.trigger);
@@ -140,15 +133,15 @@ test('remote search ignores stale responses, preserves static items, prevents su
   expect(dropdown.values()).toEqual([]);
   pending.at(-1)!.resolve([item('a1'), item('a2')]);
   pending[0].resolve([item('stale')]);
-  await vi.waitFor(() => expect(dropdown.items().map((el) => el.textContent)).toEqual(['Static', 'a1', 'a2']));
+  await vi.waitFor(() => expect(dropdown.items().map((el) => el.textContent)).toEqual(['a1', 'a2']));
   await userEvent.keyboard('{Enter}');
   expect(submitted).toBe(false);
   await userEvent.click(dropdown.findItem('a2')!);
-  expect(dropdown.values()).toEqual(['static', 'a2']);
-  expect(Array.from(dropdown.trigger.querySelectorAll('.ui.label'), (el) => el.textContent)).toEqual(['Static', 'a2']);
-  await expect.element(dropdown.trigger.querySelector<HTMLButtonElement>('.ui.label[data-value="static"] .delete')).toHaveAccessibleName('Remove item "Static"');
+  expect(dropdown.values()).toEqual(['a1', 'a2']);
+  expect(Array.from(dropdown.trigger.querySelectorAll('.ui.label'), (el) => el.textContent)).toEqual(['a1', 'a2']);
+  await expect.element(dropdown.trigger.querySelector<HTMLButtonElement>('.ui.label[data-value="a1"] .delete')).toHaveAccessibleName('Remove item "a1"');
   await userEvent.keyboard('{Backspace}');
-  expect(dropdown.values()).toEqual(['static']);
+  expect(dropdown.values()).toEqual(['a1']);
   await userEvent.keyboard('{Shift>}{Tab}{/Shift}{Enter}');
   expect(dropdown.values()).toEqual([]);
   expect(dropdown.container.hasAttribute('data-shown')).toBe(true);

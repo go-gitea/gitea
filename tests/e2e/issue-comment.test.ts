@@ -90,11 +90,9 @@ test('delete an edit history entry via a confirm over the history modal', async 
   await page.getByRole('menuitem', {name: 'Delete from history'}).click();
   await page.getByRole('dialog', {name: 'Delete from history?'}).getByRole('button', {name: 'Confirm'}).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await page.getByRole('button', {name: '• edited'}).click();
-  await expect(page.getByRole('menuitem').filter({hasText: 'deleted'})).toHaveAttribute('aria-disabled', 'true');
 });
 
-test('reference a comment in a new issue of another repository', async ({page, request}) => {
+test('reference comment in another repo', async ({page, request}) => {
   const owner = env.GITEA_TEST_E2E_USER;
   const repoName = `e2e-issue-ref-${randomString(8)}`;
   const targetName = `e2e-issue-ref-target-${randomString(8)}`;

@@ -31,13 +31,13 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
       <div class="comment-diff-data is-loading"></div>
     </dialog>
   `);
+  const params = new URLSearchParams({comment_id: commentId, history_id: historyId});
   const optionsDropdown = initDropdown(elDetailDialog.querySelector('.dialog-header-options')!);
   optionsDropdown.popup.querySelector('.dropdown-item')!.addEventListener('click', async (e) => {
     e.preventDefault();
     if (!await confirmModal({content: i18nTextDeleteFromHistoryConfirm, confirmButtonColor: 'red'})) return;
     try {
-      const params = new URLSearchParams({comment_id: commentId, history_id: historyId});
-      const response = await POST(`${issueBaseUrl}/content-history/soft-delete?${params.toString()}`);
+      const response = await POST(`${issueBaseUrl}/content-history/soft-delete?${params}`);
       const resp = await response.json();
       if (resp.ok) {
         hideModal(elDetailDialog);
@@ -52,12 +52,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
   showModal(elDetailDialog, {
     async onShow() {
       try {
-        const params = new URLSearchParams();
-        params.append('comment_id', commentId);
-        params.append('history_id', historyId);
-
-        const url = `${issueBaseUrl}/content-history/detail?${params.toString()}`;
-        const response = await GET(url);
+        const response = await GET(`${issueBaseUrl}/content-history/detail?${params}`);
         const resp = await response.json();
 
         const commentDiffData = elDetailDialog.querySelector('.comment-diff-data')!;
@@ -79,7 +74,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
 function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, commentId: string) {
   const elHeaderLeft = elCommentItem.querySelector('.comment-header-left')!;
   const elDropdown = createElementFromHTML<HTMLElement>(html`
-    <div class="dropdown-container content-history-menu tw-flex-shrink-0" data-comment-id="${commentId}">
+    <div class="dropdown-container content-history-menu tw-flex-shrink-0">
       <button type="button" class="dropdown-trigger btn interact-fg">
         &bull; ${i18nTextEdited} ${svgRaw('octicon-triangle-down', 14)}
       </button>

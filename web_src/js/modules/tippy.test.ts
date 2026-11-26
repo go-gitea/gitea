@@ -34,7 +34,7 @@ test('createTippy handles keys in menus only', async () => {
   panelButton.remove();
 });
 
-test('createTippy limitSizeToViewport opens towards the roomier side when the popup fits on neither', async () => {
+test('limitSizeToViewport flip', async () => {
   const button = createElementFromHTML('<button style="position: fixed; bottom: 20px">button</button>');
   document.body.append(button);
   const instance = createTippy(button, {
@@ -50,7 +50,7 @@ test('createTippy limitSizeToViewport opens towards the roomier side when the po
   button.remove();
 });
 
-test('availableSizeForPlacement reserves viewport padding and the placement offset', () => {
+test('availableSizeForPlacement', () => {
   const rect = (values: Partial<DOMRect>) => values as DOMRect;
   vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(1000);
   vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(800);

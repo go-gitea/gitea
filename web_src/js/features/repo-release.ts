@@ -15,20 +15,16 @@ export function initRepoReleaseNew() {
     hideElem(`#attachment-${id}`);
   });
   registerGlobalInitFunc('initReleaseEditForm', (elForm: HTMLFormElement) => {
-    initTagNameEditor(elForm);
-    initGenerateReleaseNotes(elForm);
+    const existingTags: string[] = JSON.parse(elForm.getAttribute('data-existing-tags')!);
+    initTagNameEditor(elForm, existingTags);
+    initGenerateReleaseNotes(elForm, existingTags);
   });
 }
 
-function getReleaseFormExistingTags(elForm: HTMLFormElement): Array<string> {
-  return JSON.parse(elForm.getAttribute('data-existing-tags')!);
-}
-
-function initTagNameEditor(elForm: HTMLFormElement) {
+function initTagNameEditor(elForm: HTMLFormElement, existingTags: string[]) {
   const tagNameInput = elForm.querySelector<HTMLInputElement>('input[type=text][name=tag_name]');
   if (!tagNameInput) return; // only init if tag name input exists (the tag name is editable)
 
-  const existingTags = getReleaseFormExistingTags(elForm);
   const defaultTagHelperText = elForm.getAttribute('data-tag-helper');
   const newTagHelperText = elForm.getAttribute('data-tag-helper-new');
   const existingTagHelperText = elForm.getAttribute('data-tag-helper-existing');
@@ -75,7 +71,7 @@ export function guessPreviousReleaseTag(tagName: string, existingTags: Array<str
   return guessedPreviousTag;
 }
 
-function initGenerateReleaseNotes(elForm: HTMLFormElement) {
+function initGenerateReleaseNotes(elForm: HTMLFormElement, existingTags: string[]) {
   const buttonShowModal = elForm.querySelector<HTMLButtonElement>('.button.generate-release-notes')!;
   const tagNameInput = elForm.querySelector<HTMLInputElement>('input[name=tag_name]')!;
   const targetInput = elForm.querySelector<HTMLInputElement | HTMLSelectElement>('[name=tag_target]')!;
@@ -84,7 +80,6 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
   const generateUrl = buttonShowModal.getAttribute('data-generate-url')!;
 
   const elModal = document.querySelector<HTMLDialogElement>('#generate-release-notes-modal')!;
-  const existingTags = getReleaseFormExistingTags(elForm);
   const previousTagDropdown = initDropdown(elModal.querySelector<HTMLElement>('.dropdown-container')!);
   previousTagDropdown.setItems(existingTags.map((tag) => createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': tag}, tag)));
 
@@ -128,7 +123,8 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
       return;
     }
 
-    previousTagDropdown.setValue(guessPreviousReleaseTag(tagName, existingTags));
+    const guessedTag = guessPreviousReleaseTag(tagName, existingTags);
+    if (guessedTag) previousTagDropdown.setValue(guessedTag);
 
     showModal(elModal, {
       onApprove: () => {

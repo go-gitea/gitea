@@ -105,7 +105,6 @@
 .ui.action.input > .button:first-child {
   border-radius: var(--border-radius) 0 0 var(--border-radius);
 }
-.ui.action.input > .select-field:not(:first-child) > select,
 .ui.action.input > .button:not(:first-child) {
   border-radius: 0;
 }
@@ -116,6 +115,7 @@
 
 .ui.action.input > .select-field > select {
   width: auto;
+  border-radius: 0;
   border-right: none;
 }
 

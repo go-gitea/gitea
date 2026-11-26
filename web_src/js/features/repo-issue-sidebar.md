@@ -6,7 +6,7 @@ A sidebar combo (dropdown+list) is like this:
   <div class="dropdown-container" data-keep-open>
     <button type="button" class="dropdown-trigger btn">Select items</button>
     <div class="dropdown-popup issue-sidebar-popup">
-      <div class="ui icon search input">
+      <div class="ui icon input">
         <i class="icon">{{svg "octicon-search" 16}}</i>
         <input class="dropdown-filter" type="text" placeholder="Filter items">
       </div>

@@ -198,7 +198,10 @@ export class Dropdown {
 
   onMount() {
     this.keyboardOwner.focus();
-    if (!this.loadItems && this.filterInput?.value) return this.applyFilter();
+    if (!this.loadItems && this.filterInput) {
+      if (this.filterInput.value) return this.applyFilter();
+      this.filterItems('');
+    }
     const selected = this.kind === 'select' ? this.findItem(this.value) : null;
     if (selected) {
       this.highlight(selected);
@@ -310,6 +313,15 @@ export class Dropdown {
 
   applyFilter() {
     const query = this.filterInput!.value.trim().toLowerCase();
+    this.filterItems(query);
+    if (!this.tippy) return;
+    const items = this.navigableItems();
+    const selected = items.find((item) => this.kind === 'select' && item.getAttribute('aria-selected') === 'true');
+    this.highlight(query ? selected ?? items[0] ?? null : null);
+    this.updateState();
+  }
+
+  filterItems(query: string) {
     let groupHasMatch = false;
     let belowIsItem = true;
     const elements = this.popup.querySelectorAll<HTMLElement>('.dropdown-item, .dropdown-header, .dropdown-divider');
@@ -319,18 +331,15 @@ export class Dropdown {
         el.hidden = Boolean(query) && !el.textContent.toLowerCase().includes(query);
         groupHasMatch = (belowIsItem && groupHasMatch) || isShown(el);
       } else {
-        el.hidden = Boolean(query) && !groupHasMatch;
+        el.hidden = !groupHasMatch;
       }
       belowIsItem = isItem;
     }
     for (const divider of this.popup.querySelectorAll<HTMLElement>('.dropdown-divider')) {
       let previous = divider.previousElementSibling as HTMLElement | null;
       while (previous && !isShown(previous)) previous = previous.previousElementSibling as HTMLElement | null;
-      if (query && !previous) divider.hidden = true; // nothing above it to separate from
+      if (!previous) divider.hidden = true; // nothing above it to separate from
     }
-    if (!this.tippy) return;
-    this.highlight(query ? this.navigableItems()[0] ?? null : null);
-    this.updateState();
   }
 
   highlight(item: HTMLElement | null) {
@@ -425,9 +434,7 @@ export class Dropdown {
 
   setItems(items: Element[]) {
     this.highlight(null);
-    for (const el of this.popup.querySelectorAll(':scope > :is(.dropdown-item, .dropdown-divider, .dropdown-header):not([data-static])')) {
-      el.remove();
-    }
+    for (const item of this.popup.querySelectorAll(':scope > .dropdown-item')) item.remove();
     this.popup.append(...items);
     if (this.kind === 'select') this.renderLabel();
     if (this.tippy) {

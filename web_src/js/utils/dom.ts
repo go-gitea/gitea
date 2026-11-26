@@ -423,5 +423,6 @@ export function morphElementWithProtection(el: Element, newEl: Element, opts: Mo
   });
   const morphedElem = nodes[0] as Element;
   recoverMorphElements(morphedElem, protectedElems);
+  for (const shown of morphedElem.querySelectorAll(selectorSkipElems)) shown._tippy?.popperInstance?.update(); // the portalled popup doesn't follow its moved trigger
   return morphedElem;
 }

@@ -237,7 +237,7 @@ async function loadTabItems() {
       <svg-icon name="octicon-triangle-down" :size="14"/>
     </button>
     <div class="dropdown-popup" :id="popupId" v-show="menuVisible" v-cloak>
-      <div class="ui icon search input">
+      <div class="ui icon input">
         <i class="icon"><svg-icon name="octicon-filter" :size="16"/></i>
         <input type="text" class="dropdown-filter" ref="elSearchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder" :aria-label="searchFieldPlaceholder">
       </div>

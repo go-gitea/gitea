@@ -74,19 +74,19 @@ test('protectMorphElements', () => {
 
 describe('morphElementWithProtection', () => {
   const newElHtml = '<div><div><span>new</span><div class="dropdown-container">changed</div></div></div>';
-  it('updates siblings while preserving an open dropdown', () => {
+  it('morph normal', () => {
     const el = createElementFromHTML('<div><div><span>old</span><div class="dropdown-container" data-shown=""><button class="dropdown-trigger"></button></div></div></div>');
     const newEl = createElementFromHTML(newElHtml);
     morphElementWithProtection(el, newEl, {morphStyle: 'outerHTML'});
     expect(el.outerHTML).toEqual('<div><div><span>new</span><div class="dropdown-container" data-shown=""><button class="dropdown-trigger"></button></div></div></div>');
   });
-  it('preserves a whole row while its dropdown is open', () => {
+  it('morph whole', () => {
     const el = createElementFromHTML('<div><div data-morph-whole><span>old</span><div class="dropdown-container" data-shown=""><button class="dropdown-trigger"></button></div></div></div>');
     const newEl = createElementFromHTML(newElHtml);
     morphElementWithProtection(el, newEl, {morphStyle: 'outerHTML'});
     expect(el.outerHTML).toEqual('<div><div data-morph-whole=""><span>old</span><div class="dropdown-container" data-shown=""><button class="dropdown-trigger"></button></div></div></div>');
   });
-  it('replaces closed dropdowns while morphing other elements in place', () => {
+  it('morph protection', () => {
     const el = createElementFromHTML('<div><span></span><div class="dropdown-container"></div></div>');
     const newEl = createElementFromHTML('<div><span>new</span><div class="dropdown-container">changed</div></div>');
     const elSpanOld = el.querySelector('span');

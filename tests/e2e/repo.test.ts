@@ -4,7 +4,7 @@ import {
   login, apiCreateBranch, apiCreateFiles, apiCreateOrg, apiCreateRepo, apiHeaders, apiSetRepoTopics, randomString,
 } from './utils.ts';
 
-test('create a repository for an organization', async ({page, request}) => {
+test('create a repository', async ({page, request}) => {
   const repoName = `e2e-repo-${randomString(8)}`;
   const orgName = `e2e-repo-org-${randomString(8)}`;
   await Promise.all([apiCreateOrg(request, orgName), login(page)]);
@@ -19,7 +19,7 @@ test('create a repository for an organization', async ({page, request}) => {
   await page.waitForURL(new RegExp(`/${orgName}/${repoName}$`));
 });
 
-test('delete a branch via its modal, add and remove repository topics', async ({page, request}) => {
+test('delete branch and edit topics', async ({page, request}) => {
   const repoName = `e2e-branch-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
   await Promise.all([

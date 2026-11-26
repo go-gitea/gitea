@@ -15,7 +15,7 @@ export function initRepoTopicBar() {
   const viewDiv = document.querySelector('#repo-topics')!;
   const topicDropdown = initDropdown(editDiv.querySelector<HTMLElement>('.dropdown-container')!, {
     async loadItems(query, signal) {
-      query = query.toLowerCase().trim();
+      query = query.toLowerCase();
       const response = await GET(`${appSubUrl}/explore/topics/search?q=${encodeURIComponent(query)}`, {signal});
       const {topics} = await response.json() as TopicSearchResponse;
       const results = topics.filter(({topic_name}) => topic_name !== query);
@@ -41,10 +41,10 @@ export function initRepoTopicBar() {
 
   document.querySelector<HTMLButtonElement>('#save_topic')!.addEventListener('click', async (e) => {
     lastErrorToast?.hideToast();
-    const topics = topicDropdown.value;
+    const topics = topicDropdown.values();
 
     const data = new FormData();
-    data.append('topics', topics);
+    data.append('topics', topics.join(','));
 
     const response = await POST((e.target as HTMLElement).getAttribute('data-link')!, {data});
 
@@ -52,15 +52,10 @@ export function initRepoTopicBar() {
       const responseData = await response.json();
       if (responseData.status === 'ok') {
         queryElemChildren(viewDiv, '.repo-topic', (el) => el.remove());
-        if (topics.length) {
-          for (const topic of topics.split(',').sort()) {
-            const link = document.createElement('a');
-            link.classList.add('repo-topic', 'ui', 'large', 'label', 'gt-ellipsis');
-            link.href = `${appSubUrl}/explore/repos?q=${encodeURIComponent(topic)}&topic=1`;
-            link.textContent = topic;
-            viewDiv.append(link);
-          }
-        }
+        viewDiv.append(...topics.sort().map((topic) => createElementFromAttrs('a', {
+          class: 'repo-topic ui large label gt-ellipsis',
+          href: `${appSubUrl}/explore/repos?q=${encodeURIComponent(topic)}&topic=1`,
+        }, topic)));
         topicDropdown.hide();
         hideElem(editDiv);
         showElem([viewDiv, mgrBtn]);

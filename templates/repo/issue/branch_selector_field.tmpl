@@ -21,7 +21,7 @@ Still needs to figure out:
 	{{if and .Issue $canChangeRef}}data-url-update-issueref="{{$.RepoLink}}/issues/{{.Issue.Index}}/ref"{{end}}
 >
 	<button type="button" class="dropdown-trigger ui button branch-dropdown-button tw-max-w-full" {{if not $canChangeRef}}disabled{{end}}>
-		<span class="dropdown-text gt-ellipsis" data-placeholder="{{ctx.Locale.Tr "repo.issues.no_ref"}}">{{if .Reference}}{{$.RefEndName}}{{else}}{{ctx.Locale.Tr "repo.issues.no_ref"}}{{end}}</span>
+		<span class="{{if $canChangeRef}}dropdown-text {{end}}gt-ellipsis" {{if $canChangeRef}}data-placeholder="{{ctx.Locale.Tr "repo.issues.no_ref"}}"{{end}}>{{if .Reference}}{{$.RefEndName}}{{else}}{{ctx.Locale.Tr "repo.issues.no_ref"}}{{end}}</span>
 		{{if $canChangeRef}}{{svg "octicon-triangle-down" 14}}{{end}}
 	</button>
 	<input class="dropdown-value" name="ref" type="hidden" value="{{.Reference}}">
