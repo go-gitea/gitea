@@ -4,12 +4,12 @@ import {localUserSettings} from '../modules/user-settings.ts';
 const LOCAL_STORAGE_KEY = 'no_wrap_file_lines';
 
 export function initFileLinesWrap() {
-  registerGlobalInitFunc('initFileLinesWrapButton', initFileLinesWrapButton);
-  registerGlobalEventFunc('click', 'onToggleFileLinesWrapButtonClick', onToggleFileLinesWrapButtonClick);
   const nowrap = localUserSettings.getBoolean(LOCAL_STORAGE_KEY, false);
   if (nowrap) {
     document.documentElement.classList.add('no-wrap-file-lines');
   }
+  registerGlobalInitFunc('initFileLinesWrapButton', initFileLinesWrapButton);
+  registerGlobalEventFunc('click', 'onToggleFileLinesWrapButtonClick', onToggleFileLinesWrapButtonClick);
 }
 
 function initFileLinesWrapButton(btn: HTMLElement) {
