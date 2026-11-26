@@ -1,7 +1,7 @@
 <div class="issue-title-header">
 	{{$packageVersionLink := print $.PackageDescriptor.PackageWebLink "/" (PathEscape .PackageDescriptor.Version.LowerVersion)}}
 	<div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
-		<h1 class="tw-mb-0">{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
+		<h1 class="tw-mb-0 tw-break-anywhere">{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
 		<span class="label-list">
 			{{template "package/shared/visibility_badge" dict "Package" .PackageDescriptor.Package "Owner" .PackageDescriptor.Owner}}
 		</span>
@@ -42,7 +42,7 @@
 		{{template "package/content/terraform_module" .}}
 		{{template "package/content/vagrant" .}}
 	</div>
-	<div class="ui segment packages-content-right">
+	<div class="ui segment packages-content-right tw-break-anywhere">
 		<strong>{{ctx.Locale.Tr "packages.details"}}</strong>
 		<div class="ui relaxed list flex-items-block">
 			<div class="item">{{svg .PackageDescriptor.Package.Type.SVGName}} {{.PackageDescriptor.Package.Type.Name}}</div>
