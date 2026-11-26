@@ -96,6 +96,11 @@ func (org *Organization) IsOrgMember(ctx context.Context, uid int64) (bool, erro
 	return IsOrganizationMember(ctx, org.ID, uid)
 }
 
+// IsOrgMemberOrOwner returns true if given user is a direct member or direct/inherited owner of organization.
+func (org *Organization) IsOrgMemberOrOwner(ctx context.Context, uid int64) (bool, error) {
+	return IsOrganizationMemberOrOwner(ctx, org.ID, uid)
+}
+
 // CanCreateOrgRepo returns true if given user can create repo in organization
 func (org *Organization) CanCreateOrgRepo(ctx context.Context, uid int64) (bool, error) {
 	return CanCreateOrgRepo(ctx, org.ID, uid)
@@ -141,6 +146,16 @@ func (org *Organization) HasMemberWithUserID(ctx context.Context, userID int64) 
 		return false
 	}
 	return isMember
+}
+
+// HasMemberOrOwnerWithUserID returns true if userID is a direct member of org or an inherited ancestor owner.
+func (org *Organization) HasMemberOrOwnerWithUserID(ctx context.Context, userID int64) bool {
+	isAuthorized, err := IsOrganizationMemberOrOwner(ctx, org.ID, userID)
+	if err != nil {
+		log.Error("IsOrganizationMemberOrOwner: %v", err)
+		return false
+	}
+	return isAuthorized
 }
 
 // AvatarLink returns the full avatar link with http host
@@ -278,6 +293,17 @@ func (org *Organization) CustomAvatarRelativePath() string {
 func (org *Organization) AnyRepoUnitPermission(ctx context.Context, doer *user_model.User, unitType unit.Type) perm.AccessMode {
 	// FIXME: ORG-TEAM-UNIT-MAX-PERMISSION: this function is not right, team can access repo1's code doesn't mean it can access repo2's code
 	if doer != nil {
+		if org.ID > 0 {
+			isOwner, err := IsOrganizationOwner(ctx, org.ID, doer.ID)
+			if err != nil {
+				log.Error("IsOrganizationOwner: %v", err)
+				return perm.AccessModeNone
+			}
+			if isOwner {
+				return perm.AccessModeOwner
+			}
+		}
+
 		teams, err := GetUserOrgTeams(ctx, org.ID, doer.ID)
 		if err != nil {
 			log.Error("GetUserOrgTeams: %v", err)
@@ -301,9 +327,25 @@ func (org *Organization) AnyRepoUnitPermission(ctx context.Context, doer *user_m
 	return perm.AccessModeNone
 }
 
-// CreateOrganization creates record of a new organization.
+// CreateOrganization creates record of a new organization (including child subgroups when org.ParentOrgID > 0).
 func CreateOrganization(ctx context.Context, org *Organization, owner *user_model.User) (err error) {
-	if !owner.CanCreateOrganization() {
+	if org.ParentOrgID > 0 {
+		if owner == nil {
+			return ErrUserNotAllowedCreateOrg{}
+		}
+		if _, err = ValidateParentOrg(ctx, 0, org.ParentOrgID, org.Visibility); err != nil {
+			return err
+		}
+		if !owner.IsAdmin {
+			isParentOwner, err := IsOrganizationOwner(ctx, org.ParentOrgID, owner.ID)
+			if err != nil {
+				return err
+			}
+			if !isParentOwner {
+				return ErrUserNotAllowedCreateOrg{}
+			}
+		}
+	} else if !owner.CanCreateOrganization() {
 		return ErrUserNotAllowedCreateOrg{}
 	}
 
@@ -331,7 +373,26 @@ func CreateOrganization(ctx context.Context, org *Organization, owner *user_mode
 	org.NumMembers = 1
 	org.Type = user_model.UserTypeOrganization
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	runInsertTx := db.WithTx
+	if org.ParentOrgID > 0 {
+		runInsertTx = WithSubgroupHierarchyLock
+	}
+
+	return runInsertTx(ctx, func(ctx context.Context) error {
+		if org.ParentOrgID > 0 {
+			if _, err = ValidateParentOrg(ctx, 0, org.ParentOrgID, org.Visibility); err != nil {
+				return err
+			}
+			if !owner.IsAdmin {
+				isParentOwner, err := IsOrganizationOwner(ctx, org.ParentOrgID, owner.ID)
+				if err != nil {
+					return err
+				}
+				if !isParentOwner {
+					return ErrUserNotAllowedCreateOrg{}
+				}
+			}
+		}
 		if err = user_model.DeleteUserRedirect(ctx, org.Name); err != nil {
 			return err
 		}
@@ -422,7 +483,19 @@ func (org *Organization) GetOrgUserMaxAuthorizeLevel(ctx context.Context, uid in
 		Where("team_user.uid = ?", uid).
 		And("team_user.org_id = ?", org.ID).
 		Get(&authorize)
-	return authorize, err
+	if err != nil {
+		return authorize, err
+	}
+	if authorize < perm.AccessModeOwner && org.ParentOrgID > 0 {
+		isAncOwner, err := IsOrganizationOwner(ctx, org.ID, uid)
+		if err != nil {
+			return authorize, err
+		}
+		if isAncOwner {
+			return perm.AccessModeOwner, nil
+		}
+	}
+	return authorize, nil
 }
 
 // GetUsersWhoCanCreateOrgRepo returns users which are able to create repo in organization
@@ -456,8 +529,16 @@ func ownerVisibilitySatisfiesDoer(orgOrUser, user *user_model.User) bool {
 
 // HasOrgOrUserVisible tells if the given user can see the given org or user
 func HasOrgOrUserVisible(ctx context.Context, owner, doer *user_model.User) bool {
-	return user_model.DoerTokenAllowsOwner(doer, owner) && (ownerVisibilitySatisfiesDoer(owner, doer) ||
-		(doer != nil && OrgFromUser(owner).HasMemberWithUserID(ctx, doer.ID)))
+	if !user_model.DoerTokenAllowsOwner(doer, owner) {
+		return false
+	}
+	if ownerVisibilitySatisfiesDoer(owner, doer) {
+		return true
+	}
+	if doer == nil {
+		return false
+	}
+	return owner.IsOrganization() && OrgFromUser(owner).HasMemberOrOwnerWithUserID(ctx, doer.ID)
 }
 
 // HasOrgsVisible tells if the given user can see at least one of the orgs provided

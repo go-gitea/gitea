@@ -154,7 +154,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	if !user_model.IsPublicOnlyDoer(ctx.Doer) {
 		canViewRoles = ctx.Doer.ID == ctx.ContextUser.ID || user_model.DoerIsSiteAdminFullAccess(ctx.Doer)
 		if !canViewRoles && !ctx.Doer.IsRestricted {
-			isDoerMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
+			isDoerMember, err := org.IsOrgMemberOrOwner(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
@@ -268,17 +268,32 @@ func Create(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.CreateOrgOption](ctx)
-	if !ctx.Doer.CanCreateOrganization() {
+	var parentOrg *organization.Organization
+	if form.ParentOrg != "" {
+		var err error
+		parentOrg, err = organization.GetOrgByName(ctx, form.ParentOrg)
+		if err != nil {
+			if organization.IsErrOrgNotExist(err) {
+				ctx.APIErrorNotFound(err.Error())
+			} else {
+				ctx.APIErrorInternal(err)
+			}
+			return
+		}
+	} else if !ctx.Doer.CanCreateOrganization() {
 		ctx.APIError(http.StatusForbidden, "not allowed to create org")
 		return
 	}
 
 	visibility := api.VisibleTypePublic
+	if parentOrg != nil {
+		visibility = parentOrg.Visibility
+	}
 	if form.Visibility != "" {
 		visibility = api.VisibilityModes[form.Visibility]
 	}
 
-	org := &organization.Organization{
+	newOrg := &organization.Organization{
 		Name:                      form.UserName,
 		FullName:                  form.FullName,
 		Email:                     form.Email,
@@ -290,11 +305,17 @@ func Create(ctx *context.APIContext) {
 		Visibility:                visibility,
 		RepoAdminChangeTeamAccess: form.RepoAdminChangeTeamAccess,
 	}
-	if err := organization.CreateOrganization(ctx, org, ctx.Doer); err != nil {
-		if user_model.IsErrUserAlreadyExist(err) ||
+	if parentOrg != nil {
+		newOrg.ParentOrgID = parentOrg.ID
+	}
+	if err := organization.CreateOrganization(ctx, newOrg, ctx.Doer); err != nil {
+		if organization.IsErrUserNotAllowedCreateOrg(err) || errors.Is(err, util.ErrPermissionDenied) {
+			ctx.APIError(http.StatusForbidden, err.Error())
+		} else if user_model.IsErrUserAlreadyExist(err) ||
 			db.IsErrNameReserved(err) ||
 			db.IsErrNameCharsNotAllowed(err) ||
-			db.IsErrNamePatternNotAllowed(err) {
+			db.IsErrNamePatternNotAllowed(err) ||
+			errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
@@ -302,9 +323,9 @@ func Create(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.OrganizationCreate, org.AsUser())
+	audit.Record(ctx, audit_model.OrganizationCreate, newOrg.AsUser())
 
-	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
+	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, newOrg))
 }
 
 // Get get an organization
@@ -414,12 +435,24 @@ func Edit(ctx *context.APIContext) {
 		return
 	}
 
+	if form.Visibility != nil {
+		if vis, ok := api.VisibilityModes[*form.Visibility]; ok {
+			if err := org.ChangeOrganizationVisibility(ctx, ctx.Org.Organization, vis); err != nil {
+				if errors.Is(err, util.ErrInvalidArgument) {
+					ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+				} else {
+					ctx.APIErrorInternal(err)
+				}
+				return
+			}
+		}
+	}
+
 	opts := &user_service.UpdateOptions{
 		FullName:                  optional.FromPtr(form.FullName),
 		Description:               optional.FromPtr(form.Description),
 		Website:                   optional.FromPtr(form.Website),
 		Location:                  optional.FromPtr(form.Location),
-		Visibility:                optional.FromMapLookup(api.VisibilityModes, optional.FromPtr(form.Visibility).Value()),
 		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Org.Organization.AsUser(), opts); err != nil {
@@ -450,6 +483,10 @@ func Delete(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	if err := org.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
+		if organization.IsErrOrgHasSubgroups(err) || repo_model.IsErrUserOwnRepos(err) {
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+			return
+		}
 		ctx.APIErrorInternal(err)
 		return
 	}
@@ -493,7 +530,7 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 			includePrivate = true
 		} else {
 			org := organization.OrgFromUser(ctx.ContextUser)
-			isMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
+			isMember, err := org.IsOrgMemberOrOwner(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return

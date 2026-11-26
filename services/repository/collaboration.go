@@ -11,6 +11,7 @@ import (
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
@@ -36,8 +37,12 @@ func AddOrUpdateCollaborator(ctx context.Context, repo *repo_model.Repository, u
 		return user_model.ErrBlockedUser
 	}
 
+	runTx := db.WithTx
+	if repo.Owner.IsOrganization() {
+		runTx = organization.WithSubgroupHierarchyLock
+	}
 	added, updated := false, false
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
+	if err := runTx(ctx, func(ctx context.Context) error {
 		collaboration, has, err := db.Get[repo_model.Collaboration](ctx, builder.Eq{
 			"repo_id": repo.ID,
 			"user_id": u.ID,
@@ -96,8 +101,15 @@ func deleteCollaborationByMode(ctx context.Context, repo *repo_model.Repository,
 }
 
 func deleteCollaboration(ctx context.Context, repo *repo_model.Repository, collaborator *user_model.User, collaboration *repo_model.Collaboration) (err error) {
+	if err := repo.LoadOwner(ctx); err != nil {
+		return err
+	}
+	runTx := db.WithTx
+	if repo.Owner.IsOrganization() {
+		runTx = organization.WithSubgroupHierarchyLock
+	}
 	deleted := false
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
+	if err := runTx(ctx, func(ctx context.Context) error {
 		if n, err := db.GetEngine(ctx).Delete(collaboration); err != nil {
 			return err
 		} else if n == 0 {

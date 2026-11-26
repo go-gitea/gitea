@@ -44,7 +44,7 @@ func showUserFeed(ctx *context.Context, formatType string) {
 	if ctx.IsSigned && ctx.ContextUser.IsOrganization() && !includePrivate {
 		// When feed is requested by a member of the organization,
 		// include the private repo's the member has access to.
-		isOrgMember, err := organization.IsOrganizationMember(ctx, ctx.ContextUser.ID, ctx.Doer.ID)
+		isOrgMember, err := organization.IsOrganizationMemberOrOwner(ctx, ctx.ContextUser.ID, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerErrorAuto(err)
 			return

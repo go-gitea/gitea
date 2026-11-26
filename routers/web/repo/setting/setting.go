@@ -863,7 +863,7 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 	}
 
 	if newOwner.Type == user_model.UserTypeOrganization {
-		if !ctx.Doer.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx, ctx.Doer.ID) {
+		if !ctx.Doer.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberOrOwnerWithUserID(ctx, ctx.Doer.ID) {
 			// The user shouldn't know about this organization
 			ctx.JSONError(ctx.Tr("form.enterred_invalid_owner_name"))
 			return

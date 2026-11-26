@@ -32,7 +32,8 @@ func RemoveOrgUser(ctx context.Context, org *organization.Organization, user *us
 	}
 
 	// Check if the user to delete is the last member in owner team.
-	if isOwner, err := organization.IsOrganizationOwner(ctx, org.ID, user.ID); err != nil {
+	isOwner, err := organization.IsOrganizationOwner(ctx, org.ID, user.ID)
+	if err != nil {
 		return err
 	} else if isOwner {
 		t, err := organization.GetOwnerTeam(ctx, org.ID)
@@ -49,7 +50,7 @@ func RemoveOrgUser(ctx context.Context, org *organization.Organization, user *us
 		}
 	}
 
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
+	if err := organization.WithSubgroupHierarchyLock(ctx, func(ctx context.Context) error {
 		if _, err := db.DeleteByID[organization.OrgUser](ctx, ou.ID); err != nil {
 			return err
 		} else if _, err = db.Exec(ctx, "UPDATE `user` SET num_members=num_members-1 WHERE id=?", org.ID); err != nil {
@@ -93,6 +94,27 @@ func RemoveOrgUser(ctx context.Context, org *organization.Organization, user *us
 		for _, t := range teams {
 			if err = removeTeamMember(ctx, t, user); err != nil {
 				return err
+			}
+		}
+
+		// If the user still holds inherited ownership via an ancestor organization, restore owner-level repo grants.
+		stillOwner, err := organization.IsOrganizationOwner(ctx, org.ID, user.ID)
+		if err != nil {
+			return err
+		}
+		if stillOwner {
+			allRepos, _, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
+				OwnerID:     org.ID,
+				Private:     true,
+				ListOptions: db.ListOptionsAll,
+			})
+			if err != nil {
+				return err
+			}
+			for _, repo := range allRepos {
+				if err := access_model.RecalculateUserAccess(ctx, repo, user); err != nil {
+					return err
+				}
 			}
 		}
 		return nil

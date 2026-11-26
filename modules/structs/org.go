@@ -25,6 +25,10 @@ type Organization struct {
 	Visibility VisibilityString `json:"visibility"`
 	// Whether repository administrators can change team access
 	RepoAdminChangeTeamAccess bool `json:"repo_admin_change_team_access"`
+	// ID of the parent organization when this organization is a subgroup (0 for top-level organizations)
+	ParentOrgID int64 `json:"parent_org_id,omitempty"`
+	// Logical slash-delimited hierarchy path (e.g. "acme/platform/payments")
+	FullPath string `json:"full_path,omitempty"`
 	// username of the organization
 	// deprecated
 	UserName string `json:"username"`
@@ -63,6 +67,35 @@ type CreateOrgOption struct {
 	Visibility VisibilityString `json:"visibility" binding:"In(,public,limited,private)"`
 	// Whether repository administrators can change team access
 	RepoAdminChangeTeamAccess bool `json:"repo_admin_change_team_access"`
+	// Optional parent organization username to create this organization as a child subgroup
+	ParentOrg string `json:"parent_org,omitempty" binding:"MaxSize(40)"`
+}
+
+// CreateSubgroupOption options for creating a subgroup under an existing organization
+type CreateSubgroupOption struct {
+	// username of the subgroup organization
+	// required: true
+	UserName string `json:"username" binding:"Required;Username;MaxSize(40)"`
+	// The full display name of the subgroup
+	FullName string `json:"full_name" binding:"MaxSize(100)"`
+	// The email address of the subgroup
+	Email string `json:"email" binding:"MaxSize(255)"`
+	// The description of the subgroup
+	Description string `json:"description" binding:"MaxSize(255)"`
+	// The website URL of the subgroup
+	Website string `json:"website" binding:"ValidUrl;MaxSize(255)"`
+	// The location of the subgroup
+	Location string `json:"location" binding:"MaxSize(50)"`
+	// possible values are `public`, `limited` or `private` (defaults to parent organization visibility)
+	Visibility VisibilityString `json:"visibility" binding:"In(,public,limited,private)"`
+	// Whether repository administrators can change team access
+	RepoAdminChangeTeamAccess bool `json:"repo_admin_change_team_access"`
+}
+
+// MoveSubgroupOption options for moving or detaching an organization subgroup
+type MoveSubgroupOption struct {
+	// Username of the new parent organization; empty string detaches the subgroup to a top-level organization
+	ParentOrg string `json:"parent_org" binding:"MaxSize(40)"`
 }
 
 // EditOrgOption options for editing an organization

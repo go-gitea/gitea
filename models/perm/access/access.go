@@ -181,45 +181,74 @@ func refreshCollaboratorAccesses(ctx context.Context, repoID int64, accessMap ma
 // except the team whose ID is given. It is used to assign a team ID when
 // remove repository from that team.
 func RecalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, ignTeamID int64) (err error) {
-	accessMap := make(map[int64]*userAccess, 20)
-
 	if err = repo.LoadOwner(ctx); err != nil {
 		return err
 	} else if !repo.Owner.IsOrganization() {
 		return fmt.Errorf("owner is not an organization: %d", repo.OwnerID)
 	}
 
-	if err = refreshCollaboratorAccesses(ctx, repo.ID, accessMap); err != nil {
-		return fmt.Errorf("refreshCollaboratorAccesses: %w", err)
-	}
+	return organization.WithSubgroupHierarchyLock(ctx, func(ctx context.Context) error {
+		ownerOrg, err := organization.GetOrgByID(ctx, repo.OwnerID)
+		if err != nil {
+			return err
+		}
+		repo.Owner = ownerOrg.AsUser()
 
-	teams, err := organization.FindOrgTeams(ctx, repo.Owner.ID)
-	if err != nil {
-		return err
-	}
-
-	for _, t := range teams {
-		if t.ID == ignTeamID {
-			continue
+		accessMap := make(map[int64]*userAccess, 20)
+		if err = refreshCollaboratorAccesses(ctx, repo.ID, accessMap); err != nil {
+			return fmt.Errorf("refreshCollaboratorAccesses: %w", err)
 		}
 
-		// Owner team gets owner access, and skip for teams that do not
-		// have relations with repository.
-		if t.IsOwnerTeam() {
-			t.AccessMode = perm.AccessModeOwner
-		} else if !organization.HasTeamRepo(ctx, t.OrgID, t.ID, repo.ID) {
-			continue
+		teams, err := organization.FindOrgTeams(ctx, repo.Owner.ID)
+		if err != nil {
+			return err
 		}
 
-		if err = t.LoadMembers(ctx); err != nil {
-			return fmt.Errorf("getMembers '%d': %w", t.ID, err)
-		}
-		for _, m := range t.Members {
-			updateUserAccess(accessMap, m, t.AccessMode)
-		}
-	}
+		for _, t := range teams {
+			if t.ID == ignTeamID {
+				continue
+			}
 
-	return refreshAccesses(ctx, repo, accessMap)
+			// Owner team gets owner access, and skip for teams that do not
+			// have relations with repository.
+			if t.IsOwnerTeam() {
+				t.AccessMode = perm.AccessModeOwner
+			} else if !organization.HasTeamRepo(ctx, t.OrgID, t.ID, repo.ID) {
+				continue
+			}
+
+			if err = t.LoadMembers(ctx); err != nil {
+				return fmt.Errorf("getMembers '%d': %w", t.ID, err)
+			}
+			for _, m := range t.Members {
+				updateUserAccess(accessMap, m, t.AccessMode)
+			}
+		}
+
+		if repo.Owner.ParentOrgID > 0 {
+			ancestors, err := organization.GetAncestorOrgs(ctx, repo.Owner.ID)
+			if err != nil {
+				return fmt.Errorf("RecalculateTeamAccesses: %w", err)
+			}
+			for _, anc := range ancestors {
+				ownerTeam, err := anc.GetOwnerTeam(ctx)
+				if err != nil {
+					if organization.IsErrTeamNotExist(err) {
+						continue
+					}
+					return fmt.Errorf("RecalculateTeamAccesses: %w", err)
+				}
+				if err = ownerTeam.LoadMembers(ctx); err != nil {
+					return fmt.Errorf("RecalculateTeamAccesses: %w", err)
+				}
+				for _, m := range ownerTeam.Members {
+					updateUserAccess(accessMap, m, perm.AccessModeOwner)
+				}
+			}
+		}
+
+		return refreshAccesses(ctx, repo, accessMap)
+	})
 }
 
 // RecalculateUserAccess recalculates new access for a single user
@@ -229,49 +258,74 @@ func RecalculateUserAccess(ctx context.Context, repo *repo_model.Repository, use
 		return err
 	}
 
-	minMode := perm.AccessModeRead
-	if !repo.IsPrivate && !repo.Owner.IsOrganization() && !user.IsRestricted {
-		minMode = perm.AccessModeWrite
-	}
+	recalc := func(ctx context.Context) error {
+		if repo.Owner.IsOrganization() {
+			ownerOrg, err := organization.GetOrgByID(ctx, repo.OwnerID)
+			if err != nil {
+				return err
+			}
+			repo.Owner = ownerOrg.AsUser()
+		}
 
-	accessMode := perm.AccessModeNone
-	e := db.GetEngine(ctx)
-	collaborator, err := repo_model.GetCollaboration(ctx, repo.ID, user.ID)
-	if err != nil {
-		return err
-	} else if collaborator != nil {
-		accessMode = collaborator.Mode
+		minMode := perm.AccessModeRead
+		if !repo.IsPrivate && !repo.Owner.IsOrganization() && !user.IsRestricted {
+			minMode = perm.AccessModeWrite
+		}
+
+		accessMode := perm.AccessModeNone
+		e := db.GetEngine(ctx)
+		collaborator, err := repo_model.GetCollaboration(ctx, repo.ID, user.ID)
+		if err != nil {
+			return err
+		} else if collaborator != nil {
+			accessMode = collaborator.Mode
+		}
+
+		if repo.Owner.IsOrganization() {
+			var teams []organization.Team
+			if err := e.Join("INNER", "team_repo", "team_repo.team_id = team.id").
+				Join("INNER", "team_user", "team_user.team_id = team.id").
+				Where("team.org_id = ?", repo.OwnerID).
+				And("team_repo.repo_id=?", repo.ID).
+				And("team_user.uid=?", user.ID).
+				Find(&teams); err != nil {
+				return err
+			}
+
+			for _, t := range teams {
+				if t.IsOwnerTeam() {
+					t.AccessMode = perm.AccessModeOwner
+				}
+
+				accessMode = max(accessMode, t.AccessMode)
+			}
+
+			if accessMode < perm.AccessModeOwner && repo.Owner.ParentOrgID > 0 {
+				isAncOwner, err := organization.IsOrganizationOwner(ctx, repo.OwnerID, user.ID)
+				if err != nil {
+					return err
+				}
+				if isAncOwner {
+					accessMode = perm.AccessModeOwner
+				}
+			}
+		}
+
+		// Delete old user accesses and insert new one for repository.
+		if _, err = e.Delete(&Access{RepoID: repo.ID, UserID: user.ID}); err != nil {
+			return fmt.Errorf("delete old user accesses: %w", err)
+		} else if accessMode >= minMode {
+			if err = db.Insert(ctx, &Access{RepoID: repo.ID, UserID: user.ID, Mode: accessMode}); err != nil {
+				return fmt.Errorf("insert new user accesses: %w", err)
+			}
+		}
+		return nil
 	}
 
 	if repo.Owner.IsOrganization() {
-		var teams []organization.Team
-		if err := e.Join("INNER", "team_repo", "team_repo.team_id = team.id").
-			Join("INNER", "team_user", "team_user.team_id = team.id").
-			Where("team.org_id = ?", repo.OwnerID).
-			And("team_repo.repo_id=?", repo.ID).
-			And("team_user.uid=?", user.ID).
-			Find(&teams); err != nil {
-			return err
-		}
-
-		for _, t := range teams {
-			if t.IsOwnerTeam() {
-				t.AccessMode = perm.AccessModeOwner
-			}
-
-			accessMode = max(accessMode, t.AccessMode)
-		}
+		return organization.WithSubgroupHierarchyLock(ctx, recalc)
 	}
-
-	// Delete old user accesses and insert new one for repository.
-	if _, err = e.Delete(&Access{RepoID: repo.ID, UserID: user.ID}); err != nil {
-		return fmt.Errorf("delete old user accesses: %w", err)
-	} else if accessMode >= minMode {
-		if err = db.Insert(ctx, &Access{RepoID: repo.ID, UserID: user.ID, Mode: accessMode}); err != nil {
-			return fmt.Errorf("insert new user accesses: %w", err)
-		}
-	}
-	return nil
+	return recalc(ctx)
 }
 
 // RecalculateAccesses recalculates all accesses for repository.

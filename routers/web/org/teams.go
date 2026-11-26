@@ -254,7 +254,7 @@ func TeamsAction(ctx *context.Context) {
 }
 
 func checkIsOrgMemberAndRedirect(ctx *context.Context, defaultRedirect string) {
-	if isOrgMember, err := org_model.IsOrganizationMember(ctx, ctx.Org.Organization.ID, ctx.Doer.ID); err != nil {
+	if isOrgMember, err := org_model.IsOrganizationMemberOrOwner(ctx, ctx.Org.Organization.ID, ctx.Doer.ID); err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	} else if !isOrgMember && !ctx.Doer.IsAdmin {

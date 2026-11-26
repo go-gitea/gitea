@@ -190,10 +190,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		// but such a function would likely get out of date
 		for {
 			orgs, err := db.Find[organization.Organization](ctx, organization.FindOrgOptions{
-				ListOptions: db.ListOptions{
-					PageSize: repo_model.RepositoryListDefaultPageSize,
-					Page:     1,
-				},
+				ListOptions:       db.ListOptionsAll,
 				UserID:            u.ID,
 				IncludeVisibility: structs.VisibleTypePrivate,
 			})
@@ -202,6 +199,9 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 			}
 			if len(orgs) == 0 {
 				break
+			}
+			if err := organization.SortOrgsLeafFirst(ctx, orgs); err != nil {
+				return fmt.Errorf("unable to order org list leaf-first for %s[%d]. Error: %w", u.Name, u.ID, err)
 			}
 			for _, org := range orgs {
 				if err := org_service.RemoveOrgUser(ctx, org, u); err != nil {

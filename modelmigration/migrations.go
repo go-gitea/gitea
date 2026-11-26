@@ -452,6 +452,9 @@ func prepareMigrationTasks() []*migration {
 		newMigration(373, "Repair Debian and RPM signing keys rejected by Sequoia", v29.RepairPackageSigningKeys),
 		newMigration(374, "Add pull_merge_queue_entry table", v29.AddPullMergeQueueEntryTable),
 	}
+	preparedMigrations = append(preparedMigrations,
+		newMigration(int64(minDBVersion+len(preparedMigrations)), "Add parent_org_id column to user for organization subgroups", v29.AddParentOrgIDToUser),
+	)
 	return preparedMigrations
 }
 

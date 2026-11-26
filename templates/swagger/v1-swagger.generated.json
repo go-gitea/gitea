@@ -2656,6 +2656,35 @@
         }
       }
     },
+    "/orgs/{org}/ancestors": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "List an organization's ancestor organizations",
+        "operationId": "orgListAncestors",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OrganizationList"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/orgs/{org}/avatar": {
       "post": {
         "produces": [
@@ -3347,6 +3376,46 @@
         "responses": {
           "204": {
             "description": "member removed"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/parent": {
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Move or detach an organization subgroup",
+        "operationId": "orgMoveSubgroup",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the subgroup organization to move",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MoveSubgroupOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Organization"
           },
           "default": {
             "$ref": "#/responses/error"
@@ -4599,6 +4668,91 @@
           },
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/subgroups": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "List an organization's subgroups",
+        "operationId": "orgListSubgroups",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the parent organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "include all nested descendant subgroups recursively",
+            "name": "recursive",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OrganizationList"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Create a subgroup under an organization",
+        "operationId": "orgCreateSubgroup",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the parent organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "subgroup",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateSubgroupOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Organization"
           },
           "default": {
             "$ref": "#/responses/error"
@@ -27510,6 +27664,11 @@
           "type": "string",
           "x-go-name": "Location"
         },
+        "parent_org": {
+          "description": "Optional parent organization username to create this organization as a child subgroup",
+          "type": "string",
+          "x-go-name": "ParentOrg"
+        },
         "repo_admin_change_team_access": {
           "description": "Whether repository administrators can change team access",
           "type": "boolean",
@@ -27970,6 +28129,62 @@
           "description": "TargetURL is the URL to link to for more details",
           "type": "string",
           "x-go-name": "TargetURL"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CreateSubgroupOption": {
+      "description": "CreateSubgroupOption options for creating a subgroup under an existing organization",
+      "type": "object",
+      "required": [
+        "username"
+      ],
+      "properties": {
+        "description": {
+          "description": "The description of the subgroup",
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "email": {
+          "description": "The email address of the subgroup",
+          "type": "string",
+          "x-go-name": "Email"
+        },
+        "full_name": {
+          "description": "The full display name of the subgroup",
+          "type": "string",
+          "x-go-name": "FullName"
+        },
+        "location": {
+          "description": "The location of the subgroup",
+          "type": "string",
+          "x-go-name": "Location"
+        },
+        "repo_admin_change_team_access": {
+          "description": "Whether repository administrators can change team access",
+          "type": "boolean",
+          "x-go-name": "RepoAdminChangeTeamAccess"
+        },
+        "username": {
+          "description": "username of the subgroup organization",
+          "type": "string",
+          "x-go-name": "UserName"
+        },
+        "visibility": {
+          "description": "possible values are `public`, `limited` or `private` (defaults to parent organization visibility)",
+          "type": "string",
+          "enum": [
+            "public",
+            "limited",
+            "private"
+          ],
+          "x-go-enum-desc": "public VisibilityStringPublic\nlimited VisibilityStringLimited\nprivate VisibilityStringPrivate",
+          "x-go-name": "Visibility"
+        },
+        "website": {
+          "description": "The website URL of the subgroup",
+          "type": "string",
+          "x-go-name": "Website"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -31377,6 +31592,18 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "MoveSubgroupOption": {
+      "description": "MoveSubgroupOption options for moving or detaching an organization subgroup",
+      "type": "object",
+      "properties": {
+        "parent_org": {
+          "description": "Username of the new parent organization; empty string detaches the subgroup to a top-level organization",
+          "type": "string",
+          "x-go-name": "ParentOrg"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "NewIssuePinsAllowed": {
       "description": "NewIssuePinsAllowed represents an API response that says if new Issue Pins are allowed",
       "type": "object",
@@ -31591,6 +31818,11 @@
           "type": "string",
           "x-go-name": "FullName"
         },
+        "full_path": {
+          "description": "Logical slash-delimited hierarchy path (e.g. \"acme/platform/payments\")",
+          "type": "string",
+          "x-go-name": "FullPath"
+        },
         "id": {
           "description": "The unique identifier of the organization",
           "type": "integer",
@@ -31606,6 +31838,12 @@
           "description": "The name of the organization",
           "type": "string",
           "x-go-name": "Name"
+        },
+        "parent_org_id": {
+          "description": "ID of the parent organization when this organization is a subgroup (0 for top-level organizations)",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ParentOrgID"
         },
         "repo_admin_change_team_access": {
           "description": "Whether repository administrators can change team access",

@@ -4,8 +4,10 @@
 package organization
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -90,17 +92,54 @@ func DoerViewOtherVisibility(doer, other *user_model.User) structs.VisibleType {
 }
 
 // GetOrgsCanCreateRepoByUserID returns a list of organizations where given user ID
-// are allowed to create repos.
+// are allowed to create repos (including descendant subgroups of owned organizations).
 func GetOrgsCanCreateRepoByUserID(ctx context.Context, userID int64) ([]*Organization, error) {
 	orgs := make([]*Organization, 0, 10)
-
-	return orgs, db.GetEngine(ctx).Where(builder.In("id", builder.Select("`user`.id").From("`user`").
+	if err := db.GetEngine(ctx).Where(builder.In("id", builder.Select("`user`.id").From("`user`").
 		Join("INNER", "`team_user`", "`team_user`.org_id = `user`.id").
 		Join("INNER", "`team`", "`team`.id = `team_user`.team_id").
 		Where(builder.Eq{"`team_user`.uid": userID}).
 		And(builder.Eq{"`team`.authorize": perm.AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true})))).
 		Asc("`user`.name").
-		Find(&orgs)
+		Find(&orgs); err != nil {
+		return nil, err
+	}
+
+	var ownedOrgs []*Organization
+	if err := db.GetEngine(ctx).Where(builder.In("id", builder.Select("`user`.id").From("`user`").
+		Join("INNER", "`team_user`", "`team_user`.org_id = `user`.id").
+		Join("INNER", "`team`", "`team`.id = `team_user`.team_id").
+		Where(builder.Eq{
+			"`team_user`.uid":  userID,
+			"`team`.authorize": perm.AccessModeOwner,
+		}))).
+		Find(&ownedOrgs); err != nil {
+		return nil, err
+	}
+	if len(ownedOrgs) == 0 {
+		return orgs, nil
+	}
+
+	seen := make(map[int64]struct{}, len(orgs))
+	for _, org := range orgs {
+		seen[org.ID] = struct{}{}
+	}
+	for _, owned := range ownedOrgs {
+		descendants, err := GetDescendantOrgs(ctx, owned.ID, nil, true)
+		if err != nil {
+			return nil, err
+		}
+		for _, desc := range descendants {
+			if _, exists := seen[desc.ID]; !exists {
+				seen[desc.ID] = struct{}{}
+				orgs = append(orgs, desc)
+			}
+		}
+	}
+	slices.SortFunc(orgs, func(a, b *Organization) int {
+		return cmp.Compare(a.Name, b.Name)
+	})
+	return orgs, nil
 }
 
 // MinimalOrg represents a simple organization with only the needed columns
