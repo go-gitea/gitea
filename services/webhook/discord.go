@@ -108,6 +108,8 @@ var (
 // To keep it simple, we currently truncate at 2000.
 const discordDescriptionCharactersLimit = 2000
 
+const discordTitleCharactersLimit = 256
+
 type discordConvertor struct {
 	Username  string
 	AvatarURL string
@@ -329,7 +331,7 @@ func (d discordConvertor) createPayload(s *api.User, title, text, url string, co
 		AvatarURL: d.AvatarURL,
 		Embeds: []DiscordEmbed{
 			{
-				Title:       title,
+				Title:       util.TruncateRunes(title, discordTitleCharactersLimit),
 				Description: util.TruncateRunes(text, discordDescriptionCharactersLimit),
 				URL:         url,
 				Color:       color,

@@ -49,6 +49,15 @@ func TestSlackPayload(t *testing.T) {
 			"[<http://localhost:3000/test/repo|test/repo>] Pull request opened: <http://localhost:3000/test/repo/pulls/12|#12 Fix bug> by <https://try.gitea.io/user1|user1>", true,
 		},
 		{
+			"PullRequestReviewRequestRemoved", func() (SlackPayload, error) {
+				p := pullRequestTestPayload()
+				p.Action = api.HookIssueReviewRequestRemoved
+				p.RequestedReviewer = &api.User{UserName: "reviewer1"}
+				return sc.PullRequest(p)
+			},
+			"[<http://localhost:3000/test/repo|test/repo>] Pull request review request removed from <https://try.gitea.io/reviewer1|reviewer1>: <http://localhost:3000/test/repo/pulls/12|#12 Fix bug> by <https://try.gitea.io/user1|user1>", false,
+		},
+		{
 			"PullRequestComment", func() (SlackPayload, error) { return sc.IssueComment(pullRequestCommentTestPayload()) },
 			"[<http://localhost:3000/test/repo|test/repo>] New comment on pull request <http://localhost:3000/test/repo/pulls/12|#12 Fix bug> by <https://try.gitea.io/user1|user1>", false,
 		},

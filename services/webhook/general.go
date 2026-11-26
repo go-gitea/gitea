@@ -225,10 +225,12 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 	case api.HookIssueReviewed:
 		text = fmt.Sprintf("[%s] Pull request reviewed: %s", repoLink, titleLink)
 		extraMarkdown = p.Review.Content
-	case api.HookIssueReviewRequested:
-		text = fmt.Sprintf("[%s] Pull request review requested: %s", repoLink, titleLink)
-	case api.HookIssueReviewRequestRemoved:
-		text = fmt.Sprintf("[%s] Pull request review request removed: %s", repoLink, titleLink)
+	case api.HookIssueReviewRequested, api.HookIssueReviewRequestRemoved:
+		action := util.Iif(p.Action == api.HookIssueReviewRequested, "review requested", "review request removed")
+		if p.RequestedReviewer != nil {
+			action += " from " + linkFormatter(setting.AppURL+url.PathEscape(p.RequestedReviewer.UserName), p.RequestedReviewer.UserName)
+		}
+		text = fmt.Sprintf("[%s] Pull request %s: %s", repoLink, action, titleLink)
 	}
 	if withSender {
 		text += " by " + linkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
