@@ -77,28 +77,27 @@ func TestNonInternalURLReturnsErrorWithoutPanic(t *testing.T) {
 
 	b, err := New(t.Context(), "api/internal/repo/owner/repo.git/info/lfs", "download", "Bearer lfs-token", noopLogger{})
 	require.NoError(t, err)
-	gb := b.(*GiteaBackend)
 
 	t.Run("Download empty or non-HTTP href", func(t *testing.T) {
 		for _, href := range []string{"", "not-a-url", "ftp://example.com/file"} {
 			args := transfer.Args{argID: encodeActionID(t, actionDownload, href)}
-			_, _, err := gb.Download("abcdef", args)
+			_, _, err := b.Download("abcdef", args)
 			assert.Error(t, err, href)
 		}
 		args := transfer.Args{argID: encodeActionID(t, actionDownload, "https://s3.example.com/obj")}
-		_, _, err := gb.Download("..", args)
+		_, _, err := b.Download("..", args)
 		assert.Error(t, err)
 	})
 
 	t.Run("Upload non-internal href", func(t *testing.T) {
 		args := transfer.Args{argID: encodeActionID(t, actionUpload, "https://s3.example.com/upload")}
-		err := gb.Upload("abcdef", 4, bytes.NewReader([]byte("test")), args)
+		err := b.Upload("abcdef", 4, bytes.NewReader([]byte("test")), args)
 		assert.Error(t, err)
 	})
 
 	t.Run("Verify non-internal href", func(t *testing.T) {
 		args := transfer.Args{argID: encodeActionID(t, actionVerify, "https://s3.example.com/verify")}
-		_, err := gb.Verify("abcdef", 4, args)
+		_, err := b.Verify("abcdef", 4, args)
 		assert.Error(t, err)
 	})
 
@@ -116,7 +115,9 @@ func TestNonInternalURLReturnsErrorWithoutPanic(t *testing.T) {
 		_, err = lb.FromPath("file.bin")
 		assert.Error(t, err)
 
-		err = lb.Unlock(newGiteaLock(lb.(*giteaLockBackend), "1", "file.bin", time.Now(), "user"))
+		glb, ok := lb.(*giteaLockBackend)
+		require.True(t, ok)
+		err = lb.Unlock(newGiteaLock(glb, "1", "file.bin", time.Now(), "user"))
 		assert.Error(t, err)
 	})
 }
