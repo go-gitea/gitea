@@ -144,7 +144,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
     ]},
     role: role || 'menu',
     theme: resolvedTheme,
-    offset: [0, resolvedArrow ? 10 : 6],
+    offset: [0, resolvedArrow ? 8.5 : 3], // the arrow is 7px tall
     plugins: [followCursor],
     ...other,
   } satisfies Partial<Props>);

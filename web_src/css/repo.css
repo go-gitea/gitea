@@ -1637,7 +1637,7 @@ tbody.commit-list {
   width: max-content;
   min-width: min(16.5rem, 90vw);
   max-width: min(400px, 90vw);
-  margin-top: 4px;
+  margin-top: 2px;
   font-size: 1rem;
   text-align: left;
 }

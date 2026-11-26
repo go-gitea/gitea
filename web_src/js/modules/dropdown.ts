@@ -22,6 +22,7 @@ const removalObserver = new MutationObserver(() => {
 });
 
 const isItemEnabled = (item: Element) => item.getAttribute('aria-disabled') !== 'true';
+const isShown = (el: HTMLElement) => !el.hidden && !el.classList.contains('tw-hidden');
 
 export class Dropdown {
   container: HTMLElement;
@@ -316,11 +317,16 @@ export class Dropdown {
       const isItem = el.matches('.dropdown-item');
       if (isItem) {
         el.hidden = Boolean(query) && !el.textContent.toLowerCase().includes(query);
-        groupHasMatch = (belowIsItem && groupHasMatch) || (!el.hidden && !el.classList.contains('tw-hidden'));
+        groupHasMatch = (belowIsItem && groupHasMatch) || isShown(el);
       } else {
         el.hidden = Boolean(query) && !groupHasMatch;
       }
       belowIsItem = isItem;
+    }
+    for (const divider of this.popup.querySelectorAll<HTMLElement>('.dropdown-divider')) {
+      let previous = divider.previousElementSibling as HTMLElement | null;
+      while (previous && !isShown(previous)) previous = previous.previousElementSibling as HTMLElement | null;
+      if (query && !previous) divider.hidden = true; // nothing above it to separate from
     }
     if (!this.tippy) return;
     this.highlight(query ? this.navigableItems()[0] ?? null : null);

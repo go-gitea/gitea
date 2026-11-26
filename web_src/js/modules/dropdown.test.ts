@@ -14,13 +14,16 @@ test('select has a field label, picks the first filter match with Enter, hides u
     <input type="hidden" class="dropdown-value" value="apple">
     <div class="dropdown-popup">
       <input class="dropdown-filter">
-      <div class="dropdown-item" data-value="">Clear</div>
-      <div class="dropdown-header">Fruits</div>
-      <div class="dropdown-item" data-value="apple">Apple</div>
-      <div class="dropdown-item" data-value="banana" data-text="Banana!"><b>Banana</b></div>
-      <div class="dropdown-item" data-value="blueberry">Blueberry</div>
-      <div class="dropdown-divider"></div>
-      <div class="dropdown-item" data-value="carrot">Carrot</div>
+      <div class="dropdown-list">
+        <div class="dropdown-item" data-value="">Clear</div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-header">Fruits</div>
+        <div class="dropdown-item" data-value="apple">Apple</div>
+        <div class="dropdown-item" data-value="banana" data-text="Banana!"><b>Banana</b></div>
+        <div class="dropdown-item" data-value="blueberry">Blueberry</div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item" data-value="carrot">Carrot</div>
+      </div>
     </div>
   </div></div>`);
   document.body.append(field);
@@ -53,7 +56,7 @@ test('select has a field label, picks the first filter match with Enter, hides u
   await userEvent.keyboard('ban');
   expect(dropdown.highlighted).toBe(dropdown.findItem('banana'));
   expect(dropdown.popup.querySelector<HTMLElement>('.dropdown-header')!.hidden).toBe(false);
-  expect(dropdown.popup.querySelector<HTMLElement>('.dropdown-divider')!.hidden).toBe(true);
+  expect(Array.from(dropdown.popup.querySelectorAll<HTMLElement>('.dropdown-divider'), (el) => el.hidden)).toEqual([true, true]);
   await userEvent.keyboard('{Tab}');
   expect(changes).toEqual(['banana']);
   expect(dropdown.value).toBe('');
