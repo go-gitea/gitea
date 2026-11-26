@@ -63,14 +63,11 @@ func RefreshFileNamePatterns() {
 	}
 }
 
-// IsInlineRenderedFile reports whether the file is rendered by a markup renderer whose output is shown inline
+// IsInlineRenderedFile reports whether the file is rendered by a markup renderer to sanitized HTML shown inline
 func IsInlineRenderedFile(filename string) bool {
 	renderer := DetectRendererTypeByFilename(filename)
-	if renderer == nil || !RendererNeedPostProcess(renderer) {
-		return false
-	}
-	opts, isExternal := GetExternalRendererOptions(renderer)
-	return !isExternal || !opts.DisplayInIframe
+	opts, _ := GetExternalRendererOptions(renderer)
+	return RendererNeedPostProcess(renderer) && !opts.SanitizerDisabled
 }
 
 func DetectRendererTypeByFilename(filename string) Renderer {

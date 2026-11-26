@@ -1,4 +1,4 @@
-import {addDelegatedEventListener, hideElem, queryElemSiblings, showElem, toggleElem} from '../utils/dom.ts';
+import {addDelegatedEventListener, hideElem, queryElemSiblings, showElem, toggleElem, toggleElemClass} from '../utils/dom.ts';
 
 export function initUnicodeEscapeButton() {
   // buttons might appear on these pages: file view (code, rendered markdown), diff (commit, pr conversation, pr diff), blame, wiki
@@ -9,18 +9,19 @@ export function initUnicodeEscapeButton() {
     const container = unicodeContentSelector ?
       document.querySelector(unicodeContentSelector)! :
       btn.closest('.file-content, .non-diff-file-content')!;
-    const fileView = container.querySelector('.file-code, .file-view') ?? container;
+    const fileViews = container.querySelectorAll('.file-body, .file-view'); // a diff's source and rendered views share the state
+    const targets = fileViews.length ? fileViews : container;
     if (btn.matches('.escape-button')) {
-      fileView.classList.add('unicode-escaped');
+      toggleElemClass(targets, 'unicode-escaped', true);
       hideElem(btn);
       showElem(queryElemSiblings(btn, '.unescape-button'));
     } else if (btn.matches('.unescape-button')) {
-      fileView.classList.remove('unicode-escaped');
+      toggleElemClass(targets, 'unicode-escaped', false);
       hideElem(btn);
       showElem(queryElemSiblings(btn, '.escape-button'));
     } else if (btn.matches('.toggle-escape-button')) {
-      const isEscaped = fileView.classList.contains('unicode-escaped');
-      fileView.classList.toggle('unicode-escaped', !isEscaped);
+      const isEscaped = (fileViews[0] ?? container).classList.contains('unicode-escaped');
+      toggleElemClass(targets, 'unicode-escaped', !isEscaped);
       toggleElem(container.querySelectorAll('.unescape-button'), !isEscaped);
       toggleElem(container.querySelectorAll('.escape-button'), isEscaped);
     }

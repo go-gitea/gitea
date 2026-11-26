@@ -90,7 +90,7 @@
 					{{$isImage:= $file.IsBlobTypeImage}}
 					{{$isCsv := $file.IsBlobTypeCsv}}
 					{{$richDiffLink := $.DiffBlobExcerptData.RichDiffLink $file}}
-					{{$isRichDiff := ne $richDiffLink ""}}
+					{{$isRichDiff := and (ne $richDiffLink "") ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
 					{{$showFileViewToggle := or $file.CanShowFileViewToggle $isRichDiff}}
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.Repository.IsArchived) $.IsShowingAllCommits}}
 					<div class="diff-file-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if $file.ShouldBeHidden}}data-folded="true"{{end}}>
@@ -208,7 +208,7 @@
 								{{end}}
 							</div>
 							{{if $isRichDiff}}
-								<div id="diff-rendered-{{$file.NameHash}}" class="file-body tw-hidden" data-rich-diff-link="{{$richDiffLink}}">
+								<div id="diff-rendered-{{$file.NameHash}}" class="file-body unicode-escaped tw-hidden" data-rich-diff-link="{{$richDiffLink}}">
 									<div class="is-loading tw-py-8"></div>
 								</div>
 							{{else if $showFileViewToggle}}

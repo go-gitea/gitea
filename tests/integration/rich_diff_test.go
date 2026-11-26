@@ -17,13 +17,13 @@ import (
 )
 
 func TestRichDiff(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		resp := testCreateFileInBranch(t, user2, repo1, createFileInBranchOptions{}, map[string]string{
 			"old.md":  "Hello old world",
 			"new.md":  "Hello new world",
-			"new.txt": "Hello new world",
+			"new.txt": "",
 		})
 		link := func(oldPath, path string) string {
 			q := url.Values{"before": {resp.Commit.SHA}, "old_path": {oldPath}, "after": {resp.Commit.SHA}, "path": {path}}
@@ -31,7 +31,7 @@ func TestRichDiff(t *testing.T) {
 		}
 
 		body := MakeRequest(t, NewRequest(t, "GET", link("old.md", "new.md")), http.StatusOK).Body.String()
-		assert.Equal(t, `<div class="markup rich-diff unicode-escaped tw-p-4"><p dir="auto">Hello <del class="rich-diff-removed">old</del><ins class="rich-diff-added">new</ins> world</p></div>`, strings.TrimSpace(body))
+		assert.Equal(t, `<div class="markup rich-diff"><div class="rich-diff-block rich-diff-block-changed"><p dir="auto">Hello <del class="rich-diff-removed">old</del><ins class="rich-diff-added">new</ins> world</p></div></div>`, strings.TrimSpace(body))
 
 		MakeRequest(t, NewRequest(t, "GET", link("old.md", "new.txt")), http.StatusNotFound)
 		MakeRequest(t, NewRequest(t, "GET", link("new.txt", "new.md")), http.StatusNotFound)

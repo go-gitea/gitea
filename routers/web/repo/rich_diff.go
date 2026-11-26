@@ -58,7 +58,12 @@ func diffRichDiffFiles(ctx *context.Context, oldPath, newPath string) (template.
 	if err != nil {
 		return "", err
 	}
-	return htmldiff.Diff(oldHTML, newHTML, htmldiff.Options{NormalizeLink: commitIDRemover(oldCommitID, newCommitID)})
+	diffHTML, err := htmldiff.Diff(oldHTML, newHTML, htmldiff.Options{NormalizeLink: commitIDRemover(oldCommitID, newCommitID)})
+	if err != nil {
+		return "", err
+	}
+	_, escaped := charset.EscapeControlHTML(diffHTML, ctx.Locale, charset.EscapeOptionsForView())
+	return escaped, nil
 }
 
 func renderRichDiffFile(ctx *context.Context, commitRef, treePath string) (commitID, rendered string, _ error) {
@@ -83,24 +88,19 @@ func renderRichDiffFile(ctx *context.Context, commitRef, treePath string) (commi
 	defer reader.Close()
 
 	commitID = commit.ID.String()
-	refSubURL := git.RefNameFromCommit(commitID).RefWebLinkPath()
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
-		CurrentRefSubURL: refSubURL,
+		CurrentRefSubURL: git.RefNameFromCommit(commitID).RefWebLinkPath(),
 		CurrentTreePath:  path.Dir(treePath),
 	}).WithRelativePath(treePath)
-	metas := ctx.Repo.Repository.ComposeRepoFileMetas(ctx)
-	metas["RefTypeNameSubURL"] = refSubURL
-	rctx.WithMetas(metas)
 
-	renderer := markup.DetectRendererTypeByFilename(treePath)
-	_, html, err := markupRenderToHTML(ctx, rctx, renderer, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}))
-	if err != nil {
+	var sb strings.Builder
+	if err := markup.RenderWithRenderer(rctx, markup.DetectRendererTypeByFilename(treePath), charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}), &sb); err != nil {
 		return "", "", fmt.Errorf("renderRichDiffFile: %w", err)
 	}
-	return commitID, string(html), nil
+	return commitID, sb.String(), nil
 }
 
-// commitIDRemover makes the links of both versions comparable, they point to their own commit
+// commitIDRemover makes links comparable, each version links to its own commit
 func commitIDRemover(commitIDs ...string) func(string) string {
 	var pairs []string
 	for _, id := range commitIDs {

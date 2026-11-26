@@ -231,16 +231,16 @@ func (d *DiffBlobExcerptData) RichDiffLink(file *DiffFile) string {
 	if d.IsWikiRepo || !file.IsBlobTypeRichDiff {
 		return ""
 	}
-	q := url.Values{}
+	query := url.Values{}
 	if file.Type != DiffFileAdd {
-		q.Set("before", d.BeforeCommitID)
-		q.Set("old_path", file.OldName)
+		query.Set("before", d.BeforeCommitID)
+		query.Set("old_path", file.OldName)
 	}
 	if file.Type != DiffFileDel {
-		q.Set("after", d.AfterCommitID)
-		q.Set("path", file.Name)
+		query.Set("after", d.AfterCommitID)
+		query.Set("path", file.Name)
 	}
-	return path.Dir(d.BaseLink) + "/rich_diff?" + q.Encode() // a sibling of the blob excerpt route
+	return path.Dir(d.BaseLink) + "/rich_diff?" + query.Encode() // a sibling of the blob excerpt route
 }
 
 const (
@@ -564,7 +564,8 @@ func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, gitRepo *
 	diffFile.IsBlobTypeImage = isFileTypeImage(leftBlobType) || isFileTypeImage(rightBlobType)
 	diffFile.IsBlobTypeCsv = isFileTypeCsv(diffFile.Name)
 	// a file renamed from or to a non-markup name has no rendered version on that side
-	diffFile.IsBlobTypeRichDiff = !diffFile.IsBin && !diffFile.IsSubmodule &&
+	diffFile.IsBlobTypeRichDiff = !diffFile.IsBin && !diffFile.IsSubmodule && !diffFile.IsBlobTypeImage &&
+		max(diffFile.LeftBlobSize, diffFile.RightBlobSize) <= setting.UI.MaxDisplayFileSize &&
 		(diffFile.Type == DiffFileAdd || markup.IsInlineRenderedFile(diffFile.OldName)) &&
 		(diffFile.Type == DiffFileDel || markup.IsInlineRenderedFile(diffFile.Name))
 
