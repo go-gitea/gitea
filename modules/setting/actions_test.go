@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"slices"
 	"testing"
+	"time"
 
 	"gitea.dev/modules/test"
 
@@ -275,5 +276,31 @@ func Test_ScopedWorkflowDirs(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantScoped, Actions.ScopedWorkflowDirs)
 		})
+	}
+}
+
+func Test_JobPriorityAging(t *testing.T) {
+	defer test.MockVariableValue(&Actions)()
+	for _, tt := range []struct {
+		iniStr  string
+		want    time.Duration
+		wantErr string
+	}{
+		{iniStr: ``, want: 30 * time.Minute},
+		{iniStr: "[actions]\nJOB_PRIORITY_AGING = 0", want: 0},
+		{iniStr: "[actions]\nJOB_PRIORITY_AGING = 2h", want: 2 * time.Hour},
+		{iniStr: "[actions]\nJOB_PRIORITY_AGING = 168h", want: 168 * time.Hour},
+		{iniStr: "[actions]\nJOB_PRIORITY_AGING = 169h", wantErr: "JOB_PRIORITY_AGING"},
+		{iniStr: "[actions]\nJOB_PRIORITY_AGING = -1m", wantErr: "JOB_PRIORITY_AGING"},
+	} {
+		cfg, err := NewConfigProviderFromData(tt.iniStr)
+		require.NoError(t, err)
+		err = loadActionsFrom(cfg)
+		if tt.wantErr != "" {
+			assert.ErrorContains(t, err, tt.wantErr, tt.iniStr)
+			continue
+		}
+		require.NoError(t, err, tt.iniStr)
+		assert.Equal(t, tt.want, Actions.JobPriorityAging, tt.iniStr)
 	}
 }

@@ -510,6 +510,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 			RunsOn:                  parsedChild.RunsOn(),
 			ContinueOnError:         parsedChild.GetContinueOnError(),
 			MaxParallel:             parseMaxParallel(jobID, parsedChild.Strategy.MaxParallelString),
+			Priority:                caller.Priority, // the caller decides how urgent the work it calls is
 			Status:                  util.Iif(len(needs) > 0, actions_model.StatusPending, actions_model.StatusBlocked),
 			ParentJobID:             caller.ID,
 			WorkflowSourceRepoID:    source.repoID,

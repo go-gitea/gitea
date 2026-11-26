@@ -451,6 +451,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(372, "Add workflow_ref to action_run", v29.AddWorkflowRefToActionRun),
 		newMigration(373, "Repair Debian and RPM signing keys rejected by Sequoia", v29.RepairPackageSigningKeys),
 		newMigration(374, "Add pull_merge_queue_entry table", v29.AddPullMergeQueueEntryTable),
+		newMigration(375, "Add priority column to action_run_job", v29.AddPriorityToActionRunJob),
 	}
 	return preparedMigrations
 }

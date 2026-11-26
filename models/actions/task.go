@@ -240,29 +240,30 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (task *Actio
 	// TODO: a more efficient way to filter labels
 	log.Trace("runner labels: %v", runner.AgentLabels)
 
-	// Page through the waiting jobs oldest-first instead of loading the whole backlog into memory on every poll.
-	// Keyset pagination on (updated, id) is safe under concurrent claims:
-	// updated only moves forward, so the advancing cursor never skips a still-waiting job even as claimed jobs drop out.
-	var cursorUpdated timeutil.TimeStamp
-	var cursorID int64
+	// Page through the waiting jobs in queue order instead of loading the whole backlog into memory on every poll.
+	// Keyset pagination on (queue key, id) is safe under concurrent claims:
+	// updated only moves forward and priority is fixed, so the advancing cursor never skips a still-waiting job even as claimed jobs drop out.
+	agingStep := int64(setting.Actions.JobPriorityAging / time.Second)
+	queueKey := jobQueueKeyExpr(agingStep)
+	var cursorKey, cursorID int64
 	for {
 		sess := JobQueueOptions{RepoID: runner.RepoID, OwnerID: runner.OwnerID, Status: StatusWaiting}.session(ctx)
 		if cursorID > 0 {
 			sess.And(builder.Or(
-				builder.Gt{"updated": cursorUpdated},
-				builder.And(builder.Eq{"updated": cursorUpdated}, builder.Gt{"id": cursorID}),
+				builder.Expr(queueKey+" > ?", cursorKey),
+				builder.And(builder.Expr(queueKey+" = ?", cursorKey), builder.Gt{"id": cursorID}),
 			))
 		}
 
 		var jobs []*ActionRunJob
-		if err := sess.Asc("updated", "id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
+		if err := sess.OrderBy(queueKey + " ASC, id ASC").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
 			return nil, cancelledJobs, err
 		}
 		// A short page means no waiting jobs remain beyond it.
 		isLastPage := len(jobs) < pickTaskBatchSize
 		if !isLastPage {
 			last := jobs[len(jobs)-1] // read before a lost claim bumps Updated
-			cursorUpdated, cursorID = last.Updated, last.ID
+			cursorKey, cursorID = last.jobQueueKey(agingStep), last.ID
 		}
 
 		for _, v := range jobs {
@@ -283,6 +284,20 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (task *Actio
 			return nil, cancelledJobs, nil
 		}
 	}
+}
+
+// jobQueueKeyExpr is the SQL form of jobQueueKey, the step comes from the configuration and is safe to inline.
+func jobQueueKeyExpr(agingStep int64) string {
+	if agingStep == 0 {
+		return "updated"
+	}
+	return fmt.Sprintf("(updated - priority * %d)", agingStep)
+}
+
+// jobQueueKey is the queue time shifted by agingStep seconds per priority level,
+// so a job is only overtaken by jobs queued less than (level difference * agingStep) after it.
+func (job *ActionRunJob) jobQueueKey(agingStep int64) int64 {
+	return int64(job.Updated) - int64(job.Priority)*agingStep
 }
 
 // claimJobForRunner attempts to atomically claim job for runner inside its own

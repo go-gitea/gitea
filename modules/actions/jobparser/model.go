@@ -27,6 +27,7 @@ type SingleWorkflow struct {
 	RawPermissions yaml.Node `yaml:"permissions,omitempty"`
 	RunName        string    `yaml:"run-name,omitempty"`
 	CacheMode      string    `yaml:"cache-mode,omitempty"`
+	Priority       string    `yaml:"priority,omitempty"`
 }
 
 func (w *SingleWorkflow) Job() (string, *Job) {
