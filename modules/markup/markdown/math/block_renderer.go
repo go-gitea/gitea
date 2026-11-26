@@ -17,8 +17,8 @@ import (
 // Block render output:
 // 	<pre class="code-block is-loading"><code class="language-math">...</code></pre>
 //
-// Keep in mind that there is another "code block" render in "func (r *GoldmarkRender) highlightingRenderer"
-// "highlightingRenderer" outputs the math block with extra "chroma" class:
+// Keep in mind that there is another "code block" render in "func (r *HTMLRenderer) renderCodeBlock"
+// "renderCodeBlock" outputs the math block with extra "chroma" class:
 // 	<pre class="code-block is-loading"><code class="chroma language-math">...</code></pre>
 //
 // Special classes:
@@ -27,12 +27,12 @@ import (
 
 // BlockRenderer represents a renderer for math Blocks
 type BlockRenderer struct {
-	renderInternal *internal.RenderInternal
+	internalVar *internal.RenderVarMutable[internal.RenderInternal]
 }
 
 // NewBlockRenderer creates a new renderer for math Blocks
-func NewBlockRenderer(renderInternal *internal.RenderInternal) renderer.NodeRenderer {
-	return &BlockRenderer{renderInternal: renderInternal}
+func NewBlockRenderer(internalVar *internal.RenderVarMutable[internal.RenderInternal]) renderer.NodeRenderer {
+	return &BlockRenderer{internalVar: internalVar}
 }
 
 // RegisterFuncs registers the renderer for math Blocks
@@ -52,7 +52,7 @@ func (r *BlockRenderer) renderBlock(w util.BufWriter, source []byte, node gast.N
 	n := node.(*Block) //nolint:forcetypeassert // registered for KindBlock only
 	if entering {
 		codeHTML := giteaUtil.Iif[template.HTML](n.Inline, "", `<pre class="code-block is-loading">`) + `<code class="language-math">`
-		_, _ = w.WriteString(string(r.renderInternal.ProtectSafeAttrs(codeHTML)))
+		_, _ = w.WriteString(string(r.internalVar.Value.ProtectSafeAttrs(codeHTML)))
 		r.writeLines(w, source, n)
 	} else {
 		_, _ = w.WriteString(`</code>` + giteaUtil.Iif(n.Inline, "", `</pre>`) + "\n")

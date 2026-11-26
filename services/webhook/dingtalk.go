@@ -152,8 +152,8 @@ func (dc dingtalkConvertor) Repository(p *api.RepositoryPayload) (DingtalkPayloa
 				Content: title,
 			},
 		}, nil
-	case api.HookRepoRenamed:
-		title := fmt.Sprintf("[%s] Repository renamed from %s", p.Repository.FullName, getRepoRenamedFrom(p))
+	case api.HookRepoRenamed, api.HookRepoTransferred:
+		title := fmt.Sprintf("[%s] Repository %s from %s", p.Repository.FullName, p.Action, getRepoChangedFrom(p))
 		return createDingtalkPayload(title, title, "view repository", p.Repository.HTMLURL), nil
 	}
 
@@ -183,6 +183,11 @@ func (dingtalkConvertor) WorkflowRun(p *api.WorkflowRunPayload) (DingtalkPayload
 	text, _ := getWorkflowRunPayloadInfo(p, noneLinkFormatter, true)
 
 	return createDingtalkPayload(text, text, "Workflow Run", p.WorkflowRun.HTMLURL), nil
+}
+
+func (dingtalkConvertor) MergeGroup(payload *api.MergeGroupPayload) (DingtalkPayload, error) {
+	text, _, commitURL := getMergeGroupPayloadInfo(payload, noneLinkFormatter, true)
+	return createDingtalkPayload(text, text, "Merge Group", commitURL), nil
 }
 
 func (dingtalkConvertor) WorkflowJob(p *api.WorkflowJobPayload) (DingtalkPayload, error) {

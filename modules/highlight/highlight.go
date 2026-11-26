@@ -18,6 +18,7 @@ import (
 
 	"github.com/alecthomas/chroma/v2"
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
 )
 
@@ -27,6 +28,7 @@ const sizeLimit = 1024 * 1024
 type globalVarsType struct {
 	highlightMapping map[string]string
 	githubStyles     *chroma.Style
+	htmlFormatter    *chromahtml.Formatter // shared because it caches the CSS built from the style
 }
 
 var (
@@ -42,6 +44,10 @@ func globalVars() *globalVarsType {
 		globalVarsPtr = &globalVarsType{}
 		globalVarsPtr.githubStyles = styles.Get("github")
 		globalVarsPtr.highlightMapping = setting.GetHighlightMapping()
+		globalVarsPtr.htmlFormatter = chromahtml.New(chromahtml.WithClasses(true),
+			chromahtml.WithLineNumbers(false),
+			chromahtml.PreventSurroundingPre(true),
+		)
 	}
 	return globalVarsPtr
 }
@@ -82,6 +88,13 @@ func htmlEscape(code string) template.HTML {
 	return template.HTML(gohtml.EscapeString(code))
 }
 
+func normalizeLexer(lexer chroma.Lexer) chroma.Lexer {
+	if lexer != lexers.Fallback {
+		lexer = chroma.Coalesce(lexer)
+	}
+	return lexer
+}
+
 // RenderCodeSlowGuess tries to get a lexer by file name and language first,
 // if not found, it will try to guess the lexer by code content, which is slow (more than several hundreds of milliseconds).
 func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML, lexer chroma.Lexer, lexerDisplayName string) {
@@ -96,16 +109,15 @@ func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML,
 	}
 
 	lexer = detectChromaLexerWithAnalyze(fileName, language, util.UnsafeStringToBytes(code)) // it is also slow
+	lexer = normalizeLexer(lexer)
 	return RenderCodeByLexer(lexer, code), lexer, formatLexerName(lexer.Config().Name)
 }
 
-// RenderCodeByLexer returns a HTML version of code string with chroma syntax highlighting classes
+// RenderCodeByLexer returns an HTML version of code string with chroma syntax highlighting classes
 func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
-	formatter := chromahtml.New(chromahtml.WithClasses(true),
-		chromahtml.WithLineNumbers(false),
-		chromahtml.PreventSurroundingPre(true),
-	)
-
+	if lexer == lexers.Fallback {
+		return htmlEscape(code) // chroma is 3x slower for plain text
+	}
 	iterator, err := lexer.Tokenise(nil, code)
 	if err != nil {
 		log.Error("Can't tokenize code: %v", err)
@@ -113,8 +125,9 @@ func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
 	}
 
 	htmlBuf := &bytes.Buffer{}
+	vars := globalVars()
 	// style not used for live site but need to pass something
-	err = formatter.Format(htmlBuf, globalVars().githubStyles, iterator)
+	err = vars.htmlFormatter.Format(htmlBuf, vars.githubStyles, iterator)
 	if err != nil {
 		log.Error("Can't format code: %v", err)
 		return htmlEscape(code)
@@ -128,6 +141,7 @@ func RenderFullFile(fileName, language string, code []byte) ([]template.HTML, st
 		return renderPlainText(code), formatLexerName(LanguagePlaintext)
 	}
 	lexer := detectChromaLexerWithAnalyze(fileName, language, code)
+	lexer = normalizeLexer(lexer)
 	lexerName := formatLexerName(lexer.Config().Name)
 	rendered := RenderCodeByLexer(lexer, util.UnsafeBytesToString(code))
 	unsafeLines := UnsafeSplitHighlightedLines(rendered)

@@ -29,6 +29,9 @@ func getWatchedRepos(ctx *context.APIContext, user *user_model.User, private boo
 	if err != nil {
 		return nil, 0, err
 	}
+	if err := repo_model.RepositoryList(watchedRepos).LoadAttributes(ctx); err != nil {
+		return nil, 0, err
+	}
 
 	repos := make([]*api.Repository, len(watchedRepos))
 	for i, watched := range watchedRepos {
@@ -65,13 +68,14 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	private := ctx.ContextUser.ID == ctx.Doer.ID
 	repos, total, err := getWatchedRepos(ctx, ctx.ContextUser, private)
 	if err != nil {
 		ctx.APIErrorInternal(err)
+		return
 	}
 
 	ctx.SetLinkHeader(total, utils.GetListOptions(ctx).PageSize)
@@ -102,6 +106,7 @@ func GetMyWatchedRepos(ctx *context.APIContext) {
 	repos, total, err := getWatchedRepos(ctx, ctx.Doer, true)
 	if err != nil {
 		ctx.APIErrorInternal(err)
+		return
 	}
 	ctx.SetLinkHeader(total, utils.GetListOptions(ctx).PageSize)
 	ctx.SetTotalCountHeader(total)
@@ -128,8 +133,8 @@ func IsWatching(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WatchInfo"
-	//   "404":
-	//     description: User is not watching this repo or repo do not exist
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if repo_model.IsWatchingRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID) {
 		ctx.JSON(http.StatusOK, api.WatchInfo{
@@ -164,10 +169,8 @@ func Watch(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WatchInfo"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	err := repo_model.WatchRepoAuto(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	if err != nil {
@@ -207,8 +210,8 @@ func Unwatch(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	err := repo_model.WatchRepoAuto(ctx, ctx.Doer, ctx.Repo.Repository, false)
 	if err != nil {

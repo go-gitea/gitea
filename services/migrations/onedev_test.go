@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -39,12 +38,6 @@ func TestOneDevServerVersion(t *testing.T) {
 	baseURL, err := url.Parse(server.URL)
 	assert.NoError(t, err)
 	downloader := func() *OneDevDownloader { return &OneDevDownloader{baseURL: baseURL, client: server.Client()} }
-
-	t.Run("LargeResponse", func(t *testing.T) {
-		respMap.Store(&respMapType{"/~api/version/server": {code: http.StatusOK, body: strings.Repeat("x", maxOneDevVersionResponseSize+1)}})
-		_, err := downloader().getServerVersion(t.Context())
-		assert.ErrorContains(t, err, "server version response exceeds")
-	})
 
 	t.Run("LegacyEndpoint", func(t *testing.T) {
 		respMap.Store(&respMapType{"/~api/version/server": {code: http.StatusOK, body: "12.0.1"}})

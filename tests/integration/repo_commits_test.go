@@ -192,6 +192,14 @@ func TestRepoCommitsWithStatus(t *testing.T) {
 	t.Run("error", func(t *testing.T) { testRefMaster(t, "error", "gitea-exclamation", "tw-text-red") })
 	t.Run("failure", func(t *testing.T) { testRefMaster(t, "failure", "octicon-x", "tw-text-red") })
 	t.Run("warning", func(t *testing.T) { testRefMaster(t, "warning", "gitea-exclamation", "tw-text-yellow") })
+	t.Run("running", func(t *testing.T) { testRefMaster(t, "running", "gitea-running", "tw-text-yellow", "rotate-clockwise") })
+	t.Run("unknown", func(t *testing.T) { testRefMaster(t, "stage-1", "octicon-question", "tw-text-text-light") })
+	t.Run("InvalidState", func(t *testing.T) {
+		invalidCtx := ctx
+		invalidCtx.ExpectedCode = http.StatusUnprocessableEntity
+		doAPICreateCommitStatusTest(invalidCtx, "master", "", "testci")(t)
+		doAPICreateCommitStatusTest(invalidCtx, "master", "in_progress", "testci")(t)
+	})
 	t.Run("BranchWithSlash", func(t *testing.T) {
 		_ = db.TruncateBeans(t.Context(), &git_model.CommitStatus{})
 
@@ -203,6 +211,39 @@ func TestRepoCommitsWithStatus(t *testing.T) {
 		statuses, status = requestCommitStatuses(t, linkList, linkCombined)
 		assert.NotEmpty(t, statuses)
 		assert.NotEmpty(t, status.Statuses)
+	})
+	t.Run("TokenScopes", func(t *testing.T) {
+		commitIDs := map[string]string{"repo1": "65f1bf27bc3bf70f64657658635e66094edbcb4d", "repo2": "1032bbf17fbc0d9c95bb5418dabe8f8c99278700"}
+		for _, test := range []struct {
+			name              string
+			userID            int64
+			reponame          string
+			scope             auth_model.AccessTokenScope
+			getCode, postCode int
+		}{
+			{"WriteCommitStatus", 2, "repo1", auth_model.AccessTokenScopeWriteCommitStatus, http.StatusOK, http.StatusCreated},
+			{"ReadCommitStatus", 2, "repo1", auth_model.AccessTokenScopeReadCommitStatus, http.StatusOK, http.StatusForbidden},
+			{"WriteRepository", 2, "repo1", auth_model.AccessTokenScopeWriteRepository, http.StatusOK, http.StatusCreated},
+			{"ReadRepository", 2, "repo1", auth_model.AccessTokenScopeReadRepository, http.StatusOK, http.StatusForbidden},
+			{"UnrelatedScope", 2, "repo1", auth_model.AccessTokenScopeWriteIssue, http.StatusForbidden, http.StatusForbidden},
+			{"NonWriter", 4, "repo1", auth_model.AccessTokenScopeWriteCommitStatus, http.StatusOK, http.StatusForbidden},
+			{"PublicOnlyPrivateRepo", 2, "repo2", "public-only,write:commitstatus", http.StatusNotFound, http.StatusNotFound},
+		} {
+			t.Run(test.name, func(t *testing.T) {
+				token := &auth_model.AccessToken{UID: test.userID, Name: test.name, Scope: test.scope}
+				require.NoError(t, auth_model.NewAccessToken(t.Context(), token))
+				repoLink, commitID := "/api/v1/repos/user2/"+test.reponame, commitIDs[test.reponame]
+				for _, link := range []string{"/statuses/" + commitID, "/commits/master/status", "/commits/master/statuses"} {
+					MakeRequest(t, NewRequest(t, "GET", repoLink+link).AddTokenAuth(token.Token), test.getCode)
+				}
+				MakeRequest(t, NewRequestWithJSON(t, "POST", repoLink+"/statuses/"+commitID, api.CreateStatusOption{State: commitstatus.CommitStatusSuccess}).AddTokenAuth(token.Token), test.postCode)
+			})
+		}
+		t.Run("UnmatchedCommitPathSkipsCommitStatusScope", func(t *testing.T) {
+			token := &auth_model.AccessToken{UID: 2, Name: "UnmatchedCommitPath", Scope: auth_model.AccessTokenScopeWriteIssue}
+			require.NoError(t, auth_model.NewAccessToken(t.Context(), token))
+			MakeRequest(t, NewRequest(t, "POST", "/api/v1/repos/user2/repo1/commits/"+commitIDs["repo1"]+"/pull").AddTokenAuth(token.Token), http.StatusNotFound)
+		})
 	})
 }
 

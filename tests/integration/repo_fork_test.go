@@ -13,6 +13,7 @@ import (
 	org_model "gitea.dev/models/organization"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	org_service "gitea.dev/services/org"
@@ -78,6 +79,13 @@ func TestRepoForkToOrg(t *testing.T) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	_, exists := htmlDoc.doc.Find(`a.ui.button[href*="/fork"]`).Attr("href")
 	assert.False(t, exists, "Forking should not be allowed anymore")
+}
+
+func TestRepoForkIntoSameOrg(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Repository.AllowForkIntoSameOwner, true)()
+	session := loginUser(t, "user2")
+	testRepoFork(t, session, "org3", "repo3", "org3", "repo3-fork", "")
 }
 
 func TestForkListLimitedAndPrivateRepos(t *testing.T) {

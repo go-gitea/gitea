@@ -137,9 +137,11 @@ type RepoSettingForm struct {
 	DefaultDeleteBranchAfterMerge    bool
 	DefaultAllowMaintainerEdit       bool
 	DefaultTargetBranch              string
+	PullsCreationRestriction         string `binding:"In(reader,member,writer)"`
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 	EnableIssueDependencies          bool
+	IssuesCreationRestriction        string `binding:"In(reader,member,writer)"`
 
 	// Signing Settings
 	TrustModel string
@@ -185,6 +187,15 @@ type ProtectBranchForm struct {
 	ProtectedFilePatterns         string
 	UnprotectedFilePatterns       string
 	BlockAdminMergeOverride       bool
+
+	RequireMergeQueue                      bool
+	MergeQueueMergeMethod                  string
+	MergeQueueMaxEntriesToBuild            int
+	MergeQueueMinEntriesToMerge            int
+	MergeQueueMaxEntriesToMerge            int
+	MergeQueueMinEntriesToMergeWaitMinutes int
+	MergeQueueGroupingStrategy             string
+	MergeQueueCheckResponseTimeoutMinutes  int
 }
 
 // WebhookForm form for changing web hook
@@ -209,6 +220,7 @@ type WebhookForm struct {
 	PullRequestReview        bool
 	PullRequestSync          bool
 	PullRequestReviewRequest bool
+	MergeGroup               bool
 	Wiki                     bool
 	Repository               bool
 	Release                  bool
@@ -541,6 +553,7 @@ type NewReleaseForm struct {
 	Draft      bool
 	TagOnly    bool
 	Prerelease bool
+	MakeLatest bool
 	AddTagMsg  bool
 	Files      []string
 }
@@ -560,6 +573,7 @@ type EditReleaseForm struct {
 	Content    string `form:"content"`
 	Draft      string `form:"draft"`
 	Prerelease bool   `form:"prerelease"`
+	MakeLatest bool   `form:"make_latest"`
 	Files      []string
 }
 

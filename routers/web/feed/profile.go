@@ -7,10 +7,12 @@ import (
 	"time"
 
 	activities_model "gitea.dev/models/activities"
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/renderhelper"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 	feed_service "gitea.dev/services/feed"
 
@@ -30,7 +32,11 @@ func ShowUserFeedAtom(ctx *context.Context) {
 // showUserFeed show user activity as RSS / Atom feed
 func showUserFeed(ctx *context.Context, formatType string) {
 	if !setting.Other.EnableFeed {
-		ctx.NotFound(nil)
+		ctx.NotFound()
+		return
+	}
+	context.CheckTokenScopes(ctx, util.Iif(ctx.ContextUser.IsOrganization(), auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser))
+	if ctx.Written() {
 		return
 	}
 
@@ -40,7 +46,7 @@ func showUserFeed(ctx *context.Context, formatType string) {
 		// include the private repo's the member has access to.
 		isOrgMember, err := organization.IsOrganizationMember(ctx, ctx.ContextUser.ID, ctx.Doer.ID)
 		if err != nil {
-			ctx.ServerError("IsOrganizationMember", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		includePrivate = isOrgMember
@@ -55,7 +61,7 @@ func showUserFeed(ctx *context.Context, formatType string) {
 		Date:            ctx.FormString("date"),
 	})
 	if err != nil {
-		ctx.ServerError("GetFeeds", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -63,7 +69,7 @@ func showUserFeed(ctx *context.Context, formatType string) {
 	ctxUserDescription, err := markdown.RenderString(rctx,
 		ctx.ContextUser.Description)
 	if err != nil {
-		ctx.ServerError("RenderString", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -76,7 +82,7 @@ func showUserFeed(ctx *context.Context, formatType string) {
 
 	feed.Items, err = feedActionsToFeedItems(ctx, actions)
 	if err != nil {
-		ctx.ServerError("convert feed", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -88,12 +94,12 @@ func writeFeed(ctx *context.Context, feed *feeds.Feed, formatType string) {
 	if formatType == "atom" {
 		ctx.Resp.Header().Set("Content-Type", ContentTypeAtomXml+"; charset=utf-8")
 		if err := feed.WriteAtom(ctx.Resp); err != nil {
-			ctx.ServerError("Render Atom failed", err)
+			ctx.ServerErrorAuto(err)
 		}
 	} else {
 		ctx.Resp.Header().Set("Content-Type", ContentTypeRssXml+"; charset=utf-8")
 		if err := feed.WriteRss(ctx.Resp); err != nil {
-			ctx.ServerError("Render RSS failed", err)
+			ctx.ServerErrorAuto(err)
 		}
 	}
 }

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	runnerv1 "gitea.dev/actionslib/runner/v1"
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/shared/types"
@@ -52,7 +53,7 @@ type ActionRunner struct {
 
 	Token     string `xorm:"-"`
 	TokenHash string `xorm:"UNIQUE"` // sha256 of token
-	TokenSalt string
+	TokenSalt string // only set for legacy pbkdf2 hashes
 	// TokenLastEight string `xorm:"token_last_eight"` // it's unnecessary because we don't find runners by token
 
 	LastOnline timeutil.TimeStamp `xorm:"index"`
@@ -194,7 +195,7 @@ func (r *ActionRunner) LoadAttributes(ctx context.Context) error {
 }
 
 func (r *ActionRunner) GenerateAndFillToken() {
-	r.Token, r.TokenSalt, r.TokenHash, _ = generateSaltedToken()
+	r.Token, r.TokenHash, _ = auth_model.GenerateToken()
 }
 
 // CanMatchLabels checks whether the runner's labels can match a job's "runs-on"
@@ -205,14 +206,6 @@ func (r *ActionRunner) CanMatchLabels(jobRunsOn []string) bool {
 
 func init() {
 	db.RegisterModel(&ActionRunner{})
-}
-
-func GetRunnersMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionRunner, error) {
-	runners := make(map[int64]*ActionRunner, len(ids))
-	if len(ids) == 0 {
-		return runners, nil
-	}
-	return runners, db.GetEngine(ctx).In("id", ids).Find(&runners)
 }
 
 // FindRunnerOptions

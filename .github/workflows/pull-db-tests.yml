@@ -2,6 +2,7 @@ name: db-tests
 
 on:
   pull_request:
+  merge_group:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -21,7 +22,7 @@ jobs:
     timeout-minutes: 50
     services:
       pgsql:
-        image: postgres:14@sha256:156f0b253fd61366d5fc2107ad45955027d5612f695a8436ce20167f3fa79bff
+        image: postgres:14@sha256:c0e9c0e9bac7e4c1834b698217a03ee5c708de30d313c84a506972de0e24b059
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -34,13 +35,11 @@ jobs:
         ports:
           - "389:389"
           - "636:636"
-      minio:
-        # as github actions doesn't support "entrypoint", we need to use a non-official image
-        # that has a custom entrypoint set to "minio server /data"
-        image: bitnamilegacy/minio:2025.7.23@sha256:8935e75fa5d11295c17171e4aa49efe390a1193cd7f12e4d21b92af9ffef09d7
+      s3:
+        image: rustfs/rustfs:1.0.6@sha256:ee717072290bec9b11abfc0365f8310b00df1cd9b3639943edae47bdef05044a
         env:
-          MINIO_ROOT_USER: 123456
-          MINIO_ROOT_PASSWORD: 12345678
+          RUSTFS_ACCESS_KEY: 123456
+          RUSTFS_SECRET_KEY: 12345678
         ports:
           - "9000:9000"
     steps:
@@ -59,7 +58,7 @@ jobs:
     timeout-minutes: 50
     services:
       pgsql:
-        image: postgres:14@sha256:156f0b253fd61366d5fc2107ad45955027d5612f695a8436ce20167f3fa79bff
+        image: postgres:14@sha256:c0e9c0e9bac7e4c1834b698217a03ee5c708de30d313c84a506972de0e24b059
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -72,13 +71,11 @@ jobs:
         ports:
           - "389:389"
           - "636:636"
-      minio:
-        # as github actions doesn't support "entrypoint", we need to use a non-official image
-        # that has a custom entrypoint set to "minio server /data"
-        image: bitnamilegacy/minio:2025.7.23@sha256:8935e75fa5d11295c17171e4aa49efe390a1193cd7f12e4d21b92af9ffef09d7
+      s3:
+        image: rustfs/rustfs:1.0.6@sha256:ee717072290bec9b11abfc0365f8310b00df1cd9b3639943edae47bdef05044a
         env:
-          MINIO_ROOT_USER: 123456
-          MINIO_ROOT_PASSWORD: 12345678
+          RUSTFS_ACCESS_KEY: 123456
+          RUSTFS_SECRET_KEY: 12345678
         ports:
           - "9000:9000"
     steps:
@@ -117,7 +114,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       elasticsearch:
-        image: elasticsearch:8.19.23@sha256:3f4d63c59ca5a05b535179dfcced47a514119e351fa81653f69902beacae90c9
+        image: elasticsearch:8.19.23@sha256:ef5cafd961d7e273f13fed8def82e63c5ae0491106b5eecb5a69aa12d64f089b
         env:
           discovery.type: single-node
           xpack.security.enabled: false
@@ -127,13 +124,13 @@ jobs:
         ports:
           - "9200:9200"
       meilisearch:
-        image: getmeili/meilisearch:v1@sha256:c94e58ca09662dd6e65e8f1b0fd145767be3da7d5422a863a27b8d2b68e090c9
+        image: getmeili/meilisearch:v1@sha256:88f2a08eb9532cc54a60d8fd014a23bf5cfda33d0c01ecbbaca9b4b463e17466
         env:
           MEILI_ENV: development # disable auth
         ports:
           - "7700:7700"
       redis:
-        image: redis:8@sha256:298e5b3bc566bade82f46ad5511777a4a07a294097ce16ada2f6a42be5239df5
+        image: redis:8@sha256:1f88291b4c57bdf249f02eb085a8669889b2d2954e91d4de5118a5da6b78dd53
         options: >- # wait until redis has started
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -141,22 +138,22 @@ jobs:
           --health-retries 10
         ports:
           - 6379:6379
-      minio:
-        image: bitnamilegacy/minio:2025.7.23@sha256:8935e75fa5d11295c17171e4aa49efe390a1193cd7f12e4d21b92af9ffef09d7
+      s3:
+        image: rustfs/rustfs:1.0.6@sha256:ee717072290bec9b11abfc0365f8310b00df1cd9b3639943edae47bdef05044a
         env:
-          MINIO_ROOT_USER: 123456
-          MINIO_ROOT_PASSWORD: 12345678
+          RUSTFS_ACCESS_KEY: 123456
+          RUSTFS_SECRET_KEY: 12345678
         ports:
           - "9000:9000"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:f9791d0a0613e93057c06ae31f7ac0c0222f0530590e67e020b0986c66a36fa6
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:a60e44b56e24a6fdd7c13c3e05c2009fa1e6111f0092fdf92f8793b2dda0bfe5
         ports:
           - 10000:10000
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
-        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 minio devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 s3 devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make generate-go
         env:
@@ -185,7 +182,7 @@ jobs:
         options: >-
           --mount type=tmpfs,destination=/bitnami/mysql/data
       elasticsearch:
-        image: elasticsearch:8.19.23@sha256:3f4d63c59ca5a05b535179dfcced47a514119e351fa81653f69902beacae90c9
+        image: elasticsearch:8.19.23@sha256:ef5cafd961d7e273f13fed8def82e63c5ae0491106b5eecb5a69aa12d64f089b
         env:
           discovery.type: single-node
           xpack.security.enabled: false
@@ -215,7 +212,6 @@ jobs:
         run: GITEA_TEST_DATABASE=mysql make test-integration
         env:
           TAGS: bindata
-          TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
   test-mssql:
     if: needs.files-changed.outputs.backend == 'true'
@@ -223,7 +219,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mssql:
-        image: mcr.microsoft.com/mssql/server:2019-latest@sha256:07d7dedecdbfcf6776035dc5eefb5bfd9aa1804b2f6b99f7dedb397d8a599069
+        image: mcr.microsoft.com/mssql/server:2019-latest@sha256:debdc21628cddd1a4433371c601c8dee9bad3533ae8b18fe9dc8c5596368b10d
         env:
           ACCEPT_EULA: Y
           MSSQL_PID: Standard
@@ -231,7 +227,7 @@ jobs:
         ports:
           - "1433:1433"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:f9791d0a0613e93057c06ae31f7ac0c0222f0530590e67e020b0986c66a36fa6
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:a60e44b56e24a6fdd7c13c3e05c2009fa1e6111f0092fdf92f8793b2dda0bfe5
         ports:
           - 10000:10000
     steps:

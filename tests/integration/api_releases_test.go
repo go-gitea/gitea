@@ -20,6 +20,7 @@ import (
 	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
@@ -236,6 +237,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 		IsDraft:      &release.IsDraft,
 		IsPrerelease: &release.IsPrerelease,
 		Target:       release.Target,
+		MakeLatest:   "true",
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
@@ -247,6 +249,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	}
 	unittest.AssertExistsAndLoadBean(t, rel)
 	assert.Equal(t, rel.Note, newRelease.Note)
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID, LatestReleaseID: rel.ID})
 }
 
 func TestAPICreateRelease(t *testing.T) {
@@ -422,6 +425,7 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 			attachment := DecodeJSON(t, resp, &api.Attachment{})
 			assert.Equal(t, filename, attachment.Name)
 			assert.EqualValues(t, len(bufImageBytes), attachment.Size)
+			assert.Equal(t, "sha256:"+base.EncodeSha256(string(bufImageBytes)), attachment.Digest)
 		})
 		t.Run("UploadWithName", func(t *testing.T) {
 			resp := performUpload(t, assetURL+"?name=test-asset", bufImageBytes, http.StatusCreated)

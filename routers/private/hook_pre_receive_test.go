@@ -8,22 +8,80 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
+	deploykey_model "gitea.dev/models/deploykey"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/private"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
 	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestPreReceiveActionsBranch(t *testing.T) {
+func TestPreReceive(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
+	t.Run("Branch", testPreReceiveActionsBranch)
+	t.Run("Tag", testPreReceiveSystemUserTag)
+	t.Run("CanWrite", testPreReceiveCanWriteCodePerBranch)
+	t.Run("QueuedMergeProtectsFiles", testPreReceiveQueuedMergeProtectsFiles)
+	t.Run("ProcReceiveNeedsPullRequests", func(t *testing.T) {
+		ctx, resp := contexttest.MockPrivateContext(t, "/")
+		ctx.SetPathParam("owner", "user2")
+		ctx.SetPathParam("repo", "repo2")
+		RepoAssignment(ctx)
+		require.False(t, ctx.Written())
+		defer ctx.Repo.GitRepo.Close()
+
+		web.SetForm(ctx, &private.HookOptions{
+			UserID:       2,
+			RefFullNames: []git.RefName{"refs/for/master"},
+		})
+		HookProcReceive(ctx)
+		assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+	})
+}
+
+func testPreReceiveQueuedMergeProtectsFiles(t *testing.T) {
+	ctx, resp := contexttest.MockPrivateContext(t, "/")
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "branch2"})
+	gitRepo, err := git.OpenRepository(ctx, repo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+	baseSHA, err := gitRepo.GetBranchCommitID(ctx, pr.BaseBranch)
+	require.NoError(t, err)
+	groupSHA, err := gitRepo.GetBranchCommitID(ctx, pr.HeadBranch)
+	require.NoError(t, err)
+	require.NoError(t, db.Insert(ctx, &pull_model.MergeQueueEntry{
+		RepoID: repo.ID, PullID: pr.ID, BaseBranch: pr.BaseBranch,
+		GroupHeadSHA: groupSHA, State: pull_model.MergeQueueStateMergeable,
+	}, &git_model.ProtectedBranch{
+		RepoID: repo.ID, RuleName: pr.BaseBranch,
+		ProtectedBranchConfig: git_model.ProtectedBranchConfig{
+			CanPush: true, RequireMergeQueue: true, ProtectedFilePatterns: "README.md", BlockAdminMergeOverride: true,
+		},
+	}))
+	ctx.Repo = &context.Repository{Repository: repo, GitRepo: gitRepo}
+	web.SetForm(ctx, &private.HookOptions{
+		UserID: repo.OwnerID, PullRequestID: pr.ID, RefFullNames: []git.RefName{git.RefNameFromBranch(pr.BaseBranch)},
+		OldCommitIDs: []string{baseSHA}, NewCommitIDs: []string{groupSHA},
+	})
+	HookPreReceive(ctx)
+	assert.Equal(t, http.StatusForbidden, resp.Code)
+	assert.Contains(t, resp.Body.String(), "protected from changing file readme.md")
+}
+
+func testPreReceiveActionsBranch(t *testing.T) {
 	for _, tc := range []struct {
 		name          string
 		protection    *git_model.ProtectedBranchConfig
@@ -32,9 +90,12 @@ func TestPreReceiveActionsBranch(t *testing.T) {
 		targetBranch  bool
 		defaultBranch bool
 		allowed       bool
+		errorMessage  string
 	}{
 		{name: "push", protection: &git_model.ProtectedBranchConfig{CanPush: true}, allowed: true},
 		{name: "push allowlist", protection: &git_model.ProtectedBranchConfig{CanPush: true, EnableWhitelist: true}},
+		{name: "merge queue requires bypass", protection: &git_model.ProtectedBranchConfig{CanPush: true, RequireMergeQueue: true}, errorMessage: "Changes must be made through the merge queue"},
+		{name: "merge queue bypass allowlist", protection: &git_model.ProtectedBranchConfig{CanPush: true, RequireMergeQueue: true, EnableBypassAllowlist: true, BypassAllowlistUserIDs: []int64{user_model.ActionsUserID}}, allowed: true},
 		{name: "force push", protection: &git_model.ProtectedBranchConfig{CanPush: true, CanForcePush: true}, forcePush: true, allowed: true},
 		{name: "force push allowlist", protection: &git_model.ProtectedBranchConfig{CanPush: true, CanForcePush: true, EnableForcePushAllowlist: true}, forcePush: true},
 		{name: "deletion disabled", protection: &git_model.ProtectedBranchConfig{CanPush: true}, deleteBranch: true},
@@ -85,7 +146,52 @@ func TestPreReceiveActionsBranch(t *testing.T) {
 			} else if tc.deleteBranch {
 				assert.Equal(t, http.StatusForbidden, resp.Code)
 			} else {
-				assert.Contains(t, resp.Body.String(), "Not allowed to")
+				assert.Contains(t, resp.Body.String(), util.IfZero(tc.errorMessage, "Not allowed to"))
+			}
+		})
+	}
+}
+
+func testPreReceiveSystemUserTag(t *testing.T) {
+	deployKey, err := deploykey_model.AddDeployKeyToken(t.Context(), 2, "tag-pusher", perm.AccessModeWrite)
+	require.NoError(t, err)
+	actionsDoer := user_model.NewActionsUserWithTaskID(53)
+	deployKeyDoer := user_model.NewDeployKeyUserWithKeyID(deployKey.ID)
+
+	for _, tc := range []struct {
+		name      string
+		doer      *user_model.User
+		allowlist []int64
+		allowed   bool
+	}{
+		{name: "actions allowlisted", doer: actionsDoer, allowlist: []int64{user_model.ActionsUserID}, allowed: true},
+		{name: "actions not allowlisted", doer: actionsDoer, allowlist: []int64{2, user_model.DeployKeyUserID}},
+		{name: "deploy key allowlisted", doer: deployKeyDoer, allowlist: []int64{user_model.DeployKeyUserID}, allowed: true},
+		{name: "deploy key not allowlisted", doer: deployKeyDoer, allowlist: []int64{2, user_model.ActionsUserID}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtx, resp := contexttest.MockPrivateContext(t, "/")
+			ctx := &preReceiveContext{PrivateContext: mockCtx, opts: &private.HookOptions{UserID: tc.doer.ID}}
+			ctx.SetPathParam("owner", "user2")
+			ctx.SetPathParam("repo", "repo2")
+			RepoAssignment(ctx.PrivateContext)
+			require.False(t, ctx.Written())
+			defer ctx.Repo.GitRepo.Close()
+
+			require.True(t, loadContextDoerPermission(ctx.PrivateContext, tc.doer.ID, tc.doer.ExtDoerData.EncodeToString()))
+
+			protectedTag := &git_model.ProtectedTag{RepoID: ctx.Repo.Repository.ID, NamePattern: "v*", AllowlistUserIDs: tc.allowlist}
+			require.NoError(t, git_model.InsertProtectedTag(t.Context(), protectedTag))
+			defer func() {
+				require.NoError(t, git_model.DeleteProtectedTag(t.Context(), protectedTag))
+			}()
+
+			preReceiveTag(ctx, git.RefNameFromTag("v1.0.0"))
+			if tc.allowed {
+				assert.False(t, ctx.Written(), resp.Body.String())
+			} else {
+				assert.Equal(t, http.StatusForbidden, resp.Code)
+				assert.Contains(t, resp.Body.String(), "Tag v1.0.0 is protected")
 			}
 		})
 	}
@@ -95,9 +201,7 @@ func TestPreReceiveActionsBranch(t *testing.T) {
 // the exact ref being pushed on every call, derived from that ref rather than shared mutable state.
 // Otherwise, a per-branch grant (an open PR with "allow edits from maintainers") could be batched
 // together with a protected branch or a tag to escalate into full repository write.
-func TestPreReceiveCanWriteCodePerBranch(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
+func testPreReceiveCanWriteCodePerBranch(t *testing.T) {
 	baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 	headRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
 	require.NoError(t, baseRepo.LoadOwner(t.Context()))

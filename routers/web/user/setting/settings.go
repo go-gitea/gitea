@@ -4,11 +4,10 @@
 package setting
 
 import (
-	"net/http"
 	"strconv"
 
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/context"
 )
@@ -26,19 +25,19 @@ func UpdatePreferences(ctx *context.Context) {
 		DashboardTab         *string `json:"dashboardTab"`
 	}
 	form := &preferencesForm{}
-	if err := json.NewDecoder(ctx.Req.Body).Decode(form); err != nil {
-		ctx.HTTPError(http.StatusBadRequest, "json decode failed")
+	if err := jsonlimit.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, form); err != nil {
+		ctx.JSONError("invalid request body")
 		return
 	}
 	if form.CodeViewShowFileTree != nil {
 		if err := user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyCodeViewShowFileTree, strconv.FormatBool(*form.CodeViewShowFileTree)); err != nil {
-			ctx.ServerError("SetUserSetting", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
 	if tab := form.DashboardTab; tab != nil && (*tab == user_model.DashboardTabOverview || *tab == user_model.DashboardTabActivity) {
 		if err := user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyDashboardTab, *tab); err != nil {
-			ctx.ServerError("SetUserSetting", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}

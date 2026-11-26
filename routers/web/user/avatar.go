@@ -27,7 +27,7 @@ func AvatarByUsernameSize(ctx *context.Context) {
 	if user == nil {
 		var err error
 		if user, err = user_model.GetUserByName(ctx, username); err != nil {
-			ctx.ServerError("GetUserByName", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -39,7 +39,7 @@ func AvatarByEmailHash(ctx *context.Context) {
 	hash := ctx.PathParam("hash")
 	email, err := avatars.GetEmailForHash(ctx, hash)
 	if err != nil {
-		ctx.ServerError("invalid avatar hash: "+hash, err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	size := ctx.FormInt("size")

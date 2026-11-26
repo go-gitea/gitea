@@ -132,12 +132,12 @@ func prepareDashboardOverview(ctx *context.Context, ctxUser *user_model.User) {
 		applyIssueFilterMode(opts, filterMode, ctx.Doer.ID)
 		issueIDs, total, err := issues_model.IssueIDs(ctx, opts)
 		if err != nil {
-			ctx.ServerError("IssueIDs", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		issues, err := issues_model.GetIssuesByIDs(ctx, issueIDs, true)
 		if err != nil {
-			ctx.ServerError("GetIssuesByIDs", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		all = append(all, issues...)
@@ -149,17 +149,17 @@ func prepareDashboardOverview(ctx *context.Context, ctxUser *user_model.User) {
 		})
 	}
 	if err := all.LoadPosters(ctx); err != nil {
-		ctx.ServerError("LoadPosters", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, ctx.Doer, all) // also loads the repositories
 	if err != nil {
-		ctx.ServerError("GetIssuesAllCommitStatus", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	approvalCounts, err := all.GetApprovalCounts(ctx)
 	if err != nil {
-		ctx.ServerError("GetApprovalCounts", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["OverviewLists"] = lists

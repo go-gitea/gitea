@@ -59,8 +59,8 @@ func ListProjectWorkflows(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectWorkflowList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation GET /orgs/{org}/projects/{id}/workflows organization orgListProjectWorkflows
 	// ---
@@ -90,8 +90,8 @@ func ListProjectWorkflows(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectWorkflowList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation GET /user/projects/{id}/workflows user userCurrentListProjectWorkflows
 	// ---
@@ -116,8 +116,8 @@ func ListProjectWorkflows(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectWorkflowList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	project := projectScopeFromContext(ctx).findProject(ctx)
 	if ctx.Written() {
@@ -166,8 +166,8 @@ func GetProjectWorkflow(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectWorkflow"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation GET /orgs/{org}/projects/{id}/workflows/{workflow_id} organization orgGetProjectWorkflow
 	// ---
@@ -195,8 +195,8 @@ func GetProjectWorkflow(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectWorkflow"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation GET /user/projects/{id}/workflows/{workflow_id} user userCurrentGetProjectWorkflow
 	// ---
@@ -219,8 +219,8 @@ func GetProjectWorkflow(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectWorkflow"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	project := projectScopeFromContext(ctx).findProject(ctx)
 	if ctx.Written() {
@@ -265,14 +265,8 @@ func CreateProjectWorkflow(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/ProjectWorkflow"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation POST /orgs/{org}/projects/{id}/workflows organization orgCreateProjectWorkflow
 	// ---
@@ -300,12 +294,8 @@ func CreateProjectWorkflow(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/ProjectWorkflow"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation POST /user/projects/{id}/workflows user userCurrentCreateProjectWorkflow
 	// ---
@@ -328,12 +318,8 @@ func CreateProjectWorkflow(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/ProjectWorkflow"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	project := projectScopeFromContext(ctx).findOpenProject(ctx)
 	if ctx.Written() {
@@ -385,14 +371,8 @@ func EditProjectWorkflow(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectWorkflow"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation PATCH /orgs/{org}/projects/{id}/workflows/{workflow_id} organization orgEditProjectWorkflow
 	// ---
@@ -426,12 +406,8 @@ func EditProjectWorkflow(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectWorkflow"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation PATCH /user/projects/{id}/workflows/{workflow_id} user userCurrentEditProjectWorkflow
 	// ---
@@ -460,12 +436,8 @@ func EditProjectWorkflow(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectWorkflow"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	project := projectScopeFromContext(ctx).findOpenProject(ctx)
 	if ctx.Written() {
@@ -512,12 +484,8 @@ func DeleteProjectWorkflow(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation DELETE /orgs/{org}/projects/{id}/workflows/{workflow_id} organization orgDeleteProjectWorkflow
 	// ---
@@ -543,10 +511,8 @@ func DeleteProjectWorkflow(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation DELETE /user/projects/{id}/workflows/{workflow_id} user userCurrentDeleteProjectWorkflow
 	// ---
@@ -567,10 +533,8 @@ func DeleteProjectWorkflow(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	project := projectScopeFromContext(ctx).findOpenProject(ctx)
 	if ctx.Written() {

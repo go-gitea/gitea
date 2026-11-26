@@ -191,19 +191,16 @@ func compressOldFile(fname string, compressionLevel int) error {
 	if err != nil {
 		return fmt.Errorf("compressOldFile: failed to open new file %s: %w", fnameGz, err)
 	}
-	defer fw.Close()
 
 	zw, err := gzip.NewWriterLevel(fw, compressionLevel)
 	if err != nil {
+		_ = fw.Close()
 		return fmt.Errorf("compressOldFile: failed to create gzip writer: %w", err)
 	}
-	defer zw.Close()
 
 	_, err = buffer.WriteTo(zw)
-	if err != nil {
-		_ = zw.Close()
-		_ = fw.Close()
-		_ = util.RemoveWithRetry(fname + ".gz")
+	if err = errors.Join(err, zw.Close(), fw.Close()); err != nil {
+		_ = util.RemoveWithRetry(fnameGz)
 		return fmt.Errorf("compressOldFile: failed to write to gz file: %w", err)
 	}
 	_ = reader.Close()

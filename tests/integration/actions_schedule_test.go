@@ -20,6 +20,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/migration"
+	repo_module "gitea.dev/modules/repository"
 	api "gitea.dev/modules/structs"
 	actions_service "gitea.dev/services/actions"
 	mirror_service "gitea.dev/services/mirror"
@@ -45,6 +46,7 @@ func testScheduleUpdatePush(t *testing.T) {
 		run := createScheduleRun(t, repo)
 		newCron := "30 5 * * 1,3"
 		pushScheduleChange(t, u, repo, newCron)
+		actions_service.NewNotifier().PushCommits(t.Context(), user, repo, &repo_module.PushUpdateOptions{RefFullName: git.RefNameFromBranch(repo.DefaultBranch), NewCommitID: run.CommitSHA}, repo_module.NewPushCommits())
 		assertRunStatus(t, run, actions_model.StatusWaiting)
 		return newCron
 	})
@@ -162,7 +164,6 @@ func testScheduleUpdateMirrorSync(t *testing.T) {
 			IsPrivate:     opts.Private,
 			IsMirror:      opts.Mirror,
 			DefaultBranch: repo.DefaultBranch,
-			Status:        repo_model.RepositoryBeingMigrated,
 		}, false)
 		assert.NoError(t, err)
 		assert.True(t, mirrorRepo.IsMirror)
@@ -219,10 +220,12 @@ func testScheduleUpdateArchiveAndUnarchive(t *testing.T) {
 func testScheduleUpdateDisableAndEnableActionsUnit(t *testing.T) {
 	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (expectedSpec string) {
 		run := createScheduleRun(t, repo)
+		spec := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionScheduleSpec{RepoID: repo.ID})
 		doAPIEditRepository(testContext, &api.EditRepoOption{
 			HasActions: new(true),
 		})(t)
 		assertRunStatus(t, run, actions_model.StatusWaiting)
+		unittest.AssertExistsAndLoadBean(t, &actions_model.ActionScheduleSpec{ID: spec.ID, Next: spec.Next})
 
 		doAPIEditRepository(testContext, &api.EditRepoOption{
 			HasActions: new(false),

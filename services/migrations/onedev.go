@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
@@ -22,10 +22,7 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-const (
-	OneDevRequiredVersion        = "12.0.1"
-	maxOneDevVersionResponseSize = 1024
-)
+const OneDevRequiredVersion = "12.0.1"
 
 var (
 	_ base.Downloader        = &OneDevDownloader{}
@@ -134,8 +131,7 @@ func (d *OneDevDownloader) callAPI(ctx context.Context, endpoint string, paramet
 	}
 	defer resp.Body.Close()
 
-	decoder := json.NewDecoder(resp.Body)
-	return decoder.Decode(&result)
+	return jsonlimit.DecodeWithLimit(resp.Body, 100*1024*1024, &result)
 }
 
 func (d *OneDevDownloader) getServerVersionByEndpoint(ctx context.Context, endpoint string) (*version.Version, error) {
@@ -148,13 +144,11 @@ func (d *OneDevDownloader) getServerVersionByEndpoint(ctx context.Context, endpo
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("OneDev server version request failed: %s", resp.Status)
 	}
-	// This patch doesn't change the situation, "decoder.Decode(&result)" in callAPI still reads the entire body
-	bytes, err := io.ReadAll(io.LimitReader(resp.Body, maxOneDevVersionResponseSize+1))
+	// This patch doesn't change the situation, "decoder.Decode(&result)" in callAPI still reads the entire body.
+	// Also, the methods like GetMilestones can read plenty of responses into memory even if each single is small.
+	bytes, err := io.ReadAll(io.LimitReader(resp.Body, 1024))
 	if err != nil {
 		return nil, err
-	}
-	if len(bytes) > maxOneDevVersionResponseSize {
-		return nil, fmt.Errorf("OneDev server version response exceeds %d bytes", maxOneDevVersionResponseSize)
 	}
 	ver, err := version.NewVersion(string(bytes))
 	if err != nil {

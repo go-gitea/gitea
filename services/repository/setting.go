@@ -7,7 +7,6 @@ import (
 	"context"
 	"slices"
 
-	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -27,9 +26,6 @@ func UpdateRepositoryUnits(ctx context.Context, repo *repo_model.Repository, uni
 
 		for _, u := range units {
 			if u.Type == unit.TypeActions {
-				if err := actions_model.DeleteScheduleTaskByRepo(ctx, repo.ID); err != nil {
-					log.Error("DeleteScheduleTaskByRepo: %v", err)
-				}
 				if err := actions_service.DetectAndHandleSchedules(ctx, repo); err != nil {
 					log.Error("DetectAndHandleSchedules: %v", err)
 				}

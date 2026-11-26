@@ -154,8 +154,8 @@ func (t telegramConvertor) Repository(p *api.RepositoryPayload) (TelegramPayload
 	case api.HookRepoDeleted:
 		title = fmt.Sprintf("[%s] Repository deleted", html.EscapeString(p.Repository.FullName))
 		return createTelegramPayloadHTML(title), nil
-	case api.HookRepoRenamed:
-		title = fmt.Sprintf("[%s] Repository renamed from %s", htmlLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName), html.EscapeString(getRepoRenamedFrom(p)))
+	case api.HookRepoRenamed, api.HookRepoTransferred:
+		title = fmt.Sprintf("[%s] Repository %s from %s", htmlLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName), p.Action, html.EscapeString(getRepoChangedFrom(p)))
 		return createTelegramPayloadHTML(title), nil
 	}
 	return TelegramPayload{}, nil
@@ -190,6 +190,11 @@ func (t telegramConvertor) Status(p *api.CommitStatusPayload) (TelegramPayload, 
 func (telegramConvertor) WorkflowRun(p *api.WorkflowRunPayload) (TelegramPayload, error) {
 	text, _ := getWorkflowRunPayloadInfo(p, htmlLinkFormatter, true)
 
+	return createTelegramPayloadHTML(text), nil
+}
+
+func (telegramConvertor) MergeGroup(payload *api.MergeGroupPayload) (TelegramPayload, error) {
+	text, _, _ := getMergeGroupPayloadInfo(payload, htmlLinkFormatter, true)
 	return createTelegramPayloadHTML(text), nil
 }
 

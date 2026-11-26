@@ -88,6 +88,13 @@ conditional `UPDATE` or a lock.
   struct conditions and inserts of more than 1000 rows.
 - Paginated queries need a unique tiebreaker like `id` for a stable order.
 
+### Git
+
+- Pass already opened repositories down or use `git.RepositoryFromContextOrOpen`
+  rather than reopening them or spawning extra `git` processes.
+- If git command stderr output is not handled by the caller, then it needs to use RunWithStderr
+  to make sure the git error message is included in the returned error and displayed in the logs.
+
 ## Dependencies
 
 Go dependencies are managed with [Go Modules](https://go.dev/ref/mod).
@@ -98,7 +105,7 @@ be touched by pull requests whose sole purpose is updating dependencies. Run
 `make tidy` after any change to `go.mod`.
 
 Any `go.mod` / `go.sum` update must be justified in the PR description and must be
-verified by reviewers and the merger to reference an existing upstream commit.
+verified by reviewers and the maintainer who merges it to reference an existing upstream commit.
 
 ## Golang HTML template
 
@@ -140,8 +147,8 @@ breaking v1.
 
 ### Adding and maintaining API routes
 
-- All possible results (errors, success, and failure messages) must be documented in
-  the swagger comments on the route.
+- Document success responses in the swagger comments on the route. Replace explicit
+  error responses with a `default` response referencing `#/responses/error`.
 - Every JSON request body must be defined as a struct in `modules/structs/` and
   registered in [`routers/api/v1/swagger/options.go`](../routers/api/v1/swagger/options.go).
 - Every JSON response must be defined as a struct in `modules/structs/` and
@@ -161,6 +168,11 @@ In general, choose HTTP methods as follows:
 
 ### Requirements for API routes
 
+- API routes may not be more powerful than the web UI.
+  If an action is not possible from the UI, it cannot be an API route
+  Such PRs will be rejected until the functionality exists in the UI
+  This rule does not apply to features which are meant to be used via automated means only such as:
+  packages which have their own tooling to upload, endpoints that are used by external tools only
 - All parameters of endpoints that edit an object must be optional, except those
   needed to identify the object, which are required.
 - Endpoints returning lists must support pagination (`page` and `limit` query

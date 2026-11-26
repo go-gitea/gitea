@@ -8,7 +8,6 @@ import (
 
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/highlight"
-	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/internal"
 	"gitea.dev/modules/markup/markdown/math"
@@ -24,13 +23,13 @@ import (
 
 // ASTTransformer is a default transformer of the goldmark tree.
 type ASTTransformer struct {
-	renderInternal *internal.RenderInternal
+	internalVar    *internal.RenderVarMutable[internal.RenderInternal]
 	attentionTypes container.Set[string]
 }
 
-func NewASTTransformer(renderInternal *internal.RenderInternal) *ASTTransformer {
+func NewASTTransformer(internalVar *internal.RenderVarMutable[internal.RenderInternal]) *ASTTransformer {
 	return &ASTTransformer{
-		renderInternal: renderInternal,
+		internalVar:    internalVar,
 		attentionTypes: container.SetOf("note", "tip", "important", "warning", "caution"),
 	}
 }
@@ -120,10 +119,10 @@ func filterFeedExcerpt(parent ast.Node) {
 }
 
 // NewHTMLRenderer creates a HTMLRenderer to render in the gitea form.
-func NewHTMLRenderer(renderInternal *internal.RenderInternal, opts ...html.Option) renderer.NodeRenderer {
+func NewHTMLRenderer(internalVar *internal.RenderVarMutable[internal.RenderInternal], opts ...html.Option) renderer.NodeRenderer {
 	r := &HTMLRenderer{
-		renderInternal: renderInternal,
-		Config:         html.NewConfig(),
+		internalVar: internalVar,
+		Config:      html.NewConfig(),
 	}
 	for _, opt := range opts {
 		opt.SetHTMLOption(&r.Config)
@@ -135,7 +134,7 @@ func NewHTMLRenderer(renderInternal *internal.RenderInternal, opts ...html.Optio
 // renders gitea specific features.
 type HTMLRenderer struct {
 	html.Config
-	renderInternal *internal.RenderInternal
+	internalVar *internal.RenderVarMutable[internal.RenderInternal]
 }
 
 // RegisterFuncs implements renderer.NodeRenderer.RegisterFuncs.
@@ -145,24 +144,29 @@ func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(KindSummary, r.renderSummary)
 	reg.Register(ast.KindCodeSpan, r.renderCodeSpan)
 	reg.Register(ast.KindCodeBlock, r.renderCodeBlock)
+	reg.Register(ast.KindFencedCodeBlock, r.renderCodeBlock)
 	reg.Register(KindAttention, r.renderAttention)
-	reg.Register(KindTaskCheckBoxListItem, r.renderTaskCheckBoxListItem)
 	reg.Register(east.KindTaskCheckBox, r.renderTaskCheckBox)
 	reg.Register(KindRawHTML, r.renderRawHTML)
 }
 
-// renderCodeBlock wraps indented code blocks like the fenced renderer
 func (r *HTMLRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		preAttrs, codeAttrs := highlight.CodeBlockAttributes("") // no language
-		opening := r.renderInternal.ProtectSafeAttrs(htmlutil.HTMLFormat(`<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs))
-		if _, err := w.WriteString(string(opening)); err != nil {
+		var language string
+		if fenced, ok := n.(*ast.FencedCodeBlock); ok {
+			language = string(fenced.Language(source))
+		}
+		preAttrs, codeAttrs := highlight.CodeBlockAttributes(language)
+		err := r.internalVar.Value.FormatWithSafeAttrsf(w, `<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs)
+		if err != nil {
 			return ast.WalkStop, err
 		}
-		lines := n.Lines()
-		for i := 0; i < lines.Len(); i++ {
-			line := lines.At(i)
-			r.Writer.RawWrite(w, line.Value(source))
+
+		code := n.Lines().Value(source)
+		lexer := highlight.DetectChromaLexerByFileName("", language)
+		renderedHTML := highlight.RenderCodeByLexer(lexer, string(code))
+		if _, err = w.WriteString(string(renderedHTML)); err != nil {
+			return ast.WalkStop, err
 		}
 	} else {
 		if _, err := w.WriteString("</code></pre></div>"); err != nil {
@@ -234,7 +238,7 @@ func (r *HTMLRenderer) renderRawHTML(w util.BufWriter, source []byte, node ast.N
 		return ast.WalkContinue, nil
 	}
 	n := node.(*RawHTML) //nolint:forcetypeassert // registered for KindRawHTML only
-	_, err := w.WriteString(string(r.renderInternal.ProtectSafeAttrs(n.rawHTML)))
+	_, err := w.WriteString(string(r.internalVar.Value.ProtectSafeAttrs(n.rawHTML)))
 	if err != nil {
 		return ast.WalkStop, err
 	}

@@ -33,13 +33,3 @@ func TestCommitsCount(t *testing.T) {
 		})
 	}
 }
-
-func TestGetLatestCommitTime(t *testing.T) {
-	bareRepo1 := mockRepository("repo1_bare")
-	lct, err := GetLatestCommitTime(t.Context(), bareRepo1)
-	assert.NoError(t, err)
-	// Time is Sun Nov 13 16:40:14 2022 +0100
-	// which is the time of commit
-	// ce064814f4a0d337b333e646ece456cd39fab612 (refs/heads/master)
-	assert.EqualValues(t, 1668354014, lct.Unix())
-}

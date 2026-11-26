@@ -54,7 +54,7 @@ Expected workflow is: Fork -> Patch -> Push -> Pull Request
 >
 > 1. **YOU MUST READ THE [CONTRIBUTORS GUIDE](CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST.**
 > 2. New to the codebase? The [development guide](docs/development.md) walks through setting up a local environment and building from source.
-> 3. If you have found a vulnerability in the project, please write privately to **security@gitea.io**. Thanks!
+> 3. If you have found a vulnerability in the project, please report it privately through a [GitHub security advisory](https://github.com/go-gitea/gitea/security/advisories/new), see the [security policy](SECURITY.md). Thanks!
 
 ## Translating
 
@@ -68,7 +68,7 @@ Get more information from [the translation section of our contributing guide](CO
 
 ## Official and Third-Party Projects
 
-We provide an official [go-sdk](https://gitea.com/gitea/go-sdk), a CLI tool called [tea](https://gitea.com/gitea/tea) and an [action runner](https://gitea.com/gitea/runner) for Gitea Action.
+We provide an official [go-sdk](https://gitea.com/gitea/go-sdk), a CLI tool called [gt](https://gitea.com/gitea/cli) and an [action runner](https://gitea.com/gitea/runner) for Gitea Action.
 
 We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea), where you can discover more third-party projects, including SDKs, plugins, themes, and more.
 

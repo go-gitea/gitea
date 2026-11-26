@@ -26,7 +26,7 @@ func Packages(ctx *context.Context) {
 	ctx.Data["PageIsSettingsPackages"] = true
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -36,12 +36,11 @@ func Packages(ctx *context.Context) {
 }
 
 func PackagesRuleAdd(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsPackages"] = true
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -51,12 +50,11 @@ func PackagesRuleAdd(ctx *context.Context) {
 }
 
 func PackagesRuleEdit(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsPackages"] = true
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -66,7 +64,6 @@ func PackagesRuleEdit(ctx *context.Context) {
 }
 
 func PackagesRuleAddPost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsPackages"] = true
 
@@ -79,7 +76,6 @@ func PackagesRuleAddPost(ctx *context.Context) {
 }
 
 func PackagesRuleEditPost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsPackages"] = true
 
@@ -92,12 +88,11 @@ func PackagesRuleEditPost(ctx *context.Context) {
 }
 
 func PackagesRulePreview(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsPackages"] = true
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

@@ -24,21 +24,8 @@ func MergeUpstream(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_
 	if err = repo.MustNotBeArchived(); err != nil {
 		return "", err
 	}
-	if err = repo.GetBaseRepo(ctx); err != nil {
-		return "", err
-	}
 
-	// The doer must still be able to read the base repository's code. Otherwise a fork created
-	// while the base repo was public could keep pulling commits after it turned private.
-	basePerm, err := access_model.GetDoerRepoPermission(ctx, repo.BaseRepo, doer)
-	if err != nil {
-		return "", err
-	}
-	if !basePerm.CanRead(unit.TypeCode) {
-		return "", util.NewPermissionDeniedErrorf("permission denied to read base repo %d", repo.BaseRepo.ID)
-	}
-
-	divergingInfo, err := GetUpstreamDivergingInfo(ctx, repo, branch)
+	divergingInfo, err := GetUpstreamDivergingInfo(ctx, doer, repo, branch)
 	if err != nil {
 		return "", err
 	}
@@ -102,7 +89,7 @@ type UpstreamDivergingInfo struct {
 }
 
 // GetUpstreamDivergingInfo returns the information about the divergence between the fork repository's branch and the base repository's default branch.
-func GetUpstreamDivergingInfo(ctx reqctx.RequestContext, forkRepo *repo_model.Repository, forkBranch string) (*UpstreamDivergingInfo, error) {
+func GetUpstreamDivergingInfo(ctx reqctx.RequestContext, doer *user_model.User, forkRepo *repo_model.Repository, forkBranch string) (*UpstreamDivergingInfo, error) {
 	if !forkRepo.IsFork {
 		return nil, util.NewInvalidArgumentErrorf("repo is not a fork")
 	}
@@ -113,6 +100,14 @@ func GetUpstreamDivergingInfo(ctx reqctx.RequestContext, forkRepo *repo_model.Re
 
 	if err := forkRepo.GetBaseRepo(ctx); err != nil {
 		return nil, err
+	}
+
+	// The doer must still be able to read the base repository's code. Otherwise a fork created
+	// while the base repo was public could keep pulling commits after it turned private.
+	if basePerm, err := access_model.GetDoerRepoPermission(ctx, forkRepo.BaseRepo, doer); err != nil {
+		return nil, err
+	} else if !basePerm.CanRead(unit.TypeCode) {
+		return nil, util.NewPermissionDeniedErrorf("permission denied to read base repo %d", forkRepo.BaseRepo.ID)
 	}
 
 	// Do the best to follow the GitHub's behavior, suppose there is a `branch-a` in fork repo:

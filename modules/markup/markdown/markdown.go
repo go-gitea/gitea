@@ -12,26 +12,25 @@ import (
 	"io"
 	"slices"
 	"strings"
+	"sync"
 
-	"gitea.dev/modules/highlight"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/common"
+	"gitea.dev/modules/markup/internal"
 	"gitea.dev/modules/markup/markdown/math"
 	"gitea.dev/modules/setting"
 	giteautil "gitea.dev/modules/util"
 
-	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/yuin/goldmark"
-	highlighting "github.com/yuin/goldmark-highlighting/v2"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/text"
-	"github.com/yuin/goldmark/util"
+	gmutil "github.com/yuin/goldmark/util"
 )
 
 var (
@@ -68,32 +67,6 @@ func newParserContext(ctx *markup.RenderContext) parser.Context {
 	return pc
 }
 
-type GoldmarkRender struct {
-	ctx *markup.RenderContext
-
-	goldmarkMarkdown goldmark.Markdown
-}
-
-func (r *GoldmarkRender) Convert(source []byte, writer io.Writer, opts ...parser.ParseOption) error {
-	return r.goldmarkMarkdown.Convert(source, writer, opts...)
-}
-
-func (r *GoldmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.CodeBlockContext, entering bool) {
-	if entering {
-		languageBytes, _ := c.Language()
-		preAttrs, codeAttrs := highlight.CodeBlockAttributes(string(languageBytes))
-		err := r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs)
-		if err != nil {
-			return
-		}
-	} else {
-		_, err := w.WriteString("</code></pre></div>")
-		if err != nil {
-			return
-		}
-	}
-}
-
 type goldmarkEmphasisParser struct {
 	parser.InlineParser
 }
@@ -118,23 +91,20 @@ func (s *goldmarkEmphasisParser) Parse(parent ast.Node, block text.Reader, pc pa
 
 func goldmarkDefaultParser() parser.Parser {
 	return parser.NewParser(parser.WithBlockParsers(parser.DefaultBlockParsers()...),
-		parser.WithInlineParsers([]util.PrioritizedValue{
-			util.Prioritized(parser.NewCodeSpanParser(), 100),
-			util.Prioritized(parser.NewLinkParser(), 200),
-			util.Prioritized(parser.NewAutoLinkParser(), 300),
-			util.Prioritized(parser.NewRawHTMLParser(), 400),
-			util.Prioritized(goldmarkNewEmphasisParser(), 500),
+		parser.WithInlineParsers([]gmutil.PrioritizedValue{
+			gmutil.Prioritized(parser.NewCodeSpanParser(), 100),
+			gmutil.Prioritized(parser.NewLinkParser(), 200),
+			gmutil.Prioritized(parser.NewAutoLinkParser(), 300),
+			gmutil.Prioritized(parser.NewRawHTMLParser(), 400),
+			gmutil.Prioritized(goldmarkNewEmphasisParser(), 500),
 		}...),
 		parser.WithParagraphTransformers(parser.DefaultParagraphTransformers()...),
 	)
 }
 
-// SpecializedMarkdown sets up the Gitea specific markdown extensions
-func SpecializedMarkdown(ctx *markup.RenderContext) *GoldmarkRender {
-	// TODO: it could use a pool to cache the renderers to reuse them with different contexts
-	// at the moment it is fast enough (see the benchmarks)
-	r := &GoldmarkRender{ctx: ctx}
-	r.goldmarkMarkdown = goldmark.New(
+func specializedMarkdown() (goldmark.Markdown, *internal.RenderVarMutable[internal.RenderInternal]) {
+	internalVar := &internal.RenderVarMutable[internal.RenderInternal]{}
+	return goldmark.New(
 		goldmark.WithParser(goldmarkDefaultParser()),
 		goldmark.WithExtensions(
 			extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignAttribute)),
@@ -142,14 +112,7 @@ func SpecializedMarkdown(ctx *markup.RenderContext) *GoldmarkRender {
 			extension.TaskList,
 			extension.DefinitionList,
 			common.FootnoteExtension,
-			highlighting.NewHighlighting(
-				highlighting.WithFormatOptions(
-					chromahtml.WithClasses(true),
-					chromahtml.PreventSurroundingPre(true),
-				),
-				highlighting.WithWrapperRenderer(r.highlightingRenderer),
-			),
-			math.NewExtension(&ctx.RenderInternal, math.Options{
+			math.NewExtension(internalVar, math.Options{
 				Enabled:                  setting.Markdown.EnableMath,
 				ParseInlineDollar:        setting.Markdown.MathCodeBlockOptions.ParseInlineDollar,
 				ParseInlineParentheses:   setting.Markdown.MathCodeBlockOptions.ParseInlineParentheses, // this is a bad syntax "\( ... \)", it conflicts with normal markdown escaping
@@ -159,30 +122,53 @@ func SpecializedMarkdown(ctx *markup.RenderContext) *GoldmarkRender {
 		),
 		goldmark.WithParserOptions(
 			parser.WithAttribute(),
-			parser.WithASTTransformers(util.Prioritized(NewASTTransformer(&ctx.RenderInternal), 10000)),
+			parser.WithASTTransformers(gmutil.Prioritized(NewASTTransformer(internalVar), 10000)),
 		),
-		goldmark.WithRendererOptions(html.WithUnsafe()),
-	)
+		goldmark.WithRendererOptions(
+			html.WithUnsafe(),
+			renderer.WithNodeRenderers(gmutil.Prioritized(NewHTMLRenderer(internalVar), 10)),
+		),
+	), internalVar
+}
 
-	// Override the original Tasklist renderer!
-	r.goldmarkMarkdown.Renderer().AddOptions(
-		renderer.WithNodeRenderers(util.Prioritized(NewHTMLRenderer(&ctx.RenderInternal), 10)),
-	)
+type sharedMarkdownRender struct {
+	converter   goldmark.Markdown
+	internalVar *internal.RenderVarMutable[internal.RenderInternal]
+}
 
-	return r
+var SharedMarkdownRenderPool = giteautil.OnceValue[*sync.Pool]{
+	Func: func() *sync.Pool {
+		return &sync.Pool{
+			New: func() any {
+				r, v := specializedMarkdown()
+				return &sharedMarkdownRender{converter: r, internalVar: v}
+			},
+		}
+	},
+}
+
+func acquireMarkdownRender(ctx *markup.RenderContext) (*sharedMarkdownRender, func()) {
+	r, _ := SharedMarkdownRenderPool.Value().Get().(*sharedMarkdownRender)
+	r.internalVar.Value = &ctx.RenderInternal
+	return r, func() {
+		r.internalVar.Value = nil
+		SharedMarkdownRenderPool.Value().Put(r)
+	}
 }
 
 // render calls goldmark render to convert Markdown to HTML
 // NOTE: The output of this method MUST get sanitized separately!!!
 func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
-	converter := SpecializedMarkdown(ctx)
+	sharedRender, release := acquireMarkdownRender(ctx)
+	defer release()
+
+	converter := sharedRender.converter
 	lw := &limitWriter{
 		w:     output,
 		limit: setting.UI.MaxDisplayFileSize * 3,
 	}
 
-	// FIXME: Don't read all to memory, but goldmark doesn't support
-	buf, err := io.ReadAll(input)
+	buf, err := io.ReadAll(input) // no streaming by design, link reference definitions may follow their use
 	if err != nil {
 		log.Error("Unable to ReadAll: %v", err)
 		return err
@@ -275,14 +261,22 @@ func FeedExcerpt(ctx context.Context, content string) string {
 	pc := newParserContext(rctx)
 	pc.Set(renderConfigKey, &RenderConfig{})
 	start, texts := len(content), []text.Segment(nil)
-	_ = ast.Walk(SpecializedMarkdown(rctx).goldmarkMarkdown.Parser().Parse(text.NewReader([]byte(content)), parser.WithContext(pc)), func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+
+	sharedRender, release := acquireMarkdownRender(rctx)
+	defer release()
+	converter := sharedRender.converter
+
+	mdParser := converter.Parser()
+	mdReader := text.NewReader([]byte(content))
+	mdWalker := func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		if entering && node.Type() == ast.TypeBlock && node.Lines().Len() > 0 {
 			start = min(start, strings.LastIndexByte(content[:node.Lines().At(0).Start], '\n')+1)
 		} else if textNode, ok := node.(*ast.Text); ok && entering && node.Parent().Type() == ast.TypeBlock {
 			texts = append(texts, textNode.Segment)
 		}
 		return ast.WalkContinue, nil
-	})
+	}
+	_ = ast.Walk(mdParser.Parse(mdReader, parser.WithContext(pc)), mdWalker)
 
 	excerpt := giteautil.EllipsisDisplayString(content[start:], 200)
 	kept, ok := strings.CutSuffix(excerpt, "…")

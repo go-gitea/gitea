@@ -358,7 +358,7 @@ func TestCreateUserWithoutCustomTimestamps(t *testing.T) {
 
 func TestGetDoerUserIDsByNames(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	ids, err := user_model.GetDoerUserIDsByNames(t.Context(), []string{"user1", "user2", "none_existing_user"})
+	ids, err := user_model.GetRealDoerUserIDsByNames(t.Context(), []string{"user1", "user2", "none_existing_user"})
 	assert.ErrorIs(t, err, util.ErrNotExist)
 	assert.Equal(t, []int64{1, 2}, ids)
 
@@ -414,25 +414,6 @@ func TestNewUserRedirect(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-func TestGetUserByOpenID(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	_, err := user_model.GetUserByOpenID(t.Context(), "https://unknown")
-	if assert.Error(t, err) {
-		assert.True(t, user_model.IsErrUserNotExist(err))
-	}
-
-	user, err := user_model.GetUserByOpenID(t.Context(), "https://user1.domain1.tld")
-	if assert.NoError(t, err) {
-		assert.Equal(t, int64(1), user.ID)
-	}
-
-	user, err = user_model.GetUserByOpenID(t.Context(), "https://domain1.tld/user2/")
-	if assert.NoError(t, err) {
-		assert.Equal(t, int64(2), user.ID)
 	}
 }
 

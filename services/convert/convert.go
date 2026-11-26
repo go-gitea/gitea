@@ -178,6 +178,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		branchName = bp.RuleName
 	}
 
+	queueConfig := bp.MergeQueue.WithDefaults()
 	return &api.BranchProtection{
 		BranchName:                    branchName, //nolint:staticcheck // deprecated but useful to API response
 		RuleName:                      bp.RuleName,
@@ -220,6 +221,16 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		BlockAdminMergeOverride:       bp.BlockAdminMergeOverride,
 		Created:                       bp.CreatedUnix.AsTime(),
 		Updated:                       bp.UpdatedUnix.AsTime(),
+		RequireMergeQueue:             bp.RequireMergeQueue,
+		MergeQueue: &api.BranchProtectionMergeQueue{
+			MergeMethod:                  api.MergeQueueMergeMethod(queueConfig.MergeMethod),
+			MaxEntriesToBuild:            queueConfig.MaxEntriesToBuild,
+			MinEntriesToMerge:            queueConfig.MinEntriesToMerge,
+			MaxEntriesToMerge:            queueConfig.MaxEntriesToMerge,
+			MinEntriesToMergeWaitMinutes: queueConfig.MinEntriesToMergeWaitMinutes,
+			GroupingStrategy:             api.MergeQueueGroupingStrategy(queueConfig.GroupingStrategy),
+			CheckResponseTimeoutMinutes:  queueConfig.CheckResponseTimeoutMinutes,
+		},
 	}
 }
 
@@ -491,7 +502,6 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		return nil, err
 	}
 
-	var runner *actions_model.ActionRunner
 	if effectiveTaskID := job.EffectiveTaskID(); effectiveTaskID != 0 {
 		if task == nil {
 			task, _, err = db.GetByID[actions_model.ActionTask](ctx, effectiveTaskID)
@@ -504,10 +514,9 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 			if err := (actions_model.TaskList{task}).LoadSteps(ctx); err != nil {
 				return nil, err
 			}
-			runner, _, _ = db.GetByID[actions_model.ActionRunner](ctx, task.RunnerID)
 		}
 	}
-	return toActionWorkflowJob(ctx, repo, task, runner, job), nil
+	return toActionWorkflowJob(ctx, repo, task, job), nil
 }
 
 // ToActionWorkflowJobs requires job.Run.Repo to be loaded
@@ -523,26 +532,14 @@ func ToActionWorkflowJobs(ctx context.Context, jobs []*actions_model.ActionRunJo
 	if err := taskList.LoadSteps(ctx); err != nil {
 		return nil, err
 	}
-	runners, err := actions_model.GetRunnersMapByIDs(ctx, container.FilterSlice(taskList, func(task *actions_model.ActionTask) (int64, bool) {
-		return task.RunnerID, task.RunnerID != 0
-	}))
-	if err != nil {
-		return nil, err
-	}
-
 	result := make([]*api.ActionWorkflowJob, len(jobs))
 	for i, job := range jobs {
-		task := tasks[job.EffectiveTaskID()]
-		var runner *actions_model.ActionRunner
-		if task != nil {
-			runner = runners[task.RunnerID]
-		}
-		result[i] = toActionWorkflowJob(ctx, job.Run.Repo, task, runner, job)
+		result[i] = toActionWorkflowJob(ctx, job.Run.Repo, tasks[job.EffectiveTaskID()], job)
 	}
 	return result, nil
 }
 
-func toActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task *actions_model.ActionTask, runner *actions_model.ActionRunner, job *actions_model.ActionRunJob) *api.ActionWorkflowJob {
+func toActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task *actions_model.ActionTask, job *actions_model.ActionRunJob) *api.ActionWorkflowJob {
 	status, conclusion := ToRunActionsStatus(job.Run, job.Status)
 	var runnerID int64
 	var runnerName string
@@ -550,9 +547,7 @@ func toActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 
 	if task != nil && job.EffectiveTaskID() != 0 {
 		runnerID = task.RunnerID
-		if runner != nil {
-			runnerName = runner.Name
-		}
+		runnerName = task.RunnerName
 		for i, step := range task.Steps {
 			stepStatus, stepConclusion := ToActionsStatus(step.Status)
 			steps = append(steps, &api.ActionWorkflowStep{

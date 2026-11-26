@@ -150,8 +150,8 @@ func (wc wechatworkConvertor) Repository(p *api.RepositoryPayload) (WechatworkPa
 	case api.HookRepoDeleted:
 		title = fmt.Sprintf("[%s] Repository deleted", p.Repository.FullName)
 		return newWechatworkMarkdownPayload(title), nil
-	case api.HookRepoRenamed:
-		title = fmt.Sprintf("[%s] Repository renamed from %s", p.Repository.FullName, getRepoRenamedFrom(p))
+	case api.HookRepoRenamed, api.HookRepoTransferred:
+		title = fmt.Sprintf("[%s] Repository %s from %s", p.Repository.FullName, p.Action, getRepoChangedFrom(p))
 		return newWechatworkMarkdownPayload(title), nil
 	}
 
@@ -187,6 +187,11 @@ func (wc wechatworkConvertor) Status(p *api.CommitStatusPayload) (WechatworkPayl
 func (wc wechatworkConvertor) WorkflowRun(p *api.WorkflowRunPayload) (WechatworkPayload, error) {
 	text, _ := getWorkflowRunPayloadInfo(p, noneLinkFormatter, true)
 
+	return newWechatworkMarkdownPayload(text), nil
+}
+
+func (wc wechatworkConvertor) MergeGroup(payload *api.MergeGroupPayload) (WechatworkPayload, error) {
+	text, _, _ := getMergeGroupPayloadInfo(payload, noneLinkFormatter, true)
 	return newWechatworkMarkdownPayload(text), nil
 }
 

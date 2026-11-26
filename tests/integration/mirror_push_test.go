@@ -11,18 +11,22 @@ import (
 	"testing"
 	"time"
 
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	mirror_service "gitea.dev/services/mirror"
 	repo_service "gitea.dev/services/repository"
 	wiki_service "gitea.dev/services/wiki"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMirrorPush(t *testing.T) {
@@ -56,6 +60,9 @@ func TestMirrorPush(t *testing.T) {
 			assert.True(t, doRemovePushMirror(t, session, "user2", "repo2", repo2PushMirrorID))
 			unittest.AssertNotExistsBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
 		})
+		t.Run("APIDelete", func(t *testing.T) {
+			testMirrorPushAPIDelete(t, serverURL)
+		})
 		t.Run("Push", func(t *testing.T) {
 			testMirrorPush(t, serverURL)
 		})
@@ -63,6 +70,34 @@ func TestMirrorPush(t *testing.T) {
 			testMirrorPushWikiDefaultBranchMismatch(t, serverURL)
 		})
 	})
+}
+
+func testMirrorPushAPIDelete(t *testing.T, u *url.URL) {
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+	createPushMirror := func() string {
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/push_mirrors", &api.CreatePushMirrorOption{
+			RemoteAddress:  u.String() + "user2/repo1.git",
+			RemoteUsername: "user2",
+			RemotePassword: userPassword,
+			Interval:       "0",
+		}).AddTokenAuth(token)
+		return DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PushMirror{}).RemoteName
+	}
+
+	remoteName := createPushMirror()
+	MakeRequest(t, NewRequest(t, "DELETE", "/api/v1/repos/user2/repo1/push_mirrors/"+remoteName).AddTokenAuth(token), http.StatusNoContent)
+	_, err := git.GetRemoteAddress(t.Context(), repo1, remoteName)
+	assert.True(t, git.IsRemoteNotExistError(err))
+	MakeRequest(t, NewRequest(t, "DELETE", "/api/v1/repos/user2/repo1/push_mirrors/"+remoteName).AddTokenAuth(token), http.StatusNotFound)
+
+	remoteName = createPushMirror()
+	_, err = git.GetRemoteAddress(t.Context(), repo1.WikiStorageRepo(), remoteName)
+	require.NoError(t, err)
+	require.NoError(t, git.ManagedRemoteRemove(t.Context(), repo1, remoteName))
+	MakeRequest(t, NewRequest(t, "DELETE", "/api/v1/repos/user2/repo1/push_mirrors/"+remoteName).AddTokenAuth(token), http.StatusNoContent)
+	_, err = git.GetRemoteAddress(t.Context(), repo1.WikiStorageRepo(), remoteName)
+	assert.True(t, git.IsRemoteNotExistError(err))
 }
 
 func testMirrorPush(t *testing.T, u *url.URL) {
@@ -76,6 +111,16 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	assert.NoError(t, err)
 
 	session := loginUser(t, user.Name)
+
+	branchPrefix := setting.Repository.PullRequest.MergeQueueBranchPrefix
+	queueBranch, ordinaryBranch := branchPrefix+"queued", branchPrefix+"ordinary"
+	for _, branch := range []string{queueBranch, ordinaryBranch} {
+		require.NoError(t, git.CreateBranch(t.Context(), srcRepo, branch, "master"))
+		defer func() { assert.NoError(t, git.DeleteBranch(t.Context(), srcRepo, branch, true)) }()
+	}
+	queueEntry := &pull_model.MergeQueueEntry{RepoID: srcRepo.ID, PullID: 2, GroupRef: git.BranchPrefix + queueBranch}
+	require.NoError(t, db.Insert(t.Context(), queueEntry))
+	defer func() { assert.NoError(t, db.DeleteByIDs[pull_model.MergeQueueEntry](t.Context(), queueEntry.ID)) }()
 
 	pushMirrorURL := fmt.Sprintf("%s%s/%s", u.String(), url.PathEscape(user.Name), url.PathEscape(mirrorRepo.Name))
 	testCreatePushMirror(t, session, user.Name, srcRepo.Name, pushMirrorURL, user.LowerName, userPassword, "0")
@@ -103,6 +148,8 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, srcCommit.ID, mirrorCommit.ID)
+	assert.False(t, git.IsBranchExist(t.Context(), mirrorRepo, queueBranch))
+	assert.True(t, git.IsBranchExist(t.Context(), mirrorRepo, ordinaryBranch))
 
 	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "")()
 	assert.False(t, mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID))

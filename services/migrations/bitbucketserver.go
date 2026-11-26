@@ -286,7 +286,7 @@ func (e *bbsStatusError) isAuthError() bool {
 }
 
 func (e *bbsStatusError) Error() string {
-	msg := fmt.Sprintf("bitbucket server API %s returned status %d", e.URL, e.Status)
+	msg := fmt.Sprintf("bitbucket API %s returned status %d", e.URL, e.Status)
 	if e.isAuthError() {
 		msg += ", check the credentials and the permission to read the repository"
 	}
@@ -558,7 +558,11 @@ func (d *BitbucketServerDownloader) getActivities(ctx context.Context, prID int6
 	}
 	activities, err := bbsGetAll[*bbsActivity](ctx, d, d.repoPath()+"/pull-requests/"+strconv.FormatInt(prID, 10)+"/activities", nil)
 	if err != nil {
-		return nil, err
+		// a 500 only drops this pull request's activities, other errors are left to the caller's retries
+		if statusErr, ok := errors.AsType[*bbsStatusError](err); !ok || statusErr.Status != http.StatusInternalServerError {
+			return nil, err
+		}
+		log.Warn("Bitbucket Server: unable to load activities of pull request %d, skipping its comments and reviews: %v", prID, err)
 	}
 	slices.Reverse(activities) // listed newest first
 	d.activities[prID] = activities

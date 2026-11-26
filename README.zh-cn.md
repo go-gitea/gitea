@@ -62,7 +62,7 @@
 > [!注意]
 >
 > 1. **在开始进行 Pull Request 之前，您必须阅读 [贡献者指南](CONTRIBUTING.md)。**
-> 2. 如果您在项目中发现了漏洞，请私下写信给 **security@gitea.io**。谢谢！
+> 2. 如果您在项目中发现了漏洞，请通过 [GitHub 安全公告](https://github.com/go-gitea/gitea/security/advisories/new) 私下报告，详见[安全策略](SECURITY.md)。谢谢！
 
 ## 翻译
 
@@ -76,7 +76,7 @@
 
 ## 官方和第三方项目
 
-我们提供了一个官方的 [go-sdk](https://gitea.com/gitea/go-sdk)，一个名为 [tea](https://gitea.com/gitea/tea) 的 CLI 工具和一个 Gitea Action 的 [action runner](https://gitea.com/gitea/runner)。
+我们提供了一个官方的 [go-sdk](https://gitea.com/gitea/go-sdk)，一个名为 [gt](https://gitea.com/gitea/cli) 的 CLI 工具和一个 Gitea Action 的 [action runner](https://gitea.com/gitea/runner)。
 
 我们在 [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea) 维护了一个 Gitea 相关项目的列表，您可以在那里发现更多的第三方项目，包括 SDK、插件、主题等。
 

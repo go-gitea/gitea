@@ -33,6 +33,8 @@ type InternalTracker struct {
 	AllowOnlyContributorsToTrackTime bool `json:"allow_only_contributors_to_track_time"`
 	// Enable dependencies for issues and pull requests (Built-in issue tracker)
 	EnableIssueDependencies bool `json:"enable_issue_dependencies"`
+	// who is allowed to create issues: "reader" (default, any user with read access), "member" (must be a collaborator with read access) or "writer" (must be a collaborator with write access).
+	CreationRestriction *string `json:"creation_restriction" binding:"In(,reader,member,writer)"`
 }
 
 // ExternalTracker represents settings for external tracker
@@ -122,9 +124,13 @@ type Repository struct {
 	DefaultUpdateStyle            string           `json:"default_update_style"`
 	SquashMergeCommitMessage      string           `json:"squash_merge_commit_message"`
 	DefaultAllowMaintainerEdit    bool             `json:"default_allow_maintainer_edit"`
-	AvatarURL                     string           `json:"avatar_url"`
-	Internal                      bool             `json:"internal"`
-	MirrorInterval                string           `json:"mirror_interval"`
+	// who is allowed to create pull requests: "reader", "member" or "writer"
+	PullRequestsCreationRestriction string `json:"pull_requests_creation_restriction"`
+	// who is allowed to create issues: "reader", "member" or "writer"
+	IssuesCreationRestriction string `json:"issues_creation_restriction"`
+	AvatarURL                 string `json:"avatar_url"`
+	Internal                  bool   `json:"internal"`
+	MirrorInterval            string `json:"mirror_interval"`
 	// ObjectFormatName of the underlying git repository
 	ObjectFormatName ObjectFormatName `json:"object_format_name"`
 	// swagger:strfmt date-time
@@ -241,6 +247,8 @@ type EditRepoOption struct {
 	SquashMergeCommitMessage *string `json:"squash_merge_commit_message,omitempty"`
 	// set to `true` to allow edits from maintainers by default
 	DefaultAllowMaintainerEdit *bool `json:"default_allow_maintainer_edit,omitempty"`
+	// who is allowed to create pull requests: "reader" (default, any user with read access), "member" (must be a collaborator with read access) or "writer" (must be a collaborator with write access).
+	PullRequestsCreationRestriction *string `json:"pull_requests_creation_restriction,omitempty" binding:"In(,reader,member,writer)"`
 	// set to `true` to archive this repository.
 	Archived *bool `json:"archived,omitempty"`
 	// set to a string like `8h30m0s` to set the mirror interval time
@@ -359,6 +367,7 @@ const (
 	CodeCommitService                            // 9 codecommit service
 	BitbucketServerService                       // 10 bitbucket server (data center) service
 	ForgejoService                               // 11 forgejo service
+	BitbucketService                             // 12 bitbucket.org service
 )
 
 // Name represents the service type's name
@@ -390,6 +399,8 @@ func (gt GitServiceType) Title() string {
 		return "Bitbucket Server"
 	case ForgejoService:
 		return "Forgejo"
+	case BitbucketService:
+		return "Bitbucket"
 	case PlainGitService:
 		return "Git"
 	}
@@ -399,19 +410,10 @@ func (gt GitServiceType) Title() string {
 // Variants returns the hosting options of gt's provider, which share one entry on the migrate page
 func (gt GitServiceType) Variants() []GitServiceType {
 	switch gt {
-	case BitbucketServerService:
-		return []GitServiceType{BitbucketServerService}
+	case BitbucketService, BitbucketServerService:
+		return []GitServiceType{BitbucketService, BitbucketServerService}
 	}
 	return nil
-}
-
-// ProviderTitle returns the title of gt's entry on the migrate page
-func (gt GitServiceType) ProviderTitle() string {
-	switch gt {
-	case BitbucketServerService:
-		return "Bitbucket"
-	}
-	return gt.Title()
 }
 
 // MigrateRepoOptions options for migrating repository's
@@ -426,7 +428,7 @@ type MigrateRepoOptions struct {
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 
-	// enum: ["git","github","gitea","gitlab","gogs","onedev","gitbucket","codebase","codecommit","bitbucketserver","forgejo"]
+	// enum: ["git","github","gitea","gitlab","gogs","onedev","gitbucket","codebase","codecommit","bitbucketserver","forgejo","bitbucket"]
 	Service      string `json:"service"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`
@@ -464,6 +466,7 @@ var SupportedFullGitService = []GitServiceType{
 	GithubService,
 	GitlabService,
 	GiteaService,
+	BitbucketService,
 	ForgejoService,
 	GogsService,
 	OneDevService,

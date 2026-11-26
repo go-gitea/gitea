@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 
 	webhook_model "gitea.dev/models/webhook"
 	"gitea.dev/modules/base"
@@ -227,8 +228,8 @@ func (m matrixConvertor) Repository(p *api.RepositoryPayload) (MatrixPayload, er
 		text = fmt.Sprintf("[%s] Repository created by %s", repoLink, senderLink)
 	case api.HookRepoDeleted:
 		text = fmt.Sprintf("[%s] Repository deleted by %s", repoLink, senderLink)
-	case api.HookRepoRenamed:
-		text = fmt.Sprintf("[%s] Repository renamed from %s by %s", repoLink, getRepoRenamedFrom(p), senderLink)
+	case api.HookRepoRenamed, api.HookRepoTransferred:
+		text = fmt.Sprintf("[%s] Repository %s from %s by %s", repoLink, p.Action, getRepoChangedFrom(p), senderLink)
 	}
 	return m.newPayload(text)
 }
@@ -261,16 +262,23 @@ func (m matrixConvertor) WorkflowRun(p *api.WorkflowRunPayload) (MatrixPayload, 
 	return m.newPayload(text)
 }
 
+func (m matrixConvertor) MergeGroup(payload *api.MergeGroupPayload) (MatrixPayload, error) {
+	text, _, _ := getMergeGroupPayloadInfo(payload, htmlLinkFormatter, true)
+	return m.newPayload(text)
+}
+
 func (m matrixConvertor) WorkflowJob(p *api.WorkflowJobPayload) (MatrixPayload, error) {
 	text, _ := getWorkflowJobPayloadInfo(p, htmlLinkFormatter, true)
 
 	return m.newPayload(text)
 }
 
-var urlRegex = regexp.MustCompile(`<a [^>]*?href="([^">]*?)">(.*?)</a>`)
+var urlRegex = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`<a [^>]*?href="([^">]*?)">(.*?)</a>`)
+})
 
 func getMessageBody(htmlText string) string {
-	htmlText = urlRegex.ReplaceAllString(htmlText, "[$2]($1)")
+	htmlText = urlRegex().ReplaceAllString(htmlText, "[$2]($1)")
 	htmlText = strings.ReplaceAll(htmlText, "<br>", "\n")
 	return htmlText
 }

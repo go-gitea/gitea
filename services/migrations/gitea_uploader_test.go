@@ -127,9 +127,9 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.Len(t, pulls[0].Issue.Comments, 2)
 }
 
-func TestCreateReleasesSkipsUnavailableAssets(t *testing.T) {
+func TestCreateReleases(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	sourceRelease := &base.Release{Name: "assets", Assets: []*base.ReleaseAsset{
+	sourceRelease := &base.Release{Name: "assets", Latest: true, Assets: []*base.ReleaseAsset{
 		{Name: "gone", Size: new(0), DownloadCount: new(0), DownloadFunc: func() (io.ReadCloser, error) { return nil, errors.New("gone") }},
 		{Name: "kept", Size: new(0), DownloadCount: new(0), DownloadFunc: func() (io.ReadCloser, error) { return io.NopCloser(strings.NewReader("data")), nil }},
 	}}
@@ -137,8 +137,22 @@ func TestCreateReleasesSkipsUnavailableAssets(t *testing.T) {
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	uploader := NewGiteaLocalUploader(t.Context(), doer, doer.Name, "repo1")
 	uploader.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	require.NoError(t, uploader.CreateReleases(t.Context(), sourceRelease))
+	gitRepo, err := git.OpenRepository(t.Context(), uploader.repo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+	uploader.gitRepo = gitRepo
+	_, err = db.GetEngine(t.Context()).Delete(&repo_model.Release{RepoID: 1, TagName: "v1.1"})
+	require.NoError(t, err)
+	require.NoError(t, uploader.CreateReleases(t.Context(), sourceRelease, &base.Release{TagName: "v1.1", Created: time.Date(2099, 1, 1, 0, 0, 0, 0, time.UTC)}))
+	require.NoError(t, uploader.SyncTags(t.Context()))
+	commit, err := gitRepo.GetTagCommit(t.Context(), "v1.1")
+	require.NoError(t, err)
+	assert.Equal(t, commit.Committer.When.Unix(), int64(unittest.AssertExistsAndLoadBean(t, &repo_model.Release{RepoID: 1, TagName: "v1.1"}).CreatedUnix))
+	assert.Zero(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).LatestReleaseID)
+	require.NoError(t, uploader.CreateReleases(t.Context(), &base.Release{TagName: "newer", Created: time.Now().Add(time.Hour)}))
+	require.NoError(t, uploader.SyncTags(t.Context()))
 	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{RepoID: 1, Title: "assets"})
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, LatestReleaseID: release.ID})
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ReleaseID: release.ID, Name: "kept", Size: 4})
 	unittest.AssertNotExistsBean(t, &repo_model.Attachment{ReleaseID: release.ID, Name: "gone"})
 
@@ -203,6 +217,7 @@ func TestGiteaUploadRemapLocalUser(t *testing.T) {
 			&base.Comment{IssueIndex: issue.Index, CommentType: "milestone", Meta: map[string]any{"MilestoneTitle": milestone.Name}},
 			&base.Comment{IssueIndex: issue.Index, CommentType: "milestone", Meta: map[string]any{"MilestoneTitle": milestone.Name, "Removed": true}},
 			&base.Comment{IssueIndex: issue.Index, CommentType: "delete_branch", Content: "feature"},
+			&base.Comment{IssueIndex: issue.Index, CommentType: "delete_branch", Content: strings.Repeat("a", 256)},
 		))
 
 		unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeLabel, LabelID: label.ID, Content: "1"})
@@ -214,6 +229,7 @@ func TestGiteaUploadRemapLocalUser(t *testing.T) {
 		unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeMilestone, MilestoneID: milestone.ID})
 		unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeMilestone, OldMilestoneID: milestone.ID})
 		assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeDeleteBranch, OldRef: "feature"}).Content)
+		assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeDeleteBranch, OldRef: strings.Repeat("a", 255)}).Content)
 	})
 }
 
@@ -332,6 +348,7 @@ func TestGiteaUploadForkPullRequestHeadInRepository(t *testing.T) {
 		Head:   base.PullRequestBranch{OwnerName: "fork-owner", RepoName: "repo", Ref: "feature", SHA: headCommitID, CloneURL: "https://fork.invalid/fork-owner/repo.git"},
 		Base:   base.PullRequestBranch{OwnerName: repo.OwnerName, RepoName: repo.Name, Ref: repo.DefaultBranch},
 	}
+	pr.PatchURL = "file:///nonexistent.patch"
 	pr.EnsuredSafe = true
 	require.True(t, pr.IsForkPullRequest())
 
@@ -348,4 +365,44 @@ func TestGiteaUploadForkPullRequestHeadInRepository(t *testing.T) {
 	remotes, _, err := gitcmd.NewCommand("remote").WithRepo(repo).RunStdString(ctx)
 	require.NoError(t, err)
 	assert.Empty(t, strings.TrimSpace(remotes), "no remote is added for a local head")
+}
+
+func TestGiteaUploadReviewCommentsWithoutHead(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx := t.Context()
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+	require.NoError(t, pull.LoadIssue(ctx))
+
+	uploader := NewGiteaLocalUploader(ctx, doer, repo.OwnerName, repo.Name)
+	var err error
+	uploader.repo = repo
+	uploader.gitRepo, err = git.OpenRepository(ctx, repo)
+	require.NoError(t, err)
+	defer uploader.Close()
+	uploader.issues[pull.Issue.Index] = pull.Issue
+	require.NoError(t, git.RemoveRef(ctx, repo, pull.GetGitHeadRefName()))
+
+	opts := issues_model.FindReviewOptions{IssueID: pull.Issue.ID}
+	reviewsBefore, err := issues_model.CountReviews(ctx, opts)
+	require.NoError(t, err)
+
+	require.NoError(t, uploader.CreateReviews(ctx, &base.Review{
+		IssueIndex: pull.Issue.Index,
+		ReviewerID: doer.ID,
+		State:      base.ReviewStateCommented,
+		Comments:   []*base.ReviewComment{{Content: "lost anchor", TreePath: "README.md", Line: -3}},
+	}))
+
+	comments, err := issues_model.FindComments(ctx, &issues_model.FindCommentsOptions{IssueID: pull.Issue.ID, Type: issues_model.CommentTypeComment})
+	require.NoError(t, err)
+	var contents []string
+	for _, c := range comments {
+		contents = append(contents, c.Content)
+	}
+	assert.Contains(t, contents, "Comment on `README.md` line 3:\n\nlost anchor")
+	reviewsAfter, err := issues_model.CountReviews(ctx, opts)
+	require.NoError(t, err)
+	assert.Equal(t, reviewsBefore, reviewsAfter) // no empty review is left behind
 }
