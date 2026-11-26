@@ -8009,6 +8009,7 @@
             "x-go-name": "MergeTitleField"
           },
           "merge_when_checks_succeed": {
+            "description": "Wait for the required status checks configured by branch protection before merging.\nWhen no checks are required, the merge runs immediately.",
             "type": "boolean",
             "x-go-name": "MergeWhenChecksSucceed"
           }

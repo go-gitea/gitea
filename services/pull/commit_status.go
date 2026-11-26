@@ -78,6 +78,7 @@ func IsPullCommitStatusPass(ctx context.Context, pr *issues_model.PullRequest) (
 		return false, fmt.Errorf("GetFirstMatchProtectedBranchRule: %w", err)
 	}
 	if pb == nil {
+		// No required checks exist to gate on, so scheduled merges run immediately.
 		return true, nil
 	}
 	if !pb.EnableStatusCheck {

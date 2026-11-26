@@ -419,15 +419,17 @@ type MergePullRequestForm struct {
 	middleware.FormDefaultValidator
 	// required: true
 	// enum: ["merge","rebase","rebase-merge","squash","fast-forward-only","manually-merged"]
-	Do                     string `json:"do" binding:"Required;In(merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged)"`
-	MergeTitleField        string `json:"merge_title_field,omitempty"`
-	MergeMessageField      string `json:"merge_message_field,omitempty"`
-	MergeCommitID          string `json:"merge_commit_id,omitempty"` // only used for manually-merged
-	HeadCommitID           string `json:"head_commit_id,omitempty"`
-	ForceMerge             bool   `json:"force_merge,omitempty"`
-	MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed,omitempty"`
-	DeleteBranchAfterMerge *bool  `json:"delete_branch_after_merge,omitempty"`
-	HasMergeMessageField   bool   `form:"-" json:"-"`
+	Do                string `json:"do" binding:"Required;In(merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged)"`
+	MergeTitleField   string `json:"merge_title_field,omitempty"`
+	MergeMessageField string `json:"merge_message_field,omitempty"`
+	MergeCommitID     string `json:"merge_commit_id,omitempty"` // only used for manually-merged
+	HeadCommitID      string `json:"head_commit_id,omitempty"`
+	ForceMerge        bool   `json:"force_merge,omitempty"`
+	// Wait for the required status checks configured by branch protection before merging.
+	// When no checks are required, the merge runs immediately.
+	MergeWhenChecksSucceed bool  `json:"merge_when_checks_succeed,omitempty"`
+	DeleteBranchAfterMerge *bool `json:"delete_branch_after_merge,omitempty"`
+	HasMergeMessageField   bool  `form:"-" json:"-"`
 }
 
 func (f *MergePullRequestForm) UnmarshalJSON(b []byte) error {
