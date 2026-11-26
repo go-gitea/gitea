@@ -39,8 +39,8 @@ async function apiRetry(fn: () => Promise<APIResponse>, label: string): Promise<
   throw new Error(`${label} failed after ${maxAttempts} attempts`);
 }
 
-export async function apiCreateRepo(requestContext: APIRequestContext, {name, autoInit = true, headers}: {name: string; autoInit?: boolean; headers?: Record<string, string>}) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/user/repos`, {
+export async function apiCreateRepo(requestContext: APIRequestContext, {name, org, autoInit = true, headers}: {name: string; org?: string; autoInit?: boolean; headers?: Record<string, string>}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/${org ? `orgs/${org}` : 'user'}/repos`, {
     headers: headers || apiHeaders(),
     data: {name, auto_init: autoInit},
   }), 'apiCreateRepo');

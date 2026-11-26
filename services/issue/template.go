@@ -8,17 +8,65 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"slices"
 	"strings"
 
 	"gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/issue/template"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/reqctx"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/ownerrepo"
 
 	"go.yaml.in/yaml/v4"
 )
+
+var IssueTemplateCandidates = []string{
+	"ISSUE_TEMPLATE.md",
+	"ISSUE_TEMPLATE.yaml",
+	"ISSUE_TEMPLATE.yml",
+	"issue_template.md",
+	"issue_template.yaml",
+	"issue_template.yml",
+	".gitea/ISSUE_TEMPLATE.md",
+	".gitea/ISSUE_TEMPLATE.yaml",
+	".gitea/ISSUE_TEMPLATE.yml",
+	".gitea/issue_template.md",
+	".gitea/issue_template.yaml",
+	".gitea/issue_template.yml",
+	".github/ISSUE_TEMPLATE.md",
+	".github/ISSUE_TEMPLATE.yaml",
+	".github/ISSUE_TEMPLATE.yml",
+	".github/issue_template.md",
+	".github/issue_template.yaml",
+	".github/issue_template.yml",
+}
+
+var PullRequestTemplateCandidates = []string{
+	"PULL_REQUEST_TEMPLATE.md",
+	"PULL_REQUEST_TEMPLATE.yaml",
+	"PULL_REQUEST_TEMPLATE.yml",
+	"pull_request_template.md",
+	"pull_request_template.yaml",
+	"pull_request_template.yml",
+	".gitea/PULL_REQUEST_TEMPLATE.md",
+	".gitea/PULL_REQUEST_TEMPLATE.yaml",
+	".gitea/PULL_REQUEST_TEMPLATE.yml",
+	".gitea/pull_request_template.md",
+	".gitea/pull_request_template.yaml",
+	".gitea/pull_request_template.yml",
+	".github/PULL_REQUEST_TEMPLATE.md",
+	".github/PULL_REQUEST_TEMPLATE.yaml",
+	".github/PULL_REQUEST_TEMPLATE.yml",
+	".github/pull_request_template.md",
+	".github/pull_request_template.yaml",
+	".github/pull_request_template.yml",
+}
+
+var issueTemplateSourcePaths = slices.Concat(templateDirCandidates, IssueTemplateCandidates)
 
 // templateDirCandidates issue templates directory
 var templateDirCandidates = []string{
@@ -179,12 +227,43 @@ func GetTemplateConfigFromDefaultBranch(ctx context.Context, repo *repo.Reposito
 	return GetDefaultTemplateConfig(), nil
 }
 
-func HasTemplatesOrContactLinks(ctx context.Context, repo *repo.Repository, gitRepo *git.Repository) bool {
-	ret := ParseTemplatesFromDefaultBranch(ctx, repo, gitRepo)
-	if len(ret.IssueTemplates) > 0 {
-		return true
-	}
+func GetIssueTemplateSourceRepo(ctx reqctx.RequestContext, doer *user_model.User, targetRepo *repo.Repository, targetGitRepo *git.Repository, templatePath string) (*repo.Repository, *git.Repository) {
+	return getTemplateSourceRepo(ctx, doer, targetRepo, targetGitRepo, templatePath, issueTemplateSourcePaths)
+}
 
-	issueConfig, _ := GetTemplateConfigFromDefaultBranch(ctx, repo, gitRepo)
-	return len(issueConfig.ContactLinks) > 0
+func GetPullRequestTemplateSourceRepo(ctx reqctx.RequestContext, doer *user_model.User, targetRepo *repo.Repository, targetGitRepo *git.Repository, templatePath string) (*repo.Repository, *git.Repository) {
+	return getTemplateSourceRepo(ctx, doer, targetRepo, targetGitRepo, templatePath, PullRequestTemplateCandidates)
+}
+
+func getTemplateSourceRepo(ctx reqctx.RequestContext, doer *user_model.User, targetRepo *repo.Repository, targetGitRepo *git.Repository, templatePath string, paths []string) (*repo.Repository, *git.Repository) {
+	if !targetRepo.IsEmpty {
+		if commit, err := targetGitRepo.GetBranchCommit(ctx, targetRepo.DefaultBranch); err == nil && hasAnyPath(ctx, targetGitRepo, commit, templatePath, paths) {
+			return targetRepo, targetGitRepo
+		}
+	}
+	found := ownerrepo.Find(ctx, doer, targetRepo.Owner, ownerrepo.DefaultsRepoNames, func(found *ownerrepo.Repo) bool {
+		return hasAnyPath(ctx, found.GitRepo, found.Commit, "", paths)
+	})
+	if found == nil {
+		return targetRepo, targetGitRepo
+	}
+	return found.Repo, found.GitRepo
+}
+
+func hasAnyPath(ctx context.Context, gitRepo *git.Repository, commit *git.Commit, templatePath string, paths []string) bool {
+	trees := map[string]*git.Tree{} // one tree read per directory instead of per path
+	exists := func(treePath string) bool {
+		dir, name := path.Split(path.Clean(treePath))
+		tree, ok := trees[dir]
+		if !ok {
+			tree, _ = commit.SubTree(ctx, gitRepo, strings.TrimSuffix(dir, "/"))
+			trees[dir] = tree
+		}
+		if tree == nil {
+			return false
+		}
+		_, err := tree.GetTreeEntryByPath(ctx, gitRepo, name)
+		return err == nil
+	}
+	return templatePath != "" && exists(templatePath) || slices.ContainsFunc(paths, exists)
 }
