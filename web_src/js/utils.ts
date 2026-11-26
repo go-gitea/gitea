@@ -198,13 +198,11 @@ export function formatBytes(num: number, precision = 2): string {
   return `${value.toFixed(digits)} ${byteUnits[exp]}`;
 }
 
-// getPaginationPages returns the page numbers to show around the current page,
-// the same five the server renders, only without the ellipses: the arrows
-// already tell whether more pages exist in either direction.
-export function getPaginationPages(current: number, total: number): Array<number> {
-  const count = Math.min(total, 5);
-  const first = Math.min(Math.max(current - 2, 1), total - count + 1);
-  return Array.from({length: count}, (_value, idx) => first + idx);
+export function getPaginationPages(current: number, total: number): Array<number> { // mirrors Paginator.Pages in modules/paginator/paginator.go
+  if (total <= 7) return [1, 2, 3, 4, 5, 6, 7].slice(0, total);
+  if (current <= 4) return [1, 2, 3, 4, 5, -1, total];
+  if (current >= total - 3) return [1, -1, total - 4, total - 3, total - 2, total - 1, total];
+  return [1, -1, current - 1, current, current + 1, -1, total];
 }
 
 export function toggleFullScreen(fullScreenEl: HTMLElement, isFullScreen: boolean, sourceParentSelector?: string): void {

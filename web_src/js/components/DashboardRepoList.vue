@@ -96,10 +96,8 @@ const pageDataDefaults = {
   textForks: '',
   textMirrors: '',
   textCollaborative: '',
-  textFirstPage: '',
   textPreviousPage: '',
   textNextPage: '',
-  textLastPage: '',
   textMyOrgs: '',
   textNewOrg: '',
   textOrgVisibilityLimited: '',
@@ -114,7 +112,7 @@ const {
   textShowBothArchivedUnarchived, textShowOnlyUnarchived, textShowOnlyArchived,
   textShowBothPrivatePublic, textShowOnlyPublic, textShowOnlyPrivate,
   textAll, textSources, textForks, textMirrors, textCollaborative,
-  textFirstPage, textPreviousPage, textNextPage, textLastPage,
+  textPreviousPage, textNextPage,
   textMyOrgs, textNewOrg, textOrgVisibilityLimited, textOrgVisibilityPrivate,
 }: typeof pageDataDefaults = {...pageDataDefaults, ...pageData.dashboardRepoList};
 
@@ -263,7 +261,6 @@ async function changePage(newPage: number) {
   if (newPage < 1) newPage = 1;
   if (newPage === page.value) return;
   page.value = newPage;
-  repos.value = [];
   await searchRepos();
 }
 
@@ -482,38 +479,18 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
         </ul>
         <div v-if="showMoreReposLink" class="tw-text-center">
           <div class="divider tw-my-0"/>
-          <div class="ui borderless pagination menu narrow tw-my-2">
-            <a
-              class="item navigation tw-py-1" :class="{'disabled': page === 1}"
-              @click="changePage(1)" :title="textFirstPage"
-            >
-              <svg-icon name="gitea-double-chevron-left" :size="16" class="tw-mr-1"/>
-            </a>
-            <a
-              class="item navigation tw-py-1" :class="{'disabled': page === 1}"
-              @click="changePage(page - 1)" :title="textPreviousPage"
-            >
-              <svg-icon name="octicon-chevron-left" :size="16" class="tw-mr-1"/>
-            </a>
-            <a
-              v-for="item in getPaginationPages(page, finalPage)" :key="item"
-              class="item tw-py-1" :class="{active: item === page}"
-              :aria-current="item === page ? 'page' : undefined"
-              @click="changePage(item)"
-            >{{ item }}</a>
-            <a
-              class="item navigation" :class="{'disabled': page === finalPage}"
-              @click="changePage(page + 1)" :title="textNextPage"
-            >
-              <svg-icon name="octicon-chevron-right" :size="16" class="tw-ml-1"/>
-            </a>
-            <a
-              class="item navigation tw-py-1" :class="{'disabled': page === finalPage}"
-              @click="changePage(finalPage)" :title="textLastPage"
-            >
-              <svg-icon name="gitea-double-chevron-right" :size="16" class="tw-ml-1"/>
-            </a>
-          </div>
+          <nav class="ui borderless pagination menu tw-my-2" :aria-label="textMyRepos">
+            <button type="button" class="item flex-text-inline" :disabled="page === 1" @click="changePage(page - 1)" :data-tooltip-content="textPreviousPage">
+              <svg-icon name="octicon-chevron-left"/>
+            </button>
+            <template v-for="(item, index) in getPaginationPages(page, finalPage)" :key="index">
+              <span v-if="item === -1" class="disabled item">…</span>
+              <button v-else type="button" class="item" :class="{active: item === page}" :aria-current="item === page ? 'page' : undefined" @click="changePage(item)">{{ item }}</button>
+            </template>
+            <button type="button" class="item flex-text-inline" :disabled="page === finalPage" @click="changePage(page + 1)" :data-tooltip-content="textNextPage">
+              <svg-icon name="octicon-chevron-right"/>
+            </button>
+          </nav>
         </div>
       </div>
     </div>
