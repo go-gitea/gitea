@@ -961,6 +961,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			Description:             t.Description,
 			IncludesAllRepositories: t.IncludesAllRepositories,
 			CanCreateOrgRepo:        t.CanCreateOrgRepo,
+			IsSecurityTeam:          t.IsSecurityTeam,
 			Permission:              api.AccessLevelName(t.AccessMode.ToString()),
 			Units:                   slices.Collect(maps.Keys(unitsMap)),
 			UnitsMap:                t.GetUnitsMap(),

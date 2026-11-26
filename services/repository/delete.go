@@ -11,6 +11,7 @@ import (
 	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
 	admin_model "gitea.dev/models/admin"
+	advisory_model "gitea.dev/models/advisory"
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -222,6 +223,10 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 
 	// Delete issue index
 	if err := db.DeleteResourceIndex(ctx, "issue_index", repoID); err != nil {
+		return err
+	}
+
+	if err := advisory_model.DeleteAdvisoriesByRepoID(ctx, repoID); err != nil {
 		return err
 	}
 

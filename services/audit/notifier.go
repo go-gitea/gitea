@@ -7,8 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	advisory_model "gitea.dev/models/advisory"
 	audit_model "gitea.dev/models/audit"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
@@ -192,4 +194,23 @@ func (n *auditNotifier) DeleteRef(ctx context.Context, doer *user_model.User, re
 
 func (n *auditNotifier) PackageDelete(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) {
 	RecordScoped(WithDoer(ctx, doer), pd.Owner, nil, PackageRemove, "package", pd.Package.Name, "version", pd.Version.Version)
+}
+
+func (n *auditNotifier) NewSecurityAdvisoryReport(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
+	RecordAs(ctx, doer, audit_model.SecurityAdvisoryReport, a.Repo, "advisory", a.Identifier)
+}
+
+func (n *auditNotifier) SecurityAdvisoryStateChanged(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, oldState advisory_model.State) {
+	RecordAs(ctx, doer, audit_model.SecurityAdvisoryState, a.Repo, "advisory", a.Identifier, "previous_state", oldState.String(), "state", a.State.String())
+}
+
+func AdvisoryCollaboratorName(user *user_model.User, team *organization.Team) string {
+	if team != nil {
+		return "team " + team.Name
+	}
+	return "user " + user.Name
+}
+
+func (n *auditNotifier) SecurityAdvisoryCollaboratorAdded(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, user *user_model.User, team *organization.Team) {
+	RecordAs(ctx, doer, audit_model.SecurityAdvisoryCollaboratorAdd, a.Repo, "advisory", a.Identifier, "collaborator", AdvisoryCollaboratorName(user, team))
 }

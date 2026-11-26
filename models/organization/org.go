@@ -371,7 +371,7 @@ func CreateOrganization(ctx context.Context, org *Organization, owner *user_mode
 		units := make([]TeamUnit, 0, len(unit.AllRepoUnitTypes))
 		for _, tp := range unit.AllRepoUnitTypes {
 			up := perm.AccessModeOwner
-			if tp == unit.TypeExternalTracker || tp == unit.TypeExternalWiki {
+			if tp == unit.TypeExternalTracker || tp == unit.TypeExternalWiki || tp == unit.TypeSecurityAdvisories {
 				up = perm.AccessModeRead
 			}
 			units = append(units, TeamUnit{

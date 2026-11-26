@@ -1,0 +1,25 @@
+{{$calculator := .Calculator}}
+<div class="field {{if not $calculator.Selected}}tw-hidden{{end}}" data-cvss-version="{{$calculator.Version}}" data-preview-url="{{.PreviewLink}}">
+	<div class="ui segment">
+		<div class="flex-relaxed-list">
+			{{range $metric := $calculator.Metrics}}
+				<div class="flex-text-block tw-flex-wrap">
+					<span class="tw-w-72 tw-shrink-0">{{$metric.Name}}</span>
+					<div class="ui small basic buttons" data-cvss-metric="{{$metric.Key}}" role="group" aria-label="{{$metric.Name}}">
+						{{range $metric.Values}}
+							<button type="button" class="ui button" data-value="{{.Key}}" aria-pressed="false">{{.Name}}</button>
+						{{end}}
+					</div>
+				</div>
+			{{end}}
+		</div>
+		<div class="divider"></div>
+		<div class="flex-text-block">
+			<div class="ui input tw-flex-1">
+				<input name="cvss_vector" class="tw-font-mono" value="{{$calculator.Vector}}" maxlength="255" placeholder="CVSS:{{$calculator.Version}}/…" aria-label="{{ctx.Locale.Tr "repo.security_advisories.cvss.vector" $calculator.Version}}" {{if not $calculator.Selected}}disabled{{end}}>
+			</div>
+			<span class="ui basic label" data-cvss-result aria-live="polite">{{ctx.Locale.Tr "repo.security_advisories.cvss.no_score"}}</span>
+			<a class="flex-text-inline" href="{{$calculator.SpecLink}}" target="_blank" rel="noopener noreferrer">{{svg "octicon-link-external" 14}}{{ctx.Locale.Tr "repo.security_advisories.cvss.specification"}}</a>
+		</div>
+	</div>
+</div>

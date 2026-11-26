@@ -33,6 +33,8 @@ const (
 	TypeProjects        // 8 Projects: implies that the doer can read some information from issue & PR, org-level is not well-designed
 	TypePackages        // 9 Packages: for most cases, it is for owner-level (not well-designed though)
 	TypeActions         // 10 Actions
+
+	TypeSecurityAdvisories // 11 Security advisories
 )
 
 // Value returns integer value for unit type (used by template)
@@ -62,6 +64,7 @@ var (
 		TypeProjects,
 		TypePackages,
 		TypeActions,
+		TypeSecurityAdvisories,
 	}
 
 	// DefaultRepoUnits contains the default unit types
@@ -74,6 +77,7 @@ var (
 		TypeProjects,
 		TypePackages,
 		TypeActions,
+		TypeSecurityAdvisories,
 	}
 
 	// ForkRepoUnits contains the default unit types for forks
@@ -101,6 +105,7 @@ var (
 		TypeWiki,
 		TypeProjects,
 		TypePackages,
+		TypeSecurityAdvisories,
 	}
 
 	// NotAllowedDefaultRepoUnits contains units that can't be default
@@ -227,7 +232,7 @@ func (u Unit) IsLessThan(unit Unit) bool {
 
 // MaxPerm returns the max perms of this unit
 func (u Unit) MaxPerm() perm.AccessMode {
-	if u.Type == TypeExternalTracker || u.Type == TypeExternalWiki {
+	if u.Type == TypeExternalTracker || u.Type == TypeExternalWiki || u.Type == TypeSecurityAdvisories {
 		return perm.AccessModeRead
 	}
 	return perm.AccessModeAdmin
@@ -325,6 +330,15 @@ var (
 		perm.AccessModeOwner,
 	}
 
+	UnitSecurityAdvisories = Unit{
+		TypeSecurityAdvisories,
+		"repo.security_advisories",
+		"/security",
+		"repo.security_advisories.desc",
+		8,
+		perm.AccessModeRead, // read: see published advisories and report privately, non-public ones need repo admin, a security team or an invitation
+	}
+
 	// Units contains all the units
 	Units = map[Type]Unit{
 		TypeCode:            UnitCode,
@@ -337,6 +351,8 @@ var (
 		TypeProjects:        UnitProjects,
 		TypePackages:        UnitPackages,
 		TypeActions:         UnitActions,
+
+		TypeSecurityAdvisories: UnitSecurityAdvisories,
 	}
 )
 

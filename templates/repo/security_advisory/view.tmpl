@@ -1,0 +1,383 @@
+{{template "base/head" .}}
+{{$perms := .AdvisoryPerms}}
+{{$advisory := .Advisory}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository view issue security-advisory">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<a class="muted flex-text-inline tw-mb-2" href="{{.RepoLink}}/security/advisories">{{svg "octicon-arrow-left" 14}}{{ctx.Locale.Tr "repo.security_advisories.back_to_list"}}</a>
+		<div class="issue-title-header">
+			<div class="issue-title">
+				<h1>
+					{{$advisory.Summary}}
+					{{if $perms.CanSeeDiscussion}}<span class="index">#{{$advisory.Index}}</span>{{end}}
+				</h1>
+				<div class="issue-title-buttons">
+					{{if $perms.CanEdit}}
+						<a role="button" class="ui small basic button" href="{{$advisory.Link}}/edit">{{ctx.Locale.Tr "repo.security_advisories.edit"}}</a>
+					{{end}}
+				</div>
+			</div>
+			<div class="issue-title-meta flex-text-block">
+				{{template "repo/security_advisory/state_label" $advisory}}
+				{{template "repo/security_advisory/severity_label" $advisory}}
+				<span class="tw-font-mono">{{$advisory.Identifier}}</span>
+				<span class="time-desc">{{.StatusText}}</span>
+			</div>
+		</div>
+
+		<div class="issue-content">
+			<div class="issue-content-left">
+				<div class="comment-list">
+					{{if $advisory.Vulnerabilities}}
+						<div class="timeline-item comment">
+							<div class="content">
+								<table class="ui table">
+									<thead>
+										<tr>
+											<th>{{ctx.Locale.Tr "repo.security_advisories.package"}}</th>
+											<th>{{ctx.Locale.Tr "repo.security_advisories.affected_versions"}}</th>
+											<th>{{ctx.Locale.Tr "repo.security_advisories.patched_versions"}}</th>
+										</tr>
+									</thead>
+									<tbody>
+										{{range $advisory.Vulnerabilities}}
+											<tr>
+												<td>
+													<div class="flex-text-block"><span class="ui basic label">{{.Ecosystem}}</span><span class="tw-break-anywhere">{{.PackageName}}</span></div>
+													{{if .VulnerableFunctions}}<div class="tw-text-text-light tw-mt-1">{{ctx.Locale.Tr "repo.security_advisories.affected_functions"}}: <code>{{StringUtils.Join .VulnerableFunctions ", "}}</code></div>{{end}}
+												</td>
+												<td>{{if .VulnerableVersionRange}}<code>{{.VulnerableVersionRange}}</code>{{else}}<span class="tw-text-text-light">{{ctx.Locale.Tr "repo.security_advisories.none"}}</span>{{end}}</td>
+												<td>{{if .PatchedVersions}}<code>{{.PatchedVersions}}</code>{{else}}<span class="tw-text-text-light">{{ctx.Locale.Tr "repo.security_advisories.none"}}</span>{{end}}</td>
+											</tr>
+										{{end}}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					{{end}}
+
+					{{$author := .DescriptionAuthor}}
+					<div class="timeline-item comment">
+						{{if $author}}
+							<a class="timeline-avatar" href="{{$author.HomeLink}}">{{ctx.AvatarUtils.Avatar $author 40}}</a>
+						{{else}}
+							<span class="timeline-avatar">{{svg "octicon-shield" 40}}</span>
+						{{end}}
+						<div class="content comment-container">
+							<div class="comment-header avatar-content-left-arrow" role="heading" aria-level="3">
+								<div class="comment-header-left">
+									<span class="comment-text-line">
+										{{if $author}}{{template "shared/user/authorlink" $author}}{{end}}
+										{{ctx.Locale.Tr "repo.security_advisories.opened_at" (DateUtils.TimeSince (Iif $perms.CanSeeDiscussion $advisory.CreatedUnix $advisory.PublishedUnix))}}
+									</span>
+								</div>
+							</div>
+							<div class="ui attached segment comment-body" role="article">
+								<div class="render-content markup">{{.RenderedDescription}}</div>
+							</div>
+						</div>
+					</div>
+
+					{{if .RenderedReportDescription}}
+						<div class="timeline-item comment">
+							<a class="timeline-avatar" href="{{$advisory.Reporter.HomeLink}}">{{ctx.AvatarUtils.Avatar $advisory.Reporter 40}}</a>
+							<div class="content comment-container">
+								<div class="ui attached segment comment-body avatar-content-left-arrow">
+									<details>
+										<summary>{{ctx.Locale.Tr "repo.security_advisories.original_report"}}</summary>
+										<div class="render-content markup tw-mt-2">{{.RenderedReportDescription}}</div>
+									</details>
+								</div>
+							</div>
+						</div>
+					{{end}}
+
+					{{if $perms.CanSeeDiscussion}}
+						<div class="timeline-item event">
+							<span class="badge">{{svg "octicon-eye"}}</span>
+							<span class="comment-text-line">{{ctx.Locale.Tr "repo.security_advisories.discussion_desc"}}</span>
+						</div>
+						{{range .Comments}}
+							{{$hashTag := printf "advisory-comment-%d" .ID}}
+							{{$isPoster := and $.IsSigned (eq $.SignedUserID .PosterID)}}
+							<div class="timeline-item comment" id="{{$hashTag}}">
+								<a class="timeline-avatar" href="{{.Poster.HomeLink}}">{{ctx.AvatarUtils.Avatar .Poster 40}}</a>
+								<div class="content comment-container">
+									<div class="comment-header avatar-content-left-arrow" role="heading" aria-level="3">
+										<div class="comment-header-left">
+											<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">{{ctx.AvatarUtils.Avatar .Poster 24}}</a>
+											<span class="comment-text-line">
+												{{template "shared/user/authorlink" .Poster}}
+												{{ctx.Locale.Tr "repo.issues.commented_at" $hashTag (DateUtils.TimeSince .CreatedUnix)}}
+											</span>
+										</div>
+										<div class="comment-header-right">
+											{{if .IsConfidential}}
+												<span class="ui basic label" data-tooltip-content="{{ctx.Locale.Tr "repo.security_advisories.confidential_comment_desc"}}">{{svg "octicon-lock" 12}} {{ctx.Locale.Tr "repo.security_advisories.confidential_comment"}}</span>
+											{{end}}
+											<div class="item action ui dropdown jump pointing top right">
+												{{svg "octicon-kebab-horizontal"}}
+												<div class="menu">
+													<div class="item js-aria-clickable" data-clipboard-text="{{$advisory.HTMLURL}}#{{$hashTag}}">{{ctx.Locale.Tr "copy_link"}}</div>
+													<div class="item js-aria-clickable" data-clipboard-target="#{{$hashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.copy_source"}}</div>
+													{{if and $perms.CanComment (not $.Repository.IsArchived)}}
+														<div class="item js-aria-clickable" data-global-click="onConvContentQuoteReply" data-target="{{$hashTag}}-raw"{{if .IsConfidential}} data-global-init="initSecurityAdvisoryConfidentialQuote"{{end}}>{{ctx.Locale.Tr "repo.issues.context.quote_reply"}}</div>
+														{{if or $isPoster $.CanManageSecurityAdvisories}}
+															<div class="divider"></div>
+															{{if $isPoster}}
+																<div class="item js-aria-clickable" data-global-click="onConvContentEdit">{{ctx.Locale.Tr "repo.issues.context.edit"}}</div>
+															{{end}}
+															<div class="item js-aria-clickable" data-global-click="onConvContentDelete" data-comment-hash-tag="{{$hashTag}}" data-url="{{$advisory.Link}}/comments/{{.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</div>
+														{{end}}
+													{{end}}
+												</div>
+											</div>
+										</div>
+									</div>
+									<div class="ui attached segment comment-body" role="article">
+										<div class="render-content markup">{{.RenderedContent}}</div>
+										<div id="{{$hashTag}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
+										<div class="edit-content-zone tw-hidden" data-update-url="{{$advisory.Link}}/comments/{{.ID}}/edit" data-content-version="0" data-context="{{$.RepoLink}}"></div>
+									</div>
+								</div>
+							</div>
+						{{end}}
+
+						{{with .ActionSection}}
+							{{$isDraft := eq $advisory.State.String "draft"}}
+							<div class="timeline-item comment">
+								<div class="timeline-avatar merge-box-icon{{if $isDraft}} tw-bg-green{{end}}">{{svg (Iif $isDraft "octicon-shield" "octicon-inbox") 24}}</div>
+								<div class="content">
+									<div class="ui segment fitted">
+										<div class="merge-section flex-divided-list items-with-main">
+											<div class="item">
+												{{template "shared/merge_box_section" (dict "MergeBoxSection" .)}}
+												<button type="button" class="ui primary button link-action tw-shrink-0" data-url="{{$advisory.Link}}/state?state={{Iif $isDraft "published" "draft"}}"{{if $isDraft}} data-modal-confirm="{{ctx.Locale.Tr "repo.security_advisories.action.publish_desc"}}"{{end}}>
+													{{ctx.Locale.Tr (Iif $isDraft "repo.security_advisories.action.published" "repo.security_advisories.action.draft")}}
+												</button>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						{{end}}
+
+						{{if and $perms.CanComment (not .Repository.IsArchived)}}
+							<div class="timeline-item comment form">
+								<a class="timeline-avatar" href="{{.SignedUser.HomeLink}}">{{ctx.AvatarUtils.Avatar .SignedUser 40}}</a>
+								<div class="content">
+									<div class="ui segment avatar-content-left-arrow">
+										<form class="ui form form-fetch-action" id="comment-form" action="{{$advisory.Link}}/comments" method="post">
+											<div class="field">
+												{{template "shared/combomarkdowneditor" (dict
+													"CustomInit" true
+													"MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorAdvisory .Repository)
+													"TextareaName" "content"
+													"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
+												)}}
+											</div>
+											<div class="field footer">
+												<div class="flex-text-block tw-justify-end">
+													{{if $perms.CanSeeConfidential}}
+														<div class="ui checkbox tw-mr-auto">
+															<input type="checkbox" name="is_confidential" id="advisory-comment-confidential">
+															<label for="advisory-comment-confidential">{{svg "octicon-lock" 14 "tw-mr-1"}}{{ctx.Locale.Tr "repo.security_advisories.confidential_comment_checkbox"}}</label>
+														</div>
+													{{end}}
+													{{if .CanCloseSecurityAdvisory}}
+														<button type="button" class="ui button show-modal" data-modal="#security-advisory-close-modal">
+															<span class="tw-text-red">{{svg "octicon-shield-x"}}</span>{{ctx.Locale.Tr "repo.security_advisories.action.closed"}}
+														</button>
+													{{else if and .CanManageSecurityAdvisories (eq $advisory.State.String "closed")}}
+														<button type="button" class="ui button link-action" data-url="{{$advisory.Link}}/state?state={{$advisory.ReopenState}}">
+															<span class="tw-text-green">{{svg "octicon-issue-reopened"}}</span>{{ctx.Locale.Tr "repo.security_advisories.action.reopen"}}
+														</button>
+													{{else if and .CanManageSecurityAdvisories (eq $advisory.State.String "published")}}
+														<button type="button" class="ui button link-action" data-url="{{$advisory.Link}}/state?state=withdrawn" data-modal-confirm="{{ctx.Locale.Tr "repo.security_advisories.action.withdrawn_confirm"}}">
+															<span class="tw-text-red">{{svg "octicon-shield-x"}}</span>{{ctx.Locale.Tr "repo.security_advisories.action.withdrawn"}}
+														</button>
+													{{end}}
+													<button type="submit" id="comment-button" class="ui primary button">{{ctx.Locale.Tr "repo.issues.create_comment"}}</button>
+												</div>
+											</div>
+										</form>
+									</div>
+								</div>
+							</div>
+							<template id="issue-comment-editor-template">
+								<form class="ui form comment">
+									<div class="field">
+										{{template "shared/combomarkdowneditor" (dict
+											"CustomInit" true
+											"MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorAdvisory .Repository)
+											"TextareaName" "content"
+										)}}
+									</div>
+									<div class="field">
+										<div class="flex-text-block tw-justify-end">
+											<button type="button" class="ui cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
+											<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
+										</div>
+									</div>
+								</form>
+							</template>
+						{{end}}
+					{{end}}
+				</div>
+			</div>
+
+			<div class="issue-content-right ui segment" data-global-init="initRepoIssueSidebar">
+				<span class="text"><strong>{{ctx.Locale.Tr "repo.security_advisories.severity"}}</strong></span>
+				<div class="flex-text-block tw-mt-2">
+					{{if $advisory.Severity.String}}
+						{{template "repo/security_advisory/severity_label" $advisory}}
+						{{if $advisory.CvssVector}}<span><strong>{{printf "%.1f" $advisory.CvssScore}}</strong> / 10</span>{{end}}
+					{{else}}
+						<span class="empty-list">{{ctx.Locale.Tr "repo.security_advisories.severity.unknown"}}</span>
+					{{end}}
+				</div>
+				{{if $advisory.CvssVector}}
+					<div class="ui segment tw-mt-2">
+						<strong>{{ctx.Locale.Tr "repo.security_advisories.cvss.base_metrics" $advisory.CvssVersion}}</strong>
+						{{range .CVSSMetrics}}
+							<div class="flex-text-block tw-justify-between tw-mt-1"><span class="tw-text-text-light">{{index . 0}}</span><span>{{index . 1}}</span></div>
+						{{end}}
+					</div>
+					<div class="tw-mt-2 tw-text-12 tw-font-mono tw-text-text-light tw-break-anywhere">{{$advisory.CvssVector}}</div>
+				{{end}}
+
+				{{if $perms.CanSeeDiscussion}}
+					<div class="divider"></div>
+					{{template "shared/label/sidebar_list" dict "LabelsData" .LabelsData "CanModify" .CanManageSecurityAdvisories "ListLink" (QueryBuild (print .RepoLink "/security/advisories") "state" (Iif $advisory.IsPublic "published" $advisory.State.String)) "UpdateURL" (print $advisory.Link "/labels") "UpdateAlgo" "all"}}
+				{{end}}
+
+				<div class="divider"></div>
+				<span class="text"><strong>{{ctx.Locale.Tr "repo.security_advisories.cve_id"}}</strong></span>
+				<div class="tw-mt-2">
+					{{if $advisory.CveID}}{{$advisory.CveID}}{{else}}<span class="empty-list">{{ctx.Locale.Tr "repo.security_advisories.no_cve"}}</span>{{end}}
+				</div>
+
+				<div class="divider"></div>
+				<span class="text"><strong>{{ctx.Locale.Tr "repo.security_advisories.weaknesses"}}</strong></span>
+				<div class="flex-text-block tw-flex-wrap tw-mt-2">
+					{{range $advisory.CweIDs}}
+						<a class="ui basic label" href="https://cwe.mitre.org/data/definitions/{{StringUtils.TrimPrefix . "CWE-"}}.html" target="_blank" rel="noopener noreferrer">{{.}}</a>
+					{{else}}
+						<span class="empty-list">{{ctx.Locale.Tr "repo.security_advisories.no_cwes"}}</span>
+					{{end}}
+				</div>
+
+				<div class="divider"></div>
+				<span class="text"><strong>{{ctx.Locale.Tr "repo.security_advisories.credits"}}</strong></span>
+				<div class="ui relaxed list">
+					{{range $.VisibleCredits}}
+						<div class="item flex-text-block">
+							{{ctx.AvatarUtils.Avatar .User 20}}
+							<span class="tw-flex-1">{{template "shared/user/authorlink" .User}}</span>
+							<span class="ui basic label">{{ctx.Locale.Tr (print "repo.security_advisories.credit." .Type)}}</span>
+						</div>
+					{{else}}
+						<span class="item empty-list">{{ctx.Locale.Tr "repo.security_advisories.none"}}</span>
+					{{end}}
+				</div>
+
+				{{if $perms.CanSeeDiscussion}}
+					<div class="divider"></div>
+					<span class="text"><strong>{{ctx.Locale.Tr "repo.security_advisories.collaborators"}}</strong></span>
+					<div class="ui relaxed list">
+						{{range .Collaborators}}
+							<div class="item flex-text-block">
+								{{if .User}}
+									{{ctx.AvatarUtils.Avatar .User 20}}
+									<span class="tw-flex-1">{{template "shared/user/authorlink" .User}}</span>
+									{{if .ReadOnly}}<span class="ui basic label" data-tooltip-content="{{ctx.Locale.Tr "repo.security_advisories.read_only_desc"}}">{{ctx.Locale.Tr "repo.security_advisories.read_only"}}</span>{{end}}
+								{{else}}
+									{{svg "octicon-people" 20}}
+									<span class="tw-flex-1">{{.Team.Name}}</span>
+								{{end}}
+								{{if $.CanManageSecurityAdvisories}}
+									<button type="button" class="btn interact-fg link-action" data-url="{{.RemoveLink}}" data-tooltip-content="{{ctx.Locale.Tr "remove"}}" aria-label="{{ctx.Locale.Tr "remove"}}">{{svg "octicon-trash"}}</button>
+								{{end}}
+							</div>
+						{{else}}
+							<span class="item empty-list">{{ctx.Locale.Tr "repo.security_advisories.none"}}</span>
+						{{end}}
+					</div>
+					{{if .CanManageSecurityAdvisories}}
+						<div class="flex-relaxed-list">
+							{{template "repo/security_advisory/collaborator_form" dict "Link" $advisory.Link "Type" "user" "Icon" "octicon-person-add" "SearchInit" "initSecurityAdvisoryUserSearch" "PlaceholderKey" "search.user_kind" "SubmitKey" "repo.settings.add_collaborator"}}
+							{{if .Repository.Owner.IsOrganization}}
+								{{template "repo/security_advisory/collaborator_form" dict "Link" $advisory.Link "Type" "team" "Icon" "octicon-people" "SearchInit" "initSecurityAdvisoryTeamSearch" "OrgName" .Repository.Owner.Name "PlaceholderKey" "search.team_kind" "SubmitKey" "repo.settings.add_team"}}
+							{{end}}
+						</div>
+					{{end}}
+				{{end}}
+
+				{{if and .CanManageSecurityAdvisories (not $advisory.IsPublic)}}
+					<div class="divider"></div>
+					<button type="button" class="fluid ui red basic button link-action" data-url="{{$advisory.Link}}/delete" data-modal-confirm="{{ctx.Locale.Tr "repo.security_advisories.delete_confirm"}}">
+						{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.security_advisories.delete"}}
+					</button>
+				{{end}}
+			</div>
+		</div>
+	</div>
+	{{if .CanCloseSecurityAdvisory}}
+		<dialog class="modal-dialog" id="security-advisory-close-modal">
+			<div class="header">{{ctx.Locale.Tr "repo.security_advisories.close.title"}}</div>
+			<form class="ui form form-fetch-action" method="post" action="{{$advisory.Link}}/state"{{if .DuplicateCandidates}} data-global-init="initSecurityAdvisoryCloseForm"{{end}}>
+				<div class="content">
+					<input type="hidden" name="state" value="closed">
+					<div class="grouped fields">
+						<div class="field">
+							<div class="ui radio checkbox">
+								<input type="radio" name="close_reason" value="" checked>
+								<label>{{ctx.Locale.Tr "repo.security_advisories.close_reason.none"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui radio checkbox">
+								<input type="radio" name="close_reason" value="invalid">
+								<label>{{ctx.Locale.Tr "repo.security_advisories.close_reason.invalid"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui radio checkbox">
+								<input type="radio" name="close_reason" value="duplicate" {{if not .DuplicateCandidates}}disabled{{end}}>
+								<label>{{ctx.Locale.Tr "repo.security_advisories.close_reason.duplicate"}}</label>
+							</div>
+						</div>
+					</div>
+					{{if .DuplicateCandidates}}
+						<div class="tw-hidden" data-close-duplicate-field>
+							<div class="field">
+								<label>{{ctx.Locale.Tr "repo.security_advisories.close.original"}}</label>
+								<div class="ui fluid search selection dropdown">
+									<input type="hidden" name="duplicate_of">
+									<div class="default text">{{ctx.Locale.Tr "repo.security_advisories.close.original"}}</div>
+									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+									<div class="menu">
+										{{range .DuplicateCandidates}}
+											<div class="item" data-value="{{.Identifier}}"><span class="tw-font-mono">{{.Identifier}}</span>&nbsp;{{.Summary}}</div>
+										{{end}}
+									</div>
+								</div>
+							</div>
+							{{if $advisory.IsReport}}
+								<div class="field">
+									<div class="ui checkbox">
+										<input type="checkbox" name="share_original">
+										<label>{{ctx.Locale.Tr "repo.security_advisories.close.share_original"}}</label>
+									</div>
+								</div>
+							{{end}}
+						</div>
+					{{end}}
+				</div>
+				{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm" "ModalButtonOkText" (ctx.Locale.Tr "repo.security_advisories.action.closed"))}}
+			</form>
+		</dialog>
+	{{end}}
+</div>
+{{template "base/footer" .}}

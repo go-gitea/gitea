@@ -64,7 +64,7 @@
 
 					<div class="list-header-filters ui secondary menu tw-m-0">
 						{{if $.Labels}}
-							{{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLinkWithFilter "SupportArchivedLabel" true}}
+							{{template "shared/label/filter_item" dict "Labels" .Labels "QueryLink" $queryLinkWithFilter "SupportArchivedLabel" true}}
 						{{end}}
 
 						{{/* at the moment there is no easy way to get poster candidates on this page, so only show a username input, search for what the end user enters */}}

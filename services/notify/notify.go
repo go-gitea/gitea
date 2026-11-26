@@ -7,8 +7,10 @@ import (
 	"context"
 
 	actions_model "gitea.dev/models/actions"
+	advisory_model "gitea.dev/models/advisory"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
 	project_model "gitea.dev/models/project"
 	pull_model "gitea.dev/models/pull"
@@ -280,6 +282,38 @@ func DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.R
 
 	for _, notifier := range notifiers {
 		notifier.DeleteRelease(ctx, doer, rel)
+	}
+}
+
+func NewSecurityAdvisoryReport(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
+	defer recoverPanic()
+
+	for _, notifier := range notifiers {
+		notifier.NewSecurityAdvisoryReport(ctx, doer, a)
+	}
+}
+
+func SecurityAdvisoryStateChanged(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, oldState advisory_model.State) {
+	defer recoverPanic()
+
+	for _, notifier := range notifiers {
+		notifier.SecurityAdvisoryStateChanged(ctx, doer, a, oldState)
+	}
+}
+
+func SecurityAdvisoryCollaboratorAdded(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, user *user_model.User, team *organization.Team) {
+	defer recoverPanic()
+
+	for _, notifier := range notifiers {
+		notifier.SecurityAdvisoryCollaboratorAdded(ctx, doer, a, user, team)
+	}
+}
+
+func NewSecurityAdvisoryComment(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, c *advisory_model.Comment) {
+	defer recoverPanic()
+
+	for _, notifier := range notifiers {
+		notifier.NewSecurityAdvisoryComment(ctx, doer, a, c)
 	}
 }
 

@@ -54,7 +54,7 @@
 			<div class="divider"></div>
 		{{end}}
 
-		{{template "repo/issue/sidebar/label_list" $.IssuePageMetaData}}
+		{{template "shared/label/sidebar_list" dict "LabelsData" $.IssuePageMetaData.LabelsData "CanModify" $.IssuePageMetaData.CanModifyIssueOrPull "ListLink" (print $.RepoLink (Iif $.IssuePageMetaData.IsPullRequest "/pulls" "/issues"))}}
 		{{template "repo/issue/sidebar/milestone_list" $.IssuePageMetaData}}
 		{{if .IsProjectsEnabled}}
 			{{template "repo/issue/sidebar/project_list" $.IssuePageMetaData}}

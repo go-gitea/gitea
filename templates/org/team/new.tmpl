@@ -89,6 +89,14 @@
 										<span class="help">{{ctx.Locale.Tr "org.teams.can_create_org_repo_helper"}}</span>
 									</div>
 								</div>
+
+								<div class="field">
+									<div class="ui checkbox">
+										<label for="is_security_team">{{ctx.Locale.Tr "org.teams.is_security_team"}}</label>
+										<input id="is_security_team" name="is_security_team" type="checkbox" {{if .Team.IsSecurityTeam}}checked{{end}}>
+										<span class="help">{{ctx.Locale.Tr "org.teams.is_security_team_helper"}}</span>
+									</div>
+								</div>
 							</div>
 							<div class="grouped field">
 								<label>{{ctx.Locale.Tr "org.team_permission_desc"}}</label>

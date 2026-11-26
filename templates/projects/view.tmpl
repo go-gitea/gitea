@@ -6,7 +6,7 @@
 		<div class="tw-flex-1"></div>
 		<div class="list-header-filters ui secondary menu tw-m-0">
 			{{$queryLink := QueryBuild "?" "labels" .SelectLabels "assignee" $.AssigneeID "milestone" $.MilestoneID "archived_labels" (Iif $.ShowArchivedLabels "true")}}
-			{{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLink "SupportArchivedLabel" true}}
+			{{template "shared/label/filter_item" dict "Labels" .Labels "QueryLink" $queryLink "SupportArchivedLabel" true}}
 			{{template "repo/issue/filter_item_user_assign" dict
 				"QueryParamKey" "assignee"
 				"QueryLink" $queryLink

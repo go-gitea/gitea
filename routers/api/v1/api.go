@@ -1449,6 +1449,26 @@ func Routes() *web.Router {
 							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseByTag)
 					})
 				}, mustEnableUnit(unit.TypeReleases), mustNotBeArchived)
+				m.Group("/security-advisories", func() {
+					m.Combo("").Get(repo.ListSecurityAdvisories).
+						Post(reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.CreateRepositoryAdvisoryOption{}), repo.CreateSecurityAdvisory)
+					m.Post("/reports", reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.CreatePrivateVulnerabilityReportOption{}), repo.CreatePrivateVulnerabilityReport)
+					m.Group("/{gtsa_id}", func() {
+						m.Combo("").Get(repo.GetSecurityAdvisory).
+							Patch(reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.EditRepositoryAdvisoryOption{}), repo.EditSecurityAdvisory)
+						m.Group("/comments", func() {
+							m.Combo("").Get(repo.ListSecurityAdvisoryComments).
+								Post(reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.RepositoryAdvisoryCommentOption{}), repo.CreateSecurityAdvisoryComment)
+							m.Combo("/{comment_id}").Get(repo.GetSecurityAdvisoryComment).
+								Patch(reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.RepositoryAdvisoryCommentOption{}), repo.EditSecurityAdvisoryComment).
+								Delete(reqToken(), rejectPublicOnly(), mustNotBeArchived, repo.DeleteSecurityAdvisoryComment)
+						}, repo.MustSeeSecurityAdvisoryDiscussion)
+					}, repo.LoadSecurityAdvisory)
+				}, mustEnableUnit(unit.TypeSecurityAdvisories))
+				m.Combo("/private-vulnerability-reporting", mustEnableUnit(unit.TypeSecurityAdvisories)).
+					Get(repo.GetPrivateVulnerabilityReporting).
+					Put(reqToken(), rejectPublicOnly(), reqAdmin(), mustNotBeArchived, repo.EnablePrivateVulnerabilityReporting).
+					Delete(reqToken(), rejectPublicOnly(), reqAdmin(), mustNotBeArchived, repo.DisablePrivateVulnerabilityReporting)
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.MirrorSync)
 				m.Post("/push_mirrors-sync", reqAdmin(), reqToken(), mustNotBeArchived, repo.PushMirrorSync)
 				m.Group("/push_mirrors", func() {
@@ -1765,6 +1785,7 @@ func Routes() *web.Router {
 			m.Combo("/repos").Get(user.ListOrgRepos).
 				Post(reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), rejectPublicOnly(), bind(api.CreateRepoOption{}), repo.CreateOrgRepo).
 				Delete(reqToken(), reqOrgOwnership(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), org.DeleteOrgRepos)
+			m.Get("/security-advisories", reqToken(), reqOrgOwnership(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), org.ListSecurityAdvisories)
 			m.Group("/members", func() {
 				m.Get("", reqToken(), org.ListMembers)
 				m.Combo("/{username}").Get(reqToken(), org.IsMember).

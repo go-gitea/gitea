@@ -170,6 +170,12 @@ func (fc feishuConvertor) Release(p *api.ReleasePayload) (FeishuPayload, error) 
 	return newFeishuTextPayload(text), nil
 }
 
+func (fc feishuConvertor) RepositoryAdvisory(p *api.RepositoryAdvisoryPayload) (FeishuPayload, error) {
+	text, _ := getRepositoryAdvisoryPayloadInfo(p, noneLinkFormatter, true)
+
+	return newFeishuTextPayload(text), nil
+}
+
 func (fc feishuConvertor) Package(p *api.PackagePayload) (FeishuPayload, error) {
 	text, _ := getPackagePayloadInfo(p, noneLinkFormatter, true)
 

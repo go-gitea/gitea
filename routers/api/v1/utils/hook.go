@@ -132,6 +132,9 @@ func AddOwnerHook(ctx *context.APIContext, owner *user_model.User, form *api.Cre
 
 // AddRepoHook add a hook to a repo. Writes to `ctx` accordingly
 func AddRepoHook(ctx *context.APIContext, form *api.CreateHookOption) {
+	if !allowsRepoHookEvents(ctx, nil, form.Events) {
+		return
+	}
 	repo := ctx.Repo
 	hook, ok := addHook(ctx, form, 0, repo.Repository.ID)
 	if !ok {
@@ -143,6 +146,15 @@ func AddRepoHook(ctx *context.APIContext, form *api.CreateHookOption) {
 		return
 	}
 	ctx.JSON(http.StatusCreated, apiHook)
+}
+
+func allowsRepoHookEvents(ctx *context.APIContext, hook *webhook.Webhook, events []string) bool {
+	const reportEvent = webhook_module.HookEventRepositoryAdvisoryReported
+	if user_model.IsPublicOnlyDoer(ctx.Doer) && ((hook != nil && hook.HasEvent(reportEvent)) || util.SliceContainsString(events, string(reportEvent), true)) {
+		ctx.APIError(http.StatusForbidden, "private vulnerability report webhooks require access to private resources")
+		return false
+	}
+	return true
 }
 
 // toAPIHook converts the hook to its API representation.
@@ -181,6 +193,8 @@ func updateHookEvents(events []string) webhook_module.HookEvents {
 	hookEvents[webhook_module.HookEventWorkflowRun] = util.SliceContainsString(events, string(webhook_module.HookEventWorkflowRun), true)
 	hookEvents[webhook_module.HookEventWorkflowJob] = util.SliceContainsString(events, string(webhook_module.HookEventWorkflowJob), true)
 	hookEvents[webhook_module.HookEventMergeGroup] = util.SliceContainsString(events, string(webhook_module.HookEventMergeGroup), true)
+	hookEvents[webhook_module.HookEventRepositoryAdvisory] = util.SliceContainsString(events, string(webhook_module.HookEventRepositoryAdvisory), true)
+	hookEvents[webhook_module.HookEventRepositoryAdvisoryReported] = util.SliceContainsString(events, string(webhook_module.HookEventRepositoryAdvisoryReported), true)
 
 	// Issues
 	hookEvents[webhook_module.HookEventIssues] = issuesHook(events, "issues_only")
@@ -324,7 +338,7 @@ func EditOwnerHook(ctx *context.APIContext, owner *user_model.User, form *api.Ed
 func EditRepoHook(ctx *context.APIContext, form *api.EditHookOption, hookID int64) {
 	repo := ctx.Repo
 	hook, err := GetRepoHook(ctx, repo.Repository.ID, hookID)
-	if err != nil {
+	if err != nil || !allowsRepoHookEvents(ctx, hook, form.Events) {
 		return
 	}
 	if !editHook(ctx, form, hook) {

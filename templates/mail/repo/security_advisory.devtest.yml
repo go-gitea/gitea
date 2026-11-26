@@ -1,0 +1,7 @@
+Subject: "[user/repo] New private vulnerability report: #3"
+TextKey: mail.security_advisory.reported.text
+DoerName: DoerName
+Title: "#3"
+Link: http://localhost/user/repo/security/advisories/abcd-efgh-ijkl
+RepoName: user/repo
+RepoLink: http://localhost/user/repo

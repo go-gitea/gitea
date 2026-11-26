@@ -92,6 +92,9 @@ type Team struct {
 	// And the user will become the repo's admin (via collaborator) after the creation.
 	CanCreateOrgRepo bool `xorm:"NOT NULL DEFAULT false"`
 
+	// Members see and edit the private reports and draft advisories of the team's repositories
+	IsSecurityTeam bool `xorm:"NOT NULL DEFAULT false"`
+
 	Visibility structs.VisibleType `xorm:"NOT NULL DEFAULT 2"`
 }
 

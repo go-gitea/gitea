@@ -7,8 +7,10 @@ import (
 	"context"
 
 	actions_model "gitea.dev/models/actions"
+	advisory_model "gitea.dev/models/advisory"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
 	project_model "gitea.dev/models/project"
 	pull_model "gitea.dev/models/pull"
@@ -117,6 +119,18 @@ func (*NullNotifier) UpdateRelease(ctx context.Context, doer *user_model.User, r
 
 // DeleteRelease places a place holder function
 func (*NullNotifier) DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+}
+
+func (*NullNotifier) NewSecurityAdvisoryReport(_ctx context.Context, _doer *user_model.User, _a *advisory_model.Advisory) {
+}
+
+func (*NullNotifier) SecurityAdvisoryStateChanged(_ctx context.Context, _doer *user_model.User, _a *advisory_model.Advisory, _oldState advisory_model.State) {
+}
+
+func (*NullNotifier) SecurityAdvisoryCollaboratorAdded(_ctx context.Context, _doer *user_model.User, _a *advisory_model.Advisory, _user *user_model.User, _team *organization.Team) {
+}
+
+func (*NullNotifier) NewSecurityAdvisoryComment(_ctx context.Context, _doer *user_model.User, _a *advisory_model.Advisory, _c *advisory_model.Comment) {
 }
 
 // IssueChangeMilestone places a place holder function
