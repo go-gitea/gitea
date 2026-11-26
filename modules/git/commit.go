@@ -6,9 +6,7 @@ package git
 
 import (
 	"context"
-	"errors"
 	"io"
-	"os/exec"
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
@@ -114,10 +112,8 @@ func (c *Commit) HasPreviousCommit(ctx context.Context, gitRepo *Repository, obj
 	if err == nil {
 		return true, nil
 	}
-	if exitError, ok := errors.AsType[*exec.ExitError](err); ok {
-		if exitError.ProcessState.ExitCode() == 1 && len(exitError.Stderr) == 0 {
-			return false, nil
-		}
+	if gitcmd.IsErrorExitCode(err, 1) {
+		return false, nil
 	}
 	return false, err
 }

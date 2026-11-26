@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import {computed, nextTick, onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch} from 'vue';
+import {computed, nextTick, shallowRef, useTemplateRef, watch} from 'vue';
 import SvgIcon from './SvgIcon.vue';
-import {createTippy} from '../modules/tippy.ts';
-import type {Instance} from 'tippy.js';
+import {createTippy, getAttachedTippyInstance} from '../modules/tippy.ts';
+import {trSlots} from '../modules/i18n.ts';
 
 type MergeStyle = {
   name: string,
@@ -27,9 +27,12 @@ type MergeForm = {
   mergeMessageFieldPlaceHolder: string,
   mergeStyles: MergeStyle[],
   pullHeadCommitID: string,
+  queue?: {style: string, button: string, confirm: string, help: string, linkText: string, link: string, branch: string},
   showAutoMerge: boolean,
   textBypassRules: string,
   textCancel: string,
+  textCmdInstructions: string,
+  textCmdMergeHint: string,
   textMergeBlocked: string,
   textMergeCommitId: string,
   textMergeTitle: string,
@@ -46,6 +49,7 @@ const mergeStyleManuallyMerged = 'manually-merged';
 const forceMerge = shallowRef(false);
 
 const mergeStyle = shallowRef(mergeForm.defaultMergeStyle);
+const queue = computed(() => !forceMerge.value && mergeStyle.value !== mergeStyleManuallyMerged ? mergeForm.queue : undefined);
 const mergeStyleDetail = computed(() => mergeForm.mergeStyles.find((style) => style.name === mergeStyle.value)!);
 
 const showActionForm = shallowRef(false);
@@ -58,6 +62,7 @@ const autoMergeWhenSucceed = computed(() => mergeForm.showAutoMerge && mergeStyl
 const actionDisabled = computed(() => !autoMergeWhenSucceed.value && !mergeForm.canMergeNow && mergeStyle.value !== mergeStyleManuallyMerged);
 
 const buttonTexts = computed(() => {
+  if (queue.value) return queue.value;
   const detail = mergeStyleDetail.value;
   if (autoMergeWhenSucceed.value) return {button: detail.textAutoMerge, confirm: detail.textConfirmAutoMerge};
   if (forceMerge.value) return {button: detail.textBypassMerge, confirm: detail.textConfirmBypassMerge};
@@ -67,16 +72,15 @@ const buttonTexts = computed(() => {
 const mergeButtonStyleClass = computed(() => mergeForm.isMergeStateClean && mergeStyle.value !== mergeStyleManuallyMerged ? 'green' : '');
 
 watch(mergeStyle, (val) => {
-  forceMerge.value = false;
+  forceMerge.value = Boolean(mergeForm.queue) && val !== mergeStyleManuallyMerged;
   emit('mergeStyleChange', val);
 });
 
-let menuTippy: Instance | undefined;
-onMounted(() => {
-  if (!menuTrigger.value) return;
-  menuTippy = createTippy(menuTrigger.value, {
+watch(menuTrigger, (trigger, _oldTrigger, onCleanup) => {
+  if (!trigger) return;
+  const menuTippy = createTippy(trigger, {
     content: menuPanel.value!,
-    getReferenceClientRect: () => menuTrigger.value!.parentElement!.getBoundingClientRect(),
+    getReferenceClientRect: () => trigger.parentElement!.getBoundingClientRect(),
     theme: 'menu',
     arrow: false,
     maxWidth: 400,
@@ -86,11 +90,15 @@ onMounted(() => {
     interactive: true,
     hideOnClick: true,
   });
-});
-onBeforeUnmount(() => menuTippy?.destroy());
+  onCleanup(() => menuTippy.destroy());
+}, {flush: 'post'});
+
+function hideMenu() {
+  if (menuTrigger.value) getAttachedTippyInstance(menuTrigger.value)?.hide();
+}
 
 async function toggleActionForm(show: boolean) {
-  menuTippy?.hide();
+  hideMenu();
   showActionForm.value = show;
   await nextTick();
   (show ? actionForm.value!.querySelector<HTMLElement>('input:not([type="hidden"]), button[type="submit"]')! : mergeButton.value!).focus();
@@ -109,7 +117,7 @@ async function toggleActionForm(show: boolean) {
       <input type="hidden" name="merge_when_checks_succeed" :value="autoMergeWhenSucceed">
       <input type="hidden" name="force_merge" :value="forceMerge">
 
-      <template v-if="!mergeStyleDetail.hideMergeMessageTexts">
+      <template v-if="!queue && !mergeStyleDetail.hideMergeMessageTexts">
         <div class="field">
           <input type="text" name="merge_title_field" :aria-label="mergeForm.textMergeTitle" :value="mergeStyleDetail.mergeTitleFieldText">
         </div>
@@ -123,7 +131,7 @@ async function toggleActionForm(show: boolean) {
       </div>
 
       <div class="flex-text-block tw-flex-wrap">
-        <button class="ui button" :class="forceMerge ? 'red' : mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle" :disabled="actionDisabled">
+        <button class="ui button" :class="forceMerge ? 'red' : mergeButtonStyleClass" type="submit" name="do" :value="queue ? queue.style : mergeStyle" :disabled="actionDisabled">
           {{ buttonTexts.confirm }}
         </button>
 
@@ -133,15 +141,24 @@ async function toggleActionForm(show: boolean) {
       </div>
     </form>
 
-    <div v-show="!showActionForm" class="ui buttons" :class="mergeButtonStyleClass" :data-tooltip-content="actionDisabled ? mergeForm.textMergeBlocked : undefined">
-      <button ref="mergeButton" class="ui button" type="button" :disabled="actionDisabled" @click="toggleActionForm(true)">
-        {{ buttonTexts.button }}
-      </button>
-      <button v-if="mergeForm.mergeStyles.length > 1" ref="menuTrigger" class="ui icon button" type="button" :aria-label="mergeForm.textSelectMergeStyle">
-        <svg-icon name="octicon-triangle-down" :size="14"/>
-      </button>
+    <div v-show="!showActionForm" class="flex-text-block tw-flex-wrap">
+      <div class="ui buttons" :class="mergeButtonStyleClass" :data-tooltip-content="actionDisabled ? mergeForm.textMergeBlocked : undefined">
+        <button ref="mergeButton" class="ui button" type="button" :disabled="actionDisabled" @click="toggleActionForm(true)">
+          {{ buttonTexts.button }}
+        </button>
+        <button v-if="mergeForm.mergeStyles.length > 1 && !queue" ref="menuTrigger" class="ui icon button" type="button" :aria-label="mergeForm.textSelectMergeStyle">
+          <svg-icon name="octicon-triangle-down" :size="14"/>
+        </button>
+      </div>
+      <span v-if="queue || mergeForm.textCmdInstructions" class="merge-box-footer-text tw-text-text-light">
+        <tr-slots v-if="queue" :text="queue.help">
+          <template #1><a :href="queue.link">{{ queue.linkText }}</a></template>
+          <template #2>{{ queue.branch }}</template>
+        </tr-slots>
+        <span v-else>{{ mergeForm.textCmdMergeHint }}</span> <button v-if="mergeForm.textCmdInstructions" type="button" class="interact-link show-modal" data-modal="#pull-merge-cmd-modal">{{ mergeForm.textCmdInstructions }}</button>
+      </span>
     </div>
-    <div v-if="mergeForm.mergeStyles.length > 1" ref="menuPanel" class="tippy-target merge-box-menu" @click="menuTippy!.hide()">
+    <div v-if="mergeForm.mergeStyles.length > 1" ref="menuPanel" class="tippy-target merge-box-menu" @click="hideMenu">
       <button v-for="msd in mergeForm.mergeStyles" :key="msd.name" type="button" class="item" role="menuitemradio" :aria-checked="msd.name === mergeStyle" @click="mergeStyle = msd.name">
         <svg-icon name="octicon-check"/>
         <div><strong>{{ msd.textDoMerge }}</strong><small>{{ msd.textDescription }}</small></div>

@@ -73,6 +73,9 @@ type BranchProtection struct {
 	ProtectedFilePatterns         string   `json:"protected_file_patterns"`
 	UnprotectedFilePatterns       string   `json:"unprotected_file_patterns"`
 	BlockAdminMergeOverride       bool     `json:"block_admin_merge_override"`
+
+	RequireMergeQueue bool                        `json:"require_merge_queue"`
+	MergeQueue        *BranchProtectionMergeQueue `json:"merge_queue"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -122,6 +125,9 @@ type CreateBranchProtectionOption struct {
 	ProtectedFilePatterns         string   `json:"protected_file_patterns"`
 	UnprotectedFilePatterns       string   `json:"unprotected_file_patterns"`
 	BlockAdminMergeOverride       bool     `json:"block_admin_merge_override"`
+
+	RequireMergeQueue bool                              `json:"require_merge_queue"`
+	MergeQueue        *BranchProtectionMergeQueueOption `json:"merge_queue"`
 }
 
 // EditBranchProtectionOption options for editing a branch protection
@@ -163,6 +169,9 @@ type EditBranchProtectionOption struct {
 	ProtectedFilePatterns         *string  `json:"protected_file_patterns"`
 	UnprotectedFilePatterns       *string  `json:"unprotected_file_patterns"`
 	BlockAdminMergeOverride       *bool    `json:"block_admin_merge_override"`
+
+	RequireMergeQueue *bool                             `json:"require_merge_queue"`
+	MergeQueue        *BranchProtectionMergeQueueOption `json:"merge_queue"`
 }
 
 // UpdateBranchProtectionPriories a list to update the branch protection rule priorities
@@ -177,4 +186,58 @@ type MergeUpstreamRequest struct {
 
 type MergeUpstreamResponse struct {
 	MergeStyle string `json:"merge_type"`
+}
+
+// swagger:enum MergeQueueMergeMethod
+type MergeQueueMergeMethod string
+
+const (
+	MergeQueueMergeMethodMerge       MergeQueueMergeMethod = "merge"
+	MergeQueueMergeMethodRebase      MergeQueueMergeMethod = "rebase"
+	MergeQueueMergeMethodRebaseMerge MergeQueueMergeMethod = "rebase-merge"
+	MergeQueueMergeMethodSquash      MergeQueueMergeMethod = "squash"
+)
+
+// swagger:enum MergeQueueGroupingStrategy
+type MergeQueueGroupingStrategy string
+
+const (
+	MergeQueueGroupingAllGreen  MergeQueueGroupingStrategy = "ALLGREEN"
+	MergeQueueGroupingHeadGreen MergeQueueGroupingStrategy = "HEADGREEN"
+)
+
+// BranchProtectionMergeQueue holds the merge queue settings of a branch protection
+type BranchProtectionMergeQueue struct {
+	// merge, rebase, rebase-merge or squash
+	MergeMethod MergeQueueMergeMethod `json:"merge_method"`
+	// Maximum number of queue entries built and tested at the same time, 0 pauses new builds
+	MaxEntriesToBuild int `json:"max_entries_to_build"`
+	// Minimum number of pull requests merged together
+	MinEntriesToMerge int `json:"min_entries_to_merge"`
+	// Maximum number of pull requests merged together
+	MaxEntriesToMerge int `json:"max_entries_to_merge"`
+	// Minutes to wait for the minimum group size before merging anyway
+	MinEntriesToMergeWaitMinutes int `json:"min_entries_to_merge_wait_minutes"`
+	// ALLGREEN requires every entry to pass, HEADGREEN only the last entry of a group
+	GroupingStrategy MergeQueueGroupingStrategy `json:"grouping_strategy"`
+	// Minutes after which required checks that did not report count as failed
+	CheckResponseTimeoutMinutes int `json:"check_response_timeout_minutes"`
+}
+
+// BranchProtectionMergeQueueOption sets merge queue settings of a branch protection, unset fields are kept
+type BranchProtectionMergeQueueOption struct {
+	// merge, rebase, rebase-merge or squash
+	MergeMethod *MergeQueueMergeMethod `json:"merge_method"`
+	// Maximum number of queue entries built and tested at the same time, 0 pauses new builds
+	MaxEntriesToBuild *int `json:"max_entries_to_build"`
+	// Minimum number of pull requests merged together
+	MinEntriesToMerge *int `json:"min_entries_to_merge"`
+	// Maximum number of pull requests merged together
+	MaxEntriesToMerge *int `json:"max_entries_to_merge"`
+	// Minutes to wait for the minimum group size before merging anyway
+	MinEntriesToMergeWaitMinutes *int `json:"min_entries_to_merge_wait_minutes"`
+	// ALLGREEN requires every entry to pass, HEADGREEN only the last entry of a group
+	GroupingStrategy *MergeQueueGroupingStrategy `json:"grouping_strategy"`
+	// Minutes after which required checks that did not report count as failed
+	CheckResponseTimeoutMinutes *int `json:"check_response_timeout_minutes"`
 }

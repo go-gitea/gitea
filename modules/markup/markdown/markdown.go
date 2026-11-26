@@ -12,11 +12,13 @@ import (
 	"io"
 	"slices"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/common"
+	"gitea.dev/modules/markup/internal"
 	"gitea.dev/modules/markup/markdown/math"
 	"gitea.dev/modules/setting"
 	giteautil "gitea.dev/modules/util"
@@ -28,7 +30,7 @@ import (
 	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/text"
-	"github.com/yuin/goldmark/util"
+	gmutil "github.com/yuin/goldmark/util"
 )
 
 var (
@@ -89,21 +91,19 @@ func (s *goldmarkEmphasisParser) Parse(parent ast.Node, block text.Reader, pc pa
 
 func goldmarkDefaultParser() parser.Parser {
 	return parser.NewParser(parser.WithBlockParsers(parser.DefaultBlockParsers()...),
-		parser.WithInlineParsers([]util.PrioritizedValue{
-			util.Prioritized(parser.NewCodeSpanParser(), 100),
-			util.Prioritized(parser.NewLinkParser(), 200),
-			util.Prioritized(parser.NewAutoLinkParser(), 300),
-			util.Prioritized(parser.NewRawHTMLParser(), 400),
-			util.Prioritized(goldmarkNewEmphasisParser(), 500),
+		parser.WithInlineParsers([]gmutil.PrioritizedValue{
+			gmutil.Prioritized(parser.NewCodeSpanParser(), 100),
+			gmutil.Prioritized(parser.NewLinkParser(), 200),
+			gmutil.Prioritized(parser.NewAutoLinkParser(), 300),
+			gmutil.Prioritized(parser.NewRawHTMLParser(), 400),
+			gmutil.Prioritized(goldmarkNewEmphasisParser(), 500),
 		}...),
 		parser.WithParagraphTransformers(parser.DefaultParagraphTransformers()...),
 	)
 }
 
-// SpecializedMarkdown sets up the Gitea specific markdown extensions
-func SpecializedMarkdown(ctx *markup.RenderContext) goldmark.Markdown {
-	// TODO: it could use a pool to cache the renderers to reuse them with different contexts
-	// at the moment it is fast enough (see the benchmarks)
+func specializedMarkdown() (goldmark.Markdown, *internal.RenderVarMutable[internal.RenderInternal]) {
+	internalVar := &internal.RenderVarMutable[internal.RenderInternal]{}
 	return goldmark.New(
 		goldmark.WithParser(goldmarkDefaultParser()),
 		goldmark.WithExtensions(
@@ -112,7 +112,7 @@ func SpecializedMarkdown(ctx *markup.RenderContext) goldmark.Markdown {
 			extension.TaskList,
 			extension.DefinitionList,
 			common.FootnoteExtension,
-			math.NewExtension(&ctx.RenderInternal, math.Options{
+			math.NewExtension(internalVar, math.Options{
 				Enabled:                  setting.Markdown.EnableMath,
 				ParseInlineDollar:        setting.Markdown.MathCodeBlockOptions.ParseInlineDollar,
 				ParseInlineParentheses:   setting.Markdown.MathCodeBlockOptions.ParseInlineParentheses, // this is a bad syntax "\( ... \)", it conflicts with normal markdown escaping
@@ -122,19 +122,47 @@ func SpecializedMarkdown(ctx *markup.RenderContext) goldmark.Markdown {
 		),
 		goldmark.WithParserOptions(
 			parser.WithAttribute(),
-			parser.WithASTTransformers(util.Prioritized(NewASTTransformer(&ctx.RenderInternal), 10000)),
+			parser.WithASTTransformers(gmutil.Prioritized(NewASTTransformer(internalVar), 10000)),
 		),
 		goldmark.WithRendererOptions(
 			html.WithUnsafe(),
-			renderer.WithNodeRenderers(util.Prioritized(NewHTMLRenderer(&ctx.RenderInternal), 10)),
+			renderer.WithNodeRenderers(gmutil.Prioritized(NewHTMLRenderer(internalVar), 10)),
 		),
-	)
+	), internalVar
+}
+
+type sharedMarkdownRender struct {
+	converter   goldmark.Markdown
+	internalVar *internal.RenderVarMutable[internal.RenderInternal]
+}
+
+var SharedMarkdownRenderPool = giteautil.OnceValue[*sync.Pool]{
+	Func: func() *sync.Pool {
+		return &sync.Pool{
+			New: func() any {
+				r, v := specializedMarkdown()
+				return &sharedMarkdownRender{converter: r, internalVar: v}
+			},
+		}
+	},
+}
+
+func acquireMarkdownRender(ctx *markup.RenderContext) (*sharedMarkdownRender, func()) {
+	r, _ := SharedMarkdownRenderPool.Value().Get().(*sharedMarkdownRender)
+	r.internalVar.Value = &ctx.RenderInternal
+	return r, func() {
+		r.internalVar.Value = nil
+		SharedMarkdownRenderPool.Value().Put(r)
+	}
 }
 
 // render calls goldmark render to convert Markdown to HTML
 // NOTE: The output of this method MUST get sanitized separately!!!
 func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
-	converter := SpecializedMarkdown(ctx)
+	sharedRender, release := acquireMarkdownRender(ctx)
+	defer release()
+
+	converter := sharedRender.converter
 	lw := &limitWriter{
 		w:     output,
 		limit: setting.UI.MaxDisplayFileSize * 3,
@@ -234,7 +262,11 @@ func FeedExcerpt(ctx context.Context, content string) string {
 	pc.Set(renderConfigKey, &RenderConfig{})
 	start, texts := len(content), []text.Segment(nil)
 
-	mdParser := SpecializedMarkdown(rctx).Parser()
+	sharedRender, release := acquireMarkdownRender(rctx)
+	defer release()
+	converter := sharedRender.converter
+
+	mdParser := converter.Parser()
 	mdReader := text.NewReader([]byte(content))
 	mdWalker := func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		if entering && node.Type() == ast.TypeBlock && node.Lines().Len() > 0 {

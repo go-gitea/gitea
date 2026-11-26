@@ -230,6 +230,8 @@ func (err ErrPullRequestHasMerged) Error() string {
 		err.ID, err.IssueID, err.HeadRepoID, err.BaseRepoID, err.HeadBranch, err.BaseBranch)
 }
 
+var ErrRetargetQueuedPull = util.ErrorWrapTranslatable(util.ErrUnprocessableContent, "repo.pulls.merge_queue.cannot_change_base")
+
 // ChangeTargetBranch changes the target branch of this pull request, as the given user.
 func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, targetBranch string) (err error) {
 	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
@@ -261,6 +263,19 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 			BaseRepoID: pr.BaseRepoID,
 			HeadBranch: pr.HeadBranch,
 			BaseBranch: pr.BaseBranch,
+		}
+	}
+
+	if entry, err := pull_model.GetMergeQueueEntryByPullID(ctx, pr.ID); err != nil {
+		return err
+	} else if entry != nil {
+		if err := pr.LoadBaseRepo(ctx); err != nil {
+			return err
+		}
+		if _, err := git.GetBranchCommitID(ctx, pr.BaseRepo, pr.BaseBranch); err == nil {
+			return ErrRetargetQueuedPull
+		} else if !git.IsErrNotExist(err) {
+			return err
 		}
 	}
 
@@ -390,7 +405,7 @@ func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *
 		} else if n == 0 {
 			return nil
 		}
-		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer, reason)
+		_, err := issues_model.CreatePullRequestComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer, reason)
 		return err
 	})
 }
