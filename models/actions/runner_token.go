@@ -13,6 +13,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 // ActionRunnerToken represents runner tokens
@@ -57,18 +59,6 @@ func GetRunnerToken(ctx context.Context, token string) (*ActionRunnerToken, erro
 	return &runnerToken, nil
 }
 
-// UpdateRunnerToken updates runner token information.
-func UpdateRunnerToken(ctx context.Context, r *ActionRunnerToken, cols ...string) (err error) {
-	e := db.GetEngine(ctx)
-
-	if len(cols) == 0 {
-		_, err = e.ID(r.ID).AllCols().Update(r)
-	} else {
-		_, err = e.ID(r.ID).Cols(cols...).Update(r)
-	}
-	return err
-}
-
 // NewRunnerTokenWithValue creates a new active runner token and invalidate all old tokens
 // ownerID will be ignored and treated as 0 if repoID is non-zero.
 func NewRunnerTokenWithValue(ctx context.Context, ownerID, repoID int64, token string) (*ActionRunnerToken, error) {
@@ -86,7 +76,13 @@ func NewRunnerTokenWithValue(ctx context.Context, ownerID, repoID int64, token s
 	}
 
 	return runnerToken, db.WithTx(ctx, func(ctx context.Context) error {
-		if _, err := db.GetEngine(ctx).Where("owner_id =? AND repo_id = ?", ownerID, repoID).Cols("is_active").Update(&ActionRunnerToken{
+		// Old versions stored repo level tokens with the OwnerID of the repository owner,
+		// so repo level tokens are matched by RepoID only to invalidate these as well.
+		cond := builder.Eq{"repo_id": repoID}
+		if repoID == 0 {
+			cond["owner_id"] = ownerID
+		}
+		if _, err := db.GetEngine(ctx).Where(cond).Cols("is_active").Update(&ActionRunnerToken{
 			IsActive: false,
 		}); err != nil {
 			return err
