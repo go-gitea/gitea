@@ -449,7 +449,8 @@ func prepareMigrationTasks() []*migration {
 		newMigration(370, "Change raw_concurrency of action_run and action_run_job to TEXT on MSSQL", v29.ChangeActionsRawConcurrencyToText),
 		newMigration(371, "Add hash_sha256 column to attachment", v29.AddHashSHA256ToAttachment),
 		newMigration(372, "Add workflow_ref to action_run", v29.AddWorkflowRefToActionRun),
-		newMigration(373, "Add pull_merge_queue_entry table", v29.AddPullMergeQueueEntryTable),
+		newMigration(373, "Repair Debian and RPM signing keys rejected by Sequoia", v29.RepairPackageSigningKeys),
+		newMigration(374, "Add pull_merge_queue_entry table", v29.AddPullMergeQueueEntryTable),
 	}
 	return preparedMigrations
 }

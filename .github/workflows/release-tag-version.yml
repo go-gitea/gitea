@@ -156,6 +156,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64,linux/riscv64
           push: true
+          sbom: true
           tags: ${{ steps.meta.outputs.tags }}
           annotations: ${{ steps.meta.outputs.annotations }}
       - name: build rootless container image
@@ -164,6 +165,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64,linux/riscv64
           push: true
+          sbom: true
           file: Dockerfile.rootless
           tags: ${{ steps.meta_rootless.outputs.tags }}
           annotations: ${{ steps.meta_rootless.outputs.annotations }}

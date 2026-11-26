@@ -5,26 +5,64 @@ package v29
 
 import (
 	"context"
+	"math/big"
+	"strings"
 
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/log"
+
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
 )
 
-func AddPullMergeQueueEntryTable(_ctx context.Context, engine base.EngineMigration) error {
-	type PullMergeQueueEntry struct {
-		ID                int64              `xorm:"pk autoincr"`
-		RepoID            int64              `xorm:"INDEX(branch) NOT NULL"`
-		BaseBranch        string             `xorm:"INDEX(branch) VARCHAR(255) NOT NULL"`
-		PullID            int64              `xorm:"UNIQUE NOT NULL"`
-		EnqueuerID        int64              `xorm:"NOT NULL"`
-		JumpUnix          timeutil.TimeStamp `xorm:"NOT NULL DEFAULT 0"`
-		State             string             `xorm:"VARCHAR(20) NOT NULL"`
-		HeadSHA           string             `xorm:"VARCHAR(64) NOT NULL"`
-		BaseSHA           string             `xorm:"VARCHAR(64)"`
-		GroupHeadSHA      string             `xorm:"VARCHAR(64) INDEX"`
-		GroupRef          string             `xorm:"VARCHAR(512)"`
-		ChecksStartedUnix timeutil.TimeStamp
-		CreatedUnix       timeutil.TimeStamp `xorm:"created"`
+// recertifyPublicKey re-signs the user ID self-signature if keybase/go-crypto (before 1.23.2) zero-padded its MPI, which Sequoia rejects
+func recertifyPublicKey(privateKey string) (string, error) {
+	entities, err := openpgp.ReadArmoredKeyRing(strings.NewReader(privateKey))
+	if err != nil {
+		return "", err
 	}
-	return engine.Sync(new(PullMergeQueueEntry))
+	entity := entities[0]
+	identity := entity.PrimaryIdentity()
+	signature := identity.SelfSignature.RSASignature
+	if int(signature.BitLength()) == new(big.Int).SetBytes(signature.Bytes()).BitLen() {
+		return "", nil
+	}
+	if err := identity.SelfSignature.SignUserId(identity.Name, entity.PrimaryKey, entity.PrivateKey, nil); err != nil {
+		return "", err
+	}
+
+	var publicKey strings.Builder
+	armorWriter, _ := armor.Encode(&publicKey, openpgp.PublicKeyType, nil)
+	if err := entity.Serialize(armorWriter); err != nil {
+		return "", err
+	}
+	armorWriter.Close()
+	return publicKey.String(), nil
+}
+
+func RepairPackageSigningKeys(_ctx context.Context, x base.EngineMigration) error {
+	type UserSetting struct {
+		UserID       int64
+		SettingKey   string
+		SettingValue string
+	}
+
+	var privateKeys []*UserSetting
+	if err := x.In("setting_key", "debian.key.private", "rpm.key.private").Find(&privateKeys); err != nil {
+		return err
+	}
+	for _, privateKey := range privateKeys {
+		publicKey, err := recertifyPublicKey(privateKey.SettingValue)
+		if err != nil {
+			log.Warn("Skipping unreadable %s of user %d: %v", privateKey.SettingKey, privateKey.UserID, err)
+			continue
+		}
+		if publicKey == "" {
+			continue
+		}
+		if _, err := x.Where("user_id = ? AND setting_key = ?", privateKey.UserID, strings.TrimSuffix(privateKey.SettingKey, "private")+"public").Update(&UserSetting{SettingValue: publicKey}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
