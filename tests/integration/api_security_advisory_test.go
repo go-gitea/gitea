@@ -305,8 +305,10 @@ func TestAPISecurityAdvisorySecurityTeam(t *testing.T) {
 	visible := advisoryJSON(t, "GET", reportURL, memberToken, nil, http.StatusOK, &api.RepositoryAdvisory{}).CollaboratingTeams
 	require.Len(t, visible, 1)
 	assert.Equal(t, "team1", visible[0].Name)
+	advisoryRequest(t, "PATCH", reportURL, ownerToken, map[string]any{"state": "draft"}, http.StatusOK)
 	closed := advisoryJSON(t, "PATCH", reportURL, ownerToken, map[string]any{"state": "closed"}, http.StatusOK, &api.RepositoryAdvisory{})
 	assert.Equal(t, "closed", closed.State)
+	assert.True(t, closed.Submission.Accepted, "closing keeps the report accepted")
 	assert.Empty(t, closed.CloseReason)
 
 	const orgURL = "/api/v1/orgs/org3/security-advisories"

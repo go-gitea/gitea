@@ -30331,6 +30331,7 @@
           "description": "The new state, only repository admins can change it",
           "type": "string",
           "enum": [
+            "triage",
             "draft",
             "published",
             "closed",

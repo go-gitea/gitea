@@ -82,7 +82,7 @@ func AddAPIRepositoryAdvisoryPrivateDetails(ctx context.Context, result *api.Rep
 	result.Author = ToUser(ctx, advisory.Reporter, doer)
 	result.Labels = ToLabelList(advisory.Labels, advisory.Repo, advisory.Repo.Owner)
 	if advisory.IsReport {
-		result.Submission = &api.RepositoryAdvisorySubmission{Accepted: advisory.State != advisory_model.StateTriage && advisory.State != advisory_model.StateClosed}
+		result.Submission = &api.RepositoryAdvisorySubmission{Accepted: advisory.ReportDescription != ""}
 	}
 	result.CollaboratingUsers = ToUsers(ctx, doer, advisory.CollaboratorUsers)
 	teams := advisory.CollaboratorTeams

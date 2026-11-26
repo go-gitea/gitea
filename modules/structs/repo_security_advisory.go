@@ -199,7 +199,7 @@ type EditRepositoryAdvisoryOption struct {
 	// A CVSS 3.1 or 4.0 vector, the severity is derived from it. An empty string removes the vector.
 	CVSSVectorString *string `json:"cvss_vector_string"`
 	// The new state, only repository admins can change it
-	// enum: draft,published,closed,withdrawn
+	// enum: triage,draft,published,closed,withdrawn
 	State *string `json:"state"`
 	// An optional reason for closing the advisory
 	// enum: invalid,duplicate

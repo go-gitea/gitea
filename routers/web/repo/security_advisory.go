@@ -224,6 +224,10 @@ func contentFromForm(ctx *context.Context) *advisory_service.ContentOptions {
 		CweIDs:         strings.FieldsFunc(form.CweIDs, func(char rune) bool { return char == ',' || char == ' ' }),
 	}
 	if strings.HasPrefix(form.Severity, "cvss:") {
+		if strings.TrimSpace(form.CvssVector) == "" { // the calculator only fills the vector once every metric is chosen
+			ctx.JSONError(ctx.Tr("repo.security_advisories.cvss.invalid"))
+			return nil
+		}
 		content.CvssVector = form.CvssVector
 	} else {
 		content.Severity = form.Severity

@@ -153,7 +153,7 @@
 										<div class="merge-section flex-divided-list items-with-main">
 											<div class="item">
 												{{template "shared/merge_box_section" (dict "MergeBoxSection" .)}}
-												<button type="button" class="ui primary button link-action tw-shrink-0" data-url="{{$advisory.Link}}/state?state={{Iif $isDraft "published" "draft"}}">
+												<button type="button" class="ui primary button link-action tw-shrink-0" data-url="{{$advisory.Link}}/state?state={{Iif $isDraft "published" "draft"}}"{{if $isDraft}} data-modal-confirm="{{ctx.Locale.Tr "repo.security_advisories.action.publish_desc"}}"{{end}}>
 													{{ctx.Locale.Tr (Iif $isDraft "repo.security_advisories.action.published" "repo.security_advisories.action.draft")}}
 												</button>
 											</div>

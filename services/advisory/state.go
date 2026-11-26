@@ -116,7 +116,7 @@ func updateState(ctx context.Context, doer *user_model.User, advisory *advisory_
 		}
 	}
 	return db.WithTx2(ctx, func(ctx context.Context) (originalAccess, error) {
-		if opts.DuplicateOf != nil {
+		if opts.DuplicateOf != nil { // two admins closing a pair as duplicates of each other at the same instant is not guarded
 			if has, err := db.Exist[advisory_model.Advisory](ctx, builder.Eq{"duplicate_of_id": advisory.ID}); err != nil {
 				return originalAccess{}, err
 			} else if has {
