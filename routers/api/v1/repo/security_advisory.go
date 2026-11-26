@@ -401,6 +401,7 @@ func EditSecurityAdvisory(ctx *context.APIContext) {
 		State:             optional.FromPtr(form.State),
 		CloseReason:       optional.FromPtr(form.CloseReason),
 		DuplicateOf:       optional.FromPtr(form.DuplicateOf),
+		ShareOriginal:     optional.FromPtr(form.ShareOriginal),
 	}
 	if err := advisory_service.EditAdvisory(ctx, ctx.Doer, advisory, perms, opts); err != nil {
 		apiAdvisoryError(ctx, err)

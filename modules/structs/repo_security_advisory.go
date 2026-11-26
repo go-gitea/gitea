@@ -206,6 +206,8 @@ type EditRepositoryAdvisoryOption struct {
 	CloseReason *string `json:"close_reason"`
 	// The identifier of the original advisory when closing as duplicate
 	DuplicateOf *string `json:"duplicate_of"`
+	// Lets the reporter of a report closed as duplicate follow the original read-only, without its confidential comments
+	ShareOriginal *bool `json:"share_original"`
 	// The logins of the users collaborating on the advisory, replaces all existing ones, only repository admins can change them
 	CollaboratingUsers []string `json:"collaborating_users"`
 	// The names of the teams collaborating on the advisory, replaces all existing ones, only repository admins can change them

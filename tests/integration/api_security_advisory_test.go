@@ -210,6 +210,10 @@ func TestAPISecurityAdvisory(t *testing.T) {
 
 		assert.Equal(t, original.Identifier, advisoryJSON(t, "GET", duplicateURL, outsiderToken, nil, http.StatusOK, &api.RepositoryAdvisory{}).DuplicateOf)
 		advisoryRequest(t, "GET", originalURL+"/comments", outsiderToken, nil, http.StatusNotFound)
+		advisoryRequest(t, "PATCH", duplicateURL, adminToken, map[string]any{"share_original": true}, http.StatusUnprocessableEntity)
+		advisoryRequest(t, "PATCH", duplicateURL, adminToken, map[string]any{"state": "draft"}, http.StatusOK)
+		advisoryRequest(t, "PATCH", duplicateURL, adminToken, map[string]any{"state": "closed", "close_reason": "duplicate", "duplicate_of": original.Identifier, "share_original": true}, http.StatusOK)
+		advisoryRequest(t, "GET", originalURL+"/comments", outsiderToken, nil, http.StatusOK)
 		assert.Len(t, advisoryJSON(t, "GET", baseURL+"?close_reason=duplicate", adminToken, nil, http.StatusOK, []*api.RepositoryAdvisory{}), 1)
 	})
 

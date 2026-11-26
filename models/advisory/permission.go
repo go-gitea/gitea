@@ -6,6 +6,7 @@ package advisory
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
@@ -111,20 +112,19 @@ func (v Viewer) Permissions(ctx context.Context, advisory *Advisory) (Permission
 	if !v.canSeeNonPublic() {
 		return Permissions{CanView: advisory.IsPublic()}, nil
 	}
-	collaborates := v.seesAllNonPublic()
-	if !collaborates {
-		var err error
-		collaborates, err = db.Exist[Collaborator](ctx, builder.Eq{"advisory_id": advisory.ID}.And(collaboratorCond(v.Doer.ID)))
-		if err != nil {
+	var rows []*Collaborator
+	if !v.seesAllNonPublic() {
+		if err := db.GetEngine(ctx).Where(builder.Eq{"advisory_id": advisory.ID}.And(collaboratorCond(v.Doer.ID))).Cols("read_only").Find(&rows); err != nil {
 			return Permissions{}, err
 		}
 	}
-	canSeeDiscussion := collaborates || v.isOwnReport(advisory)
+	collaborates := v.seesAllNonPublic() || slices.ContainsFunc(rows, func(row *Collaborator) bool { return !row.ReadOnly })
+	canSeeDiscussion := collaborates || len(rows) > 0 || v.isOwnReport(advisory)
 	return Permissions{
 		CanView:            advisory.IsPublic() || canSeeDiscussion,
 		CanSeeDiscussion:   canSeeDiscussion,
 		CanSeeConfidential: v.seesAllNonPublic() || collaborates && v.IsRepoWriter, // like GitHub's confidential comments, only for people with write access
-		CanEdit:            v.IsRepoAdmin || (canSeeDiscussion && !advisory.IsPublic()),
+		CanEdit:            v.IsRepoAdmin || ((collaborates || v.isOwnReport(advisory)) && !advisory.IsPublic()),
 		CanManage:          v.IsRepoAdmin,
 	}, nil
 }

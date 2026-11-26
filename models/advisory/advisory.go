@@ -193,6 +193,7 @@ type Advisory struct {
 	WithdrawnUnix     timeutil.TimeStamp     `xorm:"NOT NULL DEFAULT 0"`
 	CloseReason       CloseReason            `xorm:"NOT NULL DEFAULT 0"`
 	DuplicateOfID     int64                  `xorm:"NOT NULL DEFAULT 0"`
+	ShareOriginal     bool                   `xorm:"NOT NULL DEFAULT false"`
 	DuplicateOf       *Advisory              `xorm:"-"`
 	IsMetadataOnly    bool                   `xorm:"-"`
 
@@ -201,6 +202,7 @@ type Advisory struct {
 	Credits           []*Credit             `xorm:"-"`
 	CollaboratorUsers []*user_model.User    `xorm:"-"`
 	CollaboratorTeams []*organization.Team  `xorm:"-"`
+	ReadOnlyUsers     []*user_model.User    `xorm:"-"`
 }
 
 type Index db.ResourceIndex
@@ -641,11 +643,13 @@ func (list List) LoadCollaborators(ctx context.Context) error {
 	}
 	byID := list.byID()
 	for _, advisory := range list {
-		advisory.CollaboratorUsers, advisory.CollaboratorTeams = []*user_model.User{}, []*organization.Team{}
+		advisory.CollaboratorUsers, advisory.CollaboratorTeams, advisory.ReadOnlyUsers = []*user_model.User{}, []*organization.Team{}, []*user_model.User{}
 	}
 	for _, row := range rows {
 		advisory := byID[row.AdvisoryID]
-		if user := users[row.UserID]; user != nil {
+		if user := users[row.UserID]; user != nil && row.ReadOnly {
+			advisory.ReadOnlyUsers = append(advisory.ReadOnlyUsers, user)
+		} else if user != nil {
 			advisory.CollaboratorUsers = append(advisory.CollaboratorUsers, user)
 		} else if team := teams[row.TeamID]; team != nil {
 			advisory.CollaboratorTeams = append(advisory.CollaboratorTeams, team)

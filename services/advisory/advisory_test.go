@@ -37,9 +37,13 @@ func TestValidateStateOptions(t *testing.T) {
 		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate},
 		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: triage},
 		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: &advisory_model.Advisory{ID: 3, DuplicateOfID: original.ID}},
+		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: original, ShareOriginal: true},
 	} {
 		assert.ErrorIs(t, validateStateOptions(triage, opts), util.ErrInvalidArgument, "%+v", opts)
 	}
+	report := &advisory_model.Advisory{ID: 4, State: advisory_model.StateTriage, IsReport: true}
+	assert.NoError(t, validateStateOptions(report, stateOptions{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: original, ShareOriginal: true}))
+	assert.ErrorIs(t, validateStateOptions(report, stateOptions{State: advisory_model.StateClosed, ShareOriginal: true}), util.ErrInvalidArgument)
 }
 
 func TestAdvisorySeverityEdits(t *testing.T) {
@@ -105,21 +109,33 @@ func TestCollaboratorAndCreditRules(t *testing.T) {
 
 	duplicate := &advisory_model.Advisory{RepoID: 1, State: advisory_model.StateTriage, IsReport: true, ReporterID: 8, Summary: "Duplicate"}
 	require.NoError(t, advisory_model.CreateAdvisory(ctx, duplicate))
-	require.NoError(t, ChangeState(ctx, admin, duplicate, "closed", "duplicate", report.Identifier))
+	require.NoError(t, ChangeState(ctx, admin, duplicate, "closed", "duplicate", report.Identifier, false))
 	assert.NotZero(t, duplicate.ClosedUnix)
 	assert.ErrorIs(t, DeleteAdvisory(ctx, admin, report), util.ErrInvalidArgument)
 
 	other := &advisory_model.Advisory{RepoID: 1, State: advisory_model.StateDraft, ReporterID: admin.ID, Summary: "Another advisory"}
 	require.NoError(t, advisory_model.CreateAdvisory(ctx, other))
 	reportCopy := *report
-	assert.ErrorIs(t, ChangeState(ctx, admin, &reportCopy, "closed", "duplicate", other.Identifier), util.ErrInvalidArgument)
+	assert.ErrorIs(t, ChangeState(ctx, admin, &reportCopy, "closed", "duplicate", other.Identifier, false), util.ErrInvalidArgument)
 
 	viewer := advisory_model.Viewer{Doer: &user_model.User{ID: duplicate.ReporterID}}
 	perms, err := viewer.Permissions(ctx, report)
 	require.NoError(t, err)
 	assert.False(t, perms.CanView)
+	shared := &advisory_model.Advisory{RepoID: 1, State: advisory_model.StateTriage, IsReport: true, ReporterID: 8, Summary: "Shared duplicate"}
+	require.NoError(t, advisory_model.CreateAdvisory(ctx, shared))
+	require.NoError(t, ChangeState(ctx, admin, shared, "closed", "duplicate", report.Identifier, true))
+	perms, err = viewer.Permissions(ctx, report)
+	require.NoError(t, err)
+	assert.Equal(t, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true}, perms)
+	require.NoError(t, ChangeState(ctx, admin, shared, "draft", "", "", false))
+	perms, err = viewer.Permissions(ctx, report)
+	require.NoError(t, err)
+	assert.False(t, perms.CanView)
+	require.NoError(t, ChangeState(ctx, admin, shared, "closed", "duplicate", report.Identifier, true))
 	require.NoError(t, AddCollaborator(ctx, admin, report, "user8", false))
-	require.NoError(t, ChangeState(ctx, admin, duplicate, "draft", "", ""))
+	require.NoError(t, DeleteAdvisory(ctx, admin, shared))
+	require.NoError(t, ChangeState(ctx, admin, duplicate, "draft", "", "", false))
 	assert.Zero(t, duplicate.ClosedUnix)
 	assert.Zero(t, duplicate.DuplicateOfID)
 	perms, err = viewer.Permissions(ctx, report)

@@ -54,6 +54,14 @@ func currentCollaborators(advisory *advisory_model.Advisory) []collaborator {
 	return entries
 }
 
+func readOnlyCollaborators(advisory *advisory_model.Advisory) []collaborator {
+	entries := make([]collaborator, 0, len(advisory.ReadOnlyUsers))
+	for _, user := range advisory.ReadOnlyUsers {
+		entries = append(entries, collaborator{user: user})
+	}
+	return entries
+}
+
 func lookupCollaborator(ctx context.Context, advisory *advisory_model.Advisory, name string, isTeam bool) (collaborator, error) {
 	if err := advisory.LoadRepo(ctx); err != nil {
 		return collaborator{}, err
@@ -112,6 +120,9 @@ func (changes collaboratorChanges) apply(ctx context.Context, advisoryID int64) 
 	}
 	for _, entry := range changes.added {
 		added, err := advisory_model.AddCollaborator(ctx, entry.row(advisoryID))
+		if err == nil && !added {
+			added, err = advisory_model.SetCollaboratorWritable(ctx, entry.row(advisoryID))
+		}
 		if err != nil {
 			return effective, err
 		}
@@ -158,7 +169,7 @@ func RemoveCollaborator(ctx context.Context, doer *user_model.User, advisory *ad
 		return err
 	}
 	var changes collaboratorChanges
-	for _, entry := range currentCollaborators(advisory) {
+	for _, entry := range slices.Concat(currentCollaborators(advisory), readOnlyCollaborators(advisory)) {
 		if entry.user != nil && entry.user.ID == userID || entry.team != nil && entry.team.ID == teamID {
 			changes.removed = append(changes.removed, entry)
 		}

@@ -16,6 +16,7 @@ type Collaborator struct {
 	AdvisoryID int64 `xorm:"UNIQUE(s) NOT NULL"`
 	UserID     int64 `xorm:"UNIQUE(s) INDEX NOT NULL DEFAULT 0"`
 	TeamID     int64 `xorm:"UNIQUE(s) INDEX NOT NULL DEFAULT 0"`
+	ReadOnly   bool  `xorm:"NOT NULL DEFAULT false"` // Only reporters of duplicates that share the original.
 }
 
 func init() {
@@ -36,6 +37,24 @@ func AddCollaborator(ctx context.Context, collaborator *Collaborator) (bool, err
 		return false, err
 	}
 	return true, db.Insert(ctx, collaborator)
+}
+
+func SetCollaboratorWritable(ctx context.Context, collaborator *Collaborator) (bool, error) {
+	updated, err := db.GetEngine(ctx).Where(collaborator.identityCond().And(builder.Eq{"read_only": true})).Cols("read_only").Update(&Collaborator{})
+	return updated > 0, err
+}
+
+// RevokeSharedOriginal keeps the access while another duplicate of the reporter shares the same original
+func RevokeSharedOriginal(ctx context.Context, duplicate *Advisory) (bool, error) {
+	if !duplicate.ShareOriginal {
+		return false, nil
+	}
+	sharedByAnother := builder.Eq{"duplicate_of_id": duplicate.DuplicateOfID, "reporter_id": duplicate.ReporterID, "share_original": true}.And(builder.Neq{"id": duplicate.ID})
+	if has, err := db.Exist[Advisory](ctx, sharedByAnother); err != nil || has {
+		return false, err
+	}
+	deleted, err := db.GetEngine(ctx).Where(builder.Eq{"advisory_id": duplicate.DuplicateOfID, "user_id": duplicate.ReporterID, "read_only": true}).Delete(new(Collaborator))
+	return deleted > 0, err
 }
 
 func RemoveCollaborator(ctx context.Context, collaborator *Collaborator) (bool, error) {

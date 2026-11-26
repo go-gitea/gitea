@@ -357,6 +357,7 @@ func MustSeeSecurityAdvisoryDiscussion(ctx *context.Context) {
 type securityAdvisoryCollaborator struct {
 	User       *user_model.User
 	Team       *organization.Team
+	ReadOnly   bool
 	RemoveLink string
 }
 
@@ -396,10 +397,13 @@ func ViewSecurityAdvisory(ctx *context.Context) {
 		}
 		ctx.Data["Comments"] = comments
 
-		collaborators := make([]securityAdvisoryCollaborator, 0, len(advisory.CollaboratorUsers)+len(advisory.CollaboratorTeams))
+		collaborators := make([]securityAdvisoryCollaborator, 0, len(advisory.CollaboratorUsers)+len(advisory.ReadOnlyUsers)+len(advisory.CollaboratorTeams))
 		removeLink := advisory.Link() + "/collaborators/delete"
 		for _, user := range advisory.CollaboratorUsers {
 			collaborators = append(collaborators, securityAdvisoryCollaborator{User: user, RemoveLink: fmt.Sprintf("%s?user_id=%d", removeLink, user.ID)})
+		}
+		for _, user := range advisory.ReadOnlyUsers {
+			collaborators = append(collaborators, securityAdvisoryCollaborator{User: user, ReadOnly: true, RemoveLink: fmt.Sprintf("%s?user_id=%d", removeLink, user.ID)})
 		}
 		for _, team := range advisory.CollaboratorTeams {
 			collaborators = append(collaborators, securityAdvisoryCollaborator{Team: team, RemoveLink: fmt.Sprintf("%s?team_id=%d", removeLink, team.ID)})
@@ -530,7 +534,7 @@ func ChangeSecurityAdvisoryState(ctx *context.Context) {
 	advisory, _ := advisory_service.RequestAdvisory(ctx)
 	closeReason := ctx.FormString("close_reason")
 	duplicateOf := util.Iif(closeReason == advisory_model.CloseReasonDuplicate.String(), ctx.FormTrim("duplicate_of"), "")
-	if err := advisory_service.ChangeState(ctx, ctx.Doer, advisory, ctx.FormString("state"), closeReason, duplicateOf); err != nil {
+	if err := advisory_service.ChangeState(ctx, ctx.Doer, advisory, ctx.FormString("state"), closeReason, duplicateOf, duplicateOf != "" && ctx.FormBool("share_original")); err != nil {
 		jsonSecurityAdvisoryError(ctx, err)
 		return
 	}

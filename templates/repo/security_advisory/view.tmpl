@@ -289,6 +289,7 @@
 								{{if .User}}
 									{{ctx.AvatarUtils.Avatar .User 20}}
 									<span class="tw-flex-1">{{template "shared/user/authorlink" .User}}</span>
+									{{if .ReadOnly}}<span class="ui basic label" data-tooltip-content="{{ctx.Locale.Tr "repo.security_advisories.read_only_desc"}}">{{ctx.Locale.Tr "repo.security_advisories.read_only"}}</span>{{end}}
 								{{else}}
 									{{svg "octicon-people" 20}}
 									<span class="tw-flex-1">{{.Team.Name}}</span>
@@ -361,6 +362,14 @@
 									</div>
 								</div>
 							</div>
+							{{if $advisory.IsReport}}
+								<div class="field">
+									<div class="ui checkbox">
+										<input type="checkbox" name="share_original">
+										<label>{{ctx.Locale.Tr "repo.security_advisories.close.share_original"}}</label>
+									</div>
+								</div>
+							{{end}}
 						</div>
 					{{end}}
 				</div>

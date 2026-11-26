@@ -31,13 +31,14 @@ type EditOptions struct {
 	State             optional.Option[string]
 	CloseReason       optional.Option[string]
 	DuplicateOf       optional.Option[string]
+	ShareOriginal     optional.Option[bool]
 }
 
 func EditAdvisory(ctx context.Context, doer *user_model.User, advisory *advisory_model.Advisory, perms advisory_model.Permissions, opts EditOptions) error {
 	editsContent := opts.Summary.Has() || opts.Description.Has() || opts.Severity.Has() || opts.CvssVector.Has() || opts.CweIDs.Has() || opts.Vulnerabilities.Has()
 	managesContent := opts.CveID.Has() || opts.Credits.Has() || opts.LabelIDs.Has()
 	changesCollaborators := opts.CollaboratorUsers.Has() || opts.CollaboratorTeams.Has()
-	changesState := opts.State.Has() || opts.CloseReason.Has() || opts.DuplicateOf.Has()
+	changesState := opts.State.Has() || opts.CloseReason.Has() || opts.DuplicateOf.Has() || opts.ShareOriginal.Has()
 	if !perms.CanManage && (managesContent || changesCollaborators || changesState) {
 		return util.NewPermissionDeniedErrorf("only repository admins can change the CVE ID, credits, labels, state and collaborators")
 	}
@@ -66,6 +67,7 @@ func EditAdvisory(ctx context.Context, doer *user_model.User, advisory *advisory
 	}
 
 	oldState := advisory.State
+	var access originalAccess
 	effectiveCollaborators, err := db.WithTx2(ctx, func(ctx context.Context) (collaboratorChanges, error) {
 		if contentChanged {
 			if err := advisory_model.UpdateAdvisory(ctx, advisory); err != nil {
@@ -77,7 +79,7 @@ func EditAdvisory(ctx context.Context, doer *user_model.User, advisory *advisory
 			return effective, err
 		}
 		if newState.State != 0 {
-			err = updateState(ctx, doer, advisory, newState)
+			access, err = updateState(ctx, doer, advisory, newState)
 		}
 		return effective, err
 	})
@@ -88,18 +90,19 @@ func EditAdvisory(ctx context.Context, doer *user_model.User, advisory *advisory
 	if oldState != advisory.State {
 		notify_service.SecurityAdvisoryStateChanged(ctx, doer, advisory, oldState)
 	}
+	access.notify(ctx, doer)
 	return nil
 }
 
 func stateFromEdit(ctx context.Context, advisory *advisory_model.Advisory, opts EditOptions) (stateOptions, error) {
 	state := advisory_model.ParseState(opts.State.Value())
 	if !opts.State.Has() || state == advisory.State {
-		if opts.CloseReason.Has() || opts.DuplicateOf.Has() {
+		if opts.CloseReason.Has() || opts.DuplicateOf.Has() || opts.ShareOriginal.Has() {
 			return stateOptions{}, util.NewInvalidArgumentErrorf("the close reason can only be set when closing the advisory")
 		}
 		return stateOptions{}, nil
 	}
-	return newStateOptions(ctx, advisory, state, opts.CloseReason.Value(), opts.DuplicateOf.Value())
+	return newStateOptions(ctx, advisory, state, opts.CloseReason.Value(), opts.DuplicateOf.Value(), opts.ShareOriginal.Value())
 }
 
 func applyContentEdit(ctx context.Context, doer *user_model.User, advisory *advisory_model.Advisory, canManage bool, opts EditOptions) error {

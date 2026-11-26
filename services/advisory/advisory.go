@@ -8,6 +8,7 @@ import (
 
 	advisory_model "gitea.dev/models/advisory"
 	audit_model "gitea.dev/models/audit"
+	"gitea.dev/models/db"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -139,9 +140,16 @@ func ReportVulnerability(ctx context.Context, doer *user_model.User, repo *repo_
 
 // DeleteAdvisory requires the caller to check repository admin permission.
 func DeleteAdvisory(ctx context.Context, doer *user_model.User, advisory *advisory_model.Advisory) error {
-	if err := advisory_model.DeleteAdvisory(ctx, advisory); err != nil {
+	access, err := db.WithTx2(ctx, func(ctx context.Context) (originalAccess, error) {
+		if err := advisory_model.DeleteAdvisory(ctx, advisory); err != nil {
+			return originalAccess{}, err
+		}
+		return revokeSharedOriginal(ctx, advisory)
+	})
+	if err != nil {
 		return err
 	}
 	audit.RecordAs(ctx, doer, audit_model.SecurityAdvisoryDelete, advisory.Repo, "advisory", advisory.Identifier)
+	access.notify(ctx, doer)
 	return nil
 }

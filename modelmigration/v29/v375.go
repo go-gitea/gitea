@@ -40,6 +40,7 @@ type SecurityAdvisory struct {
 	WithdrawnUnix     timeutil.TimeStamp `xorm:"NOT NULL DEFAULT 0"`
 	CloseReason       int                `xorm:"NOT NULL DEFAULT 0"`
 	DuplicateOfID     int64              `xorm:"NOT NULL DEFAULT 0"`
+	ShareOriginal     bool               `xorm:"NOT NULL DEFAULT false"`
 }
 
 type SecurityAdvisoryIndex struct {
@@ -69,6 +70,7 @@ type SecurityAdvisoryCollaborator struct {
 	AdvisoryID int64 `xorm:"UNIQUE(s) NOT NULL"`
 	UserID     int64 `xorm:"UNIQUE(s) INDEX NOT NULL DEFAULT 0"`
 	TeamID     int64 `xorm:"UNIQUE(s) INDEX NOT NULL DEFAULT 0"`
+	ReadOnly   bool  `xorm:"NOT NULL DEFAULT false"`
 }
 
 type SecurityAdvisoryLabel struct {
