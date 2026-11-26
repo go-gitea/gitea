@@ -46,8 +46,14 @@ func TestIsInternalLFSURL(t *testing.T) {
 		{"http://localurl/api/internal/foo/bar", false},
 	}
 	for _, c := range cases {
-		req := newInternalRequestLFS(t.Context(), c.url, "GET", nil, nil)
-		assert.Equal(t, c.expected, req != nil, c.url)
+		req, err := newInternalRequestLFS(t.Context(), c.url, "GET", nil, nil)
+		if c.expected {
+			assert.NoError(t, err, c.url)
+			assert.NotNil(t, req, c.url)
+		} else {
+			assert.Error(t, err, c.url)
+			assert.Nil(t, req, c.url)
+		}
 		assert.Equal(t, c.expected, isInternalLFSURL(c.url), c.url)
 	}
 }

@@ -127,9 +127,14 @@ func isInternalLFSURL(s string) bool {
 	return true
 }
 
-func newInternalRequestLFS(ctx context.Context, internalURL, method string, headers map[string]string, body any) *httplib.ClientRequest {
+func isExternalHTTPURL(s string) bool {
+	u, err := url.Parse(s)
+	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
+}
+
+func newInternalRequestLFS(ctx context.Context, internalURL, method string, headers map[string]string, body any) (*httplib.ClientRequest, error) {
 	if !isInternalLFSURL(internalURL) {
-		return nil
+		return nil, fmt.Errorf("invalid internal LFS URL %q", internalURL)
 	}
 	req := private.NewInternalRequest(ctx, internalURL, method)
 	req.SetReadWriteTimeout(0)
@@ -145,5 +150,5 @@ func newInternalRequestLFS(ctx context.Context, internalURL, method string, head
 	default:
 		panic(fmt.Sprintf("unsupported request body type %T", body))
 	}
-	return req
+	return req, nil
 }
