@@ -1,3 +1,8 @@
+.package-header {
+  margin-bottom: 18px;
+  overflow-wrap: anywhere;
+}
+
 .packages-content {
   display: flex;
   align-items: flex-start;
