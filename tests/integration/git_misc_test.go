@@ -7,16 +7,19 @@ import (
 	"bytes"
 	"io"
 	"net/url"
+	"strings"
 	"sync"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	pull_service "gitea.dev/services/pull"
 	files_service "gitea.dev/services/repository/files"
 	"gitea.dev/tests"
 
@@ -165,6 +168,26 @@ func TestAgitPullPush(t *testing.T) {
 					initialCommitID := pr.HeadCommitID
 					t.Logf("Initial commit ID: %s", initialCommitID)
 
+					repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+					user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+					// Dismissing stale approvals together with a CODEOWNERS entry for
+					// the changed files is what makes an update re-request the review.
+					assert.NoError(t, pull_service.CreateOrUpdateProtectedBranch(t.Context(), repo, &git_model.ProtectedBranch{
+						RepoID:                repo.ID,
+						RuleName:              "master",
+						CanPush:               true,
+						DismissStaleApprovals: true,
+					}, git_model.WhitelistOptions{}))
+					_, err = files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
+						Files: []*files_service.ChangeRepoFile{{
+							Operation:     "create",
+							TreePath:      "CODEOWNERS",
+							ContentReader: strings.NewReader("* @user1 ## review-request=true\n"),
+						}},
+					})
+					assert.NoError(t, err)
+
 					// Create a review on the PR (as user1 reviewing user2's PR)
 					reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 					review, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{
@@ -217,17 +240,21 @@ func TestAgitPullPush(t *testing.T) {
 					// Verify the PR was updated with new commit
 					assert.NotEqual(t, initialCommitID, updatedCommitID, "PR should have new commit ID after update")
 
-					// Check that the review is now marked as stale
-					reviews, err = issues_model.FindReviews(t.Context(), issues_model.FindReviewOptions{
-						IssueID: pr.IssueID,
+					// The stale approval is dismissed and re-requested from its code owner
+					approveReview := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{
+						IssueID: pr.IssueID, ReviewerID: reviewer.ID, Type: issues_model.ReviewTypeApprove,
 					})
-					assert.NoError(t, err)
-					assert.Len(t, reviews, 1)
+					assert.True(t, approveReview.Stale, "Review should be marked as stale after AGit PR update")
+					assert.True(t, approveReview.Dismissed, "Approval should be dismissed by branch protection")
+					assert.Equal(t, initialCommitID, approveReview.CommitID, "Review commit ID should remain unchanged and point to original commit")
 
-					assert.True(t, reviews[0].Stale, "Review should be marked as stale after AGit PR update")
-
-					// The review commit ID should remain the same (pointing to the original commit)
-					assert.Equal(t, initialCommitID, reviews[0].CommitID, "Review commit ID should remain unchanged and point to original commit")
+					requestReview := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{
+						IssueID: pr.IssueID, ReviewerID: reviewer.ID, Type: issues_model.ReviewTypeRequest,
+					})
+					requestComment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{
+						IssueID: pr.IssueID, Type: issues_model.CommentTypeReviewRequest, ReviewID: requestReview.ID,
+					})
+					assert.Equal(t, issues_model.SpecialDoerNameCodeOwners, requestComment.CommentMetaData.SpecialDoerName)
 				}
 			})
 		}
