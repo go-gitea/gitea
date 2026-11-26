@@ -15,37 +15,32 @@ import (
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/htmldiff"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 )
 
 const tplRichDiff templates.TplName = "repo/diff/rich_diff"
-
-var errRichDiffTooLarge = errors.New("file too large for rich diff")
 
 // RichDiff renders the changes between two versions of a markup file
 func RichDiff(ctx *context.Context) {
 	oldPath, newPath := ctx.FormString("old_path"), ctx.FormString("path")
 	canRichDiff := func(treePath string) bool { return treePath == "" || markup.IsInlineRenderedFile(treePath) }
 	if oldPath+newPath == "" || !canRichDiff(oldPath) || !canRichDiff(newPath) {
-		ctx.NotFound()
+		ctx.JSONErrorNotFound()
 		return
 	}
-	var err error
-	ctx.Data["RichDiffHTML"], err = diffRichDiffFiles(ctx, oldPath, newPath)
-	switch {
-	case git.IsErrNotExist(err):
-		ctx.NotFound()
-		return
-	case errors.Is(err, errRichDiffTooLarge):
-		ctx.Data["RichDiffError"] = ctx.Locale.Tr("repo.diff.file_suppressed")
-	case err != nil:
-		log.Error("RichDiff: %v", err)
-		ctx.Data["RichDiffError"] = ctx.Locale.Tr("repo.diff.rich_diff_failed")
+	diffHTML, err := diffRichDiffFiles(ctx, oldPath, newPath)
+	if errors.Is(err, util.ErrContentTooLarge) {
+		err = util.ErrorWrapTranslatable(err, "repo.diff.file_suppressed")
 	}
+	if err != nil {
+		ctx.JSONErrorAuto(err)
+		return
+	}
+	ctx.Data["RichDiffHTML"] = diffHTML
 	ctx.HTML(http.StatusOK, tplRichDiff)
 }
 
@@ -58,7 +53,7 @@ func diffRichDiffFiles(ctx *context.Context, oldPath, newPath string) (template.
 	if err != nil {
 		return "", err
 	}
-	diffHTML, err := htmldiff.Diff(oldHTML, newHTML, htmldiff.Options{NormalizeLink: commitIDRemover(oldCommitID, newCommitID)})
+	diffHTML, err := htmldiff.Diff(oldHTML, newHTML, commitIDRemover(oldCommitID, newCommitID))
 	if err != nil {
 		return "", err
 	}
@@ -78,8 +73,8 @@ func renderRichDiffFile(ctx *context.Context, commitRef, treePath string) (commi
 	if err != nil {
 		return "", "", err
 	}
-	if blob.Size(ctx) > setting.UI.MaxDisplayFileSize {
-		return "", "", errRichDiffTooLarge
+	if blob.Size(ctx) >= setting.UI.MaxDisplayFileSize {
+		return "", "", util.ErrContentTooLarge
 	}
 	reader, err := blob.DataAsync(ctx)
 	if err != nil {

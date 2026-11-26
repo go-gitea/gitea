@@ -21,25 +21,22 @@ import (
 )
 
 const (
-	ClassAdded   = "rich-diff-added"
-	ClassRemoved = "rich-diff-removed"
-	ClassChanged = "rich-diff-changed"
+	classAdded   = "rich-diff-added"
+	classRemoved = "rich-diff-removed"
+	classChanged = "rich-diff-changed"
 
 	documentDiffTimeout = 2 * time.Second
 )
 
-type Options struct {
-	NormalizeLink func(link string) string // rewrites links before comparing, e.g. to drop commit IDs
-}
-
 var blockClasses = map[string]string{
-	ClassAdded:   "rich-diff-block-added",
-	ClassRemoved: "rich-diff-block-removed",
-	ClassChanged: "rich-diff-block-changed",
+	classAdded:   "rich-diff-block-added",
+	classRemoved: "rich-diff-block-removed",
+	classChanged: "rich-diff-block-changed",
 }
 
-// Diff marks the changes from oldHTML in newHTML, the inputs must be sanitized already
-func Diff(oldHTML, newHTML string, opts Options) (template.HTML, error) {
+// Diff marks the changes from oldHTML in newHTML, the inputs must be sanitized already.
+// normalizeLink rewrites links before comparing, e.g. to drop commit IDs.
+func Diff(oldHTML, newHTML string, normalizeLink func(string) string) (template.HTML, error) {
 	oldNodes, err := parseFragment(oldHTML)
 	if err != nil {
 		return "", err
@@ -48,31 +45,34 @@ func Diff(oldHTML, newHTML string, opts Options) (template.HTML, error) {
 	if err != nil {
 		return "", err
 	}
-	d := &differ{opts: opts, dmp: diffmatchpatch.New(), keys: map[*html.Node]string{}, deadline: time.Now().Add(documentDiffTimeout)}
+	d := &differ{normalizeLink: normalizeLink, dmp: diffmatchpatch.New(), keys: map[*html.Node]string{}, deadline: time.Now().Add(documentDiffTimeout)}
 
 	var sb strings.Builder
-	for _, b := range d.diffBlocks(oldNodes, newNodes, false) {
-		nodes := b.nodes
-		if b.class != "" {
-			nodes = []*html.Node{appendChildren(newElement(atom.Div, "rich-diff-block "+blockClasses[b.class]), nodes)}
+	for _, result := range d.diffBlocks(oldNodes, newNodes, false) {
+		nodes := result.nodes
+		if result.class != "" {
+			nodes = []*html.Node{appendChildren(newElement(atom.Div, "rich-diff-block "+blockClasses[result.class]), nodes)}
 		}
-		for _, n := range nodes {
-			if err := html.Render(&sb, n); err != nil {
+		for _, node := range nodes {
+			if err := html.Render(&sb, node); err != nil {
 				return "", err
 			}
 		}
 	}
+	if time.Now().After(d.deadline) {
+		return "", util.ErrContentTooLarge
+	}
 	return template.HTML(sb.String()), nil
 }
 
-func parseFragment(s string) ([]*html.Node, error) {
-	return html.ParseFragment(strings.NewReader(s), &html.Node{Type: html.ElementNode, Data: "body", DataAtom: atom.Body})
+func parseFragment(fragment string) ([]*html.Node, error) {
+	return html.ParseFragment(strings.NewReader(fragment), &html.Node{Type: html.ElementNode, Data: "body", DataAtom: atom.Body})
 }
 
 type differ struct {
-	opts Options
-	dmp  *diffmatchpatch.DiffMatchPatch
-	keys map[*html.Node]string
+	normalizeLink func(string) string
+	dmp           *diffmatchpatch.DiffMatchPatch
+	keys          map[*html.Node]string
 
 	deadline time.Time
 }
@@ -86,25 +86,25 @@ func (u unit) inline() bool { return !isBlock(u.nodes[0]) }
 
 type block struct {
 	nodes []*html.Node
-	class string // empty if unchanged
+	class string
 }
 
 func (d *differ) units(nodes []*html.Node) (ret []unit) {
 	var run []*html.Node
 	flush := func() {
 		if !isBlank(run) {
-			ret = append(ret, unit{nodes: run, key: strings.Trim(d.keyOf(run...), htmlSpace)})
+			ret = append(ret, unit{nodes: run, key: strings.Trim(strings.Join(keysOf(run, d.nodeKey), ""), htmlSpace)})
 		}
 		run = nil
 	}
-	for _, n := range nodes {
+	for _, node := range nodes {
 		switch {
-		case n.Type == html.CommentNode:
-		case isBlock(n):
+		case node.Type == html.CommentNode:
+		case isBlock(node):
 			flush()
-			ret = append(ret, unit{nodes: []*html.Node{n}, key: d.keyOf(n)})
+			ret = append(ret, unit{nodes: []*html.Node{node}, key: d.nodeKey(node)})
 		default:
-			run = append(run, n)
+			run = append(run, node)
 		}
 	}
 	flush()
@@ -118,14 +118,14 @@ func (d *differ) diffBlocks(oldNodes, newNodes []*html.Node, byKind bool) (ret [
 		r, a := 0, 0
 		emitUntil := func(removedEnd, addedEnd int) {
 			for ; r < removedEnd; r++ {
-				ret = append(ret, removedBlock(removed[r]))
+				ret = append(ret, copyBlock(removed[r], classRemoved))
 			}
 			for ; a < addedEnd; a++ {
-				ret = append(ret, block{nodes: cloneAll(added[a].nodes), class: ClassAdded})
+				ret = append(ret, copyBlock(added[a], classAdded))
 			}
 		}
-		for _, p := range d.pairUnits(removed, added, byKind) {
-			emitUntil(p[0], p[1])
+		for _, pair := range d.pairUnits(removed, added, byKind) {
+			emitUntil(pair[0], pair[1])
 			ret = append(ret, d.diffUnit(removed[r], added[a])...)
 			r, a = r+1, a+1
 		}
@@ -139,7 +139,7 @@ func (d *differ) diffBlocks(oldNodes, newNodes []*html.Node, byKind bool) (ret [
 			switch typ {
 			case diffmatchpatch.DiffEqual:
 				flush()
-				ret = append(ret, block{nodes: cloneAll(newUnits[newIdx].nodes)})
+				ret = append(ret, copyBlock(newUnits[newIdx], ""))
 			case diffmatchpatch.DiffDelete:
 				removed = append(removed, oldUnits[oldIdx])
 			case diffmatchpatch.DiffInsert:
@@ -161,18 +161,18 @@ func (d *differ) pairUnits(removed, added []unit, byKind bool) (pairs [][2]int) 
 	}
 	if byKind {
 		next := 0
-		for i, r := range removed {
-			if j := slices.IndexFunc(added[next:], func(a unit) bool { return sameKind(a.nodes[0], r.nodes[0]) }); j >= 0 {
+		for i, removedUnit := range removed {
+			if j := slices.IndexFunc(added[next:], func(addedUnit unit) bool { return sameKind(removedUnit.nodes[0], addedUnit.nodes[0]) }); j >= 0 {
 				pairs, next = append(pairs, [2]int{i, next + j}), next+j+1
 			}
 		}
 		return pairs
 	}
-	type sharedWords struct {
+	type sharedContent struct {
 		pair  [2]int
 		count int
 	}
-	var shared []sharedWords // in order on both sides, like the word alignment
+	var shared []sharedContent // in order on both sides, like the alignment
 	oldContents, oldOwners := d.contents(removed)
 	newContents, newOwners := d.contents(added)
 	d.align(oldContents, newContents, false, func(typ diffmatchpatch.Operation, oldIdx, newIdx int) {
@@ -183,29 +183,29 @@ func (d *differ) pairUnits(removed, added []unit, byKind bool) (pairs [][2]int) 
 		if last := len(shared) - 1; last >= 0 && shared[last].pair == pair {
 			shared[last].count++
 		} else {
-			shared = append(shared, sharedWords{pair: pair, count: 1})
+			shared = append(shared, sharedContent{pair: pair, count: 1})
 		}
 	})
 	bestCount := 0
-	for _, s := range shared {
+	for _, entry := range shared {
 		last := len(pairs) - 1
 		switch {
-		case last >= 0 && s.pair[0] == pairs[last][0]:
-			if s.count > bestCount {
-				pairs[last][1], bestCount = s.pair[1], s.count
+		case last >= 0 && entry.pair[0] == pairs[last][0]:
+			if entry.count > bestCount {
+				pairs[last][1], bestCount = entry.pair[1], entry.count
 			}
-		case last < 0 || s.pair[1] > pairs[last][1]:
-			pairs, bestCount = append(pairs, s.pair), s.count
+		case last < 0 || entry.pair[1] > pairs[last][1]:
+			pairs, bestCount = append(pairs, entry.pair), entry.count
 		}
 	}
 	return pairs
 }
 
 func (d *differ) contents(units []unit) (keys []string, owners []int) {
-	for i, u := range units {
-		for _, t := range d.tokenize(u.nodes, false) {
-			if isContent(&t) {
-				keys, owners = append(keys, t.identity), append(owners, i)
+	for owner, item := range units {
+		for _, tok := range d.tokenize(item.nodes, false) {
+			if isContent(&tok) {
+				keys, owners = append(keys, tok.identity), append(owners, owner)
 			}
 		}
 	}
@@ -214,10 +214,10 @@ func (d *differ) contents(units []unit) (keys []string, owners []int) {
 
 func (d *differ) diffUnit(oldUnit, newUnit unit) []block {
 	replace := func() []block {
-		return []block{removedBlock(oldUnit), {nodes: cloneAll(newUnit.nodes), class: ClassAdded}}
+		return []block{copyBlock(oldUnit, classRemoved), copyBlock(newUnit, classAdded)}
 	}
 	if oldUnit.key == newUnit.key {
-		return []block{{nodes: cloneAll(newUnit.nodes)}}
+		return []block{copyBlock(newUnit, "")}
 	}
 	oldNode, newNode := oldUnit.nodes[0], newUnit.nodes[0]
 	if oldUnit.inline() || newUnit.inline() {
@@ -230,26 +230,26 @@ func (d *differ) diffUnit(oldUnit, newUnit unit) []block {
 			return replace()
 		}
 		if !newUnit.inline() {
-			nodes = []*html.Node{appendChildren(cloneNode(newNode, false), nodes)}
+			nodes = []*html.Node{appendChildren(cloneNode(newNode, true), nodes)}
 		}
-		return []block{{nodes: nodes, class: util.Iif(changed, ClassChanged, "")}}
+		return []block{{nodes: nodes, class: util.Iif(changed, classChanged, "")}}
 	}
 
-	if !sameKind(oldNode, newNode) || isAtomic(oldNode) || isAtomic(newNode) || newNode.DataAtom == atom.Table && columns(oldNode) != columns(newNode) {
+	isGrid := newNode.DataAtom == atom.Table || newNode.DataAtom == atom.Tr
+	if !sameKind(oldNode, newNode) || isAtomic(oldNode) || isAtomic(newNode) || isGrid && columns(oldNode) != columns(newNode) {
 		return replace()
 	}
-	ret := cloneNode(newNode, false)
+	ret := cloneNode(newNode, true)
 	changed := d.startTagKey(oldNode) != d.startTagKey(newNode)
 	if changed {
-		addClass(ret, ClassChanged)
+		addClass(ret, classChanged)
 	}
 	oldChildren, newChildren := childNodes(oldNode), childNodes(newNode)
 	switch {
 	case slices.ContainsFunc(oldChildren, isBlock) || slices.ContainsFunc(newChildren, isBlock):
-		byKind := newNode.DataAtom == atom.Table || newNode.DataAtom == atom.Tr
-		for _, b := range d.diffBlocks(oldChildren, newChildren, byKind) {
-			changed = changed || b.class != ""
-			appendChildren(ret, markBlock(b))
+		for _, result := range d.diffBlocks(oldChildren, newChildren, isGrid) {
+			changed = changed || result.class != ""
+			appendChildren(ret, markBlock(result))
 		}
 	case newNode.DataAtom == atom.Pre:
 		nodes, linesChanged := d.diffLines(oldChildren, newChildren)
@@ -263,7 +263,7 @@ func (d *differ) diffUnit(oldUnit, newUnit unit) []block {
 		changed = changed || inlineChanged
 		appendChildren(ret, nodes)
 	}
-	return []block{{nodes: []*html.Node{ret}, class: util.Iif(changed, ClassChanged, "")}}
+	return []block{{nodes: []*html.Node{ret}, class: util.Iif(changed, classChanged, "")}}
 }
 
 func paragraphContent(u unit) []*html.Node {
@@ -281,11 +281,11 @@ type token struct {
 	atomic   *html.Node
 	chain    []*html.Node // inline ancestors, outermost first
 	sigs     []string
-	identity string // what is compared regardless of the formatting
-	full     string // the identity including attributes of an atomic element
+	identity string // compared regardless of the formatting
+	full     string // the identity including all attributes of an atomic element
 }
 
-// key includes the formatting, computed when compared to keep the tokenizer linear in nesting depth
+// key is only built when comparing, a key per token would grow with the nesting depth
 func (t token) key() string { return strings.Join(t.sigs, "") + t.full }
 
 var (
@@ -293,31 +293,39 @@ var (
 	whitespaceRegexp = regexp.MustCompile(`\s+`)
 )
 
+// identityAttrs tell elements apart, other attribute changes like "checked" are edits in place
+var identityAttrs = map[atom.Atom]string{atom.Img: "src", atom.Input: "type"}
+
 func (d *differ) tokenize(nodes []*html.Node, lines bool) (ret []token) {
-	var walk func(n *html.Node, chain []*html.Node, sigs []string)
-	walk = func(n *html.Node, chain []*html.Node, sigs []string) {
+	var walk func(node *html.Node, chain []*html.Node, sigs []string)
+	walk = func(node *html.Node, chain []*html.Node, sigs []string) {
 		switch {
-		case n.Type == html.TextNode:
-			parts := wordRegexp.FindAllString(n.Data, -1)
-			if lines {
-				parts = slices.Collect(strings.Lines(n.Data))
+		case node.Type == html.TextNode:
+			parts := strings.Lines(node.Data)
+			if !lines {
+				parts = slices.Values(wordRegexp.FindAllString(node.Data, -1))
 			}
-			for _, w := range parts {
-				identity := "\x00" + util.Iif(!lines && isSpace(w), " ", w)
-				ret = append(ret, token{text: w, chain: chain, sigs: sigs, identity: identity, full: identity})
+			for part := range parts {
+				identity := "\x00" + util.Iif(!lines && isSpace(part), " ", part)
+				ret = append(ret, token{text: part, chain: chain, sigs: sigs, identity: identity, full: identity})
 			}
-		case n.Type != html.ElementNode:
-		case isAtomic(n) || n.FirstChild == nil:
-			ret = append(ret, token{atomic: n, chain: chain, sigs: sigs, identity: "\x01" + d.atomicIdentity(n), full: "\x01" + d.keyOf(n)})
+		case node.Type != html.ElementNode:
+		case isAtomic(node) || node.FirstChild == nil:
+			tok := token{atomic: node, chain: chain, sigs: sigs, full: "\x01" + d.nodeKey(node)}
+			tok.identity = tok.full
+			if key, ok := identityAttrs[node.DataAtom]; ok {
+				tok.identity = "\x01" + node.Data + " " + d.attrKey(html.Attribute{Key: key, Val: attrValue(node, key)})
+			}
+			ret = append(ret, tok)
 		default:
-			chain, sigs = append(slices.Clip(chain), n), append(slices.Clip(sigs), d.startTagKey(n))
-			for c := range n.ChildNodes() {
-				walk(c, chain, sigs)
+			chain, sigs = append(slices.Clip(chain), node), append(slices.Clip(sigs), d.startTagKey(node))
+			for child := range node.ChildNodes() {
+				walk(child, chain, sigs)
 			}
 		}
 	}
-	for _, n := range nodes {
-		walk(n, nil, nil)
+	for _, node := range nodes {
+		walk(node, nil, nil)
 	}
 	return ret
 }
@@ -332,11 +340,11 @@ func (d *differ) diffInline(oldNodes, newNodes []*html.Node) (nodes []*html.Node
 			switch typ {
 			case diffmatchpatch.DiffEqual: // only the formatting changed
 				common = common || isContent(added[newIdx])
-				b.add(nil, added[newIdx], ClassChanged)
+				b.add(nil, added[newIdx], classChanged)
 			case diffmatchpatch.DiffDelete:
-				b.add(removed[oldIdx], nil, ClassRemoved)
+				b.add(removed[oldIdx], nil, classRemoved)
 			case diffmatchpatch.DiffInsert:
-				b.add(nil, added[newIdx], ClassAdded)
+				b.add(nil, added[newIdx], classAdded)
 			}
 		})
 		changed = changed || len(removed)+len(added) > 0
@@ -360,7 +368,7 @@ func (d *differ) diffInline(oldNodes, newNodes []*html.Node) (nodes []*html.Node
 
 // whitespace at a block's edges is not rendered
 func trimSpace(tokens []token) []token {
-	isSpaceToken := func(t token) bool { return t.atomic == nil && isSpace(t.text) }
+	isSpaceToken := func(tok token) bool { return tok.atomic == nil && isSpace(tok.text) }
 	for len(tokens) > 0 && isSpaceToken(tokens[0]) {
 		tokens = tokens[1:]
 	}
@@ -370,53 +378,44 @@ func trimSpace(tokens []token) []token {
 	return tokens
 }
 
-func isContent(t *token) bool {
-	return t.atomic != nil || isWord(t.text)
+func isContent(tok *token) bool {
+	return tok.atomic != nil || isWord(tok.text)
 }
 
 func (d *differ) diffLines(oldNodes, newNodes []*html.Node) (nodes []*html.Node, changed bool) {
-	oldLines, newLines := splitLines(d.tokenize(oldNodes, true)), splitLines(d.tokenize(newNodes, true))
+	oldLines, oldKeys := d.lines(oldNodes)
+	newLines, newKeys := d.lines(newNodes)
 	b := newInlineBuilder()
-	addLine := func(line []token, class string) {
-		for i := range line {
-			if class == ClassRemoved {
-				b.add(&line[i], nil, class)
-			} else {
-				b.add(nil, &line[i], class)
+	d.align(oldKeys, newKeys, false, func(typ diffmatchpatch.Operation, oldIdx, newIdx int) {
+		changed = changed || typ != diffmatchpatch.DiffEqual
+		if typ == diffmatchpatch.DiffDelete {
+			for i := range oldLines[oldIdx] {
+				b.add(&oldLines[oldIdx][i], nil, classRemoved)
 			}
+			return
 		}
-	}
-	d.align(keysOf(oldLines, lineKey), keysOf(newLines, lineKey), false, func(typ diffmatchpatch.Operation, oldIdx, newIdx int) {
-		switch typ {
-		case diffmatchpatch.DiffEqual:
-			addLine(newLines[newIdx], "")
-		case diffmatchpatch.DiffDelete:
-			changed = true
-			addLine(oldLines[oldIdx], ClassRemoved)
-		case diffmatchpatch.DiffInsert:
-			changed = true
-			addLine(newLines[newIdx], ClassAdded)
+		class := util.Iif(typ == diffmatchpatch.DiffInsert, classAdded, "")
+		for i := range newLines[newIdx] {
+			b.add(nil, &newLines[newIdx][i], class)
 		}
 	})
 	return b.finish(), changed
 }
 
-func splitLines(tokens []token) (lines [][]token) {
+// lines groups preformatted tokens by line, keyed by their text as highlighting may split a line differently
+func (d *differ) lines(nodes []*html.Node) (lines [][]token, keys []string) {
+	tokens := d.tokenize(nodes, true)
+	var key strings.Builder
 	start := 0
-	for i, t := range tokens {
-		if strings.HasSuffix(t.text, "\n") || i == len(tokens)-1 {
-			lines, start = append(lines, tokens[start:i+1]), i+1
+	for i, tok := range tokens {
+		key.WriteString(util.Iif(tok.atomic == nil, tok.text, tok.identity))
+		if strings.HasSuffix(tok.text, "\n") || i == len(tokens)-1 {
+			lines, keys = append(lines, tokens[start:i+1]), append(keys, key.String())
+			start = i + 1
+			key.Reset()
 		}
 	}
-	return lines
-}
-
-func lineKey(line []token) string {
-	var sb strings.Builder
-	for _, t := range line {
-		sb.WriteString(util.Iif(t.atomic == nil, t.text, t.identity)) // highlighting may split a line differently
-	}
-	return sb.String()
+	return lines, keys
 }
 
 type inlineBuilder struct {
@@ -439,36 +438,33 @@ func newInlineBuilder() *inlineBuilder {
 
 func (b *inlineBuilder) add(oldToken, newToken *token, class string) {
 	sides := [2]*token{oldToken, newToken}
-	t := util.IfZero(newToken, oldToken)
+	tok := util.IfZero(newToken, oldToken)
 	isOpen := func(i int) bool {
 		el := b.stack[i]
-		for side, st := range sides {
-			if st != nil && el.sources[side] != nil && el.sources[side] != st.chain[i] {
+		for side, sideToken := range sides {
+			if sideToken != nil && el.sources[side] != nil && el.sources[side] != sideToken.chain[i] {
 				return false
 			}
 		}
-		return el.sig == t.sigs[i]
+		return el.sig == tok.sigs[i]
 	}
 	common := 0
-	for common < len(b.stack) && common < len(t.sigs) && isOpen(common) {
+	for common < len(b.stack) && common < len(tok.sigs) && isOpen(common) {
 		common++
 	}
 	b.stack = b.stack[:common]
-	for i := common; i < len(t.chain); i++ {
-		el := cloneNode(t.chain[i], false)
-		if newToken == nil {
-			removeIDs(el)
-		}
+	for i := common; i < len(tok.chain); i++ {
+		el := cloneNode(tok.chain[i], newToken != nil)
 		b.parent().AppendChild(el)
-		b.stack = append(b.stack, openElement{node: el, sig: t.sigs[i]})
+		b.stack = append(b.stack, openElement{node: el, sig: tok.sigs[i]})
 	}
 	for i := range b.stack {
 		if i < common && newToken != nil && b.stack[i].sources[1] == nil {
 			b.stack[i].node.Attr = slices.Clone(newToken.chain[i].Attr) // opened by a removed token without its id
 		}
-		for side, st := range sides {
-			if st != nil {
-				b.stack[i].sources[side] = st.chain[i]
+		for side, sideToken := range sides {
+			if sideToken != nil {
+				b.stack[i].sources[side] = sideToken.chain[i]
 			}
 		}
 	}
@@ -481,12 +477,8 @@ func (b *inlineBuilder) add(oldToken, newToken *token, class string) {
 		}
 		target = b.mark
 	}
-	if t.atomic != nil {
-		el := cloneNode(t.atomic, true)
-		if newToken == nil {
-			removeIDs(el)
-		}
-		target.AppendChild(el)
+	if tok.atomic != nil {
+		target.AppendChild(cloneTree(tok.atomic, newToken != nil))
 		return
 	}
 	if b.text == nil || target.LastChild != b.text {
@@ -494,7 +486,7 @@ func (b *inlineBuilder) add(oldToken, newToken *token, class string) {
 		b.text = &html.Node{Type: html.TextNode}
 		target.AppendChild(b.text)
 	}
-	b.textBuf.WriteString(t.text)
+	b.textBuf.WriteString(tok.text)
 }
 
 func (b *inlineBuilder) flushText() {
@@ -515,13 +507,12 @@ func (b *inlineBuilder) parent() *html.Node {
 func (b *inlineBuilder) finish() []*html.Node {
 	b.flushText()
 	ret := childNodes(b.root)
-	for _, c := range ret {
-		b.root.RemoveChild(c)
+	for _, child := range ret {
+		b.root.RemoveChild(child)
 	}
 	return ret
 }
 
-// align diffs key sequences mapped to runes and calls fn for each item
 func (d *differ) align(oldKeys, newKeys []string, cleanup bool, fn func(typ diffmatchpatch.Operation, oldIdx, newIdx int)) {
 	oldIdx, newIdx := 0, 0
 	emit := func(typ diffmatchpatch.Operation, count int) {
@@ -544,16 +535,16 @@ func (d *differ) align(oldKeys, newKeys []string, cleanup bool, fn func(typ diff
 	runeOf := map[string]rune{}
 	toRunes := func(keys []string) []rune {
 		ret := make([]rune, len(keys))
-		for i, k := range keys {
-			r, ok := runeOf[k]
+		for i, key := range keys {
+			char, ok := runeOf[key]
 			if !ok {
-				r = rune(len(runeOf) + utf8.RuneSelf) // ASCII would make the semantic cleanup see word boundaries
-				if r >= 0xD800 {
-					r += 0x800 // skip the surrogates, they can't be encoded in the diff texts
+				char = rune(len(runeOf) + utf8.RuneSelf) // ASCII would make the semantic cleanup see word boundaries
+				if char >= 0xD800 {
+					char += 0x800 // skip the surrogates, they can't be encoded in the diff texts
 				}
-				runeOf[k] = r
+				runeOf[key] = char
 			}
-			ret[i] = r
+			ret[i] = char
 		}
 		return ret
 	}
@@ -561,8 +552,8 @@ func (d *differ) align(oldKeys, newKeys []string, cleanup bool, fn func(typ diff
 	if cleanup {
 		diffs = d.dmp.DiffCleanupSemantic(diffs)
 	}
-	for _, df := range diffs {
-		emit(df.Type, utf8.RuneCountInString(df.Text))
+	for _, diff := range diffs {
+		emit(diff.Type, utf8.RuneCountInString(diff.Text))
 	}
 }
 
@@ -578,38 +569,28 @@ func (u unit) getKey() string { return u.key }
 
 func (t token) getIdentity() string { return t.identity }
 
-func removedBlock(u unit) block {
-	nodes := cloneAll(u.nodes)
-	for _, n := range nodes {
-		removeIDs(n) // the added copy keeps them, anchors must not jump to the removed one
+// copyBlock drops the ids of a removed copy, anchors must not jump to it
+func copyBlock(u unit, class string) block {
+	nodes := make([]*html.Node, len(u.nodes))
+	for i, node := range u.nodes {
+		nodes[i] = cloneTree(node, class != classRemoved)
 	}
-	return block{nodes: nodes, class: ClassRemoved}
+	return block{nodes: nodes, class: class}
 }
 
-func markBlock(b block) []*html.Node {
-	if b.class == "" || b.class == ClassChanged {
-		return b.nodes
+func markBlock(result block) []*html.Node {
+	if result.class == "" || result.class == classChanged {
+		return result.nodes
 	}
-	if !isBlock(b.nodes[0]) {
-		return []*html.Node{appendChildren(newMark(b.class), b.nodes)}
+	if !isBlock(result.nodes[0]) {
+		return []*html.Node{appendChildren(newMark(result.class), result.nodes)}
 	}
-	if isAtomic(b.nodes[0]) {
+	if isAtomic(result.nodes[0]) {
 		// client-side renderers (math, mermaid) replace the element, so the class must be on a wrapper
-		return []*html.Node{appendChildren(newElement(atom.Div, b.class), b.nodes)}
+		return []*html.Node{appendChildren(newElement(atom.Div, result.class), result.nodes)}
 	}
-	addClass(b.nodes[0], b.class)
-	return b.nodes
-}
-
-func (d *differ) keyOf(nodes ...*html.Node) string {
-	if len(nodes) == 1 {
-		return d.nodeKey(nodes[0])
-	}
-	var sb strings.Builder
-	for _, n := range nodes {
-		sb.WriteString(d.nodeKey(n))
-	}
-	return sb.String()
+	addClass(result.nodes[0], result.class)
+	return result.nodes
 }
 
 // nodeKey serializes a node once, the keys of its descendants are substrings of it
@@ -617,79 +598,62 @@ func (d *differ) nodeKey(node *html.Node) string {
 	if key, ok := d.keys[node]; ok {
 		return key
 	}
-	type span struct {
+	type nodeSpan struct {
 		node       *html.Node
 		start, end int
 	}
 	var sb strings.Builder
-	var spans []span
-	var write func(n *html.Node)
-	write = func(n *html.Node) {
+	var spans []nodeSpan
+	var write func(current *html.Node)
+	write = func(current *html.Node) {
 		start := sb.Len()
-		switch n.Type {
+		switch current.Type {
 		case html.TextNode:
-			sb.WriteString(html.EscapeString(normalizeSpace(n)))
+			sb.WriteString(html.EscapeString(normalizeSpace(current)))
 		case html.ElementNode:
-			sb.WriteString(d.startTagKey(n))
-			for c := range n.ChildNodes() {
-				write(c)
+			sb.WriteString(d.startTagKey(current))
+			for child := range current.ChildNodes() {
+				write(child)
 			}
-			sb.WriteString("</" + n.Data + ">")
+			sb.WriteString("</" + current.Data + ">")
 		}
-		spans = append(spans, span{n, start, sb.Len()})
+		spans = append(spans, nodeSpan{current, start, sb.Len()})
 	}
 	write(node)
 	key := sb.String()
-	for _, sp := range spans {
-		d.keys[sp.node] = key[sp.start:sp.end]
+	for _, span := range spans {
+		d.keys[span.node] = key[span.start:span.end]
 	}
 	return key
 }
 
-func (d *differ) startTagKey(n *html.Node) string {
+func (d *differ) startTagKey(node *html.Node) string {
 	var sb strings.Builder
-	sb.WriteString("<" + n.Data)
-	for _, a := range n.Attr {
-		if a.Key != "id" && a.Key != "data-source-position" { // ids follow the content
-			sb.WriteString(" " + a.Key + `="` + html.EscapeString(d.attrKey(a)) + `"`)
+	sb.WriteString("<" + node.Data)
+	for _, attr := range node.Attr {
+		if attr.Key != "id" && attr.Key != "data-source-position" { // ids follow the content
+			sb.WriteString(" " + attr.Key + `="` + html.EscapeString(d.attrKey(attr)) + `"`)
 		}
 	}
 	sb.WriteString(">")
 	return sb.String()
 }
 
-func (d *differ) attrKey(a html.Attribute) string {
-	if (a.Key == "href" || a.Key == "src" || a.Key == "srcset") && d.opts.NormalizeLink != nil {
-		return d.opts.NormalizeLink(a.Val)
+func (d *differ) attrKey(attr html.Attribute) string {
+	if (attr.Key == "href" || attr.Key == "src" || attr.Key == "srcset") && d.normalizeLink != nil {
+		return d.normalizeLink(attr.Val)
 	}
-	return a.Val
-}
-
-// identityAttrs tell elements apart, other attribute changes like "checked" are edits in place
-var identityAttrs = map[atom.Atom]string{atom.Img: "src", atom.Input: "type"}
-
-func (d *differ) atomicIdentity(n *html.Node) string {
-	if key, ok := identityAttrs[n.DataAtom]; ok {
-		return n.Data + " " + d.attrKey(html.Attribute{Key: key, Val: attrValue(n, key)})
-	}
-	return d.keyOf(n)
+	return attr.Val
 }
 
 // whitespace runs render alike outside preformatted text
 func normalizeSpace(textNode *html.Node) string {
-	for n := textNode.Parent; n != nil; n = n.Parent {
-		if n.DataAtom == atom.Pre {
+	for node := textNode.Parent; node != nil; node = node.Parent {
+		if node.DataAtom == atom.Pre {
 			return textNode.Data
 		}
 	}
 	return whitespaceRegexp.ReplaceAllString(textNode.Data, " ")
-}
-
-func removeIDs(n *html.Node) {
-	n.Attr = slices.DeleteFunc(n.Attr, func(a html.Attribute) bool { return a.Key == "id" })
-	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		removeIDs(c)
-	}
 }
 
 var blockAtoms = map[atom.Atom]bool{
@@ -707,52 +671,56 @@ var atomicAtoms = map[atom.Atom]bool{
 	atom.Picture: true, atom.Svg: true, atom.Video: true,
 }
 
-func isBlock(n *html.Node) bool {
-	return n.Type == html.ElementNode && blockAtoms[n.DataAtom]
+func isBlock(node *html.Node) bool {
+	return node.Type == html.ElementNode && blockAtoms[node.DataAtom]
 }
 
-func sameKind(a, b *html.Node) bool {
-	return a.Data == b.Data || isHeading(a) && isHeading(b) || isCell(a) && isCell(b)
+func sameKind(oldNode, newNode *html.Node) bool {
+	return oldNode.Data == newNode.Data || isHeading(oldNode) && isHeading(newNode) || isCell(oldNode) && isCell(newNode)
 }
 
-func isHeading(n *html.Node) bool {
-	switch n.DataAtom {
+func isHeading(node *html.Node) bool {
+	switch node.DataAtom {
 	case atom.H1, atom.H2, atom.H3, atom.H4, atom.H5, atom.H6:
 		return true
 	}
 	return false
 }
 
-func columns(table *html.Node) int {
-	for n := range table.Descendants() {
-		if n.DataAtom == atom.Tr {
-			return len(slices.DeleteFunc(childNodes(n), func(c *html.Node) bool { return !isCell(c) }))
+// columns returns the number of cells in a row, or in the first row of a table
+func columns(node *html.Node) int {
+	if node.DataAtom == atom.Table {
+		for row := range node.Descendants() {
+			if row.DataAtom == atom.Tr {
+				return columns(row)
+			}
 		}
 	}
-	return 0
+	return len(slices.DeleteFunc(childNodes(node), func(child *html.Node) bool { return !isCell(child) }))
 }
 
-func isCell(n *html.Node) bool {
-	return n.DataAtom == atom.Td || n.DataAtom == atom.Th
+func isCell(node *html.Node) bool {
+	return node.DataAtom == atom.Td || node.DataAtom == atom.Th
 }
 
-func isAtomic(n *html.Node) bool {
-	if n.Type != html.ElementNode {
+func isAtomic(node *html.Node) bool {
+	if node.Type != html.ElementNode {
 		return false
 	}
-	isInlineCode := n.DataAtom == atom.Code && (n.Parent == nil || n.Parent.DataAtom != atom.Pre)
-	return atomicAtoms[n.DataAtom] || isInlineCode || isClientRenderedCode(n)
+	isInlineCode := node.DataAtom == atom.Code && (node.Parent == nil || node.Parent.DataAtom != atom.Pre)
+	isEmoji := node.DataAtom == atom.Span && attrValue(node, "class") == "emoji" // a sequence like a flag must not be split
+	return atomicAtoms[node.DataAtom] || isInlineCode || isEmoji || isClientRenderedCode(node)
 }
 
 // isClientRenderedCode reports math and mermaid code, mixed old and new source would render wrong
-func isClientRenderedCode(n *html.Node) bool {
-	switch n.DataAtom {
+func isClientRenderedCode(node *html.Node) bool {
+	switch node.DataAtom {
 	case atom.Code:
-		classes := strings.Fields(attrValue(n, "class"))
+		classes := strings.Fields(attrValue(node, "class"))
 		return slices.Contains(classes, "language-math") || slices.Contains(classes, "language-mermaid")
 	case atom.Pre, atom.Div:
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			if isClientRenderedCode(c) {
+		for child := range node.ChildNodes() {
+			if isClientRenderedCode(child) {
 				return true
 			}
 		}
@@ -762,81 +730,79 @@ func isClientRenderedCode(n *html.Node) bool {
 
 const htmlSpace = " \t\n\f\r"
 
-func isSpace(s string) bool {
-	return strings.Trim(s, htmlSpace) == ""
+func isSpace(text string) bool {
+	return strings.Trim(text, htmlSpace) == ""
 }
 
-func isWord(s string) bool {
-	r, _ := utf8.DecodeRuneInString(s)
-	return unicode.IsLetter(r) || unicode.IsNumber(r)
+func isWord(text string) bool {
+	first, _ := utf8.DecodeRuneInString(text)
+	return unicode.IsLetter(first) || unicode.IsNumber(first)
 }
 
 func isBlank(nodes []*html.Node) bool {
-	for _, n := range nodes {
-		if n.Type != html.TextNode || !isSpace(n.Data) {
+	for _, node := range nodes {
+		if node.Type != html.TextNode || !isSpace(node.Data) {
 			return false
 		}
 	}
 	return true
 }
 
-func childNodes(n *html.Node) []*html.Node {
-	return slices.Collect(n.ChildNodes())
+func childNodes(node *html.Node) []*html.Node {
+	return slices.Collect(node.ChildNodes())
 }
 
-func appendChildren(n *html.Node, children []*html.Node) *html.Node {
-	for _, c := range children {
-		n.AppendChild(c)
+func appendChildren(node *html.Node, children []*html.Node) *html.Node {
+	for _, child := range children {
+		node.AppendChild(child)
 	}
-	return n
+	return node
 }
 
-func cloneNode(n *html.Node, deep bool) *html.Node {
-	ret := &html.Node{Type: n.Type, DataAtom: n.DataAtom, Data: n.Data, Namespace: n.Namespace, Attr: slices.Clone(n.Attr)}
-	if deep {
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			ret.AppendChild(cloneNode(c, true))
-		}
+func cloneNode(node *html.Node, keepIDs bool) *html.Node {
+	attrs := slices.Clone(node.Attr)
+	if !keepIDs {
+		attrs = slices.DeleteFunc(attrs, func(attr html.Attribute) bool { return attr.Key == "id" })
 	}
-	return ret
+	return &html.Node{Type: node.Type, DataAtom: node.DataAtom, Data: node.Data, Namespace: node.Namespace, Attr: attrs}
 }
 
-func cloneAll(nodes []*html.Node) []*html.Node {
-	ret := make([]*html.Node, len(nodes))
-	for i, n := range nodes {
-		ret[i] = cloneNode(n, true)
+func cloneTree(node *html.Node, keepIDs bool) *html.Node {
+	ret := cloneNode(node, keepIDs)
+	for child := range node.ChildNodes() {
+		ret.AppendChild(cloneTree(child, keepIDs))
 	}
 	return ret
 }
 
 func newMark(class string) *html.Node {
 	switch class {
-	case ClassAdded:
+	case classAdded:
 		return newElement(atom.Ins, class)
-	case ClassRemoved:
+	case classRemoved:
 		return newElement(atom.Del, class)
 	}
 	return newElement(atom.Span, class)
 }
 
-func newElement(a atom.Atom, class string) *html.Node {
-	return &html.Node{Type: html.ElementNode, DataAtom: a, Data: a.String(), Attr: []html.Attribute{{Key: "class", Val: class}}}
+func newElement(tag atom.Atom, class string) *html.Node {
+	return &html.Node{Type: html.ElementNode, DataAtom: tag, Data: tag.String(), Attr: []html.Attribute{{Key: "class", Val: class}}}
 }
 
-func addClass(n *html.Node, class string) {
-	for i, a := range n.Attr {
-		if a.Key == "class" {
-			n.Attr[i].Val = strings.TrimSpace(a.Val + " " + class)
+func addClass(node *html.Node, class string) {
+	for i, attr := range node.Attr {
+		if attr.Key == "class" {
+			node.Attr[i].Val = strings.TrimSpace(attr.Val + " " + class)
 			return
 		}
 	}
-	n.Attr = append(n.Attr, html.Attribute{Key: "class", Val: class})
+	node.Attr = append(node.Attr, html.Attribute{Key: "class", Val: class})
 }
 
-func attrValue(n *html.Node, key string) string {
-	for _, a := range n.Attr {
-		if a.Key == key {
-			return a.Val
+func attrValue(node *html.Node, key string) string {
+	for _, attr := range node.Attr {
+		if attr.Key == key {
+			return attr.Val
 		}
 	}
 	return ""

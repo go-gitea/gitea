@@ -9,7 +9,10 @@ import (
 	"testing"
 
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
+
+	_ "gitea.dev/modules/markup/markdown"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -118,6 +121,7 @@ func TestGetDiffForRender(t *testing.T) {
 }
 
 func TestGetDiffForRenderRenamedFile(t *testing.T) {
+	markup.RefreshFileNamePatterns()
 	repoDir := filepath.Join(t.TempDir(), "temp-repo")
 	require.NoError(t, git.InitRepositoryLocal(t.Context(), repoDir, false, git.Sha1ObjectFormat.Name(), ""))
 
@@ -127,8 +131,8 @@ func TestGetDiffForRenderRenamedFile(t *testing.T) {
 
 	content := "id,name\n1,Alice\n2,Bob\n"
 	require.NoError(t, git.ForceFastImport(t.Context(), gitRepo, []git.FastImportCommit{
-		{Ref: "refs/heads/b1", Files: []git.FastImportFile{{Path: "original/sample.csv", Content: content}}},
-		{Ref: "refs/heads/b2", Files: []git.FastImportFile{{Path: "moved/sample.csv", Content: content}}},
+		{Ref: "refs/heads/b1", Files: []git.FastImportFile{{Path: "original/sample.csv", Content: content}, {Path: "guide.md", Content: "# Guide\n"}, {Path: "notes.md", Content: "# Notes\n"}}},
+		{Ref: "refs/heads/b2", Files: []git.FastImportFile{{Path: "moved/sample.csv", Content: content}, {Path: "docs/guide.md", Content: "# Guide\n"}, {Path: "notes.txt", Content: "# Notes\n"}}},
 	}))
 
 	beforeCommit, err := gitRepo.GetBranchCommit(t.Context(), "b1")
@@ -144,10 +148,12 @@ func TestGetDiffForRenderRenamedFile(t *testing.T) {
 		MaxFiles:          setting.Git.MaxGitDiffFiles,
 	})
 	require.NoError(t, err)
-	require.Len(t, diff.Files, 1)
+	require.Len(t, diff.Files, 3)
+	assert.Equal(t, "/any/repo-link/rich_diff?after="+afterCommit.ID.String()+"&before="+beforeCommit.ID.String()+"&old_path=guide.md&path=docs%2Fguide.md", diff.Files[0].RichDiffLink)
+	assert.Empty(t, diff.Files[2].RichDiffLink)
 
 	// the CSV diff of a renamed file needs both blobs, otherwise it panics
-	diffFile := diff.Files[0]
+	diffFile := diff.Files[1]
 	assert.Equal(t, DiffFileRename, diffFile.Type)
 	assert.True(t, diffFile.IsBlobTypeCsv)
 	assert.NotNil(t, diffFile.LeftBlob)

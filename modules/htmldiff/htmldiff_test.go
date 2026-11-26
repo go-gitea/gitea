@@ -42,22 +42,16 @@ func TestDiff(t *testing.T) {
 			expected: blockChanged + `<p><em>A</em><em><del ` + del + `>B</del></em><em>C</em><em><ins ` + add + `>D</ins></em> x</p></div>`,
 		},
 		{
-			name:     "inline code is replaced whole",
-			old:      `<p>Call <code>foo(1)</code> now</p>`,
-			new:      `<p>Call <code>bar(1)</code> now</p>`,
-			expected: blockChanged + `<p>Call <del ` + del + `><code>foo(1)</code></del><ins ` + add + `><code>bar(1)</code></ins> now</p></div>`,
+			name:     "inline code and emoji are replaced whole",
+			old:      `<p>Call <code>foo(1)</code> <span class="emoji">🇺🇸</span></p>`,
+			new:      `<p>Call <code>bar(1)</code> <span class="emoji">🇺🇦</span></p>`,
+			expected: blockChanged + `<p>Call <del ` + del + `><code>foo(1)</code> <span class="emoji">🇺🇸</span></del><ins ` + add + `><code>bar(1)</code> <span class="emoji">🇺🇦</span></ins></p></div>`,
 		},
 		{
-			name:     "image alt change with normalized link",
-			old:      `<p><img src="/media/commit/old-sha/x.png" alt="x"></p>`,
-			new:      `<p><img src="/media/commit/new-sha/x.png" alt="y"></p>`,
-			expected: blockChanged + `<p><span ` + changed + `><img src="/media/commit/new-sha/x.png" alt="y"/></span></p></div>`,
-		},
-		{
-			name:     "checkbox toggled",
-			old:      `<ul><li><input type="checkbox"/>task</li></ul>`,
-			new:      `<ul><li><input type="checkbox" checked=""/>task</li></ul>`,
-			expected: blockChanged + `<ul><li><span ` + changed + `><input type="checkbox" checked=""/></span>task</li></ul></div>`,
+			name:     "checkbox and image alt change in place",
+			old:      `<ul><li><input type="checkbox"/>task <img src="/media/commit/old-sha/x.png" alt="x"></li></ul>`,
+			new:      `<ul><li><input type="checkbox" checked=""/>task <img src="/media/commit/new-sha/x.png" alt="y"></li></ul>`,
+			expected: blockChanged + `<ul><li><span ` + changed + `><input type="checkbox" checked=""/></span>task <span ` + changed + `><img src="/media/commit/new-sha/x.png" alt="y"/></span></li></ul></div>`,
 		},
 		{
 			name:     "no words in common",
@@ -108,10 +102,11 @@ func TestDiff(t *testing.T) {
 			expected: blockChanged + `<table><tbody><tr><td align="center" ` + changed + `>1</td><td><del ` + del + `>beta</del><ins ` + add + `>stable</ins></td></tr></tbody></table></div>`,
 		},
 		{
-			name:     "table columns changed",
-			old:      `<table><tbody><tr><td>1</td></tr></tbody></table>`,
-			new:      `<table><tbody><tr><td>1</td><td>2</td></tr></tbody></table>`,
-			expected: blockRemoved + `<table><tbody><tr><td>1</td></tr></tbody></table></div>` + blockAdded + `<table><tbody><tr><td>1</td><td>2</td></tr></tbody></table></div>`,
+			name: "table columns changed",
+			old:  `<table><tbody><tr><td>1</td></tr></tbody></table><table><tbody><tr><td>a</td></tr><tr><td>b</td><td>c</td></tr></tbody></table>`,
+			new:  `<table><tbody><tr><td>1</td><td>2</td></tr></tbody></table><table><tbody><tr><td>a</td></tr><tr><td>c</td></tr></tbody></table>`,
+			expected: blockRemoved + `<table><tbody><tr><td>1</td></tr></tbody></table></div>` + blockAdded + `<table><tbody><tr><td>1</td><td>2</td></tr></tbody></table></div>` +
+				blockChanged + `<table><tbody><tr><td>a</td></tr><tr ` + del + `><td>b</td><td>c</td></tr><tr ` + add + `><td>c</td></tr></tbody></table></div>`,
 		},
 		{
 			name:     "code block lines",
@@ -132,12 +127,12 @@ func TestDiff(t *testing.T) {
 			expected: blockRemoved + `<pre><code class="language-mermaid">A--&gt;B</code></pre></div>` + blockAdded + `<pre><code class="language-mermaid">A--&gt;C</code></pre></div>`,
 		},
 	}
-	opts := Options{NormalizeLink: strings.NewReplacer("old-sha", "", "new-sha", "").Replace}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			out, err := Diff(c.old, c.new, opts)
+	normalizeLink := strings.NewReplacer("old-sha", "", "new-sha", "").Replace
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			out, err := Diff(testCase.old, testCase.new, normalizeLink)
 			require.NoError(t, err)
-			assert.Equal(t, c.expected, string(out))
+			assert.Equal(t, testCase.expected, string(out))
 		})
 	}
 }

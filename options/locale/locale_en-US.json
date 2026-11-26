@@ -2648,7 +2648,6 @@
   "repo.diff.file_byte_size": "Size",
   "repo.diff.line_truncated": "Line truncated",
   "repo.diff.file_suppressed": "File diff suppressed because it is too large.",
-  "repo.diff.rich_diff_failed": "Failed to render the rich diff.",
   "repo.diff.too_many_files": "Loaded %[1]d of %[2]d files, more files were not shown because too many files have changed in this diff.",
   "repo.diff.show_more": "Show more",
   "repo.diff.load": "Load diff",

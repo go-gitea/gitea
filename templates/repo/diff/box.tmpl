@@ -89,8 +89,7 @@
 					{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
 					{{$isImage:= $file.IsBlobTypeImage}}
 					{{$isCsv := $file.IsBlobTypeCsv}}
-					{{$richDiffLink := $.DiffBlobExcerptData.RichDiffLink $file}}
-					{{$isRichDiff := and (ne $richDiffLink "") ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
+					{{$isRichDiff := and (ne $file.RichDiffLink "") (not $.PageIsWiki) ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
 					{{$showFileViewToggle := or $file.CanShowFileViewToggle $isRichDiff}}
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.Repository.IsArchived) $.IsShowingAllCommits}}
 					<div class="diff-file-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if $file.ShouldBeHidden}}data-folded="true"{{end}}>
@@ -150,7 +149,7 @@
 								{{if not $file.IsSubmodule}}
 									<button type="button" class="btn tw-p-1" data-global-init="initDiffHeaderPopupMenu">{{svg "octicon-kebab-horizontal" 18}}</button>
 									<div class="tippy-target">
-										{{if not (or $file.IsIncomplete $file.IsBin)}}
+										{{if or $isRichDiff (not (or $file.IsIncomplete $file.IsBin))}}
 											<button type="button" class="unescape-button item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
 											<button type="button" class="escape-button tw-hidden item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 										{{end}}
@@ -208,8 +207,8 @@
 								{{end}}
 							</div>
 							{{if $isRichDiff}}
-								<div id="diff-rendered-{{$file.NameHash}}" class="file-body unicode-escaped tw-hidden" data-rich-diff-link="{{$richDiffLink}}">
-									<div class="is-loading tw-py-8"></div>
+								<div id="diff-rendered-{{$file.NameHash}}" class="file-body unicode-escaped tw-hidden">
+									<div class="is-loading tw-py-8" data-rich-diff-link="{{$file.RichDiffLink}}"></div>
 								</div>
 							{{else if $showFileViewToggle}}
 								{{/* for image or CSV, it can have a horizontal scroll bar, there won't be review comment context menu (position absolute) which would be clipped by "overflow" */}}

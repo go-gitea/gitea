@@ -11,22 +11,11 @@ import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
-import {performFetchActionRequest, performFetchActionTrigger} from '../modules/fetch-action.ts';
+import {performFetchAction, performFetchActionRequest, performFetchActionTrigger} from '../modules/fetch-action.ts';
 import {applyFiltersToFileBoxes, type DiffFileTreeLocale, diffTreeStore} from '../modules/diff-file.ts';
 import {initImageDiff} from './imagediff.ts';
 import DiffCommitSelector from '../components/DiffCommitSelector.vue';
 import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
-
-async function loadRichDiff(el: HTMLElement) {
-  const link = el.getAttribute('data-rich-diff-link')!;
-  el.removeAttribute('data-rich-diff-link'); // load once, also while the response body is pending
-  const resp = await performFetchActionRequest(el, {method: 'GET', url: link});
-  if (resp) {
-    el.innerHTML = await resp.text();
-  } else {
-    el.setAttribute('data-rich-diff-link', link); // retry on the next toggle
-  }
-}
 
 function initDiffFileViewToggle(el: HTMLElement) {
   // switch between "rendered" and "source", for image, CSV and markup files
@@ -34,12 +23,13 @@ function initDiffFileViewToggle(el: HTMLElement) {
     queryElemSiblings(btn, '.file-view-toggle', (el) => el.classList.remove('active'));
     btn.classList.add('active');
 
-    const target = document.querySelector(btn.getAttribute('data-toggle-selector')!);
+    const target = btn.closest('.diff-file-box')!.querySelector(btn.getAttribute('data-toggle-selector')!);
     if (!target) throw new Error('Target element not found');
 
     hideElem(queryElemSiblings(target));
     showElem(target);
-    if (target.hasAttribute('data-rich-diff-link')) loadRichDiff(target as HTMLElement);
+    const elRichDiff = target.querySelector<HTMLElement>('[data-rich-diff-link]'); // replaced once loaded, kept to retry on failure
+    if (elRichDiff) performFetchAction(elRichDiff, {method: 'GET', url: elRichDiff.getAttribute('data-rich-diff-link')!, successSync: '$this'});
   }));
 }
 
@@ -223,6 +213,8 @@ async function onLocationHashChange() {
   while (currentHash === window.location.hash) {
     const targetElement = document.querySelector<HTMLElement>(`#${CSS.escape(targetElementId)}`);
     if (targetElement) {
+      const elHiddenView = targetElement.closest('.file-body.tw-hidden'); // e.g. a comment in the source view while rendered is shown
+      if (elHiddenView) elHiddenView.closest('.diff-file-box')!.querySelector<HTMLElement>(`.file-view-toggle[data-toggle-selector="#${CSS.escape(elHiddenView.id)}"]`)!.click();
       // need to change hash to re-trigger ":target" CSS selector, let's manually scroll to it
       targetElement.scrollIntoView();
       document.body.setAttribute(attrAutoScrollRunning, 'true');

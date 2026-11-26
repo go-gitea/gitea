@@ -222,25 +222,7 @@ type DiffBlobExcerptData struct {
 	IsWikiRepo     bool
 	PullIssueIndex int64
 	DiffStyle      string
-	BeforeCommitID string
 	AfterCommitID  string
-}
-
-// RichDiffLink returns the link to the rendered diff of a markup file, or empty if it has none
-func (d *DiffBlobExcerptData) RichDiffLink(file *DiffFile) string {
-	if d.IsWikiRepo || !file.IsBlobTypeRichDiff {
-		return ""
-	}
-	query := url.Values{}
-	if file.Type != DiffFileAdd {
-		query.Set("before", d.BeforeCommitID)
-		query.Set("old_path", file.OldName)
-	}
-	if file.Type != DiffFileDel {
-		query.Set("after", d.AfterCommitID)
-		query.Set("path", file.Name)
-	}
-	return path.Dir(d.BaseLink) + "/rich_diff?" + query.Encode() // a sibling of the blob excerpt route
 }
 
 const (
@@ -513,8 +495,7 @@ type DiffFile struct {
 
 	IsBlobTypeImage bool
 	IsBlobTypeCsv   bool
-
-	IsBlobTypeRichDiff bool
+	RichDiffLink    string
 }
 
 // GetType returns type of diff file.
@@ -532,7 +513,7 @@ type DiffRenderDetail struct {
 	leftContent, rightContent     *limitByteWriter
 }
 
-func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, gitRepo *git.Repository, leftCommit, rightCommit *git.Commit) (ret DiffRenderDetail) {
+func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, repoLink string, gitRepo *git.Repository, leftCommit, rightCommit *git.Commit) (ret DiffRenderDetail) {
 	if diffFile.IsLFSFile {
 		return ret
 	}
@@ -563,11 +544,7 @@ func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, gitRepo *
 	diffFile.LeftBlobMimeType, diffFile.RightBlobMimeType = leftBlobType.GetMimeType(), rightBlobType.GetMimeType()
 	diffFile.IsBlobTypeImage = isFileTypeImage(leftBlobType) || isFileTypeImage(rightBlobType)
 	diffFile.IsBlobTypeCsv = isFileTypeCsv(diffFile.Name)
-	// a file renamed from or to a non-markup name has no rendered version on that side
-	diffFile.IsBlobTypeRichDiff = !diffFile.IsBin && !diffFile.IsSubmodule && !diffFile.IsBlobTypeImage &&
-		max(diffFile.LeftBlobSize, diffFile.RightBlobSize) <= setting.UI.MaxDisplayFileSize &&
-		(diffFile.Type == DiffFileAdd || markup.IsInlineRenderedFile(diffFile.OldName)) &&
-		(diffFile.Type == DiffFileDel || markup.IsInlineRenderedFile(diffFile.Name))
+	diffFile.RichDiffLink = diffFile.richDiffLink(repoLink, leftCommit, rightCommit)
 
 	if diffFile.IsBin || len(diffFile.Sections) == 0 || diffFile.Type != DiffFileChange {
 		return ret
@@ -581,6 +558,29 @@ func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, gitRepo *
 	}
 	ret.needTailSection = true
 	return ret
+}
+
+// richDiffLink needs a markup name on both sides of a rename
+func (diffFile *DiffFile) richDiffLink(repoLink string, leftCommit, rightCommit *git.Commit) string {
+	if diffFile.IsBin || diffFile.IsSubmodule || diffFile.IsBlobTypeImage || max(diffFile.LeftBlobSize, diffFile.RightBlobSize) >= setting.UI.MaxDisplayFileSize {
+		return ""
+	}
+	query := url.Values{}
+	if diffFile.Type != DiffFileAdd {
+		if !markup.IsInlineRenderedFile(diffFile.OldName) {
+			return ""
+		}
+		query.Set("before", leftCommit.ID.String())
+		query.Set("old_path", diffFile.OldName)
+	}
+	if diffFile.Type != DiffFileDel {
+		if !markup.IsInlineRenderedFile(diffFile.Name) {
+			return ""
+		}
+		query.Set("after", rightCommit.ID.String())
+		query.Set("path", diffFile.Name)
+	}
+	return repoLink + "/rich_diff?" + query.Encode()
 }
 
 func (diffFile *DiffFile) addTailSection(detail DiffRenderDetail) {
@@ -1432,7 +1432,7 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 		diffFile.IsGenerated = isGenerated.Value()
 
 		// prepare more details for the rendering, e.g.: blob (file) size, type, limited content to highlight, etc
-		renderDetail := diffFile.prepareDiffRenderDetail(ctx, gitRepo, beforeCommit, afterCommit)
+		renderDetail := diffFile.prepareDiffRenderDetail(ctx, repoLink, gitRepo, beforeCommit, afterCommit)
 		if renderDetail.needTailSection {
 			diffFile.addTailSection(renderDetail)
 		}

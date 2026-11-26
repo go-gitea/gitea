@@ -1,4 +1,11 @@
-import {addDelegatedEventListener, hideElem, queryElemSiblings, showElem, toggleElem, toggleElemClass} from '../utils/dom.ts';
+import {
+  addDelegatedEventListener,
+  hideElem,
+  queryElemSiblings,
+  showElem,
+  toggleElem,
+  toggleElemClass,
+} from '../utils/dom.ts';
 
 export function initUnicodeEscapeButton() {
   // buttons might appear on these pages: file view (code, rendered markdown), diff (commit, pr conversation, pr diff), blame, wiki
