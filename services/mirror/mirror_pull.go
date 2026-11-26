@@ -290,12 +290,16 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		log.Error("PANIC whilst SyncMirrors[repo_id: %d] Panic: %v\nStacktrace: %s", repoID, err, log.Stack(2))
 	}()
 
-	releaser, err := globallock.Lock(ctx, getRepoPullMirrorLockKey(repoID))
+	locked, releaser, err := globallock.TryLock(ctx, getRepoPullMirrorLockKey(repoID))
 	if err != nil {
-		log.Error("globallock.Lock(): %v", err)
+		log.Error("globallock.TryLock(): %v", err)
 		return false
 	}
 	defer releaser()
+	if !locked {
+		log.Trace("SyncMirrors [repo_id: %v]: already syncing, skipping", repoID)
+		return false
+	}
 
 	m, err := repo_model.GetMirrorByRepoID(ctx, repoID)
 	if err != nil {

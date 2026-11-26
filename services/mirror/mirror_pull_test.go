@@ -4,9 +4,14 @@
 package mirror
 
 import (
+	"context"
 	"testing"
+	"time"
+
+	"gitea.dev/modules/globallock"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_checkRecoverableSyncError(t *testing.T) {
@@ -35,4 +40,30 @@ func Test_checkRecoverableSyncError(t *testing.T) {
 	for _, c := range cases {
 		assert.Equal(t, c.recoverable, checkRecoverableSyncError(c.message), "test case: %s", c.message)
 	}
+}
+
+func TestSyncPullMirrorSkipWhenLocked(t *testing.T) {
+	const repoID int64 = 42
+	key := getRepoPullMirrorLockKey(repoID)
+
+	releaser, err := globallock.Lock(t.Context(), key)
+	require.NoError(t, err)
+	defer releaser()
+
+	done := make(chan bool, 1)
+	go func() {
+		done <- SyncPullMirror(context.Background(), repoID)
+	}()
+
+	select {
+	case ok := <-done:
+		assert.False(t, ok)
+	case <-time.After(time.Second):
+		t.Fatal("SyncPullMirror blocked while mirror lock was already held")
+	}
+
+	locked, releaseCheck, err := globallock.TryLock(t.Context(), key)
+	require.NoError(t, err)
+	defer releaseCheck()
+	assert.False(t, locked)
 }
