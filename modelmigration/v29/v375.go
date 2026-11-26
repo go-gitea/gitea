@@ -18,7 +18,7 @@ import (
 type SecurityAdvisory struct {
 	ID                int64              `xorm:"pk autoincr"`
 	RepoID            int64              `xorm:"UNIQUE(s) NOT NULL"`
-	Identifier        string             `xorm:"VARCHAR(14) UNIQUE(s) NOT NULL"`
+	Identifier        string             `xorm:"VARCHAR(19) UNIQUE(s) NOT NULL"`
 	Index             int64              `xorm:"INDEX NOT NULL DEFAULT 0"`
 	CveID             string             `xorm:"VARCHAR(32)"`
 	Summary           string             `xorm:"VARCHAR(1024) NOT NULL"`

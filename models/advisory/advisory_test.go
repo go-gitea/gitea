@@ -67,7 +67,7 @@ func TestAdvisoryPersistence(t *testing.T) {
 		Vulnerabilities: []*advisory_model.Vulnerability{{Ecosystem: "go", PackageName: "example.com/pkg", VulnerableVersionRange: "< 1.2.3"}},
 		Credits:         []*advisory_model.Credit{{UserID: 4, Type: "finder"}},
 	})
-	assert.Regexp(t, `^[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}$`, advisory.Identifier)
+	assert.Regexp(t, `^GTSA(-[23456789cfghjmpqrvwx]{4}){3}$`, advisory.Identifier)
 	assert.EqualValues(t, 1, advisory.Index)
 	assert.EqualValues(t, 2, createAdvisory(t, &advisory_model.Advisory{RepoID: 1, Summary: "next", State: advisory_model.StateDraft, ReporterID: 2}).Index)
 	assert.EqualValues(t, 1, createAdvisory(t, &advisory_model.Advisory{RepoID: 2, Summary: "other repository", State: advisory_model.StateDraft, ReporterID: 2}).Index)

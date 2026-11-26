@@ -10947,7 +10947,7 @@
             "type": "string",
             "x-go-name": "DuplicateOf"
           },
-          "ghsa_id": {
+          "gtsa_id": {
             "description": "The identifier of the advisory, unique within its repository",
             "type": "string",
             "x-go-name": "Identifier"
@@ -10959,7 +10959,7 @@
             "x-go-name": "HTMLURL"
           },
           "identifiers": {
-            "description": "The identifiers of the advisory like its CVE ID",
+            "description": "The GTSA ID of the advisory and its CVE ID if assigned",
             "items": {
               "$ref": "#/components/schemas/RepositoryAdvisoryIdentifier"
             },
@@ -11202,6 +11202,7 @@
         "properties": {
           "type": {
             "enum": [
+              "GTSA",
               "CVE"
             ],
             "type": "string",
@@ -33417,7 +33418,7 @@
         ]
       }
     },
-    "/repos/{owner}/{repo}/security-advisories/{ghsa_id}": {
+    "/repos/{owner}/{repo}/security-advisories/{gtsa_id}": {
       "get": {
         "operationId": "repoGetSecurityAdvisory",
         "parameters": [
@@ -33442,7 +33443,7 @@
           {
             "description": "identifier of the advisory",
             "in": "path",
-            "name": "ghsa_id",
+            "name": "gtsa_id",
             "required": true,
             "schema": {
               "type": "string"
@@ -33487,7 +33488,7 @@
           {
             "description": "identifier of the advisory",
             "in": "path",
-            "name": "ghsa_id",
+            "name": "gtsa_id",
             "required": true,
             "schema": {
               "type": "string"
@@ -33518,7 +33519,7 @@
         ]
       }
     },
-    "/repos/{owner}/{repo}/security-advisories/{ghsa_id}/comments": {
+    "/repos/{owner}/{repo}/security-advisories/{gtsa_id}/comments": {
       "get": {
         "operationId": "repoListSecurityAdvisoryComments",
         "parameters": [
@@ -33543,7 +33544,7 @@
           {
             "description": "identifier of the advisory",
             "in": "path",
-            "name": "ghsa_id",
+            "name": "gtsa_id",
             "required": true,
             "schema": {
               "type": "string"
@@ -33616,7 +33617,7 @@
           {
             "description": "identifier of the advisory",
             "in": "path",
-            "name": "ghsa_id",
+            "name": "gtsa_id",
             "required": true,
             "schema": {
               "type": "string"
@@ -33647,7 +33648,7 @@
         ]
       }
     },
-    "/repos/{owner}/{repo}/security-advisories/{ghsa_id}/comments/{comment_id}": {
+    "/repos/{owner}/{repo}/security-advisories/{gtsa_id}/comments/{comment_id}": {
       "delete": {
         "operationId": "repoDeleteSecurityAdvisoryComment",
         "parameters": [
@@ -33672,7 +33673,7 @@
           {
             "description": "identifier of the advisory",
             "in": "path",
-            "name": "ghsa_id",
+            "name": "gtsa_id",
             "required": true,
             "schema": {
               "type": "string"
@@ -33723,7 +33724,7 @@
           },
           {
             "in": "path",
-            "name": "ghsa_id",
+            "name": "gtsa_id",
             "required": true,
             "schema": {
               "type": "string"
@@ -33776,7 +33777,7 @@
           {
             "description": "identifier of the advisory",
             "in": "path",
-            "name": "ghsa_id",
+            "name": "gtsa_id",
             "required": true,
             "schema": {
               "type": "string"

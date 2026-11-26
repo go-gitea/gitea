@@ -70,7 +70,7 @@ func TestAPISecurityAdvisory(t *testing.T) {
 	assert.Equal(t, "temporary private forks are not supported", rejected.Message)
 	report.StartPrivateFork = false
 	response := advisoryRequest(t, "POST", baseURL+"/reports", reporterToken, report, http.StatusCreated)
-	assert.Contains(t, response.Body.String(), `"ghsa_id":`)
+	assert.Contains(t, response.Body.String(), `"gtsa_id":`)
 	assert.NotContains(t, response.Body.String(), `"identifier":`)
 	reported := DecodeJSON(t, response, &api.RepositoryAdvisory{})
 	assert.NotEmpty(t, reported.Identifier)
@@ -87,7 +87,7 @@ func TestAPISecurityAdvisory(t *testing.T) {
 		hookURL := fmt.Sprintf("%s/%d", hooksURL, reportHook.ID)
 		deliveriesURL := hookURL + "/deliveries"
 		event := string(webhook_module.HookEventRepositoryAdvisoryReported)
-		assert.Contains(t, reportTask.PayloadContent, `"ghsa_id": "`+reported.Identifier+`"`)
+		assert.Contains(t, reportTask.PayloadContent, `"gtsa_id": "`+reported.Identifier+`"`)
 		advisoryRequest(t, "POST", hooksURL, adminPublicOnlyToken, &api.CreateHookOption{
 			Type: webhook_module.GITEA, Config: api.CreateHookOptionConfig{"content_type": "json", "url": reportHook.URL}, Events: []string{event},
 		}, http.StatusForbidden)

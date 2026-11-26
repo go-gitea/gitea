@@ -28,7 +28,7 @@ func advisoryViewer(ctx *context.APIContext) advisory_model.Viewer {
 }
 
 func LoadSecurityAdvisory(ctx *context.APIContext) {
-	advisory, perms, err := advisoryViewer(ctx).GetAdvisory(ctx, ctx.Repo.Repository, ctx.PathParam("ghsa_id"))
+	advisory, perms, err := advisoryViewer(ctx).GetAdvisory(ctx, ctx.Repo.Repository, ctx.PathParam("gtsa_id"))
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
@@ -200,7 +200,7 @@ func ListAdvisories(ctx *context.APIContext, repository *repo_model.Repository, 
 
 // GetSecurityAdvisory gets a security advisory of a repository
 func GetSecurityAdvisory(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/security-advisories/{ghsa_id} repository repoGetSecurityAdvisory
+	// swagger:operation GET /repos/{owner}/{repo}/security-advisories/{gtsa_id} repository repoGetSecurityAdvisory
 	// ---
 	// summary: Get a security advisory of a repository
 	// produces:
@@ -216,7 +216,7 @@ func GetSecurityAdvisory(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: ghsa_id
+	// - name: gtsa_id
 	//   in: path
 	//   description: identifier of the advisory
 	//   type: string
@@ -342,7 +342,7 @@ func CreatePrivateVulnerabilityReport(ctx *context.APIContext) {
 
 // EditSecurityAdvisory updates a security advisory
 func EditSecurityAdvisory(ctx *context.APIContext) {
-	// swagger:operation PATCH /repos/{owner}/{repo}/security-advisories/{ghsa_id} repository repoEditSecurityAdvisory
+	// swagger:operation PATCH /repos/{owner}/{repo}/security-advisories/{gtsa_id} repository repoEditSecurityAdvisory
 	// ---
 	// summary: Update a security advisory
 	// description: Repository admins can change everything. The reporter and collaborators can only change the content of non-published advisories.
@@ -361,7 +361,7 @@ func EditSecurityAdvisory(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: ghsa_id
+	// - name: gtsa_id
 	//   in: path
 	//   description: identifier of the advisory
 	//   type: string
@@ -506,7 +506,7 @@ func getAdvisoryComment(ctx *context.APIContext, advisoryID int64, includeConfid
 
 // ListSecurityAdvisoryComments lists the comments of the private discussion of an advisory
 func ListSecurityAdvisoryComments(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/security-advisories/{ghsa_id}/comments repository repoListSecurityAdvisoryComments
+	// swagger:operation GET /repos/{owner}/{repo}/security-advisories/{gtsa_id}/comments repository repoListSecurityAdvisoryComments
 	// ---
 	// summary: List the comments of the private discussion of a security advisory
 	// produces:
@@ -522,7 +522,7 @@ func ListSecurityAdvisoryComments(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: ghsa_id
+	// - name: gtsa_id
 	//   in: path
 	//   description: identifier of the advisory
 	//   type: string
@@ -566,7 +566,7 @@ func ListSecurityAdvisoryComments(ctx *context.APIContext) {
 }
 
 func GetSecurityAdvisoryComment(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/security-advisories/{ghsa_id}/comments/{comment_id} repository repoGetSecurityAdvisoryComment
+	// swagger:operation GET /repos/{owner}/{repo}/security-advisories/{gtsa_id}/comments/{comment_id} repository repoGetSecurityAdvisoryComment
 	// ---
 	// summary: Get a security advisory comment
 	// produces:
@@ -580,7 +580,7 @@ func GetSecurityAdvisoryComment(ctx *context.APIContext) {
 	//   in: path
 	//   type: string
 	//   required: true
-	// - name: ghsa_id
+	// - name: gtsa_id
 	//   in: path
 	//   type: string
 	//   required: true
@@ -602,7 +602,7 @@ func GetSecurityAdvisoryComment(ctx *context.APIContext) {
 
 // CreateSecurityAdvisoryComment adds a comment to the private discussion of an advisory
 func CreateSecurityAdvisoryComment(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/security-advisories/{ghsa_id}/comments repository repoCreateSecurityAdvisoryComment
+	// swagger:operation POST /repos/{owner}/{repo}/security-advisories/{gtsa_id}/comments repository repoCreateSecurityAdvisoryComment
 	// ---
 	// summary: Add a comment to the private discussion of a security advisory
 	// consumes:
@@ -620,7 +620,7 @@ func CreateSecurityAdvisoryComment(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: ghsa_id
+	// - name: gtsa_id
 	//   in: path
 	//   description: identifier of the advisory
 	//   type: string
@@ -646,7 +646,7 @@ func CreateSecurityAdvisoryComment(ctx *context.APIContext) {
 
 // EditSecurityAdvisoryComment edits a comment of the private discussion of an advisory
 func EditSecurityAdvisoryComment(ctx *context.APIContext) {
-	// swagger:operation PATCH /repos/{owner}/{repo}/security-advisories/{ghsa_id}/comments/{comment_id} repository repoEditSecurityAdvisoryComment
+	// swagger:operation PATCH /repos/{owner}/{repo}/security-advisories/{gtsa_id}/comments/{comment_id} repository repoEditSecurityAdvisoryComment
 	// ---
 	// summary: Edit an own comment of the private discussion of a security advisory
 	// consumes:
@@ -664,7 +664,7 @@ func EditSecurityAdvisoryComment(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: ghsa_id
+	// - name: gtsa_id
 	//   in: path
 	//   description: identifier of the advisory
 	//   type: string
@@ -699,7 +699,7 @@ func EditSecurityAdvisoryComment(ctx *context.APIContext) {
 
 // DeleteSecurityAdvisoryComment deletes a comment of the private discussion of an advisory
 func DeleteSecurityAdvisoryComment(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/security-advisories/{ghsa_id}/comments/{comment_id} repository repoDeleteSecurityAdvisoryComment
+	// swagger:operation DELETE /repos/{owner}/{repo}/security-advisories/{gtsa_id}/comments/{comment_id} repository repoDeleteSecurityAdvisoryComment
 	// ---
 	// summary: Delete a comment of the private discussion of a security advisory, by its poster or a repository admin
 	// parameters:
@@ -713,7 +713,7 @@ func DeleteSecurityAdvisoryComment(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: ghsa_id
+	// - name: gtsa_id
 	//   in: path
 	//   description: identifier of the advisory
 	//   type: string

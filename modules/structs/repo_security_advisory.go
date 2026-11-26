@@ -10,7 +10,7 @@ import (
 // RepositoryAdvisory represents a security advisory of a repository
 type RepositoryAdvisory struct {
 	// The identifier of the advisory, unique within its repository
-	Identifier string `json:"ghsa_id"`
+	Identifier string `json:"gtsa_id"`
 	// The CVE ID assigned to the advisory
 	// Extensions:
 	// x-nullable: true
@@ -30,7 +30,7 @@ type RepositoryAdvisory struct {
 	Author *User `json:"author"`
 	// The user who published the advisory
 	Publisher *User `json:"publisher"`
-	// The identifiers of the advisory like its CVE ID
+	// The GTSA ID of the advisory and its CVE ID if assigned
 	Identifiers []*RepositoryAdvisoryIdentifier `json:"identifiers"`
 	// The state of the advisory
 	// enum: triage,draft,published,closed,withdrawn
@@ -74,7 +74,7 @@ type RepositoryAdvisory struct {
 
 // RepositoryAdvisoryIdentifier is an identifier of an advisory
 type RepositoryAdvisoryIdentifier struct {
-	// enum: CVE
+	// enum: GTSA,CVE
 	Type  string `json:"type"`
 	Value string `json:"value"`
 }

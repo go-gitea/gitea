@@ -1453,7 +1453,7 @@ func Routes() *web.Router {
 					m.Combo("").Get(repo.ListSecurityAdvisories).
 						Post(reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.CreateRepositoryAdvisoryOption{}), repo.CreateSecurityAdvisory)
 					m.Post("/reports", reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.CreatePrivateVulnerabilityReportOption{}), repo.CreatePrivateVulnerabilityReport)
-					m.Group("/{ghsa_id}", func() {
+					m.Group("/{gtsa_id}", func() {
 						m.Combo("").Get(repo.GetSecurityAdvisory).
 							Patch(reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.EditRepositoryAdvisoryOption{}), repo.EditSecurityAdvisory)
 						m.Group("/comments", func() {

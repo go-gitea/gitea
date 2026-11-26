@@ -169,7 +169,7 @@ type Advisory struct {
 	ID                int64                  `xorm:"pk autoincr"`
 	RepoID            int64                  `xorm:"UNIQUE(s) NOT NULL"`
 	Repo              *repo_model.Repository `xorm:"-"`
-	Identifier        string                 `xorm:"VARCHAR(14) UNIQUE(s) NOT NULL"`
+	Identifier        string                 `xorm:"VARCHAR(19) UNIQUE(s) NOT NULL"`
 	Index             int64                  `xorm:"INDEX NOT NULL DEFAULT 0"` // Discussions use the number while URLs use the identifier.
 	CveID             string                 `xorm:"VARCHAR(32)"`
 	Summary           string                 `xorm:"VARCHAR(1024) NOT NULL"`
@@ -254,8 +254,8 @@ func (a *Advisory) LoadCollaborators(ctx context.Context) error {
 }
 
 func CreateAdvisory(ctx context.Context, advisory *Advisory) error {
-	random := util.FastCryptoRandomString(12, "abcdefghijklmnopqrstuvwxyz0123456789") // Some database collations are case-insensitive.
-	advisory.Identifier = random[:4] + "-" + random[4:8] + "-" + random[8:]
+	random := util.FastCryptoRandomString(12, "23456789cfghjmpqrvwx") // GitHub's GHSA alphabet, lowercase for case-insensitive collations
+	advisory.Identifier = identifierPrefix + random[:4] + "-" + random[4:8] + "-" + random[8:]
 	return db.WithTx(ctx, func(ctx context.Context) (err error) {
 		if advisory.Index, err = db.GetNextResourceIndex(ctx, "security_advisory_index", advisory.RepoID); err != nil {
 			return err
@@ -321,8 +321,19 @@ func replaceDetails(ctx context.Context, advisory *Advisory) error {
 	return db.Insert(ctx, rows...)
 }
 
+const identifierPrefix = "GTSA-"
+
+// normalizeIdentifier keeps lookups consistent across database collations
+func normalizeIdentifier(identifier string) string {
+	lower := strings.ToLower(identifier)
+	if rest, ok := strings.CutPrefix(lower, strings.ToLower(identifierPrefix)); ok {
+		return identifierPrefix + rest
+	}
+	return lower
+}
+
 func GetAdvisoryByIdentifier(ctx context.Context, repoID int64, identifier string) (*Advisory, error) {
-	identifier = strings.ToLower(identifier) // Keep lookups consistent across database collations.
+	identifier = normalizeIdentifier(identifier)
 	advisory, found, err := db.Get[Advisory](ctx, builder.Eq{"repo_id": repoID, "identifier": identifier})
 	if err != nil {
 		return nil, err
@@ -368,7 +379,7 @@ func (opts FindAdvisoriesOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Or(
 			db.BuildCaseInsensitiveLike("summary", keyword),
 			db.BuildCaseInsensitiveLike("description", keyword),
-			builder.Eq{"identifier": strings.ToLower(keyword)},
+			builder.Eq{"identifier": normalizeIdentifier(keyword)},
 			builder.Eq{"cve_id": strings.ToUpper(keyword)},
 			builder.In("id", advisoryIDsFrom("security_advisory_vulnerability", db.BuildCaseInsensitiveLike("package_name", keyword))),
 		))

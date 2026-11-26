@@ -34,7 +34,7 @@ func ToAPIRepositoryAdvisory(ctx context.Context, advisory *advisory_model.Advis
 		PublishedAt:     util.Iif(advisory.PublishedUnix == 0, nil, advisory.PublishedUnix.AsTimePtr()),
 		ClosedAt:        util.Iif(advisory.ClosedUnix == 0, nil, advisory.ClosedUnix.AsTimePtr()),
 		WithdrawnAt:     util.Iif(advisory.WithdrawnUnix == 0, nil, advisory.WithdrawnUnix.AsTimePtr()),
-		Identifiers:     []*api.RepositoryAdvisoryIdentifier{},
+		Identifiers:     []*api.RepositoryAdvisoryIdentifier{{Type: "GTSA", Value: advisory.Identifier}},
 		Vulnerabilities: make([]*api.RepositoryAdvisoryVulnerability, 0, len(advisory.Vulnerabilities)),
 		CVSSSeverities:  &api.RepositoryAdvisoryCVSSSeverities{},
 		CweIDs:          util.SliceNilAsEmpty(advisory.CweIDs),
