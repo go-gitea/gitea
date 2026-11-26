@@ -69,14 +69,25 @@ func (v Viewer) visibilityCond() builder.Cond {
 	if v.seesAllNonPublic() {
 		return builder.NewCond()
 	}
+	return builder.Or(public, v.discussionCond())
+}
+
+// discussionCond is the SQL form of Permissions.CanSeeDiscussion
+func (v Viewer) discussionCond() builder.Cond {
+	if !v.canSeeNonPublic() {
+		return builder.Expr("1=0")
+	}
+	if v.seesAllNonPublic() {
+		return builder.NewCond()
+	}
 	return builder.Or(
-		public,
 		builder.Eq{"is_report": true, "reporter_id": v.Doer.ID},
 		builder.In("id", advisoryIDsFrom("security_advisory_collaborator", collaboratorCond(v.Doer.ID))),
 	)
 }
 
-func (v Viewer) discussionIDs(ctx context.Context, list List) (container.Set[int64], error) {
+// DiscussionIDs returns the IDs of the advisories whose private details the viewer can see
+func (v Viewer) DiscussionIDs(ctx context.Context, list List) (container.Set[int64], error) {
 	ids := make(container.Set[int64])
 	if !v.canSeeNonPublic() {
 		return ids, nil
@@ -104,6 +115,7 @@ type Permissions struct {
 	CanView            bool
 	CanSeeDiscussion   bool
 	CanSeeConfidential bool
+	CanComment         bool
 	CanEdit            bool
 	CanManage          bool
 }
@@ -124,7 +136,8 @@ func (v Viewer) Permissions(ctx context.Context, advisory *Advisory) (Permission
 		CanView:            advisory.IsPublic() || canSeeDiscussion,
 		CanSeeDiscussion:   canSeeDiscussion,
 		CanSeeConfidential: v.seesAllNonPublic() || collaborates && v.IsRepoWriter, // like GitHub's confidential comments, only for people with write access
-		CanEdit:            v.IsRepoAdmin || ((collaborates || v.isOwnReport(advisory)) && !advisory.IsPublic()),
+		CanComment:         collaborates || v.isOwnReport(advisory),
+		CanEdit:            v.IsRepoAdmin || ((collaborates || v.isOwnReport(advisory)) && !advisory.IsPublic() && advisory.State != StateClosed),
 		CanManage:          v.IsRepoAdmin,
 	}, nil
 }
@@ -153,7 +166,7 @@ func (v Viewer) LoadForDisplay(ctx context.Context, list List) (container.Set[in
 	if err := v.limitUnviewableOriginals(ctx, list); err != nil {
 		return nil, fmt.Errorf("LoadForDisplay: limitUnviewableOriginals: %w", err)
 	}
-	discussionIDs, err := v.discussionIDs(ctx, list)
+	discussionIDs, err := v.DiscussionIDs(ctx, list)
 	if err != nil {
 		return nil, fmt.Errorf("LoadForDisplay: discussionIDs: %w", err)
 	}
@@ -166,7 +179,7 @@ func (v Viewer) LoadForDisplay(ctx context.Context, list List) (container.Set[in
 
 func (v Viewer) limitUnviewableOriginals(ctx context.Context, list List) error {
 	originals := container.FilterSlice(list, func(advisory *Advisory) (*Advisory, bool) { return advisory.DuplicateOf, advisory.DuplicateOf != nil })
-	visible, err := v.discussionIDs(ctx, originals)
+	visible, err := v.DiscussionIDs(ctx, originals)
 	if err != nil {
 		return err
 	}

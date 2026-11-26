@@ -78,7 +78,7 @@ func (s State) Color() string {
 var stateTransitions = map[State][]State{
 	StateTriage:    {StateDraft, StateClosed},
 	StateDraft:     {StatePublished, StateClosed},
-	StateClosed:    {StateDraft},
+	StateClosed:    {StateDraft, StateTriage},
 	StatePublished: {StateWithdrawn},
 }
 
@@ -167,10 +167,10 @@ func (err ErrAdvisoryNotExist) Unwrap() error {
 
 type Advisory struct {
 	ID                int64                  `xorm:"pk autoincr"`
-	RepoID            int64                  `xorm:"UNIQUE(s) NOT NULL"`
+	RepoID            int64                  `xorm:"UNIQUE(s) UNIQUE(repo_index) NOT NULL"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	Identifier        string                 `xorm:"VARCHAR(19) UNIQUE(s) NOT NULL"`
-	Index             int64                  `xorm:"INDEX NOT NULL DEFAULT 0"` // Discussions use the number while URLs use the identifier.
+	Index             int64                  `xorm:"UNIQUE(repo_index) NOT NULL DEFAULT 0"` // Discussions use the number while URLs use the identifier.
 	CveID             string                 `xorm:"VARCHAR(32)"`
 	Summary           string                 `xorm:"VARCHAR(1024) NOT NULL"`
 	Description       string                 `xorm:"LONGTEXT"`
@@ -222,6 +222,14 @@ func (Index) TableName() string {
 
 func (a *Advisory) IsPublic() bool {
 	return a.State == StatePublished || a.State == StateWithdrawn
+}
+
+// ReopenState sends a closed report that was never accepted back to triage
+func (a *Advisory) ReopenState() State {
+	if a.IsReport && a.ReportDescription == "" {
+		return StateTriage
+	}
+	return StateDraft
 }
 
 func (a *Advisory) CvssScore() float64 {
@@ -390,7 +398,7 @@ func (opts FindAdvisoriesOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Eq{"severity": opts.Severity})
 	}
 	if len(opts.LabelIDs) > 0 {
-		cond = cond.And(labelsCond(opts.LabelIDs))
+		cond = cond.And(labelsCond(opts.LabelIDs), opts.Viewer.discussionCond()) // labels are private details
 	}
 	if opts.Ecosystem != "" {
 		cond = cond.And(builder.In("id", advisoryIDsFrom("security_advisory_vulnerability", builder.Eq{"ecosystem": opts.Ecosystem})))

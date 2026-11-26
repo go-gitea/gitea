@@ -133,18 +133,18 @@ func TestViewerAccess(t *testing.T) {
 	}
 	draft := createAdvisory(t, &advisory_model.Advisory{RepoID: repo.ID, Summary: "draft", State: advisory_model.StateDraft, ReporterID: 9})
 
-	collaboratorPerms := advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanSeeConfidential: true, CanEdit: true}
+	collaboratorPerms := advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanSeeConfidential: true, CanComment: true, CanEdit: true}
 	for _, viewerCase := range []struct {
 		name   string
 		viewer advisory_model.Viewer
 		perms  advisory_model.Permissions
 	}{
 		{"anonymous", advisory_model.Viewer{}, advisory_model.Permissions{}},
-		{"repo admin", advisory_model.Viewer{Doer: user(2), IsRepoAdmin: true}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanSeeConfidential: true, CanEdit: true, CanManage: true}},
+		{"repo admin", advisory_model.Viewer{Doer: user(2), IsRepoAdmin: true}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanSeeConfidential: true, CanComment: true, CanEdit: true, CanManage: true}},
 		{"security team member", advisory_model.Viewer{Doer: user(8), IsSecurityTeamMember: true}, collaboratorPerms},
 		{"repo admin with public-only token", advisory_model.Viewer{Doer: user(2), IsRepoAdmin: true, PublicOnly: true}, advisory_model.Permissions{}},
-		{"reporter", advisory_model.Viewer{Doer: user(4)}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanEdit: true}},
-		{"user collaborator", advisory_model.Viewer{Doer: user(5)}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanEdit: true}},
+		{"reporter", advisory_model.Viewer{Doer: user(4)}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanComment: true, CanEdit: true}},
+		{"user collaborator", advisory_model.Viewer{Doer: user(5)}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanComment: true, CanEdit: true}},
 		{"user collaborator with write access", advisory_model.Viewer{Doer: user(5), IsRepoWriter: true}, collaboratorPerms},
 		{"team collaborator with write access", advisory_model.Viewer{Doer: user(15), IsRepoWriter: true}, collaboratorPerms},
 		{"outsider", advisory_model.Viewer{Doer: user(8)}, advisory_model.Permissions{}},
@@ -180,6 +180,12 @@ func TestViewerAccess(t *testing.T) {
 	assert.Equal(t, draft.Identifier, duplicate.DuplicateOf.Identifier)
 	assert.Equal(t, advisory_model.StateDraft, duplicate.DuplicateOf.State)
 	assert.Empty(t, duplicate.DuplicateOf.Summary)
+	perms, err = advisory_model.Viewer{Doer: user(4)}.Permissions(ctx, duplicate)
+	require.NoError(t, err)
+	assert.True(t, perms.CanComment)
+	assert.False(t, perms.CanEdit, "a closed report cannot be rewritten by its reporter")
+	assert.Equal(t, advisory_model.StateTriage, duplicate.ReopenState())
+	assert.Equal(t, advisory_model.StateDraft, draft.ReopenState())
 
 	_, err = advisory_model.AddCollaborator(ctx, &advisory_model.Collaborator{AdvisoryID: triage.ID, UserID: 4})
 	require.NoError(t, err)
@@ -220,6 +226,7 @@ func TestFindAdvisoriesFilters(t *testing.T) {
 	assert.Equal(t, []int64{xss.ID}, find(advisory_model.FindAdvisoriesOptions{Ecosystem: "npm", CweID: "cwe-79"}))
 	assert.Empty(t, find(advisory_model.FindAdvisoriesOptions{CweID: "CWE-7"}))
 	assert.Equal(t, []int64{dup.ID}, find(advisory_model.FindAdvisoriesOptions{CloseReason: advisory_model.CloseReasonDuplicate}))
+	assert.Empty(t, findAdvisoryIDs(t, advisory_model.FindAdvisoriesOptions{RepoID: 1, LabelIDs: []int64{label.ID}}), "labels are not public")
 	require.NoError(t, advisory_model.DeleteLabelLinks(ctx, label.ID))
 	assert.Equal(t, []int64{xss.ID}, find(advisory_model.FindAdvisoriesOptions{LabelIDs: []int64{label.ID}}), "existing labels stay assigned")
 	require.NoError(t, issues_model.DeleteRepoLabel(ctx, label.RepoID, label.ID))

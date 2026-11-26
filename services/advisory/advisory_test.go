@@ -41,6 +41,10 @@ func TestValidateStateOptions(t *testing.T) {
 	} {
 		assert.ErrorIs(t, validateStateOptions(triage, opts), util.ErrInvalidArgument, "%+v", opts)
 	}
+	closed := &advisory_model.Advisory{ID: 5, State: advisory_model.StateClosed, IsReport: true}
+	assert.NoError(t, validateStateOptions(closed, stateOptions{State: advisory_model.StateTriage}))
+	closed.ReportDescription = "accepted before"
+	assert.ErrorIs(t, validateStateOptions(closed, stateOptions{State: advisory_model.StateTriage}), util.ErrInvalidArgument)
 	report := &advisory_model.Advisory{ID: 4, State: advisory_model.StateTriage, IsReport: true}
 	assert.NoError(t, validateStateOptions(report, stateOptions{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: original, ShareOriginal: true}))
 	assert.ErrorIs(t, validateStateOptions(report, stateOptions{State: advisory_model.StateClosed, ShareOriginal: true}), util.ErrInvalidArgument)
@@ -128,7 +132,9 @@ func TestCollaboratorAndCreditRules(t *testing.T) {
 	perms, err = viewer.Permissions(ctx, report)
 	require.NoError(t, err)
 	assert.Equal(t, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true}, perms)
-	require.NoError(t, ChangeState(ctx, admin, shared, "draft", "", "", false))
+	_, err = CreateComment(ctx, viewer.Doer, report, perms, "comment", false)
+	assert.ErrorIs(t, err, util.ErrPermissionDenied, "a follower only reads")
+	require.NoError(t, ChangeState(ctx, admin, shared, "triage", "", "", false))
 	perms, err = viewer.Permissions(ctx, report)
 	require.NoError(t, err)
 	assert.False(t, perms.CanView)
@@ -140,6 +146,6 @@ func TestCollaboratorAndCreditRules(t *testing.T) {
 	assert.Zero(t, duplicate.DuplicateOfID)
 	perms, err = viewer.Permissions(ctx, report)
 	require.NoError(t, err)
-	assert.Equal(t, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanEdit: true}, perms)
+	assert.Equal(t, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanComment: true, CanEdit: true}, perms)
 	require.NoError(t, DeleteAdvisory(ctx, admin, report))
 }

@@ -79,6 +79,10 @@ func TestMailSecurityAdvisory(t *testing.T) {
 	MailSecurityAdvisoryComment(ctx, admin, advisory, comment)
 	popMail()
 
+	advisory.State = advisory_model.StateClosed
+	MailSecurityAdvisoryStateChanged(ctx, admin, advisory, advisory_model.StateTriage)
+	assert.Contains(t, popMail(reporter, collaborator)[0].Subject, "closed")
+
 	advisory.State = advisory_model.StatePublished
 	MailSecurityAdvisoryPublished(ctx, admin, advisory)
 	assert.Contains(t, popMail(reporter, collaborator, credited)[0].Subject, "XSS")

@@ -95,7 +95,13 @@ func SecurityAdvisories(ctx *context.Context) {
 	for _, advisory := range advisories {
 		advisory.Repo = ctx.Repo.Repository
 	}
-	if err := advisory_model.List(advisories).LoadLabels(ctx); err != nil {
+	discussionIDs, err := viewer.DiscussionIDs(ctx, advisories)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	withDiscussion := slices.DeleteFunc(slices.Clone(advisories), func(advisory *advisory_model.Advisory) bool { return !discussionIDs.Contains(advisory.ID) })
+	if err := advisory_model.List(withDiscussion).LoadLabels(ctx); err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}
@@ -115,6 +121,7 @@ func SecurityAdvisories(ctx *context.Context) {
 	}
 
 	ctx.Data["Advisories"] = advisories
+	ctx.Data["DiscussionAdvisoryIDs"] = discussionIDs
 	ctx.Data["HasAnyAdvisory"] = isFiltered || visibleTotal > 0
 	ctx.Data["State"] = state
 	ctx.Data["Keyword"] = opts.Keyword
@@ -441,13 +448,15 @@ func ViewSecurityAdvisory(ctx *context.Context) {
 		ctx.Data["CVSSMetrics"] = metrics
 	}
 	ctx.Data["VisibleCredits"] = advisory.VisibleCredits(ctx, ctx.Doer)
-	labelsData := &issueSidebarLabelsData{}
-	labelsData.retrieve(ctx, ctx.Repo.Repository)
-	if ctx.Written() {
-		return
+	if perms.CanSeeDiscussion {
+		labelsData := &issueSidebarLabelsData{}
+		labelsData.retrieve(ctx, ctx.Repo.Repository)
+		if ctx.Written() {
+			return
+		}
+		labelsData.SetSelectedLabels(advisory.Labels)
+		ctx.Data["LabelsData"] = labelsData
 	}
-	labelsData.SetSelectedLabels(advisory.Labels)
-	ctx.Data["LabelsData"] = labelsData
 	if perms.CanManage && perms.CanEdit {
 		switch advisory.State {
 		case advisory_model.StateTriage:

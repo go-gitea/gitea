@@ -36,7 +36,7 @@
 			</div>
 			<div class="issue-list-toolbar-right">
 				<div class="ui secondary filter menu labels">
-					{{template "shared/label/filter_item" dict "Labels" .Labels "QueryLink" $queryLink}}
+					{{if .IsSigned}}{{template "shared/label/filter_item" dict "Labels" .Labels "QueryLink" $queryLink}}{{end}}
 					<div class="item ui dropdown jump">
 						<span class="text">{{ctx.Locale.Tr "repo.security_advisories.severity"}}</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -70,7 +70,7 @@
 							</div>
 						</div>
 						<div class="item-body tw-gap-2">
-							<a class="index flex-text-inline" href="{{.Link}}">#{{.Index}}</a>
+							{{if $.DiscussionAdvisoryIDs.Contains .ID}}<a class="index flex-text-inline" href="{{.Link}}">#{{.Index}}</a>{{end}}
 							<span class="tw-font-mono">{{.Identifier}}</span>
 							{{if .CveID}}<span>{{.CveID}}</span>{{end}}
 							{{if .PublishedUnix}}

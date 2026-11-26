@@ -233,6 +233,11 @@ func TestAPISecurityAdvisory(t *testing.T) {
 		assert.Equal(t, []string{created.Identifier}, search("labels="+created.Labels[0].Name))
 		assert.Empty(t, search("labels=unknown"))
 		assert.Equal(t, []string{reported.Identifier}, search("severity=critical&ecosystem=go"))
+
+		createdURL := baseURL + "/" + created.Identifier
+		assert.Len(t, advisoryJSON(t, "PATCH", createdURL, adminToken, map[string]any{"state": "published"}, http.StatusOK, &api.RepositoryAdvisory{}).Labels, 1)
+		assert.Empty(t, advisoryJSON(t, "GET", createdURL, "", nil, http.StatusOK, &api.RepositoryAdvisory{}).Labels, "labels stay private")
+		assert.Empty(t, advisoryJSON(t, "GET", baseURL+"?labels="+created.Labels[0].Name, "", nil, http.StatusOK, []*api.RepositoryAdvisory{}))
 	})
 
 	t.Run("Create", func(t *testing.T) {
@@ -255,7 +260,7 @@ func TestAPISecurityAdvisory(t *testing.T) {
 		require.Len(t, created.Credits, 1)
 		assert.Nil(t, created.Submission)
 
-		assert.Equal(t, "3", advisoryRequest(t, "GET", baseURL+"?state=draft", adminToken, nil, http.StatusOK).Header().Get("X-Total-Count"))
+		assert.Equal(t, "2", advisoryRequest(t, "GET", baseURL+"?state=draft", adminToken, nil, http.StatusOK).Header().Get("X-Total-Count"))
 		for _, query := range []string{"state=bogus", "close_reason=bogus", "cwe=CWE-7_"} {
 			advisoryRequest(t, "GET", baseURL+"?"+query, adminToken, nil, http.StatusUnprocessableEntity)
 		}

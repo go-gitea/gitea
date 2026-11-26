@@ -40,7 +40,7 @@ func ToAPIRepositoryAdvisory(ctx context.Context, advisory *advisory_model.Advis
 		CweIDs:          util.SliceNilAsEmpty(advisory.CweIDs),
 		Credits:         make([]*api.RepositoryAdvisoryCredit, 0, len(advisory.Credits)),
 		CreditsDetailed: make([]*api.RepositoryAdvisoryCreditDetailed, 0, len(advisory.Credits)),
-		Labels:          ToLabelList(advisory.Labels, advisory.Repo, advisory.Repo.Owner),
+		Labels:          []*api.Label{},
 		CloseReason:     advisory.CloseReason.String(),
 	}
 	if advisory.DuplicateOf != nil {
@@ -80,6 +80,7 @@ func ToAPIRepositoryAdvisory(ctx context.Context, advisory *advisory_model.Advis
 // AddAPIRepositoryAdvisoryPrivateDetails is only for viewers who can see the discussion.
 func AddAPIRepositoryAdvisoryPrivateDetails(ctx context.Context, result *api.RepositoryAdvisory, advisory *advisory_model.Advisory, doer *user_model.User, allTeams bool) error {
 	result.Author = ToUser(ctx, advisory.Reporter, doer)
+	result.Labels = ToLabelList(advisory.Labels, advisory.Repo, advisory.Repo.Owner)
 	if advisory.IsReport {
 		result.Submission = &api.RepositoryAdvisorySubmission{Accepted: advisory.State != advisory_model.StateTriage && advisory.State != advisory_model.StateClosed}
 	}

@@ -4626,102 +4626,62 @@
             "required": true
           },
           {
-            "enum": [
-              "triage",
-              "draft",
-              "published",
-              "closed",
-              "withdrawn"
-            ],
             "type": "string",
-            "x-go-name": "State",
-            "description": "Filter by state",
+            "description": "only advisories in this state (triage, draft, published, closed, withdrawn)",
             "name": "state",
             "in": "query"
           },
           {
             "type": "string",
-            "x-go-name": "Query",
-            "description": "Search the summary, description, identifier, CVE ID and package names",
+            "description": "search in the summary, description, identifier, CVE ID and package names",
             "name": "q",
             "in": "query"
           },
           {
-            "enum": [
-              "low",
-              "medium",
-              "high",
-              "critical"
-            ],
             "type": "string",
-            "x-go-name": "Severity",
-            "description": "Filter by severity",
+            "description": "only advisories with this severity (low, medium, high, critical)",
             "name": "severity",
             "in": "query"
           },
           {
             "type": "string",
-            "x-go-name": "Ecosystem",
-            "description": "Filter by the ecosystem of an affected package",
+            "description": "only advisories affecting a package of this ecosystem",
             "name": "ecosystem",
             "in": "query"
           },
           {
             "type": "string",
-            "x-go-name": "CweID",
-            "description": "Filter by CWE ID",
+            "description": "only advisories with this CWE ID",
             "name": "cwe",
             "in": "query"
           },
           {
-            "enum": [
-              "invalid",
-              "duplicate"
-            ],
             "type": "string",
-            "x-go-name": "CloseReason",
-            "description": "Filter by the close reason",
+            "description": "only advisories closed for this reason (invalid, duplicate)",
             "name": "close_reason",
             "in": "query"
           },
           {
-            "enum": [
-              "created",
-              "updated",
-              "published"
-            ],
             "type": "string",
-            "default": "created",
-            "x-go-name": "Sort",
-            "description": "The property to sort by",
+            "description": "sort by created (default), updated or published",
             "name": "sort",
             "in": "query"
           },
           {
-            "enum": [
-              "asc",
-              "desc"
-            ],
             "type": "string",
-            "default": "desc",
-            "x-go-name": "Direction",
-            "description": "The sort direction",
+            "description": "sort direction, asc or desc (default)",
             "name": "direction",
             "in": "query"
           },
           {
             "type": "integer",
-            "format": "int64",
-            "x-go-name": "Page",
-            "description": "Page number of results to return (1-based)",
+            "description": "page number of results to return (1-based)",
             "name": "page",
             "in": "query"
           },
           {
             "type": "integer",
-            "format": "int64",
-            "x-go-name": "Limit",
-            "description": "Page size of results",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -19032,110 +18992,69 @@
             "required": true
           },
           {
-            "enum": [
-              "triage",
-              "draft",
-              "published",
-              "closed",
-              "withdrawn"
-            ],
             "type": "string",
-            "x-go-name": "State",
-            "description": "Filter by state",
+            "description": "only advisories in this state (triage, draft, published, closed, withdrawn)",
             "name": "state",
             "in": "query"
           },
           {
             "type": "string",
-            "x-go-name": "Query",
-            "description": "Search the summary, description, identifier, CVE ID and package names",
+            "description": "search in the summary, description, identifier, CVE ID and package names",
             "name": "q",
             "in": "query"
           },
           {
-            "enum": [
-              "low",
-              "medium",
-              "high",
-              "critical"
-            ],
             "type": "string",
-            "x-go-name": "Severity",
-            "description": "Filter by severity",
+            "description": "only advisories with this severity (low, medium, high, critical)",
             "name": "severity",
             "in": "query"
           },
           {
             "type": "string",
-            "x-go-name": "Ecosystem",
-            "description": "Filter by the ecosystem of an affected package",
+            "description": "only advisories affecting a package of this ecosystem",
             "name": "ecosystem",
             "in": "query"
           },
           {
             "type": "string",
-            "x-go-name": "CweID",
-            "description": "Filter by CWE ID",
+            "description": "only advisories with this CWE ID",
             "name": "cwe",
             "in": "query"
           },
           {
-            "enum": [
-              "invalid",
-              "duplicate"
-            ],
             "type": "string",
-            "x-go-name": "CloseReason",
-            "description": "Filter by the close reason",
+            "description": "only advisories closed for this reason (invalid, duplicate)",
             "name": "close_reason",
             "in": "query"
           },
           {
-            "enum": [
-              "created",
-              "updated",
-              "published"
-            ],
             "type": "string",
-            "default": "created",
-            "x-go-name": "Sort",
-            "description": "The property to sort by",
+            "description": "comma separated list of label names, only applied to advisories whose private details the user can see",
+            "name": "labels",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort by created (default), updated or published",
             "name": "sort",
             "in": "query"
           },
           {
-            "enum": [
-              "asc",
-              "desc"
-            ],
             "type": "string",
-            "default": "desc",
-            "x-go-name": "Direction",
-            "description": "The sort direction",
+            "description": "sort direction, asc or desc (default)",
             "name": "direction",
             "in": "query"
           },
           {
             "type": "integer",
-            "format": "int64",
-            "x-go-name": "Page",
-            "description": "Page number of results to return (1-based)",
+            "description": "page number of results to return (1-based)",
             "name": "page",
             "in": "query"
           },
           {
             "type": "integer",
-            "format": "int64",
-            "x-go-name": "Limit",
-            "description": "Page size of results",
+            "description": "page size of results",
             "name": "limit",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "x-go-name": "Labels",
-            "description": "Comma-separated label names, all must be set",
-            "name": "labels",
             "in": "query"
           }
         ],

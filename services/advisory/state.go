@@ -48,6 +48,9 @@ func validateStateOptions(advisory *advisory_model.Advisory, opts stateOptions) 
 	if !advisory.State.CanTransitionTo(opts.State) {
 		return util.NewInvalidArgumentErrorf("cannot change the state of the advisory from %s to %s", advisory.State, opts.State)
 	}
+	if opts.State == advisory_model.StateTriage && advisory.ReopenState() != advisory_model.StateTriage {
+		return util.NewInvalidArgumentErrorf("only reports that were never accepted can return to triage")
+	}
 	if opts.State != advisory_model.StateClosed {
 		if opts.CloseReason != advisory_model.CloseReasonNone || opts.DuplicateOf != nil || opts.ShareOriginal {
 			return util.NewInvalidArgumentErrorf("only closed advisories have a close reason")
@@ -100,7 +103,7 @@ func updateState(ctx context.Context, doer *user_model.User, advisory *advisory_
 	case advisory_model.StateWithdrawn:
 		advisory.WithdrawnUnix = now
 		cols = []string{"withdrawn_unix"}
-	case advisory_model.StateClosed, advisory_model.StateDraft:
+	case advisory_model.StateClosed, advisory_model.StateDraft, advisory_model.StateTriage:
 		advisory.ClosedUnix = util.Iif(opts.State == advisory_model.StateClosed, now, 0)
 		advisory.CloseReason, advisory.DuplicateOf, advisory.DuplicateOfID, advisory.ShareOriginal = opts.CloseReason, opts.DuplicateOf, 0, opts.ShareOriginal
 		if opts.DuplicateOf != nil {

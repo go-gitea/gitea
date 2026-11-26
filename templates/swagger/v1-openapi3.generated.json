@@ -17355,124 +17355,84 @@
             }
           },
           {
-            "description": "Filter by state",
+            "description": "only advisories in this state (triage, draft, published, closed, withdrawn)",
             "in": "query",
             "name": "state",
             "schema": {
-              "enum": [
-                "triage",
-                "draft",
-                "published",
-                "closed",
-                "withdrawn"
-              ],
               "type": "string"
-            },
-            "x-go-name": "State"
+            }
           },
           {
-            "description": "Search the summary, description, identifier, CVE ID and package names",
+            "description": "search in the summary, description, identifier, CVE ID and package names",
             "in": "query",
             "name": "q",
             "schema": {
               "type": "string"
-            },
-            "x-go-name": "Query"
+            }
           },
           {
-            "description": "Filter by severity",
+            "description": "only advisories with this severity (low, medium, high, critical)",
             "in": "query",
             "name": "severity",
             "schema": {
-              "enum": [
-                "low",
-                "medium",
-                "high",
-                "critical"
-              ],
               "type": "string"
-            },
-            "x-go-name": "Severity"
+            }
           },
           {
-            "description": "Filter by the ecosystem of an affected package",
+            "description": "only advisories affecting a package of this ecosystem",
             "in": "query",
             "name": "ecosystem",
             "schema": {
               "type": "string"
-            },
-            "x-go-name": "Ecosystem"
+            }
           },
           {
-            "description": "Filter by CWE ID",
+            "description": "only advisories with this CWE ID",
             "in": "query",
             "name": "cwe",
             "schema": {
               "type": "string"
-            },
-            "x-go-name": "CweID"
+            }
           },
           {
-            "description": "Filter by the close reason",
+            "description": "only advisories closed for this reason (invalid, duplicate)",
             "in": "query",
             "name": "close_reason",
             "schema": {
-              "enum": [
-                "invalid",
-                "duplicate"
-              ],
               "type": "string"
-            },
-            "x-go-name": "CloseReason"
+            }
           },
           {
-            "description": "The property to sort by",
+            "description": "sort by created (default), updated or published",
             "in": "query",
             "name": "sort",
             "schema": {
-              "default": "created",
-              "enum": [
-                "created",
-                "updated",
-                "published"
-              ],
               "type": "string"
-            },
-            "x-go-name": "Sort"
+            }
           },
           {
-            "description": "The sort direction",
+            "description": "sort direction, asc or desc (default)",
             "in": "query",
             "name": "direction",
             "schema": {
-              "default": "desc",
-              "enum": [
-                "asc",
-                "desc"
-              ],
               "type": "string"
-            },
-            "x-go-name": "Direction"
+            }
           },
           {
-            "description": "Page number of results to return (1-based)",
+            "description": "page number of results to return (1-based)",
             "in": "query",
             "name": "page",
             "schema": {
-              "format": "int64",
               "type": "integer"
-            },
-            "x-go-name": "Page"
+            }
           },
           {
-            "description": "Page size of results",
+            "description": "page size of results",
             "in": "query",
             "name": "limit",
             "schema": {
-              "format": "int64",
               "type": "integer"
-            },
-            "x-go-name": "Limit"
+            }
           }
         ],
         "responses": {
@@ -33188,133 +33148,92 @@
             }
           },
           {
-            "description": "Filter by state",
+            "description": "only advisories in this state (triage, draft, published, closed, withdrawn)",
             "in": "query",
             "name": "state",
             "schema": {
-              "enum": [
-                "triage",
-                "draft",
-                "published",
-                "closed",
-                "withdrawn"
-              ],
               "type": "string"
-            },
-            "x-go-name": "State"
+            }
           },
           {
-            "description": "Search the summary, description, identifier, CVE ID and package names",
+            "description": "search in the summary, description, identifier, CVE ID and package names",
             "in": "query",
             "name": "q",
             "schema": {
               "type": "string"
-            },
-            "x-go-name": "Query"
+            }
           },
           {
-            "description": "Filter by severity",
+            "description": "only advisories with this severity (low, medium, high, critical)",
             "in": "query",
             "name": "severity",
             "schema": {
-              "enum": [
-                "low",
-                "medium",
-                "high",
-                "critical"
-              ],
               "type": "string"
-            },
-            "x-go-name": "Severity"
+            }
           },
           {
-            "description": "Filter by the ecosystem of an affected package",
+            "description": "only advisories affecting a package of this ecosystem",
             "in": "query",
             "name": "ecosystem",
             "schema": {
               "type": "string"
-            },
-            "x-go-name": "Ecosystem"
+            }
           },
           {
-            "description": "Filter by CWE ID",
+            "description": "only advisories with this CWE ID",
             "in": "query",
             "name": "cwe",
             "schema": {
               "type": "string"
-            },
-            "x-go-name": "CweID"
+            }
           },
           {
-            "description": "Filter by the close reason",
+            "description": "only advisories closed for this reason (invalid, duplicate)",
             "in": "query",
             "name": "close_reason",
             "schema": {
-              "enum": [
-                "invalid",
-                "duplicate"
-              ],
               "type": "string"
-            },
-            "x-go-name": "CloseReason"
+            }
           },
           {
-            "description": "The property to sort by",
-            "in": "query",
-            "name": "sort",
-            "schema": {
-              "default": "created",
-              "enum": [
-                "created",
-                "updated",
-                "published"
-              ],
-              "type": "string"
-            },
-            "x-go-name": "Sort"
-          },
-          {
-            "description": "The sort direction",
-            "in": "query",
-            "name": "direction",
-            "schema": {
-              "default": "desc",
-              "enum": [
-                "asc",
-                "desc"
-              ],
-              "type": "string"
-            },
-            "x-go-name": "Direction"
-          },
-          {
-            "description": "Page number of results to return (1-based)",
-            "in": "query",
-            "name": "page",
-            "schema": {
-              "format": "int64",
-              "type": "integer"
-            },
-            "x-go-name": "Page"
-          },
-          {
-            "description": "Page size of results",
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "format": "int64",
-              "type": "integer"
-            },
-            "x-go-name": "Limit"
-          },
-          {
-            "description": "Comma-separated label names, all must be set",
+            "description": "comma separated list of label names, only applied to advisories whose private details the user can see",
             "in": "query",
             "name": "labels",
             "schema": {
               "type": "string"
-            },
-            "x-go-name": "Labels"
+            }
+          },
+          {
+            "description": "sort by created (default), updated or published",
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "sort direction, asc or desc (default)",
+            "in": "query",
+            "name": "direction",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {

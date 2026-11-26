@@ -207,9 +207,11 @@ func (m *mailNotifier) NewSecurityAdvisoryReport(ctx context.Context, doer *user
 	MailSecurityAdvisoryReported(ctx, doer, a)
 }
 
-func (m *mailNotifier) SecurityAdvisoryStateChanged(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, _ advisory_model.State) {
+func (m *mailNotifier) SecurityAdvisoryStateChanged(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, oldState advisory_model.State) {
 	if a.State == advisory_model.StatePublished {
 		MailSecurityAdvisoryPublished(ctx, doer, a)
+	} else {
+		MailSecurityAdvisoryStateChanged(ctx, doer, a, oldState)
 	}
 }
 

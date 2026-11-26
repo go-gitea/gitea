@@ -28,8 +28,10 @@ func checkComment(ctx context.Context, doer *user_model.User, advisory *advisory
 	return nil
 }
 
-// CreateComment requires the caller to check Permissions.CanSeeDiscussion.
 func CreateComment(ctx context.Context, doer *user_model.User, advisory *advisory_model.Advisory, perms advisory_model.Permissions, content string, isConfidential bool) (*advisory_model.Comment, error) {
+	if !perms.CanComment {
+		return nil, util.NewPermissionDeniedErrorf("you can only follow this advisory")
+	}
 	if isConfidential && !perms.CanSeeConfidential {
 		return nil, util.NewPermissionDeniedErrorf("only the maintainers can write confidential comments")
 	}

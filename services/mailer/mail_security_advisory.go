@@ -100,6 +100,27 @@ func MailSecurityAdvisoryPublished(ctx context.Context, doer *user_model.User, a
 	sendAdvisoryMail(doer, advisory, recipients, "mail.security_advisory.published", "/published")
 }
 
+// MailSecurityAdvisoryStateChanged tells the participants about every state change but publishing, which has its own mail
+func MailSecurityAdvisoryStateChanged(ctx context.Context, doer *user_model.User, advisory *advisory_model.Advisory, oldState advisory_model.State) {
+	if setting.MailService == nil || !loadAdvisoryRepo(ctx, advisory) {
+		return
+	}
+	change := advisory.State.String()
+	switch {
+	case oldState == advisory_model.StateClosed:
+		change = "reopened"
+	case advisory.State == advisory_model.StateDraft:
+		change = "accepted"
+	}
+	ids, err := advisory_model.ParticipantIDs(ctx, advisory)
+	if err != nil {
+		log.Error("ParticipantIDs(%d): %v", advisory.ID, err)
+		return
+	}
+	recipients := advisoryMailRecipients(ctx, doer, advisory, ids, false, func(perms advisory_model.Permissions) bool { return perms.CanView })
+	sendAdvisoryMail(doer, advisory, recipients, "mail.security_advisory."+change, fmt.Sprintf("/%s/%d", change, time.Now().UnixNano()))
+}
+
 func MailSecurityAdvisoryCollaboratorAdded(ctx context.Context, doer *user_model.User, advisory *advisory_model.Advisory, user *user_model.User, team *organization.Team) {
 	if setting.MailService == nil || !loadAdvisoryRepo(ctx, advisory) {
 		return
