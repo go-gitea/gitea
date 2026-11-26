@@ -452,7 +452,6 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	diff.SetRichDiffLinks(ci.HeadRepo.Link(), beforeCommitID, headCommitID)
 	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ci.HeadGitRepo, &diffCommonOptions)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
@@ -461,9 +460,10 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 	ctx.Data["DiffShortStat"] = diffShortStat
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffBlobExcerptData"] = &gitdiff.DiffBlobExcerptData{
-		BaseLink:      ci.HeadRepo.Link() + "/blob_excerpt",
-		DiffStyle:     GetDiffViewStyle(ctx),
-		AfterCommitID: headCommitID,
+		BaseLink:       ci.HeadRepo.Link() + "/blob_excerpt",
+		DiffStyle:      GetDiffViewStyle(ctx),
+		BeforeCommitID: beforeCommitID,
+		AfterCommitID:  headCommitID,
 	}
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
 	ctx.Data["ShowDiffSummaryInToolbar"] = diffShortStat.NumFiles != 0

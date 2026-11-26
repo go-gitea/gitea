@@ -6,6 +6,7 @@ package integration
 import (
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	repo_model "gitea.dev/models/repo"
@@ -30,7 +31,7 @@ func TestRichDiff(t *testing.T) {
 		}
 
 		body := MakeRequest(t, NewRequest(t, "GET", link("old.md", "new.md")), http.StatusOK).Body.String()
-		assert.Contains(t, body, `Hello <del class="rich-diff-removed">old</del><ins class="rich-diff-added">new</ins> world`)
+		assert.Equal(t, `<div class="markup rich-diff unicode-escaped tw-p-4"><p dir="auto">Hello <del class="rich-diff-removed">old</del><ins class="rich-diff-added">new</ins> world</p></div>`, strings.TrimSpace(body))
 
 		MakeRequest(t, NewRequest(t, "GET", link("old.md", "new.txt")), http.StatusNotFound)
 		MakeRequest(t, NewRequest(t, "GET", link("new.txt", "new.md")), http.StatusNotFound)

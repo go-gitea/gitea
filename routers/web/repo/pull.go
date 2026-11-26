@@ -743,7 +743,6 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	diff.SetRichDiffLinks(ctx.Repo.RepoLink, beforeCommitID, afterCommitID)
 
 	// if we're not logged in or only a single commit (or commit range) is shown we
 	// have to load only the diff and not get the viewed information
@@ -828,6 +827,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		BaseLink:       ctx.Repo.RepoLink + "/blob_excerpt",
 		PullIssueIndex: pull.Index,
 		DiffStyle:      GetDiffViewStyle(ctx),
+		BeforeCommitID: beforeCommitID,
 		AfterCommitID:  afterCommitID,
 	}
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0

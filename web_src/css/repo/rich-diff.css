@@ -31,3 +31,7 @@
 .markup.rich-diff del.rich-diff-removed img {
   outline: 2px solid var(--color-diff-removed-fg);
 }
+
+.markup.rich-diff .rich-diff-changed {
+  box-shadow: inset 3px 0 var(--color-yellow);
+}

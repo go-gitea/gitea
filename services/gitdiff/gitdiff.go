@@ -35,6 +35,7 @@ import (
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/svg"
@@ -221,7 +222,25 @@ type DiffBlobExcerptData struct {
 	IsWikiRepo     bool
 	PullIssueIndex int64
 	DiffStyle      string
+	BeforeCommitID string
 	AfterCommitID  string
+}
+
+// RichDiffLink returns the link to the rendered diff of a markup file, or empty if it has none
+func (d *DiffBlobExcerptData) RichDiffLink(file *DiffFile) string {
+	if d.IsWikiRepo || !file.IsBlobTypeRichDiff {
+		return ""
+	}
+	q := url.Values{}
+	if file.Type != DiffFileAdd {
+		q.Set("before", d.BeforeCommitID)
+		q.Set("old_path", file.OldName)
+	}
+	if file.Type != DiffFileDel {
+		q.Set("after", d.AfterCommitID)
+		q.Set("path", file.Name)
+	}
+	return path.Dir(d.BaseLink) + "/rich_diff?" + q.Encode() // a sibling of the blob excerpt route
 }
 
 const (
@@ -495,7 +514,7 @@ type DiffFile struct {
 	IsBlobTypeImage bool
 	IsBlobTypeCsv   bool
 
-	RichDiffLink string // filled by SetRichDiffLinks, the link to the rendered diff of a markup file
+	IsBlobTypeRichDiff bool
 }
 
 // GetType returns type of diff file.
@@ -504,7 +523,7 @@ func (diffFile *DiffFile) GetType() int {
 }
 
 func (diffFile *DiffFile) CanShowFileViewToggle() bool {
-	return diffFile.IsBlobTypeImage || diffFile.RichDiffLink != "" || (diffFile.IsBlobTypeCsv && !diffFile.IsIncomplete && !diffFile.HasTruncatedLines)
+	return diffFile.IsBlobTypeImage || (diffFile.IsBlobTypeCsv && !diffFile.IsIncomplete && !diffFile.HasTruncatedLines)
 }
 
 type DiffRenderDetail struct {
@@ -544,6 +563,10 @@ func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, gitRepo *
 	diffFile.LeftBlobMimeType, diffFile.RightBlobMimeType = leftBlobType.GetMimeType(), rightBlobType.GetMimeType()
 	diffFile.IsBlobTypeImage = isFileTypeImage(leftBlobType) || isFileTypeImage(rightBlobType)
 	diffFile.IsBlobTypeCsv = isFileTypeCsv(diffFile.Name)
+	// a file renamed from or to a non-markup name has no rendered version on that side
+	diffFile.IsBlobTypeRichDiff = !diffFile.IsBin && !diffFile.IsSubmodule &&
+		(diffFile.Type == DiffFileAdd || markup.IsInlineRenderedFile(diffFile.OldName)) &&
+		(diffFile.Type == DiffFileDel || markup.IsInlineRenderedFile(diffFile.Name))
 
 	if diffFile.IsBin || len(diffFile.Sections) == 0 || diffFile.Type != DiffFileChange {
 		return ret

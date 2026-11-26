@@ -295,6 +295,7 @@ func Diff(ctx *context.Context) {
 			return
 		}
 		diffBlobExcerptData.BaseLink = ctx.Repo.RepoLink + "/wiki/blob_excerpt"
+		diffBlobExcerptData.IsWikiRepo = true
 	}
 
 	commit, err := gitRepo.GetCommit(ctx, commitID)
@@ -358,9 +359,7 @@ func Diff(ctx *context.Context) {
 		}
 		parentCommitID = parentCommit.ID.String()
 	}
-	if ctx.Data["PageIsWiki"] == nil {
-		diff.SetRichDiffLinks(ctx.Repo.RepoLink, parentCommitID, commit.ID.String())
-	}
+	diffBlobExcerptData.BeforeCommitID = parentCommitID
 	setCompareContext(ctx, parentCommit, commit, userName, repoName)
 	ctx.Data["Title"] = commit.MessageTitle() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit

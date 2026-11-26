@@ -23,6 +23,7 @@ import (
 const (
 	ClassAdded   = "rich-diff-added"
 	ClassRemoved = "rich-diff-removed"
+	ClassChanged = "rich-diff-changed"
 
 	diffTimeout = 2 * time.Second // for a whole document
 )
@@ -32,7 +33,7 @@ type Options struct {
 	NormalizeLink func(link string) string
 }
 
-// Diff returns newHTML with the changes from oldHTML marked by the ClassAdded and ClassRemoved classes.
+// Diff returns newHTML with the changes from oldHTML marked by the ClassAdded, ClassRemoved and ClassChanged classes.
 // The inputs must be sanitized already, the result only adds "ins", "del" and "div" elements and "class" attributes.
 func Diff(oldHTML, newHTML string, opts Options) (template.HTML, error) {
 	oldNodes, err := parseFragment(oldHTML)
@@ -145,6 +146,9 @@ func (d *differ) diffUnit(oldUnit, newUnit unit) []*html.Node {
 		return replace()
 	}
 	ret := cloneNode(newNode, false)
+	if !sameAttrs(oldNode, newNode, blockAttrsThatCount) {
+		addClass(ret, ClassChanged)
+	}
 	var children []*html.Node
 	if hasBlockChild(oldNode) || hasBlockChild(newNode) {
 		children = d.diffBlocks(childNodes(oldNode), childNodes(newNode))
@@ -253,10 +257,16 @@ func (b *inlineBuilder) add(oldToken, newToken *token, class string) {
 	b.stack = b.stack[:common]
 	for i := common; i < len(t.chain); i++ {
 		el := cloneNode(t.chain[i], false)
+		if newToken == nil {
+			removeIDs(el)
+		}
 		b.parent().AppendChild(el)
 		b.stack = append(b.stack, openElement{node: el, sig: t.sigs[i]})
 	}
 	for i := range b.stack {
+		if newToken != nil && b.stack[i].sources[1] == nil {
+			b.stack[i].node.Attr = slices.Clone(newToken.chain[i].Attr) // opened by a removed token without its id
+		}
 		for side, st := range sides {
 			if st != nil {
 				b.stack[i].sources[side] = st.chain[i]
@@ -273,7 +283,11 @@ func (b *inlineBuilder) add(oldToken, newToken *token, class string) {
 		target = b.mark
 	}
 	if t.atomic != nil {
-		target.AppendChild(cloneNode(t.atomic, true))
+		el := cloneNode(t.atomic, true)
+		if newToken == nil {
+			removeIDs(el)
+		}
+		target.AppendChild(el)
 		return
 	}
 	if b.text == nil || target.LastChild != b.text {
@@ -360,11 +374,17 @@ func markUnit(u unit, class string) []*html.Node {
 	if u.inline {
 		el := newMark(class)
 		for _, n := range cloneAll(u.nodes) {
+			if class == ClassRemoved {
+				removeIDs(n)
+			}
 			el.AppendChild(n)
 		}
 		return []*html.Node{el}
 	}
 	n := cloneNode(u.nodes[0], true)
+	if class == ClassRemoved {
+		removeIDs(n) // the added copy keeps them, anchors must not jump to the removed one
+	}
 	if isAtomic(n) {
 		// client-side renderers (math, mermaid) replace the element, so the class must be on a wrapper
 		el := newElement(atom.Div, class)
@@ -417,6 +437,25 @@ func (d *differ) startTagKey(n *html.Node) string {
 	}
 	sb.WriteString(">")
 	return sb.String()
+}
+
+// blockAttrsThatCount change how a block looks, others like a heading's "id" follow its content
+var blockAttrsThatCount = []string{"align", "colspan", "reversed", "rowspan", "start", "type"}
+
+func sameAttrs(a, b *html.Node, keys []string) bool {
+	for _, k := range keys {
+		if attrValue(a, k) != attrValue(b, k) {
+			return false
+		}
+	}
+	return true
+}
+
+func removeIDs(n *html.Node) {
+	n.Attr = slices.DeleteFunc(n.Attr, func(a html.Attribute) bool { return a.Key == "id" })
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		removeIDs(c)
+	}
 }
 
 var blockAtoms = map[atom.Atom]bool{

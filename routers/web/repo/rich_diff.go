@@ -20,7 +20,6 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/services/context"
-	"gitea.dev/services/gitdiff"
 )
 
 const tplRichDiff templates.TplName = "repo/diff/rich_diff"
@@ -30,7 +29,7 @@ var errRichDiffTooLarge = errors.New("file too large for rich diff")
 // RichDiff renders the changes between two versions of a markup file
 func RichDiff(ctx *context.Context) {
 	oldPath, newPath := ctx.FormString("old_path"), ctx.FormString("path")
-	canRichDiff := func(treePath string) bool { return treePath == "" || gitdiff.CanRichDiff(treePath) }
+	canRichDiff := func(treePath string) bool { return treePath == "" || markup.IsInlineRenderedFile(treePath) }
 	if oldPath+newPath == "" || !canRichDiff(oldPath) || !canRichDiff(newPath) {
 		ctx.NotFound()
 		return

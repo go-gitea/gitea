@@ -12,7 +12,7 @@ import (
 )
 
 func TestDiff(t *testing.T) {
-	const add, del = `class="rich-diff-added"`, `class="rich-diff-removed"`
+	const add, del, changed = `class="rich-diff-added"`, `class="rich-diff-removed"`, `class="rich-diff-changed"`
 	cases := []struct {
 		name, old, new, expected string
 	}{
@@ -118,6 +118,30 @@ func TestDiff(t *testing.T) {
 			old:      `<ul><li><input type="checkbox" disabled="" data-source-position="3"/>task</li></ul>`,
 			new:      `<ul><li><input type="checkbox" checked="" disabled="" data-source-position="9"/>task</li></ul>`,
 			expected: `<ul><li><del ` + del + `><input type="checkbox" disabled="" data-source-position="3"/></del><ins ` + add + `><input type="checkbox" checked="" disabled="" data-source-position="9"/></ins>task</li></ul>`,
+		},
+		{
+			name:     "list start changed",
+			old:      `<ol start="1"><li>a</li></ol>`,
+			new:      `<ol start="5"><li>a</li></ol>`,
+			expected: `<ol start="5" ` + changed + `><li>a</li></ol>`,
+		},
+		{
+			name:     "cell alignment changed",
+			old:      `<table><tbody><tr><td align="left">1</td></tr></tbody></table>`,
+			new:      `<table><tbody><tr><td align="center">1</td></tr></tbody></table>`,
+			expected: `<table><tbody><tr><td align="center" ` + changed + `>1</td></tr></tbody></table>`,
+		},
+		{
+			name:     "heading id follows its text",
+			old:      `<h2 id="old-title">Old title</h2>`,
+			new:      `<h2 id="new-title">New title</h2>`,
+			expected: `<h2 id="new-title"><del ` + del + `>Old</del><ins ` + add + `>New</ins> title</h2>`,
+		},
+		{
+			name:     "removed copy has no id",
+			old:      `<h2 id="intro">Intro <a id="anchor" href="#x">x</a></h2>`,
+			new:      `<p>Intro <a id="anchor" href="#x">x</a></p>`,
+			expected: `<h2 ` + del + `>Intro <a href="#x">x</a></h2><p ` + add + `>Intro <a href="#x" id="anchor">x</a></p>`,
 		},
 		{
 			name:     "added document",

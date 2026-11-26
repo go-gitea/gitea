@@ -63,6 +63,16 @@ func RefreshFileNamePatterns() {
 	}
 }
 
+// IsInlineRenderedFile reports whether the file is rendered by a markup renderer whose output is shown inline
+func IsInlineRenderedFile(filename string) bool {
+	renderer := DetectRendererTypeByFilename(filename)
+	if renderer == nil || !RendererNeedPostProcess(renderer) {
+		return false
+	}
+	opts, isExternal := GetExternalRendererOptions(renderer)
+	return !isExternal || !opts.DisplayInIframe
+}
+
 func DetectRendererTypeByFilename(filename string) Renderer {
 	basename := path.Base(strings.ToLower(filename))
 	ext1 := path.Ext(basename)
