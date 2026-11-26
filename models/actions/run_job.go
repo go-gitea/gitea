@@ -56,7 +56,7 @@ type ActionRunJob struct {
 
 	Status Status `xorm:"index index(pickup) index(repo_status)"`
 
-	RawConcurrency string // raw concurrency from job YAML's "concurrency" section
+	RawConcurrency string `xorm:"TEXT"` // raw concurrency from job YAML's "concurrency" section
 
 	// IsConcurrencyEvaluated is only valid/needed when this job's RawConcurrency is not empty.
 	// If RawConcurrency can't be evaluated (e.g. depend on other job's outputs or have errors), this field will be false.

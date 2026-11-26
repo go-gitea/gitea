@@ -12,6 +12,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 )
@@ -57,7 +58,7 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 // Runners render settings/actions/runners page for repo level
 func Runners(ctx *context.Context) {
 	ctx.Data["PageIsSharedSettingsRunners"] = true
-	ctx.Data["Title"] = ctx.Tr("actions.actions")
+	ctx.Data["Title"] = ctx.Tr("actions.runners")
 	ctx.Data["PageType"] = "runners"
 
 	rCtx, err := getRunnersCtx(ctx)
@@ -227,6 +228,7 @@ func ResetRunnerRegistrationToken(ctx *context.Context) {
 		ctx.ServerErrorAuto(err)
 		return
 	}
+	audit.RecordScopedByID(ctx, ownerID, repoID, audit.RunnerToken)
 	ctx.Flash.Success(ctx.Tr("actions.runners.reset_registration_token_success"))
 	ctx.JSONRedirect(redirectTo)
 }
@@ -260,6 +262,7 @@ func RunnerDeletePost(ctx *context.Context) {
 		return
 	}
 
+	audit.RecordScopedByID(ctx, runner.OwnerID, runner.RepoID, audit.RunnerRemove, "runner", runner.Name)
 	log.Info("DeleteRunnerPost success: %s", ctx.Req.URL)
 
 	ctx.Flash.Success(ctx.Tr("actions.runners.delete_runner_success"))
@@ -303,6 +306,7 @@ func RunnerUpdatePost(ctx *context.Context) {
 		ctx.JSONRedirect("")
 		return
 	}
+	audit.RecordScopedByID(ctx, runner.OwnerID, runner.RepoID, audit.RunnerUpdate, "runner", runner.Name, "disabled", isDisabled.Value())
 
 	ctx.Flash.Success(ctx.Tr(successKey))
 	ctx.JSONRedirect("")
@@ -360,6 +364,14 @@ func RunnerBulkActionPost(ctx *context.Context) {
 		ctx.Flash.Error(ctx.Tr(failedKey))
 		ctx.JSONRedirect(rCtx.RedirectLink)
 		return
+	}
+
+	for _, r := range runners {
+		if action == "delete" {
+			audit.RecordScopedByID(ctx, r.OwnerID, r.RepoID, audit.RunnerRemove, "runner", r.Name)
+		} else {
+			audit.RecordScopedByID(ctx, r.OwnerID, r.RepoID, audit.RunnerUpdate, "runner", r.Name, "disabled", action == "disable")
+		}
 	}
 
 	ctx.Flash.Success(ctx.Tr(successKey))

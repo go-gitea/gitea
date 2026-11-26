@@ -42,7 +42,7 @@ const (
 
 // Settings render the main settings page
 func Settings(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("org.settings")
+	ctx.Data["Title"] = ctx.Tr("org.settings.options")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
@@ -60,7 +60,7 @@ func Settings(ctx *context.Context) {
 // SettingsPost response for settings change submitted
 func SettingsPost(ctx *context.Context) {
 	form := web.GetForm[*forms.UpdateOrgSettingForm](ctx)
-	ctx.Data["Title"] = ctx.Tr("org.settings")
+	ctx.Data["Title"] = ctx.Tr("org.settings.options")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
@@ -149,7 +149,7 @@ func SettingsDeleteOrgPost(ctx *context.Context) {
 
 // Webhooks render webhook list page
 func Webhooks(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("org.settings")
+	ctx.Data["Title"] = ctx.Tr("repo.settings.hooks")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["BaseLink"] = ctx.Org.OrgLink + "/settings/hooks"

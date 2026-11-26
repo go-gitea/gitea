@@ -8,10 +8,14 @@ import (
 	"net/url"
 	"time"
 
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	ctx "gitea.dev/services/context"
 	"gitea.dev/services/gitdiff"
@@ -55,6 +59,7 @@ func ToPayloadCommit(ctx context.Context, repo *repo_model.Repository, c *git.Co
 
 	return &api.PayloadCommit{
 		ID:      c.ID.String(),
+		TreeID:  c.TreeID.String(),
 		Message: c.MessageUTF8(),
 		URL:     repo.HTMLURL() + "/commit/" + c.ID.String(),
 		Author: &api.PayloadUser{
@@ -70,6 +75,26 @@ func ToPayloadCommit(ctx context.Context, repo *repo_model.Repository, c *git.Co
 		Timestamp:    c.Author.When,
 		Verification: ToVerification(ctx, c),
 	}
+}
+
+func ToPushPayload(ctx context.Context, repo *repo_model.Repository, pusher *user_model.User, opts *repository.PushUpdateOptions, commits *repository.PushCommits) (*api.PushPayload, error) {
+	apiCommits, headCommit, err := commits.ToAPIPayloadCommits(ctx, repo)
+	if err != nil {
+		return nil, err
+	}
+	sender := ToUser(ctx, pusher, nil)
+	return &api.PushPayload{
+		Ref:          opts.RefFullName.String(),
+		Before:       opts.OldCommitID,
+		After:        opts.NewCommitID,
+		CompareURL:   setting.AppURL + commits.CompareURL,
+		Commits:      apiCommits,
+		TotalCommits: commits.Len,
+		HeadCommit:   headCommit,
+		Repo:         ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}),
+		Pusher:       sender,
+		Sender:       sender,
+	}, nil
 }
 
 type ToCommitOptions struct {

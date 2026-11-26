@@ -288,6 +288,11 @@ func (d discordConvertor) WorkflowRun(p *api.WorkflowRunPayload) (DiscordPayload
 	return d.createPayload(p.Sender, text, "", p.WorkflowRun.HTMLURL, color), nil
 }
 
+func (d discordConvertor) MergeGroup(payload *api.MergeGroupPayload) (DiscordPayload, error) {
+	text, color, commitURL := getMergeGroupPayloadInfo(payload, noneLinkFormatter, false)
+	return d.createPayload(payload.Sender, text, "", commitURL, color), nil
+}
+
 func (d discordConvertor) WorkflowJob(p *api.WorkflowJobPayload) (DiscordPayload, error) {
 	text, color := getWorkflowJobPayloadInfo(p, noneLinkFormatter, false)
 

@@ -103,13 +103,13 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 }
 
 // Index will save the index data
-func (b *Indexer) Index(_ context.Context, issues ...*internal.IndexerData) error {
+func (b *Indexer) Index(ctx context.Context, issues ...*internal.IndexerData) error {
 	if len(issues) == 0 {
 		return nil
 	}
 	for _, issue := range issues {
 		// use default primary key which should be "id"
-		_, err := b.inner.Client.Index(b.inner.VersionedIndexName()).AddDocuments(issue, nil)
+		_, err := b.inner.Client.Index(b.inner.VersionedIndexName()).AddDocuments(ctx, issue, nil)
 		if err != nil {
 			return err
 		}
@@ -119,13 +119,13 @@ func (b *Indexer) Index(_ context.Context, issues ...*internal.IndexerData) erro
 }
 
 // Delete deletes indexes by ids
-func (b *Indexer) Delete(_ context.Context, ids ...int64) error {
+func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 	if len(ids) == 0 {
 		return nil
 	}
 
 	for _, id := range ids {
-		_, err := b.inner.Client.Index(b.inner.VersionedIndexName()).DeleteDocument(strconv.FormatInt(id, 10), nil)
+		_, err := b.inner.Client.Index(b.inner.VersionedIndexName()).DeleteDocument(ctx, strconv.FormatInt(id, 10), nil)
 		if err != nil {
 			return err
 		}
@@ -252,7 +252,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		keyword = doubleQuoteKeyword(keyword)
 	}
 
-	searchRes, err := b.inner.Client.Index(b.inner.VersionedIndexName()).Search(keyword, &meilisearch.SearchRequest{
+	searchRes, err := b.inner.Client.Index(b.inner.VersionedIndexName()).Search(ctx, keyword, &meilisearch.SearchRequest{
 		Filter:           query.Statement(),
 		Limit:            int64(limit),
 		Offset:           int64(skip),

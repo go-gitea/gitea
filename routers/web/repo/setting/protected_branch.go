@@ -5,6 +5,7 @@ package setting
 
 import (
 	"errors"
+	"maps"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 	audit_model "gitea.dev/models/audit"
 	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
@@ -20,8 +22,10 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/glob"
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/repo"
 	"gitea.dev/services/audit"
@@ -74,7 +78,11 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 
 	c.Data["PageIsSettingsBranches"] = true
-	c.Data["Title"] = c.Locale.TrString("repo.settings.protected_branch") + " - " + rule.RuleName
+	if rule.RuleName == "" {
+		c.Data["Title"] = c.Locale.TrString("repo.settings.branches.add_new_rule")
+	} else {
+		c.Data["Title"] = c.Locale.TrString("repo.settings.protected_branch") + " - " + rule.RuleName
+	}
 
 	repoUsers, err := access_model.GetUsersWithAnyUnitAccess(c, c.Repo.Repository, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {
@@ -98,6 +106,16 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["bypass_allowlist_users"] = strings.Join(base.Int64sToStrings(rule.BypassAllowlistUserIDs), ",")
 	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.ApprovalsWhitelistUserIDs), ",")
 	c.Data["status_check_contexts"] = strings.Join(rule.StatusCheckContexts, "\n")
+	queueMethods := map[repo_model.MergeStyle]string{
+		repo_model.MergeStyleMerge:       "repo.pulls.merge_pull_request",
+		repo_model.MergeStyleRebase:      "repo.pulls.rebase_merge_pull_request",
+		repo_model.MergeStyleRebaseMerge: "repo.pulls.rebase_merge_commit_pull_request",
+		repo_model.MergeStyleSquash:      "repo.pulls.squash_merge_pull_request",
+	}
+	prConfig := c.Repo.Repository.MustGetUnit(c, unit.TypePullRequests).PullRequestsConfig()
+	maps.DeleteFunc(queueMethods, func(style repo_model.MergeStyle, _label string) bool { return !prConfig.IsMergeStyleAllowed(style) })
+	c.Data["MergeQueueMethods"] = queueMethods
+	c.Data["MergeQueueBranchPrefix"] = setting.Repository.PullRequest.MergeQueueBranchPrefix
 	contexts, _ := git_model.FindRepoRecentCommitStatusContexts(c, c.Repo.Repository.ID, 7*24*time.Hour) // Find last week status check contexts
 	c.Data["recent_status_checks"] = contexts
 
@@ -299,6 +317,21 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	protectBranch.UnprotectedFilePatterns = f.UnprotectedFilePatterns
 	protectBranch.BlockOnOutdatedBranch = f.BlockOnOutdatedBranch
 	protectBranch.BlockAdminMergeOverride = f.BlockAdminMergeOverride
+	if !f.RequireMergeQueue {
+		protectBranch.RequireMergeQueue = false
+	} else if err := protectBranch.SetMergeQueue(true, git_model.MergeQueueConfig{
+		MergeMethod:                  repo_model.MergeStyle(f.MergeQueueMergeMethod),
+		MaxEntriesToBuild:            f.MergeQueueMaxEntriesToBuild,
+		MinEntriesToMerge:            f.MergeQueueMinEntriesToMerge,
+		MaxEntriesToMerge:            f.MergeQueueMaxEntriesToMerge,
+		MinEntriesToMergeWaitMinutes: f.MergeQueueMinEntriesToMergeWaitMinutes,
+		GroupingStrategy:             util.Iif(f.MergeQueueGroupingStrategy == string(git_model.MergeQueueGroupingAllGreen), git_model.MergeQueueGroupingAllGreen, git_model.MergeQueueGroupingHeadGreen),
+		CheckResponseTimeoutMinutes:  f.MergeQueueCheckResponseTimeoutMinutes,
+	}, ctx.Repo.Repository.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()); err != nil {
+		errKey := util.Iif(errors.Is(err, git_model.ErrMergeQueueMethodNotAllowed), "repo.settings.merge_queue.merge_method_not_allowed", "repo.settings.merge_queue.invalid_settings")
+		ctx.JSONErrorWithField(ctx.Tr(errKey), "require_merge_queue")
+		return
+	}
 
 	if err = pull_service.CreateOrUpdateProtectedBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,
@@ -366,8 +399,8 @@ func UpdateBranchProtectionPriories(ctx *context.Context) {
 	var form struct {
 		IDs []int64 `json:"ids"`
 	}
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
-		ctx.JSONError("invalid argument")
+	if err := jsonlimit.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &form); err != nil {
+		ctx.JSONError("invalid request body")
 		return
 	}
 	if err := git_model.UpdateProtectBranchPriorities(ctx, ctx.Repo.Repository, form.IDs); err != nil {
@@ -396,16 +429,17 @@ func RenameBranchPost(ctx *context.Context) {
 		switch {
 		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
 			ctx.Flash.Error(ctx.Tr("repo.branch.rename_default_or_protected_branch_error"))
-			ctx.Redirect(ctx.Repo.RepoLink + "/branches")
 		case git_model.IsErrBranchAlreadyExists(err):
 			ctx.Flash.Error(ctx.Tr("repo.branch.branch_already_exists", form.To))
-			ctx.Redirect(ctx.Repo.RepoLink + "/branches")
 		case errors.Is(err, git_model.ErrBranchIsProtected):
 			ctx.Flash.Error(ctx.Tr("repo.branch.rename_protected_branch_failed"))
-			ctx.Redirect(ctx.Repo.RepoLink + "/branches")
+		case errors.Is(err, issues_model.ErrQueuedPullHead):
+			ctx.FlashErrorAuto(err)
 		default:
 			ctx.ServerErrorAuto(err)
+			return
 		}
+		ctx.Redirect(ctx.Repo.RepoLink + "/branches")
 		return
 	}
 

@@ -13,6 +13,7 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm/access"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -213,6 +214,18 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			continue
 		}
 
+		if entry, err := pull_model.GetMergeQueueEntryByPullID(ctx, pr.ID); err != nil {
+			return nil, err
+		} else if entry != nil {
+			results = append(results, private.HookProcReceiveRefResult{
+				OriginalRef: opts.RefFullNames[i],
+				OldOID:      opts.OldCommitIDs[i],
+				NewOID:      opts.NewCommitIDs[i],
+				Err:         "the pull request is in a merge queue, remove it from the queue to update it",
+			})
+			continue
+		}
+
 		// update exist pull request
 		if err := pr.LoadBaseRepo(ctx); err != nil {
 			return nil, fmt.Errorf("unable to load base repository for PR[%d] Error: %w", pr.ID, err)
@@ -252,6 +265,9 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		// Store old commit ID for review staleness checking
 		oldHeadCommitID := pr.HeadCommitID
 
+		if err := pull_service.DisableAutoMergeIfNotWriter(ctx, pusher, pr, "pushed_by_non_writer"); err != nil {
+			return nil, fmt.Errorf("ProcReceive: %w", err)
+		}
 		pr.HeadCommitID = opts.NewCommitIDs[i]
 		if err = pull_service.UpdateRefForAgit(ctx, pr); err != nil {
 			return nil, fmt.Errorf("failed to update pull ref. Error: %w", err)

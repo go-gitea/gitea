@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"html/template"
@@ -84,7 +85,8 @@ func ViewWorkflowFile(ctx *context_module.Context) {
 		return
 	}
 
-	commit, err := ctx.Repo.GitRepo.GetCommit(ctx, run.CommitSHA)
+	workflowCommitSHA := cmp.Or(run.WorkflowCommitSHA, run.CommitSHA)
+	commit, err := ctx.Repo.GitRepo.GetCommit(ctx, workflowCommitSHA)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
@@ -96,7 +98,7 @@ func ViewWorkflowFile(ctx *context_module.Context) {
 	}
 	for _, entry := range entries {
 		if entry.Name() == run.WorkflowID {
-			ctx.Redirect(fmt.Sprintf("%s/src/commit/%s/%s/%s", ctx.Repo.RepoLink, url.PathEscape(run.CommitSHA), util.PathEscapeSegments(rpath), util.PathEscapeSegments(run.WorkflowID)))
+			ctx.Redirect(fmt.Sprintf("%s/src/commit/%s/%s/%s", ctx.Repo.RepoLink, url.PathEscape(workflowCommitSHA), util.PathEscapeSegments(rpath), util.PathEscapeSegments(run.WorkflowID)))
 			return
 		}
 	}
