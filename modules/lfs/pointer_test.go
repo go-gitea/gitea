@@ -4,14 +4,19 @@
 package lfs
 
 import (
+	"context"
+	"fmt"
+	"io"
 	"path"
 	"strings"
 	"testing"
+	"testing/synctest"
 
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStringContent(t *testing.T) {
@@ -104,4 +109,19 @@ func TestReadPointer(t *testing.T) {
 	assert.True(t, p.IsValid())
 	assert.Equal(t, "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393", p.Oid)
 	assert.Equal(t, int64(1234), p.Size)
+}
+
+func TestCreatePointerResultsCanceledWhileBlocked(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		content := Pointer{Oid: strings.Repeat("a", 64)}.StringContent()
+		batch := fmt.Sprintf("%s blob %d\n%s\n", strings.Repeat("b", 40), len(content), content)
+		ctx, cancel := context.WithCancel(t.Context())
+		done := make(chan error, 1)
+		go func() {
+			done <- createPointerResultsFromCatFileBatch(ctx, io.NopCloser(strings.NewReader(batch)), make(chan PointerBlob))
+		}()
+		synctest.Wait()
+		cancel()
+		require.ErrorIs(t, <-done, context.Canceled)
+	})
 }

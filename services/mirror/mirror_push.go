@@ -14,6 +14,7 @@ import (
 
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitrepo"
@@ -153,7 +154,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
-	performPush := func(storageRepo gitrepo.RepositoryFacade) error {
+	performPush := func(storageRepo gitrepo.RepositoryFacade, syncLFS bool) error {
 		remoteURL, err := git.ParseRemoteAddressURL(ctx, storageRepo, m.RemoteName)
 		if err != nil {
 			return fmt.Errorf("ParseRemoteAddressURL failed: %w", err)
@@ -166,7 +167,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			}
 		}
 
-		if setting.LFS.StartServer {
+		if syncLFS {
 			log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 
 			gitRepo, err := git.OpenRepository(ctx, storageRepo)
@@ -179,7 +180,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			if err != nil {
 				return fmt.Errorf("NewClientFromEndpoint failed: %w", err)
 			}
-			if err := pushAllLFSObjects(ctx, gitRepo, lfsClient); err != nil {
+			if err := pushAllLFSObjects(ctx, m.Repo.ID, gitRepo, lfsClient); err != nil {
 				return fmt.Errorf("pushAllLFSObjects failed: %w", err)
 			}
 		}
@@ -198,13 +199,13 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		return nil
 	}
 
-	err := performPush(m.Repo.CodeStorageRepo())
+	err := performPush(m.Repo.CodeStorageRepo(), setting.LFS.StartServer)
 	if err != nil {
 		return fmt.Errorf("performPush(code) failed: %w", err)
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		err := performPush(m.Repo.WikiStorageRepo())
+		err := performPush(m.Repo.WikiStorageRepo(), false)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			return fmt.Errorf("performPush(wiki) failed: %w", err)
 		}
@@ -213,7 +214,10 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	return nil
 }
 
-func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, lfsClient lfs.Client) error {
+func pushAllLFSObjects(ctx context.Context, repoID int64, gitRepo *git.Repository, lfsClient lfs.Client) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	contentStore := lfs.NewContentStore()
 
 	pointerChan := make(chan lfs.PointerBlob)
@@ -244,8 +248,17 @@ func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, lfsClient l
 		return err
 	}
 
+	var skipped int
 	var batch []lfs.Pointer
 	for pointerBlob := range pointerChan {
+		meta, err := git_model.GetLFSMetaObjectByOid(ctx, repoID, pointerBlob.Oid)
+		if errors.Is(err, git_model.ErrLFSObjectNotExist) {
+			skipped++
+			continue
+		} else if err != nil {
+			return err
+		}
+
 		exists, err := contentStore.Exists(pointerBlob.Pointer)
 		if err != nil {
 			log.Error("Error checking if LFS object %v exists: %v", pointerBlob.Pointer, err)
@@ -256,13 +269,16 @@ func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, lfsClient l
 			continue
 		}
 
-		batch = append(batch, pointerBlob.Pointer)
+		batch = append(batch, meta.Pointer)
 		if len(batch) >= lfsClient.BatchSize() {
 			if err := uploadObjects(batch); err != nil {
 				return err
 			}
 			batch = nil
 		}
+	}
+	if skipped > 0 {
+		log.Info("Push mirror skipped %d LFS pointers without a link to repository %d", skipped, repoID)
 	}
 	if len(batch) > 0 {
 		if err := uploadObjects(batch); err != nil {

@@ -5,6 +5,7 @@ package lfs
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/url"
 	"os"
@@ -39,19 +40,19 @@ func (c *FilesystemClient) objectPath(oid string) (string, error) {
 
 // Download reads the specific LFS object from the target path
 func (c *FilesystemClient) Download(ctx context.Context, _ string, objects []Pointer, callback DownloadCallback) error {
-	for _, object := range objects {
-		p := Pointer{object.Oid, object.Size}
-
+	for _, p := range objects {
 		objectPath, err := c.objectPath(p.Oid)
 		if err != nil {
 			return err
 		}
 		f, err := os.Open(objectPath)
-		if err != nil {
-			return err
+		if errors.Is(err, os.ErrNotExist) {
+			err = callback(p, nil, ErrObjectNotExist)
+		} else if err == nil {
+			defer f.Close()
+			err = callback(p, f, nil)
 		}
-		defer f.Close()
-		if err := callback(p, f, nil); err != nil {
+		if err != nil {
 			return err
 		}
 	}

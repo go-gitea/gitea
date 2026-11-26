@@ -6,9 +6,11 @@ package lfs
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"gitea.dev/modules/json"
@@ -39,122 +41,57 @@ func (a *DummyTransferAdapter) Upload(ctx context.Context, l *Link, p Pointer, r
 }
 
 func (a *DummyTransferAdapter) Verify(ctx context.Context, l *Link, p Pointer) error {
+	if l == nil {
+		return errors.New("Verify called with a nil link")
+	}
 	return nil
 }
 
-func lfsTestRoundtripHandler(req *http.Request) *http.Response {
-	var batchResponse *BatchResponse
-	url := req.URL.String()
-
-	if strings.Contains(url, "status-not-ok") {
+func lfsTestRoundtripHandler(req *http.Request, pointer Pointer) *http.Response {
+	object := &ObjectResponse{Pointer: pointer}
+	batchResponse := &BatchResponse{Transfer: "dummy", Objects: []*ObjectResponse{object}}
+	switch req.URL.Hostname() {
+	case "status-not-ok.io":
 		return &http.Response{StatusCode: http.StatusBadRequest}
-	} else if strings.Contains(url, "plaintext-error") {
+	case "plaintext-error.io":
 		return &http.Response{StatusCode: http.StatusNotFound, Status: "404 Not Found", Body: io.NopCloser(strings.NewReader("Not Found"))}
-	} else if strings.Contains(url, "invalid-json-response") {
+	case "invalid-json-response.io":
 		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("invalid json"))}
-	} else if strings.Contains(url, "valid-batch-request-download") {
-		batchResponse = &BatchResponse{
-			Transfer: "dummy",
-			Objects: []*ObjectResponse{
-				{
-					Actions: map[string]*Link{
-						"download": {},
-					},
-				},
-			},
-		}
-	} else if strings.Contains(url, "legacy-batch-request-download") {
-		batchResponse = &BatchResponse{
-			Transfer: "dummy",
-			Objects: []*ObjectResponse{
-				{
-					Links: map[string]*Link{
-						"download": {},
-					},
-				},
-			},
-		}
-	} else if strings.Contains(url, "valid-batch-request-upload") {
-		batchResponse = &BatchResponse{
-			Transfer: "dummy",
-			Objects: []*ObjectResponse{
-				{
-					Actions: map[string]*Link{
-						"upload": {},
-					},
-				},
-			},
-		}
-	} else if strings.Contains(url, "response-no-objects") {
-		batchResponse = &BatchResponse{Transfer: "dummy"}
-	} else if strings.Contains(url, "unknown-transfer-adapter") {
-		batchResponse = &BatchResponse{Transfer: "unknown_adapter"}
-	} else if strings.Contains(url, "error-in-response-objects") {
-		batchResponse = &BatchResponse{
-			Transfer: "dummy",
-			Objects: []*ObjectResponse{
-				{
-					Error: &ObjectError{
-						Code:    http.StatusNotFound,
-						Message: "Object not found",
-					},
-				},
-			},
-		}
-	} else if strings.Contains(url, "empty-actions-map") {
-		batchResponse = &BatchResponse{
-			Transfer: "dummy",
-			Objects: []*ObjectResponse{
-				{
-					Actions: map[string]*Link{},
-				},
-			},
-		}
-	} else if strings.Contains(url, "download-actions-map") {
-		batchResponse = &BatchResponse{
-			Transfer: "dummy",
-			Objects: []*ObjectResponse{
-				{
-					Actions: map[string]*Link{
-						"download": {},
-					},
-				},
-			},
-		}
-	} else if strings.Contains(url, "upload-actions-map") {
-		batchResponse = &BatchResponse{
-			Transfer: "dummy",
-			Objects: []*ObjectResponse{
-				{
-					Actions: map[string]*Link{
-						"upload": {},
-					},
-				},
-			},
-		}
-	} else if strings.Contains(url, "verify-actions-map") {
-		batchResponse = &BatchResponse{
-			Transfer: "dummy",
-			Objects: []*ObjectResponse{
-				{
-					Actions: map[string]*Link{
-						"verify": {},
-					},
-				},
-			},
-		}
-	} else if strings.Contains(url, "unknown-actions-map") {
-		batchResponse = &BatchResponse{
-			Transfer: "dummy",
-			Objects: []*ObjectResponse{
-				{
-					Actions: map[string]*Link{
-						"unknown": {},
-					},
-				},
-			},
-		}
-	} else {
+	case "duplicate-oid-with-wrong-size.io":
+		object.Size++
+		batchResponse.Objects = append(batchResponse.Objects, object)
+		fallthrough
+	case "download-actions-map.io":
+		object.Actions = map[string]*Link{"download": {}}
+	case "legacy-batch-request-download.io":
+		object.Actions = map[string]*Link{"download": nil}
+		object.Links = map[string]*Link{"download": {}}
+	case "upload-actions-map.io":
+		object.Actions = map[string]*Link{"upload": {}}
+	case "upload-with-null-verify.io":
+		object.Actions = map[string]*Link{"upload": {}, "verify": nil}
+	case "response-no-objects.io":
+		batchResponse.Objects = nil
+	case "unknown-transfer-adapter.io":
+		batchResponse.Transfer = "unknown_adapter"
+	case "error-in-response-objects.io":
+		object.Error = &ObjectError{Code: http.StatusNotFound, Message: "Object not found"}
+	case "empty-actions-map.io":
+		object.Actions = map[string]*Link{}
+	case "verify-actions-map.io":
+		object.Actions = map[string]*Link{"verify": {}, "upload": nil}
+	case "unknown-actions-map.io":
+		object.Actions = map[string]*Link{"unknown": {}}
+	case "unknown-oid.io":
+		object.Actions = map[string]*Link{"download": {}}
+		batchResponse.Objects = append(batchResponse.Objects, &ObjectResponse{Pointer: Pointer{Oid: strings.Repeat("a", 64)}})
+	case "null-object.io":
+		object.Actions = map[string]*Link{"download": {}}
+		batchResponse.Objects = append(batchResponse.Objects, nil)
+	case "null-download-link.io":
+		object.Actions = map[string]*Link{"download": nil}
+		object.Links = map[string]*Link{"download": nil}
+	default:
 		return nil
 	}
 
@@ -168,6 +105,7 @@ func TestHTTPClientTransfers(t *testing.T) {
 	type clientCase struct {
 		endpoint      string
 		expectedError string
+		callbacks     int32
 	}
 	for _, operation := range []struct {
 		name  string
@@ -176,41 +114,44 @@ func TestHTTPClientTransfers(t *testing.T) {
 		{
 			name: "download",
 			cases: []clientCase{
-				{"https://status-not-ok.io", `LFS server returned error, status: 400, body: ""`},
-				{"https://plaintext-error.io", `LFS server returned error, status: 404, body: "Not Found"`},
-				{"https://invalid-json-response.io", "/(invalid json|invalid character)/"},
-				{"https://valid-batch-request-download.io", ""},
-				{"https://response-no-objects.io", ""},
-				{"https://unknown-transfer-adapter.io", "TransferAdapter not found: "},
-				{"https://error-in-response-objects.io", "Object not found"},
-				{"https://empty-actions-map.io", "missing action 'download'"},
-				{"https://download-actions-map.io", ""},
-				{"https://upload-actions-map.io", "missing action 'download'"},
-				{"https://verify-actions-map.io", "missing action 'download'"},
-				{"https://unknown-actions-map.io", "missing action 'download'"},
-				{"https://legacy-batch-request-download.io", ""},
+				{"https://status-not-ok.io", `LFS server returned error, status: 400, body: ""`, 0},
+				{"https://plaintext-error.io", `LFS server returned error, status: 404, body: "Not Found"`, 0},
+				{"https://invalid-json-response.io", "/(invalid json|invalid character)/", 0},
+				{"https://duplicate-oid-with-wrong-size.io", "", 1},
+				{"https://response-no-objects.io", "", 0},
+				{"https://unknown-transfer-adapter.io", "TransferAdapter not found: ", 0},
+				{"https://error-in-response-objects.io", "Object not found", 1},
+				{"https://empty-actions-map.io", "missing action 'download'", 0},
+				{"https://download-actions-map.io", "", 1},
+				{"https://upload-actions-map.io", "missing action 'download'", 0},
+				{"https://verify-actions-map.io", "missing action 'download'", 0},
+				{"https://unknown-actions-map.io", "missing action 'download'", 0},
+				{"https://legacy-batch-request-download.io", "", 1},
+				{"https://unknown-oid.io", "unrequested oid", 0},
+				{"https://null-object.io", "null object", 0},
+				{"https://null-download-link.io", "missing action 'download'", 0},
 			},
 		},
 		{
 			name: "upload",
 			cases: []clientCase{
-				{"https://status-not-ok.io", `LFS server returned error, status: 400, body: ""`},
-				{"https://plaintext-error.io", `LFS server returned error, status: 404, body: "Not Found"`},
-				{"https://invalid-json-response.io", "/(invalid json|invalid character)/"},
-				{"https://valid-batch-request-upload.io", ""},
-				{"https://response-no-objects.io", ""},
-				{"https://unknown-transfer-adapter.io", "TransferAdapter not found: "},
-				{"https://error-in-response-objects.io", "Object not found"},
-				{"https://empty-actions-map.io", ""},
-				{"https://download-actions-map.io", "missing action 'upload'"},
-				{"https://upload-actions-map.io", ""},
-				{"https://verify-actions-map.io", "missing action 'upload'"},
-				{"https://unknown-actions-map.io", "missing action 'upload'"},
+				{"https://status-not-ok.io", `LFS server returned error, status: 400, body: ""`, 0},
+				{"https://plaintext-error.io", `LFS server returned error, status: 404, body: "Not Found"`, 0},
+				{"https://invalid-json-response.io", "/(invalid json|invalid character)/", 0},
+				{"https://upload-with-null-verify.io", "", 1},
+				{"https://response-no-objects.io", "", 0},
+				{"https://unknown-transfer-adapter.io", "TransferAdapter not found: ", 0},
+				{"https://error-in-response-objects.io", "Object not found", 1},
+				{"https://empty-actions-map.io", "", 0},
+				{"https://download-actions-map.io", "missing action 'upload'", 0},
+				{"https://upload-actions-map.io", "", 1},
+				{"https://verify-actions-map.io", "missing action 'upload'", 0},
+				{"https://unknown-actions-map.io", "missing action 'upload'", 0},
 			},
 		},
 	} {
 		t.Run(operation.name, func(t *testing.T) {
-			p := Pointer{Oid: "fb8f7d8435968c4f82a726a92395be4d16f2f63116caf36c8ad35c60831ab041", Size: 6}
+			requested := Pointer{Oid: "fb8f7d8435968c4f82a726a92395be4d16f2f63116caf36c8ad35c60831ab041", Size: 6}
 
 			hc := &http.Client{Transport: RoundTripFunc(func(req *http.Request) *http.Response {
 				assert.Equal(t, "POST", req.Method)
@@ -227,11 +168,9 @@ func TestHTTPClientTransfers(t *testing.T) {
 				} else {
 					assert.Nil(t, batchRequest.Ref)
 				}
-				assert.Len(t, batchRequest.Objects, 1)
-				assert.Equal(t, p.Oid, batchRequest.Objects[0].Oid)
-				assert.Equal(t, p.Size, batchRequest.Objects[0].Size)
+				assert.Equal(t, []Pointer{requested}, batchRequest.Objects)
 
-				return lfsTestRoundtripHandler(req)
+				return lfsTestRoundtripHandler(req, requested)
 			})}
 			dummy := &DummyTransferAdapter{}
 
@@ -246,9 +185,15 @@ func TestHTTPClientTransfers(t *testing.T) {
 						},
 					}
 
+					var callbacks atomic.Int32
+					checkPointer := func(pointer Pointer) {
+						callbacks.Add(1)
+						assert.Equal(t, requested, pointer)
+					}
 					var err error
 					if operation.name == "download" {
-						err = client.Download(t.Context(), "refs/heads/main", []Pointer{p}, func(p Pointer, content io.ReadCloser, objectError error) error {
+						err = client.Download(t.Context(), "refs/heads/main", []Pointer{requested}, func(pointer Pointer, content io.ReadCloser, objectError error) error {
+							checkPointer(pointer)
 							if objectError != nil {
 								return objectError
 							}
@@ -258,10 +203,12 @@ func TestHTTPClientTransfers(t *testing.T) {
 							return nil
 						})
 					} else {
-						err = client.Upload(t.Context(), []Pointer{p}, func(p Pointer, objectError error) (io.ReadCloser, error) {
+						err = client.Upload(t.Context(), []Pointer{requested}, func(pointer Pointer, objectError error) (io.ReadCloser, error) {
+							checkPointer(pointer)
 							return io.NopCloser(new(bytes.Buffer)), objectError
 						})
 					}
+					assert.Equal(t, testCase.callbacks, callbacks.Load())
 					if testCase.expectedError != "" {
 						if strings.HasPrefix(testCase.expectedError, "/") && strings.HasSuffix(testCase.expectedError, "/") {
 							assert.Regexp(t, strings.Trim(testCase.expectedError, "/"), err.Error())

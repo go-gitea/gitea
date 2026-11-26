@@ -4,7 +4,9 @@
 package lfs
 
 import (
+	"io"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,12 +14,23 @@ import (
 )
 
 func TestNewClient(t *testing.T) {
-	u, _ := url.Parse("file:///test")
+	u := endpointFromLocalPath(t.TempDir())
 	c := newClient(u, nil)
 	require.IsType(t, &FilesystemClient{}, c)
 	localPath, err := c.(*FilesystemClient).objectPath("invalid") //nolint:forcetypeassert // type is expected
 	assert.Empty(t, localPath)
 	assert.ErrorIs(t, err, ErrInvalidOIDFormat)
+
+	missing := []Pointer{{Oid: strings.Repeat("0", 64)}, {Oid: strings.Repeat("1", 64)}}
+	var received []Pointer
+	err = c.Download(t.Context(), "", missing, func(pointer Pointer, reader io.ReadCloser, objectErr error) error {
+		received = append(received, pointer)
+		assert.Nil(t, reader)
+		assert.ErrorIs(t, objectErr, ErrObjectNotExist)
+		return nil
+	})
+	require.NoError(t, err)
+	assert.Equal(t, missing, received)
 
 	u, _ = url.Parse("https://test.com/lfs")
 	c = newClient(u, nil)

@@ -13,6 +13,7 @@ import (
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -102,7 +103,8 @@ func testMirrorPushAPIDelete(t *testing.T, u *url.URL) {
 func testMirrorPush(t *testing.T, u *url.URL) {
 	_ = db.TruncateBeans(t.Context(), &repo_model.PushMirror{})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	srcRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	srcRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 54})
+	linked, unlinked := splitLFSFixtureLinks(t)
 
 	mirrorRepo, err := repo_service.CreateRepositoryDirectly(t.Context(), user, user, repo_service.CreateRepoOptions{
 		Name: "test-push-mirror",
@@ -121,6 +123,8 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	ok := mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID)
 	assert.True(t, ok)
 	assert.NotZero(t, unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: mirrors[0].ID}).LastUpdateUnix)
+	unittest.AssertExistsAndLoadBean(t, &git_model.LFSMetaObject{RepositoryID: mirrorRepo.ID, Oid: linked.Oid})
+	unittest.AssertNotExistsBean(t, &git_model.LFSMetaObject{RepositoryID: mirrorRepo.ID, Oid: unlinked.Oid})
 
 	srcGitRepo, err := git.OpenRepository(t.Context(), srcRepo)
 	assert.NoError(t, err)
