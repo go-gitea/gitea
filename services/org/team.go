@@ -241,7 +241,7 @@ func AddTeamMember(ctx context.Context, team *organization.Team, user *user_mode
 		return err
 	}
 
-	err = db.WithTx(ctx, func(ctx context.Context) error {
+	err = organization.WithSubgroupHierarchyLock(ctx, func(ctx context.Context) error {
 		// check in transaction
 		isAlreadyMember, err = organization.IsTeamMember(ctx, team.OrgID, team.ID, user.ID)
 		if err != nil || isAlreadyMember {
@@ -261,6 +261,11 @@ func AddTeamMember(ctx context.Context, team *organization.Team, user *user_mode
 		}
 
 		team.NumMembers++
+		if team.IsOwnerTeam() {
+			if err := recalculateDescendantUserAccess(ctx, team.OrgID, user, false); err != nil {
+				return err
+			}
+		}
 		return nil
 	})
 	if err != nil {
@@ -343,6 +348,12 @@ func removeTeamMember(ctx context.Context, team *organization.Team, user *user_m
 		}
 	}
 
+	if team.IsOwnerTeam() {
+		if err := recalculateDescendantUserAccess(ctx, team.OrgID, user, true); err != nil {
+			return err
+		}
+	}
+
 	return removeInvalidOrgUser(ctx, team.OrgID, user)
 }
 
@@ -366,7 +377,7 @@ func removeInvalidOrgUser(ctx context.Context, orgID int64, user *user_model.Use
 
 // RemoveTeamMember removes member from given team of given organization.
 func RemoveTeamMember(ctx context.Context, team *organization.Team, user *user_model.User) error {
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
+	if err := organization.WithSubgroupHierarchyLock(ctx, func(ctx context.Context) error {
 		return removeTeamMember(ctx, team, user)
 	}); err != nil {
 		return err

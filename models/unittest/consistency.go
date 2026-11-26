@@ -73,6 +73,9 @@ func init() {
 		if user.int("Type") != modelsUserTypeOrganization {
 			assert.Equal(t, 0, user.int("NumMembers"), "Unexpected number of members for user id: %d", user.int("ID"))
 			assert.Equal(t, 0, user.int("NumTeams"), "Unexpected number of teams for user id: %d", user.int("ID"))
+			assert.Equal(t, 0, user.int("ParentOrgID"), "Unexpected parent_org_id for non-org user id: %d", user.int("ID"))
+		} else if user.int("ParentOrgID") > 0 {
+			AssertExistsAndLoadMap(t, "user", builder.Eq{"id": user.int("ParentOrgID"), "type": modelsUserTypeOrganization})
 		}
 	}
 

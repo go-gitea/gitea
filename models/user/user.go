@@ -162,9 +162,10 @@ type User struct {
 	NumRepos     int
 
 	// For organization
-	NumTeams   int
-	NumMembers int
-	Visibility structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
+	ParentOrgID int64 `xorm:"parent_org_id INDEX NOT NULL DEFAULT 0"`
+	NumTeams    int
+	NumMembers  int
+	Visibility  structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
 
 	// Introduced by "Add teams to repo on collaboration page. (#8045)"
 	// Whether a repo admin can add/remove a team to/from the repo on the collaboration page

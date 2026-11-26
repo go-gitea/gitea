@@ -478,6 +478,17 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 		return perm, nil
 	}
 
+	if repo.Owner.ParentOrgID > 0 {
+		isAncOwner, err := organization.IsOrganizationOwner(ctx, repo.OwnerID, user.ID)
+		if err != nil {
+			return perm, err
+		}
+		if isAncOwner {
+			perm.AccessMode = perm_model.AccessModeOwner
+			return perm, nil
+		}
+	}
+
 	// now: the owner is visible to doer, if the repo is public, then the min access mode is read
 	minAccessMode := util.Iif(!repo.IsPrivate && !user.IsRestricted, perm_model.AccessModeRead, perm_model.AccessModeNone)
 	perm.AccessMode = max(perm.AccessMode, minAccessMode)

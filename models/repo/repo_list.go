@@ -277,6 +277,17 @@ func UserAccessRepoCond(idStr string, userID int64) builder.Cond {
 	)
 }
 
+// UserOwnerAccessRepoCond selects repositories where userID holds owner-level access (including inherited subgroup ownership).
+func UserOwnerAccessRepoCond(idStr string, userID int64) builder.Cond {
+	return builder.In(idStr, builder.Select("repo_id").
+		From("`access`").
+		Where(builder.And(
+			builder.Eq{"`access`.user_id": userID},
+			builder.Gte{"`access`.mode": int(perm.AccessModeOwner)},
+		)),
+	)
+}
+
 // userCollaborationRepoCond returns a condition for selecting all repositories a user is collaborator in
 func UserCollaborationRepoCond(idStr string, userID int64) builder.Cond {
 	return builder.In(idStr, builder.Select("repo_id").
@@ -318,9 +329,22 @@ func userOrgTeamUnitRepoCond(idStr string, userID int64, unitType unit.Type) bui
 
 // UserOrgUnitRepoCond selects repos that the given user has access to through org and the special unit
 func UserOrgUnitRepoCond(idStr string, userID, orgID int64, unitType unit.Type) builder.Cond {
-	return builder.In(idStr,
-		userOrgTeamUnitRepoBuilder(userID, unitType).
-			And(builder.Eq{"`team`.org_id": orgID}),
+	return builder.Or(
+		builder.In(idStr,
+			userOrgTeamUnitRepoBuilder(userID, unitType).
+				And(builder.Eq{"`team`.org_id": orgID}),
+		),
+		builder.In(idStr, builder.Select("`access`.repo_id").
+			From("`access`").
+			Join("INNER", "`repository`", "`repository`.id = `access`.repo_id").
+			Where(builder.And(
+				builder.Eq{
+					"`access`.user_id":      userID,
+					"`repository`.owner_id": orgID,
+				},
+				builder.Gte{"`access`.mode": int(perm.AccessModeOwner)},
+			)),
+		),
 	)
 }
 
@@ -691,6 +715,7 @@ func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) bu
 			cond = cond.Or(
 				UserCollaborationRepoCond("`repository`.id", user.ID),
 				userOrgTeamUnitRepoCond("`repository`.id", user.ID, unitType),
+				UserOwnerAccessRepoCond("`repository`.id", user.ID),
 			)
 		}
 		// 4. Repositories that we directly own

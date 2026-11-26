@@ -451,6 +451,9 @@ func prepareMigrationTasks() []*migration {
 		newMigration(372, "Add workflow_ref to action_run", v29.AddWorkflowRefToActionRun),
 		newMigration(373, "Repair Debian and RPM signing keys rejected by Sequoia", v29.RepairPackageSigningKeys),
 	}
+	preparedMigrations = append(preparedMigrations,
+		newMigration(int64(minDBVersion+len(preparedMigrations)), "Add parent_org_id column to user for organization subgroups", v29.AddParentOrgIDToUser),
+	)
 	return preparedMigrations
 }
 

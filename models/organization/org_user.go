@@ -6,6 +6,7 @@ package organization
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
@@ -63,8 +64,7 @@ func GetUserOrganizations(ctx context.Context, uid int64) (ret []*Organization, 
 	return ret, err
 }
 
-// IsOrganizationOwner returns true if given user is in the owner team.
-func IsOrganizationOwner(ctx context.Context, orgID, uid int64) (bool, error) {
+func isDirectOrganizationOwner(ctx context.Context, orgID, uid int64) (bool, error) {
 	ownerTeam, err := GetOwnerTeam(ctx, orgID)
 	if err != nil {
 		if IsErrTeamNotExist(err) {
@@ -76,6 +76,32 @@ func IsOrganizationOwner(ctx context.Context, orgID, uid int64) (bool, error) {
 	return IsTeamMember(ctx, orgID, ownerTeam.ID, uid)
 }
 
+// IsOrganizationOwner returns true if given user is in the owner team of orgID
+// or of any ancestor organization when orgID is a subgroup.
+func IsOrganizationOwner(ctx context.Context, orgID, uid int64) (bool, error) {
+	isDirect, err := isDirectOrganizationOwner(ctx, orgID, uid)
+	if err != nil || isDirect {
+		return isDirect, err
+	}
+	ancestors, err := GetAncestorOrgs(ctx, orgID)
+	if err != nil {
+		if IsErrOrgNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	for _, ancestor := range slices.Backward(ancestors) {
+		isAncOwner, err := isDirectOrganizationOwner(ctx, ancestor.ID, uid)
+		if err != nil {
+			return false, err
+		}
+		if isAncOwner {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // IsOrganizationMember returns true if given user is member of organization.
 func IsOrganizationMember(ctx context.Context, orgID, uid int64) (bool, error) {
 	return db.GetEngine(ctx).
@@ -83,6 +109,16 @@ func IsOrganizationMember(ctx context.Context, orgID, uid int64) (bool, error) {
 		And("org_id=?", orgID).
 		Table("org_user").
 		Exist()
+}
+
+// IsOrganizationMemberOrOwner returns true if given user is a direct member of orgID
+// or holds direct/inherited ownership of orgID.
+func IsOrganizationMemberOrOwner(ctx context.Context, orgID, uid int64) (bool, error) {
+	isMember, err := IsOrganizationMember(ctx, orgID, uid)
+	if err != nil || isMember {
+		return isMember, err
+	}
+	return IsOrganizationOwner(ctx, orgID, uid)
 }
 
 // IsPublicMembership returns true if the given user's membership of given org is public.
@@ -97,12 +133,16 @@ func IsPublicMembership(ctx context.Context, orgID, uid int64) (bool, error) {
 
 // CanCreateOrgRepo returns true if user can create repo in organization
 func CanCreateOrgRepo(ctx context.Context, orgID, uid int64) (bool, error) {
-	return db.GetEngine(ctx).
+	canCreate, err := db.GetEngine(ctx).
 		Where(builder.Eq{"team.can_create_org_repo": true}.Or(builder.Eq{"team.authorize": perm.AccessModeOwner})).
 		Join("INNER", "team_user", "team_user.team_id = team.id").
 		And("team_user.uid = ?", uid).
 		And("team_user.org_id = ?", orgID).
 		Exist(new(Team))
+	if err != nil || canCreate {
+		return canCreate, err
+	}
+	return IsOrganizationOwner(ctx, orgID, uid)
 }
 
 // IsUserOrgOwner returns true if user is in the owner team of given organization.

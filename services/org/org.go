@@ -56,6 +56,13 @@ func deleteOrganization(ctx context.Context, org *org_model.Organization) error 
 
 // DeleteOrganization completely and permanently deletes everything of organization.
 func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge bool) error {
+	// Fast pre-check before purging repositories so non-leaf organizations fail without losing repos.
+	if subgroupCount, err := org_model.CountSubgroups(ctx, org.ID); err != nil {
+		return fmt.Errorf("DeleteOrganization: %w", err)
+	} else if subgroupCount > 0 {
+		return org_model.ErrOrgHasSubgroups{OrgID: org.ID}
+	}
+
 	// outside the transaction below, because each repository deletion owns one and deletes storage after committing
 	if purge {
 		if err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, org.AsUser()); err != nil {
@@ -63,7 +70,14 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 		}
 	}
 
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
+	if err := org_model.WithSubgroupHierarchyLock(ctx, func(ctx context.Context) error {
+		// Re-verify under the shared hierarchy lock so concurrent subgroup creation or reparenting cannot leave a dangling ParentOrgID.
+		if subgroupCount, err := org_model.CountSubgroups(ctx, org.ID); err != nil {
+			return fmt.Errorf("DeleteOrganization: %w", err)
+		} else if subgroupCount > 0 {
+			return org_model.ErrOrgHasSubgroups{OrgID: org.ID}
+		}
+
 		// Check ownership of repository.
 		count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: org.ID})
 		if err != nil {
@@ -158,20 +172,35 @@ func updateRepoForVisibilityChanged(ctx context.Context, repo *repo_model.Reposi
 }
 
 func ChangeOrganizationVisibility(ctx context.Context, org *org_model.Organization, visibility structs.VisibleType) error {
-	if org.Visibility == visibility {
-		return nil
-	}
-
-	oldVisibility := org.Visibility
-	org.Visibility = visibility
+	var oldVisibility structs.VisibleType
+	var changed bool
 	// FIXME: If it's a big forks network(forks and sub forks), the database transaction will be too long to fail.
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if err := user_model.UpdateUserColsNoAutoTime(ctx, org.AsUser(), "visibility"); err != nil {
+	if err := org_model.WithSubgroupHierarchyLock(ctx, func(ctx context.Context) error {
+		freshOrg, err := org_model.GetOrgByID(ctx, org.ID)
+		if err != nil {
+			return err
+		}
+		org.ParentOrgID = freshOrg.ParentOrgID
+		oldVisibility = freshOrg.Visibility
+		if freshOrg.ParentOrgID > 0 {
+			if _, err := org_model.ValidateParentOrg(ctx, freshOrg.ID, freshOrg.ParentOrgID, visibility); err != nil {
+				return err
+			}
+		}
+		if freshOrg.Visibility == visibility {
+			org.Visibility = freshOrg.Visibility
+			return nil
+		}
+
+		changed = true
+		freshOrg.Visibility = visibility
+		org.Visibility = visibility
+		if err := user_model.UpdateUserColsNoAutoTime(ctx, freshOrg.AsUser(), "visibility"); err != nil {
 			return err
 		}
 
 		repos, _, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
-			OwnerID: org.ID, Private: true, ListOptions: db.ListOptionsAll,
+			OwnerID: freshOrg.ID, Private: true, ListOptions: db.ListOptionsAll,
 		})
 		if err != nil {
 			return err
@@ -181,9 +210,38 @@ func ChangeOrganizationVisibility(ctx context.Context, org *org_model.Organizati
 				return fmt.Errorf("updateRepoForVisibilityChanged: %w", err)
 			}
 		}
+
+		// Cascade stricter visibility downward to any descendant subgroups that were more permissive.
+		descendants, err := org_model.GetDescendantOrgs(ctx, freshOrg.ID, nil, true)
+		if err != nil {
+			return err
+		}
+		for _, desc := range descendants {
+			if desc.Visibility < visibility {
+				desc.Visibility = visibility
+				if err := user_model.UpdateUserColsNoAutoTime(ctx, desc.AsUser(), "visibility"); err != nil {
+					return err
+				}
+				descRepos, _, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
+					OwnerID: desc.ID, Private: true, ListOptions: db.ListOptionsAll,
+				})
+				if err != nil {
+					return err
+				}
+				for _, repo := range descRepos {
+					if err := updateRepoForVisibilityChanged(ctx, repo, visibility == structs.VisibleTypePrivate); err != nil {
+						return fmt.Errorf("ChangeOrganizationVisibility: %w", err)
+					}
+				}
+			}
+		}
 		return nil
 	}); err != nil {
 		return err
+	}
+
+	if !changed {
+		return nil
 	}
 
 	audit.Record(ctx, audit_model.OrganizationVisibility, org.AsUser(),

@@ -121,7 +121,7 @@ func ListPackages(ctx *context.Context) {
 		ctx.Data["OrgLink"] = ctx.ContextUser.OrganisationLink()
 
 		if ctx.Doer != nil {
-			ctx.Data["IsOrganizationMember"], _ = org_model.IsOrganizationMember(ctx, org.ID, ctx.Doer.ID)
+			ctx.Data["IsOrganizationMember"], _ = org_model.IsOrganizationMemberOrOwner(ctx, org.ID, ctx.Doer.ID)
 			ctx.Data["IsOrganizationOwner"], _ = org_model.IsOrganizationOwner(ctx, org.ID, ctx.Doer.ID)
 		} else {
 			ctx.Data["IsOrganizationMember"] = false

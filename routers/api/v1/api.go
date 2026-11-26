@@ -511,7 +511,7 @@ func teamAccessPrivileged(ctx *context.APIContext) (orgID int64, privileged, ok 
 }
 
 func denyNonTeamMember(ctx *context.APIContext, orgID int64) {
-	isOrgMember, err := organization.IsOrganizationMember(ctx, orgID, ctx.Doer.ID)
+	isOrgMember, err := organization.IsOrganizationMemberOrOwner(ctx, orgID, ctx.Doer.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 	} else if isOrgMember {
@@ -577,7 +577,7 @@ func reqOrgMembership() func(ctx *context.APIContext) {
 			return
 		}
 
-		if isMember, err := organization.IsOrganizationMember(ctx, orgID, ctx.Doer.ID); err != nil {
+		if isMember, err := organization.IsOrganizationMemberOrOwner(ctx, orgID, ctx.Doer.ID); err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		} else if !isMember {
@@ -1756,6 +1756,10 @@ func Routes() *web.Router {
 				Patch(reqToken(), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
 				Delete(reqToken(), reqOrgOwnership(), org.Delete)
 			m.Post("/rename", reqToken(), reqOrgOwnership(), bind(api.RenameOrgOption{}), org.Rename)
+			m.Combo("/subgroups").Get(org.ListSubgroups).
+				Post(reqToken(), reqOrgOwnership(), rejectPublicOnly(), bind(api.CreateSubgroupOption{}), org.CreateSubgroup)
+			m.Get("/ancestors", org.ListAncestors)
+			m.Patch("/parent", reqToken(), reqOrgOwnership(), rejectPublicOnly(), bind(api.MoveSubgroupOption{}), org.MoveSubgroup)
 			m.Combo("/repos").Get(user.ListOrgRepos).
 				Post(reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), rejectPublicOnly(), bind(api.CreateRepoOption{}), repo.CreateOrgRepo).
 				Delete(reqToken(), reqOrgOwnership(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), org.DeleteOrgRepos)

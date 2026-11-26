@@ -40,7 +40,7 @@ func Members(ctx *context.Context) {
 	}
 
 	if ctx.Doer != nil {
-		isMember, err := ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
+		isMember, err := ctx.Org.Organization.IsOrgMemberOrOwner(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerErrorAuto(err)
 			return

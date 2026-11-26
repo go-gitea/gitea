@@ -83,7 +83,7 @@ func ListMembers(ctx *context.APIContext) {
 	)
 
 	if user_model.DoerCanViewPrivate(ctx.Doer) {
-		isMember, err = ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
+		isMember, err = ctx.Org.Organization.IsOrgMemberOrOwner(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -151,7 +151,7 @@ func IsMember(ctx *context.APIContext) {
 		return
 	}
 	if user_model.DoerCanViewPrivate(ctx.Doer) {
-		userIsMember, err := ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
+		userIsMember, err := ctx.Org.Organization.IsOrgMemberOrOwner(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
