@@ -4,17 +4,12 @@
 package user
 
 import (
-	"errors"
 	"net/http"
 
 	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
 	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/shared"
-	"gitea.dev/routers/api/v1/utils"
-	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	secret_service "gitea.dev/services/secrets"
@@ -124,31 +119,7 @@ func CreateVariable(ctx *context.APIContext) {
 	//     description: successfully created the user-level variable
 	//   default:
 	//     "$ref": "#/responses/error"
-
-	opt := web.GetForm[*api.CreateVariableOption](ctx)
-
-	ownerID := ctx.Doer.ID
-	variableName := ctx.PathParam("variablename")
-
-	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
-		BelongingScope: actions_model.BelongingScopeOwner(ownerID),
-		Name:           variableName,
-	})
-	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if v != nil && v.ID > 0 {
-		ctx.APIError(http.StatusConflict, "variable name already exists")
-		return
-	}
-
-	if _, err := actions_service.CreateVariable(ctx, actions_model.BelongingScopeOwner(ownerID), variableName, opt.Value, opt.Description); err != nil {
-		ctx.APIErrorAuto(err)
-		return
-	}
-
-	ctx.Status(http.StatusCreated)
+	shared.CreateVariable(ctx, actions_model.BelongingScopeOwner(ctx.Doer.ID))
 }
 
 // UpdateVariable update a user-level variable which is created by current doer
@@ -177,32 +148,7 @@ func UpdateVariable(ctx *context.APIContext) {
 	//     description: response when updating a variable
 	//   default:
 	//     "$ref": "#/responses/error"
-
-	opt := web.GetForm[*api.UpdateVariableOption](ctx)
-
-	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
-		BelongingScope: actions_model.BelongingScopeOwner(ctx.Doer.ID),
-		Name:           ctx.PathParam("variablename"),
-	})
-	if err != nil {
-		ctx.APIErrorAuto(err)
-		return
-	}
-
-	if opt.Name == "" {
-		opt.Name = ctx.PathParam("variablename")
-	}
-
-	v.Name = opt.Name
-	v.Data = opt.Value
-	v.Description = opt.Description
-
-	if _, err := actions_service.UpdateVariableNameData(ctx, v); err != nil {
-		ctx.APIErrorAuto(err)
-		return
-	}
-
-	ctx.Status(http.StatusNoContent)
+	shared.UpdateVariable(ctx, actions_model.BelongingScopeOwner(ctx.Doer.ID))
 }
 
 // DeleteVariable delete a user-level variable which is created by current doer
@@ -225,13 +171,7 @@ func DeleteVariable(ctx *context.APIContext) {
 	//     description: response when deleting a variable
 	//   default:
 	//     "$ref": "#/responses/error"
-
-	if err := actions_service.DeleteVariableByName(ctx, actions_model.BelongingScopeOwner(ctx.Doer.ID), ctx.PathParam("variablename")); err != nil {
-		ctx.APIErrorAuto(err)
-		return
-	}
-
-	ctx.Status(http.StatusNoContent)
+	shared.DeleteVariable(ctx, actions_model.BelongingScopeOwner(ctx.Doer.ID))
 }
 
 // GetVariable get a user-level variable which is created by current doer
@@ -252,25 +192,7 @@ func GetVariable(ctx *context.APIContext) {
 	//			"$ref": "#/responses/ActionVariable"
 	//   default:
 	//     "$ref": "#/responses/error"
-
-	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
-		BelongingScope: actions_model.BelongingScopeOwner(ctx.Doer.ID),
-		Name:           ctx.PathParam("variablename"),
-	})
-	if err != nil {
-		ctx.APIErrorAuto(err)
-		return
-	}
-
-	variable := &api.ActionVariable{
-		OwnerID:     v.OwnerID,
-		RepoID:      v.RepoID,
-		Name:        v.Name,
-		Data:        v.Data,
-		Description: v.Description,
-	}
-
-	ctx.JSON(http.StatusOK, variable)
+	shared.GetVariable(ctx, actions_model.BelongingScopeOwner(ctx.Doer.ID))
 }
 
 // ListVariables list user-level variables
@@ -294,30 +216,7 @@ func ListVariables(ctx *context.APIContext) {
 	//			"$ref": "#/responses/VariableList"
 	//   default:
 	//     "$ref": "#/responses/error"
-	listOptions := utils.GetListOptions(ctx)
-	vars, count, err := db.FindAndCount[actions_model.ActionVariable](ctx, &actions_model.FindVariablesOpts{
-		BelongingScope: actions_model.BelongingScopeOwner(ctx.Doer.ID),
-		ListOptions:    listOptions,
-	})
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	variables := make([]*api.ActionVariable, len(vars))
-	for i, v := range vars {
-		variables[i] = &api.ActionVariable{
-			OwnerID:     v.OwnerID,
-			RepoID:      v.RepoID,
-			Name:        v.Name,
-			Data:        v.Data,
-			Description: v.Description,
-		}
-	}
-
-	ctx.SetLinkHeader(count, listOptions.PageSize)
-	ctx.SetTotalCountHeader(count)
-	ctx.JSON(http.StatusOK, variables)
+	shared.ListVariables(ctx, actions_model.BelongingScopeOwner(ctx.Doer.ID))
 }
 
 // ListWorkflowRuns lists workflow runs

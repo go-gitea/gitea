@@ -14,6 +14,7 @@ import (
 
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitrepo"
@@ -153,7 +154,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
-	performPush := func(storageRepo gitrepo.RepositoryFacade) error {
+	performPush := func(storageRepo gitrepo.RepositoryFacade, excludeRefs []string) error {
 		remoteURL, err := git.ParseRemoteAddressURL(ctx, storageRepo, m.RemoteName)
 		if err != nil {
 			return fmt.Errorf("ParseRemoteAddressURL failed: %w", err)
@@ -187,10 +188,11 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		log.Trace("Pushing mirror %d repo %s to remote %s", m.ID, storageRepo.LogString(), m.RemoteName)
 
 		if err := git.PushToExternal(ctx, storageRepo, git.PushOptions{
-			Remote:  m.RemoteName,
-			Force:   true,
-			Mirror:  true,
-			Timeout: timeout,
+			Remote:        m.RemoteName,
+			Force:         true,
+			Mirror:        true,
+			MirrorExclude: excludeRefs,
+			Timeout:       timeout,
 		}); err != nil {
 			return fmt.Errorf("PushToExternal failed: %w", err)
 		}
@@ -198,13 +200,16 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		return nil
 	}
 
-	err := performPush(m.Repo.CodeStorageRepo())
+	queueRefs, err := pull_model.GetMergeQueueGroupRefs(ctx, m.Repo.ID)
 	if err != nil {
+		return fmt.Errorf("GetMergeQueueGroupRefs failed: %w", err)
+	}
+	if err := performPush(m.Repo.CodeStorageRepo(), queueRefs); err != nil {
 		return fmt.Errorf("performPush(code) failed: %w", err)
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		err := performPush(m.Repo.WikiStorageRepo())
+		err := performPush(m.Repo.WikiStorageRepo(), nil)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			return fmt.Errorf("performPush(wiki) failed: %w", err)
 		}
