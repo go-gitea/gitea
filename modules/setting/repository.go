@@ -345,11 +345,7 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	if !slices.Contains([]string{"BLANK", "COMMIT_MESSAGES", "PR_BODY"}, Repository.PullRequest.DefaultSquashMergeMessage) { // uppercase unlike other config values, to match GitHub's squash_merge_commit_message which the API also uses
 		log.Fatal("Invalid repository.pull-request.DEFAULT_SQUASH_MERGE_MESSAGE: %s", Repository.PullRequest.DefaultSquashMergeMessage)
 	}
-	mergeQueueBranchPrefix := strings.Trim(Repository.PullRequest.MergeQueueBranchPrefix, "/")
-	if mergeQueueBranchPrefix == "" {
-		log.Fatal("repository.pull-request.MERGE_QUEUE_BRANCH_PREFIX must not be empty")
-	}
-	Repository.PullRequest.MergeQueueBranchPrefix = mergeQueueBranchPrefix + "/"
+	Repository.PullRequest.MergeQueueBranchPrefix = strings.Trim(Repository.PullRequest.MergeQueueBranchPrefix, "/") + "/" // validated in mergequeue.Init
 
 	if !rootCfg.Section("packages").Key("ENABLED").MustBool(Packages.Enabled) {
 		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.packages")
