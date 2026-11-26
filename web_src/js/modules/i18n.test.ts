@@ -1,4 +1,5 @@
-import {trN, trString} from './i18n.ts';
+import {createApp, h} from 'vue';
+import {trN, trSlots, trString} from './i18n.ts';
 
 test('trN', () => {
   expect(trN(0, '%d job', '%d jobs', {lang: 'en-US'})).toEqual('0 jobs');
@@ -14,4 +15,11 @@ test('trString', () => {
   expect(trString('from %[1]s to %[2]d', 'main', 12)).toBe('from main to 12');
   expect(trString('from %s to %[2]d', 'main', 12)).toBe('from main to 12');
   expect(trString('from %s to %[3]d', 'main', 12)).toBe('from main to %[3]d');
+});
+
+test('trSlots', () => {
+  const root = document.createElement('div');
+  const slots = {1: () => h('a', {href: '/queue'}, 'merge queue'), 2: () => 'main'};
+  createApp({render: () => h(trSlots, {text: '%[2]s uses the %[1]s, 100%%, %[3]s'}, slots)}).mount(root);
+  expect(root.innerHTML).toBe('main uses the <a href="/queue">merge queue</a>, 100%, %[3]s');
 });

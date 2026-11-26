@@ -140,7 +140,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
     arrow: resolvedArrow,
     popperOptions: {modifiers: [
       {name: 'arrow', options: {padding: arrowPadding}},
-      ...limitSizeToViewport ? [sizeModifier(limitSizeToViewport)] : [],
+      ...(limitSizeToViewport ? [sizeModifier(limitSizeToViewport)] : []),
     ]},
     role: role || 'menu',
     theme: resolvedTheme,

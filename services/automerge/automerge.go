@@ -26,6 +26,7 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/automergequeue"
+	"gitea.dev/services/mergequeue"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
@@ -73,7 +74,7 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_
 		if err := pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message, deleteBranchAfterMerge); err != nil {
 			return err
 		}
-		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRScheduledToAutoMerge, pull, doer, string(style))
+		_, err := issues_model.CreatePullRequestComment(ctx, issues_model.CommentTypePRScheduledToAutoMerge, pull, doer, string(style))
 		return err
 	})
 	if err == nil {
@@ -228,6 +229,15 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 		return errors.Join(errSkipAutoMerge, errors.New("pull request is not mergeable"))
 	}
 
+	if queued, err := mergequeue.EnqueueIfRequired(ctx, doer, pr, expectedHeadCommitID, false); pull_service.IsErrSHADoesNotMatch(err) {
+		return errors.Join(errSkipAutoMerge, err)
+	} else if err != nil {
+		return fmt.Errorf("failed to add PR:%d to the merge queue: %w", pr.ID, err)
+	} else if queued {
+		_, err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID)
+		return err
+	}
+
 	// although expectedHeadCommitID is checked before, we should pass it to the Merge function to
 	// make it be checked again in case the head commit id changed after the previous check.
 	if err := pull_service.Merge(ctx, pr.ID, doer, scheduledPRM.MergeStyle, expectedHeadCommitID, scheduledPRM.Message, true); err != nil {
@@ -241,15 +251,6 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 	}
 
 	// the PR has been merged, so no error should be returned after this point
-	{
-		deleteBranchAfterMerge, err := pull_service.ShouldDeleteBranchAfterMerge(ctx, &scheduledPRM.DeleteBranchAfterMerge, pr.BaseRepo, pr)
-		if err != nil {
-			log.Error("ShouldDeleteBranchAfterMerge: %v", err)
-		} else if deleteBranchAfterMerge {
-			if err = repo_service.DeleteBranchAfterMerge(ctx, doer, pr.ID, nil); err != nil {
-				log.Error("DeleteBranchAfterMerge: %v", err)
-			}
-		}
-	}
+	repo_service.DeleteBranchAfterMergeIfNeeded(ctx, doer, pr.BaseRepo, pr, &scheduledPRM.DeleteBranchAfterMerge)
 	return nil
 }

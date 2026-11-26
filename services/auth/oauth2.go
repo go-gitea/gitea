@@ -17,7 +17,6 @@ import (
 	"gitea.dev/modules/auth/httpauth"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/actions"
 	"gitea.dev/services/oauth2_provider"
@@ -138,9 +137,8 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string) (*user_mode
 		return nil, err
 	}
 
-	t.UpdatedUnix = timeutil.TimeStampNow()
-	if err = auth_model.UpdateAccessToken(ctx, t); err != nil {
-		log.Error("UpdateAccessToken: %v", err)
+	if err = auth_model.TouchAccessToken(ctx, t); err != nil {
+		log.Error("userFromToken: %v", err)
 	}
 	user, err := user_model.GetUserByID(ctx, t.UID)
 	if err != nil {

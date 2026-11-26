@@ -40,12 +40,14 @@ var globalVars = sync.OnceValue(func() (ret struct {
 	namePattern          *regexp.Regexp
 	versionPattern       *regexp.Regexp
 	authorReplacePattern *regexp.Regexp
+	urlPattern           *regexp.Regexp
 },
 ) {
 	ret.fieldPattern = regexp.MustCompile(`\A\S+:`)
 	ret.namePattern = regexp.MustCompile(`\A[a-zA-Z][a-zA-Z0-9\.]*[a-zA-Z0-9]\z`)
 	ret.versionPattern = regexp.MustCompile(`\A[0-9]+(?:[.\-][0-9]+)+\z`)
 	ret.authorReplacePattern = regexp.MustCompile(`[\[\(].+?[\]\)]`)
+	ret.urlPattern = regexp.MustCompile(`(?:https?|ftp)://[^\s,<>]+`)
 	return ret
 })
 
@@ -170,7 +172,7 @@ func ParseDescription(r io.Reader) (*Package, error) {
 		if line == "" {
 			continue
 		}
-		if !globalVars().fieldPattern.MatchString(line) {
+		if !globalVars().fieldPattern.Match(scanner.Bytes()) {
 			b.WriteRune(' ')
 			b.WriteString(line)
 			continue
@@ -224,7 +226,7 @@ func setField(p *Package, data string) error {
 	case "Description":
 		p.Metadata.Description = value
 	case "URL":
-		p.Metadata.ProjectURL = splitAndTrim(value)
+		p.Metadata.ProjectURL = globalVars().urlPattern.FindAllString(value, -1)
 	case "License":
 		p.Metadata.License = value
 	case "Author":

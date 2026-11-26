@@ -44,7 +44,9 @@
 		{{else if .Issue.IsClosed}}
 			<div class="ui red label issue-state-label">{{svg (Iif .Issue.IsPull "octicon-git-pull-request-closed" "octicon-issue-closed")}} {{ctx.Locale.Tr "repo.issues.closed_title"}}</div>
 		{{else if .Issue.IsPull}}
-			{{if .IsPullWorkInProgress}}
+			{{if .IsPullQueued}}
+				<div class="ui yellow label issue-state-label">{{svg "octicon-git-merge-queue"}} {{ctx.Locale.Tr "repo.pulls.merge_queue.state.queued"}}</div>
+			{{else if .IsPullWorkInProgress}}
 				<div class="ui grey label issue-state-label">{{svg "octicon-git-pull-request-draft"}} {{ctx.Locale.Tr "repo.issues.draft_title"}}</div>
 			{{else}}
 				<div class="ui green label issue-state-label">{{svg "octicon-git-pull-request"}} {{ctx.Locale.Tr "repo.issues.open_title"}}</div>
@@ -90,7 +92,7 @@
 							{{ctx.Locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref}}
 						</span>
 					{{end}}
-					{{if .Issue.PullRequest}}
+					{{if not .IsPullQueued}}
 					<div id="pull-desc-editor" class="tw-hidden flex-text-block tw-flex-wrap" data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch">
 						{{$pr := .Issue.PullRequest}}
 						{{$baseBranch := $pr.BaseBranch}}

@@ -84,7 +84,7 @@ func TestAPI_RenderGFM(t *testing.T) {
 <ul>
 <li><a href="http://localhost:3000/user2/repo1/wiki/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
 <li><a href="http://localhost:3000/user2/repo1/wiki/Tips" rel="nofollow">Tips</a></li>
-<li>Bezier widget (by <a href="http://localhost:3000/r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="https://github.com/ocornut/imgui/issues/786" rel="nofollow">https://github.com/ocornut/imgui/issues/786</a></li>
+<li>Bezier widget (by <a href="http://localhost:3000/r-lyeh" class="user-mention" rel="nofollow">@r-lyeh</a>) <a href="https://github.com/ocornut/imgui/issues/786" rel="nofollow">https://github.com/ocornut/imgui/issues/786</a></li>
 </ul>
 `,
 		// Guard wiki sidebar: special syntax

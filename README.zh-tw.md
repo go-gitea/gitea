@@ -62,7 +62,7 @@
 > [!注意]
 >
 > 1. **在開始進行 Pull Request 之前，您必須閱讀 [貢獻者指南](CONTRIBUTING.md)。**
-> 2. 如果您在項目中發現了漏洞，請私下寫信給 **security@gitea.io**。謝謝！
+> 2. 如果您在項目中發現了漏洞，請透過 [GitHub 安全公告](https://github.com/go-gitea/gitea/security/advisories/new) 私下回報，詳見[安全政策](SECURITY.md)。謝謝！
 
 ## 翻譯
 
