@@ -7,11 +7,13 @@ package cron
 import (
 	"context"
 	"runtime/pprof"
+	"strings"
 	"time"
 
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/translation"
 
 	"github.com/go-co-op/gocron/v2"
@@ -38,6 +40,7 @@ func Init(original context.Context) {
 	initActionsTasks()
 
 	lock.Lock()
+	checkUnknownTaskSections(setting.CfgProvider)
 	for _, task := range tasks {
 		if task.IsEnabled() && task.DoRunAtStart() {
 			go task.Run()
@@ -56,6 +59,14 @@ func Init(original context.Context) {
 		lock.Unlock()
 		finished()
 	})
+}
+
+func checkUnknownTaskSections(rootCfg setting.ConfigProvider) {
+	for _, section := range rootCfg.Sections() {
+		if name, ok := strings.CutPrefix(section.Name(), "cron."); ok && tasksMap[name] == nil {
+			setting.LogStartupProblem(1, log.WARN, "Config section [%s] doesn't match any available cron task and is ignored", section.Name())
+		}
+	}
 }
 
 // TaskTableRow represents a task row in the tasks table
