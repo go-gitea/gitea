@@ -26,13 +26,21 @@ test('crop avatar before upload', async ({page, request}) => {
   await page.getByLabel('Choose new avatar').setInputFiles({
     name: 'avatar.gif',
     mimeType: 'image/gif',
-    buffer: Buffer.from('R0lGODlhKAAUAPAAAEGDxAAAACH5BAAAAAAALAAAAAAoABQAAAIahI+py+0Po5y02ouz3rz7D4biSJbmiabqihUAOw==', 'base64'),
+    buffer: Buffer.from('R0lGODlhKAAUAPABAAAAAP///yH5BAAAAAAALAAAAAAoABQAAAI2hI+hy+2vkASw2jXT3S4fDmIeFYIjWW5nyq3s5b5VLD903dy46O326OsAgwydz7hD4pQ1pqwAADs=', 'base64'),
   });
   const cropBox = page.locator('image-crop[loaded] .crop-box');
   await cropBox.dragTo(cropBox, {sourcePosition: {x: 100, y: 100}, targetPosition: {x: 20, y: 100}, steps: 4});
   await page.getByRole('button', {name: 'Update Avatar'}).click();
   await expect(page.getByText('Your avatar has been updated.', {exact: true})).toBeVisible();
-  expect((await request.get(`/user/avatar/${username}/0`)).headers()['content-type']).toBe('image/png');
+  const avatar = await page.evaluate(async (src) => {
+    const image = new Image();
+    image.src = src;
+    await image.decode();
+    const context = document.createElement('canvas').getContext('2d')!;
+    context.drawImage(image, 0, 0);
+    return {width: image.naturalWidth, height: image.naturalHeight, pixels: [...context.getImageData(5, 0, 2, 1).data]};
+  }, `/user/avatar/${username}/0`);
+  expect(avatar).toEqual({width: 20, height: 20, pixels: [0, 0, 0, 255, 255, 255, 255, 255]});
 });
 
 test('select and deselect all webhook events', async ({page}) => {
