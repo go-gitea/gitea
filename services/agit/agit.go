@@ -8,12 +8,14 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
@@ -26,6 +28,32 @@ import (
 )
 
 const SshInfoJson = `{"type":"agit","version":1}`
+
+func GetPullForReview(ctx context.Context, repoID int64, ref git.RefName, doer *user_model.User, perm access.Permission) (*issues_model.PullRequest, error) {
+	index, ok := ref.ForReviewIndex()
+	if !ok {
+		return nil, util.NewPermissionDeniedErrorf("Invalid pull request index")
+	}
+	pr, err := issues_model.GetPullRequestByIndex(ctx, repoID, index)
+	if issues_model.IsErrPullRequestNotExist(err) {
+		return nil, util.NewPermissionDeniedErrorf("Pull request does not exist")
+	}
+	if err != nil {
+		return nil, err
+	}
+	if !pr.IsAgitFlow() || pr.Issue.IsClosed || pr.HasMerged {
+		return nil, util.NewPermissionDeniedErrorf("Pull request is not an open AGit pull request")
+	}
+	if doer.ID != pr.Issue.PosterID {
+		if !perm.CanWrite(unit.TypeCode) {
+			return nil, util.NewPermissionDeniedErrorf("User permission denied for updating pull request")
+		}
+		if !pr.AllowMaintainerEdit {
+			return nil, util.NewPermissionDeniedErrorf("The pull request author has not allowed edits by maintainers")
+		}
+	}
+	return pr, nil
+}
 
 func parseAgitPushOptionValue(s string) string {
 	if base64Value, ok := strings.CutPrefix(s, "{base64}"); ok {
@@ -73,244 +101,196 @@ type ProcReceiveOptions struct {
 	Doer *user_model.User
 }
 
-// ProcReceive handle proc receive work
-func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, perm access.Permission, opts *ProcReceiveOptions) ([]private.HookProcReceiveRefResult, error) {
-	results := make([]private.HookProcReceiveRefResult, 0, len(opts.OldCommitIDs))
-	forcePush := opts.GitPushOptions.Bool(private.GitPushOptionForcePush)
-	topicBranch := opts.GitPushOptions["topic"]
+func getOrCreatePullForBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, perm access.Permission, opts *ProcReceiveOptions, i int) (*issues_model.PullRequest, bool, error) {
+	baseBranch, topicBranch, err := GetAgitBranchInfo(ctx, repo.ID, opts.RefFullNames[i].ForBranchName())
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			return nil, false, util.NewNotExistErrorf("base-branch does not exist")
+		}
+		return nil, false, err
+	}
 
-	// some options are base64-encoded with "{base64}" prefix if they contain new lines
-	// other agit push options like "issue", "reviewer" and "cc" are not supported
-	title := parseAgitPushOptionValue(opts.GitPushOptions["title"])
-	description := parseAgitPushOptionValue(opts.GitPushOptions["description"])
-
-	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
+	if topicBranch == "" {
+		topicBranch = opts.GitPushOptions["topic"]
+	}
+	if topicBranch == "" {
+		return nil, false, util.NewInvalidArgumentErrorf("topic-branch is not set")
+	}
 
 	pusher := opts.Doer
-	userName := strings.ToLower(pusher.Name)
+	headBranch := topicBranch
+	userPrefix := strings.ToLower(pusher.Name) + "/"
+	if !strings.HasPrefix(headBranch, userPrefix) {
+		headBranch = userPrefix + headBranch
+	}
 
-	for i := range opts.OldCommitIDs {
-		if opts.NewCommitIDs[i] == objectFormat.EmptyObjectID().String() {
-			results = append(results, private.HookProcReceiveRefResult{
-				OriginalRef: opts.RefFullNames[i],
-				OldOID:      opts.OldCommitIDs[i],
-				NewOID:      opts.NewCommitIDs[i],
-				Err:         "Can't delete not exist branch",
-			})
-			continue
-		}
+	pr, err := issues_model.GetUnmergedPullRequest(ctx, repo.ID, repo.ID, headBranch, baseBranch, issues_model.PullRequestFlowAGit)
+	if !issues_model.IsErrPullRequestNotExist(err) {
+		return pr, false, err
+	}
 
-		if !opts.RefFullNames[i].IsFor() {
-			results = append(results, private.HookProcReceiveRefResult{
-				IsNotMatched: true,
-				OriginalRef:  opts.RefFullNames[i],
-			})
-			continue
-		}
-
-		baseBranchName, currentTopicBranch, err := GetAgitBranchInfo(ctx, repo.ID, opts.RefFullNames[i].ForBranchName())
+	// Push options containing newlines can use the "{base64}" prefix.
+	title := parseAgitPushOptionValue(opts.GitPushOptions["title"])
+	description := parseAgitPushOptionValue(opts.GitPushOptions["description"])
+	if title == "" || description == "" {
+		commit, err := gitRepo.GetCommit(ctx, opts.NewCommitIDs[i])
 		if err != nil {
-			if !errors.Is(err, util.ErrNotExist) {
-				return nil, fmt.Errorf("failed to get branch information. Error: %w", err)
-			}
-			// If branch does not exist, we can continue
-			results = append(results, private.HookProcReceiveRefResult{
-				OriginalRef: opts.RefFullNames[i],
-				OldOID:      opts.OldCommitIDs[i],
-				NewOID:      opts.NewCommitIDs[i],
-				Err:         "base-branch does not exist",
-			})
+			return nil, false, err
+		}
+		title = util.IfZero(title, commit.MessageTitle())
+		description = util.IfZero(description, commit.MessageBody())
+	}
+
+	issue := &issues_model.Issue{
+		RepoID:   repo.ID,
+		Title:    title,
+		PosterID: pusher.ID,
+		Poster:   pusher,
+		IsPull:   true,
+		Content:  description,
+	}
+	pr = &issues_model.PullRequest{
+		HeadRepoID:   repo.ID,
+		BaseRepoID:   repo.ID,
+		HeadBranch:   headBranch,
+		HeadCommitID: opts.NewCommitIDs[i],
+		BaseBranch:   baseBranch,
+		HeadRepo:     repo,
+		BaseRepo:     repo,
+		Type:         issues_model.PullRequestGitea,
+		Flow:         issues_model.PullRequestFlowAGit,
+	}
+	if err := pull_service.NewPullRequest(ctx, perm, &pull_service.NewPullRequestOptions{
+		Repo:        repo,
+		Issue:       issue,
+		PullRequest: pr,
+	}); err != nil {
+		return nil, false, err
+	}
+
+	log.Trace("Pull request created: %d/%d", repo.ID, issue.ID)
+	return pr, true, nil
+}
+
+// ProcReceive handle proc receive work
+func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, perm access.Permission, opts *ProcReceiveOptions) ([]private.HookProcReceiveRefResult, error) {
+	if len(opts.RefFullNames) > 1 && slices.ContainsFunc(opts.RefFullNames, git.RefName.IsForReview) {
+		return nil, util.NewInvalidArgumentErrorf(private.AgitReviewSingleRefMessage)
+	}
+
+	results := make([]private.HookProcReceiveRefResult, 0, len(opts.OldCommitIDs))
+	forcePush := opts.GitPushOptions.Bool(private.GitPushOptionForcePush).Value()
+	emptyOID := git.ObjectFormatFromName(repo.ObjectFormatName).EmptyObjectID().String()
+
+	for i, ref := range opts.RefFullNames {
+		result := private.HookProcReceiveRefResult{
+			OriginalRef: ref,
+			OldOID:      opts.OldCommitIDs[i],
+			NewOID:      opts.NewCommitIDs[i],
+		}
+		if result.NewOID == emptyOID {
+			result.Err = "Can't delete not exist branch"
+			results = append(results, result)
+			continue
+		}
+		if !ref.IsFor() && !ref.IsForReview() {
+			result.IsNotMatched = true
+			results = append(results, result)
 			continue
 		}
 
-		if len(topicBranch) == 0 && len(currentTopicBranch) == 0 {
-			results = append(results, private.HookProcReceiveRefResult{
-				OriginalRef: opts.RefFullNames[i],
-				OldOID:      opts.OldCommitIDs[i],
-				NewOID:      opts.NewCommitIDs[i],
-				Err:         "topic-branch is not set",
-			})
-			continue
-		}
-
-		if len(currentTopicBranch) == 0 {
-			currentTopicBranch = topicBranch
-		}
-
-		// because different user maybe want to use same topic,
-		// So it's better to make sure the topic branch name
-		// has username prefix
-		var headBranch string
-		if !strings.HasPrefix(currentTopicBranch, userName+"/") {
-			headBranch = userName + "/" + currentTopicBranch
+		var pr *issues_model.PullRequest
+		var created bool
+		var err error
+		if ref.IsForReview() {
+			pr, err = GetPullForReview(ctx, repo.ID, ref, opts.Doer, perm)
 		} else {
-			headBranch = currentTopicBranch
+			pr, created, err = getOrCreatePullForBranch(ctx, repo, gitRepo, perm, opts, i)
 		}
-
-		pr, err := issues_model.GetUnmergedPullRequest(ctx, repo.ID, repo.ID, headBranch, baseBranchName, issues_model.PullRequestFlowAGit)
+		if err == nil && !created {
+			result.OldOID, err = updatePullForPush(ctx, repo, gitRepo, opts.Doer, pr, result.NewOID, forcePush)
+			result.IsForcePush = forcePush
+		}
 		if err != nil {
-			if !issues_model.IsErrPullRequestNotExist(err) {
-				return nil, fmt.Errorf("failed to get unmerged agit flow pull request in repository: %s Error: %w", repo.FullName(), err)
+			msg, _ := util.ErrorUnwrapForUser(err)
+			if msg == "" {
+				return nil, fmt.Errorf("ProcReceive: %w", err)
 			}
-
-			var commit *git.Commit
-			if title == "" || description == "" {
-				commit, err = gitRepo.GetCommit(ctx, opts.NewCommitIDs[i])
-				if err != nil {
-					return nil, fmt.Errorf("failed to get commit %s in repository: %s Error: %w", opts.NewCommitIDs[i], repo.FullName(), err)
-				}
-				// create a new pull request
-				if title == "" {
-					title = commit.MessageTitle()
-				}
-				if description == "" {
-					description = commit.MessageBody()
-				}
-			}
-
-			prIssue := &issues_model.Issue{
-				RepoID:   repo.ID,
-				Title:    title,
-				PosterID: pusher.ID,
-				Poster:   pusher,
-				IsPull:   true,
-				Content:  description,
-			}
-
-			pr := &issues_model.PullRequest{
-				HeadRepoID:   repo.ID,
-				BaseRepoID:   repo.ID,
-				HeadBranch:   headBranch,
-				HeadCommitID: opts.NewCommitIDs[i],
-				BaseBranch:   baseBranchName,
-				HeadRepo:     repo,
-				BaseRepo:     repo,
-				MergeBase:    "",
-				Type:         issues_model.PullRequestGitea,
-				Flow:         issues_model.PullRequestFlowAGit,
-			}
-			prOpts := &pull_service.NewPullRequestOptions{
-				Repo:        repo,
-				Issue:       prIssue,
-				PullRequest: pr,
-			}
-			if err := pull_service.NewPullRequest(ctx, perm, prOpts); err != nil {
-				return nil, err
-			}
-
-			log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
-
-			results = append(results, private.HookProcReceiveRefResult{
-				Ref:               pr.GetGitHeadRefName(),
-				OriginalRef:       opts.RefFullNames[i],
-				OldOID:            objectFormat.EmptyObjectID().String(),
-				NewOID:            opts.NewCommitIDs[i],
-				IsCreatePR:        false, // AGit always creates a pull request so there is no point in prompting user to create one
-				URL:               fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
-				ShouldShowMessage: setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
-				HeadBranch:        headBranch,
-			})
-			continue
-		}
-
-		// update exist pull request
-		if err := pr.LoadBaseRepo(ctx); err != nil {
-			return nil, fmt.Errorf("unable to load base repository for PR[%d] Error: %w", pr.ID, err)
-		}
-
-		oldCommitID, err := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
-		if err != nil {
-			return nil, fmt.Errorf("unable to get ref commit id in base repository for PR[%d] Error: %w", pr.ID, err)
-		}
-
-		if oldCommitID == opts.NewCommitIDs[i] {
-			results = append(results, private.HookProcReceiveRefResult{
-				OriginalRef: opts.RefFullNames[i],
-				OldOID:      opts.OldCommitIDs[i],
-				NewOID:      opts.NewCommitIDs[i],
-				Err:         "new commit is same with old commit",
-			})
-			continue
-		}
-
-		if !forcePush.Value() {
-			output, _, err := gitcmd.NewCommand("rev-list", "--max-count=1").
-				AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]).WithRepo(repo).RunStdString(ctx)
-			if err != nil {
-				return nil, fmt.Errorf("failed to detect force push: %w", err)
-			} else if len(output) > 0 {
-				results = append(results, private.HookProcReceiveRefResult{
-					OriginalRef: opts.RefFullNames[i],
-					OldOID:      opts.OldCommitIDs[i],
-					NewOID:      opts.NewCommitIDs[i],
-					Err:         "request `force-push` push option",
-				})
-				continue
+			result.Err = msg
+		} else {
+			result.Ref = pr.GetGitHeadRefName()
+			result.URL = fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index)
+			result.ShouldShowMessage = setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx)
+			if created {
+				result.OldOID = emptyOID
+				result.HeadBranch = pr.HeadBranch
 			}
 		}
-
-		// Store old commit ID for review staleness checking
-		oldHeadCommitID := pr.HeadCommitID
-
-		if err := pull_service.DisableAutoMergeIfNotWriter(ctx, pusher, pr, "pushed_by_non_writer"); err != nil {
-			return nil, fmt.Errorf("ProcReceive: %w", err)
-		}
-		pr.HeadCommitID = opts.NewCommitIDs[i]
-		if err = pull_service.UpdateRefForAgit(ctx, pr); err != nil {
-			return nil, fmt.Errorf("failed to update pull ref. Error: %w", err)
-		}
-
-		// Mark existing reviews as stale when PR content changes (same as regular GitHub flow)
-		if oldHeadCommitID != opts.NewCommitIDs[i] {
-			if err := issues_model.MarkReviewsAsStale(ctx, pr.IssueID); err != nil {
-				log.Error("MarkReviewsAsStale: %v", err)
-			}
-
-			// Dismiss all approval reviews if protected branch rule item enabled
-			pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
-			if err != nil {
-				log.Error("GetFirstMatchProtectedBranchRule: %v", err)
-			}
-			if pb != nil && pb.DismissStaleApprovals {
-				if err := pull_service.DismissApprovalReviews(ctx, pusher, pr); err != nil {
-					log.Error("DismissApprovalReviews: %v", err)
-				}
-			}
-
-			// Mark reviews for the new commit as not stale
-			if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, opts.NewCommitIDs[i]); err != nil {
-				log.Error("MarkReviewsAsNotStale: %v", err)
-			}
-		}
-
-		pull_service.StartPullRequestCheckImmediately(ctx, pr)
-		err = pr.LoadIssue(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load pull issue. Error: %w", err)
-		}
-
-		isForcePush := forcePush.Value()
-		comment, commentCreated, err := pull_service.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i], isForcePush)
-		if err != nil {
-			log.Error("CreatePushPullComment: %v", err)
-		} else if commentCreated {
-			notify_service.PullRequestPushCommits(ctx, pusher, pr, comment)
-		}
-		notify_service.PullRequestSynchronized(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
-
-		results = append(results, private.HookProcReceiveRefResult{
-			OldOID:            oldCommitID,
-			NewOID:            opts.NewCommitIDs[i],
-			Ref:               pr.GetGitHeadRefName(),
-			OriginalRef:       opts.RefFullNames[i],
-			IsForcePush:       isForcePush,
-			IsCreatePR:        false,
-			URL:               fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
-			ShouldShowMessage: setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
-		})
+		results = append(results, result)
 	}
 
 	return results, nil
+}
+
+func updatePullForPush(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, pusher *user_model.User, pr *issues_model.PullRequest, newCommitID string, forcePush bool) (string, error) {
+	if err := pr.LoadIssue(ctx); err != nil {
+		return "", err
+	}
+
+	oldCommitID, err := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
+	if err != nil {
+		return "", fmt.Errorf("unable to get ref commit id for PR[%d]: %w", pr.ID, err)
+	}
+	if oldCommitID == newCommitID {
+		return "", util.NewInvalidArgumentErrorf("new commit is same with old commit")
+	}
+	if !forcePush {
+		output, _, err := gitcmd.NewCommand("rev-list", "--max-count=1").
+			AddDynamicArguments(oldCommitID, "^"+newCommitID).WithRepo(repo).RunStdString(ctx)
+		if err != nil {
+			return "", fmt.Errorf("failed to detect force push: %w", err)
+		}
+		if len(output) > 0 {
+			return "", util.NewInvalidArgumentErrorf("request `force-push` push option")
+		}
+	}
+
+	pr.HeadCommitID = newCommitID
+	if err := pull_service.UpdateRefForAgit(ctx, pr, oldCommitID); err != nil {
+		return "", err
+	}
+	if err := pull_service.DisableAutoMergeIfNotWriter(ctx, pusher, pr, "pushed_by_non_writer"); err != nil {
+		return "", err
+	}
+	if err := pull_service.SyncCommitDivergence(ctx, pr); err != nil {
+		log.Error("SyncCommitDivergence: %v", err)
+	}
+
+	if err := issues_model.MarkReviewsAsStale(ctx, pr.IssueID); err != nil {
+		log.Error("MarkReviewsAsStale: %v", err)
+	}
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	if err != nil {
+		log.Error("GetFirstMatchProtectedBranchRule: %v", err)
+	}
+	if pb != nil && pb.DismissStaleApprovals {
+		if err := pull_service.DismissApprovalReviews(ctx, pusher, pr); err != nil {
+			log.Error("DismissApprovalReviews: %v", err)
+		}
+	}
+	if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, newCommitID); err != nil {
+		log.Error("MarkReviewsAsNotStale: %v", err)
+	}
+
+	pull_service.StartPullRequestCheckImmediately(ctx, pr)
+	comment, created, err := pull_service.CreatePushPullComment(ctx, pusher, pr, oldCommitID, newCommitID, forcePush)
+	if err != nil {
+		log.Error("CreatePushPullComment: %v", err)
+	} else if created {
+		notify_service.PullRequestPushCommits(ctx, pusher, pr, comment)
+	}
+	notify_service.PullRequestSynchronized(ctx, pusher, pr, oldCommitID, newCommitID)
+	return oldCommitID, nil
 }
 
 // UserNameChanged handle user name change for agit flow pull

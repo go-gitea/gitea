@@ -29,6 +29,26 @@ func TestRefName(t *testing.T) {
 	// Test for branch names
 	assert.Equal(t, "main", RefName("refs/for/main").ForBranchName())
 	assert.Equal(t, "my/branch", RefName("refs/for/my/branch").ForBranchName())
+	for _, tc := range []struct {
+		ref   RefName
+		index int64
+		ok    bool
+	}{
+		{"refs/for-review/1", 1, true},
+		{"refs/for-review/123", 123, true},
+		{"refs/for-review/0", 0, false},
+		{"refs/for-review/01", 0, false},
+		{"refs/for-review/1/2", 0, false},
+		{"refs/for-review/1a", 0, false},
+		{"refs/for-review/9223372036854775808", 0, false},
+		{"refs/for/1", 0, false},
+	} {
+		index, ok := tc.ref.ForReviewIndex()
+		assert.Equal(t, tc.ok, ok, tc.ref)
+		if ok {
+			assert.Equal(t, tc.index, index, tc.ref)
+		}
+	}
 
 	// Test commit hashes.
 	assert.Equal(t, "c0ffee", RefName("c0ffee").ShortName())

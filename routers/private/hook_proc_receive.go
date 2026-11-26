@@ -18,7 +18,7 @@ import (
 func HookProcReceive(ctx *gitea_context.PrivateContext) {
 	opts := web.GetForm[*private.HookOptions](ctx)
 	if !loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) ||
-		(slices.ContainsFunc(opts.RefFullNames, git.RefName.IsFor) && !assertCanCreatePullRequest(ctx, opts)) {
+		(slices.ContainsFunc(opts.RefFullNames, func(ref git.RefName) bool { return ref.IsFor() || ref.IsForReview() }) && !assertCanCreatePullRequest(ctx, opts)) {
 		return
 	}
 

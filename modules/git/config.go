@@ -77,6 +77,9 @@ func syncGitConfig(ctx context.Context) (err error) {
 	if err := configAddNonExist(ctx, "receive.procReceiveRefs", "refs/for"); err != nil {
 		return err
 	}
+	if err := configAddNonExist(ctx, "receive.procReceiveRefs", "refs/for-review"); err != nil {
+		return err
+	}
 
 	// Due to CVE-2022-24765, git now denies access to git directories which are not owned by current user.
 	// However, some docker users and samba users find it difficult to configure their systems correctly,

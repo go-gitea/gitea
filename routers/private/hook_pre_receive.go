@@ -97,6 +97,12 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			preReceiveTag(ourCtx, refFullName)
 		case refFullName.IsFor():
 			preReceiveFor(ourCtx, refFullName)
+		case refFullName.IsForReview():
+			if assertCanCreatePullRequest(ctx, opts) {
+				if _, err := agit.GetPullForReview(ctx, ctx.Repo.Repository.ID, refFullName, ctx.Doer, ctx.Repo.Permission); err != nil {
+					ctx.PrivateUserErrorAuto(err)
+				}
+			}
 		default:
 			ourCtx.assertCanWriteRef(refFullName)
 		}

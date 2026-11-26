@@ -209,6 +209,7 @@ Gitea or set your environment appropriately.`, "")
 	refFullNames := make([]git.RefName, hookBatchSize)
 	count := 0
 	total := 0
+	hasReviewRef := false
 
 	out := io.Discard
 	if setting.Git.VerbosePush {
@@ -233,6 +234,10 @@ Gitea or set your environment appropriately.`, "")
 		}
 
 		total++
+		hasReviewRef = hasReviewRef || refFullName.IsForReview()
+		if hasReviewRef && total > 1 {
+			return fail(ctx, private.AgitReviewSingleRefMessage, "")
+		}
 		oldCommitIDs[count] = oldCommitID
 		newCommitIDs[count] = newCommitID
 		refFullNames[count] = refFullName

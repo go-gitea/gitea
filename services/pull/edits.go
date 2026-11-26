@@ -22,17 +22,19 @@ func SetAllowEdits(ctx context.Context, doer *user_model.User, pr *issues_model.
 		return ErrUserHasNoPermissionForAction
 	}
 
-	if err := pr.LoadHeadRepo(ctx); err != nil {
-		return err
-	}
+	if !pr.IsAgitFlow() {
+		if err := pr.LoadHeadRepo(ctx); err != nil {
+			return err
+		}
 
-	permission, err := access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, doer)
-	if err != nil {
-		return err
-	}
+		permission, err := access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, doer)
+		if err != nil {
+			return err
+		}
 
-	if !permission.CanWrite(unit_model.TypeCode) {
-		return ErrUserHasNoPermissionForAction
+		if !permission.CanWrite(unit_model.TypeCode) {
+			return ErrUserHasNoPermissionForAction
+		}
 	}
 
 	pr.AllowMaintainerEdit = allow

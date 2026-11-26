@@ -59,7 +59,7 @@ func (ref *Reference) RefGroup() string {
 // or refs/for/<targe-branch> -o topic='<topic-branch>'
 const ForPrefix = "refs/for/"
 
-// TODO: /refs/for-review for suggest change interface
+const ForReviewPrefix = "refs/for-review/"
 
 // RefName represents a full git reference name
 type RefName string
@@ -123,6 +123,24 @@ func (ref RefName) IsPull() bool {
 
 func (ref RefName) IsFor() bool {
 	return strings.HasPrefix(string(ref), ForPrefix)
+}
+
+func (ref RefName) IsForReview() bool {
+	return strings.HasPrefix(string(ref), ForReviewPrefix)
+}
+
+func (ref RefName) ForReviewIndex() (int64, bool) {
+	s, ok := strings.CutPrefix(string(ref), ForReviewPrefix)
+	if !ok || len(s) == 0 || s[0] < '1' || s[0] > '9' {
+		return 0, false
+	}
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return 0, false
+		}
+	}
+	index, err := strconv.ParseInt(s, 10, 64)
+	return index, err == nil
 }
 
 func (ref RefName) nameWithoutPrefix(prefix string) string {

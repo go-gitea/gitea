@@ -966,7 +966,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 			assert.Equal(t, commit, prMsg.Head.Sha)
 
 			_, _, err = gitcmd.NewCommand("push", "origin").
-				AddDynamicArguments("HEAD:refs/for/master/test/" + headBranch).
+				AddDynamicArguments(fmt.Sprintf("HEAD:refs/for-review/%d", pr2.Index)).
 				WithDir(dstPath).
 				RunStdString(t.Context())
 			require.NoError(t, err)

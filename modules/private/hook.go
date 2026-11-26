@@ -21,6 +21,8 @@ const (
 	GitPushOptionCount              = "GIT_PUSH_OPTION_COUNT"
 )
 
+const AgitReviewSingleRefMessage = "Push refs/for-review by itself (one ref per push)"
+
 // HookOptions represents the options for the Hook calls
 type HookOptions struct {
 	IsWiki bool

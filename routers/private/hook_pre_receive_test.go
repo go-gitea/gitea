@@ -31,19 +31,32 @@ func TestPreReceive(t *testing.T) {
 	t.Run("Tag", testPreReceiveSystemUserTag)
 	t.Run("CanWrite", testPreReceiveCanWriteCodePerBranch)
 	t.Run("ProcReceiveNeedsPullRequests", func(t *testing.T) {
-		ctx, resp := contexttest.MockPrivateContext(t, "/")
-		ctx.SetPathParam("owner", "user2")
-		ctx.SetPathParam("repo", "repo2")
-		RepoAssignment(ctx)
-		require.False(t, ctx.Written())
-		defer ctx.Repo.GitRepo.Close()
+		for _, tc := range []struct {
+			repo   string
+			ref    git.RefName
+			isWiki bool
+		}{
+			{"repo2", "refs/for/master", false},
+			{"repo2", "refs/for-review/1", false},
+			{"repo1", "refs/for-review/1", true},
+		} {
+			t.Run(tc.repo+"/"+string(tc.ref), func(t *testing.T) {
+				ctx, resp := contexttest.MockPrivateContext(t, "/")
+				ctx.SetPathParam("owner", "user2")
+				ctx.SetPathParam("repo", tc.repo)
+				RepoAssignment(ctx)
+				require.False(t, ctx.Written())
+				defer ctx.Repo.GitRepo.Close()
 
-		web.SetForm(ctx, &private.HookOptions{
-			UserID:       2,
-			RefFullNames: []git.RefName{"refs/for/master"},
-		})
-		HookProcReceive(ctx)
-		assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+				web.SetForm(ctx, &private.HookOptions{
+					UserID:       2,
+					IsWiki:       tc.isWiki,
+					RefFullNames: []git.RefName{tc.ref},
+				})
+				HookProcReceive(ctx)
+				assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+			})
+		}
 	})
 }
 
