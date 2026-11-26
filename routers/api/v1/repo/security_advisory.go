@@ -575,18 +575,22 @@ func GetSecurityAdvisoryComment(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
 	//   in: path
+	//   description: name of the repo
 	//   type: string
 	//   required: true
 	// - name: gtsa_id
 	//   in: path
+	//   description: identifier of the advisory
 	//   type: string
 	//   required: true
 	// - name: comment_id
 	//   in: path
+	//   description: id of the comment
 	//   type: integer
 	//   format: int64
 	//   required: true

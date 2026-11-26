@@ -33712,6 +33712,7 @@
         "operationId": "repoGetSecurityAdvisoryComment",
         "parameters": [
           {
+            "description": "owner of the repo",
             "in": "path",
             "name": "owner",
             "required": true,
@@ -33720,6 +33721,7 @@
             }
           },
           {
+            "description": "name of the repo",
             "in": "path",
             "name": "repo",
             "required": true,
@@ -33728,6 +33730,7 @@
             }
           },
           {
+            "description": "identifier of the advisory",
             "in": "path",
             "name": "gtsa_id",
             "required": true,
@@ -33736,6 +33739,7 @@
             }
           },
           {
+            "description": "id of the comment",
             "in": "path",
             "name": "comment_id",
             "required": true,

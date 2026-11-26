@@ -19464,18 +19464,21 @@
         "parameters": [
           {
             "type": "string",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the repo",
             "name": "repo",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "identifier of the advisory",
             "name": "gtsa_id",
             "in": "path",
             "required": true
@@ -19483,6 +19486,7 @@
           {
             "type": "integer",
             "format": "int64",
+            "description": "id of the comment",
             "name": "comment_id",
             "in": "path",
             "required": true
