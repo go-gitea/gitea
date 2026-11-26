@@ -13,7 +13,7 @@
 							<div class="item-leading">{{template "shared/issueicon" $issue}}</div>
 							<div class="item-main">
 								<div class="flex-text-inline dashboard-overview-title">
-									<a class="gt-ellipsis" href="{{$issue.Link}}">{{$issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
+									<a class="silenced gt-ellipsis" href="{{$issue.Link}}">{{$issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 									{{if $issue.IsPull}}
 										{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus $issue.PullRequest.ID) "Statuses" (index $.CommitStatuses $issue.PullRequest.ID) "AdditionalClasses" "dashboard-overview-status"}}
 									{{end}}

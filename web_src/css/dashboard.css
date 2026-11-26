@@ -172,12 +172,6 @@
   color: var(--color-text-light-2);
 }
 
-.dashboard-overview-title a {
-  min-width: 0;
-  color: var(--color-text);
-  font-weight: var(--font-weight-semibold);
-}
-
 .dashboard-overview-box {
   overflow: hidden;
 }
@@ -190,8 +184,9 @@
   background: var(--color-hover);
 }
 
-.dashboard-overview-title a:hover {
-  text-decoration-line: none;
+.dashboard-overview-title {
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
 }
 
 .dashboard-overview-title a::after {
