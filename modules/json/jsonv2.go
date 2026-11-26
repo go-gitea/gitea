@@ -14,6 +14,7 @@ import (
 type JSONv2 struct {
 	marshalOptions                  jsonv2.Options
 	marshalRelaxedOptions           jsonv2.Options
+	marshalAPIOptions               jsonv2.Options
 	marshalKeepOptionalEmptyOptions jsonv2.Options
 	unmarshalOptions                jsonv2.Options
 	unmarshalCaseInsensitiveOptions jsonv2.Options
@@ -29,6 +30,8 @@ func init() {
 	jsonV2.marshalOptions = jsonv2.JoinOptions(commonMarshalOptions...)
 	// when handling user's data, we want to allow invalid UTF-8 to be replaced with the replacement character, rather than returning an error.
 	jsonV2.marshalRelaxedOptions = jsonv2.JoinOptions(append(commonMarshalOptions, jsontext.AllowInvalidUTF8(true))...)
+	// the API spec declares arrays and objects, which can't be null
+	jsonV2.marshalAPIOptions = jsonv2.JoinOptions(jsonV2.marshalRelaxedOptions, jsonv2.FormatNilSliceAsNull(false), jsonv2.FormatNilMapAsNull(false))
 	jsonV2.unmarshalOptions = jsonv2.DefaultOptionsV2()
 
 	// By default, "json/v2" omitempty removes all `""` empty strings, no matter where it comes from.
@@ -46,6 +49,11 @@ func getDefaultJSONHandler() Interface {
 
 func MarshalKeepOptionalEmpty(v any) ([]byte, error) {
 	return jsonv2.Marshal(v, jsonV2.marshalKeepOptionalEmptyOptions)
+}
+
+// MarshalWriteAPI is like MarshalWriteRelaxed, but writes nil slices and maps as [] and {}
+func MarshalWriteAPI(w io.Writer, v any) error {
+	return jsonv2.MarshalWrite(w, v, jsonV2.marshalAPIOptions)
 }
 
 func MarshalDeterministic(v any) ([]byte, error) {
