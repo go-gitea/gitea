@@ -101,7 +101,8 @@ func (p *Paginator) PagingNum() int {
 	return p.pagingNum
 }
 
-func (p *Paginator) Pages() []int { // -1 is a gap, fixed slots keep the arrows in place, mirrored by getPaginationPages in web_src/js/utils.ts
+// Pages returns the page numbers to show with -1 for a gap, mirrored by getPaginationPages in web_src/js/utils.ts
+func (p *Paginator) Pages() []int {
 	total, current := p.TotalPages(), p.current
 	switch {
 	case total <= 7:

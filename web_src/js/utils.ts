@@ -198,7 +198,8 @@ export function formatBytes(num: number, precision = 2): string {
   return `${value.toFixed(digits)} ${byteUnits[exp]}`;
 }
 
-export function getPaginationPages(current: number, total: number): Array<number> { // mirrors Paginator.Pages in modules/paginator/paginator.go
+// mirrors Paginator.Pages in modules/paginator/paginator.go
+export function getPaginationPages(current: number, total: number): Array<number> {
   if (total <= 7) return [1, 2, 3, 4, 5, 6, 7].slice(0, total);
   if (current <= 4) return [1, 2, 3, 4, 5, -1, total];
   if (current >= total - 3) return [1, -1, total - 4, total - 3, total - 2, total - 1, total];
