@@ -82,19 +82,14 @@ type ReleaseInfo struct {
 	Contributors   []*user_model.User
 }
 
-func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions) ([]*ReleaseInfo, error) {
-	releases, err := db.Find[repo_model.Release](ctx, opts)
-	if err != nil {
-		return nil, err
-	}
-
+func getReleaseInfos(ctx *context.Context, releases []*repo_model.Release) ([]*ReleaseInfo, error) {
 	releaseIDs := make([]int64, 0, len(releases))
 	for _, release := range releases {
 		release.Repo = ctx.Repo.Repository
 		releaseIDs = append(releaseIDs, release.ID)
 	}
 
-	if err = repo_model.GetReleaseAttachments(ctx, releases...); err != nil {
+	if err := repo_model.GetReleaseAttachments(ctx, releases...); err != nil {
 		return nil, err
 	}
 
@@ -229,7 +224,7 @@ func Releases(ctx *context.Context) {
 		listOptions.PageSize = setting.API.MaxResponseItems
 	}
 
-	releases, err := getReleaseInfos(ctx, &repo_model.FindReleasesOptions{
+	rels, err := repo_model.FindReleaseList(ctx, repo_model.ReleaseListOptions{
 		ListOptions: listOptions,
 		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
 		IncludeDrafts: preparedData.writeAccess,
@@ -239,10 +234,10 @@ func Releases(ctx *context.Context) {
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	for _, rel := range releases {
-		if rel.Release.IsTag && rel.Release.Title == "" {
-			rel.Release.Title = rel.Release.TagName
-		}
+	releases, err := getReleaseInfos(ctx, rels)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
 	}
 
 	ctx.Data["Releases"] = releases
@@ -333,7 +328,7 @@ func releasesOrTagsFeed(ctx *context.Context, isReleasesOnly bool, formatType st
 func SingleRelease(ctx *context.Context) {
 	preparedData := prepareReleasePageCommon(ctx)
 
-	releases, err := getReleaseInfos(ctx, &repo_model.FindReleasesOptions{
+	rels, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
 		ListOptions: db.ListOptions{Page: 1, PageSize: 1},
 		RepoID:      ctx.Repo.Repository.ID,
 		TagNames:    []string{ctx.PathParam("*")},
@@ -341,6 +336,11 @@ func SingleRelease(ctx *context.Context) {
 		IncludeDrafts: preparedData.writeAccess,
 		IncludeTags:   true,
 	})
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	releases, err := getReleaseInfos(ctx, rels)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return

@@ -262,14 +262,10 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 	}
 
 	if len(hostKeyFiles) == 0 {
-		hostKeyDir := filepath.Dir(setting.SSH.ServerHostKeys[0])
-		err := os.MkdirAll(hostKeyDir, os.ModePerm)
+		var err error
+		hostKeyFiles, err = InitDefaultHostKeys(filepath.Dir(setting.SSH.ServerHostKeys[0]))
 		if err != nil {
-			log.Error("Failed to create dir %s: %v", hostKeyDir, err)
-		}
-		hostKeyFiles, err = InitDefaultHostKeys(hostKeyDir)
-		if err != nil {
-			log.Fatal("Failed to generate private key: %v", err)
+			log.Fatal("Failed to initialize host keys: %v", err)
 		}
 	}
 
@@ -332,6 +328,9 @@ func GenKeyPair(keyPath string, keyType generate.SSHKeyType, bits int) error {
 // it runs checks if public and private keys are already defined and creates new ones if not present
 // key naming does not follow the OpenSSH convention due to existing settings being gitea.{KeyType} so generation follows gitea convention
 func InitDefaultHostKeys(path string) (keyFiles []string, _ error) {
+	if err := os.MkdirAll(path, 0o700); err != nil {
+		return nil, err
+	}
 	var errs []error
 	keyTypes := []generate.SSHKeyType{generate.SSHKeyRSA, generate.SSHKeyECDSA, generate.SSHKeyED25519}
 	for _, keyType := range keyTypes {

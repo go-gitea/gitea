@@ -19,6 +19,7 @@ import (
 	packages_model "gitea.dev/models/packages"
 	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	secret_model "gitea.dev/models/secret"
 	system_model "gitea.dev/models/system"
@@ -172,6 +173,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		&activities_model.Notification{RepoID: repoID},
 		&git_model.ProtectedBranch{RepoID: repoID},
 		&git_model.ProtectedTag{RepoID: repoID},
+		&pull_model.MergeQueueEntry{RepoID: repoID},
 		&repo_model.PushMirror{RepoID: repoID},
 		&repo_model.Release{RepoID: repoID},
 		&repo_model.RepoIndexerStatus{RepoID: repoID},
