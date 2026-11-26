@@ -1,11 +1,11 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content dashboard issues">
-	{{template "user/dashboard/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<div class="flex-container">
 			{{$queryLink := QueryBuild "?" "type" $.ViewType "sort" $.SortType "state" $.State "q" $.Keyword "labels" .SelectLabels "search_mode" $.SelectedSearchMode}}
 			<div class="flex-container-nav">
+				<div class="dashboard-context">{{template "user/dashboard/context_selectors" .}}</div>
 				<div class="ui secondary vertical filter menu tw-bg-transparent">
 					<a class="{{if eq .ViewType "your_repositories"}}active{{end}} item" href="{{QueryBuild $queryLink "type" "your_repositories"}}">
 						{{ctx.Locale.Tr "home.issues.in_your_repos"}}

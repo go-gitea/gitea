@@ -12,6 +12,11 @@
   align-items: center;
 }
 
+.issue-list-toolbar-right {
+  display: flex;
+  align-self: stretch;
+}
+
 .issue-list-toolbar-right .filter.menu {
   flex-direction: row;
   flex-wrap: wrap;

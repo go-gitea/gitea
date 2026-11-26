@@ -4,13 +4,12 @@
 	<div class="ui container flex-container">
 		<div class="flex-container-main">
 			{{template "base/alert" .}}
-			{{if .PageIsDashboardOverview}}
+			{{if eq .DashboardTab "overview"}}
 				{{template "user/dashboard/overview" .}}
 			{{else}}
 				{{template "user/heatmap" .}}
 				{{if .Page.Paginator.TotalPages}}
 					{{template "user/dashboard/feeds" .}}
-					{{template "base/paginate" .}}
 				{{else}}
 					{{template "user/dashboard/guide" .}}
 				{{end}}

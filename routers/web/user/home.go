@@ -99,9 +99,7 @@ func Dashboard(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctxUser.DisplayName() + " - " + ctx.Locale.TrString("dashboard")
 	ctx.Data["PageIsDashboard"] = true
-	ctx.Data["PageIsNews"] = true
 	ctx.Data["DashboardTab"] = tab
-	ctx.Data["PageIsDashboardOverview"] = tab == setting.DashboardTabOverview
 	cnt, _ := organization.GetOrganizationCount(ctx, ctxUser)
 	ctx.Data["UserOrgsCount"] = cnt
 	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
@@ -117,7 +115,7 @@ func Dashboard(ctx *context.Context) {
 		"uid":         uid,
 	}
 
-	if tab == setting.DashboardTabOverview {
+	if tab == user_model.DashboardTabOverview {
 		prepareDashboardOverview(ctx, ctxUser)
 		if ctx.Written() {
 			return
@@ -399,25 +397,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// TODO: distinguish during routing
 
-	viewType := ctx.FormString("type")
-	var filterMode int
-	switch viewType {
-	case "assigned":
-		filterMode = issues_model.FilterModeAssign
-	case "created_by":
-		filterMode = issues_model.FilterModeCreate
-	case "mentioned":
-		filterMode = issues_model.FilterModeMention
-	case "review_requested":
-		filterMode = issues_model.FilterModeReviewRequested
-	case "reviewed_by":
-		filterMode = issues_model.FilterModeReviewed
-	case "your_repositories":
-		fallthrough
-	default:
-		filterMode = issues_model.FilterModeYourRepositories
-		viewType = "your_repositories"
-	}
+	viewType, filterMode := issueFilterMode(ctx.FormString("type"))
 
 	isPullList := unitType == unit.TypePullRequests
 	opts := &issues_model.IssuesOptions{
@@ -456,11 +436,44 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	searchMode := ctx.FormString("search_mode")
 
-	var err error
-	opts.RepoIDs, err = dashboardRepoIDs(ctx, ctxUser, unitType)
-	if err != nil {
-		ctx.ServerError("dashboardRepoIDs", err)
-		return
+	// Search all repositories which
+	//
+	// As user:
+	// - Owns the repository.
+	// - Have collaborator permissions in repository.
+	//
+	// As org:
+	// - Owns the repository.
+	//
+	// As team:
+	// - Team org's owns the repository.
+	// - Team has read permission to repository.
+	repoOpts := repo_model.SearchRepoOptions{
+		Actor:       ctx.Doer,
+		OwnerID:     ctxUser.ID,
+		Private:     true,
+		AllPublic:   false,
+		AllLimited:  false,
+		Collaborate: optional.None[bool](),
+		UnitType:    unitType,
+		Archived:    optional.Some(false),
+	}
+	if opts.Team != nil {
+		repoOpts.TeamID = opts.Team.ID
+	}
+	accessibleRepos := container.Set[int64]{}
+	{
+		ids, _, err := repo_model.SearchRepositoryIDs(ctx, repoOpts)
+		if err != nil {
+			ctx.ServerError("SearchRepositoryIDs", err)
+			return
+		}
+		accessibleRepos.AddMultiple(ids...)
+		opts.RepoIDs = ids
+		if len(opts.RepoIDs) == 0 {
+			// no repos found, don't let the indexer return all repos
+			opts.RepoIDs = []int64{0}
+		}
 	}
 	if ctx.Doer.ID == ctxUser.ID && filterMode != issues_model.FilterModeYourRepositories {
 		// If the doer is the same as the context user, which means the doer is viewing his own dashboard,
@@ -563,7 +576,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		ctx.ServerError("ApprovalCounts", err)
 		return
 	}
-	ctx.Data["ApprovalCounts"] = makeApprovalCountsFunc(approvalCounts)
+	ctx.Data["ApprovalCounts"] = issue.ApprovalCountsFunc(approvalCounts)
 	ctx.Data["CommitLastStatus"] = lastStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["IssueStats"] = issueStats

@@ -7,61 +7,75 @@ import (
 	"net/url"
 	"strconv"
 
-	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
-	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
+	"gitea.dev/routers/web/shared/issue"
 	"gitea.dev/services/context"
 	pull_service "gitea.dev/services/pull"
+
+	"xorm.io/builder"
 )
 
 const dashboardOverviewListSize = 5
 
 type dashboardOverviewList struct {
-	Title  string // locale key
-	Icon   string
+	Title  string
 	Link   string
 	Issues issues_model.IssueList
 	Total  int64
 }
 
 func dashboardTab(ctx *context.Context) (string, error) {
-	if tab := ctx.FormString("tab"); setting.IsValidDashboardTab(tab) {
-		return tab, nil
+	if (unit.TypeIssues.UnitGlobalDisabled() && unit.TypePullRequests.UnitGlobalDisabled()) || ctx.FormString("date") != "" || ctx.FormString("page") != "" { // Overview needs issues or pulls, feed filters and pagination only exist on Activity
+		return user_model.DashboardTabActivity, nil
 	}
-	if ctx.FormString("date") != "" { // heatmap clicks filter the activity feed
-		return setting.DashboardTabActivity, nil
-	}
-	return user_model.GetUserDashboardTab(ctx, ctx.Doer.ID)
+	tab, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyDashboardTab)
+	return util.Iif(tab == user_model.DashboardTabActivity, tab, user_model.DashboardTabOverview), err
 }
 
-// dashboardRepoIDs returns the repos of the dashboard's user, org or team that have the unit enabled
-func dashboardRepoIDs(ctx *context.Context, ctxUser *user_model.User, unitType unit.Type) ([]int64, error) {
+func dashboardOverviewRepoCond(ctx *context.Context, ctxUser *user_model.User, unitType unit.Type) builder.Cond {
 	repoOpts := repo_model.SearchRepoOptions{
-		Actor:       ctx.Doer,
-		OwnerID:     ctxUser.ID,
-		Private:     true,
-		Collaborate: optional.None[bool](),
-		UnitType:    unitType,
-		Archived:    optional.Some(false),
+		OwnerID:   ctxUser.ID,
+		Private:   true,
+		AllPublic: !ctxUser.IsOrganization(),
+		UnitType:  unitType,
+		Archived:  optional.Some(false),
+	}
+	if ctxUser.IsOrganization() {
+		repoOpts.Collaborate = optional.Some(false)
 	}
 	if ctx.Org.Team != nil {
 		repoOpts.TeamID = ctx.Org.Team.ID
 	}
-	ids, _, err := repo_model.SearchRepositoryIDs(ctx, repoOpts)
-	if err != nil {
-		return nil, err
+	cond := repo_model.SearchRepositoryCondition(repoOpts).And(
+		builder.In("repository.id", builder.Select("repo_id").From("repo_unit").Where(builder.Eq{"type": unitType})),
+	)
+	if !user_model.DoerIsSiteAdminFullAccess(ctx.Doer) {
+		cond = cond.And(repo_model.AccessibleRepositoryCondition(ctx.Doer, unitType))
 	}
-	if len(ids) == 0 {
-		ids = []int64{0} // don't let the indexer return all repos
+	return builder.In("issue.repo_id", builder.Select("id").From("repository").Where(cond))
+}
+
+func issueFilterMode(viewType string) (string, int) {
+	switch viewType {
+	case "assigned":
+		return viewType, issues_model.FilterModeAssign
+	case "created_by":
+		return viewType, issues_model.FilterModeCreate
+	case "mentioned":
+		return viewType, issues_model.FilterModeMention
+	case "review_requested":
+		return viewType, issues_model.FilterModeReviewRequested
+	case "reviewed_by":
+		return viewType, issues_model.FilterModeReviewed
 	}
-	return ids, nil
+	return "your_repositories", issues_model.FilterModeYourRepositories
 }
 
 func applyIssueFilterMode(opts *issues_model.IssuesOptions, filterMode int, doerID int64) {
@@ -79,36 +93,16 @@ func applyIssueFilterMode(opts *issues_model.IssuesOptions, filterMode int, doer
 	}
 }
 
-func makeApprovalCountsFunc(approvalCounts map[int64][]*issues_model.ReviewCount) func(issueID int64, typ string) int64 {
-	return func(issueID int64, typ string) int64 {
-		reviewTyp := issues_model.ReviewTypeApprove
-		switch typ {
-		case "reject":
-			reviewTyp = issues_model.ReviewTypeReject
-		case "waiting":
-			reviewTyp = issues_model.ReviewTypeRequest
-		}
-		for _, count := range approvalCounts[issueID] {
-			if count.Type == reviewTyp {
-				return count.Count
-			}
-		}
-		return 0
-	}
-}
-
 func prepareDashboardOverview(ctx *context.Context, ctxUser *user_model.User) {
 	type listSpec struct {
-		unitType   unit.Type
-		filterMode int
-		viewType   string
-		title      string
-		icon       string
+		unitType unit.Type
+		viewType string
+		title    string
 	}
 	specs := []listSpec{
-		{unit.TypePullRequests, issues_model.FilterModeReviewRequested, "review_requested", "home.overview.review_requested", "octicon-eye"},
-		{unit.TypePullRequests, issues_model.FilterModeCreate, "created_by", "home.overview.your_pull_requests", "octicon-git-pull-request"},
-		{unit.TypeIssues, issues_model.FilterModeAssign, "assigned", "home.overview.assigned_issues", "octicon-issue-opened"},
+		{unit.TypePullRequests, "review_requested", "home.overview.review_requested"},
+		{unit.TypePullRequests, "created_by", "home.overview.your_pull_requests"},
+		{unit.TypeIssues, "assigned", "home.overview.assigned_issues"},
 	}
 
 	linkPrefix := setting.AppSubURL
@@ -120,38 +114,25 @@ func prepareDashboardOverview(ctx *context.Context, ctxUser *user_model.User) {
 		}
 	}
 
-	repoIDsByUnit := map[unit.Type][]int64{}
 	var lists []*dashboardOverviewList
-	var all, pulls issues_model.IssueList
+	var all issues_model.IssueList
 	for _, spec := range specs {
 		if spec.unitType.UnitGlobalDisabled() {
 			continue
 		}
-		repoIDs, ok := repoIDsByUnit[spec.unitType]
-		if !ok {
-			var err error
-			if repoIDs, err = dashboardRepoIDs(ctx, ctxUser, spec.unitType); err != nil {
-				ctx.ServerError("dashboardRepoIDs", err)
-				return
-			}
-			repoIDsByUnit[spec.unitType] = repoIDs
-		}
-
 		isPull := spec.unitType == unit.TypePullRequests
 		opts := &issues_model.IssuesOptions{
-			IsPull:     optional.Some(isPull),
-			IsClosed:   optional.Some(false),
-			IsArchived: optional.Some(false),
-			SortType:   "recentupdate",
-			Doer:       ctx.Doer,
-			RepoIDs:    repoIDs,
-			AllPublic:  ctx.Doer.ID == ctxUser.ID, // same scope as the issue list's filters
-			Paginator:  &db.ListOptions{Page: 1, PageSize: dashboardOverviewListSize},
+			IsPull:    optional.Some(isPull),
+			IsClosed:  optional.Some(false),
+			SortType:  "recentupdate",
+			RepoCond:  dashboardOverviewRepoCond(ctx, ctxUser, spec.unitType),
+			Paginator: &db.ListOptions{Page: 1, PageSize: dashboardOverviewListSize},
 		}
-		applyIssueFilterMode(opts, spec.filterMode, ctx.Doer.ID)
-		issueIDs, total, err := issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions("", opts))
+		_, filterMode := issueFilterMode(spec.viewType)
+		applyIssueFilterMode(opts, filterMode, ctx.Doer.ID)
+		issueIDs, total, err := issues_model.IssueIDs(ctx, opts)
 		if err != nil {
-			ctx.ServerError("SearchIssues", err)
+			ctx.ServerError("IssueIDs", err)
 			return
 		}
 		issues, err := issues_model.GetIssuesByIDs(ctx, issueIDs, true)
@@ -160,51 +141,29 @@ func prepareDashboardOverview(ctx *context.Context, ctxUser *user_model.User) {
 			return
 		}
 		all = append(all, issues...)
-		if isPull {
-			pulls = append(pulls, issues...)
-		}
-		page := util.Iif(isPull, "/pulls", "/issues")
 		lists = append(lists, &dashboardOverviewList{
 			Title:  spec.title,
-			Icon:   spec.icon,
-			Link:   linkPrefix + page + linkSuffix + "?type=" + spec.viewType,
+			Link:   linkPrefix + util.Iif(isPull, "/pulls", "/issues") + linkSuffix + "?type=" + spec.viewType,
 			Issues: issues,
 			Total:  total,
 		})
 	}
-	if _, err := all.LoadRepositories(ctx); err != nil {
-		ctx.ServerError("LoadRepositories", err)
+	if err := all.LoadPosters(ctx); err != nil {
+		ctx.ServerError("LoadPosters", err)
+		return
+	}
+	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, ctx.Doer, all) // also loads the repositories
+	if err != nil {
+		ctx.ServerError("GetIssuesAllCommitStatus", err)
+		return
+	}
+	approvalCounts, err := all.GetApprovalCounts(ctx)
+	if err != nil {
+		ctx.ServerError("GetApprovalCounts", err)
 		return
 	}
 	ctx.Data["OverviewLists"] = lists
-
-	if len(pulls) > 0 {
-		commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, ctx.Doer, pulls)
-		if err != nil {
-			ctx.ServerError("GetIssuesAllCommitStatus", err)
-			return
-		}
-		approvalCounts, err := pulls.GetApprovalCounts(ctx)
-		if err != nil {
-			ctx.ServerError("GetApprovalCounts", err)
-			return
-		}
-		ctx.Data["CommitStatuses"] = commitStatuses
-		ctx.Data["CommitLastStatus"] = lastStatus
-		ctx.Data["ApprovalCounts"] = makeApprovalCountsFunc(approvalCounts)
-	}
-
-	feeds, _, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
-		RequestedUser:  ctxUser,
-		RequestedTeam:  ctx.Org.Team,
-		Actor:          ctx.Doer,
-		IncludePrivate: true,
-		DontCount:      true,
-		ListOptions:    db.ListOptions{Page: 1, PageSize: dashboardOverviewListSize},
-	})
-	if err != nil {
-		ctx.ServerError("GetFeeds", err)
-		return
-	}
-	ctx.Data["Feeds"] = feeds
+	ctx.Data["CommitStatuses"] = commitStatuses
+	ctx.Data["CommitLastStatus"] = lastStatus
+	ctx.Data["ApprovalCounts"] = issue.ApprovalCountsFunc(approvalCounts)
 }

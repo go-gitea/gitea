@@ -1,0 +1,21 @@
+{{$approve := call ctx.RootData.ApprovalCounts .ID "approve"}}
+{{$reject := call ctx.RootData.ApprovalCounts .ID "reject"}}
+{{$waiting := call ctx.RootData.ApprovalCounts .ID "waiting"}}
+{{if gt $approve 0}}
+	<span class="approvals green flex-text-inline">
+		{{svg "octicon-check" 14}}
+		{{ctx.Locale.TrN $approve "repo.pulls.approve_count_1" "repo.pulls.approve_count_n" $approve}}
+	</span>
+{{end}}
+{{if gt $reject 0}}
+	<span class="rejects red flex-text-inline">
+		{{svg "octicon-diff" 14}}
+		{{ctx.Locale.TrN $reject "repo.pulls.reject_count_1" "repo.pulls.reject_count_n" $reject}}
+	</span>
+{{end}}
+{{if gt $waiting 0}}
+	<span class="waiting flex-text-inline">
+		{{svg "octicon-eye" 14}}
+		{{ctx.Locale.TrN $waiting "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n" $waiting}}
+	</span>
+{{end}}

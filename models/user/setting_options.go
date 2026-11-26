@@ -18,7 +18,9 @@ const (
 
 	SettingsKeyCodeViewShowFileTree = "code_view.show_file_tree"
 
-	SettingsKeyDashboardDefaultTab = "dashboard.default_tab"
+	SettingsKeyDashboardTab = "dashboard.tab"
+	DashboardTabOverview    = "overview"
+	DashboardTabActivity    = "activity"
 
 	SettingsKeyEmailNotificationGiteaActions        = "email_notification.gitea_actions"
 	SettingEmailNotificationGiteaActionsAll         = "all"

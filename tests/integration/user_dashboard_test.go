@@ -5,35 +5,40 @@ package integration
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
+	user_model "gitea.dev/models/user"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUserDashboardTabs(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
 
-	getDashboard := func(t *testing.T, url string) *HTMLDoc {
-		resp := session.MakeRequest(t, NewRequest(t, "GET", url), http.StatusOK)
-		return NewHTMLParser(t, resp.Body)
+	overviewText := func(t *testing.T, url string) string {
+		return NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", url), http.StatusOK).Body).Find(".dashboard-overview").Text()
 	}
-	isOverview := func(t *testing.T, url string) bool {
-		return getDashboard(t, url).Find(".dashboard-overview").Length() > 0
+	setTab := func(t *testing.T, tab string) {
+		session.MakeRequest(t, NewRequestWithJSON(t, "POST", "/user/settings/update_preferences", map[string]string{"dashboardTab": tab}), http.StatusOK)
 	}
 
-	assert.False(t, isOverview(t, "/"))
-	assert.True(t, isOverview(t, "/org/org3/dashboard?tab=overview"))
-	assert.True(t, isOverview(t, "/org/org3/dashboard/team1?tab=overview"))
+	assert.Contains(t, overviewText(t, "/"), "pull6")
+	assert.Contains(t, overviewText(t, "/org/org3/dashboard/team1"), "pull6")
+	assert.Empty(t, overviewText(t, "/?page=1"))
+	session.MakeRequest(t, NewRequestWithBody(t, "POST", "/user/settings/update_preferences", strings.NewReader("null")), http.StatusOK)
 
-	session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user/settings/appearance/dashboard_tab", map[string]string{
-		"dashboard_tab": "overview",
-	}), http.StatusSeeOther)
-	assert.False(t, isOverview(t, "/?tab=activity"))
-	assert.False(t, isOverview(t, "/?date=2024-01-01"))
+	setTab(t, "activity")
+	setTab(t, "invalid")
+	assert.Empty(t, overviewText(t, "/"))
+	assert.Empty(t, overviewText(t, "/org/org3/dashboard"))
+	showFileTree, err := user_model.GetUserSetting(t.Context(), 2, user_model.SettingsKeyCodeViewShowFileTree, "true")
+	require.NoError(t, err)
+	assert.Equal(t, "true", showFileTree)
 
-	doc := getDashboard(t, "/")
-	assert.Contains(t, doc.Find(".dashboard-overview-list").Text(), "pull6")
+	setTab(t, "overview")
+	assert.NotEmpty(t, overviewText(t, "/"))
 }

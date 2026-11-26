@@ -1,0 +1,8 @@
+{{$timeStr := DateUtils.TimeSince .GetLastEventTimestamp}}
+{{if .OriginalAuthor}}
+	{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor}}
+{{else if gt .Poster.ID 0}}
+	{{ctx.Locale.Tr .GetLastEventLabel $timeStr .Poster.HomeLink .Poster.GetDisplayName}}
+{{else}}
+	{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .Poster.GetDisplayName}}
+{{end}}

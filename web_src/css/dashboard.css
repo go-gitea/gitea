@@ -47,37 +47,187 @@
   margin: 0 1px; /* Accommodate for Semantic's 1px hacks on .attached elements */
 }
 
-.dashboard .dashboard-navbar {
-  display: flex;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
+.dashboard .secondary-nav {
+  padding: 1px 12px; /* match .overflow-menu-items in height */
 }
 
-.dashboard .dashboard-navbar overflow-menu {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-}
-
-.dashboard .dashboard-navbar-context {
-  border-bottom: 1px solid var(--color-secondary);
-  max-width: 100%;
-}
-
-@media (max-width: 767.98px) {
-  .dashboard .dashboard-navbar overflow-menu {
-    flex-basis: 100%;
-  }
-  .dashboard .dashboard-navbar-context {
-    order: -1;
-    border-bottom: none;
-  }
-}
-
-.dashboard .dashboard-navbar .org-visibility .label {
+.dashboard .secondary-nav .org-visibility .label {
   margin-left: 5px;
 }
 
-.dashboard .dashboard-navbar .ui.dropdown {
+.dashboard .secondary-nav .ui.dropdown {
   max-width: 100%;
+}
+
+.dashboard-navbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 16px;
+  min-height: 40px;
+  padding: 4px 3px;
+}
+
+.dashboard-navbar-links,
+.dashboard-navbar-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.dashboard-navbar-links {
+  color: var(--color-text-light-2);
+}
+
+.dashboard-navbar-links a,
+.dashboard-navbar-controls > .ui.dropdown {
+  padding: 6px 10px;
+  border-radius: var(--border-radius);
+}
+
+.dashboard-navbar-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.dashboard-navbar-links a.active {
+  color: var(--color-text);
+}
+
+.ui.dropdown .menu.dashboard-context-menu > .header {
+  margin: 8px 0;
+}
+
+.ui.dropdown .menu.context-user-switch > .scrolling.menu + .item {
+  margin-top: 4px;
+}
+
+.dashboard-context {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.dashboard-context > .ui.dropdown {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 13px;
+  border-radius: var(--border-radius);
+}
+
+.dashboard-context > .ui.dropdown > .text {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+@media (max-width: 767.98px) {
+  .dashboard-navbar {
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 4px 0;
+  }
+  .dashboard-navbar-links,
+  .dashboard-navbar-controls {
+    flex-wrap: nowrap;
+    gap: 0;
+  }
+  .dashboard-navbar-links {
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .dashboard-navbar-controls {
+    flex-shrink: 0;
+  }
+  .dashboard-navbar-links a,
+  .dashboard-navbar-controls > .ui.dropdown {
+    padding: 4px 6px;
+  }
+  .dashboard-navbar-links .svg,
+  .dashboard-navbar-controls .text > .org-visibility {
+    display: none;
+  }
+  .dashboard-navbar-controls .ui.dropdown,
+  .dashboard-navbar-controls .ui.dropdown > .text {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+  .dashboard-navbar-controls .text > .gt-ellipsis {
+    max-width: 80px;
+  }
+}
+
+.dashboard-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dashboard-overview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-block);
+  margin-bottom: 12px;
+}
+
+.dashboard-overview-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: inherit;
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-light-2);
+}
+
+.dashboard-overview-title a {
+  min-width: 0;
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.dashboard-overview-box {
+  overflow: hidden;
+}
+
+.dashboard-overview-list > .item {
+  position: relative;
+}
+
+.dashboard-overview-list > .item:hover {
+  background: var(--color-hover);
+}
+
+.dashboard-overview-title a:hover {
+  text-decoration-line: none;
+}
+
+.dashboard-overview-title a::after {
+  content: ""; /* stretch the title link over the whole row, the other links stay clickable above it */
+  position: absolute;
+  inset: 0;
+}
+
+.dashboard-overview-list .item-body a,
+.dashboard-overview-status {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-overview-empty {
+  padding: 12px 1em;
+  color: var(--color-text-light-2);
 }

@@ -591,25 +591,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 
 	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] = issue_service.GetRefEndNamesAndURLs(issues, ctx.Repo.RepoLink)
 
-	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
-		counts, ok := approvalCounts[issueID]
-		if !ok || len(counts) == 0 {
-			return 0
-		}
-		reviewTyp := issues_model.ReviewTypeApprove
-		switch typ {
-		case "reject":
-			reviewTyp = issues_model.ReviewTypeReject
-		case "waiting":
-			reviewTyp = issues_model.ReviewTypeRequest
-		}
-		for _, count := range counts {
-			if count.Type == reviewTyp {
-				return count.Count
-			}
-		}
-		return 0
-	}
+	ctx.Data["ApprovalCounts"] = issue.ApprovalCountsFunc(approvalCounts)
 
 	retrieveProjectsForIssueList(ctx, repo)
 	if ctx.Written() {

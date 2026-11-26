@@ -1,9 +1,9 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content dashboard issues repository milestones">
-	{{template "user/dashboard/navbar" .}}
 	<div class="ui container">
 		<div class="flex-container">
 			<div class="flex-container-nav">
+				<div class="dashboard-context">{{template "user/dashboard/context_selectors" .}}</div>
 				<div class="ui secondary vertical filter menu tw-bg-transparent">
 					<div class="item">
 						{{ctx.Locale.Tr "home.issues.in_your_repos"}}
