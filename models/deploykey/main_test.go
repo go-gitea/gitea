@@ -10,5 +10,5 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{FixtureFiles: []string{}}) // the tests insert what they assert on
+	unittest.MainTest(m, &unittest.TestOptions{FixtureFiles: []string{}, SkipRepoFixtures: true}) // the tests insert what they assert on
 }

@@ -190,6 +190,15 @@ type ProtectBranchForm struct {
 	ProtectedFilePatterns         string
 	UnprotectedFilePatterns       string
 	BlockAdminMergeOverride       bool
+
+	RequireMergeQueue                      bool
+	MergeQueueMergeMethod                  string
+	MergeQueueMaxEntriesToBuild            int
+	MergeQueueMinEntriesToMerge            int
+	MergeQueueMaxEntriesToMerge            int
+	MergeQueueMinEntriesToMergeWaitMinutes int
+	MergeQueueGroupingStrategy             string
+	MergeQueueCheckResponseTimeoutMinutes  int
 }
 
 // WebhookForm form for changing web hook
@@ -214,6 +223,7 @@ type WebhookForm struct {
 	PullRequestReview        bool
 	PullRequestSync          bool
 	PullRequestReviewRequest bool
+	MergeGroup               bool
 	Wiki                     bool
 	Repository               bool
 	Release                  bool

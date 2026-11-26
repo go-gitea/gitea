@@ -7,13 +7,14 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"io"
+	"strings"
 	"testing"
 
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/zstd"
 
-	"github.com/blakesmith/ar"
 	"github.com/stretchr/testify/assert"
 	"github.com/ulikunitz/xz"
 )
@@ -28,49 +29,39 @@ const (
 )
 
 func TestParsePackage(t *testing.T) {
-	createArchive := func(files map[string][]byte) io.Reader {
-		var buf bytes.Buffer
-		aw := ar.NewWriter(&buf)
-		aw.WriteGlobalHeader()
-		for filename, content := range files {
-			hdr := &ar.Header{
-				Name: filename,
-				Mode: 0o600,
-				Size: int64(len(content)),
-			}
-			aw.WriteHeader(hdr)
-			aw.Write(content)
-		}
-		return &buf
+	member := func(name, content string) string {
+		return fmt.Sprintf("%-48s%-10d`\n%s%s", name, len(content), content, strings.Repeat("\n", len(content)%2))
 	}
+	debianBinary := member("debian-binary", "2.0\n")
 
-	t.Run("MissingControlFile", func(t *testing.T) {
-		data := createArchive(map[string][]byte{"dummy.txt": {}})
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+	tw.WriteHeader(&tar.Header{
+		Name: "control",
+		Mode: 0o600,
+		Size: 50,
+	})
+	tw.Write([]byte("Package: gitea\nVersion: 1.0.0\nArchitecture: amd64\n"))
+	tw.Close()
 
-		p, err := ParsePackage(data)
-		assert.Nil(t, p)
-		assert.ErrorIs(t, err, GlobalVars().ErrMissingControlFile)
+	t.Run("Invalid", func(t *testing.T) {
+		for data, expected := range map[string]error{
+			"!<ARCH>\n" + debianBinary:                                                GlobalVars().ErrInvalidArchive,
+			arMagic + debianBinary[:20]:                                               GlobalVars().ErrInvalidArchive,
+			arMagic + debianBinary[:62]:                                               GlobalVars().ErrInvalidArchive,
+			arMagic + member("control.tar", "")[:58] + "\n\n":                         GlobalVars().ErrInvalidArchive,
+			arMagic + fmt.Sprintf("%-48s%-10d`\n", "control.tar", -1):                 GlobalVars().ErrInvalidArchive,
+			arMagic + member("dummy.txt", "x"):                                        GlobalVars().ErrMissingControlFile,
+			arMagic + member("control.tar", "") + member("control.tar", buf.String()): GlobalVars().ErrMissingControlFile,
+			arMagic + member("control.tar.foo", ""):                                   GlobalVars().ErrUnsupportedCompression,
+		} {
+			p, err := ParsePackage(strings.NewReader(data))
+			assert.Nil(t, p)
+			assert.ErrorIs(t, err, expected, "%q", data)
+		}
 	})
 
 	t.Run("Compression", func(t *testing.T) {
-		t.Run("Unsupported", func(t *testing.T) {
-			data := createArchive(map[string][]byte{"control.tar.foo": {}})
-
-			p, err := ParsePackage(data)
-			assert.Nil(t, p)
-			assert.ErrorIs(t, err, GlobalVars().ErrUnsupportedCompression)
-		})
-
-		var buf bytes.Buffer
-		tw := tar.NewWriter(&buf)
-		tw.WriteHeader(&tar.Header{
-			Name: "control",
-			Mode: 0o600,
-			Size: 50,
-		})
-		tw.Write([]byte("Package: gitea\nVersion: 1.0.0\nArchitecture: amd64\n"))
-		tw.Close()
-
 		cases := []struct {
 			Extension     string
 			WriterFactory func(io.Writer) io.WriteCloser
@@ -111,9 +102,7 @@ func TestParsePackage(t *testing.T) {
 				w.Close()
 
 				for _, suffix := range []string{"", "/"} {
-					data := createArchive(map[string][]byte{"control.tar" + c.Extension + suffix: cbuf.Bytes()})
-
-					p, err := ParsePackage(data)
+					p, err := ParsePackage(strings.NewReader(arMagic + debianBinary + member("control.tar"+c.Extension+suffix, cbuf.String())))
 					assert.NotNil(t, p)
 					assert.NoError(t, err)
 					assert.Equal(t, "gitea", p.Name)

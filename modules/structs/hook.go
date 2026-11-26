@@ -120,12 +120,12 @@ type CreateHookOption struct {
 type EditHookOption struct {
 	// Configuration settings for the webhook
 	Config map[string]string `json:"config"`
-	// List of events that trigger this webhook
+	// List of events that trigger this webhook, omitted or empty keeps the current events
 	Events []string `json:"events"`
-	// Branch filter pattern to determine which branches trigger the webhook
-	BranchFilter string `json:"branch_filter" binding:"GlobPattern"`
-	// Authorization header to include in webhook requests
-	AuthorizationHeader string `json:"authorization_header"`
+	// Branch filter pattern to determine which branches trigger the webhook, omitted keeps the current value
+	BranchFilter *string `json:"branch_filter" binding:"GlobPattern"`
+	// Authorization header to include in webhook requests, omitted keeps the current value unless the url changes
+	AuthorizationHeader *string `json:"authorization_header"`
 	// Whether the webhook is active and will be triggered
 	Active *bool `json:"active"`
 	// Optional human-readable name
@@ -153,7 +153,8 @@ type PayloadUser struct {
 // PayloadCommit represents a commit
 type PayloadCommit struct {
 	// sha1 hash of the commit
-	ID string `json:"id"`
+	ID     string `json:"id"`
+	TreeID string `json:"tree_id,omitempty"`
 	// The commit message
 	Message string `json:"message"`
 	// The URL to view this commit
@@ -334,7 +335,8 @@ type ReleasePayload struct {
 	// The action performed on the release (published, updated, deleted)
 	Action HookReleaseAction `json:"action"`
 	// The release that was acted upon
-	Release *Release `json:"release"`
+	Release *Release        `json:"release"`
+	Changes *ChangesPayload `json:"changes,omitempty"`
 	// The repository containing the release
 	Repository *Repository `json:"repository"`
 	// The user who performed the action
@@ -457,6 +459,8 @@ const (
 	HookIssueReviewRequested HookIssueAction = "review_requested"
 	// HookIssueReviewRequestRemoved is an issue action for removing a review request to someone on a pull request.
 	HookIssueReviewRequestRemoved HookIssueAction = "review_request_removed"
+	HookIssueEnqueued             HookIssueAction = "enqueued"
+	HookIssueDequeued             HookIssueAction = "dequeued"
 )
 
 // IssuePayload represents the payload information that is sent along with an issue event.
@@ -488,6 +492,11 @@ type ChangesFromPayload struct {
 	From string `json:"from"`
 }
 
+type ChangesBasePayload struct {
+	Ref ChangesFromPayload `json:"ref"`
+	Sha ChangesFromPayload `json:"sha"`
+}
+
 type ChangesOwnerPayload struct {
 	From struct {
 		User         *User `json:"user,omitempty"`
@@ -502,9 +511,11 @@ type ChangesPayload struct {
 	// Changes made to the body/description
 	Body *ChangesFromPayload `json:"body,omitempty"`
 	// Changes made to the reference
-	Ref *ChangesFromPayload `json:"ref,omitempty"`
-	// Changes made to the repository name
-	Name *ChangesFromPayload `json:"name,omitempty"`
+	Ref  *ChangesFromPayload `json:"ref,omitempty"`
+	Base *ChangesBasePayload `json:"base,omitempty"`
+	// Changes made to the repository or release name
+	Name    *ChangesFromPayload `json:"name,omitempty"`
+	TagName *ChangesFromPayload `json:"tag_name,omitempty"`
 	// Changes made to the repository owner
 	Owner *ChangesOwnerPayload `json:"owner,omitempty"`
 	// Changes made to the labels added
@@ -527,6 +538,8 @@ type PullRequestPayload struct {
 	After string `json:"after,omitempty"`
 	// The index number of the pull request
 	Index int64 `json:"number"`
+	// Why the pull request left the merge queue, like MERGE or CI_FAILURE, only for the dequeued action
+	Reason string `json:"reason,omitempty"`
 	// Changes made to the pull request
 	Changes *ChangesPayload `json:"changes,omitempty"`
 	// The pull request that was acted upon
@@ -757,5 +770,32 @@ type WorkflowJobPayload struct {
 
 // JSONPayload implements Payload
 func (p *WorkflowJobPayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}
+
+type HookMergeGroupAction string
+
+const (
+	HookMergeGroupChecksRequested HookMergeGroupAction = "checks_requested"
+	HookMergeGroupDestroyed       HookMergeGroupAction = "destroyed"
+)
+
+type MergeGroup struct {
+	HeadSHA    string         `json:"head_sha"`
+	HeadRef    string         `json:"head_ref"`
+	BaseSHA    string         `json:"base_sha"`
+	BaseRef    string         `json:"base_ref"`
+	HeadCommit *PayloadCommit `json:"head_commit"`
+}
+
+type MergeGroupPayload struct {
+	Action     HookMergeGroupAction `json:"action"`
+	Reason     string               `json:"reason,omitempty"`
+	MergeGroup *MergeGroup          `json:"merge_group"`
+	Repo       *Repository          `json:"repository"`
+	Sender     *User                `json:"sender"`
+}
+
+func (p *MergeGroupPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }

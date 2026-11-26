@@ -12,6 +12,7 @@ import (
 	activities_model "gitea.dev/models/activities"
 	admin_model "gitea.dev/models/admin"
 	advisory_model "gitea.dev/models/advisory"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
@@ -19,6 +20,7 @@ import (
 	packages_model "gitea.dev/models/packages"
 	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	secret_model "gitea.dev/models/secret"
 	system_model "gitea.dev/models/system"
@@ -32,6 +34,7 @@ import (
 	"gitea.dev/modules/storage"
 	actions_service "gitea.dev/services/actions"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	issue_service "gitea.dev/services/issue"
 
 	"xorm.io/builder"
@@ -171,6 +174,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		&activities_model.Notification{RepoID: repoID},
 		&git_model.ProtectedBranch{RepoID: repoID},
 		&git_model.ProtectedTag{RepoID: repoID},
+		&pull_model.MergeQueueEntry{RepoID: repoID},
 		&repo_model.PushMirror{RepoID: repoID},
 		&repo_model.Release{RepoID: repoID},
 		&repo_model.RepoIndexerStatus{RepoID: repoID},
@@ -419,6 +423,7 @@ func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User
 			if err := DeleteRepositoryDirectly(ctx, repo.ID); err != nil {
 				return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %w", repo.Name, owner.Name, owner.ID, err)
 			}
+			audit.Record(ctx, audit_model.RepositoryDelete, repo)
 		}
 	}
 	return nil

@@ -66,7 +66,7 @@ type CreateTeamOption struct {
 	CanCreateOrgRepo bool `json:"can_create_org_repo"`
 	// Whether the members see and edit the private reports and draft security advisories of the team's repositories
 	IsSecurityTeam bool `json:"is_security_team"`
-	// Team visibility within the organization. Defaults to "private".
+	// Team visibility within the organization. Defaults to the instance's default team visibility, "private" unless configured.
 	Visibility TeamVisibility `json:"visibility" binding:"In(public,limited,private)"`
 }
 

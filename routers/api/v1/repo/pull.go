@@ -14,7 +14,6 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
-	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -37,8 +36,8 @@ import (
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
 	issue_service "gitea.dev/services/issue"
+	"gitea.dev/services/mergequeue"
 	"gitea.dev/services/notifications"
-	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
 )
@@ -745,7 +744,6 @@ func EditPullRequest(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		notify_service.PullRequestChangeTargetBranch(ctx, ctx.Doer, pr, form.Base)
 	}
 
 	// update allow edits
@@ -821,6 +819,47 @@ func IsPullRequestMerged(ctx *context.APIContext) {
 	ctx.APIErrorNotFound()
 }
 
+func getPullRequestToMerge(ctx *context.APIContext) *issues_model.PullRequest {
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return nil
+	}
+	pr.Issue.Repo = ctx.Repo.Repository
+	return pr
+}
+
+func checkPullMergeable(ctx *context.APIContext, pr *issues_model.PullRequest, checkType pull_service.MergeCheckType, style repo_model.MergeStyle, force bool) bool {
+	err := pull_service.CheckPullMergeable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, checkType, style, force)
+	switch {
+	case err == nil:
+		return true
+	case errors.Is(err, pull_service.ErrIsClosed):
+		ctx.APIErrorNotFound()
+	case errors.Is(err, pull_service.ErrNoPermissionToMerge):
+		ctx.APIError(http.StatusMethodNotAllowed, "User not allowed to merge PR")
+	case errors.Is(err, pull_service.ErrHasMerged):
+		ctx.APIError(http.StatusMethodNotAllowed, "The PR is already merged")
+	case errors.Is(err, pull_service.ErrIsWorkInProgress):
+		ctx.APIError(http.StatusMethodNotAllowed, "Work in progress PRs cannot be merged")
+	case errors.Is(err, pull_service.ErrNotMergeableState):
+		ctx.APIError(http.StatusMethodNotAllowed, "Please try again later")
+	case errors.Is(err, pull_service.ErrNotReadyToMerge), asymkey_service.IsErrWontSign(err), errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified):
+		ctx.APIError(http.StatusMethodNotAllowed, err.Error())
+	default:
+		ctx.APIErrorInternal(err)
+	}
+	return false
+}
+
+func writeMergeError(ctx *context.APIContext, err error) {
+	if pull_service.IsErrSHADoesNotMatch(err) {
+		ctx.APIError(http.StatusConflict, "head out of date")
+	} else {
+		ctx.APIErrorAuto(err)
+	}
+}
+
 // MergePullRequest merges a PR given an index
 func MergePullRequest(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/merge repository repoMergePullRequest
@@ -852,14 +891,15 @@ func MergePullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
+	//   "201":
+	//     "$ref": "#/responses/empty"
 	//   default:
 	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*forms.MergePullRequestForm](ctx)
 
-	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	pr := getPullRequestToMerge(ctx)
+	if pr == nil {
 		return
 	}
 
@@ -867,12 +907,6 @@ func MergePullRequest(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-
-	if err := pr.LoadIssue(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	pr.Issue.Repo = ctx.Repo.Repository
 
 	if ctx.IsSigned {
 		// Update issue-user.
@@ -893,26 +927,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	// start with merging by checking
-	if err := pull_service.CheckPullMergeable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, repo_model.MergeStyle(form.Do), form.ForceMerge); err != nil {
-		if errors.Is(err, pull_service.ErrIsClosed) {
-			ctx.APIErrorNotFound()
-		} else if errors.Is(err, pull_service.ErrNoPermissionToMerge) {
-			ctx.APIError(http.StatusMethodNotAllowed, "User not allowed to merge PR")
-		} else if errors.Is(err, pull_service.ErrHasMerged) {
-			ctx.APIError(http.StatusMethodNotAllowed, "The PR is already merged")
-		} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
-			ctx.APIError(http.StatusMethodNotAllowed, "Work in progress PRs cannot be merged")
-		} else if errors.Is(err, pull_service.ErrNotMergeableState) {
-			ctx.APIError(http.StatusMethodNotAllowed, "Please try again later")
-		} else if errors.Is(err, pull_service.ErrNotReadyToMerge) {
-			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
-		} else if asymkey_service.IsErrWontSign(err) {
-			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
-		} else if errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified) {
-			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	if !checkPullMergeable(ctx, pr, mergeCheckType, repo_model.MergeStyle(form.Do), form.ForceMerge) {
 		return
 	}
 
@@ -960,19 +975,20 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	if form.MergeWhenChecksSucceed {
-		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge)
-		if err != nil {
-			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
-				ctx.APIError(http.StatusConflict, err.Error())
-				return
-			}
-			ctx.APIErrorInternal(err)
-			return
-		} else if scheduled {
-			// nothing more to do ...
+		if err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge); err != nil {
+			ctx.APIErrorAuto(err)
+		} else {
 			ctx.Status(http.StatusCreated)
-			return
 		}
+		return
+	}
+
+	if queued, err := mergequeue.EnqueueIfRequired(ctx, ctx.Doer, pr, form.HeadCommitID, form.ForceMerge); err != nil {
+		writeMergeError(ctx, err)
+		return
+	} else if queued {
+		ctx.Status(http.StatusCreated)
+		return
 	}
 
 	if err := pull_service.Merge(ctx, pr.ID, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
@@ -986,8 +1002,6 @@ func MergePullRequest(ctx *context.APIContext) {
 			ctx.JSON(http.StatusConflict, conflictError)
 		} else if git.IsErrPushOutOfDate(err) {
 			ctx.APIError(http.StatusConflict, "merge push out of date")
-		} else if pull_service.IsErrSHADoesNotMatch(err) {
-			ctx.APIError(http.StatusConflict, "head out of date")
 		} else if errPushRej, ok := err.(*git.ErrPushRejected); ok {
 			if len(errPushRej.Message) == 0 {
 				ctx.APIError(http.StatusConflict, "PushRejected without remote error message")
@@ -995,7 +1009,7 @@ func MergePullRequest(ctx *context.APIContext) {
 				ctx.APIError(http.StatusConflict, "PushRejected with remote message: "+errPushRej.Message)
 			}
 		} else {
-			ctx.APIErrorInternal(err)
+			writeMergeError(ctx, err)
 		}
 		return
 	}
@@ -1208,7 +1222,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	ctx.Status(http.StatusOK)
 }
 
-// MergePullRequest cancel an auto merge scheduled for a given PullRequest by index
+// CancelScheduledAutoMerge cancels an auto merge scheduled for a given PullRequest by index
 func CancelScheduledAutoMerge(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/pulls/{index}/merge repository repoCancelScheduledAutoMerge
 	// ---
@@ -1249,30 +1263,8 @@ func CancelScheduledAutoMerge(ctx *context.APIContext) {
 		return
 	}
 
-	exist, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if !exist {
-		ctx.APIErrorNotFound()
-		return
-	}
-
-	if ctx.Doer.ID != autoMerge.DoerID {
-		allowed, err := pull_service.IsUserAllowedToMerge(ctx, pull, ctx.Repo.Permission, ctx.Doer)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		if !allowed {
-			ctx.APIError(http.StatusForbidden, "user has no permission to cancel the scheduled auto merge")
-			return
-		}
-	}
-
-	if err := automerge.RemoveScheduledAutoMerge(ctx, ctx.Doer, pull); err != nil {
-		ctx.APIErrorInternal(err)
+	if err := automerge.CancelScheduledAutoMerge(ctx, ctx.Doer, pull, ctx.Repo.Permission); err != nil {
+		ctx.APIErrorAuto(err)
 	} else {
 		ctx.Status(http.StatusNoContent)
 	}

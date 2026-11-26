@@ -10,6 +10,7 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -208,6 +209,11 @@ func testHasUnmergedPullRequestsByHeadInfo(t *testing.T) {
 	exist, err = issues_model.HasUnmergedPullRequestsByHeadInfo(t.Context(), 1, "not_exist_branch")
 	assert.NoError(t, err)
 	assert.False(t, exist)
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})
+	require.NoError(t, db.Insert(t.Context(), &pull_model.MergeQueueEntry{PullID: pr.ID, RepoID: pr.BaseRepoID}))
+	assert.ErrorIs(t, issues_model.CheckBranchNotQueuedForMerge(t.Context(), pr.HeadRepoID, pr.HeadBranch), issues_model.ErrQueuedPullHead)
+	assert.NoError(t, issues_model.CheckBranchNotQueuedForMerge(t.Context(), pr.BaseRepoID, pr.HeadBranch))
 }
 
 func testGetUnmergedPullRequestsByHeadInfo(t *testing.T) {

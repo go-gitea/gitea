@@ -19,5 +19,6 @@ func TestMain(m *testing.M) {
 			"user.yml",
 			"email_address.yml",
 		},
+		SkipRepoFixtures: true,
 	})
 }

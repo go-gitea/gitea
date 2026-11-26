@@ -229,7 +229,7 @@ func serveInstalled(c *cli.Command) error {
 	// Set up Chi routes
 	webRoutes := routers.NormalRoutes()
 
-	auditCtx := cliAuditContext(context.Background())
+	auditCtx := audit.WithCLIDoer(context.Background())
 	log.Info("Audit record output: %s", setting.Audit.RecordOutput)
 	audit.Record(auditCtx, audit_model.SystemStartup, nil, "version", setting.AppVer)
 
@@ -258,14 +258,10 @@ func servePprof() {
 	finished()
 }
 
-func runWeb(ctx context.Context, cmd *cli.Command) error {
+func runWeb(_ context.Context, cmd *cli.Command) error {
 	if subCmdName, valid := isValidDefaultSubCommand(cmd); !valid {
 		return fmt.Errorf("unknown command: %s", subCmdName)
 	}
-
-	managerCtx, cancel := context.WithCancel(ctx)
-	graceful.InitManager(managerCtx)
-	defer cancel()
 
 	if os.Getppid() > 1 && len(os.Getenv("LISTEN_FDS")) > 0 {
 		log.Info("Restarting Gitea on PID: %d from parent PID: %d", os.Getpid(), os.Getppid())

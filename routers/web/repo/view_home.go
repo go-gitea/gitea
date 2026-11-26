@@ -55,7 +55,7 @@ func prepareHomeSidebarRepoTopics(ctx *context.Context) {
 		RepoID: ctx.Repo.Repository.ID,
 	})
 	if err != nil {
-		ctx.ServerError("models.FindTopics", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Topics"] = topics
@@ -98,7 +98,7 @@ func prepareClonePanel(ctx *context.Context) {
 func prepareHomeSidebarCitationFile(ctx *context.Context) {
 	allEntries, err := ctx.Repo.Commit.Tree().ListEntries(ctx, ctx.Repo.GitRepo)
 	if err != nil {
-		ctx.ServerError("ListEntries", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	isBlobSupported := func(entry *git.TreeEntry) bool {
@@ -147,7 +147,7 @@ type licenseGroup struct {
 func prepareHomeSidebarLicenses(ctx *context.Context) {
 	repoLicenses, err := repo_model.GetUniqueRepoLicenses(ctx, ctx.Repo.Repository)
 	if err != nil {
-		ctx.ServerError("GetRepoLicenses", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if len(repoLicenses) == 0 {
@@ -184,7 +184,7 @@ func prepareToRenderDirectory(ctx *context.Context) {
 
 	subfolder, readmeFile, err := findReadmeFileInRepoTree(ctx, ctx.Repo.TreePath, treeEntry, subEntries)
 	if err != nil {
-		ctx.ServerError("findReadmeFileInRepo", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	prepareToRenderReadmeFile(ctx, subfolder, readmeFile)
@@ -193,7 +193,7 @@ func prepareToRenderDirectory(ctx *context.Context) {
 func prepareHomeSidebarLanguageStats(ctx *context.Context) {
 	langs, err := repo_model.GetTopLanguageStats(ctx, ctx.Repo.Repository, 5)
 	if err != nil {
-		ctx.ServerError("Repo.GetTopLanguageStats", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -207,13 +207,13 @@ func prepareHomeSidebarLatestRelease(ctx *context.Context) {
 
 	release, err := repo_model.GetLatestRelease(ctx, ctx.Repo.Repository)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
-		ctx.ServerError("GetLatestRelease", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if release != nil {
 		if err = release.LoadAttributes(ctx); err != nil {
-			ctx.ServerError("release.LoadAttributes", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		ctx.Data["LatestRelease"] = release
@@ -240,7 +240,7 @@ func updateContextRepoEmptyAndStatus(ctx *context.Context, empty bool, status re
 		ctx.Repo.Repository.Status = status // only handle ready and broken status, leave other status as-is
 	}
 	if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, ctx.Repo.Repository, "is_empty", "status"); err != nil {
-		ctx.ServerError("updateContextRepoEmptyAndStatus: UpdateRepositoryCols", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 }
@@ -282,7 +282,7 @@ func handleRepoEmptyOrBroken(ctx *context.Context) {
 	// 2) the user replaces an empty git repo manually.
 	updateContextRepoEmptyAndStatus(ctx, false, repo_model.RepositoryReady)
 	if err := repo_module.UpdateRepoSize(ctx, ctx.Repo.Repository); err != nil {
-		ctx.ServerError("UpdateRepoSize", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -302,7 +302,7 @@ func handleRepoViewSubmodule(ctx *context.Context, commitSubmoduleFile *git.Comm
 	submoduleWebLink := commitSubmoduleFile.SubmoduleWebLinkTree(ctx)
 	if submoduleWebLink == nil {
 		ctx.Data["NotFoundPrompt"] = ctx.Repo.TreePath
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -313,7 +313,7 @@ func handleRepoViewSubmodule(ctx *context.Context, commitSubmoduleFile *git.Comm
 	} else if !httplib.IsCurrentGiteaSiteURL(ctx, redirectLink) {
 		// don't auto-redirect to external URL, to avoid open redirect or phishing
 		ctx.Data["NotFoundPrompt"] = redirectLink
-		ctx.NotFound(nil)
+		ctx.NotFound()
 	} else {
 		ctx.RedirectToCurrentSite(redirectLink)
 	}
@@ -324,7 +324,7 @@ func prepareToRenderDirOrFile(entry *git.TreeEntry) func(ctx *context.Context) {
 		if entry.IsSubModule() {
 			commitSubmoduleFile, err := git.GetCommitInfoSubmoduleFile(ctx, ctx.Repo.RepoLink, ctx.Repo.TreePath, ctx.Repo.GitRepo, ctx.Repo.Commit, entry.ID)
 			if err != nil {
-				HandleGitError(ctx, "prepareToRenderDirOrFile: GetCommitInfoSubmoduleFile", err)
+				HandleGitError(ctx, err)
 				return
 			}
 			handleRepoViewSubmodule(ctx, commitSubmoduleFile)
@@ -349,7 +349,7 @@ func handleRepoHomeFeed(ctx *context.Context) bool {
 	} else if !ctx.Repo.Permission.CanRead(unit_model.TypeCode) && !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
 		// the branch and file feeds list commits, so gate them like RequireUnitReader(TypeCode) on "/rss/branch/*",
 		// which also admits maintainers of a PR allowing maintainer edits, who can push to its head branch without code read access
-		ctx.NotFound(nil)
+		ctx.NotFound()
 	} else {
 		feed.RenderBranchFeed(ctx, showFeedType)
 	}
@@ -462,7 +462,7 @@ func Home(ctx *context.Context) {
 	// get the current git entry which doer user is currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
-		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
+		HandleGitError(ctx, err)
 		return
 	}
 

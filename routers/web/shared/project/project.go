@@ -4,11 +4,9 @@
 package project
 
 import (
-	"errors"
-
 	issues_model "gitea.dev/models/issues"
 	project_model "gitea.dev/models/project"
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -26,7 +24,7 @@ func findProject(ctx *context.Context) *project_model.Project {
 		project, err = project_model.GetProjectByIDAndOwner(ctx, ctx.PathParamInt64("id"), ctx.ContextUser.ID)
 	}
 	if err != nil {
-		ctx.ServerError("GetProject", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	return project
@@ -39,7 +37,7 @@ func findColumn(ctx *context.Context) (*project_model.Project, *project_model.Co
 	}
 	column, err := project_model.GetColumnByIDAndProjectID(ctx, ctx.PathParamInt64("columnID"), project.ID)
 	if err != nil {
-		ctx.ServerError("GetColumnByIDAndProjectID", err)
+		ctx.ServerErrorAuto(err)
 		return nil, nil
 	}
 	return project, column
@@ -59,8 +57,8 @@ func MoveColumns(ctx *context.Context) {
 	}
 
 	form := &movedColumnsForm{}
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
-		ctx.ServerError("DecodeMovedColumnsForm", err)
+	if err := jsonlimit.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &form); err != nil {
+		ctx.JSONError("invalid request body")
 		return
 	}
 
@@ -70,7 +68,7 @@ func MoveColumns(ctx *context.Context) {
 	}
 
 	if err := project_model.MoveColumnsOnProject(ctx, project, sortedColumnIDs); err != nil {
-		ctx.ServerError("MoveColumnsOnProject", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -127,7 +125,7 @@ func DeleteProjectColumn(ctx *context.Context) {
 	}
 
 	if err := project_model.DeleteColumnByID(ctx, column.ID); err != nil {
-		ctx.ServerError("DeleteProjectColumnByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -141,7 +139,7 @@ func SetDefaultProjectColumn(ctx *context.Context) {
 	}
 
 	if err := project_model.SetDefaultColumn(ctx, project.ID, column.ID); err != nil {
-		ctx.ServerError("SetDefaultColumn", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -158,26 +156,26 @@ func MoveIssues(ctx *context.Context) {
 		IssueID     int64 `json:"issueID"`
 		PrevIssueID int64 `json:"prevIssueID"`
 	}{}
-	if err := json.NewDecoder(ctx.Req.Body).Decode(form); err != nil {
-		ctx.ServerError("DecodeMovedIssueForm", err)
+	if err := jsonlimit.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, form); err != nil {
+		ctx.JSONError("invalid request body")
 		return
 	}
 
 	issue, err := issues_model.GetIssueByID(ctx, form.IssueID)
 	if err != nil {
-		ctx.ServerError("GetIssueByID", err)
+		ctx.JSONErrorAuto(err)
 		return
 	}
 	if err = issue.LoadRepo(ctx); err != nil {
-		ctx.ServerError("LoadRepo", err)
+		ctx.JSONErrorAuto(err)
 		return
 	}
 	if !project.CanBeAccessedByOwnerRepo(issue.Repo.OwnerID, issue.Repo) {
-		ctx.ServerError("Some issue's repoID is not equal to project's repoID", errors.New("Some issue's repoID is not equal to project's repoID"))
+		ctx.JSONError("Some issue's repoID is not equal to project's repoID")
 		return
 	}
 	if err = project_service.MoveIssueAfter(ctx, ctx.Doer, column, issue, form.PrevIssueID); err != nil {
-		ctx.ServerError("MoveIssueAfter", err)
+		ctx.JSONErrorAuto(err)
 		return
 	}
 

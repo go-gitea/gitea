@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security Concern
-    url: https://tinyurl.com/security-gitea
-    about: For security concerns, please send a mail to security@gitea.io instead of opening a public issue.
+    url: https://github.com/go-gitea/gitea/security/advisories/new
+    about: Please report vulnerabilities privately through a GitHub security advisory instead of opening a public issue.
   - name: Discord Server
     url: https://discord.gg/Gitea
     about: Please ask questions and discuss configuration or deployment problems here.

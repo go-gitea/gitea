@@ -42,7 +42,7 @@ func (g *ASTTransformer) transformList(_ *markup.RenderContext, v *ast.List, rc 
 		if !ok {
 			continue
 		}
-		listItem.SetAttributeString(g.renderInternal.SafeAttr("class"), []byte(g.renderInternal.SafeValue("task-list-item")))
+		listItem.SetAttributeString(g.internalVar.Value.SafeAttr("class"), []byte(g.internalVar.Value.SafeValue("task-list-item")))
 		if lines := block.Lines(); lines.Len() > 0 {
 			checkBox.SetAttributeString("data-source-position", []byte(strconv.Itoa(rc.metaLength+lines.At(0).Start)))
 		}

@@ -32,6 +32,7 @@ const (
 	HookEventRelease                   HookEventType = "release"
 	HookEventPackage                   HookEventType = "package"
 	HookEventStatus                    HookEventType = "status"
+	HookEventMergeGroup                HookEventType = "merge_group"
 	HookEventRepositoryAdvisory        HookEventType = "repository_advisory"
 	// once a new event added here, please also added to AllEvents() function
 
@@ -75,6 +76,7 @@ func AllEvents() []HookEventType {
 		HookEventRepositoryAdvisory,
 		HookEventWorkflowRun,
 		HookEventWorkflowJob,
+		HookEventMergeGroup,
 	}
 }
 

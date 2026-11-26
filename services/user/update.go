@@ -11,9 +11,11 @@ import (
 	auth_model "gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	password_module "gitea.dev/modules/auth/password"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/system"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
 )
@@ -66,6 +68,7 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 	cols := make([]string, 0, 20)
 
 	oldIsActive, oldIsRestricted, oldIsAdmin, oldVisibility, oldType := u.IsActive, u.IsRestricted, u.IsAdmin, u.Visibility, u.Type
+	oldRepoAdminChangeTeamAccess := u.RepoAdminChangeTeamAccess
 
 	if opts.KeepEmailPrivate.Has() {
 		u.KeepEmailPrivate = opts.KeepEmailPrivate.Value()
@@ -161,6 +164,9 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		cols = append(cols, "visibility")
 	}
 	if opts.KeepActivityPrivate.Has() {
+		if forced := setting.Service.ForceUserActivityVisibility; forced != "" && opts.KeepActivityPrivate.Value() != (forced == "private") {
+			return util.ErrorWrap(util.ErrUnprocessableContent, "activity visibility is forced to %s", forced)
+		}
 		u.KeepActivityPrivate = opts.KeepActivityPrivate.Value()
 
 		cols = append(cols, "keep_activity_private")
@@ -215,6 +221,9 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 	}
 	if u.Type != oldType {
 		audit.Record(ctx, audit_model.UserType, u, "user_type", u.Type.DisplayName())
+	}
+	if u.RepoAdminChangeTeamAccess != oldRepoAdminChangeTeamAccess {
+		audit.Record(ctx, audit_model.OrganizationTeamAccess, u, "repo_admin_change_team_access", u.RepoAdminChangeTeamAccess)
 	}
 
 	return nil
@@ -274,6 +283,7 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 	if opts.MustChangePassword.Has() {
 		u.MustChangePassword = opts.MustChangePassword.Value()
 	}
+	oldProhibitLogin := u.ProhibitLogin
 	if opts.ProhibitLogin.Has() {
 		u.ProhibitLogin = opts.ProhibitLogin.Value()
 	}
@@ -292,6 +302,9 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 	if loginSourceChanged {
 		audit.Record(ctx, audit_model.UserAuthenticationSource, u, "auth_source", authSourceName)
 	}
+	if u.ProhibitLogin != oldProhibitLogin {
+		audit.Record(ctx, audit_model.UserProhibitLogin, u, "prohibit_login", u.ProhibitLogin)
+	}
 
 	return nil
 }
@@ -306,4 +319,24 @@ func CheckConvertUserType(u *user_model.User) error {
 		return user_model.ErrBotMustBeLocal
 	}
 	return nil
+}
+
+// SyncForcedActivityVisibility applies FORCE_USER_ACTIVITY_VISIBILITY to all users when it changed since the last start
+func SyncForcedActivityVisibility(ctx context.Context) error {
+	lastConfig := new(system.LastConfig)
+	if err := system.AppState.Get(ctx, lastConfig); err != nil {
+		return err
+	}
+	forced := setting.Service.ForceUserActivityVisibility
+	if lastConfig.ForceUserActivityVisibility == forced {
+		return nil
+	}
+	if forced != "" {
+		log.Info("FORCE_USER_ACTIVITY_VISIBILITY changed to %q, updating all users", forced)
+		if err := user_model.UpdateAllUsersKeepActivityPrivate(ctx, forced == "private"); err != nil {
+			return err
+		}
+	}
+	lastConfig.ForceUserActivityVisibility = forced
+	return system.AppState.Set(ctx, lastConfig)
 }

@@ -33,7 +33,7 @@ import (
 func prepareLatestCommitInfo(ctx *context.Context) bool {
 	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
-		ctx.ServerError("GetCommitByPath", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 
@@ -46,7 +46,7 @@ func prepareFileViewLfsAttrs(ctx *context.Context) (*attribute.Attributes, bool)
 		Attributes: []string{attribute.LinguistGenerated, attribute.LinguistVendored, attribute.LinguistLanguage, attribute.GitlabLanguage},
 	})
 	if err != nil {
-		ctx.ServerError("attribute.CheckAttributes", err)
+		ctx.ServerErrorAuto(err)
 		return nil, false
 	}
 	attrs := attrsMap[ctx.Repo.TreePath]
@@ -82,7 +82,7 @@ func handleFileViewRenderMarkup(ctx *context.Context, prefetchBuf []byte, utf8Re
 	var err error
 	ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRenderToHTML(ctx, rctx, renderer, utf8Reader)
 	if err != nil {
-		ctx.ServerError("Render", err)
+		ctx.ServerErrorAuto(err)
 		return true
 	}
 
@@ -158,6 +158,7 @@ func handleFileViewRenderImage(ctx *context.Context, fInfo *fileInfo, prefetchBu
 type fileCodeOwner struct {
 	CodeOwnerName string
 	CodeOwnerLink string
+	IsUser        bool
 }
 
 func prepareFileCodeOwners(ctx *context.Context) {
@@ -177,22 +178,22 @@ func prepareFileCodeOwners(ctx *context.Context) {
 
 	var owners []fileCodeOwner
 	seen := make(map[string]bool)
-	add := func(name, link string) {
+	add := func(name, link string, isUser bool) {
 		if !seen[link] {
-			owners = append(owners, fileCodeOwner{name, link})
+			owners = append(owners, fileCodeOwner{name, link, isUser})
 			seen[link] = true
 		}
 	}
 	for _, rule := range matching {
 		for _, user := range rule.Users {
-			add("@"+user.Name, user.HomeLink())
+			add("@"+user.Name, user.HomeLink(), true)
 		}
 		for _, team := range rule.Teams {
 			org, err := org_model.GetOrgByID(ctx, team.OrgID)
 			if err != nil {
 				continue
 			}
-			add("@"+org.Name+"/"+team.Name, org.HomeLink()+"/teams/"+util.PathEscapeSegments(team.LowerName))
+			add("@"+org.Name+"/"+team.Name, org.HomeLink()+"/teams/"+util.PathEscapeSegments(team.LowerName), false)
 		}
 	}
 	ctx.Data["FileCodeOwners"] = owners
@@ -248,7 +249,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 	// avoid creating an unnecessary temporary cat file.
 	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
 	if err != nil {
-		ctx.ServerError("getFileReader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	defer dataRc.Close()
@@ -323,13 +324,13 @@ func prepareFileViewEditorButtons(ctx *context.Context) bool {
 	lfsLock, err := git_model.GetTreePathLock(ctx, ctx.Repo.Repository.ID, ctx.Repo.TreePath)
 	ctx.Data["LFSLock"] = lfsLock
 	if err != nil {
-		ctx.ServerError("GetTreePathLock", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 	if lfsLock != nil {
 		u, err := user_model.GetUserByID(ctx, lfsLock.OwnerID)
 		if err != nil {
-			ctx.ServerError("GetTreePathLock", err)
+			ctx.ServerErrorAuto(err)
 			return false
 		}
 		ctx.Data["LFSLockOwner"] = u.Name

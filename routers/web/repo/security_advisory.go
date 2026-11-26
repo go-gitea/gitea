@@ -73,7 +73,7 @@ func SecurityAdvisories(ctx *context.Context) {
 	opts.Viewer = viewer
 	counts, err := advisory_model.CountAdvisoriesByState(ctx, opts)
 	if err != nil {
-		ctx.ServerError("CountAdvisoriesByState", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	state := ctx.FormTrim("state")
@@ -87,14 +87,14 @@ func SecurityAdvisories(ctx *context.Context) {
 	}
 	advisories, err := db.Find[advisory_model.Advisory](ctx, opts)
 	if err != nil {
-		ctx.ServerError("FindAdvisories", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	for _, a := range advisories {
 		a.Repo = ctx.Repo.Repository
 	}
 	if err := advisory_model.List(advisories).LoadLabels(ctx); err != nil {
-		ctx.ServerError("LoadLabels", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	var total int64
@@ -161,7 +161,7 @@ func renderSecurityAdvisoryForm(ctx *context.Context, page securityAdvisoryFormP
 	if canManageContent {
 		labels, err := advisory_service.RepoAndOrgLabels(ctx, ctx.Repo.Repository)
 		if err != nil {
-			ctx.ServerError("RepoAndOrgLabels", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		ctx.Data["Labels"] = labels
@@ -252,7 +252,7 @@ func NewSecurityAdvisoryPost(ctx *context.Context) {
 
 func MustAllowPrivateVulnerabilityReporting(ctx *context.Context) {
 	if !ctx.Doer.IsIndividual() || !advisory_service.IsPrivateReportingEnabled(ctx, ctx.Repo.Repository) {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 	}
 }
 
@@ -297,7 +297,7 @@ func SecurityAdvisoryCVSSPreview(ctx *context.Context) {
 func LoadSecurityAdvisory(ctx *context.Context) {
 	a, perms, err := securityAdvisoryViewer(ctx).GetAdvisory(ctx, ctx.Repo.Repository, ctx.PathParam("identifier"))
 	if err != nil {
-		ctx.ServerError("GetAdvisory", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	perms.CanEdit = perms.CanEdit && !ctx.Repo.Repository.IsArchived
@@ -332,34 +332,34 @@ func MustSeeSecurityAdvisoryDiscussion(ctx *context.Context) {
 func ViewSecurityAdvisory(ctx *context.Context) {
 	a, perms := advisory_service.RequestAdvisory(ctx)
 	if _, err := securityAdvisoryViewer(ctx).LoadForDisplay(ctx, advisory_model.List{a}); err != nil {
-		ctx.ServerError("LoadForDisplay", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Title"] = a.Summary
 	var err error
 	if ctx.Data["RenderedDescription"], err = renderSecurityAdvisoryMarkdown(ctx, "description", a.Description); err != nil {
-		ctx.ServerError("RenderString", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if perms.CanSeeDiscussion {
 		if a.ReportDescription != "" && a.ReportDescription != a.Description {
 			if ctx.Data["RenderedReportDescription"], err = renderSecurityAdvisoryMarkdown(ctx, "report", a.ReportDescription); err != nil {
-				ctx.ServerError("RenderString", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		}
 		comments, err := db.Find[advisory_model.Comment](ctx, advisory_model.FindCommentsOptions{AdvisoryID: a.ID, IncludeInternal: perms.CanSeeInternal})
 		if err != nil {
-			ctx.ServerError("FindComments", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if err := advisory_model.CommentList(comments).LoadPosters(ctx); err != nil {
-			ctx.ServerError("LoadPosters", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		for _, c := range comments {
 			if c.RenderedContent, err = renderSecurityAdvisoryMarkdown(ctx, strconv.FormatInt(c.ID, 10), c.Content); err != nil {
-				ctx.ServerError("RenderString", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		}
@@ -374,7 +374,7 @@ func ViewSecurityAdvisory(ctx *context.Context) {
 	if perms.CanManage && a.State.CanTransitionTo(advisory_model.StateClosed) {
 		candidates, err := advisory_model.FindDuplicateCandidates(ctx, a, securityAdvisoryViewer(ctx))
 		if err != nil {
-			ctx.ServerError("FindDuplicateCandidates", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		ctx.Data["DuplicateCandidates"] = candidates
@@ -466,7 +466,7 @@ func securityAdvisoryStateActions(current advisory_model.State) []securityAdviso
 func EditSecurityAdvisory(ctx *context.Context) {
 	a, _ := advisory_service.RequestAdvisory(ctx)
 	if err := a.LoadAttributes(ctx); err != nil {
-		ctx.ServerError("LoadAttributes", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	renderSecurityAdvisoryForm(ctx, securityAdvisoryFormPage{
@@ -484,7 +484,7 @@ func EditSecurityAdvisoryPost(ctx *context.Context) {
 		return
 	}
 	if err := a.LoadAttributes(ctx); err != nil {
-		ctx.ServerError("LoadAttributes", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	opts := advisory_service.EditOptions{
@@ -550,14 +550,14 @@ func AddSecurityAdvisoryCollaborator(ctx *context.Context) {
 	case errors.Is(err, util.ErrInvalidArgument):
 		ctx.JSONError(ctx.Tr("repo.security_advisories.collaborator.no_access"))
 	default:
-		ctx.ServerError("AddCollaborator", err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 
 func RemoveSecurityAdvisoryCollaborator(ctx *context.Context) {
 	a, _ := advisory_service.RequestAdvisory(ctx)
 	if err := advisory_service.RemoveCollaborator(ctx, ctx.Doer, a, ctx.FormInt64("user_id"), ctx.FormInt64("team_id")); err != nil {
-		ctx.ServerError("RemoveCollaborator", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONRedirect(a.Link())
@@ -581,7 +581,7 @@ func getSecurityAdvisoryComment(ctx *context.Context) *advisory_model.Comment {
 	a, perms := advisory_service.RequestAdvisory(ctx)
 	c, err := advisory_model.GetCommentByID(ctx, a.ID, ctx.PathParamInt64("id"), perms.CanSeeInternal)
 	if err != nil {
-		ctx.ServerError("GetCommentByID", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	return c
@@ -600,7 +600,7 @@ func EditSecurityAdvisoryComment(ctx *context.Context) {
 	}
 	rendered, err := renderSecurityAdvisoryMarkdown(ctx, strconv.FormatInt(c.ID, 10), c.Content)
 	if err != nil {
-		ctx.ServerError("RenderString", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, map[string]any{

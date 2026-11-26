@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
@@ -17,6 +18,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	issue_service "gitea.dev/services/issue"
@@ -429,7 +431,7 @@ func DeletePullReview(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 
-	review, _, statusSet := prepareSingleReview(ctx)
+	review, pr, statusSet := prepareSingleReview(ctx)
 	if statusSet {
 		return
 	}
@@ -447,6 +449,7 @@ func DeletePullReview(ctx *context.APIContext) {
 		ctx.APIErrorInternal(fmt.Errorf("can not delete ReviewID: %d", review.ID))
 		return
 	}
+	audit.Record(ctx, audit_model.PullRequestReviewDelete, ctx.Repo.Repository, "pull_request", fmt.Sprintf("#%d", pr.Index), "review_id", review.ID)
 
 	ctx.Status(http.StatusNoContent)
 }

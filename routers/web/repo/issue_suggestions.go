@@ -23,7 +23,7 @@ func IssueSuggestions(ctx *context.Context) {
 
 	suggestions, err := issue_service.GetSuggestion(ctx, ctx.Repo.Repository, isPull, keyword)
 	if err != nil {
-		ctx.ServerError("GetSuggestion", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
