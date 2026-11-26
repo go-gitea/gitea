@@ -460,10 +460,9 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 	ctx.Data["DiffShortStat"] = diffShortStat
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffBlobExcerptData"] = &gitdiff.DiffBlobExcerptData{
-		BaseLink:       ci.HeadRepo.Link() + "/blob_excerpt",
-		DiffStyle:      GetDiffViewStyle(ctx),
-		BeforeCommitID: beforeCommitID,
-		AfterCommitID:  headCommitID,
+		BaseLink:      ci.HeadRepo.Link() + "/blob_excerpt",
+		DiffStyle:     GetDiffViewStyle(ctx),
+		AfterCommitID: headCommitID,
 	}
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
 	ctx.Data["ShowDiffSummaryInToolbar"] = diffShortStat.NumFiles != 0

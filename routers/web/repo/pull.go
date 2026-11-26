@@ -827,7 +827,6 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		BaseLink:       ctx.Repo.RepoLink + "/blob_excerpt",
 		PullIssueIndex: pull.Index,
 		DiffStyle:      GetDiffViewStyle(ctx),
-		BeforeCommitID: beforeCommitID,
 		AfterCommitID:  afterCommitID,
 	}
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
