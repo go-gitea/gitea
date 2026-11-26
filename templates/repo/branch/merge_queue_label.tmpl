@@ -1,0 +1,5 @@
+{{- $root := ctx.RootData -}}
+{{- if and .HasMergeQueue $root.AllowsPulls ($root.Permission.CanRead ctx.Consts.RepoUnitTypePullRequests) -}}
+	{{- $size := index $root.MergeQueueSizes .DBBranch.Name -}}
+	<a class="ui small basic label" href="{{$root.RepoLink}}/queue/{{PathEscapeSegments .DBBranch.Name}}" data-tooltip-content="{{ctx.Locale.TrN $size "repo.pulls.merge_queue.branch_queued_1" "repo.pulls.merge_queue.branch_queued_n" $size}}">{{svg "octicon-git-merge-queue" 12 "tw-text-yellow"}}{{$size}}</a>
+{{- end -}}

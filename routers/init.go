@@ -43,6 +43,7 @@ import (
 	"gitea.dev/services/mailer"
 	mailer_incoming "gitea.dev/services/mailer/incoming"
 	markup_service "gitea.dev/services/markup"
+	"gitea.dev/services/mergequeue"
 	mirror_service "gitea.dev/services/mirror"
 	"gitea.dev/services/oauth2_provider"
 	packages_spec "gitea.dev/services/packages/pkgspec"
@@ -167,6 +168,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(svg.Init)
 
 	mustInitCtx(ctx, actions_service.Init)
+	mustInit(mergequeue.Init)
 
 	mustInit(repo_service.InitLicenseClassifier)
 

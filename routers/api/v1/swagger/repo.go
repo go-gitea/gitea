@@ -161,6 +161,20 @@ type swaggerResponsePullRequestList struct {
 	Body []api.PullRequest `json:"body"`
 }
 
+// MergeQueueEntry
+// swagger:response MergeQueueEntry
+type swaggerResponseMergeQueueEntry struct {
+	// in:body
+	Body api.MergeQueueEntry `json:"body"`
+}
+
+// MergeQueueEntryList
+// swagger:response MergeQueueEntryList
+type swaggerResponseMergeQueueEntryList struct {
+	// in:body
+	Body []api.MergeQueueEntry `json:"body"`
+}
+
 // PullReview
 // swagger:response PullReview
 type swaggerResponsePullReview struct {

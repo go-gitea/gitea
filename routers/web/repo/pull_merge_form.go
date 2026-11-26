@@ -175,11 +175,24 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		"isMergeStateClean":            data.IsMergeStateClean,
 		"canMergeNow":                  canMergeNow,
 		"showAutoMerge":                canAutoMerge && (!canMergeNow || data.hasOverridableBlockers),
-		"canBypassMerge":               canMergeNow && data.hasOverridableBlockers,
+		"canBypassMerge":               canMergeNow && (data.hasOverridableBlockers || data.MergeQueueLink != "" && data.canBypassProtection),
 		"textBypassRules":              ctx.Locale.Tr("repo.pulls.merge_bypass_rules"),
 		"pullHeadCommitID":             prInfo.CompareInfo.HeadCommitID,
 		"defaultMergeStyle":            mergeStyle,
 		"mergeStyles":                  mergeStyles,
 		"mergeMessageFieldPlaceHolder": ctx.Locale.Tr("repo.editor.commit_message_desc"),
+		"textCmdMergeHint":             util.Iif(data.ShowMergeInstructions, ctx.Locale.Tr("repo.pulls.cmd_instruction_merge_hint"), ""),
+		"textCmdInstructions":          util.Iif(data.ShowPullCommands, ctx.Locale.Tr("repo.pulls.cmd_instruction_hint"), ""),
+	}
+	if data.MergeQueueLink != "" {
+		data.MergeFormProps["queue"] = map[string]any{
+			"style":    prInfo.ProtectedBranchRule.MergeQueue.MergeMethod,
+			"button":   ctx.Tr("repo.pulls.merge_queue.merge_when_ready"),
+			"confirm":  ctx.Tr("repo.pulls.merge_queue.confirm_merge_when_ready"),
+			"help":     ctx.Locale.TrString("repo.pulls.merge_queue.help"),
+			"linkText": ctx.Locale.TrString("repo.pulls.merge_queue.link_text"),
+			"link":     data.MergeQueueLink,
+			"branch":   pull.BaseBranch,
+		}
 	}
 }

@@ -392,6 +392,11 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 			return err
 		}
 
+		if _, err = sess.Table("pull_merge_queue_entry").Where("repo_id=? AND base_branch=?", repo.ID, from).
+			Update(map[string]any{"base_branch": to}); err != nil {
+			return err
+		}
+
 		// 4.1 Update all not merged pull request head branch name
 		if _, err = sess.Table("pull_request").Where("head_repo_id=? AND head_branch=? AND has_merged=?",
 			repo.ID, from, false).
