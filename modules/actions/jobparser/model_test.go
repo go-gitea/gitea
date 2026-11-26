@@ -513,7 +513,7 @@ jobs:
 			"matrix.os == 'a'":          "Unrecognized named-value: 'matrix'",
 			"${{ strategy.fail-fast }}": "Unrecognized named-value: 'strategy'",
 			"secrets.TOKEN != ''":       "Unrecognized named-value: 'secrets'",
-			"${{ matrix.os == }}":       "Unexpected end of expression",
+			"${{ github.ref == }}":      "Unexpected end of expression",
 		} {
 			_, job, err := ParseRawSingleWorkflow(fmt.Appendf(nil, "jobs: {job2: {if: %q, strategy: {matrix: {os: [a]}}}}", condition))
 			require.NoError(t, err)

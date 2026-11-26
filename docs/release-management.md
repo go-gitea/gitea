@@ -85,13 +85,13 @@ after bringing the bug fix also to the main branch.
 Since the `main` branch is a tip version, if you wish to use Gitea
 in production, please download the latest release tag version. All the
 branches will be protected via GitHub, all the PRs to every branch must
-be reviewed by two maintainers and must pass the automatic tests.
+receive the [required approvals](community-governance.md#required-approvals) and must pass the automatic tests.
 
 ## Releasing Gitea
 
 Track each release using the [release issue template](https://github.com/go-gitea/gitea/issues/new?template=release.yaml).
 
-- Before releasing, confirm all the version's milestone issues or PRs have been resolved. Then discuss the release on Discord channel #maintainers and get agreed with almost all the owners and mergers. Or you can declare the version and if nobody is against it in about several hours.
+- Before releasing, confirm all the version's milestone issues or PRs have been resolved. Then discuss the release on Discord channel #maintainers and get agreed with almost all the Core Team members and maintainers. Or you can declare the version and if nobody is against it in about several hours.
 - When creating a release branch, tag its fork point on `main` as the next version's `-dev` tag, e.g. `v30.0.0-dev` for `release/v29`.
 - In the GitHub Actions tab, open the `release-create-tag` workflow, click "Run workflow", select the release branch and enter a version such as `28.0.1`. After maintainer approval, it pushes a signed tag and CI publishes the release with generated notes.
 - Optionally send a PR to the [blog repository](https://gitea.com/gitea/blog) announcing the release.

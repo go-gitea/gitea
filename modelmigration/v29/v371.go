@@ -11,14 +11,13 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddAutoMergeErrorMessage(_ context.Context, x base.EngineMigration) error {
-	type PullAutoMerge struct {
-		ErrorMessage string `xorm:"LONGTEXT"`
+func AddHashSHA256ToAttachment(_ctx context.Context, x base.EngineMigration) error {
+	type Attachment struct {
+		HashSHA256 string `xorm:"hash_sha256 VARCHAR(64) NOT NULL DEFAULT ''"`
 	}
-
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
 		IgnoreConstrains:  true,
-	}, new(PullAutoMerge))
+		IgnoreDropIndices: true,
+	}, new(Attachment))
 	return err
 }

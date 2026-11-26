@@ -4,11 +4,10 @@
 package setting
 
 import (
-	"net/http"
 	"strconv"
 
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/context"
 )
@@ -25,8 +24,8 @@ func UpdatePreferences(ctx *context.Context) {
 		CodeViewShowFileTree bool `json:"codeViewShowFileTree"`
 	}
 	form := &preferencesForm{}
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
-		ctx.HTTPError(http.StatusBadRequest, "json decode failed")
+	if err := jsonlimit.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &form); err != nil {
+		ctx.JSONError("invalid request body")
 		return
 	}
 	_ = user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyCodeViewShowFileTree, strconv.FormatBool(form.CodeViewShowFileTree))

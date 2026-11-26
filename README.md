@@ -54,7 +54,7 @@ Expected workflow is: Fork -> Patch -> Push -> Pull Request
 >
 > 1. **YOU MUST READ THE [CONTRIBUTORS GUIDE](CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST.**
 > 2. New to the codebase? The [development guide](docs/development.md) walks through setting up a local environment and building from source.
-> 3. If you have found a vulnerability in the project, please write privately to **security@gitea.io**. Thanks!
+> 3. If you have found a vulnerability in the project, please report it privately through a [GitHub security advisory](https://github.com/go-gitea/gitea/security/advisories/new), see the [security policy](SECURITY.md). Thanks!
 
 ## Translating
 

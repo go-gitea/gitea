@@ -13,6 +13,7 @@ import (
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -111,6 +112,16 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 
 	session := loginUser(t, user.Name)
 
+	branchPrefix := setting.Repository.PullRequest.MergeQueueBranchPrefix
+	queueBranch, ordinaryBranch := branchPrefix+"queued", branchPrefix+"ordinary"
+	for _, branch := range []string{queueBranch, ordinaryBranch} {
+		require.NoError(t, git.CreateBranch(t.Context(), srcRepo, branch, "master"))
+		defer func() { assert.NoError(t, git.DeleteBranch(t.Context(), srcRepo, branch, true)) }()
+	}
+	queueEntry := &pull_model.MergeQueueEntry{RepoID: srcRepo.ID, PullID: 2, GroupRef: git.BranchPrefix + queueBranch}
+	require.NoError(t, db.Insert(t.Context(), queueEntry))
+	defer func() { assert.NoError(t, db.DeleteByIDs[pull_model.MergeQueueEntry](t.Context(), queueEntry.ID)) }()
+
 	pushMirrorURL := fmt.Sprintf("%s%s/%s", u.String(), url.PathEscape(user.Name), url.PathEscape(mirrorRepo.Name))
 	testCreatePushMirror(t, session, user.Name, srcRepo.Name, pushMirrorURL, user.LowerName, userPassword, "0")
 
@@ -137,6 +148,8 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, srcCommit.ID, mirrorCommit.ID)
+	assert.False(t, git.IsBranchExist(t.Context(), mirrorRepo, queueBranch))
+	assert.True(t, git.IsBranchExist(t.Context(), mirrorRepo, ordinaryBranch))
 
 	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "")()
 	assert.False(t, mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID))

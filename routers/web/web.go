@@ -709,6 +709,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addWebhookAddRoutes()
 			m.Group("/{id}", func() {
 				m.Get("", repo_setting.WebHooksEdit)
+				m.Get("/history", repo_setting.WebhookHistory)
 				m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 			})
 			addWebhookEditRoutes()
@@ -831,6 +832,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/delete", admin.DeleteDefaultOrSystemWebhook)
 			m.Group("/{id}", func() {
 				m.Get("", repo_setting.WebHooksEdit)
+				m.Get("/history", repo_setting.WebhookHistory)
 				m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 			})
 			addWebhookEditRoutes()
@@ -1009,6 +1011,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					addWebhookAddRoutes()
 					m.Group("/{id}", func() {
 						m.Get("", repo_setting.WebHooksEdit)
+						m.Get("/history", repo_setting.WebhookHistory)
 						m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 					})
 					addWebhookEditRoutes()
@@ -1207,6 +1210,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addWebhookAddRoutes()
 			m.Group("/{id}", func() {
 				m.Get("", repo_setting.WebHooksEdit)
+				m.Get("/history", repo_setting.WebhookHistory)
 				m.Post("/test", repo_setting.TestWebhook)
 				m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 			})
@@ -1623,6 +1627,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/{type:pulls}", repo.Issues)
+		m.Get("/queue/*", repo.MergeQueue)
+		m.Post("/queue/clear/*", reqSignIn, reqRepoAdmin, context.RepoMustNotBeArchived(), repo.ClearMergeQueue)
 		m.Group("/{type:pulls}/{index}", func() {
 			m.Get("", repo.SetEditorconfigIfExists, repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewIssue)
 			m.Get(".diff", repo.DownloadPullDiff)
@@ -1635,6 +1641,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			})
 			m.Post("/merge", context.RepoMustNotBeArchived(), web.Bind[*forms.MergePullRequestForm](), repo.MergePullRequest)
 			m.Post("/cancel_auto_merge", reqSignIn, context.RepoMustNotBeArchived(), repo.CancelAutoMergePullRequest)
+			m.Post("/merge_queue/remove", reqSignIn, context.RepoMustNotBeArchived(), repo.RemoveFromMergeQueue)
+			m.Post("/merge_queue/jump", reqSignIn, reqRepoAdmin, context.RepoMustNotBeArchived(), repo.JumpMergeQueue)
 			m.Post("/update", repo.UpdatePullRequest)
 			m.Post("/set_allow_maintainer_edit", web.Bind[*forms.UpdateAllowEditsForm](), repo.SetAllowEdits)
 			m.Post("/cleanup", context.RepoMustNotBeArchived(), repo.CleanUpPullRequest)

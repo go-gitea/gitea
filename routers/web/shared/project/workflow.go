@@ -11,7 +11,7 @@ import (
 
 	"gitea.dev/models/db"
 	project_model "gitea.dev/models/project"
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/services/context"
@@ -114,7 +114,7 @@ func CreateWorkflow(ctx *context.Context) {
 		return
 	}
 	var form api.CreateProjectWorkflowOption
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
+	if err := jsonlimit.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &form); err != nil {
 		ctx.JSONError("invalid request body")
 		return
 	}
@@ -132,7 +132,7 @@ func UpdateWorkflow(ctx *context.Context) {
 		return
 	}
 	var form api.EditProjectWorkflowOption
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
+	if err := jsonlimit.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &form); err != nil {
 		ctx.JSONError("invalid request body")
 		return
 	}

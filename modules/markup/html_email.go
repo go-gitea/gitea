@@ -13,6 +13,9 @@ import (
 func emailAddressProcessor(ctx *RenderContext, node *html.Node) {
 	next := node.NextSibling
 	for node != nil && node != next {
+		if !strings.Contains(node.Data, "@") { // the regexp is slow, skip texts which can't match
+			return
+		}
 		m := globalVars().emailRegex.FindStringSubmatchIndex(node.Data)
 		if m == nil {
 			return
