@@ -50,7 +50,7 @@
 	<div class="ui form">
 		<div class="field">
 			<label>Placeholder and clear item</label>
-			<div class="dropdown-container" data-kind="select">
+			<div class="dropdown-container">
 				<button type="button" class="dropdown-trigger dropdown-field">
 					<span class="dropdown-text" data-placeholder="Pick a fruit">Pick a fruit</span>
 					{{svg "octicon-triangle-down" 14}}
@@ -67,7 +67,7 @@
 		</div>
 		<div class="field">
 			<label>Filter and rich items</label>
-			<div class="dropdown-container" data-kind="select">
+			<div class="dropdown-container">
 				<div class="dropdown-trigger dropdown-field dropdown-search-field">
 					<input class="dropdown-filter" type="text" aria-label="Filter repositories">
 					<span class="dropdown-text">{{svg "octicon-repo"}} Repository 1</span>
@@ -82,7 +82,7 @@
 		</div>
 		<div class="field">
 			<label>Grouped items</label>
-			<div class="dropdown-container" data-kind="select">
+			<div class="dropdown-container">
 				<div class="dropdown-trigger dropdown-field dropdown-search-field">
 					<input class="dropdown-filter" type="text" aria-label="Filter labels">
 					<span class="dropdown-text" data-placeholder="Pick a label">Pick a label</span>
@@ -117,7 +117,7 @@
 		</div>
 		<div class="field">
 			<label>Remote items, type "error" to fail the request</label>
-			<div class="dropdown-container" data-kind="select" data-global-init="initDevtestDropdownRemote">
+			<div class="dropdown-container" data-global-init="initDevtestDropdownRemote">
 				<div class="dropdown-trigger dropdown-field dropdown-search-field">
 					<input class="dropdown-filter" type="text" aria-label="Search">
 					<span class="dropdown-text" data-placeholder="Search remote items">Search remote items</span>
@@ -129,7 +129,7 @@
 		</div>
 		<div class="inline field">
 			<label>Inline field</label>
-			<div class="dropdown-container" data-kind="select">
+			<div class="dropdown-container">
 				<button type="button" class="dropdown-trigger dropdown-field">
 					<span class="dropdown-text">One</span>
 					{{svg "octicon-triangle-down" 14}}
@@ -148,7 +148,7 @@
 	<dialog class="modal-dialog" id="devtest-dropdown-modal">
 		<div class="header">Modal</div>
 		<div class="content">
-			<div class="dropdown-container" data-kind="select">
+			<div class="dropdown-container">
 				<button type="button" class="dropdown-trigger dropdown-field">
 					<span class="dropdown-text">Item 1</span>
 					{{svg "octicon-triangle-down" 14}}

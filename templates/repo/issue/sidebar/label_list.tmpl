@@ -1,7 +1,7 @@
 {{$pageMeta := .}}
 {{$data := .LabelsData}}
 {{$listBaseLink := print $pageMeta.RepoLink (Iif $pageMeta.IsPullRequest "/pulls" "/issues")}}
-<div class="issue-sidebar-combo" data-selection-mode="multiple" data-update-algo="diff"
+<div class="issue-sidebar-combo" data-update-algo="diff"
 		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/labels?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
 >
 	<input class="combo-value" name="label_ids" type="hidden" value="{{$data.SelectedLabelIDs}}">
@@ -13,12 +13,9 @@
 			{{if not $data.AllLabels}}
 				<div class="dropdown-item" aria-disabled="true">{{ctx.Locale.Tr "repo.issues.new.no_items"}}</div>
 			{{else}}
-				<div class="ui icon search input">
-					<i class="icon">{{svg "octicon-search" 16}}</i>
-					<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_labels"}}">
-				</div>
+				{{template "shared/dropdown_filter" (ctx.Locale.Tr "repo.issues.filter_labels")}}
 				<div class="dropdown-list">
-					<a class="dropdown-item clear-selection active" href="#">{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}</a>
+					<a class="dropdown-item clear-selection" href="#">{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}</a>
 					<div class="dropdown-divider"></div>
 					{{$previousExclusiveScope := "_no_scope"}}
 					{{range $data.RepoLabels}}

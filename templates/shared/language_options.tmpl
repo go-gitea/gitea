@@ -1,3 +1,6 @@
+{{$found := false}}
 {{range .Languages}}
+	{{if eq $.Value .Lang}}{{$found = true}}{{end}}
 	<option value="{{.Lang}}" {{if eq $.Value .Lang}}selected{{end}}>{{.Name}}</option>
 {{end}}
+{{if and .Value (not $found)}}<option value="{{.Value}}" selected hidden>{{.Value}}</option>{{end}}

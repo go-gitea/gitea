@@ -133,8 +133,8 @@ test('toggle tasks in preview and after save', async ({page, request}) => {
   ]);
   await page.goto(`/${owner}/${repoName}/issues/${index}`);
 
-  const contextMenu = page.getByRole('heading', {level: 3}).getByRole('menu').filter({hasNotText: 'Edited'});
-  const editItem = contextMenu.getByRole('menuitem', {name: 'Edit', exact: true});
+  const contextMenu = page.getByRole('heading', {level: 3}).getByRole('button', {name: 'More items'});
+  const editItem = page.getByRole('menuitem', {name: 'Edit', exact: true});
   const issueBody = page.getByRole('article');
   const editor = issueBody.getByRole('textbox');
   await contextMenu.click();

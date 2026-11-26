@@ -49,6 +49,7 @@
 							<label for="ssl_mode">{{ctx.Locale.Tr "install.ssl_mode"}}</label>
 							<div class="select-field">
 								<select id="ssl_mode" name="ssl_mode">
+									{{if not (eq .ssl_mode "disable" "require" "verify-full")}}<option value="{{.ssl_mode}}" selected hidden>{{.ssl_mode}}</option>{{end}}
 									<option value="disable" {{if eq .ssl_mode "disable"}}selected{{end}}>Disable</option>
 									<option value="require" {{if eq .ssl_mode "require"}}selected{{end}}>Require</option>
 									<option value="verify-full" {{if eq .ssl_mode "verify-full"}}selected{{end}}>Verify Full</option>

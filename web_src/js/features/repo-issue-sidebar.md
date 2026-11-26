@@ -1,7 +1,7 @@
 A sidebar combo (dropdown+list) is like this:
 
 ```html
-<div class="issue-sidebar-combo" data-selection-mode="..." data-update-url="...">
+<div class="issue-sidebar-combo" data-update-url="...">
   <input class="combo-value" name="..." type="hidden" value="...">
   <div class="dropdown-container" data-keep-open>
     <button type="button" class="dropdown-trigger btn">Select items</button>
@@ -11,7 +11,7 @@ A sidebar combo (dropdown+list) is like this:
         <input class="dropdown-filter" type="text" placeholder="Filter items">
       </div>
       <div class="dropdown-list">
-        <div class="dropdown-item clear-selection active">clear</div>
+        <div class="dropdown-item clear-selection">clear</div>
         <div class="dropdown-item item" data-value="..." data-scope="...">
           <span class="item-check-mark">...</span>
           ...
@@ -42,7 +42,7 @@ Synchronization logic:
     And the selected (checked) items will be synchronized to the list.
     Dropdown's value should be empty if the there is no dropdown item but a pre-defined list item need to be displayed.
 * On dropdown selection change:
-  * The selected items will be synchronized to the list on `ce-dropdown-hide`.
+  * Single selection syncs the list on each pick, multiple selection when the dropdown closes.
 
 The items with the same data-scope only allow one selected at a time.
 

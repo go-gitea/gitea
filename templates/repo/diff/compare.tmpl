@@ -33,19 +33,8 @@
 					{{svg "octicon-triangle-down" 14}}
 				</button>
 				<div class="dropdown-popup issue-branch-popup">
-					<div class="ui icon search input">
-						<i class="icon">{{svg "octicon-filter" 16}}</i>
-						<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
-					</div>
-					<div class="dropdown-header flex-text-block">
-						<button type="button" class="btn branch-tag-item active" data-target=".branch-list">
-							{{svg "octicon-git-branch"}} {{ctx.Locale.Tr "repo.branches"}}
-						</button>
-						<button type="button" class="btn branch-tag-item" data-target=".tag-list">
-							{{svg "octicon-tag"}} {{ctx.Locale.Tr "repo.tags"}}
-						</button>
-					</div>
-					<div class="dropdown-list reference-list-menu branch-list">
+					{{template "repo/branch_tag_popup_header"}}
+					<div class="branch-tag-list branch-list">
 						{{range .Branches}}
 							<a class="dropdown-item {{if eq $.BaseBranch .}}active{{end}}" href="{{$.RepoLink}}/compare/{{PathEscapeSegments .}}{{$compareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments $.HeadBranch}}">{{$BaseCompareName}}:{{.}}</a>
 						{{end}}
@@ -65,7 +54,7 @@
 							{{end}}
 						{{end}}
 					</div>
-					<div class="dropdown-list reference-list-menu tag-list tw-hidden">
+					<div class="branch-tag-list tag-list tw-hidden">
 						{{range .Tags}}
 							<a class="dropdown-item {{if eq $.BaseBranch .}}active{{end}}" href="{{$.RepoLink}}/compare/{{PathEscapeSegments .}}{{$compareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments $.HeadBranch}}">{{$BaseCompareName}}:{{.}}</a>
 						{{end}}
@@ -96,19 +85,8 @@
 					{{svg "octicon-triangle-down" 14}}
 				</button>
 				<div class="dropdown-popup issue-branch-popup">
-					<div class="ui icon search input">
-						<i class="icon">{{svg "octicon-filter" 16}}</i>
-						<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
-					</div>
-					<div class="dropdown-header flex-text-block">
-						<button type="button" class="btn branch-tag-item active" data-target=".branch-list">
-							{{svg "octicon-git-branch"}} {{ctx.Locale.Tr "repo.branches"}}
-						</button>
-						<button type="button" class="btn branch-tag-item" data-target=".tag-list">
-							{{svg "octicon-tag"}} {{ctx.Locale.Tr "repo.tags"}}
-						</button>
-					</div>
-					<div class="dropdown-list reference-list-menu branch-list">
+					{{template "repo/branch_tag_popup_header"}}
+					<div class="branch-tag-list branch-list">
 						{{range .HeadBranches}}
 							<a class="dropdown-item {{if eq $.HeadBranch .}}active{{end}}" href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.BaseBranch}}{{$compareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments .}}">{{$HeadCompareName}}:{{.}}</a>
 						{{end}}
@@ -128,7 +106,7 @@
 							{{end}}
 						{{end}}
 					</div>
-					<div class="dropdown-list reference-list-menu tag-list tw-hidden">
+					<div class="branch-tag-list tag-list tw-hidden">
 						{{range .HeadTags}}
 							<a class="dropdown-item {{if eq $.HeadBranch .}}active{{end}}" href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.BaseBranch}}{{$compareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments .}}">{{$HeadCompareName}}:{{.}}</a>
 						{{end}}

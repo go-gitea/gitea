@@ -2,7 +2,7 @@
 {{$data := .ReviewersData}}
 {{$repoOwnerName := $pageMeta.Repository.OwnerName}}
 {{$hasCandidates := or $data.Reviewers $data.TeamReviewers}}
-<div class="issue-sidebar-combo" data-selection-mode="multiple" data-update-algo="diff"
+<div class="issue-sidebar-combo" data-update-algo="diff"
 		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/request_review?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
 >
 	<input type="hidden" class="combo-value" name="reviewer_ids">{{/* match CreateIssueForm */}}
@@ -12,10 +12,7 @@
 		</button>
 		<div class="dropdown-popup dropdown-popup-flex issue-sidebar-popup">
 			{{if $hasCandidates}}
-				<div class="ui icon search input">
-					<i class="icon">{{svg "octicon-search" 16}}</i>
-					<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_reviewers"}}">
-				</div>
+				{{template "shared/dropdown_filter" (ctx.Locale.Tr "repo.issues.filter_reviewers")}}
 			{{end}}
 			<div class="dropdown-list">
 				{{range $data.Reviewers}}

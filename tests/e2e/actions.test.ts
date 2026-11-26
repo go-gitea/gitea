@@ -76,7 +76,7 @@ jobs:
   await expect(page.getByText('Waiting', {exact: true}).filter({visible: true}).first()).toBeVisible();
   await expect(cancelButton).toBeVisible();
 
-  await page.getByRole('menu').getByText('Latest #2', {exact: true}).click();
+  await page.getByRole('button', {name: 'Latest #2', exact: true}).click();
   await page.getByRole('menuitem', {name: /^Attempt #1\b/}).click();
   await page.waitForURL('**/attempts/1');
   await expect(page.getByText('Canceled', {exact: true}).filter({visible: true}).first()).toBeVisible();

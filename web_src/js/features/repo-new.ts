@@ -8,31 +8,32 @@ const {appSubUrl} = window.config;
 function initRepoNewTemplateSearch(form: HTMLFormElement) {
   const elSubmitButton = querySingleVisibleElem<HTMLButtonElement>(form, '.ui.primary.button')!;
   const elCreateRepoErrorMessage = form.querySelector('#create-repo-error-message')!;
-  const inputRepoTemplate = form.querySelector<HTMLInputElement>('#repo_template')!;
   const elTemplateUnits = form.querySelector('#template_units')!;
   const elNonTemplate = form.querySelector('#non_template')!;
-  const checkTemplate = function () {
-    const hasSelectedTemplate = inputRepoTemplate.value !== '' && inputRepoTemplate.value !== '0';
-    toggleElem(elTemplateUnits, hasSelectedTemplate);
-    toggleElem(elNonTemplate, !hasSelectedTemplate);
-  };
-  inputRepoTemplate.addEventListener('change', checkTemplate);
-  checkTemplate();
-
   const repoOwnerDropdown = initDropdown(form.querySelector<HTMLElement>('#repo_owner_dropdown')!);
-  initDropdown(form.querySelector<HTMLElement>('#repo_template_search')!, {
+  const elTemplateSearch = form.querySelector<HTMLElement>('#repo_template_search')!;
+  const elNoTemplate = elTemplateSearch.querySelector('.dropdown-item[data-value=""]')!;
+  const templateDropdown = initDropdown(elTemplateSearch, {
     async loadItems(query, signal) {
       const params = new URLSearchParams({q: query, template: 'true', priority_owner_id: repoOwnerDropdown.value});
       const response = await GET(`${appSubUrl}/repo/search?${params}`, {signal});
       const {data} = await response.json() as {data: Array<{repository: {full_name: string, id: number}}>};
-      return data.map(({repository}) => createElementFromAttrs('div', {
+      const items = data.map(({repository}) => createElementFromAttrs('div', {
         class: 'dropdown-item',
         'data-value': String(repository.id),
       }, repository.full_name));
+      return query ? items : [elNoTemplate, ...items];
     },
   });
+  const checkTemplate = function () {
+    const hasSelectedTemplate = templateDropdown.value !== '' && templateDropdown.value !== '0';
+    toggleElem(elTemplateUnits, hasSelectedTemplate);
+    toggleElem(elNonTemplate, !hasSelectedTemplate);
+  };
+  templateDropdown.valueInput!.addEventListener('change', checkTemplate);
+  checkTemplate();
   const onChangeOwner = function () {
-    elCreateRepoErrorMessage.textContent = repoOwnerDropdown.findItem(repoOwnerDropdown.value)!.getAttribute('data-create-repo-disallowed-prompt') ?? '';
+    elCreateRepoErrorMessage.textContent = repoOwnerDropdown.findItem(repoOwnerDropdown.value)?.getAttribute('data-create-repo-disallowed-prompt') ?? '';
     const hasError = Boolean(elCreateRepoErrorMessage.textContent);
     toggleElem(elCreateRepoErrorMessage, hasError);
     elSubmitButton.disabled = hasError;

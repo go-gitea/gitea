@@ -30,8 +30,11 @@ test('create a label in the modal with a color from the picker popup, exclusive 
   await page.goto(`/${owner}/${repoName}/issues/1`);
   const trigger = page.getByRole('button', {name: 'Labels'});
   await trigger.click();
-  await page.getByRole('menuitem').filter({hasText: 'bug'}).click();
+  const bug = page.getByRole('menuitem').filter({hasText: 'bug'});
+  await bug.click();
+  await expect(bug).toContainClass('checked');
   await page.getByRole('menuitem').filter({hasText: 'feature'}).click();
+  await expect(bug).not.toContainClass('checked');
   await trigger.click();
   await expect(page.locator('.issue-sidebar-combo', {has: trigger}).locator('.labels-list').getByRole('link')).toHaveText([/feature/]);
 });

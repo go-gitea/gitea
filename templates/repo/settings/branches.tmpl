@@ -13,7 +13,7 @@
 				<form class="ui form" action="{{.Link}}" method="post">
 					<input type="hidden" name="action" value="default_branch">
 					<div class="flex-text-block">
-						<div class="dropdown-container tw-flex-1 tw-mr-2 tw-max-w-96" data-kind="select">
+						<div class="dropdown-container tw-flex-1 tw-min-w-56 tw-mr-2 tw-max-w-96">
 							<input type="hidden" class="dropdown-value" name="branch" value="{{.Repository.DefaultBranch}}">
 							<div class="dropdown-trigger dropdown-field dropdown-search-field">
 								<input class="dropdown-filter" type="text" aria-label="{{ctx.Locale.Tr "search.branch_kind"}}">

@@ -84,15 +84,17 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
   const generateUrl = buttonShowModal.getAttribute('data-generate-url')!;
 
   const elModal = document.querySelector<HTMLDialogElement>('#generate-release-notes-modal')!;
+  const existingTags = getReleaseFormExistingTags(elForm);
+  const previousTagDropdown = initDropdown(elModal.querySelector<HTMLElement>('.dropdown-container')!);
+  previousTagDropdown.setItems(existingTags.map((tag) => createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': tag}, tag)));
 
   const doSubmit = async (tagName: string) => {
-    const elPreviousTag = elModal.querySelector<HTMLInputElement>('[name=previous_tag]')!;
     const comboEditor = getComboMarkdownEditor(elForm.querySelector<HTMLElement>('.combo-markdown-editor'))!;
 
     const form = new URLSearchParams();
     form.set('tag_name', tagName);
     form.set('tag_target', targetInput.value);
-    form.set('previous_tag', elPreviousTag.value);
+    form.set('previous_tag', previousTagDropdown.value);
 
     elModal.classList.add('loading', 'disabled');
     try {
@@ -117,9 +119,6 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
     }
   };
 
-  const existingTags = getReleaseFormExistingTags(elForm);
-  const previousTagDropdown = initDropdown(elModal.querySelector<HTMLElement>('.dropdown-container')!);
-  previousTagDropdown.setItems(existingTags.map((tag) => createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': tag}, tag)));
   const doShowModal = () => {
     const tagName = tagNameInput.value.trim();
     if (!tagName) {

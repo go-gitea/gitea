@@ -29,11 +29,11 @@
 >
 	{{if ne $previewMode "none"}}
 	<div class="ui top tabular menu">
-		<a class="active item" data-tab-for="markdown-writer">{{template "shared/misc/tabtitle" (ctx.Locale.Tr "write")}}</a>
-		<a class="item" data-tab-for="markdown-previewer">{{template "shared/misc/tabtitle" (ctx.Locale.Tr "preview")}}</a>
+		<a class="active item" data-tab="markdown-writer">{{template "shared/misc/tabtitle" (ctx.Locale.Tr "write")}}</a>
+		<a class="item" data-tab="markdown-previewer">{{template "shared/misc/tabtitle" (ctx.Locale.Tr "preview")}}</a>
 	</div>
 	{{end}}
-	<div class="ui tab active" data-tab-panel="markdown-writer">
+	<div class="ui tab active" data-tab="markdown-writer">
 		<markdown-toolbar>
 			<div class="markdown-toolbar-group">
 				<md-header class="markdown-toolbar-button" level="1" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.heading.tooltip"}}">{{svg "octicon-heading"}}</md-header>
@@ -82,7 +82,7 @@
 			}
 		</script>
 	</div>
-	<div class="ui tab" data-tab-panel="markdown-previewer">
+	<div class="ui tab" data-tab="markdown-previewer">
 		{{ctx.Locale.Tr "loading"}}
 	</div>
 	<div class="markdown-add-table-panel tippy-target">

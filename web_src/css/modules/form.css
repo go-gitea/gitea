@@ -137,7 +137,7 @@ textarea,
 
 input:not([type="checkbox"], [type="radio"]):focus,
 textarea:focus,
-.ui.input input:focus,
+.ui.input input:not(.dropdown-filter):focus,
 .ui.form input:not([type="checkbox"], [type="radio"], .dropdown-filter):focus,
 .ui.form select:focus,
 .select-field > select:focus,

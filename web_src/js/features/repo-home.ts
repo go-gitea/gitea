@@ -18,8 +18,9 @@ export function initRepoTopicBar() {
       query = query.toLowerCase().trim();
       const response = await GET(`${appSubUrl}/explore/topics/search?q=${encodeURIComponent(query)}`, {signal});
       const {topics} = await response.json() as TopicSearchResponse;
-      if (query && topics.every(({topic_name}) => topic_name !== query)) topics.unshift({topic_name: query});
-      return topics.map(({topic_name}) => createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': topic_name}, topic_name));
+      const results = topics.filter(({topic_name}) => topic_name !== query);
+      if (query) results.unshift({topic_name: query});
+      return results.map(({topic_name}) => createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': topic_name}, topic_name));
     },
   });
   let lastErrorToast: Toast | null = null;
@@ -52,7 +53,7 @@ export function initRepoTopicBar() {
       if (responseData.status === 'ok') {
         queryElemChildren(viewDiv, '.repo-topic', (el) => el.remove());
         if (topics.length) {
-          for (const topic of topics.split(',')) {
+          for (const topic of topics.split(',').sort()) {
             const link = document.createElement('a');
             link.classList.add('repo-topic', 'ui', 'large', 'label', 'gt-ellipsis');
             link.href = `${appSubUrl}/explore/repos?q=${encodeURIComponent(topic)}&topic=1`;
@@ -65,8 +66,11 @@ export function initRepoTopicBar() {
         showElem([viewDiv, mgrBtn]);
       }
     } else if (response.status === 422) {
-      const responseData = await response.json();
-      lastErrorToast = showErrorToast(responseData.message, {duration: 5000});
+      const {message, invalidTopics} = await response.json() as {message: string, invalidTopics: string[] | null};
+      lastErrorToast = showErrorToast(message, {duration: 5000});
+      for (const topic of invalidTopics ?? []) {
+        topicDropdown.trigger.querySelector(`.ui.label[data-value="${CSS.escape(topic)}"]`)?.classList.add('red');
+      }
     }
   });
 }

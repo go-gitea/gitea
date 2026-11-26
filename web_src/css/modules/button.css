@@ -384,7 +384,6 @@ It needs some tricks to tweak the left/right borders with active state */
   border-bottom-left-radius: 0;
 }
 
-.ui.buttons.dropdown-container > .dropdown-trigger,
 .ui.buttons > .dropdown-container:last-child > .button {
   border-right: 1px solid var(--color-light-border);
   border-top-right-radius: var(--border-radius);

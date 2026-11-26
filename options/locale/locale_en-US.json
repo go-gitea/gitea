@@ -1421,7 +1421,6 @@
   "repo.issues.create_label": "Create Label",
   "repo.issues.label_templates.title": "Load a predefined set of labels",
   "repo.issues.label_templates.info": "No labels exist yet. Create a label with 'New Label' or use a predefined label set:",
-  "repo.issues.label_templates.helper": "Select a label set",
   "repo.issues.label_templates.use": "Use Label Set",
   "repo.issues.label_templates.fail_to_load_file": "Failed to load label template file \"%s\": %v",
   "repo.issues.add_label": "added the %s label %s",

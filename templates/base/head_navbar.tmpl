@@ -48,6 +48,7 @@
 					<div class="dropdown-header">
 						{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
 					</div>
+					<div class="dropdown-divider"></div>
 					<a class="dropdown-item" href="{{AppSubUrl}}/user/logout">
 						{{svg "octicon-sign-out"}}
 						{{ctx.Locale.Tr "sign_out"}}
@@ -91,6 +92,7 @@
 					<div class="dropdown-header">
 						{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
 					</div>
+					<div class="dropdown-divider"></div>
 					<a class="dropdown-item" href="{{.SignedUser.HomeLink}}">
 						{{svg "octicon-person"}}
 						{{ctx.Locale.Tr "your_profile"}}

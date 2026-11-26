@@ -222,17 +222,11 @@ export class ComboMarkdownEditor {
   setupTab() {
     const elTabular = this.container.querySelector('.ui.tabular');
     if (!elTabular) return;
-    this.tabEditor = this.container.querySelector('[data-tab-for="markdown-writer"]')!;
-    this.tabPreviewer = this.container.querySelector('[data-tab-for="markdown-previewer"]')!;
-    const panelEditor = this.container.querySelector('.ui.tab[data-tab-panel="markdown-writer"]')!;
-    const panelPreviewer = this.container.querySelector<HTMLElement>('.ui.tab[data-tab-panel="markdown-previewer"]')!;
-
-    const tabIdSuffix = generateElemId();
-    this.tabEditor.setAttribute('data-tab', `markdown-writer-${tabIdSuffix}`);
-    this.tabPreviewer.setAttribute('data-tab', `markdown-previewer-${tabIdSuffix}`);
-    panelEditor.setAttribute('data-tab', `markdown-writer-${tabIdSuffix}`);
-    panelPreviewer.setAttribute('data-tab', `markdown-previewer-${tabIdSuffix}`);
-    initTabSwitcher(elTabular);
+    this.tabEditor = this.container.querySelector('.item[data-tab="markdown-writer"]')!;
+    this.tabPreviewer = this.container.querySelector('.item[data-tab="markdown-previewer"]')!;
+    const panelEditor = this.container.querySelector('.ui.tab[data-tab="markdown-writer"]')!;
+    const panelPreviewer = this.container.querySelector<HTMLElement>('.ui.tab[data-tab="markdown-previewer"]')!;
+    initTabSwitcher(elTabular, this.container);
 
     this.tabEditor.addEventListener('click', () => {
       this.updateEditorContainerTabPage('writer');

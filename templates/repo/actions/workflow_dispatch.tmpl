@@ -12,7 +12,7 @@
 				<span class="ui inline required field">
 					<label>{{ctx.Locale.Tr "actions.workflow.from_ref"}}:</label>
 				</span>
-				<div class="dropdown-container select-branch" data-kind="select">
+				<div class="dropdown-container select-branch">
 					<button type="button" class="dropdown-trigger ui button">
 						{{svg "octicon-git-branch" 14}}
 						<span class="dropdown-text gt-ellipsis">{{index .Branches 0}}</span>
@@ -23,25 +23,13 @@
 								data-fetch-url="{{$.Link}}/workflow-dispatch-inputs?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}"
 					>
 					<div class="dropdown-popup issue-branch-popup">
-						<div class="ui icon search input">
-							<i class="icon">{{svg "octicon-filter" 16}}</i>
-							<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
-						</div>
-						<div class="branch-tag-tab">
-							<button type="button" class="btn branch-tag-item active" data-target=".branch-list">
-								{{svg "octicon-git-branch" 16 "tw-mr-1"}} {{ctx.Locale.Tr "repo.branches"}}
-							</button>
-							<button type="button" class="btn branch-tag-item" data-target=".tag-list">
-								{{svg "octicon-tag" 16 "tw-mr-1"}} {{ctx.Locale.Tr "repo.tags"}}
-							</button>
-						</div>
-						<div class="dropdown-divider branch-tag-divider"></div>
-						<div class="reference-list-menu branch-list">
+						{{template "repo/branch_tag_popup_header"}}
+						<div class="branch-tag-list branch-list">
 							{{range .Branches}}
 								<div class="dropdown-item" data-value="refs/heads/{{.}}" title="{{.}}">{{.}}</div>
 							{{end}}
 						</div>
-						<div class="reference-list-menu tag-list tw-hidden">
+						<div class="branch-tag-list tag-list tw-hidden">
 							{{range .Tags}}
 								<div class="dropdown-item" data-value="refs/tags/{{.}}" title="{{.}}">{{.}}</div>
 							{{end}}

@@ -39,24 +39,21 @@ export function syncIssueMainContentTimelineItems(oldMainContent: Element, newMa
 export class IssueSidebarComboList {
   updateUrl: string;
   updateAlgo: string;
-  selectionMode: string;
+  multiple: boolean;
   dropdown: Dropdown;
   elList: HTMLElement | null;
   elComboValue: HTMLInputElement;
   initialValues: string[] = [];
-  container: HTMLElement;
 
   elIssueMainContent: HTMLElement;
   elIssueSidebar: HTMLElement;
 
   constructor(container: HTMLElement) {
-    this.container = container;
     this.updateUrl = container.getAttribute('data-update-url')!;
     this.updateAlgo = container.getAttribute('data-update-algo')!;
-    this.selectionMode = container.getAttribute('data-selection-mode')!;
-    if (!['single', 'multiple'].includes(this.selectionMode)) throw new Error(`Invalid data-update-on: ${this.selectionMode}`);
     if (!['diff', 'all'].includes(this.updateAlgo)) throw new Error(`Invalid data-update-algo: ${this.updateAlgo}`);
     this.dropdown = initDropdown(container.querySelector<HTMLElement>(':scope > .dropdown-container')!);
+    this.multiple = this.dropdown.container.hasAttribute('data-keep-open');
     this.elList = container.querySelector<HTMLElement>(':scope > .ui.list');
     this.elComboValue = container.querySelector<HTMLInputElement>(':scope > .combo-value')!;
 
@@ -148,7 +145,7 @@ export class IssueSidebarComboList {
 
   onChange() {
     this.elComboValue.dispatchEvent(new Event('change', {bubbles: true})); // the portalled popup's input events miss the form's dirty tracking
-    if (this.selectionMode === 'single') this.doUpdate();
+    if (!this.multiple) this.doUpdate();
   }
 
   onItemClick(elItem: HTMLElement, e: Event) {
@@ -173,7 +170,7 @@ export class IssueSidebarComboList {
         elItem.classList.toggle('checked', true);
       }
     } else {
-      if (this.selectionMode === 'multiple') {
+      if (this.multiple) {
         elItem.classList.toggle('checked');
       } else {
         queryElems(this.dropdown.popup, `.dropdown-item.checked`, (el) => el.classList.remove('checked'));
@@ -185,7 +182,7 @@ export class IssueSidebarComboList {
   }
 
   onHide() {
-    if (this.selectionMode === 'multiple') this.doUpdate();
+    if (this.multiple) this.doUpdate();
   }
 
   init() {

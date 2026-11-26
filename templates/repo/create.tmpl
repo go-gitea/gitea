@@ -11,7 +11,7 @@
 				<div id="create-repo-error-message" class="ui negative message tw-text-center tw-hidden"></div>
 				<div class="inline required field {{if .Err_Owner}}error{{end}}">
 					<label>{{ctx.Locale.Tr "repo.owner"}}</label>
-					<div class="dropdown-container" data-kind="select" id="repo_owner_dropdown">
+					<div class="dropdown-container" id="repo_owner_dropdown">
 						<input type="hidden" class="dropdown-value" name="uid" value="{{.ContextUser.ID}}">
 						<button type="button" class="dropdown-trigger dropdown-field">
 							<span class="dropdown-text">{{ctx.AvatarUtils.Avatar .ContextUser 28 "mini"}} {{.ContextUser.ShortName 40}}</span>
@@ -64,14 +64,14 @@
 				</div>
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.template"}}</label>
-					<div id="repo_template_search" class="dropdown-container" data-kind="select">
+					<div id="repo_template_search" class="dropdown-container">
 						<div class="dropdown-trigger dropdown-field dropdown-search-field">
 							<input class="dropdown-filter" type="text">
 							<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.template_select"}}">{{.repo_template_name}}</span>
 						</div>
-						<input type="hidden" class="dropdown-value" id="repo_template" name="repo_template" value="{{or .repo_template ""}}">
+						<input type="hidden" class="dropdown-value" name="repo_template" value="{{or .repo_template ""}}">
 						<div class="dropdown-popup">
-							<div class="dropdown-item" data-value="" data-static>{{ctx.Locale.Tr "repo.template_select"}}</div>
+							<div class="dropdown-item" data-value="">{{ctx.Locale.Tr "repo.template_select"}}</div>
 						</div>
 					</div>
 				</div>
@@ -122,7 +122,7 @@
 				<div id="non_template">
 					<div class="inline field">
 						<label>{{ctx.Locale.Tr "repo.issue_labels"}}</label>
-						<div class="dropdown-container" data-kind="select">
+						<div class="dropdown-container">
 							<input type="hidden" class="dropdown-value" name="issue_labels" value="{{.issue_labels}}">
 							<div class="dropdown-trigger dropdown-field dropdown-search-field">
 								<input class="dropdown-filter" type="text">
@@ -157,7 +157,7 @@
 					</div>
 					<div class="inline field">
 						<label>{{ctx.Locale.Tr "repo.license"}}</label>
-						<div class="dropdown-container" data-kind="select">
+						<div class="dropdown-container">
 							<input type="hidden" class="dropdown-value" name="license" value="{{.license}}">
 							<div class="dropdown-trigger dropdown-field dropdown-search-field">
 								<input class="dropdown-filter" type="text">

@@ -3,7 +3,7 @@
 <div class="divider"></div>
 
 {{/* project selector */}}
-<div class="issue-sidebar-combo sidebar-project-combo" data-selection-mode="multiple" data-update-algo="all"
+<div class="issue-sidebar-combo sidebar-project-combo" data-update-algo="all"
 		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/projects?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
 >
 	<input class="combo-value" name="project_ids" type="hidden" value="{{SliceUtils.JoinInt64 $data.SelectedProjectIDs}}">
@@ -13,13 +13,10 @@
 		</button>
 		<div class="dropdown-popup dropdown-popup-flex issue-sidebar-popup">
 			{{if or $data.OpenProjects $data.ClosedProjects}}
-			<div class="ui icon search input">
-				<i class="icon">{{svg "octicon-search" 16}}</i>
-				<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_projects"}}">
-			</div>
+			{{template "shared/dropdown_filter" (ctx.Locale.Tr "repo.issues.filter_projects")}}
 			{{end}}
 			<div class="dropdown-list">
-				<div class="dropdown-item clear-selection active">{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}</div>
+				<div class="dropdown-item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}</div>
 				<div class="dropdown-divider"></div>
 				{{if $data.OpenProjects}}
 					<div class="dropdown-header">{{ctx.Locale.Tr "repo.issues.new.open_projects"}}</div>
@@ -55,7 +52,7 @@
 				{{svg $card.Project.IconName 16}} <span class="gt-ellipsis">{{$card.Project.Title}}</span>
 			</a>
 			{{if and $selectedColumn $pageMeta.CanModifyIssueOrPull}}
-				<div class="issue-sidebar-combo sidebar-project-column-combo" data-selection-mode="single" data-update-algo="all"
+				<div class="issue-sidebar-combo sidebar-project-column-combo" data-update-algo="all"
 					data-update-url="{{$pageMeta.RepoLink}}/issues/projects/column?issue_id={{$pageMeta.Issue.ID}}"
 				>
 					<input class="combo-value" name="column_id" type="hidden" value="{{$selectedColumn.ID}}">

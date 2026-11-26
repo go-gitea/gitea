@@ -30,11 +30,11 @@ export function initBranchSelectorTabs() {
   registerGlobalSelectorFunc('.dropdown-container.select-branch', (elSelectBranch: HTMLElement) => {
     const dropdown = initDropdown(elSelectBranch);
     queryElems(dropdown.popup, '.branch-tag-item', (el) => el.addEventListener('click', () => {
-      hideElem(dropdown.popup.querySelectorAll('.reference-list-menu'));
+      hideElem(dropdown.popup.querySelectorAll('.branch-tag-list'));
       showElem(dropdown.popup.querySelector(el.getAttribute('data-target')!)!);
       queryElems(dropdown.popup, '.branch-tag-item', (el) => el.classList.remove('active'));
       el.classList.add('active');
-      dropdown.updateState();
+      dropdown.applyFilter();
     }));
   });
 }

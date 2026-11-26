@@ -79,6 +79,7 @@ function initDropdownUserRemoteSearch(el: HTMLElement) {
   const selectedUsername = el.querySelector<HTMLInputElement>('.dropdown-filter')!.value;
   const clearItem = el.querySelector<HTMLElement>('.dropdown-item[data-value=""]')!;
   clearItem.setAttribute('href', getUserUrl(''));
+  clearItem.classList.toggle('active', !selectedUsername);
   initDropdown(el, {
     async loadItems(query, signal) {
       const posters: IssuePoster[] = searchUrl ?
@@ -97,9 +98,8 @@ function initDropdownUserRemoteSearch(el: HTMLElement) {
         item.classList.toggle('active', selectedUsername.toLowerCase() === poster.username.toLowerCase());
         return item;
       });
-      if (query) return items.length ? items : [createElementFromAttrs('a', {class: 'dropdown-item active', href: getUserUrl(query)}, query)];
-      clearItem.classList.toggle('active', !selectedUsername);
-      return [clearItem, ...items];
+      if (query && !items.length) items.push(createElementFromAttrs('a', {class: 'dropdown-item active', href: getUserUrl(query)}, query));
+      return query && query !== selectedUsername ? items : [clearItem, ...items];
     },
   });
 }

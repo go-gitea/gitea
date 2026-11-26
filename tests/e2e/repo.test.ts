@@ -10,6 +10,7 @@ test('create a repository for an organization', async ({page, request}) => {
   await Promise.all([apiCreateOrg(request, orgName), login(page)]);
   await page.goto('/repo/create');
   const owner = page.locator('#repo_owner_dropdown').getByRole('button');
+  await expect(owner).toContainText(env.GITEA_TEST_E2E_USER);
   await owner.click();
   await page.getByRole('option', {name: orgName}).click();
   await expect(owner).toContainText(orgName);

@@ -1642,7 +1642,7 @@ tbody.commit-list {
   text-align: left;
 }
 
-.branch-selector-dropdown .branch-tag-list {
+.branch-tag-list {
   padding: 4px 0;
   max-height: min(300px, 40vh);
   overflow: auto;
@@ -1667,11 +1667,11 @@ tbody.commit-list {
   }
 }
 
-:is(.branch-selector-dropdown, .issue-branch-popup[role="listbox"]) .branch-tag-tab {
+:is(.branch-selector-dropdown, .issue-branch-popup) .branch-tag-tab {
   padding: 0 10px;
 }
 
-:is(.branch-selector-dropdown, .issue-branch-popup[role="listbox"]) .branch-tag-item {
+:is(.branch-selector-dropdown, .issue-branch-popup) .branch-tag-item {
   display: inline-block;
   padding: 10px;
   border: 1px solid transparent;
@@ -1679,14 +1679,14 @@ tbody.commit-list {
   border-radius: 0;
 }
 
-:is(.branch-selector-dropdown, .issue-branch-popup[role="listbox"]) .branch-tag-item.active {
+:is(.branch-selector-dropdown, .issue-branch-popup) .branch-tag-item.active {
   border-color: var(--color-secondary);
   background: var(--color-menu);
   border-top-left-radius: var(--border-radius);
   border-top-right-radius: var(--border-radius);
 }
 
-:is(.branch-selector-dropdown, .issue-branch-popup[role="listbox"]) .branch-tag-divider {
+:is(.branch-selector-dropdown, .issue-branch-popup) .branch-tag-divider {
   margin: -1px 0 0;
 }
 
@@ -1694,6 +1694,7 @@ tbody.commit-list {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .branch-selector-dropdown .dropdown-item .rss-icon {

@@ -19,10 +19,7 @@
 						<div class="dropdown-container">
 							<button type="button" class="dropdown-trigger item"{{if not .Actors}} disabled{{end}}>{{ctx.Locale.Tr "actions.runs.actor"}} {{svg "octicon-triangle-down" 14}}</button>
 							<div class="dropdown-popup">
-								<div class="ui icon search input">
-									<i class="icon">{{svg "octicon-search" 16}}</i>
-									<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "actions.runs.actor"}}">
-								</div>
+								{{template "shared/dropdown_filter" (ctx.Locale.Tr "actions.runs.actor")}}
 								<a class="dropdown-item{{if not $.CurActor}} active{{end}}" href="?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&status={{$.CurStatus}}&branch={{$.CurBranch}}&actor=0">
 									{{ctx.Locale.Tr "actions.runs.actors_no_select"}}
 								</a>
@@ -37,10 +34,7 @@
 						<div class="dropdown-container">
 							<button type="button" class="dropdown-trigger item">{{ctx.Locale.Tr "actions.runs.status"}} {{svg "octicon-triangle-down" 14}}</button>
 							<div class="dropdown-popup">
-								<div class="ui icon search input">
-									<i class="icon">{{svg "octicon-search" 16}}</i>
-									<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "actions.runs.status"}}">
-								</div>
+								{{template "shared/dropdown_filter" (ctx.Locale.Tr "actions.runs.status")}}
 								<a class="dropdown-item{{if not $.CurStatus}} active{{end}}" href="?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&actor={{$.CurActor}}&branch={{$.CurBranch}}&status=0">
 									{{ctx.Locale.Tr "actions.runs.status_no_select"}}
 								</a>
@@ -58,10 +52,7 @@
 						<div class="dropdown-container" data-test-id="filter-branch">
 							<button type="button" class="dropdown-trigger item"{{if not .RunBranches}} disabled{{end}}>{{ctx.Locale.Tr "actions.runs.branch"}} {{svg "octicon-triangle-down" 14}}</button>
 							<div class="dropdown-popup">
-								<div class="ui icon search input">
-									<i class="icon">{{svg "octicon-search" 16}}</i>
-									<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "actions.runs.branch"}}">
-								</div>
+								{{template "shared/dropdown_filter" (ctx.Locale.Tr "actions.runs.branch")}}
 								<a class="dropdown-item{{if not $.CurBranch}} active{{end}}" href="?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
 									{{ctx.Locale.Tr "actions.runs.branches_no_select"}}
 								</a>

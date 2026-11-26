@@ -15,7 +15,7 @@
 				</div>
 				<div class="field">
 					<label for="settings-theme">{{ctx.Locale.Tr "settings.ui"}}</label>
-					<div class="dropdown-container" data-kind="select">
+					<div class="dropdown-container">
 						<button id="settings-theme" type="button" class="dropdown-trigger dropdown-field">
 							<span class="dropdown-text">{{range .AllThemes}}{{if eq $.SignedUser.Theme .InternalName}}{{.DisplayName}} {{svg .GetExtraIconName}} <span class="description">{{.GetDescription}}</span>{{end}}{{end}}</span>
 							{{svg "octicon-triangle-down" 14}}

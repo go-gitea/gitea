@@ -36,6 +36,7 @@ export class Dropdown {
   tippy: Instance | null = null;
   highlighted: HTMLElement | null = null;
   highlightDelta = 0;
+  userNavigated = false;
   loadAbort: AbortController | null = null;
   reloadDebounced = onInputDebounce(() => this.reload());
 
@@ -46,7 +47,7 @@ export class Dropdown {
     this.valueInput = container.querySelector(':scope > .dropdown-value');
     this.filterInput = container.querySelector('.dropdown-filter');
     this.combobox = this.trigger.contains(this.filterInput) ? this.filterInput! : this.trigger;
-    this.kind = (container.getAttribute('data-kind') || 'menu') as DropdownKind;
+    this.kind = container.getAttribute('data-kind') === 'multiselect' ? 'multiselect' : (this.valueInput ? 'select' : 'menu');
     this.delimiter = container.getAttribute('data-delimiter') || ',';
     this.loadItems = opts.loadItems;
     instances.set(container, this);
@@ -98,11 +99,12 @@ export class Dropdown {
       }
     });
     this.trigger.addEventListener('keydown', (e) => {
+      if (e.isComposing) return;
       if (this.tippy) {
         this.onPopupKeyDown(e);
-      } else if (e.key === 'ArrowDown' || (e.key === 'Enter' && e.target === this.filterInput)) {
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || (e.key === 'Enter' && e.target === this.filterInput)) {
         e.preventDefault();
-        this.show(1);
+        this.show(e.key === 'ArrowUp' ? -1 : 1);
       }
     });
     this.popup.addEventListener('keydown', (e) => this.onPopupKeyDown(e));
@@ -112,6 +114,11 @@ export class Dropdown {
       if (!(e.target as Element).closest('input, textarea, select')) e.preventDefault();
     });
     this.filterInput?.addEventListener('input', () => this.onFilterInput());
+    this.filterInput?.addEventListener('keydown', (e) => {
+      if (e.key !== 'Backspace' || e.isComposing || this.kind !== 'multiselect' || this.filterInput!.value) return;
+      const lastValue = this.values().at(-1);
+      if (lastValue) this.pick(lastValue);
+    });
     for (const el of [this.container, this.popup]) {
       el.addEventListener('focusout', (e) => {
         const related = e.relatedTarget as Node | null;
@@ -139,6 +146,7 @@ export class Dropdown {
   }
 
   navigableItems(): HTMLElement[] {
+    if (this.popup.hasAttribute('aria-busy')) return []; // rows of a superseded query must not be picked
     return this.items().filter((item) => isItemEnabled(item) && isElemVisible(item));
   }
 
@@ -189,11 +197,12 @@ export class Dropdown {
 
   onMount() {
     this.keyboardOwner.focus();
+    if (!this.loadItems && this.filterInput?.value) return this.applyFilter();
     const selected = this.kind === 'select' ? this.findItem(this.value) : null;
     if (selected) {
       this.highlight(selected);
     } else if (this.kind === 'multiselect') {
-      this.moveHighlight(1);
+      this.moveHighlight(this.highlightDelta || 1);
     }
     if (this.loadItems) this.reload();
     this.updateState();
@@ -203,8 +212,8 @@ export class Dropdown {
     this.tippy?.hide();
   }
 
-  leave() {
-    if (this.kind === 'select' && this.highlighted) this.pick(this.highlighted.getAttribute('data-value')!);
+  leave() { // a search field keeps what the user typed or arrowed to like an autocomplete, popup pickers cancel
+    if (this.kind === 'select' && this.combobox === this.filterInput && this.userNavigated && this.highlighted) this.pick(this.highlighted.getAttribute('data-value')!);
     this.hide();
   }
 
@@ -212,6 +221,7 @@ export class Dropdown {
     this.container.append(this.popup);
     instance.destroy();
     this.tippy = null;
+    this.userNavigated = false;
     shownDropdowns.delete(this);
     this.container.removeAttribute('data-shown');
     if (!shownDropdowns.size) removalObserver.disconnect();
@@ -221,8 +231,9 @@ export class Dropdown {
     this.popup.removeAttribute('data-keyboard-nav');
     this.reloadDebounced.cancel();
     this.loadAbort?.abort();
+    this.popup.removeAttribute('aria-busy');
     if (this.filterInput) {
-      this.filterInput.value = '';
+      this.filterInput.value = this.filterInput.defaultValue;
       this.trigger.classList.remove('filtering');
       if (!this.loadItems) this.applyFilter();
     }
@@ -239,6 +250,7 @@ export class Dropdown {
       return;
     } else if (onOwner && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
       this.popup.setAttribute('data-keyboard-nav', '');
+      this.userNavigated = true;
       this.moveHighlight(e.key === 'ArrowDown' ? 1 : -1);
     } else if (onOwner && (e.key === 'Enter' || (e.key === ' ' && !this.filterInput))) {
       if (this.highlighted) {
@@ -254,14 +266,17 @@ export class Dropdown {
   }
 
   onTab(e: KeyboardEvent) {
-    if (!this.popup.contains(e.target as Node)) return;
+    const target = e.target as HTMLElement;
+    if (!this.popup.contains(target)) return;
+    const radioName = target instanceof HTMLInputElement && target.type === 'radio' ? target.name : '';
     const tabbables = Array.from(this.popup.querySelectorAll<HTMLElement>('input, button, select, textarea, a[href], [tabindex]'))
-      .filter((el) => el.tabIndex >= 0 && !el.matches(':disabled, .dropdown-item') && isElemVisible(el));
-    const index = tabbables.indexOf(e.target as HTMLElement);
+      .filter((el) => el.tabIndex >= 0 && !el.matches(':disabled, .dropdown-item') && isElemVisible(el))
+      .filter((el) => el === target || !radioName || (el as HTMLInputElement).name !== radioName); // a radio group is a single tab stop
+    const index = tabbables.indexOf(target);
     if (e.shiftKey ? index > 0 : index < tabbables.length - 1) return;
     this.combobox.focus();
     this.leave();
-    if (e.shiftKey && e.target !== this.popup) e.preventDefault();
+    if (e.shiftKey && target !== this.popup) e.preventDefault();
   }
 
   onItemClick(item: HTMLElement, e: MouseEvent) {
@@ -270,36 +285,46 @@ export class Dropdown {
       e.stopPropagation();
       return;
     }
-    if (this.kind !== 'menu') {
-      this.pick(item.getAttribute('data-value')!);
-      if (this.kind === 'multiselect') {
-        if (this.filterInput?.value) {
-          this.filterInput.value = '';
-          this.onFilterInput();
-        }
-        return;
+    if (this.kind !== 'menu') this.pick(item.getAttribute('data-value')!);
+    if (this.kind === 'multiselect') {
+      if (this.filterInput?.value) {
+        this.filterInput.value = '';
+        this.onFilterInput();
       }
-    } else if (this.container.hasAttribute('data-keep-open')) {
-      return;
+    } else if (!this.container.hasAttribute('data-keep-open')) {
+      this.hide();
     }
-    this.hide();
   }
 
   onFilterInput() {
+    this.userNavigated = Boolean(this.filterInput!.value.trim());
     this.trigger.classList.toggle('filtering', Boolean(this.filterInput!.value));
-    if (!this.tippy) this.show();
+    if (!this.tippy) return this.show(); // onMount filters, highlighting earlier would scroll the page to the unpositioned popup
     if (!this.loadItems) return this.applyFilter();
     this.loadAbort?.abort();
-    this.highlight(null); // Enter must not pick a result of the previous query
+    this.highlight(null);
+    this.popup.setAttribute('aria-busy', 'true');
     this.reloadDebounced();
   }
 
   applyFilter() {
     const query = this.filterInput!.value.trim().toLowerCase();
-    for (const item of this.items()) {
-      item.hidden = Boolean(query) && !item.textContent.toLowerCase().includes(query);
+    let groupHasMatch = false;
+    let belowIsItem = true;
+    const elements = this.popup.querySelectorAll<HTMLElement>('.dropdown-item, .dropdown-header, .dropdown-divider');
+    for (const el of Array.from(elements).reverse()) { // reversed, so each header and divider knows whether the items below it match
+      const isItem = el.matches('.dropdown-item');
+      if (isItem) {
+        el.hidden = Boolean(query) && !el.textContent.toLowerCase().includes(query);
+        groupHasMatch = (belowIsItem && groupHasMatch) || (!el.hidden && !el.classList.contains('tw-hidden'));
+      } else {
+        el.hidden = Boolean(query) && !groupHasMatch;
+      }
+      belowIsItem = isItem;
     }
-    if (this.tippy) this.updateState();
+    if (!this.tippy) return;
+    this.highlight(query ? this.navigableItems()[0] ?? null : null);
+    this.updateState();
   }
 
   highlight(item: HTMLElement | null) {
@@ -323,9 +348,9 @@ export class Dropdown {
   }
 
   pick(value: string) {
-    const values = this.values();
     let newValue = value;
     if (this.kind === 'multiselect') {
+      const values = this.values();
       newValue = (values.includes(value) ? values.filter((selected) => selected !== value) : [...values, value]).join(this.delimiter);
     }
     if (newValue === this.value) return;
@@ -384,11 +409,11 @@ export class Dropdown {
 
   refreshItems() {
     const isMenu = this.kind === 'menu';
-    const values = isMenu ? [] : this.values();
+    const values = new Set(isMenu ? [] : this.values());
     for (const item of this.items()) {
       item.tabIndex = -1;
       if (!item.hasAttribute('role')) item.setAttribute('role', isMenu ? 'menuitem' : 'option');
-      if (!isMenu) item.setAttribute('aria-selected', String(values.includes(item.getAttribute('data-value')!)));
+      if (!isMenu) item.setAttribute('aria-selected', String(values.has(item.getAttribute('data-value')!)));
     }
   }
 
@@ -400,6 +425,7 @@ export class Dropdown {
     this.popup.append(...items);
     if (this.kind === 'select') this.renderLabel();
     if (this.tippy) {
+      this.tippy.popper.style.removeProperty('--tippy-max-height'); // flip by the uncapped height of the new items
       this.refreshItems();
       this.updateState();
     }
@@ -426,15 +452,16 @@ export class Dropdown {
 
   updateState(message = '') {
     this.popup.querySelector(':scope > .dropdown-message')?.remove();
+    const isBusy = this.popup.hasAttribute('aria-busy');
     const visibleItems = this.items().filter((item) => isElemVisible(item));
     const items = visibleItems.filter(isItemEnabled);
     if (this.highlighted && !items.includes(this.highlighted)) this.highlight(null);
-    if (!this.highlighted && (this.highlightDelta || this.loadItems)) {
+    if (!this.highlighted && !isBusy && (this.highlightDelta || this.loadItems)) {
       const active = items.find((item) => item.matches('.active, [aria-selected="true"]'));
       if (active) this.highlight(active);
-      else if (!this.popup.hasAttribute('aria-busy')) this.moveHighlight(this.highlightDelta || 1, items);
+      else this.moveHighlight(this.highlightDelta || 1, items);
     }
-    if (!message && !this.popup.hasAttribute('aria-busy') && !visibleItems.length) message = window.config.i18n.no_results_found;
+    if (!message && !isBusy && !visibleItems.length) message = window.config.i18n.no_results_found;
     if (message) this.popup.append(createElementFromAttrs('div', {class: 'dropdown-message'}, message));
     this.tippy?.popperInstance?.update();
   }

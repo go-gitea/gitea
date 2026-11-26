@@ -20,7 +20,7 @@ test('filter issues by author, label them in bulk and add a dependency', async (
   ]);
   await page.goto(`/${owner}/${repoName}/issues`);
   await page.getByRole('button').filter({hasText: 'Author'}).click();
-  await page.keyboard.insertText(owner);
+  await page.keyboard.insertText(owner.slice(0, -1));
   await expect(page.getByRole('menuitem')).toHaveText([new RegExp(owner)]);
   await page.keyboard.press('Enter');
   await page.waitForURL(new RegExp(`[?&]poster=${owner}(&|$)`));

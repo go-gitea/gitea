@@ -3,7 +3,7 @@
 		<p>{{ctx.Locale.Tr "repo.issues.label_templates.info"}}</p>
 		<form class="ui form center" action="{{.Link}}/initialize" method="post">
 			<div class="field">
-				<div class="dropdown-container" data-kind="select">
+				<div class="dropdown-container">
 					<button type="button" class="dropdown-trigger dropdown-field">
 						<span class="dropdown-text">{{range .LabelTemplateFiles}}{{if eq .DisplayName "Default"}}{{.DisplayName}}<br><i>({{.Description}})</i>{{end}}{{end}}</span>
 						{{svg "octicon-triangle-down" 18}}
