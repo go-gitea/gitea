@@ -14639,6 +14639,47 @@
             "$ref": "#/responses/error"
           }
         }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Remove all pull requests from the merge queue of a branch",
+        "operationId": "repoClearMergeQueue",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "base branch of the queue",
+            "name": "branch",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
       }
     },
     "/repos/{owner}/{repo}/merge-upstream": {
@@ -17088,6 +17129,48 @@
       }
     },
     "/repos/{owner}/{repo}/pulls/{index}/merge-queue": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get the merge queue entry of a pull request",
+        "operationId": "repoGetPullRequestMergeQueueEntry",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/MergeQueueEntry"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
       "post": {
         "produces": [
           "application/json"
@@ -17129,6 +17212,9 @@
           }
         ],
         "responses": {
+          "200": {
+            "$ref": "#/responses/MergeQueueEntry"
+          },
           "201": {
             "$ref": "#/responses/MergeQueueEntry"
           },

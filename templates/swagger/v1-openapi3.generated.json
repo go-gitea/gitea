@@ -27501,6 +27501,50 @@
       }
     },
     "/repos/{owner}/{repo}/merge-queue/{branch}": {
+      "delete": {
+        "operationId": "repoClearMergeQueue",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "base branch of the queue",
+            "in": "path",
+            "name": "branch",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/empty"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Remove all pull requests from the merge queue of a branch",
+        "tags": [
+          "repository"
+        ]
+      },
       "get": {
         "operationId": "repoListMergeQueue",
         "parameters": [
@@ -30313,6 +30357,51 @@
           "repository"
         ]
       },
+      "get": {
+        "operationId": "repoGetPullRequestMergeQueueEntry",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "index of the pull request",
+            "in": "path",
+            "name": "index",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/MergeQueueEntry"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Get the merge queue entry of a pull request",
+        "tags": [
+          "repository"
+        ]
+      },
       "post": {
         "operationId": "repoAddPullRequestToMergeQueue",
         "parameters": [
@@ -30356,6 +30445,9 @@
           "x-originalParamName": "body"
         },
         "responses": {
+          "200": {
+            "$ref": "#/components/responses/MergeQueueEntry"
+          },
           "201": {
             "$ref": "#/components/responses/MergeQueueEntry"
           },

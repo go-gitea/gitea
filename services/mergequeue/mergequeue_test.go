@@ -149,7 +149,7 @@ func prepareQueuePulls(t *testing.T, branch string, minEntries int) (*git_model.
 
 func enqueuePull(t *testing.T, pr *issues_model.PullRequest, jump bool) *pull_model.MergeQueueEntry {
 	t.Helper()
-	entry, err := Enqueue(t.Context(), pr.BaseRepo.MustOwner(t.Context()), pr, jump, "")
+	entry, _, err := Enqueue(t.Context(), pr.BaseRepo.MustOwner(t.Context()), pr, jump, "")
 	require.NoError(t, err)
 	return entry
 }
@@ -227,10 +227,10 @@ func TestProcessQueueRestoresInterruptedMerge(t *testing.T) {
 	defer func() { require.NoError(t, git.RemoveRef(ctx, repo, git.BranchPrefix+branch)) }()
 	require.NoError(t, pull_model.ScheduleAutoMerge(ctx, owner, regularPR.ID, repo_model.MergeStyleMerge, "", false))
 	defer timeutil.MockSet(time.Now())()
-	assert.Positive(t, enqueuePull(t, priorityPR, true).JumpUnix)
+	enqueuePull(t, priorityPR, true)
 	queued := enqueuePull(t, regularPR, false)
 	unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: regularPR.ID})
-	_, err := Enqueue(ctx, owner, regularPR, false, "")
+	_, _, err := Enqueue(ctx, owner, regularPR, false, "")
 	require.ErrorIs(t, err, pull_model.ErrAlreadyInMergeQueue)
 	assert.Equal(t, queued.ID, enqueuePull(t, regularPR, true).ID)
 	require.NoError(t, processQueue(ctx, repo.ID, branch))

@@ -26,18 +26,18 @@ import (
 
 var ErrNotQueued = util.NewNotExistErrorf("pull request is not in the merge queue")
 
-func Enqueue(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, jump bool, expectedHeadSHA string) (*pull_model.MergeQueueEntry, error) {
+func Enqueue(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, jump bool, expectedHeadSHA string) (*pull_model.MergeQueueEntry, bool, error) {
 	if doer.ID == user_model.ActionsUserID { // a task token's permission can't be re-checked when the queue builds
-		return nil, util.NewInvalidArgumentErrorf("Gitea Actions tokens cannot add pull requests to the merge queue")
+		return nil, false, util.NewInvalidArgumentErrorf("Gitea Actions tokens cannot add pull requests to the merge queue")
 	}
 	if err := pr.LoadBaseRepo(ctx); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	headSHA, err := git.GetFullCommitID(ctx, pr.BaseRepo, pr.GetGitHeadRefName())
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	} else if expectedHeadSHA != "" && expectedHeadSHA != headSHA {
-		return nil, pull_service.ErrSHADoesNotMatch{GivenSHA: expectedHeadSHA, CurrentSHA: headSHA}
+		return nil, false, pull_service.ErrSHADoesNotMatch{GivenSHA: expectedHeadSHA, CurrentSHA: headSHA}
 	}
 
 	entry := &pull_model.MergeQueueEntry{
@@ -74,13 +74,13 @@ func Enqueue(ctx context.Context, doer *user_model.User, pr *issues_model.PullRe
 		})
 	})
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	if added {
 		notify_service.PullRequestMergeQueueChanged(ctx, doer, pr, api.HookIssueEnqueued, "")
 	}
 	addToQueue(pr.BaseRepoID, pr.BaseBranch)
-	return entry, nil
+	return entry, added, nil
 }
 
 func Jump(ctx context.Context, pr *issues_model.PullRequest) error {
@@ -121,7 +121,7 @@ func EnqueueIfRequired(ctx context.Context, doer *user_model.User, pr *issues_mo
 	if err != nil || !pull_service.MergesThroughQueue(ctx, pb, pr.BaseRepo, doer, force) {
 		return false, err
 	}
-	if _, err = Enqueue(ctx, doer, pr, false, expectedHeadSHA); err != nil && !errors.Is(err, pull_model.ErrAlreadyInMergeQueue) {
+	if _, _, err = Enqueue(ctx, doer, pr, false, expectedHeadSHA); err != nil && !errors.Is(err, pull_model.ErrAlreadyInMergeQueue) {
 		return false, err
 	}
 	return true, nil

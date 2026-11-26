@@ -65,12 +65,12 @@ func flushMergeQueue(t *testing.T) {
 	t.Fatal("merge queue worker not found")
 }
 
-func seedMergeQueueGroup(t *testing.T, repo *repo_model.Repository, entry *pull_model.MergeQueueEntry, index int64, baseSHA, groupSHA string) {
+func seedMergeQueueGroup(t *testing.T, repo *repo_model.Repository, entry *pull_model.MergeQueueEntry, index int64, baseSHA string) {
 	t.Helper()
-	entry.BaseSHA, entry.GroupHeadSHA = baseSHA, groupSHA
+	entry.BaseSHA, entry.GroupHeadSHA = baseSHA, entry.HeadSHA
 	entry.GroupRef = pull_model.MergeQueueGroupRef(entry.BaseBranch, index, baseSHA)
 	entry.State, entry.ChecksStartedUnix = pull_model.MergeQueueStateAwaitingChecks, timeutil.TimeStampNow()
-	require.NoError(t, git.UpdateRef(t.Context(), repo, entry.GroupRef, groupSHA))
+	require.NoError(t, git.UpdateRef(t.Context(), repo, entry.GroupRef, entry.HeadSHA))
 }
 
 func insertMergeQueueGroup(t *testing.T, repo *repo_model.Repository, pr *issues_model.PullRequest, baseSHA string) *pull_model.MergeQueueEntry {
@@ -78,7 +78,7 @@ func insertMergeQueueGroup(t *testing.T, repo *repo_model.Repository, pr *issues
 	headSHA, err := git.GetFullCommitID(t.Context(), repo, pr.GetGitHeadRefName())
 	require.NoError(t, err)
 	entry := &pull_model.MergeQueueEntry{RepoID: repo.ID, PullID: pr.ID, EnqueuerID: repo.OwnerID, BaseBranch: pr.BaseBranch, HeadSHA: headSHA}
-	seedMergeQueueGroup(t, repo, entry, pr.Index, baseSHA, headSHA)
+	seedMergeQueueGroup(t, repo, entry, pr.Index, baseSHA)
 	require.NoError(t, db.Insert(t.Context(), entry))
 	return entry
 }
@@ -109,14 +109,19 @@ func TestPullMergeQueue(t *testing.T) {
 
 	const pullURL = "/pulls/3"
 	mergeQueueAPI(t, "POST", pullURL+"/merge", forms.MergePullRequestForm{Do: "merge", HeadCommitID: pr.MergeBase}, http.StatusConflict)
-	added := DecodeJSON(t, mergeQueueAPI(t, "POST", pullURL+"/merge-queue", api.AddToMergeQueueOption{Jump: true}, http.StatusCreated), &api.MergeQueueEntry{})
-	assert.True(t, added.Jump)
+	mergeQueueAPI(t, "POST", pullURL+"/merge-queue", api.AddToMergeQueueOption{}, http.StatusCreated)
+	jumped := DecodeJSON(t, mergeQueueAPI(t, "POST", pullURL+"/merge-queue", api.AddToMergeQueueOption{Jump: true}, http.StatusOK), &api.MergeQueueEntry{})
+	assert.True(t, jumped.Jump)
+	assert.Equal(t, jumped, DecodeJSON(t, mergeQueueAPI(t, "GET", pullURL+"/merge-queue", nil, http.StatusOK), &api.MergeQueueEntry{}))
+	mergeQueueAPI(t, "DELETE", "/merge-queue/master", nil, http.StatusNoContent)
+	mergeQueueAPI(t, "GET", pullURL+"/merge-queue", nil, http.StatusNotFound)
+	assert.True(t, DecodeJSON(t, mergeQueueAPI(t, "POST", pullURL+"/merge-queue", api.AddToMergeQueueOption{Jump: true}, http.StatusCreated), &api.MergeQueueEntry{}).Jump)
 	mergeQueueAPI(t, "DELETE", pullURL+"/merge-queue", nil, http.StatusNoContent)
 	mergeQueueAPI(t, "POST", pullURL+"/merge", forms.MergePullRequestForm{Do: "merge", HeadCommitID: headSHA}, http.StatusCreated)
 	flushMergeQueue(t)
 
 	entry := unittest.AssertExistsAndLoadBean(t, &pull_model.MergeQueueEntry{PullID: pr.ID})
-	seedMergeQueueGroup(t, repo, entry, pr.Index, baseSHA, headSHA)
+	seedMergeQueueGroup(t, repo, entry, pr.Index, baseSHA)
 	require.NoError(t, pull_model.UpdateMergeQueueEntry(ctx, entry))
 	setMergeQueueStatus(t, entry.GroupHeadSHA, commitstatus.CommitStatusSuccess)
 	flushMergeQueue(t)
@@ -169,13 +174,13 @@ func TestPullMergeQueueInvalidationAndBranchProtection(t *testing.T) {
 	assert.False(t, git.IsReferenceExist(ctx, repo, next.GroupRef))
 	unittest.AssertExistsAndLoadBean(t, &pull_model.MergeQueueEntry{ID: next.ID, State: pull_model.MergeQueueStateQueued})
 
-	seedMergeQueueGroup(t, repo, next, pr.Index, baseSHA, next.HeadSHA)
+	seedMergeQueueGroup(t, repo, next, pr.Index, baseSHA)
 	require.NoError(t, pull_model.UpdateMergeQueueEntry(ctx, next))
 	mergeQueueAPI(t, "PATCH", "/branches/master", api.RenameBranchRepoOption{Name: "renamed"}, http.StatusNoContent)
 	flushMergeQueue(t)
 	entries := DecodeJSON(t, mergeQueueAPI(t, "GET", "/merge-queue/renamed", nil, http.StatusOK), []api.MergeQueueEntry{})
 	require.Len(t, entries, 1)
-	assert.Equal(t, "queued", entries[0].State)
+	assert.Equal(t, api.MergeQueueStateQueued, entries[0].State)
 	assert.Empty(t, entries[0].MergeGroupHeadRef)
 	assert.False(t, git.IsReferenceExist(ctx, repo, next.GroupRef))
 

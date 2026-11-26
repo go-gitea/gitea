@@ -19,6 +19,49 @@ import (
 	pull_service "gitea.dev/services/pull"
 )
 
+func GetPullRequestMergeQueueEntry(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}/merge-queue repository repoGetPullRequestMergeQueueEntry
+	// ---
+	// summary: Get the merge queue entry of a pull request
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/MergeQueueEntry"
+	//   default:
+	//     "$ref": "#/responses/error"
+	pr := getPullRequestToMerge(ctx)
+	if pr == nil {
+		return
+	}
+	entry, err := pull_model.GetMergeQueueEntryByPullID(ctx, pr.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	} else if entry == nil {
+		ctx.APIErrorNotFound()
+		return
+	}
+	writeMergeQueueEntry(ctx, http.StatusOK, entry, pr.Index)
+}
+
 func AddPullRequestToMergeQueue(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/merge-queue repository repoAddPullRequestToMergeQueue
 	// ---
@@ -47,6 +90,8 @@ func AddPullRequestToMergeQueue(ctx *context.APIContext) {
 	//   schema:
 	//     $ref: "#/definitions/AddToMergeQueueOption"
 	// responses:
+	//   "200":
+	//     "$ref": "#/responses/MergeQueueEntry"
 	//   "201":
 	//     "$ref": "#/responses/MergeQueueEntry"
 	//   default:
@@ -71,11 +116,15 @@ func AddPullRequestToMergeQueue(ctx *context.APIContext) {
 	if !checkPullMergeable(ctx, pr, pull_service.MergeCheckTypeGeneral, pb.MergeQueue.MergeMethod, false) {
 		return
 	}
-	entry, err := mergequeue.Enqueue(ctx, ctx.Doer, pr, form.Jump, form.HeadCommitID)
+	entry, added, err := mergequeue.Enqueue(ctx, ctx.Doer, pr, form.Jump, form.HeadCommitID)
 	if err != nil {
 		writeMergeError(ctx, err)
 		return
 	}
+	writeMergeQueueEntry(ctx, util.Iif(added, http.StatusCreated, http.StatusOK), entry, pr.Index)
+}
+
+func writeMergeQueueEntry(ctx *context.APIContext, status int, entry *pull_model.MergeQueueEntry, prIndex int64) {
 	position, err := pull_model.GetMergeQueuePosition(ctx, entry)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -86,7 +135,7 @@ func AddPullRequestToMergeQueue(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, convert.ToMergeQueueEntry(ctx, entry, position, pr.Index, enqueuer))
+	ctx.JSON(status, convert.ToMergeQueueEntry(ctx, entry, position, prIndex, enqueuer))
 }
 
 func RemovePullRequestFromMergeQueue(ctx *context.APIContext) {
@@ -186,4 +235,38 @@ func ListMergeQueue(ctx *context.APIContext) {
 	ctx.SetLinkHeader(int64(len(queue)), listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(len(queue)))
 	ctx.JSON(http.StatusOK, result)
+}
+
+func ClearMergeQueue(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/merge-queue/{branch} repository repoClearMergeQueue
+	// ---
+	// summary: Remove all pull requests from the merge queue of a branch
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: branch
+	//   in: path
+	//   description: base branch of the queue
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   default:
+	//     "$ref": "#/responses/error"
+	if err := mergequeue.Clear(ctx, ctx.Doer, ctx.Repo.Repository, ctx.PathParam("*")); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.Status(http.StatusNoContent)
 }
