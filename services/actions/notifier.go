@@ -643,7 +643,7 @@ func notifyPullRequestChange(ctx context.Context, doer *user_model.User, pr *iss
 }
 
 func (n *actionsNotifier) MergeGroupChanged(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, entry *pull_model.MergeQueueEntry, action api.HookMergeGroupAction, reason string) {
-	if action == api.HookMergeGroupDestroyed { // like GitHub, no merge_group workflow runs as the group may hold fork code, only the hookless ref deletion is reported
+	if action == api.HookMergeGroupDestroyed { // no merge_group runs, closing a fork pull request would otherwise run its code with base secrets
 		n.DeleteRef(ctx, doer, repo, git.RefName(entry.GroupRef))
 		return
 	}

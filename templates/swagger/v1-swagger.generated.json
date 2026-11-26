@@ -25355,7 +25355,7 @@
           "x-go-name": "HeadCommitID"
         },
         "jump": {
-          "description": "Put the pull request at the front of the queue, also when it is already queued, requires admin permission",
+          "description": "Put the pull request at the front of the queue, even if already queued, requires repository admin",
           "type": "boolean",
           "x-go-name": "Jump"
         }
@@ -25822,7 +25822,7 @@
       "x-go-package": "gitea.dev/modules/structs"
     },
     "BranchProtectionMergeQueue": {
-      "description": "BranchProtectionMergeQueue holds the merge queue settings of a branch protection, named like GitHub's merge queue rule",
+      "description": "BranchProtectionMergeQueue holds the merge queue settings of a branch protection",
       "type": "object",
       "properties": {
         "check_response_timeout_minutes": {

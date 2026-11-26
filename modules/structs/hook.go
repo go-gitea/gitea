@@ -510,7 +510,7 @@ type PullRequestPayload struct {
 	After string `json:"after,omitempty"`
 	// The index number of the pull request
 	Index int64 `json:"number"`
-	// GitHub merge queue removal reason, only for the dequeued action
+	// Why the pull request left the merge queue, like MERGE or CI_FAILURE, only for the dequeued action
 	Reason string `json:"reason,omitempty"`
 	// Changes made to the pull request
 	Changes *ChangesPayload `json:"changes,omitempty"`

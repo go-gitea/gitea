@@ -139,7 +139,7 @@ func processQueue(ctx context.Context, repoID int64, branch string) error {
 		return err
 	}
 	if merged, err := state.mergeReadyEntries(ctx, base); err != nil || merged {
-		return err // The base push schedules the next queue pass.
+		return err // the base push schedules the next queue pass
 	}
 	return state.buildEntries(ctx, base)
 }
@@ -242,7 +242,7 @@ func (s *queueState) readyGroup(ctx context.Context, base string) ([]*QueueEntry
 				failedAt, failureReason = i, reason
 			}
 		} else if headGreen && i < cfg.MaxEntriesToMerge {
-			failureReason = "" // The later group can cover an earlier failure.
+			failureReason = "" // with HEADGREEN, a later passing entry covers an earlier failure
 		}
 		if entry.State != nextState {
 			entry.State = nextState
@@ -347,7 +347,7 @@ func (s *queueState) buildEntries(ctx context.Context, base string) error {
 			notify_service.MergeGroupChanged(ctx, entry.Enqueuer, s.repo, entry.MergeQueueEntry, api.HookMergeGroupChecksRequested, "")
 			scheduled = true
 		}
-		if entry.State == pull_model.MergeQueueStateAwaitingChecks { // Passed entries must free build slots while waiting for the minimum group size.
+		if entry.State == pull_model.MergeQueueStateAwaitingChecks { // passed entries free their build slot while waiting for the minimum group size
 			building++
 		}
 		base = entry.GroupHeadSHA

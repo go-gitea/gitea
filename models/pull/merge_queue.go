@@ -124,7 +124,7 @@ func JumpMergeQueueEntry(ctx context.Context, entry *MergeQueueEntry) error {
 	if _, err := mergeQueueForBranch(ctx, entry.RepoID, entry.BaseBranch).Cols("jump_unix").Desc("jump_unix").Get(&last); err != nil {
 		return err
 	}
-	entry.JumpUnix = max(timeutil.TimeStampNow(), last.JumpUnix+1) // Keep jumps in order within the same second.
+	entry.JumpUnix = max(timeutil.TimeStampNow(), last.JumpUnix+1) // keeps jumps ordered within the same second
 	if entry.ID == 0 {
 		return nil
 	}

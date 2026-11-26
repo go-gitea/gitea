@@ -206,7 +206,7 @@ const (
 	MergeQueueGroupingHeadGreen MergeQueueGroupingStrategy = "HEADGREEN"
 )
 
-// BranchProtectionMergeQueue holds the merge queue settings of a branch protection, named like GitHub's merge queue rule
+// BranchProtectionMergeQueue holds the merge queue settings of a branch protection
 type BranchProtectionMergeQueue struct {
 	// merge, rebase, rebase-merge or squash
 	MergeMethod MergeQueueMergeMethod `json:"merge_method"`

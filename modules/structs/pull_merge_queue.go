@@ -41,7 +41,7 @@ type MergeQueueEntry struct {
 
 // AddToMergeQueueOption options for adding a pull request to the merge queue
 type AddToMergeQueueOption struct {
-	// Put the pull request at the front of the queue, also when it is already queued, requires admin permission
+	// Put the pull request at the front of the queue, even if already queued, requires repository admin
 	Jump bool `json:"jump"`
 	// Only add the pull request if its head is still this commit
 	HeadCommitID string `json:"head_commit_id"`

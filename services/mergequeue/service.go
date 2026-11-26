@@ -27,7 +27,7 @@ import (
 var ErrNotQueued = util.NewNotExistErrorf("pull request is not in the merge queue")
 
 func Enqueue(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, jump bool, expectedHeadSHA string) (*pull_model.MergeQueueEntry, error) {
-	if doer.ID == user_model.ActionsUserID { // its task-scoped permission can't be re-checked when the queue builds
+	if doer.ID == user_model.ActionsUserID { // a task token's permission can't be re-checked when the queue builds
 		return nil, util.NewInvalidArgumentErrorf("Gitea Actions tokens cannot add pull requests to the merge queue")
 	}
 	if err := pr.LoadBaseRepo(ctx); err != nil {

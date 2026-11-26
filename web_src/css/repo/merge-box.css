@@ -99,7 +99,7 @@
 }
 
 .merge-box-footer-text {
-  flex: 1 1 0; /* beside the buttons like on GitHub, wrapping within itself */
+  flex: 1 1 0; /* beside the buttons, wrapping within itself */
 }
 
 @media (max-width: 767.98px) {

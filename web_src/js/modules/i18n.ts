@@ -7,7 +7,7 @@ export function trN(count: number, form1: string, formN: string, {lang = getCurr
   return trString(text, String(count));
 }
 
-/** Replace placeholders via `getArg`, mostly like backend TrString */
+/** Replace placeholders via `getArg` */
 function trParts<T>(s: string, getArg: (argNum: number) => T | undefined): Array<string | T> {
   let curIdx = 0;
   return s.split(/(%%|%(?:\[[1-9]\d*\])?[sd])/).map((part, index) => {

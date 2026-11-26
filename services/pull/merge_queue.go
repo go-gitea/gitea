@@ -197,7 +197,7 @@ func MergeQueuePullRequests(ctx context.Context, entries []*MergeQueueEntry) (er
 	}
 	baseRef := git.BranchPrefix + baseBranch
 	if err := git.PushManaged(ctx, repo, repo, git.PushOptions{
-		Branch:         last.GroupRef + ":" + baseRef, // The full ref avoids SHA-named branches, and the lease guards fast-forwards from a rewound base.
+		Branch:         last.GroupRef + ":" + baseRef, // git resolves a bare SHA to a same-named branch first, the lease rejects a base rewound since the build
 		ForceWithLease: baseRef + ":" + entries[0].BaseSHA,
 		Env:            repo_module.FullPushingEnvironment(last.Enqueuer, last.Enqueuer, repo, repo.Name, last.PullID, last.PullRequest.Index),
 	}); err != nil {
