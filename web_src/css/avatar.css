@@ -121,3 +121,7 @@ img.ui.avatar {
     max-width: 80px;
   }
 }
+
+.cropper-panel image-crop {
+  max-width: 400px;
+}
