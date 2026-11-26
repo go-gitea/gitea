@@ -140,16 +140,6 @@ func TestCombine(t *testing.T) {
 			states:   CommitStatusStates{CommitStatusSuccess, CommitStatusWarning, CommitStatusSkipped},
 			expected: CommitStatusFailure,
 		},
-		{
-			name:     "cancelled wins over pending and success",
-			states:   CommitStatusStates{CommitStatusPending, CommitStatusSuccess, CommitStatusCancelled},
-			expected: CommitStatusCancelled,
-		},
-		{
-			name:     "failure wins over cancelled",
-			states:   CommitStatusStates{CommitStatusCancelled, CommitStatusFailure},
-			expected: CommitStatusFailure,
-		},
 		// All success
 		{
 			name:     "all success",

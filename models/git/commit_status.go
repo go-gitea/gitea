@@ -34,7 +34,7 @@ import (
 )
 
 // CommitStatusStateMaxLength must match the size of the CommitStatus.State column
-const CommitStatusStateMaxLength = 32
+const CommitStatusStateMaxLength = 7
 
 // CommitStatus holds a single Status of a single Commit
 type CommitStatus struct {
@@ -43,7 +43,7 @@ type CommitStatus struct {
 	SHA    string                         `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
 	Index  int64                          `xorm:"INDEX UNIQUE(repo_sha_index)"`
 	Repo   *repo_model.Repository         `xorm:"-" json:"-"`
-	State  commitstatus.CommitStatusState `xorm:"VARCHAR(32) NOT NULL"`
+	State  commitstatus.CommitStatusState `xorm:"VARCHAR(7) NOT NULL"`
 
 	// TargetURL points to the commit status page reported by a CI system
 	// If Gitea Actions is used, it is a relative link like "{RepoLink}/actions/runs/{RunID}/jobs{JobID}"

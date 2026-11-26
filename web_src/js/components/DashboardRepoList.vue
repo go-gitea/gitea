@@ -22,7 +22,7 @@ type DashboardRepo = {
   locale_latest_commit_status_state?: string,
 };
 
-type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning' | 'skipped' | 'cancelled';
+type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning' | 'skipped';
 
 type WebSearchRepo = {
   repository: DashboardRepo,
@@ -53,7 +53,6 @@ const commitStatus: CommitStatusMap = {
   failure: {name: 'octicon-x', color: 'tw-text-red'},
   warning: {name: 'gitea-exclamation', color: 'tw-text-yellow'},
   skipped: {name: 'octicon-skip', color: 'tw-text-text-light'},
-  cancelled: {name: 'octicon-stop', color: 'tw-text-text-light'},
 };
 
 const searchModes = new Map<RepoFilter, string>([

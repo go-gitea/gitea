@@ -26316,10 +26316,9 @@
             "error",
             "failure",
             "warning",
-            "skipped",
-            "cancelled"
+            "skipped"
           ],
-          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nrunning CommitStatusRunning is for when the CommitStatus is Running\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped\ncancelled CommitStatusCancelled is for when the CommitStatus is Cancelled",
+          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nrunning CommitStatusRunning is for when the CommitStatus is Running\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
           "x-go-name": "State"
         },
         "statuses": {
@@ -26567,7 +26566,7 @@
           "x-go-name": "ID"
         },
         "status": {
-          "description": "State represents the status state (pending, running, success, error, failure, warning, skipped, cancelled)",
+          "description": "State represents the status state (pending, running, success, error, failure, warning, skipped)",
           "type": "string",
           "enum": [
             "pending",
@@ -26576,10 +26575,9 @@
             "error",
             "failure",
             "warning",
-            "skipped",
-            "cancelled"
+            "skipped"
           ],
-          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nrunning CommitStatusRunning is for when the CommitStatus is Running\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped\ncancelled CommitStatusCancelled is for when the CommitStatus is Cancelled",
+          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nrunning CommitStatusRunning is for when the CommitStatus is Running\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
           "x-go-name": "State"
         },
         "target_url": {
@@ -27954,7 +27952,7 @@
           "x-go-name": "Description"
         },
         "state": {
-          "description": "State represents the status state to set (pending, running, success, error, failure, warning, skipped, cancelled)",
+          "description": "State represents the status state to set (pending, running, success, error, failure, warning, skipped)",
           "type": "string",
           "enum": [
             "pending",
@@ -27963,10 +27961,9 @@
             "error",
             "failure",
             "warning",
-            "skipped",
-            "cancelled"
+            "skipped"
           ],
-          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nrunning CommitStatusRunning is for when the CommitStatus is Running\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped\ncancelled CommitStatusCancelled is for when the CommitStatus is Cancelled",
+          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nrunning CommitStatusRunning is for when the CommitStatus is Running\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
           "x-go-name": "State"
         },
         "target_url": {

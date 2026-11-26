@@ -18,7 +18,7 @@ type CommitStatusSummary struct {
 	ID        int64                          `xorm:"pk autoincr"`
 	RepoID    int64                          `xorm:"INDEX UNIQUE(repo_id_sha)"`
 	SHA       string                         `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_id_sha)"`
-	State     commitstatus.CommitStatusState `xorm:"VARCHAR(32) NOT NULL"`
+	State     commitstatus.CommitStatusState `xorm:"VARCHAR(7) NOT NULL"`
 	TargetURL string                         `xorm:"TEXT"`
 }
 

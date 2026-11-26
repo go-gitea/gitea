@@ -64,8 +64,8 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 		return returnedStatus
 	}
 
-	if returnedStatus.IsFailure() || returnedStatus.IsCancelled() {
-		return returnedStatus
+	if returnedStatus == commitstatus.CommitStatusFailure {
+		return commitstatus.CommitStatusFailure
 	}
 	// even if part of success, return pending
 	return commitstatus.CommitStatusPending
