@@ -6,7 +6,7 @@
 <div class="item merge-box-checks">
 	<div class="merge-box-checks-header flex-text-block tw-items-start hover:tw-bg-hover">
 		<button type="button" class="btn merge-box-checks-toggle" data-kind="checks" aria-expanded="{{not $statusCheckData.AllPassed}}" aria-label="{{$section.SectionTitle}}"></button>
-		{{template "repo/issue/view_content/pull_merge_section" (dict "MergeBoxSection" $section)}}
+		{{template "shared/merge_box_section" (dict "MergeBoxSection" $section)}}
 		{{svg "octicon-chevron-right" 16 "merge-box-chevron tw-mt-2 tw-mr-2"}}
 	</div>
 	<div class="merge-box-checks-body tw-overflow-y-auto tw-border-t tw-border-secondary">

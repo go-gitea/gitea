@@ -4606,6 +4606,136 @@
         }
       }
     },
+    "/orgs/{org}/security-advisories": {
+      "get": {
+        "description": "Only organization owners can list them.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "List security advisories across an organization's repositories",
+        "operationId": "orgListSecurityAdvisories",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "triage",
+              "draft",
+              "published",
+              "closed",
+              "withdrawn"
+            ],
+            "type": "string",
+            "x-go-name": "State",
+            "description": "Filter by state",
+            "name": "state",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "x-go-name": "Query",
+            "description": "Search the summary, description, identifier, CVE ID and package names",
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "type": "string",
+            "x-go-name": "Severity",
+            "description": "Filter by severity",
+            "name": "severity",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "x-go-name": "Ecosystem",
+            "description": "Filter by the ecosystem of an affected package",
+            "name": "ecosystem",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "x-go-name": "CweID",
+            "description": "Filter by CWE ID",
+            "name": "cwe",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "invalid",
+              "duplicate"
+            ],
+            "type": "string",
+            "x-go-name": "CloseReason",
+            "description": "Filter by the close reason",
+            "name": "close_reason",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "created",
+              "updated",
+              "published"
+            ],
+            "type": "string",
+            "default": "created",
+            "x-go-name": "Sort",
+            "description": "The property to sort by",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "type": "string",
+            "default": "desc",
+            "x-go-name": "Direction",
+            "description": "The sort direction",
+            "name": "direction",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "Page",
+            "description": "Page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "Limit",
+            "description": "Page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepositoryAdvisoryList"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/orgs/{org}/teams": {
       "get": {
         "produces": [
@@ -18910,13 +19040,15 @@
               "withdrawn"
             ],
             "type": "string",
-            "description": "filter by state",
+            "x-go-name": "State",
+            "description": "Filter by state",
             "name": "state",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "search the summary, description, identifier, CVE ID and package names",
+            "x-go-name": "Query",
+            "description": "Search the summary, description, identifier, CVE ID and package names",
             "name": "q",
             "in": "query"
           },
@@ -18928,25 +19060,22 @@
               "critical"
             ],
             "type": "string",
-            "description": "filter by severity",
+            "x-go-name": "Severity",
+            "description": "Filter by severity",
             "name": "severity",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "comma separated list of label names, all must be set",
-            "name": "labels",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "filter by the ecosystem of an affected package",
+            "x-go-name": "Ecosystem",
+            "description": "Filter by the ecosystem of an affected package",
             "name": "ecosystem",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "filter by CWE ID",
+            "x-go-name": "CweID",
+            "description": "Filter by CWE ID",
             "name": "cwe",
             "in": "query"
           },
@@ -18956,7 +19085,8 @@
               "duplicate"
             ],
             "type": "string",
-            "description": "filter closed advisories by the close reason",
+            "x-go-name": "CloseReason",
+            "description": "Filter by the close reason",
             "name": "close_reason",
             "in": "query"
           },
@@ -18968,7 +19098,8 @@
             ],
             "type": "string",
             "default": "created",
-            "description": "the property to sort by",
+            "x-go-name": "Sort",
+            "description": "The property to sort by",
             "name": "sort",
             "in": "query"
           },
@@ -18979,20 +19110,32 @@
             ],
             "type": "string",
             "default": "desc",
-            "description": "the sort direction",
+            "x-go-name": "Direction",
+            "description": "The sort direction",
             "name": "direction",
             "in": "query"
           },
           {
             "type": "integer",
-            "description": "page number of results to return (1-based)",
+            "format": "int64",
+            "x-go-name": "Page",
+            "description": "Page number of results to return (1-based)",
             "name": "page",
             "in": "query"
           },
           {
             "type": "integer",
-            "description": "page size of results",
+            "format": "int64",
+            "x-go-name": "Limit",
+            "description": "Page size of results",
             "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "x-go-name": "Labels",
+            "description": "Comma-separated label names, all must be set",
+            "name": "labels",
             "in": "query"
           }
         ],
@@ -19096,7 +19239,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/security-advisories/{identifier}": {
+    "/repos/{owner}/{repo}/security-advisories/{ghsa_id}": {
       "get": {
         "produces": [
           "application/json"
@@ -19124,7 +19267,7 @@
           {
             "type": "string",
             "description": "identifier of the advisory",
-            "name": "identifier",
+            "name": "ghsa_id",
             "in": "path",
             "required": true
           }
@@ -19169,7 +19312,7 @@
           {
             "type": "string",
             "description": "identifier of the advisory",
-            "name": "identifier",
+            "name": "ghsa_id",
             "in": "path",
             "required": true
           },
@@ -19191,7 +19334,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/security-advisories/{identifier}/comments": {
+    "/repos/{owner}/{repo}/security-advisories/{ghsa_id}/comments": {
       "get": {
         "produces": [
           "application/json"
@@ -19219,19 +19362,30 @@
           {
             "type": "string",
             "description": "identifier of the advisory",
-            "name": "identifier",
+            "name": "ghsa_id",
             "in": "path",
             "required": true
           },
           {
+            "type": "string",
+            "format": "date-time",
+            "description": "only return comments updated after this time",
+            "name": "since",
+            "in": "query"
+          },
+          {
             "type": "integer",
-            "description": "page number of results to return (1-based)",
+            "format": "int64",
+            "x-go-name": "Page",
+            "description": "Page number of results to return (1-based)",
             "name": "page",
             "in": "query"
           },
           {
             "type": "integer",
-            "description": "page size of results",
+            "format": "int64",
+            "x-go-name": "Limit",
+            "description": "Page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -19275,7 +19429,7 @@
           {
             "type": "string",
             "description": "identifier of the advisory",
-            "name": "identifier",
+            "name": "ghsa_id",
             "in": "path",
             "required": true
           },
@@ -19297,7 +19451,52 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/security-advisories/{identifier}/comments/{id}": {
+    "/repos/{owner}/{repo}/security-advisories/{ghsa_id}/comments/{comment_id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a security advisory comment",
+        "operationId": "repoGetSecurityAdvisoryComment",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "ghsa_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "name": "comment_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepositoryAdvisoryComment"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
       "delete": {
         "tags": [
           "repository"
@@ -19322,7 +19521,7 @@
           {
             "type": "string",
             "description": "identifier of the advisory",
-            "name": "identifier",
+            "name": "ghsa_id",
             "in": "path",
             "required": true
           },
@@ -19330,7 +19529,7 @@
             "type": "integer",
             "format": "int64",
             "description": "id of the comment",
-            "name": "id",
+            "name": "comment_id",
             "in": "path",
             "required": true
           }
@@ -19374,7 +19573,7 @@
           {
             "type": "string",
             "description": "identifier of the advisory",
-            "name": "identifier",
+            "name": "ghsa_id",
             "in": "path",
             "required": true
           },
@@ -19382,7 +19581,7 @@
             "type": "integer",
             "format": "int64",
             "description": "id of the comment",
-            "name": "id",
+            "name": "comment_id",
             "in": "path",
             "required": true
           },
@@ -28200,6 +28399,11 @@
           ],
           "x-go-name": "Severity"
         },
+        "start_private_fork": {
+          "description": "Temporary private forks are unsupported. Setting this to true returns 422.",
+          "type": "boolean",
+          "x-go-name": "StartPrivateFork"
+        },
         "summary": {
           "type": "string",
           "x-go-name": "Summary"
@@ -28667,6 +28871,11 @@
             "critical"
           ],
           "x-go-name": "Severity"
+        },
+        "start_private_fork": {
+          "description": "Temporary private forks are unsupported. Setting this to true returns 422.",
+          "type": "boolean",
+          "x-go-name": "StartPrivateFork"
         },
         "summary": {
           "type": "string",
@@ -30113,7 +30322,7 @@
       "type": "object",
       "properties": {
         "close_reason": {
-          "description": "Required when closing the advisory",
+          "description": "An optional reason for closing the advisory",
           "type": "string",
           "enum": [
             "invalid",
@@ -30150,7 +30359,7 @@
           "x-go-name": "CveID"
         },
         "cvss_vector_string": {
-          "description": "A CVSS 3.1 or 4.0 vector, the severity is derived from it. An empty string removes the vectors.",
+          "description": "A CVSS 3.1 or 4.0 vector, the severity is derived from it. An empty string removes the vector.",
           "type": "string",
           "x-go-name": "CVSSVectorString"
         },
@@ -30189,11 +30398,6 @@
             "critical"
           ],
           "x-go-name": "Severity"
-        },
-        "share_original": {
-          "description": "Lets the reporter of a report closed as duplicate follow the original read-only, without its internal comments.\nOtherwise the reporter only sees the identifier of the original.",
-          "type": "boolean",
-          "x-go-name": "ShareOriginal"
         },
         "state": {
           "description": "The new state, only repository admins can change it",
@@ -34297,7 +34501,7 @@
           "x-go-name": "ClosedAt"
         },
         "collaborating_teams": {
-          "description": "The teams collaborating on the advisory, only visible to repository admins and participants",
+          "description": "The collaborating teams whose metadata the viewer can see",
           "type": "array",
           "items": {
             "$ref": "#/definitions/Team"
@@ -34336,7 +34540,8 @@
         "cve_id": {
           "description": "The CVE ID assigned to the advisory",
           "type": "string",
-          "x-go-name": "CveID"
+          "x-go-name": "CveID",
+          "x-nullable": true
         },
         "cvss": {
           "$ref": "#/definitions/RepositoryAdvisoryCVSS"
@@ -34362,15 +34567,15 @@
           "type": "string",
           "x-go-name": "DuplicateOf"
         },
+        "ghsa_id": {
+          "description": "The identifier of the advisory, unique within its repository",
+          "type": "string",
+          "x-go-name": "Identifier"
+        },
         "html_url": {
           "description": "The HTML URL to view the advisory",
           "type": "string",
           "x-go-name": "HTMLURL"
-        },
-        "identifier": {
-          "description": "The identifier of the advisory, unique within its repository",
-          "type": "string",
-          "x-go-name": "Identifier"
         },
         "identifiers": {
           "description": "The identifiers of the advisory like its CVE ID",
@@ -34470,8 +34675,8 @@
       "x-go-package": "gitea.dev/modules/structs"
     },
     "RepositoryAdvisoryCVSSSeverities": {
-      "description": "RepositoryAdvisoryCVSSSeverities are the CVSS 3.1 and 4.0 scores of an advisory",
       "type": "object",
+      "title": "RepositoryAdvisoryCVSSSeverities contains the score for the selected CVSS version.",
       "properties": {
         "cvss_v3": {
           "$ref": "#/definitions/RepositoryAdvisoryCVSS"
@@ -34486,6 +34691,10 @@
       "description": "RepositoryAdvisoryComment is a comment of the private discussion of an advisory",
       "type": "object",
       "properties": {
+        "advisory_url": {
+          "type": "string",
+          "x-go-name": "AdvisoryURL"
+        },
         "body": {
           "type": "string",
           "x-go-name": "Body"
@@ -34504,15 +34713,19 @@
           "format": "int64",
           "x-go-name": "ID"
         },
-        "is_internal": {
-          "description": "Whether the comment is hidden from the reporter and read-only collaborators",
+        "is_confidential": {
+          "description": "Whether only maintainers can see the comment: repository admins, security teams and collaborators with write access",
           "type": "boolean",
-          "x-go-name": "IsInternal"
+          "x-go-name": "IsConfidential"
         },
         "updated_at": {
           "type": "string",
           "format": "date-time",
           "x-go-name": "UpdatedAt"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
         },
         "user": {
           "$ref": "#/definitions/User"
@@ -34531,10 +34744,10 @@
           "type": "string",
           "x-go-name": "Body"
         },
-        "is_internal": {
-          "description": "Hides the comment from the reporter and read-only collaborators, ignored when editing",
+        "is_confidential": {
+          "description": "Only maintainers can see the comment: repository admins, security teams and collaborators with write access. Ignored when editing.",
           "type": "boolean",
-          "x-go-name": "IsInternal"
+          "x-go-name": "IsConfidential"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -34646,7 +34859,8 @@
         "name": {
           "description": "The package name",
           "type": "string",
-          "x-go-name": "Name"
+          "x-go-name": "Name",
+          "x-nullable": true
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -34673,7 +34887,8 @@
         "patched_versions": {
           "description": "The versions containing the fix, e.g. \"1.2.3\"",
           "type": "string",
-          "x-go-name": "PatchedVersions"
+          "x-go-name": "PatchedVersions",
+          "x-nullable": true
         },
         "vulnerable_functions": {
           "description": "The affected functions",
@@ -34686,7 +34901,8 @@
         "vulnerable_version_range": {
           "description": "The range of affected versions, e.g. \"\u003c 1.2.3\"",
           "type": "string",
-          "x-go-name": "VulnerableVersionRange"
+          "x-go-name": "VulnerableVersionRange",
+          "x-nullable": true
         }
       },
       "x-go-package": "gitea.dev/modules/structs"

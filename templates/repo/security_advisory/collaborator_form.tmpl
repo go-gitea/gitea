@@ -1,10 +1,9 @@
 {{$placeholder := ctx.Locale.Tr .PlaceholderKey}}
-<form class="ui form form-fetch-action" action="{{.Link}}/collaborators" method="post">
+{{$submit := ctx.Locale.Tr .SubmitKey}}
+<form class="ui form search form-fetch-action" action="{{.Link}}/collaborators" method="post" data-global-init="{{.SearchInit}}"{{with .OrgName}} data-org-name="{{.}}"{{end}}>
 	<input type="hidden" name="type" value="{{.Type}}">
-	<div class="field">
-		<div class="ui search fluid input" data-global-init="{{.SearchInit}}"{{with .OrgName}} data-org-name="{{.}}"{{end}}>
-			<input class="prompt" name="collaborator" placeholder="{{$placeholder}}" aria-label="{{$placeholder}}" autocomplete="off" required>
-		</div>
+	<div class="ui fluid action input">
+		<input type="search" class="prompt" name="collaborator" placeholder="{{$placeholder}}" aria-label="{{$placeholder}}" autocomplete="off" required>
+		<button type="submit" class="ui icon button" data-tooltip-content="{{$submit}}" aria-label="{{$submit}}">{{svg .Icon}}</button>
 	</div>
-	<button type="submit" class="fluid ui button">{{svg .Icon}} {{ctx.Locale.Tr .SubmitKey}}</button>
 </form>

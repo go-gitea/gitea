@@ -15,50 +15,50 @@ import (
 	notify_service "gitea.dev/services/notify"
 )
 
-func checkComment(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, content string) error {
+func checkComment(ctx context.Context, doer *user_model.User, advisory *advisory_model.Advisory, content string) error {
 	if strings.TrimSpace(content) == "" {
 		return util.NewInvalidArgumentErrorf("comment must not be empty")
 	}
-	if err := a.LoadRepo(ctx); err != nil {
+	if err := advisory.LoadRepo(ctx); err != nil {
 		return err
 	}
-	if isBlockedFromAdvisory(ctx, a, doer) && !access_model.IsUserRepoAdmin(ctx, a.Repo, doer) {
+	if isBlockedFromAdvisory(ctx, advisory, doer) && !access_model.IsUserRepoAdmin(ctx, advisory.Repo, doer) {
 		return user_model.ErrBlockedUser
 	}
 	return nil
 }
 
-// CreateComment adds a comment to the private discussion, the caller must check Permissions.CanSeeDiscussion
-func CreateComment(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, perms advisory_model.Permissions, content string, isInternal bool) (*advisory_model.Comment, error) {
-	if isInternal && !perms.CanSeeInternal {
-		return nil, util.NewPermissionDeniedErrorf("only the maintainers can write internal comments")
+// CreateComment requires the caller to check Permissions.CanSeeDiscussion.
+func CreateComment(ctx context.Context, doer *user_model.User, advisory *advisory_model.Advisory, perms advisory_model.Permissions, content string, isConfidential bool) (*advisory_model.Comment, error) {
+	if isConfidential && !perms.CanSeeConfidential {
+		return nil, util.NewPermissionDeniedErrorf("only the maintainers can write confidential comments")
 	}
-	if err := checkComment(ctx, doer, a, content); err != nil {
+	if err := checkComment(ctx, doer, advisory, content); err != nil {
 		return nil, err
 	}
-	c := &advisory_model.Comment{AdvisoryID: a.ID, PosterID: doer.ID, Poster: doer, Content: content, IsInternal: isInternal}
-	if err := db.Insert(ctx, c); err != nil {
+	comment := &advisory_model.Comment{AdvisoryID: advisory.ID, PosterID: doer.ID, Poster: doer, Content: content, IsConfidential: isConfidential}
+	if err := db.Insert(ctx, comment); err != nil {
 		return nil, err
 	}
-	notify_service.NewSecurityAdvisoryComment(ctx, doer, a, c)
-	return c, nil
+	notify_service.NewSecurityAdvisoryComment(ctx, doer, advisory, comment)
+	return comment, nil
 }
 
-func EditComment(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, c *advisory_model.Comment, content string) error {
-	if c.PosterID != doer.ID {
+func EditComment(ctx context.Context, doer *user_model.User, advisory *advisory_model.Advisory, comment *advisory_model.Comment, content string) error {
+	if comment.PosterID != doer.ID {
 		return util.NewPermissionDeniedErrorf("only the poster can edit a comment")
 	}
-	if err := checkComment(ctx, doer, a, content); err != nil {
+	if err := checkComment(ctx, doer, advisory, content); err != nil {
 		return err
 	}
-	c.Content = content
-	return advisory_model.UpdateCommentContent(ctx, c)
+	comment.Content = content
+	return advisory_model.UpdateCommentContent(ctx, comment)
 }
 
-func DeleteComment(ctx context.Context, doer *user_model.User, perms advisory_model.Permissions, c *advisory_model.Comment) error {
-	if c.PosterID != doer.ID && !perms.CanManage {
+func DeleteComment(ctx context.Context, doer *user_model.User, perms advisory_model.Permissions, comment *advisory_model.Comment) error {
+	if comment.PosterID != doer.ID && !perms.CanManage {
 		return util.NewPermissionDeniedErrorf("only the poster and repository admins can delete a comment")
 	}
-	_, err := db.DeleteByID[advisory_model.Comment](ctx, c.ID)
+	_, err := db.DeleteByID[advisory_model.Comment](ctx, comment.ID)
 	return err
 }

@@ -13,13 +13,13 @@ import (
 )
 
 func TestParse(t *testing.T) {
-	r, err := Parse("CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H")
+	result, err := Parse("CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H")
 	require.NoError(t, err)
-	assert.Equal(t, Result{Version: Version31, Vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H", Score: 9.8, Rating: "critical"}, *r)
+	assert.Equal(t, Result{Version: Version31, Vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H", Score: 9.8, Rating: "critical"}, *result)
 
-	r, err = Parse(" CVSS:4.0/AV:L/AC:L/AT:N/PR:L/UI:P/VC:N/VI:H/VA:H/SC:N/SI:L/SA:L ")
+	result, err = Parse(" CVSS:4.0/AV:L/AC:L/AT:N/PR:L/UI:P/VC:N/VI:H/VA:H/SC:N/SI:L/SA:L ")
 	require.NoError(t, err)
-	assert.Equal(t, Result{Version: Version40, Vector: "CVSS:4.0/AV:L/AC:L/AT:N/PR:L/UI:P/VC:N/VI:H/VA:H/SC:N/SI:L/SA:L", Score: 5.2, Rating: "medium"}, *r)
+	assert.Equal(t, Result{Version: Version40, Vector: "CVSS:4.0/AV:L/AC:L/AT:N/PR:L/UI:P/VC:N/VI:H/VA:H/SC:N/SI:L/SA:L", Score: 5.2, Rating: "medium"}, *result)
 
 	for _, vector := range []string{
 		"",

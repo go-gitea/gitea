@@ -8,7 +8,7 @@
 		<div class="divider"></div>
 	{{end}}
 
-	{{template "repo/issue/sidebar/label_list" $.IssuePageMetaData}}
+	{{template "shared/label/sidebar_list" dict "LabelsData" $.IssuePageMetaData.LabelsData "CanModify" $.IssuePageMetaData.CanModifyIssueOrPull "ListLink" (print $.RepoLink (Iif $.Issue.IsPull "/pulls" "/issues")) "UpdateURL" (print $.RepoLink "/issues/labels?issue_ids=" $.Issue.ID)}}
 
 	{{template "repo/issue/sidebar/milestone_list" $.IssuePageMetaData}}
 	{{if .IsProjectsEnabled}}

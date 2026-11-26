@@ -10,6 +10,7 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/models/webhook"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
@@ -21,7 +22,24 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	webhook_service "gitea.dev/services/webhook"
+
+	"xorm.io/builder"
 )
+
+const privateReportEvent = webhook_module.HookEventRepositoryAdvisoryReported
+
+type repoHookTaskOptions struct {
+	webhook.ListHookTaskOptions
+	publicOnly bool
+}
+
+func (opts repoHookTaskOptions) ToConds() builder.Cond {
+	cond := opts.ListHookTaskOptions.ToConds()
+	if opts.publicOnly {
+		cond = cond.And(builder.Neq{"hook_task.event_type": privateReportEvent})
+	}
+	return cond
+}
 
 // ListHooks list all hooks of a repository
 func ListHooks(ctx *context.APIContext) {
@@ -166,9 +184,9 @@ func ListDeliveries(ctx *context.APIContext) {
 	}
 
 	listOptions := utils.GetListOptions(ctx)
-	tasks, count, err := db.FindAndCount[webhook.HookTask](ctx, webhook.ListHookTaskOptions{
-		ListOptions: listOptions,
-		HookID:      hookID,
+	tasks, count, err := db.FindAndCount[webhook.HookTask](ctx, repoHookTaskOptions{
+		ListHookTaskOptions: webhook.ListHookTaskOptions{ListOptions: listOptions, HookID: hookID},
+		publicOnly:          user_model.IsPublicOnlyDoer(ctx.Doer),
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -242,6 +260,10 @@ func GetDelivery(ctx *context.APIContext) {
 		return
 	}
 
+	if user_model.IsPublicOnlyDoer(ctx.Doer) && task.EventType == privateReportEvent {
+		ctx.APIErrorNotFound()
+		return
+	}
 	ctx.JSON(http.StatusOK, webhook_service.ToHookDelivery(task))
 }
 

@@ -10,9 +10,11 @@ import (
 // RepositoryAdvisory represents a security advisory of a repository
 type RepositoryAdvisory struct {
 	// The identifier of the advisory, unique within its repository
-	Identifier string `json:"identifier"`
+	Identifier string `json:"ghsa_id"`
 	// The CVE ID assigned to the advisory
-	CveID string `json:"cve_id"`
+	// Extensions:
+	// x-nullable: true
+	CveID *string `json:"cve_id"`
 	// The API URL of the advisory
 	URL string `json:"url"`
 	// The HTML URL to view the advisory
@@ -49,7 +51,7 @@ type RepositoryAdvisory struct {
 	Vulnerabilities []*RepositoryAdvisoryVulnerability `json:"vulnerabilities"`
 	// The CVSS 3.1 score if set
 	CVSS *RepositoryAdvisoryCVSS `json:"cvss"`
-	// The CVSS scores of the advisory
+	// The advisory's CVSS score, keyed by version
 	CVSSSeverities *RepositoryAdvisoryCVSSSeverities `json:"cvss_severities"`
 	// The CWE IDs of the advisory
 	CweIDs []string `json:"cwe_ids"`
@@ -59,7 +61,7 @@ type RepositoryAdvisory struct {
 	CreditsDetailed []*RepositoryAdvisoryCreditDetailed `json:"credits_detailed"`
 	// The users collaborating on the advisory, only visible to repository admins and participants
 	CollaboratingUsers []*User `json:"collaborating_users"`
-	// The teams collaborating on the advisory, only visible to repository admins and participants
+	// The collaborating teams whose metadata the viewer can see
 	CollaboratingTeams []*Team `json:"collaborating_teams"`
 	// The labels of the advisory
 	Labels []*Label `json:"labels"`
@@ -89,16 +91,22 @@ type RepositoryAdvisoryPackage struct {
 	// enum: actions,composer,erlang,go,maven,npm,nuget,other,pip,pub,rubygems,rust,swift
 	Ecosystem string `json:"ecosystem" binding:"Required"`
 	// The package name
-	Name string `json:"name"`
+	// Extensions:
+	// x-nullable: true
+	Name *string `json:"name"`
 }
 
 // RepositoryAdvisoryVulnerability is a package affected by an advisory
 type RepositoryAdvisoryVulnerability struct {
 	Package *RepositoryAdvisoryPackage `json:"package" binding:"Required"`
 	// The range of affected versions, e.g. "< 1.2.3"
-	VulnerableVersionRange string `json:"vulnerable_version_range"`
+	// Extensions:
+	// x-nullable: true
+	VulnerableVersionRange *string `json:"vulnerable_version_range"`
 	// The versions containing the fix, e.g. "1.2.3"
-	PatchedVersions string `json:"patched_versions"`
+	// Extensions:
+	// x-nullable: true
+	PatchedVersions *string `json:"patched_versions"`
 	// The affected functions
 	VulnerableFunctions []string `json:"vulnerable_functions"`
 }
@@ -109,7 +117,7 @@ type RepositoryAdvisoryCVSS struct {
 	Score        float64 `json:"score"`
 }
 
-// RepositoryAdvisoryCVSSSeverities are the CVSS 3.1 and 4.0 scores of an advisory
+// RepositoryAdvisoryCVSSSeverities contains the score for the selected CVSS version.
 type RepositoryAdvisoryCVSSSeverities struct {
 	CvssV3 *RepositoryAdvisoryCVSS `json:"cvss_v3"`
 	CvssV4 *RepositoryAdvisoryCVSS `json:"cvss_v4"`
@@ -151,6 +159,8 @@ type CreateRepositoryAdvisoryOption struct {
 	Severity string `json:"severity"`
 	// A CVSS 3.1 or 4.0 vector, the severity is derived from it
 	CVSSVectorString string `json:"cvss_vector_string"`
+	// Temporary private forks are unsupported. Setting this to true returns 422.
+	StartPrivateFork bool `json:"start_private_fork"`
 }
 
 // CreatePrivateVulnerabilityReportOption options for reporting a vulnerability privately
@@ -167,6 +177,8 @@ type CreatePrivateVulnerabilityReportOption struct {
 	Severity string `json:"severity"`
 	// A CVSS 3.1 or 4.0 vector, the severity is derived from it
 	CVSSVectorString string `json:"cvss_vector_string"`
+	// Temporary private forks are unsupported. Setting this to true returns 422.
+	StartPrivateFork bool `json:"start_private_fork"`
 }
 
 // EditRepositoryAdvisoryOption options for updating an advisory, only set fields are changed
@@ -184,19 +196,16 @@ type EditRepositoryAdvisoryOption struct {
 	// The severity, cannot be set together with cvss_vector_string
 	// enum: low,medium,high,critical
 	Severity *string `json:"severity"`
-	// A CVSS 3.1 or 4.0 vector, the severity is derived from it. An empty string removes the vectors.
+	// A CVSS 3.1 or 4.0 vector, the severity is derived from it. An empty string removes the vector.
 	CVSSVectorString *string `json:"cvss_vector_string"`
 	// The new state, only repository admins can change it
 	// enum: draft,published,closed,withdrawn
 	State *string `json:"state"`
-	// Required when closing the advisory
+	// An optional reason for closing the advisory
 	// enum: invalid,duplicate
 	CloseReason *string `json:"close_reason"`
 	// The identifier of the original advisory when closing as duplicate
 	DuplicateOf *string `json:"duplicate_of"`
-	// Lets the reporter of a report closed as duplicate follow the original read-only, without its internal comments.
-	// Otherwise the reporter only sees the identifier of the original.
-	ShareOriginal *bool `json:"share_original"`
 	// The logins of the users collaborating on the advisory, replaces all existing ones, only repository admins can change them
 	CollaboratingUsers []string `json:"collaborating_users"`
 	// The names of the teams collaborating on the advisory, replaces all existing ones, only repository admins can change them
@@ -240,12 +249,14 @@ const (
 
 // RepositoryAdvisoryComment is a comment of the private discussion of an advisory
 type RepositoryAdvisoryComment struct {
-	ID      int64  `json:"id"`
-	HTMLURL string `json:"html_url"`
-	User    *User  `json:"user"`
-	Body    string `json:"body"`
-	// Whether the comment is hidden from the reporter and read-only collaborators
-	IsInternal bool `json:"is_internal"`
+	ID          int64  `json:"id"`
+	URL         string `json:"url"`
+	HTMLURL     string `json:"html_url"`
+	AdvisoryURL string `json:"advisory_url"`
+	User        *User  `json:"user"`
+	Body        string `json:"body"`
+	// Whether only maintainers can see the comment: repository admins, security teams and collaborators with write access
+	IsConfidential bool `json:"is_confidential"`
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -256,8 +267,8 @@ type RepositoryAdvisoryComment struct {
 type RepositoryAdvisoryCommentOption struct {
 	// required: true
 	Body string `json:"body" binding:"Required"`
-	// Hides the comment from the reporter and read-only collaborators, ignored when editing
-	IsInternal bool `json:"is_internal"`
+	// Only maintainers can see the comment: repository admins, security teams and collaborators with write access. Ignored when editing.
+	IsConfidential bool `json:"is_confidential"`
 }
 
 // RepositoryAdvisoryCloseReason tells wrong reports and duplicates apart

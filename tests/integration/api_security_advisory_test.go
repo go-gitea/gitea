@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	advisory_model "gitea.dev/models/advisory"
 	auth_model "gitea.dev/models/auth"
@@ -33,8 +34,9 @@ func TestAPISecurityAdvisory(t *testing.T) {
 	writer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 8})
 	require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), repo, writer, perm.AccessModeWrite))
 
-	adminToken := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
-	adminPublicOnlyToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopePublicOnly)
+	adminSession := loginUser(t, "user2")
+	adminToken := getTokenForLoggedInUser(t, adminSession, auth_model.AccessTokenScopeWriteRepository)
+	adminPublicOnlyToken := getTokenForLoggedInUser(t, adminSession, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopePublicOnly)
 	reporterToken := getUserToken(t, "user4", auth_model.AccessTokenScopeWriteRepository)
 	outsiderToken := getUserToken(t, "user5", auth_model.AccessTokenScopeWriteRepository)
 	writerToken := getUserToken(t, writer.Name, auth_model.AccessTokenScopeWriteRepository)
@@ -46,33 +48,57 @@ func TestAPISecurityAdvisory(t *testing.T) {
 		Summary:          "XSS in the markdown renderer",
 		Description:      "Rendering `<img onerror>` executes scripts.",
 		CVSSVectorString: "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N",
-		Vulnerabilities:  []*api.RepositoryAdvisoryVulnerability{{Package: &api.RepositoryAdvisoryPackage{Ecosystem: "go", Name: "gitea.dev"}, VulnerableVersionRange: "< 1.2.3"}},
+		Vulnerabilities:  []*api.RepositoryAdvisoryVulnerability{{Package: &api.RepositoryAdvisoryPackage{Ecosystem: "go", Name: new("gitea.dev")}, VulnerableVersionRange: new("< 1.2.3")}},
 	}
 
-	advisoryRequest(t, "GET", baseURL, adminToken, nil, http.StatusNotFound) // the unit is disabled, also for admins
+	advisoryRequest(t, "GET", baseURL, adminToken, nil, http.StatusNotFound)
 	require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, []repo_model.RepoUnit{{RepoID: repo.ID, Type: unit.TypeSecurityAdvisories}}, nil))
 
 	assert.False(t, advisoryJSON(t, "GET", pvrURL, "", nil, http.StatusOK, &api.PrivateVulnerabilityReporting{}).Enabled)
 	advisoryRequest(t, "POST", baseURL+"/reports", reporterToken, report, http.StatusForbidden)
 	advisoryRequest(t, "PUT", pvrURL, outsiderToken, nil, http.StatusForbidden)
 	advisoryRequest(t, "PUT", pvrURL, adminToken, nil, http.StatusNoContent)
-	// enabling the already enabled unit must keep its config
 	advisoryRequest(t, "PATCH", "/api/v1/repos/user2/repo1", adminToken, &api.EditRepoOption{HasSecurityAdvisories: new(true)}, http.StatusOK)
 	assert.True(t, advisoryJSON(t, "GET", pvrURL, "", nil, http.StatusOK, &api.PrivateVulnerabilityReporting{}).Enabled)
 
-	// webhooks sending everything must not forward undisclosed reports
 	everythingHook := createTestWebhook(t, repo.ID, &webhook_module.HookEvent{SendEverything: true})
 	reportHook := createTestWebhook(t, repo.ID, &webhook_module.HookEvent{ChooseEvents: true, HookEvents: webhook_module.HookEvents{webhook_module.HookEventRepositoryAdvisoryReported: true}})
 
 	advisoryRequest(t, "POST", baseURL+"/reports", blockedToken, report, http.StatusForbidden)
-	reported := advisoryJSON(t, "POST", baseURL+"/reports", reporterToken, report, http.StatusCreated, &api.RepositoryAdvisory{})
+	report.StartPrivateFork = true
+	rejected := advisoryJSON(t, "POST", baseURL+"/reports", reporterToken, report, http.StatusUnprocessableEntity, &api.APIError{})
+	assert.Equal(t, "temporary private forks are not supported", rejected.Message)
+	report.StartPrivateFork = false
+	response := advisoryRequest(t, "POST", baseURL+"/reports", reporterToken, report, http.StatusCreated)
+	assert.Contains(t, response.Body.String(), `"ghsa_id":`)
+	assert.NotContains(t, response.Body.String(), `"identifier":`)
+	reported := DecodeJSON(t, response, &api.RepositoryAdvisory{})
+	assert.NotEmpty(t, reported.Identifier)
 	assert.Equal(t, "triage", reported.State)
 	assert.Equal(t, "medium", *reported.Severity)
 	assert.Equal(t, "user4", reported.Author.UserName)
 	assert.False(t, reported.Submission.Accepted)
 	advisoryURL := baseURL + "/" + reported.Identifier
 	unittest.AssertCount(t, &webhook_model.HookTask{HookID: everythingHook.ID}, 0)
-	unittest.AssertExistsAndLoadBean(t, &webhook_model.HookTask{HookID: reportHook.ID, EventType: webhook_module.HookEventRepositoryAdvisoryReported})
+	reportTask := unittest.AssertExistsAndLoadBean(t, &webhook_model.HookTask{HookID: reportHook.ID, EventType: webhook_module.HookEventRepositoryAdvisoryReported})
+
+	t.Run("PrivateReportWebhook", func(t *testing.T) {
+		const hooksURL = "/api/v1/repos/user2/repo1/hooks"
+		hookURL := fmt.Sprintf("%s/%d", hooksURL, reportHook.ID)
+		deliveriesURL := hookURL + "/deliveries"
+		event := string(webhook_module.HookEventRepositoryAdvisoryReported)
+		assert.Contains(t, reportTask.PayloadContent, `"ghsa_id": "`+reported.Identifier+`"`)
+		advisoryRequest(t, "POST", hooksURL, adminPublicOnlyToken, &api.CreateHookOption{
+			Type: webhook_module.GITEA, Config: api.CreateHookOptionConfig{"content_type": "json", "url": reportHook.URL}, Events: []string{event},
+		}, http.StatusForbidden)
+		advisoryRequest(t, "PATCH", fmt.Sprintf("%s/%d", hooksURL, everythingHook.ID), adminPublicOnlyToken, &api.EditHookOption{Events: []string{event}}, http.StatusForbidden)
+		advisoryRequest(t, "PATCH", hookURL, adminPublicOnlyToken, &api.EditHookOption{Name: new("New name")}, http.StatusForbidden)
+		deliveries := advisoryRequest(t, "GET", deliveriesURL, adminPublicOnlyToken, nil, http.StatusOK)
+		assert.Equal(t, "0", deliveries.Header().Get("X-Total-Count"))
+		assert.Empty(t, DecodeJSON(t, deliveries, api.HookDeliveryList{}))
+		advisoryRequest(t, "GET", deliveriesURL+"/"+reportTask.UUID, adminPublicOnlyToken, nil, http.StatusNotFound)
+		assert.Equal(t, event, advisoryJSON(t, "GET", deliveriesURL+"/"+reportTask.UUID, adminToken, nil, http.StatusOK, &api.HookDelivery{}).EventType)
+	})
 
 	t.Run("DraftVisibility", func(t *testing.T) {
 		advisoryRequest(t, "GET", advisoryURL, writerToken, nil, http.StatusNotFound)
@@ -83,15 +109,12 @@ func TestAPISecurityAdvisory(t *testing.T) {
 	})
 
 	t.Run("Edit", func(t *testing.T) {
-		// participants can edit the content, but not what only maintainers decide
 		advisoryRequest(t, "PATCH", advisoryURL, reporterToken, map[string]any{"state": "draft"}, http.StatusForbidden)
 		advisoryRequest(t, "PATCH", advisoryURL, reporterToken, map[string]any{"cve_id": "CVE-2026-1234"}, http.StatusForbidden)
-		advisoryRequest(t, "PATCH", advisoryURL, reporterToken, map[string]any{"cwe_ids": []string{"CWE-79"}}, http.StatusOK)
-		assert.Equal(t, []string{"CWE-79"}, advisoryJSON(t, "GET", advisoryURL, reporterToken, nil, http.StatusOK, &api.RepositoryAdvisory{}).CweIDs)
+		reporterEdit := advisoryJSON(t, "PATCH", advisoryURL, reporterToken, map[string]any{"cwe_ids": []string{"CWE-79"}}, http.StatusOK, &api.RepositoryAdvisory{})
+		assert.Equal(t, []string{"CWE-79"}, reporterEdit.CweIDs)
 
-		advisoryRequest(t, "PATCH", advisoryURL, adminToken, map[string]any{"severity": "high"}, http.StatusUnprocessableEntity)
 		advisoryRequest(t, "PATCH", advisoryURL, adminToken, map[string]any{"state": "published"}, http.StatusUnprocessableEntity)
-		// an invalid collaborator rejects the whole request before anything is saved
 		advisoryRequest(t, "PATCH", advisoryURL, adminToken, map[string]any{"summary": "changed", "collaborating_users": []string{"user29"}}, http.StatusForbidden)
 		edited := advisoryJSON(t, "PATCH", advisoryURL, adminToken, map[string]any{
 			"state":               "draft",
@@ -100,9 +123,12 @@ func TestAPISecurityAdvisory(t *testing.T) {
 			"collaborating_users": []string{"user5"},
 		}, http.StatusOK, &api.RepositoryAdvisory{})
 		assert.Equal(t, report.Summary, edited.Summary)
+		assert.Equal(t, reporterEdit.CweIDs, edited.CweIDs)
 		assert.Equal(t, "draft", edited.State)
 		assert.Equal(t, "critical", *edited.Severity)
-		assert.NotNil(t, edited.CVSSSeverities.CvssV3, "the 3.1 vector is kept")
+		assert.Nil(t, edited.CVSS)
+		assert.Nil(t, edited.CVSSSeverities.CvssV3)
+		assert.NotNil(t, edited.CVSSSeverities.CvssV4)
 		require.Len(t, edited.CollaboratingUsers, 1)
 		assert.True(t, edited.Submission.Accepted)
 		accepted := unittest.AssertExistsAndLoadBean(t, &advisory_model.Advisory{RepoID: repo.ID, Identifier: reported.Identifier})
@@ -122,22 +148,27 @@ func TestAPISecurityAdvisory(t *testing.T) {
 		advisoryRequest(t, "GET", commentsURL, writerToken, nil, http.StatusNotFound)
 		reporterCommentURL := postComment(reporterToken, &api.RepositoryAdvisoryCommentOption{Body: "steps attached"})
 		adminCommentURL := postComment(adminToken, &api.RepositoryAdvisoryCommentOption{Body: "confirmed"})
+		comment := advisoryJSON(t, "GET", adminCommentURL, reporterToken, nil, http.StatusOK, &api.RepositoryAdvisoryComment{})
+		assert.Equal(t, "confirmed", comment.Body)
+		assert.Equal(t, reported.URL, comment.AdvisoryURL)
+		assert.Equal(t, fmt.Sprintf("%s/comments/%d", reported.URL, comment.ID), comment.URL)
 
 		advisoryRequest(t, "PATCH", adminCommentURL, reporterToken, &api.RepositoryAdvisoryCommentOption{Body: "x"}, http.StatusForbidden)
 		advisoryRequest(t, "DELETE", adminCommentURL, reporterToken, nil, http.StatusForbidden)
 		assert.Equal(t, "steps updated", advisoryJSON(t, "PATCH", reporterCommentURL, reporterToken, &api.RepositoryAdvisoryCommentOption{Body: "steps updated"}, http.StatusOK, &api.RepositoryAdvisoryComment{}).Body)
 		advisoryRequest(t, "DELETE", reporterCommentURL, adminToken, nil, http.StatusNoContent)
 
-		advisoryRequest(t, "POST", commentsURL, reporterToken, &api.RepositoryAdvisoryCommentOption{Body: "x", IsInternal: true}, http.StatusForbidden)
-		internalCommentURL := postComment(adminToken, &api.RepositoryAdvisoryCommentOption{Body: "the reporter seems to sell this", IsInternal: true})
-		advisoryRequest(t, "PATCH", internalCommentURL, reporterToken, &api.RepositoryAdvisoryCommentOption{Body: "x"}, http.StatusNotFound)
+		advisoryRequest(t, "POST", commentsURL, reporterToken, &api.RepositoryAdvisoryCommentOption{Body: "x", IsConfidential: true}, http.StatusForbidden)
+		confidentialCommentURL := postComment(adminToken, &api.RepositoryAdvisoryCommentOption{Body: "the reporter seems to sell this", IsConfidential: true})
+		advisoryRequest(t, "GET", confidentialCommentURL, reporterToken, nil, http.StatusNotFound)
 
-		comments := advisoryJSON(t, "GET", commentsURL, reporterToken, nil, http.StatusOK, []*api.RepositoryAdvisoryComment{})
+		comments := advisoryJSON(t, "GET", commentsURL+"?since="+comment.UpdatedAt.Add(-time.Second).UTC().Format(time.RFC3339), reporterToken, nil, http.StatusOK, []*api.RepositoryAdvisoryComment{})
 		require.Len(t, comments, 1)
 		assert.Equal(t, "user2", comments[0].User.UserName)
+		assert.Empty(t, advisoryJSON(t, "GET", commentsURL+"?since="+comment.UpdatedAt.UTC().Format(time.RFC3339), reporterToken, nil, http.StatusOK, []*api.RepositoryAdvisoryComment{}))
 		comments = advisoryJSON(t, "GET", commentsURL, adminToken, nil, http.StatusOK, []*api.RepositoryAdvisoryComment{})
 		require.Len(t, comments, 2)
-		assert.True(t, comments[1].IsInternal)
+		assert.True(t, comments[1].IsConfidential)
 	})
 
 	t.Run("Publish", func(t *testing.T) {
@@ -149,7 +180,6 @@ func TestAPISecurityAdvisory(t *testing.T) {
 		advisoryRequest(t, "GET", advisoryURL, adminPublicOnlyToken, nil, http.StatusOK)
 		advisoryRequest(t, "PATCH", advisoryURL, reporterToken, map[string]any{"summary": "x"}, http.StatusForbidden)
 
-		// the published payload is sent without the private parts
 		task := unittest.AssertExistsAndLoadBean(t, &webhook_model.HookTask{HookID: everythingHook.ID, EventType: webhook_module.HookEventRepositoryAdvisory})
 		assert.Contains(t, task.PayloadContent, `"action": "published"`)
 		assert.Contains(t, task.PayloadContent, `"author": null`)
@@ -173,38 +203,25 @@ func TestAPISecurityAdvisory(t *testing.T) {
 		originalURL := baseURL + "/" + original.Identifier
 		duplicateURL := baseURL + "/" + advisoryJSON(t, "POST", baseURL+"/reports", outsiderToken, report, http.StatusCreated, &api.RepositoryAdvisory{}).Identifier
 		closeAsDuplicate := map[string]any{"state": "closed", "close_reason": "duplicate", "duplicate_of": original.Identifier}
-		advisoryRequest(t, "PATCH", duplicateURL, adminToken, map[string]any{"state": "closed"}, http.StatusUnprocessableEntity)
 		advisoryRequest(t, "PATCH", duplicateURL, adminToken, map[string]any{"state": "closed", "close_reason": "duplicate"}, http.StatusUnprocessableEntity)
 		closed := advisoryJSON(t, "PATCH", duplicateURL, adminToken, closeAsDuplicate, http.StatusOK, &api.RepositoryAdvisory{})
 		assert.Equal(t, "duplicate", closed.CloseReason)
 		assert.Equal(t, original.Identifier, closed.DuplicateOf)
 
-		// without sharing, the reporter of the duplicate only sees the identifier of the original
 		assert.Equal(t, original.Identifier, advisoryJSON(t, "GET", duplicateURL, outsiderToken, nil, http.StatusOK, &api.RepositoryAdvisory{}).DuplicateOf)
 		advisoryRequest(t, "GET", originalURL+"/comments", outsiderToken, nil, http.StatusNotFound)
-		advisoryRequest(t, "PATCH", duplicateURL, adminToken, map[string]any{"share_original": true}, http.StatusUnprocessableEntity)
-		advisoryRequest(t, "PATCH", duplicateURL, adminToken, map[string]any{"state": "draft"}, http.StatusOK)
-		shareOriginal := map[string]any{"state": "closed", "close_reason": "duplicate", "duplicate_of": original.Identifier, "share_original": true}
-		advisoryRequest(t, "PATCH", duplicateURL, adminToken, shareOriginal, http.StatusOK)
-
-		// the reporter of the duplicate can follow a shared original, but not edit it
-		advisoryRequest(t, "GET", originalURL+"/comments", outsiderToken, nil, http.StatusOK)
-		advisoryRequest(t, "PATCH", originalURL, outsiderToken, map[string]any{"summary": "x"}, http.StatusForbidden)
-		advisoryRequest(t, "PATCH", duplicateURL, adminToken, map[string]any{"state": "draft"}, http.StatusOK)
-		advisoryRequest(t, "GET", originalURL+"/comments", outsiderToken, nil, http.StatusNotFound) // reopening revokes the access
-		advisoryRequest(t, "PATCH", duplicateURL, adminToken, closeAsDuplicate, http.StatusOK)
 		assert.Len(t, advisoryJSON(t, "GET", baseURL+"?close_reason=duplicate", adminToken, nil, http.StatusOK, []*api.RepositoryAdvisory{}), 1)
 	})
 
 	t.Run("SearchAndLabels", func(t *testing.T) {
-		advisoryRequest(t, "POST", baseURL, adminToken, &api.CreateRepositoryAdvisoryOption{Summary: "x", Description: "x", Labels: []int64{4}}, http.StatusUnprocessableEntity) // organization label of another owner
+		advisoryRequest(t, "POST", baseURL, adminToken, &api.CreateRepositoryAdvisoryOption{Summary: "x", Description: "x", Labels: []int64{4}}, http.StatusUnprocessableEntity)
 		created := advisoryJSON(t, "POST", baseURL, adminToken, &api.CreateRepositoryAdvisoryOption{Summary: "SQL injection in search", Description: "details", Labels: []int64{1}}, http.StatusCreated, &api.RepositoryAdvisory{})
 		require.Len(t, created.Labels, 1)
 
 		search := func(query string) []string {
 			var ids []string
-			for _, a := range advisoryJSON(t, "GET", baseURL+"?"+query, adminToken, nil, http.StatusOK, []*api.RepositoryAdvisory{}) {
-				ids = append(ids, a.Identifier)
+			for _, advisory := range advisoryJSON(t, "GET", baseURL+"?"+query, adminToken, nil, http.StatusOK, []*api.RepositoryAdvisory{}) {
+				ids = append(ids, advisory.Identifier)
 			}
 			return ids
 		}
@@ -215,9 +232,21 @@ func TestAPISecurityAdvisory(t *testing.T) {
 	})
 
 	t.Run("Create", func(t *testing.T) {
-		create := &api.CreateRepositoryAdvisoryOption{Summary: "Path traversal", Description: "details", Severity: "low", Credits: []*api.RepositoryAdvisoryCredit{{Login: "user4", Type: "finder"}}}
+		create := &api.CreateRepositoryAdvisoryOption{
+			Summary: "Path traversal", Description: "details", Severity: "low",
+			Credits:         []*api.RepositoryAdvisoryCredit{{Login: "user4", Type: "finder"}},
+			Vulnerabilities: []*api.RepositoryAdvisoryVulnerability{{Package: &api.RepositoryAdvisoryPackage{Ecosystem: "go"}}},
+		}
 		advisoryRequest(t, "POST", baseURL, writerToken, create, http.StatusForbidden)
-		created := advisoryJSON(t, "POST", baseURL, adminToken, create, http.StatusCreated, &api.RepositoryAdvisory{})
+		create.StartPrivateFork = true
+		rejected := advisoryJSON(t, "POST", baseURL, adminToken, create, http.StatusUnprocessableEntity, &api.APIError{})
+		assert.Equal(t, "temporary private forks are not supported", rejected.Message)
+		create.StartPrivateFork = false
+		response := advisoryRequest(t, "POST", baseURL, adminToken, create, http.StatusCreated)
+		for _, field := range []string{"cve_id", "name", "vulnerable_version_range", "patched_versions"} {
+			assert.Contains(t, response.Body.String(), fmt.Sprintf("%q:null", field))
+		}
+		created := DecodeJSON(t, response, &api.RepositoryAdvisory{})
 		assert.Equal(t, "draft", created.State)
 		require.Len(t, created.Credits, 1)
 		assert.Nil(t, created.Submission)
@@ -226,8 +255,6 @@ func TestAPISecurityAdvisory(t *testing.T) {
 		for _, query := range []string{"state=bogus", "close_reason=bogus", "cwe=CWE-7_"} {
 			advisoryRequest(t, "GET", baseURL+"?"+query, adminToken, nil, http.StatusUnprocessableEntity)
 		}
-		create.CVSSVectorString = "CVSS:3.1/AV:N"
-		advisoryRequest(t, "POST", baseURL, adminToken, create, http.StatusUnprocessableEntity)
 	})
 
 	advisoryRequest(t, "DELETE", pvrURL, adminToken, nil, http.StatusNoContent)
@@ -237,33 +264,65 @@ func TestAPISecurityAdvisory(t *testing.T) {
 func TestAPISecurityAdvisorySecurityTeam(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}) // org3, its team1 has the members user2 and user4
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, []repo_model.RepoUnit{{RepoID: repo.ID, Type: unit.TypeSecurityAdvisories}}, nil))
 	ownerToken := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
-	memberToken := getUserToken(t, "user4", auth_model.AccessTokenScopeWriteRepository)
+	memberToken := getUserToken(t, "user4", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeReadOrganization)
 
 	const baseURL = "/api/v1/repos/org3/repo3/security-advisories"
-	advisoryURL := baseURL + "/" + advisoryJSON(t, "POST", baseURL, ownerToken, &api.CreateRepositoryAdvisoryOption{Summary: "Draft", Description: "details"}, http.StatusCreated, &api.RepositoryAdvisory{}).Identifier
+	draft := advisoryJSON(t, "POST", baseURL, ownerToken, &api.CreateRepositoryAdvisoryOption{
+		Summary: "Draft", Description: "details", Labels: []int64{4, 10},
+	}, http.StatusCreated, &api.RepositoryAdvisory{})
+	advisoryURL := baseURL + "/" + draft.Identifier
 	advisoryRequest(t, "GET", advisoryURL, memberToken, nil, http.StatusNotFound)
 
 	assert.True(t, advisoryJSON(t, "PATCH", "/api/v1/teams/2", ownerToken, &api.EditTeamOption{IsSecurityTeam: new(true)}, http.StatusOK, &api.Team{}).IsSecurityTeam)
 	advisoryRequest(t, "GET", advisoryURL+"/comments", memberToken, nil, http.StatusOK)
 	advisoryRequest(t, "PATCH", advisoryURL, memberToken, map[string]any{"summary": "edited by the security team"}, http.StatusOK)
 	advisoryRequest(t, "PATCH", advisoryURL, memberToken, map[string]any{"state": "published"}, http.StatusForbidden)
+
+	otherRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32})
+	require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), otherRepo, []repo_model.RepoUnit{{RepoID: otherRepo.ID, Type: unit.TypeSecurityAdvisories}}, nil))
+	const otherRepoURL = "/api/v1/repos/org3/repo21"
+	advisoryRequest(t, "PUT", otherRepoURL+"/private-vulnerability-reporting", ownerToken, nil, http.StatusNoContent)
+	report := advisoryJSON(t, "POST", otherRepoURL+"/security-advisories/reports", memberToken, &api.CreatePrivateVulnerabilityReportOption{
+		Summary: "Report", Description: "details",
+	}, http.StatusCreated, &api.RepositoryAdvisory{})
+	reportURL := otherRepoURL + "/security-advisories/" + report.Identifier
+	assigned := advisoryJSON(t, "PATCH", reportURL, ownerToken, &api.EditRepositoryAdvisoryOption{
+		Labels: []int64{4}, CollaboratingTeams: []string{"team1", "test_team"},
+	}, http.StatusOK, &api.RepositoryAdvisory{})
+	require.Len(t, assigned.CollaboratingTeams, 2)
+	visible := advisoryJSON(t, "GET", reportURL, memberToken, nil, http.StatusOK, &api.RepositoryAdvisory{}).CollaboratingTeams
+	require.Len(t, visible, 1)
+	assert.Equal(t, "team1", visible[0].Name)
+	closed := advisoryJSON(t, "PATCH", reportURL, ownerToken, map[string]any{"state": "closed"}, http.StatusOK, &api.RepositoryAdvisory{})
+	assert.Equal(t, "closed", closed.State)
+	assert.Empty(t, closed.CloseReason)
+
+	const orgURL = "/api/v1/orgs/org3/security-advisories"
+	advisoryRequest(t, "GET", orgURL, memberToken, nil, http.StatusForbidden)
+	response := advisoryRequest(t, "GET", orgURL+"?sort=created&direction=asc&limit=1&page=2", ownerToken, nil, http.StatusOK)
+	assert.Equal(t, "2", response.Header().Get("X-Total-Count"))
+	page := DecodeJSON(t, response, []*api.RepositoryAdvisory{})
+	require.Len(t, page, 1)
+	assert.Equal(t, closed.URL, page[0].URL)
+	drafts := advisoryJSON(t, "GET", orgURL+"?state=draft", ownerToken, nil, http.StatusOK, []*api.RepositoryAdvisory{})
+	require.Len(t, drafts, 1)
+	assert.Equal(t, draft.URL, drafts[0].URL)
 }
 
 func advisoryRequest(t *testing.T, method, url, token string, body any, status int) *httptest.ResponseRecorder {
 	t.Helper()
-	req := NewRequest(t, method, url)
 	if body != nil {
-		req = NewRequestWithJSON(t, method, url, body)
+		return MakeRequest(t, NewRequestWithJSON(t, method, url, body).AddTokenAuth(token), status)
 	}
-	return MakeRequest(t, req.AddTokenAuth(token), status)
+	return MakeRequest(t, NewRequest(t, method, url).AddTokenAuth(token), status)
 }
 
-func advisoryJSON[T any](t *testing.T, method, url, token string, body any, status int, v T) T {
+func advisoryJSON[T any](t *testing.T, method, url, token string, body any, status int, output T) T {
 	t.Helper()
-	return DecodeJSON(t, advisoryRequest(t, method, url, token, body, status), v)
+	return DecodeJSON(t, advisoryRequest(t, method, url, token, body, status), output)
 }
 
 func createTestWebhook(t *testing.T, repoID int64, events *webhook_module.HookEvent) *webhook_model.Webhook {

@@ -30,64 +30,62 @@ func TestMailSecurityAdvisory(t *testing.T) {
 
 	var sent []*sender_service.Message
 	defer test.MockVariableValue(&SendAsync, func(msgs ...*sender_service.Message) { sent = append(sent, msgs...) })()
-	popSentTos := func() (tos []string) {
-		for _, m := range sent {
-			tos = append(tos, m.To)
-		}
-		sent = nil
-		return tos
-	}
-	// mails are not end-to-end encrypted, so they must not reveal the vulnerability before it is published
-	assertNoticeOnly := func() {
-		t.Helper()
-		require.NotEmpty(t, sent)
-		for _, m := range sent {
-			for _, secret := range []string{"XSS", "details", "confirmed"} {
-				assert.NotContains(t, m.Subject+m.Body, secret)
-			}
-		}
-	}
 
 	require.NoError(t, db.Insert(ctx, &repo_model.RepoUnit{RepoID: 1, Type: unit.TypeSecurityAdvisories}))
 	user := func(id int64) *user_model.User { return unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: id}) }
 	admin, reporter, collaborator, credited := user(2), user(5), user(8), user(10)
 
-	a := &advisory_model.Advisory{
+	advisory := &advisory_model.Advisory{
 		RepoID: 1, Summary: "XSS", Description: "details", State: advisory_model.StateTriage, IsReport: true, ReporterID: reporter.ID,
 		Credits: []*advisory_model.Credit{{UserID: credited.ID, Type: "finder"}},
 	}
-	require.NoError(t, advisory_model.CreateAdvisory(ctx, a))
-	a.Credits = nil
-	_, err := advisory_model.AddCollaborator(ctx, &advisory_model.Collaborator{AdvisoryID: a.ID, UserID: collaborator.ID})
+	popMail := func(recipients ...*user_model.User) []*sender_service.Message {
+		t.Helper()
+		var want, got []string
+		for _, user := range recipients {
+			want = append(want, user.EmailTo())
+		}
+		for _, msg := range sent {
+			got = append(got, msg.To)
+			if !advisory.IsPublic() {
+				for _, private := range []string{"XSS", "details", "confirmed"} {
+					assert.NotContains(t, msg.Subject+msg.Body, private)
+				}
+			}
+		}
+		require.ElementsMatch(t, want, got)
+		messages := sent
+		sent = nil
+		return messages
+	}
+	require.NoError(t, advisory_model.CreateAdvisory(ctx, advisory))
+	advisory.Credits = nil
+	_, err := advisory_model.AddCollaborator(ctx, &advisory_model.Collaborator{AdvisoryID: advisory.ID, UserID: collaborator.ID})
 	require.NoError(t, err)
 
-	// only repository admins get the report, not the advisory collaborator
-	MailSecurityAdvisoryReported(ctx, reporter, a)
-	assertNoticeOnly()
-	rootID := sent[0].Headers["Message-ID"][0]
-	assert.Equal(t, []string{admin.EmailTo()}, popSentTos())
+	MailSecurityAdvisoryReported(ctx, reporter, advisory)
+	rootID := popMail(admin)[0].Headers["Message-ID"]
+	require.Len(t, rootID, 1)
 
-	MailSecurityAdvisoryCollaboratorAdded(ctx, admin, a, collaborator, nil)
-	assertNoticeOnly()
-	assert.NotEqual(t, rootID, sent[0].Headers["Message-ID"][0])
-	assert.Equal(t, []string{rootID}, sent[0].Headers["In-Reply-To"])
-	assert.Equal(t, []string{collaborator.EmailTo()}, popSentTos())
+	MailSecurityAdvisoryCollaboratorAdded(ctx, admin, advisory, collaborator, nil)
+	invitation := popMail(collaborator)[0]
+	assert.NotEqual(t, rootID, invitation.Headers["Message-ID"])
+	assert.Equal(t, rootID, invitation.Headers["In-Reply-To"])
 
-	comment := &advisory_model.Comment{AdvisoryID: a.ID, PosterID: admin.ID, Content: "confirmed"}
-	require.NoError(t, db.Insert(ctx, comment))
-	MailSecurityAdvisoryComment(ctx, admin, a, comment)
-	assertNoticeOnly()
-	assert.ElementsMatch(t, []string{reporter.EmailTo(), collaborator.EmailTo()}, popSentTos())
+	comment := &advisory_model.Comment{ID: 1, Content: "confirmed"}
+	MailSecurityAdvisoryComment(ctx, admin, advisory, comment)
+	popMail(reporter, collaborator)
+	comment.IsConfidential = true
+	MailSecurityAdvisoryComment(ctx, admin, advisory, comment)
+	popMail()
 
-	a.State = advisory_model.StatePublished
-	MailSecurityAdvisoryPublished(ctx, admin, a)
-	assert.Contains(t, sent[0].Subject, "XSS", "the summary of a published advisory is public")
-	assert.ElementsMatch(t, []string{reporter.EmailTo(), collaborator.EmailTo(), credited.EmailTo()}, popSentTos())
+	advisory.State = advisory_model.StatePublished
+	MailSecurityAdvisoryPublished(ctx, admin, advisory)
+	assert.Contains(t, popMail(reporter, collaborator, credited)[0].Subject, "XSS")
 
-	// participants who lost access to the repository are not notified anymore, the owner still is
 	_, err = db.GetEngine(ctx).ID(1).Cols("is_private").Update(&repo_model.Repository{IsPrivate: true})
 	require.NoError(t, err)
-	a.Repo = nil
-	MailSecurityAdvisoryComment(ctx, reporter, a, comment)
-	assert.Equal(t, []string{admin.EmailTo()}, popSentTos())
+	advisory.Repo = nil
+	MailSecurityAdvisoryComment(ctx, reporter, advisory, comment)
+	popMail(admin)
 }

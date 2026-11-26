@@ -50,7 +50,6 @@ func RemoveTeamRepo(ctx context.Context, teamID, repoID int64) error {
 	return err
 }
 
-// teamUnitAccessCond matches the teams with the given access to any of the units
 func teamUnitAccessCond(mode perm.AccessMode, unitTypes ...unit.Type) builder.Cond {
 	sub := builder.Select("team_id").From("team_unit").
 		Where(builder.Expr("team_unit.team_id = team.id")).
@@ -66,7 +65,6 @@ func securityTeamIDs(repoID int64) *builder.Builder {
 			And(teamUnitAccessCond(perm.AccessModeRead, unit.TypeSecurityAdvisories)))
 }
 
-// IsSecurityTeamMember reports whether the user is in a security team which has access to the repository
 func IsSecurityTeamMember(ctx context.Context, userID, repoID int64) (bool, error) {
 	return db.GetEngine(ctx).Where(builder.Eq{"uid": userID}.And(builder.In("team_id", securityTeamIDs(repoID)))).Exist(new(TeamUser))
 }

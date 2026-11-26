@@ -8,93 +8,121 @@ import (
 	"fmt"
 
 	advisory_model "gitea.dev/models/advisory"
+	"gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cvss"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 )
 
+func nullableAdvisoryString(value string) *string {
+	return util.Iif(value == "", nil, new(value))
+}
+
 // ToAPIRepositoryAdvisory converts the public parts of an advisory with loaded attributes
-func ToAPIRepositoryAdvisory(ctx context.Context, a *advisory_model.Advisory, doer *user_model.User) *api.RepositoryAdvisory {
-	res := &api.RepositoryAdvisory{
-		Identifier:      a.Identifier,
-		CveID:           a.CveID,
-		URL:             a.Repo.APIURL() + "/security-advisories/" + a.Identifier,
-		HTMLURL:         a.HTMLURL(),
-		Summary:         a.Summary,
-		Description:     a.Description,
-		State:           a.State.String(),
-		CreatedAt:       a.CreatedUnix.AsTime(),
-		UpdatedAt:       a.UpdatedUnix.AsTime(),
-		PublishedAt:     util.Iif(a.PublishedUnix == 0, nil, a.PublishedUnix.AsTimePtr()),
-		ClosedAt:        util.Iif(a.ClosedUnix == 0, nil, a.ClosedUnix.AsTimePtr()),
-		WithdrawnAt:     util.Iif(a.WithdrawnUnix == 0, nil, a.WithdrawnUnix.AsTimePtr()),
+func ToAPIRepositoryAdvisory(ctx context.Context, advisory *advisory_model.Advisory, doer *user_model.User) *api.RepositoryAdvisory {
+	result := &api.RepositoryAdvisory{
+		Identifier:      advisory.Identifier,
+		CveID:           nullableAdvisoryString(advisory.CveID),
+		URL:             advisoryAPIURL(ctx, advisory),
+		HTMLURL:         advisory.HTMLURL(),
+		Summary:         advisory.Summary,
+		Description:     advisory.Description,
+		State:           advisory.State.String(),
+		CreatedAt:       advisory.CreatedUnix.AsTime(),
+		UpdatedAt:       advisory.UpdatedUnix.AsTime(),
+		PublishedAt:     util.Iif(advisory.PublishedUnix == 0, nil, advisory.PublishedUnix.AsTimePtr()),
+		ClosedAt:        util.Iif(advisory.ClosedUnix == 0, nil, advisory.ClosedUnix.AsTimePtr()),
+		WithdrawnAt:     util.Iif(advisory.WithdrawnUnix == 0, nil, advisory.WithdrawnUnix.AsTimePtr()),
 		Identifiers:     []*api.RepositoryAdvisoryIdentifier{},
-		Vulnerabilities: make([]*api.RepositoryAdvisoryVulnerability, 0, len(a.Vulnerabilities)),
+		Vulnerabilities: make([]*api.RepositoryAdvisoryVulnerability, 0, len(advisory.Vulnerabilities)),
 		CVSSSeverities:  &api.RepositoryAdvisoryCVSSSeverities{},
-		CweIDs:          util.SliceNilAsEmpty(a.CweIDs),
-		Credits:         make([]*api.RepositoryAdvisoryCredit, 0, len(a.Credits)),
-		CreditsDetailed: make([]*api.RepositoryAdvisoryCreditDetailed, 0, len(a.Credits)),
-		Labels:          ToLabelList(a.Labels, a.Repo, a.Repo.Owner),
-		CloseReason:     a.CloseReason.String(),
+		CweIDs:          util.SliceNilAsEmpty(advisory.CweIDs),
+		Credits:         make([]*api.RepositoryAdvisoryCredit, 0, len(advisory.Credits)),
+		CreditsDetailed: make([]*api.RepositoryAdvisoryCreditDetailed, 0, len(advisory.Credits)),
+		Labels:          ToLabelList(advisory.Labels, advisory.Repo, advisory.Repo.Owner),
+		CloseReason:     advisory.CloseReason.String(),
 	}
-	if a.DuplicateOf != nil {
-		res.DuplicateOf = a.DuplicateOf.Identifier
+	if advisory.DuplicateOf != nil {
+		result.DuplicateOf = advisory.DuplicateOf.Identifier
 	}
-	if a.Severity != advisory_model.SeverityUnknown {
-		res.Severity = new(a.Severity.String())
+	if advisory.Severity != advisory_model.SeverityUnknown {
+		result.Severity = new(advisory.Severity.String())
 	}
-	if a.CveID != "" {
-		res.Identifiers = append(res.Identifiers, &api.RepositoryAdvisoryIdentifier{Type: "CVE", Value: a.CveID})
+	if advisory.CveID != "" {
+		result.Identifiers = append(result.Identifiers, &api.RepositoryAdvisoryIdentifier{Type: "CVE", Value: advisory.CveID})
 	}
-	if a.Publisher != nil {
-		res.Publisher = ToUser(ctx, a.Publisher, doer)
+	if advisory.Publisher != nil {
+		result.Publisher = ToUser(ctx, advisory.Publisher, doer)
 	}
-	for _, v := range a.Vulnerabilities {
-		res.Vulnerabilities = append(res.Vulnerabilities, &api.RepositoryAdvisoryVulnerability{
-			Package:                &api.RepositoryAdvisoryPackage{Ecosystem: v.Ecosystem, Name: v.PackageName},
-			VulnerableVersionRange: v.VulnerableVersionRange,
-			PatchedVersions:        v.PatchedVersions,
-			VulnerableFunctions:    util.SliceNilAsEmpty(v.VulnerableFunctions),
+	for _, vulnerability := range advisory.Vulnerabilities {
+		result.Vulnerabilities = append(result.Vulnerabilities, &api.RepositoryAdvisoryVulnerability{
+			Package:                &api.RepositoryAdvisoryPackage{Ecosystem: vulnerability.Ecosystem, Name: nullableAdvisoryString(vulnerability.PackageName)},
+			VulnerableVersionRange: nullableAdvisoryString(vulnerability.VulnerableVersionRange),
+			PatchedVersions:        nullableAdvisoryString(vulnerability.PatchedVersions),
+			VulnerableFunctions:    util.SliceNilAsEmpty(vulnerability.VulnerableFunctions),
 		})
 	}
-	if a.CvssV3Vector != "" {
-		res.CVSSSeverities.CvssV3 = &api.RepositoryAdvisoryCVSS{VectorString: a.CvssV3Vector, Score: a.CvssV3Score()}
-		res.CVSS = res.CVSSSeverities.CvssV3
+	switch advisory.CvssVersion() {
+	case cvss.Version31:
+		result.CVSS = &api.RepositoryAdvisoryCVSS{VectorString: advisory.CvssVector, Score: advisory.CvssScore()}
+		result.CVSSSeverities.CvssV3 = result.CVSS
+	case cvss.Version40:
+		result.CVSSSeverities.CvssV4 = &api.RepositoryAdvisoryCVSS{VectorString: advisory.CvssVector, Score: advisory.CvssScore()}
 	}
-	if a.CvssV4Vector != "" {
-		res.CVSSSeverities.CvssV4 = &api.RepositoryAdvisoryCVSS{VectorString: a.CvssV4Vector, Score: a.CvssV4Score()}
+	for _, credit := range advisory.VisibleCredits(ctx, doer) {
+		result.Credits = append(result.Credits, &api.RepositoryAdvisoryCredit{Login: credit.User.Name, Type: credit.Type})
+		result.CreditsDetailed = append(result.CreditsDetailed, &api.RepositoryAdvisoryCreditDetailed{User: ToUser(ctx, credit.User, doer), Type: credit.Type, State: "accepted"})
 	}
-	for _, c := range a.VisibleCredits(ctx, doer) {
-		res.Credits = append(res.Credits, &api.RepositoryAdvisoryCredit{Login: c.User.Name, Type: c.Type})
-		res.CreditsDetailed = append(res.CreditsDetailed, &api.RepositoryAdvisoryCreditDetailed{User: ToUser(ctx, c.User, doer), Type: c.Type, State: "accepted"})
-	}
-	return res
+	return result
 }
 
-// ToAPIRepositoryAdvisoryWithPrivateDetails also includes the reporter and the collaborators, which must be loaded,
-// for those who can see the discussion
-func ToAPIRepositoryAdvisoryWithPrivateDetails(ctx context.Context, a *advisory_model.Advisory, doer *user_model.User) (*api.RepositoryAdvisory, error) {
-	res := ToAPIRepositoryAdvisory(ctx, a, doer)
-	res.Author = ToUser(ctx, a.Reporter, doer)
-	if a.IsReport {
-		res.Submission = &api.RepositoryAdvisorySubmission{Accepted: a.State != advisory_model.StateTriage && a.State != advisory_model.StateClosed}
+// AddAPIRepositoryAdvisoryPrivateDetails is only for viewers who can see the discussion.
+func AddAPIRepositoryAdvisoryPrivateDetails(ctx context.Context, result *api.RepositoryAdvisory, advisory *advisory_model.Advisory, doer *user_model.User, allTeams bool) error {
+	result.Author = ToUser(ctx, advisory.Reporter, doer)
+	if advisory.IsReport {
+		result.Submission = &api.RepositoryAdvisorySubmission{Accepted: advisory.State != advisory_model.StateTriage && advisory.State != advisory_model.StateClosed}
 	}
-	res.CollaboratingUsers = ToUsers(ctx, doer, a.CollaboratorUsers)
+	result.CollaboratingUsers = ToUsers(ctx, doer, advisory.CollaboratorUsers)
+	teams := advisory.CollaboratorTeams
+	if !allTeams {
+		teams = make([]*organization.Team, 0, len(advisory.CollaboratorTeams))
+		for _, team := range advisory.CollaboratorTeams {
+			visible, err := organization.IsTeamMember(ctx, team.OrgID, team.ID, doer.ID)
+			if err != nil {
+				return err
+			}
+			if !visible {
+				visible, err = team.CanNonMemberReadMeta(ctx, advisory.Repo.Owner, doer)
+				if err != nil {
+					return err
+				}
+			}
+			if visible {
+				teams = append(teams, team)
+			}
+		}
+	}
 	var err error
-	if res.CollaboratingTeams, err = ToTeams(ctx, a.CollaboratorTeams, false); err != nil {
-		return nil, err
-	}
-	return res, nil
+	result.CollaboratingTeams, err = ToTeams(ctx, teams, false)
+	return err
 }
 
-func ToAPIRepositoryAdvisoryComment(ctx context.Context, a *advisory_model.Advisory, c *advisory_model.Comment, doer *user_model.User) *api.RepositoryAdvisoryComment {
+func advisoryAPIURL(ctx context.Context, advisory *advisory_model.Advisory) string {
+	return advisory.Repo.APIURL(ctx) + "/security-advisories/" + advisory.Identifier
+}
+
+func ToAPIRepositoryAdvisoryComment(ctx context.Context, advisory *advisory_model.Advisory, comment *advisory_model.Comment, doer *user_model.User) *api.RepositoryAdvisoryComment {
+	advisoryURL := advisoryAPIURL(ctx, advisory)
 	return &api.RepositoryAdvisoryComment{
-		ID:         c.ID,
-		HTMLURL:    fmt.Sprintf("%s#advisory-comment-%d", a.HTMLURL(), c.ID),
-		User:       ToUser(ctx, c.Poster, doer),
-		Body:       c.Content,
-		IsInternal: c.IsInternal,
-		CreatedAt:  c.CreatedUnix.AsTime(),
-		UpdatedAt:  c.UpdatedUnix.AsTime(),
+		ID:             comment.ID,
+		URL:            fmt.Sprintf("%s/comments/%d", advisoryURL, comment.ID),
+		HTMLURL:        fmt.Sprintf("%s#advisory-comment-%d", advisory.HTMLURL(), comment.ID),
+		AdvisoryURL:    advisoryURL,
+		User:           ToUser(ctx, comment.Poster, doer),
+		Body:           comment.Content,
+		IsConfidential: comment.IsConfidential,
+		CreatedAt:      comment.CreatedUnix.AsTime(),
+		UpdatedAt:      comment.UpdatedUnix.AsTime(),
 	}
 }

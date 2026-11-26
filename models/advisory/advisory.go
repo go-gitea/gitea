@@ -14,8 +14,10 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/cvss"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
@@ -25,7 +27,7 @@ import (
 type State int
 
 const (
-	StateTriage    State = 1 // reported privately, waiting for maintainers
+	StateTriage    State = 1
 	StateDraft     State = 2
 	StatePublished State = 3
 	StateClosed    State = 4
@@ -44,11 +46,10 @@ func (s State) String() string {
 	return stateNames[s]
 }
 
-// parseName returns the zero value for unknown names
 func parseName[T comparable](names map[T]string, name string) (res T) {
-	for v, n := range names {
-		if n == name {
-			return v
+	for value, candidate := range names {
+		if candidate == name {
+			return value
 		}
 	}
 	return res
@@ -59,10 +60,10 @@ func ParseState(name string) State {
 }
 
 var stateStyles = map[State]struct{ icon, color string }{
-	StateTriage:    {"octicon-report", "yellow"},
+	StateTriage:    {"octicon-issue-draft", "grey"},
 	StateDraft:     {"octicon-pencil", "grey"},
-	StatePublished: {"octicon-shield-check", "green"},
-	StateClosed:    {"octicon-x-circle", "red"},
+	StatePublished: {"octicon-shield", "green"},
+	StateClosed:    {"octicon-shield-check", "purple"},
 	StateWithdrawn: {"octicon-shield-x", "grey"},
 }
 
@@ -70,7 +71,6 @@ func (s State) Icon() string {
 	return stateStyles[s].icon
 }
 
-// Color is the label color of the state in the web UI
 func (s State) Color() string {
 	return stateStyles[s].color
 }
@@ -86,12 +86,6 @@ func (s State) CanTransitionTo(target State) bool {
 	return slices.Contains(stateTransitions[s], target)
 }
 
-// Transitions returns the states the advisory can change to without a close reason
-func (s State) Transitions() []State {
-	return slices.DeleteFunc(slices.Clone(stateTransitions[s]), func(t State) bool { return t == StateClosed })
-}
-
-// CloseReason tells wrong reports and duplicates apart
 type CloseReason int
 
 const (
@@ -123,7 +117,6 @@ const (
 	SeverityCritical Severity = 4
 )
 
-// Severities are the severities which can be chosen, in ascending order
 var Severities = []Severity{SeverityLow, SeverityMedium, SeverityHigh, SeverityCritical}
 
 var severityNames = map[Severity]string{
@@ -147,16 +140,14 @@ var severityColors = map[Severity]string{
 	SeverityCritical: "red",
 }
 
-// Color is the label color of the severity in the web UI
 func (s Severity) Color() string {
 	return severityColors[s]
 }
 
-// LocaleKey names medium "moderate" in the web UI like GitHub, the API keeps "medium"
 func (s Severity) LocaleKey() string {
 	name := cmp.Or(s.String(), "unknown")
 	if s == SeverityMedium {
-		name = "moderate"
+		name = "moderate" // Match GitHub's UI while keeping "medium" in the API.
 	}
 	return "repo.security_advisories.severity." + name
 }
@@ -179,16 +170,14 @@ type Advisory struct {
 	RepoID            int64                  `xorm:"UNIQUE(s) NOT NULL"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	Identifier        string                 `xorm:"VARCHAR(14) UNIQUE(s) NOT NULL"`
-	Index             int64                  `xorm:"INDEX NOT NULL DEFAULT 0"` // short number for discussions, URLs keep the identifier
+	Index             int64                  `xorm:"INDEX NOT NULL DEFAULT 0"` // Discussions use the number while URLs use the identifier.
 	CveID             string                 `xorm:"VARCHAR(32)"`
 	Summary           string                 `xorm:"VARCHAR(1024) NOT NULL"`
 	Description       string                 `xorm:"LONGTEXT"`
 	ReportDescription string                 `xorm:"LONGTEXT"` // the description of a report when it was accepted, never public
 	Severity          Severity               `xorm:"NOT NULL DEFAULT 0"`
-	CvssV3Vector      string                 `xorm:"VARCHAR(255)"`
-	CvssV3ScoreTenths int                    `xorm:"NOT NULL DEFAULT 0"` // stored in tenths to be exact on all databases
-	CvssV4Vector      string                 `xorm:"VARCHAR(255)"`
-	CvssV4ScoreTenths int                    `xorm:"NOT NULL DEFAULT 0"`
+	CvssVector        string                 `xorm:"VARCHAR(255)"`
+	CvssScoreTenths   int                    `xorm:"NOT NULL DEFAULT 0"` // Stored in tenths for exact scores across databases.
 	ContentVersion    int                    `xorm:"NOT NULL DEFAULT 0"`
 	CweIDs            []string               `xorm:"'cwe_ids' JSON TEXT"`
 	State             State                  `xorm:"INDEX NOT NULL"`
@@ -205,7 +194,7 @@ type Advisory struct {
 	CloseReason       CloseReason            `xorm:"NOT NULL DEFAULT 0"`
 	DuplicateOfID     int64                  `xorm:"NOT NULL DEFAULT 0"`
 	DuplicateOf       *Advisory              `xorm:"-"`
-	IsMetadataOnly    bool                   `xorm:"-"` // the viewer only sees the metadata of this original of a duplicate
+	IsMetadataOnly    bool                   `xorm:"-"`
 
 	Labels            []*issues_model.Label `xorm:"-"`
 	Vulnerabilities   []*Vulnerability      `xorm:"-"`
@@ -214,7 +203,6 @@ type Advisory struct {
 	CollaboratorTeams []*organization.Team  `xorm:"-"`
 }
 
-// Index numbers the advisories of a repository
 type Index db.ResourceIndex
 
 func init() {
@@ -230,21 +218,16 @@ func (Index) TableName() string {
 	return "security_advisory_index"
 }
 
-// IsPublic reports whether everyone who can read the advisories unit can see the advisory
 func (a *Advisory) IsPublic() bool {
 	return a.State == StatePublished || a.State == StateWithdrawn
 }
 
-func (a *Advisory) CvssV3Score() float64 {
-	return float64(a.CvssV3ScoreTenths) / 10
+func (a *Advisory) CvssScore() float64 {
+	return float64(a.CvssScoreTenths) / 10
 }
 
-func (a *Advisory) CvssV4Score() float64 {
-	return float64(a.CvssV4ScoreTenths) / 10
-}
-
-func (a *Advisory) HasCVSS() bool {
-	return a.CvssV3Vector != "" || a.CvssV4Vector != ""
+func (a *Advisory) CvssVersion() cvss.Version {
+	return cvss.DetectVersion(a.CvssVector)
 }
 
 func (a *Advisory) LoadRepo(ctx context.Context) (err error) {
@@ -262,7 +245,6 @@ func (a *Advisory) HTMLURL() string {
 	return a.Repo.HTMLURL() + "/security/advisories/" + a.Identifier
 }
 
-// LoadAttributes loads everything but the collaborators
 func (a *Advisory) LoadAttributes(ctx context.Context) error {
 	return List{a}.LoadAttributes(ctx)
 }
@@ -271,118 +253,111 @@ func (a *Advisory) LoadCollaborators(ctx context.Context) error {
 	return List{a}.LoadCollaborators(ctx)
 }
 
-// generateIdentifier is lower case only because some database collations are case-insensitive,
-// a collision of 36^12 values per repository is left to the unique index
-func generateIdentifier() string {
-	r := util.FastCryptoRandomString(12, "abcdefghijklmnopqrstuvwxyz0123456789")
-	return r[:4] + "-" + r[4:8] + "-" + r[8:]
-}
-
-func CreateAdvisory(ctx context.Context, a *Advisory) error {
-	a.Identifier = generateIdentifier()
+func CreateAdvisory(ctx context.Context, advisory *Advisory) error {
+	random := util.FastCryptoRandomString(12, "abcdefghijklmnopqrstuvwxyz0123456789") // Some database collations are case-insensitive.
+	advisory.Identifier = random[:4] + "-" + random[4:8] + "-" + random[8:]
 	return db.WithTx(ctx, func(ctx context.Context) (err error) {
-		if a.Index, err = db.GetNextResourceIndex(ctx, "security_advisory_index", a.RepoID); err != nil {
+		if advisory.Index, err = db.GetNextResourceIndex(ctx, "security_advisory_index", advisory.RepoID); err != nil {
 			return err
 		}
-		if err := db.Insert(ctx, a); err != nil {
+		if err := db.Insert(ctx, advisory); err != nil {
 			return err
 		}
-		return replaceDetails(ctx, a)
+		return replaceDetails(ctx, advisory)
 	})
 }
 
 var ErrAdvisoryChanged = util.NewInvalidArgumentErrorf("the advisory has been changed in the meantime")
 
-// UpdateAdvisory updates the columns and replaces the details if the content version is still a.ContentVersion
-func UpdateAdvisory(ctx context.Context, a *Advisory, cols ...string) error {
+// UpdateAdvisory requires loaded details because it replaces the child rows.
+func UpdateAdvisory(ctx context.Context, advisory *Advisory) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		n, err := db.GetEngine(ctx).Where("id = ? AND content_version = ?", a.ID, a.ContentVersion).Cols(cols...).Incr("content_version").Update(a)
+		updated, err := db.GetEngine(ctx).Where("id = ? AND content_version = ?", advisory.ID, advisory.ContentVersion).
+			Cols("summary", "description", "cve_id", "severity", "cvss_vector", "cvss_score_tenths", "cwe_ids").Incr("content_version").Update(advisory)
 		if err != nil {
 			return err
-		} else if n == 0 {
+		} else if updated == 0 {
 			return ErrAdvisoryChanged
 		}
-		a.ContentVersion++
-		return replaceDetails(ctx, a)
+		advisory.ContentVersion++
+		return replaceDetails(ctx, advisory)
 	})
 }
 
-// UpdateAdvisoryState only updates the advisory if it is still in the old state, to not apply a transition twice.
-// The content version changes too because the edit permissions depend on the state.
-func UpdateAdvisoryState(ctx context.Context, a *Advisory, oldState State, cols ...string) error {
-	n, err := db.GetEngine(ctx).Where("id = ? AND state = ?", a.ID, oldState).Cols(append(cols, "state")...).Incr("content_version").Update(a)
+// UpdateAdvisoryState invalidates pending edits because the transition can change permissions.
+func UpdateAdvisoryState(ctx context.Context, advisory *Advisory, oldState State, cols ...string) error {
+	updated, err := db.GetEngine(ctx).Where("id = ? AND state = ?", advisory.ID, oldState).Cols(append(cols, "state")...).Incr("content_version").Update(advisory)
 	if err != nil {
 		return err
-	} else if n == 0 {
+	} else if updated == 0 {
 		return ErrAdvisoryChanged
 	}
-	a.ContentVersion++
+	advisory.ContentVersion++
 	return nil
 }
 
-// detailBeans are the rows which are replaced together with the content of an advisory
 func detailBeans() []any {
 	return []any{new(Vulnerability), new(Credit), new(LabelLink)}
 }
 
-// childBeans are all rows which belong to an advisory, also the ones changed independently of its content
-func childBeans() []any {
-	return append(detailBeans(), new(Collaborator), new(Comment))
-}
-
-// replaceDetails inserts the vulnerabilities and credits of the advisory as new rows, they get the new IDs
-func replaceDetails(ctx context.Context, a *Advisory) error {
+func replaceDetails(ctx context.Context, advisory *Advisory) error {
 	for _, bean := range detailBeans() {
-		if _, err := db.GetEngine(ctx).Where("advisory_id = ?", a.ID).Delete(bean); err != nil {
+		if _, err := db.GetEngine(ctx).Where("advisory_id = ?", advisory.ID).Delete(bean); err != nil {
 			return err
 		}
 	}
 	var rows []any
-	for _, v := range a.Vulnerabilities {
-		v.ID, v.AdvisoryID = 0, a.ID
-		rows = append(rows, v)
+	for _, vulnerability := range advisory.Vulnerabilities {
+		vulnerability.ID, vulnerability.AdvisoryID = 0, advisory.ID
+		rows = append(rows, vulnerability)
 	}
-	for _, c := range a.Credits {
-		c.ID, c.AdvisoryID = 0, a.ID
-		rows = append(rows, c)
+	for _, credit := range advisory.Credits {
+		credit.ID, credit.AdvisoryID = 0, advisory.ID
+		rows = append(rows, credit)
 	}
-	for _, l := range a.Labels {
-		rows = append(rows, &LabelLink{AdvisoryID: a.ID, LabelID: l.ID})
+	for _, label := range advisory.Labels {
+		rows = append(rows, &LabelLink{AdvisoryID: advisory.ID, LabelID: label.ID})
 	}
 	return db.Insert(ctx, rows...)
 }
 
-// GetAdvisoryByIdentifier ignores the case like case-insensitive database collations do
 func GetAdvisoryByIdentifier(ctx context.Context, repoID int64, identifier string) (*Advisory, error) {
-	identifier = strings.ToLower(identifier)
-	a, has, err := db.Get[Advisory](ctx, builder.Eq{"repo_id": repoID, "identifier": identifier})
+	identifier = strings.ToLower(identifier) // Keep lookups consistent across database collations.
+	advisory, found, err := db.Get[Advisory](ctx, builder.Eq{"repo_id": repoID, "identifier": identifier})
 	if err != nil {
 		return nil, err
-	} else if !has {
+	} else if !found {
 		return nil, ErrAdvisoryNotExist{RepoID: repoID, Identifier: identifier}
 	}
-	return a, nil
+	return advisory, nil
 }
 
-// FindAdvisoriesOptions lists the advisories of a repository the viewer can see, the viewer's permission is for that repository
 type FindAdvisoriesOptions struct {
 	db.ListOptions
 	RepoID      int64
+	OrgID       int64
 	ExcludeID   int64
 	States      []State
 	Viewer      Viewer
-	Keyword     string // matches the summary, description, identifier, CVE ID and package names
+	Keyword     string
 	Severity    Severity
-	LabelIDs    []int64 // all labels must be set
+	LabelIDs    []int64
 	Ecosystem   string
 	CweID       string
 	CloseReason CloseReason
-	SortBy      string // created, updated or published
+	SortBy      string
 	Ascending   bool
 }
 
 func (opts FindAdvisoriesOptions) ToConds() builder.Cond {
-	cond := builder.Eq{"repo_id": opts.RepoID}.And(opts.Viewer.visibilityCond())
+	cond := opts.Viewer.visibilityCond()
+	if opts.OrgID == 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	} else {
+		orgRepos := builder.Select("id").From("repository").Where(builder.Eq{"owner_id": opts.OrgID})
+		cond = cond.And(builder.In("repo_id", builder.Select("repo_id").From("repo_unit").
+			Where(builder.Eq{"type": unit.TypeSecurityAdvisories}.And(builder.In("repo_id", orgRepos)))))
+	}
 	if opts.ExcludeID != 0 {
 		cond = cond.And(builder.Neq{"id": opts.ExcludeID})
 	}
@@ -408,7 +383,7 @@ func (opts FindAdvisoriesOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.In("id", advisoryIDsFrom("security_advisory_vulnerability", builder.Eq{"ecosystem": opts.Ecosystem})))
 	}
 	if opts.CweID != "" {
-		cond = cond.And(cweIDCond(opts.CweID))
+		cond = cond.And(builder.Like{"cwe_ids", `"` + strings.ToUpper(opts.CweID) + `"`}) // Match a whole JSON array element.
 	}
 	if opts.CloseReason != CloseReasonNone {
 		cond = cond.And(builder.Eq{"close_reason": opts.CloseReason})
@@ -416,7 +391,6 @@ func (opts FindAdvisoriesOptions) ToConds() builder.Cond {
 	return cond
 }
 
-// advisoryIDsFrom selects the advisory IDs of the matching rows of a child table
 func advisoryIDsFrom(table string, cond builder.Cond) *builder.Builder {
 	return builder.Select("advisory_id").From(table).Where(cond)
 }
@@ -437,11 +411,6 @@ func labelsCond(labelIDs []int64) builder.Cond {
 	return cond
 }
 
-// cweIDCond matches the quoted JSON array element, so that CWE-79 doesn't match CWE-790
-func cweIDCond(cweID string) builder.Cond {
-	return builder.Like{"cwe_ids", `"` + strings.ToUpper(cweID) + `"`}
-}
-
 func (opts FindAdvisoriesOptions) ToOrders() string {
 	column := "created_unix"
 	switch opts.SortBy {
@@ -456,14 +425,13 @@ func (opts FindAdvisoriesOptions) ToOrders() string {
 	return column + " DESC, id DESC"
 }
 
-// FindDuplicateCandidates returns what the close form shows of the most recent possible originals, older ones can be chosen by the API
-func FindDuplicateCandidates(ctx context.Context, a *Advisory, viewer Viewer) ([]*Advisory, error) {
-	opts := FindAdvisoriesOptions{RepoID: a.RepoID, ExcludeID: a.ID, Viewer: viewer}
+// FindDuplicateCandidates caps the close dialog choices while the API accepts older advisories by identifier.
+func FindDuplicateCandidates(ctx context.Context, advisory *Advisory, viewer Viewer) ([]*Advisory, error) {
+	opts := FindAdvisoriesOptions{RepoID: advisory.RepoID, ExcludeID: advisory.ID, Viewer: viewer}
 	var candidates []*Advisory
 	return candidates, db.GetEngine(ctx).Where(opts.ToConds().And(builder.Eq{"duplicate_of_id": 0})).OrderBy(opts.ToOrders()).Limit(100).Cols("identifier", "summary").Find(&candidates)
 }
 
-// CountAdvisoriesByState counts with all filters but the state
 func CountAdvisoriesByState(ctx context.Context, opts FindAdvisoriesOptions) (map[State]int64, error) {
 	opts.States = nil
 	var rows []struct {
@@ -474,24 +442,23 @@ func CountAdvisoriesByState(ctx context.Context, opts FindAdvisoriesOptions) (ma
 		return nil, err
 	}
 	counts := make(map[State]int64, len(rows))
-	for _, r := range rows {
-		counts[r.State] = r.Count
+	for _, row := range rows {
+		counts[row.State] = row.Count
 	}
 	return counts, nil
 }
 
-// DeleteAdvisory deletes the advisory unless it is public, also if it has been published in the meantime
-func DeleteAdvisory(ctx context.Context, a *Advisory) error {
+func DeleteAdvisory(ctx context.Context, advisory *Advisory) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if has, err := db.Exist[Advisory](ctx, builder.Eq{"duplicate_of_id": a.ID}); err != nil {
+		if has, err := db.Exist[Advisory](ctx, builder.Eq{"duplicate_of_id": advisory.ID}); err != nil {
 			return err
 		} else if has {
 			return util.NewInvalidArgumentErrorf("advisories with duplicates cannot be deleted")
 		}
-		n, err := deleteAdvisories(ctx, builder.Eq{"id": a.ID}.And(builder.NotIn("state", StatePublished, StateWithdrawn)))
+		deleted, err := deleteAdvisories(ctx, builder.Eq{"id": advisory.ID}.And(builder.NotIn("state", StatePublished, StateWithdrawn)))
 		if err != nil {
 			return err
-		} else if n == 0 {
+		} else if deleted == 0 {
 			return util.NewInvalidArgumentErrorf("published advisories cannot be deleted, withdraw them instead")
 		}
 		return nil
@@ -505,66 +472,64 @@ func DeleteAdvisoriesByRepoID(ctx context.Context, repoID int64) error {
 	return db.DeleteResourceIndex(ctx, "security_advisory_index", repoID)
 }
 
-// deleteAdvisories selects the details by a subquery because a list of IDs can exceed the parameter limit of some databases,
-// MySQL doesn't allow such a subquery on the table it deletes from
 func deleteAdvisories(ctx context.Context, cond builder.Cond) (int64, error) {
-	e := db.GetEngine(ctx)
-	ids := builder.Select("id").From("security_advisory").Where(cond)
-	for _, bean := range childBeans() {
-		if _, err := e.Where(builder.In("advisory_id", ids)).Delete(bean); err != nil {
+	engine := db.GetEngine(ctx)
+	ids := builder.Select("id").From("security_advisory").Where(cond) // Avoid parameter limits and MySQL's ban on subqueries against the delete target.
+	for _, bean := range append(detailBeans(), new(Collaborator), new(Comment)) {
+		if _, err := engine.Where(builder.In("advisory_id", ids)).Delete(bean); err != nil {
 			return 0, err
 		}
 	}
-	return e.Where(cond).Delete(new(Advisory))
+	return engine.Where(cond).Delete(new(Advisory))
 }
 
 type List []*Advisory
 
 func (list List) byID() map[int64]*Advisory {
 	res := make(map[int64]*Advisory, len(list))
-	for _, a := range list {
-		res[a.ID] = a
+	for _, advisory := range list {
+		res[advisory.ID] = advisory
 	}
 	return res
 }
 
 func (list List) ids() []int64 {
-	return container.FilterSlice(list, func(a *Advisory) (int64, bool) { return a.ID, true })
+	return container.FilterSlice(list, func(advisory *Advisory) (int64, bool) { return advisory.ID, true })
 }
 
 func (list List) loadRepos(ctx context.Context) error {
-	for _, a := range list {
-		if err := a.LoadRepo(ctx); err != nil {
+	for _, advisory := range list {
+		if err := advisory.LoadRepo(ctx); err != nil {
 			return err
 		}
-		if err := a.Repo.LoadOwner(ctx); err != nil {
+		if err := advisory.Repo.LoadOwner(ctx); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// LoadLabels loads the labels, also done by LoadAttributes
 func (list List) LoadLabels(ctx context.Context) error {
 	var links []*LabelLink
 	if err := db.GetEngine(ctx).In("advisory_id", list.ids()).Find(&links); err != nil {
 		return err
 	}
-	labels, err := issues_model.GetLabelsByIDs(ctx, container.FilterSlice(links, func(l *LabelLink) (int64, bool) { return l.LabelID, true }))
+	labels, err := issues_model.GetLabelsByIDs(ctx, container.FilterSlice(links, func(link *LabelLink) (int64, bool) { return link.LabelID, true }))
 	if err != nil {
 		return err
 	}
 	labelsByID := make(map[int64]*issues_model.Label, len(labels))
-	for _, l := range labels {
-		labelsByID[l.ID] = l
+	for _, label := range labels {
+		labelsByID[label.ID] = label
 	}
 	byID := list.byID()
-	for _, a := range list {
-		a.Labels = []*issues_model.Label{}
+	for _, advisory := range list {
+		advisory.Labels = []*issues_model.Label{}
 	}
 	for _, link := range links {
-		if l := labelsByID[link.LabelID]; l != nil {
-			byID[link.AdvisoryID].Labels = append(byID[link.AdvisoryID].Labels, l)
+		if label := labelsByID[link.LabelID]; label != nil {
+			advisory := byID[link.AdvisoryID]
+			advisory.Labels = append(advisory.Labels, label)
 		}
 	}
 	return nil
@@ -574,7 +539,7 @@ func (list List) LoadAttributes(ctx context.Context) error {
 	if len(list) == 0 {
 		return nil
 	}
-	for _, load := range []func(context.Context) error{list.loadRepos, list.LoadLabels, list.loadVulnerabilities, list.loadCredits, list.loadUsers, list.loadDuplicateOf} {
+	for _, load := range []func(context.Context) error{list.loadRepos, list.LoadLabels, list.loadDetails, list.LoadUsers, list.loadDuplicateOf} {
 		if err := load(ctx); err != nil {
 			return fmt.Errorf("LoadAttributes: %w", err)
 		}
@@ -582,54 +547,51 @@ func (list List) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
-func (list List) loadVulnerabilities(ctx context.Context) error {
-	var vulns []*Vulnerability
-	if err := db.GetEngine(ctx).In("advisory_id", list.ids()).OrderBy("id").Find(&vulns); err != nil {
+func (list List) loadDetails(ctx context.Context) error {
+	ids := list.ids()
+	engine := db.GetEngine(ctx)
+	var vulnerabilities []*Vulnerability
+	if err := engine.In("advisory_id", ids).OrderBy("id").Find(&vulnerabilities); err != nil {
 		return err
 	}
-	byID := list.byID()
-	for _, a := range list {
-		a.Vulnerabilities = []*Vulnerability{}
-	}
-	for _, v := range vulns {
-		byID[v.AdvisoryID].Vulnerabilities = append(byID[v.AdvisoryID].Vulnerabilities, v)
-	}
-	return nil
-}
-
-func (list List) loadCredits(ctx context.Context) error {
 	var credits []*Credit
-	if err := db.GetEngine(ctx).In("advisory_id", list.ids()).OrderBy("id").Find(&credits); err != nil {
+	if err := engine.In("advisory_id", ids).OrderBy("id").Find(&credits); err != nil {
 		return err
 	}
 	byID := list.byID()
-	for _, a := range list {
-		a.Credits = []*Credit{}
+	for _, advisory := range list {
+		advisory.Vulnerabilities = []*Vulnerability{}
+		advisory.Credits = []*Credit{}
 	}
-	for _, c := range credits {
-		byID[c.AdvisoryID].Credits = append(byID[c.AdvisoryID].Credits, c)
+	for _, vulnerability := range vulnerabilities {
+		advisory := byID[vulnerability.AdvisoryID]
+		advisory.Vulnerabilities = append(advisory.Vulnerabilities, vulnerability)
+	}
+	for _, credit := range credits {
+		advisory := byID[credit.AdvisoryID]
+		advisory.Credits = append(advisory.Credits, credit)
 	}
 	return nil
 }
 
-// loadUsers loads the reporters, publishers and credited users, the credits must be loaded
-func (list List) loadUsers(ctx context.Context) error {
+// LoadUsers loads the reporters and publishers, and the credited users if the credits are loaded
+func (list List) LoadUsers(ctx context.Context) error {
 	var userIDs []int64
-	for _, a := range list {
-		userIDs = append(userIDs, a.ReporterID, a.PublisherID)
-		for _, c := range a.Credits {
-			userIDs = append(userIDs, c.UserID)
+	for _, advisory := range list {
+		userIDs = append(userIDs, advisory.ReporterID, advisory.PublisherID)
+		for _, credit := range advisory.Credits {
+			userIDs = append(userIDs, credit.UserID)
 		}
 	}
 	users, err := user_model.GetUsersMapByIDs(ctx, userIDs)
 	if err != nil {
 		return err
 	}
-	for _, a := range list {
-		a.Reporter = user_model.GetPossibleUserFromMap(a.ReporterID, users)
-		a.Publisher = user_model.GetPossibleUserFromMap(a.PublisherID, users)
-		for _, c := range a.Credits {
-			c.User = user_model.GetPossibleUserFromMap(c.UserID, users)
+	for _, advisory := range list {
+		advisory.Reporter = user_model.GetPossibleUserFromMap(advisory.ReporterID, users)
+		advisory.Publisher = user_model.GetPossibleUserFromMap(advisory.PublisherID, users)
+		for _, credit := range advisory.Credits {
+			credit.User = user_model.GetPossibleUserFromMap(credit.UserID, users)
 		}
 	}
 	return nil
@@ -637,20 +599,19 @@ func (list List) loadUsers(ctx context.Context) error {
 
 func (list List) loadDuplicateOf(ctx context.Context) error {
 	duplicateOf := make(map[int64]*Advisory)
-	if ids := container.FilterSlice(list, func(a *Advisory) (int64, bool) { return a.DuplicateOfID, a.DuplicateOfID != 0 }); len(ids) > 0 {
+	if ids := container.FilterSlice(list, func(advisory *Advisory) (int64, bool) { return advisory.DuplicateOfID, advisory.DuplicateOfID != 0 }); len(ids) > 0 {
 		if err := db.GetEngine(ctx).In("id", ids).Find(&duplicateOf); err != nil {
 			return err
 		}
 	}
-	for _, a := range list {
-		if a.DuplicateOf = duplicateOf[a.DuplicateOfID]; a.DuplicateOf != nil {
-			a.DuplicateOf.Repo = a.Repo // the original belongs to the same repository
+	for _, advisory := range list {
+		if advisory.DuplicateOf = duplicateOf[advisory.DuplicateOfID]; advisory.DuplicateOf != nil {
+			advisory.DuplicateOf.Repo = advisory.Repo
 		}
 	}
 	return nil
 }
 
-// LoadCollaborators always reloads the collaborators because they are changed independently of the advisory
 func (list List) LoadCollaborators(ctx context.Context) error {
 	if len(list) == 0 {
 		return nil
@@ -659,23 +620,24 @@ func (list List) LoadCollaborators(ctx context.Context) error {
 	if err := db.GetEngine(ctx).In("advisory_id", list.ids()).OrderBy("id").Find(&rows); err != nil {
 		return err
 	}
-	users, err := user_model.GetUsersMapByIDs(ctx, container.FilterSlice(rows, func(c *Collaborator) (int64, bool) { return c.UserID, c.UserID != 0 }))
+	users, err := user_model.GetUsersMapByIDs(ctx, container.FilterSlice(rows, func(row *Collaborator) (int64, bool) { return row.UserID, row.UserID != 0 }))
 	if err != nil {
 		return err
 	}
-	teams, err := organization.GetTeamsByIDs(ctx, container.FilterSlice(rows, func(c *Collaborator) (int64, bool) { return c.TeamID, c.TeamID != 0 }))
+	teams, err := organization.GetTeamsByIDs(ctx, container.FilterSlice(rows, func(row *Collaborator) (int64, bool) { return row.TeamID, row.TeamID != 0 }))
 	if err != nil {
 		return err
 	}
 	byID := list.byID()
-	for _, a := range list {
-		a.CollaboratorUsers, a.CollaboratorTeams = []*user_model.User{}, []*organization.Team{}
+	for _, advisory := range list {
+		advisory.CollaboratorUsers, advisory.CollaboratorTeams = []*user_model.User{}, []*organization.Team{}
 	}
-	for _, c := range rows {
-		if u := users[c.UserID]; u != nil {
-			byID[c.AdvisoryID].CollaboratorUsers = append(byID[c.AdvisoryID].CollaboratorUsers, u)
-		} else if t := teams[c.TeamID]; t != nil {
-			byID[c.AdvisoryID].CollaboratorTeams = append(byID[c.AdvisoryID].CollaboratorTeams, t)
+	for _, row := range rows {
+		advisory := byID[row.AdvisoryID]
+		if user := users[row.UserID]; user != nil {
+			advisory.CollaboratorUsers = append(advisory.CollaboratorUsers, user)
+		} else if team := teams[row.TeamID]; team != nil {
+			advisory.CollaboratorTeams = append(advisory.CollaboratorTeams, team)
 		}
 	}
 	return nil

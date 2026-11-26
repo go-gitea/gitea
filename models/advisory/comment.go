@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"time"
 
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
@@ -29,14 +30,13 @@ func (err ErrCommentNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// Comment belongs to the private discussion of an advisory
 type Comment struct {
 	ID              int64              `xorm:"pk autoincr"`
 	AdvisoryID      int64              `xorm:"INDEX NOT NULL"`
 	PosterID        int64              `xorm:"INDEX NOT NULL"`
 	Poster          *user_model.User   `xorm:"-"`
 	Content         string             `xorm:"LONGTEXT"`
-	IsInternal      bool               `xorm:"NOT NULL DEFAULT false"` // hidden from the reporter and read-only collaborators
+	IsConfidential  bool               `xorm:"NOT NULL DEFAULT false"`
 	RenderedContent template.HTML      `xorm:"-"`
 	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix     timeutil.TimeStamp `xorm:"updated"`
@@ -52,50 +52,53 @@ func (Comment) TableName() string {
 
 type FindCommentsOptions struct {
 	db.ListOptions
-	AdvisoryID      int64
-	IncludeInternal bool
+	AdvisoryID          int64
+	IncludeConfidential bool
+	UpdatedAfter        time.Time
 }
 
-func commentConds(advisoryID int64, includeInternal bool) builder.Cond {
+func commentConds(advisoryID int64, includeConfidential bool) builder.Cond {
 	cond := builder.Eq{"advisory_id": advisoryID}
-	if !includeInternal {
-		cond["is_internal"] = false
+	if !includeConfidential {
+		cond["is_confidential"] = false
 	}
 	return cond
 }
 
 func (opts FindCommentsOptions) ToConds() builder.Cond {
-	return commentConds(opts.AdvisoryID, opts.IncludeInternal)
+	cond := commentConds(opts.AdvisoryID, opts.IncludeConfidential)
+	if !opts.UpdatedAfter.IsZero() {
+		cond = cond.And(builder.Gt{"updated_unix": opts.UpdatedAfter.Unix()})
+	}
+	return cond
 }
 
 func (opts FindCommentsOptions) ToOrders() string {
 	return "created_unix, id"
 }
 
-type CommentList []*Comment
-
-func (comments CommentList) LoadPosters(ctx context.Context) error {
-	posters, err := user_model.GetUsersMapByIDs(ctx, container.FilterSlice(comments, func(c *Comment) (int64, bool) { return c.PosterID, true }))
+func LoadCommentPosters(ctx context.Context, comments []*Comment) error {
+	posters, err := user_model.GetUsersMapByIDs(ctx, container.FilterSlice(comments, func(comment *Comment) (int64, bool) { return comment.PosterID, true }))
 	if err != nil {
 		return err
 	}
-	for _, c := range comments {
-		c.Poster = user_model.GetPossibleUserFromMap(c.PosterID, posters)
+	for _, comment := range comments {
+		comment.Poster = user_model.GetPossibleUserFromMap(comment.PosterID, posters)
 	}
 	return nil
 }
 
-func GetCommentByID(ctx context.Context, advisoryID, id int64, includeInternal bool) (*Comment, error) {
-	c, has, err := db.Get[Comment](ctx, commentConds(advisoryID, includeInternal).And(builder.Eq{"id": id}))
+func GetCommentByID(ctx context.Context, advisoryID, id int64, includeConfidential bool) (*Comment, error) {
+	comment, found, err := db.Get[Comment](ctx, commentConds(advisoryID, includeConfidential).And(builder.Eq{"id": id}))
 	if err != nil {
 		return nil, err
-	} else if !has {
+	} else if !found {
 		return nil, ErrCommentNotExist{ID: id}
 	}
-	return c, nil
+	return comment, nil
 }
 
-func UpdateCommentContent(ctx context.Context, c *Comment) error {
-	_, err := db.GetEngine(ctx).ID(c.ID).Cols("content").Update(c)
+func UpdateCommentContent(ctx context.Context, comment *Comment) error {
+	_, err := db.GetEngine(ctx).ID(comment.ID).Cols("content").Update(comment)
 	return err
 }

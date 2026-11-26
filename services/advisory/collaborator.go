@@ -21,14 +21,13 @@ import (
 	notify_service "gitea.dev/services/notify"
 )
 
-// collaborator is either a user or a team
 type collaborator struct {
 	user *user_model.User
 	team *organization.Team
 }
 
-func (c collaborator) row(advisoryID int64, readOnly bool) *advisory_model.Collaborator {
-	row := &advisory_model.Collaborator{AdvisoryID: advisoryID, ReadOnly: readOnly}
+func (c collaborator) row(advisoryID int64) *advisory_model.Collaborator {
+	row := &advisory_model.Collaborator{AdvisoryID: advisoryID}
 	if c.user != nil {
 		row.UserID = c.user.ID
 	} else {
@@ -44,199 +43,169 @@ func (c collaborator) is(other collaborator) bool {
 	return other.team != nil && other.team.ID == c.team.ID
 }
 
-func currentCollaborators(a *advisory_model.Advisory) []collaborator {
-	res := make([]collaborator, 0, len(a.CollaboratorUsers)+len(a.CollaboratorTeams))
-	for _, u := range a.CollaboratorUsers {
-		res = append(res, collaborator{user: u})
+func currentCollaborators(advisory *advisory_model.Advisory) []collaborator {
+	entries := make([]collaborator, 0, len(advisory.CollaboratorUsers)+len(advisory.CollaboratorTeams))
+	for _, user := range advisory.CollaboratorUsers {
+		entries = append(entries, collaborator{user: user})
 	}
-	for _, t := range a.CollaboratorTeams {
-		res = append(res, collaborator{team: t})
+	for _, team := range advisory.CollaboratorTeams {
+		entries = append(entries, collaborator{team: team})
 	}
-	return res
+	return entries
 }
 
-// lookupCollaborator finds a user or a team of the repository owner by name
-func lookupCollaborator(ctx context.Context, a *advisory_model.Advisory, name string, isTeam bool) (collaborator, error) {
-	if err := a.LoadRepo(ctx); err != nil {
+func lookupCollaborator(ctx context.Context, advisory *advisory_model.Advisory, name string, isTeam bool) (collaborator, error) {
+	if err := advisory.LoadRepo(ctx); err != nil {
 		return collaborator{}, err
 	}
 	if isTeam {
-		t, err := organization.GetTeam(ctx, a.Repo.OwnerID, name)
-		return collaborator{team: t}, err
+		team, err := organization.GetTeam(ctx, advisory.Repo.OwnerID, name)
+		return collaborator{team: team}, err
 	}
-	u, err := user_model.GetUserByName(ctx, name)
-	return collaborator{user: u}, err
+	user, err := user_model.GetUserByName(ctx, name)
+	return collaborator{user: user}, err
 }
 
-// validateCollaborator checks that a user or team can read the advisories unit and a team belongs to the repository owner
-func validateCollaborator(ctx context.Context, a *advisory_model.Advisory, c collaborator) error {
-	if err := a.LoadRepo(ctx); err != nil {
+func validateCollaborator(ctx context.Context, advisory *advisory_model.Advisory, entry collaborator) error {
+	if err := advisory.Repo.LoadOwner(ctx); err != nil {
 		return err
 	}
-	if err := a.Repo.LoadOwner(ctx); err != nil {
-		return err
-	}
-	if c.team != nil {
-		t := c.team
-		if t.OrgID != a.Repo.OwnerID {
-			return util.NewInvalidArgumentErrorf("team %s does not belong to the repository owner", t.Name)
-		}
-		if a.Repo.IsPrivate && !(organization.HasTeamRepo(ctx, t.OrgID, t.ID, a.RepoID) && t.UnitEnabled(ctx, unit.TypeSecurityAdvisories)) {
-			return util.NewInvalidArgumentErrorf("team %s cannot access the advisories of the repository", t.Name)
+	if team := entry.team; team != nil {
+		if advisory.Repo.IsPrivate && !(organization.HasTeamRepo(ctx, team.OrgID, team.ID, advisory.RepoID) && team.UnitEnabled(ctx, unit.TypeSecurityAdvisories)) {
+			return util.NewInvalidArgumentErrorf("team %s cannot access the advisories of the repository", team.Name)
 		}
 		return nil
 	}
 
-	u := c.user
-	if !u.IsIndividual() {
+	user := entry.user
+	if !user.IsIndividual() {
 		return util.NewInvalidArgumentErrorf("only users can collaborate on advisories")
 	}
-	if isBlockedFromAdvisory(ctx, a, u) || user_model.IsUserBlockedBy(ctx, a.Repo.Owner, u.ID) {
+	if isBlockedFromAdvisory(ctx, advisory, user) || user_model.IsUserBlockedBy(ctx, advisory.Repo.Owner, user.ID) {
 		return user_model.ErrBlockedUser
 	}
-	perm, err := access_model.GetIndividualUserRepoPermission(ctx, a.Repo, u)
+	perm, err := access_model.GetIndividualUserRepoPermission(ctx, advisory.Repo, user)
 	if err != nil {
 		return err
 	}
 	if !perm.CanRead(unit.TypeSecurityAdvisories) {
-		return util.NewInvalidArgumentErrorf("user %s cannot access the advisories of the repository", u.Name)
+		return util.NewInvalidArgumentErrorf("user %s cannot access the advisories of the repository", user.Name)
 	}
 	return nil
 }
 
-// collaboratorChanges are the users and teams which get write access, also read-only collaborators, and which lose access
 type collaboratorChanges struct {
 	added   []collaborator
 	removed []collaborator
 }
 
-// apply returns the effective changes, which are notified after the transaction
-func (changes collaboratorChanges) apply(ctx context.Context, advisoryID int64) (effective collaboratorChanges, err error) {
-	for _, c := range changes.removed {
-		removed, err := advisory_model.RemoveCollaborator(ctx, c.row(advisoryID, false))
+func (changes collaboratorChanges) apply(ctx context.Context, advisoryID int64) (collaboratorChanges, error) {
+	var effective collaboratorChanges
+	for _, entry := range changes.removed {
+		removed, err := advisory_model.RemoveCollaborator(ctx, entry.row(advisoryID))
 		if err != nil {
 			return effective, err
 		}
 		if removed {
-			effective.removed = append(effective.removed, c)
+			effective.removed = append(effective.removed, entry)
 		}
 	}
-	for _, c := range changes.added {
-		added, err := addWritableCollaborator(ctx, advisoryID, c)
+	for _, entry := range changes.added {
+		added, err := advisory_model.AddCollaborator(ctx, entry.row(advisoryID))
 		if err != nil {
 			return effective, err
 		}
 		if added {
-			effective.added = append(effective.added, c)
+			effective.added = append(effective.added, entry)
 		}
 	}
 	return effective, nil
 }
 
-func addWritableCollaborator(ctx context.Context, advisoryID int64, c collaborator) (bool, error) {
-	added, err := advisory_model.AddCollaborator(ctx, c.row(advisoryID, false))
-	if err != nil || added {
-		return added, err
+func (changes collaboratorChanges) notify(ctx context.Context, doer *user_model.User, advisory *advisory_model.Advisory) {
+	for _, entry := range changes.removed {
+		audit.RecordAs(ctx, doer, audit_model.SecurityAdvisoryCollaboratorRemove, advisory.Repo, "advisory", advisory.Identifier, "collaborator", audit.AdvisoryCollaboratorName(entry.user, entry.team))
 	}
-	return advisory_model.SetCollaboratorWritable(ctx, c.row(advisoryID, false))
-}
-
-func (changes collaboratorChanges) notify(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
-	for _, c := range changes.removed {
-		audit.RecordAs(ctx, doer, audit_model.SecurityAdvisoryCollaboratorRemove, a.Repo, "advisory", a.Identifier, "collaborator", audit.AdvisoryCollaboratorName(c.user, c.team))
-	}
-	for _, c := range changes.added {
-		notify_service.SecurityAdvisoryCollaboratorAdded(ctx, doer, a, c.user, c.team)
+	for _, entry := range changes.added {
+		notify_service.SecurityAdvisoryCollaboratorAdded(ctx, doer, advisory, entry.user, entry.team)
 	}
 }
 
-func changeCollaborators(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, changes collaboratorChanges) error {
-	var effective collaboratorChanges
-	err := db.WithTx(ctx, func(ctx context.Context) (err error) {
-		effective, err = changes.apply(ctx, a.ID)
-		return err
+func changeCollaborators(ctx context.Context, doer *user_model.User, advisory *advisory_model.Advisory, changes collaboratorChanges) error {
+	effective, err := db.WithTx2(ctx, func(ctx context.Context) (collaboratorChanges, error) {
+		return changes.apply(ctx, advisory.ID)
 	})
 	if err != nil {
 		return err
 	}
-	effective.notify(ctx, doer, a)
+	effective.notify(ctx, doer, advisory)
 	return nil
 }
 
-// AddCollaborator grants a user or a team of the repository owner write access to an advisory, by name
-func AddCollaborator(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, name string, isTeam bool) error {
-	c, err := lookupCollaborator(ctx, a, name, isTeam)
+func AddCollaborator(ctx context.Context, doer *user_model.User, advisory *advisory_model.Advisory, name string, isTeam bool) error {
+	entry, err := lookupCollaborator(ctx, advisory, name, isTeam)
 	if err != nil {
 		return err
 	}
-	if err := validateCollaborator(ctx, a, c); err != nil {
+	if err := validateCollaborator(ctx, advisory, entry); err != nil {
 		return err
 	}
-	return changeCollaborators(ctx, doer, a, collaboratorChanges{added: []collaborator{c}})
+	return changeCollaborators(ctx, doer, advisory, collaboratorChanges{added: []collaborator{entry}})
 }
 
-// RemoveCollaborator revokes the access of a user or a team, only current collaborators are removed,
-// which also limits the teams to the repository owner
-func RemoveCollaborator(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, userID, teamID int64) error {
-	if err := a.LoadCollaborators(ctx); err != nil {
+func RemoveCollaborator(ctx context.Context, doer *user_model.User, advisory *advisory_model.Advisory, userID, teamID int64) error {
+	if err := advisory.LoadCollaborators(ctx); err != nil {
 		return err
 	}
 	var changes collaboratorChanges
-	for _, c := range currentCollaborators(a) {
-		if c.user != nil && c.user.ID == userID || c.team != nil && c.team.ID == teamID {
-			changes.removed = append(changes.removed, c)
+	for _, entry := range currentCollaborators(advisory) {
+		if entry.user != nil && entry.user.ID == userID || entry.team != nil && entry.team.ID == teamID {
+			changes.removed = append(changes.removed, entry)
 		}
 	}
-	return changeCollaborators(ctx, doer, a, changes)
+	return changeCollaborators(ctx, doer, advisory, changes)
 }
 
-// replaceCollaborators validates the new users and teams, the current ones are kept even if they couldn't be added anymore.
-// Unset lists are kept, unknown names are invalid like other invalid fields of an edit.
-func replaceCollaborators(ctx context.Context, a *advisory_model.Advisory, userNames, teamNames optional.Option[[]string]) (collaboratorChanges, error) {
-	if err := a.LoadCollaborators(ctx); err != nil {
+func replaceCollaborators(ctx context.Context, advisory *advisory_model.Advisory, optUserNames, optTeamNames optional.Option[[]string]) (collaboratorChanges, error) {
+	if err := advisory.LoadCollaborators(ctx); err != nil {
 		return collaboratorChanges{}, err
 	}
-	current := currentCollaborators(a)
+	current := currentCollaborators(advisory)
+	userNames, teamNames := optUserNames.Value(), optTeamNames.Value()
 	var wanted []collaborator
-	if !userNames.Has() {
-		wanted = slices.DeleteFunc(slices.Clone(current), func(c collaborator) bool { return c.user == nil })
+	for _, existing := range current {
+		if existing.user != nil && !optUserNames.Has() || existing.team != nil && !optTeamNames.Has() {
+			wanted = append(wanted, existing)
+		}
 	}
-	if !teamNames.Has() {
-		wanted = append(wanted, slices.DeleteFunc(slices.Clone(current), func(c collaborator) bool { return c.team == nil })...)
-	}
-	if len(wanted)+len(userNames.Value())+len(teamNames.Value()) > maxListLength {
+	if len(wanted)+len(userNames)+len(teamNames) > maxListLength {
 		return collaboratorChanges{}, util.NewInvalidArgumentErrorf("at most %d collaborators are allowed", maxListLength)
 	}
-	for i, name := range slices.Concat(userNames.Value(), teamNames.Value()) {
-		c, err := lookupNewCollaborator(ctx, a, name, i >= len(userNames.Value()))
-		if err != nil {
+	for i, name := range slices.Concat(userNames, teamNames) {
+		isTeam := i >= len(userNames)
+		entry, err := lookupCollaborator(ctx, advisory, name, isTeam)
+		if errors.Is(err, util.ErrNotExist) {
+			return collaboratorChanges{}, util.NewInvalidArgumentErrorf("%s %q does not exist", util.Iif(isTeam, "team", "user"), name)
+		} else if err != nil {
 			return collaboratorChanges{}, err
 		}
-		wanted = append(wanted, c)
+		wanted = append(wanted, entry)
 	}
 
 	var changes collaboratorChanges
-	for _, c := range current {
-		if !slices.ContainsFunc(wanted, c.is) {
-			changes.removed = append(changes.removed, c)
+	for _, entry := range current {
+		if !slices.ContainsFunc(wanted, entry.is) {
+			changes.removed = append(changes.removed, entry)
 		}
 	}
-	for _, c := range wanted {
-		if slices.ContainsFunc(current, c.is) {
-			continue // keeps the access of read-only collaborators, the API cannot tell them apart
+	for _, entry := range wanted {
+		if slices.ContainsFunc(current, entry.is) {
+			continue // Existing collaborators may have lost the permissions required to add them.
 		}
-		if err := validateCollaborator(ctx, a, c); err != nil {
+		if err := validateCollaborator(ctx, advisory, entry); err != nil {
 			return collaboratorChanges{}, err
 		}
-		changes.added = append(changes.added, c)
+		changes.added = append(changes.added, entry)
 	}
 	return changes, nil
-}
-
-func lookupNewCollaborator(ctx context.Context, a *advisory_model.Advisory, name string, isTeam bool) (collaborator, error) {
-	c, err := lookupCollaborator(ctx, a, name, isTeam)
-	if errors.Is(err, util.ErrNotExist) {
-		return c, util.NewInvalidArgumentErrorf("%s %q does not exist", util.Iif(isTeam, "team", "user"), name)
-	}
-	return c, err
 }

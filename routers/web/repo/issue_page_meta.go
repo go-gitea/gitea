@@ -86,7 +86,7 @@ func retrieveRepoIssueMetaData(ctx *context.Context, repo *repo_model.Repository
 			return data
 		}
 	}
-	data.retrieveLabelsData(ctx)
+	data.LabelsData.retrieve(ctx, repo)
 	if ctx.Written() {
 		return data
 	}
@@ -591,26 +591,24 @@ func (d *issueSidebarLabelsData) SetSelectedLabelIDs(labelIDs []int64) {
 	)
 }
 
-func (d *IssuePageMetaData) retrieveLabelsData(ctx *context.Context) {
-	repo := d.Repository
-	labelsData := d.LabelsData
-
+func (d *issueSidebarLabelsData) retrieve(ctx *context.Context, repo *repo_model.Repository) {
 	labels, err := issues_model.GetLabelsByRepoID(ctx, repo.ID, "", db.ListOptions{})
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}
 	issues_model.SortLabelsForDisplay(labels)
-	labelsData.RepoLabels = labels
+	d.RepoLabels = labels
 
 	if repo.Owner.IsOrganization() {
 		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
 		if err != nil {
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		issues_model.SortLabelsForDisplay(orgLabels)
-		labelsData.OrgLabels = orgLabels
+		d.OrgLabels = orgLabels
 	}
-	labelsData.AllLabels = append(labelsData.AllLabels, labelsData.RepoLabels...)
-	labelsData.AllLabels = append(labelsData.AllLabels, labelsData.OrgLabels...)
+	d.AllLabels = append(d.AllLabels, d.RepoLabels...)
+	d.AllLabels = append(d.AllLabels, d.OrgLabels...)
 }

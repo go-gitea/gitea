@@ -161,6 +161,58 @@ type swaggerResponseRepositoryAdvisoryList struct {
 	Body []api.RepositoryAdvisory `json:"body"`
 }
 
+// swagger:parameters repoListSecurityAdvisories orgListSecurityAdvisories
+type swaggerAdvisoryListFilters struct {
+	// Filter by state
+	// in: query
+	// enum: triage,draft,published,closed,withdrawn
+	State string `json:"state"`
+	// Search the summary, description, identifier, CVE ID and package names
+	// in: query
+	Query string `json:"q"`
+	// Filter by severity
+	// in: query
+	// enum: low,medium,high,critical
+	Severity string `json:"severity"`
+	// Filter by the ecosystem of an affected package
+	// in: query
+	Ecosystem string `json:"ecosystem"`
+	// Filter by CWE ID
+	// in: query
+	CweID string `json:"cwe"`
+	// Filter by the close reason
+	// in: query
+	// enum: invalid,duplicate
+	CloseReason string `json:"close_reason"`
+	// The property to sort by
+	// in: query
+	// enum: created,updated,published
+	// default: created
+	Sort string `json:"sort"`
+	// The sort direction
+	// in: query
+	// enum: asc,desc
+	// default: desc
+	Direction string `json:"direction"`
+}
+
+// swagger:parameters repoListSecurityAdvisories orgListSecurityAdvisories repoListSecurityAdvisoryComments
+type swaggerAdvisoryListPagination struct {
+	// Page number of results to return (1-based)
+	// in: query
+	Page int `json:"page"`
+	// Page size of results
+	// in: query
+	Limit int `json:"limit"`
+}
+
+// swagger:parameters repoListSecurityAdvisories
+type swaggerAdvisoryListLabels struct {
+	// Comma-separated label names, all must be set
+	// in: query
+	Labels string `json:"labels"`
+}
+
 // PrivateVulnerabilityReporting
 // swagger:response PrivateVulnerabilityReporting
 type swaggerResponsePrivateVulnerabilityReporting struct {

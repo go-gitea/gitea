@@ -941,9 +941,9 @@ func (m *webhookNotifier) NewSecurityAdvisoryReport(ctx context.Context, doer *u
 		log.Error("LoadAttributes: %v", err)
 		return
 	}
-	apiAdvisory, err := convert.ToAPIRepositoryAdvisoryWithPrivateDetails(ctx, a, nil)
-	if err != nil {
-		log.Error("ToAPIRepositoryAdvisoryWithPrivateDetails: %v", err)
+	apiAdvisory := convert.ToAPIRepositoryAdvisory(ctx, a, nil)
+	if err := convert.AddAPIRepositoryAdvisoryPrivateDetails(ctx, apiAdvisory, a, nil, true); err != nil {
+		log.Error("AddAPIRepositoryAdvisoryPrivateDetails: %v", err)
 		return
 	}
 	sendRepositoryAdvisoryHook(ctx, webhook_module.HookEventRepositoryAdvisoryReported, doer, a, &api.RepositoryAdvisoryPayload{
@@ -953,7 +953,7 @@ func (m *webhookNotifier) NewSecurityAdvisoryReport(ctx context.Context, doer *u
 	})
 }
 
-func (m *webhookNotifier) SecurityAdvisoryStateChanged(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, _ advisory_model.State) {
+func (m *webhookNotifier) SecurityAdvisoryStateChanged(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, _oldState advisory_model.State) {
 	var action api.HookRepositoryAdvisoryAction
 	switch a.State {
 	case advisory_model.StatePublished:

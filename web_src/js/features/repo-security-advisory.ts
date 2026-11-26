@@ -1,12 +1,10 @@
 import {POST} from '../modules/fetch.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {addDelegatedEventListener, toggleElem} from '../utils/dom.ts';
 import {debounce} from '../utils/func.ts';
 import {attachSearchUserBox} from './comp/SearchUserBox.ts';
 import {attachSearchTeamBox} from './repo-settings.ts';
 
-/** Parses the metrics of a CVSS vector with the given prefix, there are none if the prefix doesn't match */
 export function parseCvssVector(vector: string, prefix: string): Map<string, string> {
   vector = vector.trim();
   const metrics = new Map<string, string>();
@@ -18,7 +16,6 @@ export function parseCvssVector(vector: string, prefix: string): Map<string, str
   return metrics;
 }
 
-/** Composes a CVSS vector with the base metrics in their order followed by the other metrics, returns '' if a base metric is missing */
 export function composeCvssVector(prefix: string, baseKeys: Array<string>, metrics: Map<string, string>): string {
   if (baseKeys.some((key) => !metrics.get(key))) return '';
   const parts = baseKeys.map((key) => `${key}:${metrics.get(key)}`);
@@ -28,13 +25,22 @@ export function composeCvssVector(prefix: string, baseKeys: Array<string>, metri
   return `${prefix}${parts.join('/')}`;
 }
 
-function initCvssCalculator(container: HTMLElement) {
-  const prefix = container.getAttribute('data-cvss-prefix')!;
+function initCvssCalculator(container: HTMLElement, severity: HTMLInputElement) {
+  const version = container.getAttribute('data-cvss-version')!;
+  const prefix = `CVSS:${version}/`;
   const input = container.querySelector<HTMLInputElement>('input')!;
   const result = container.querySelector<HTMLElement>('[data-cvss-result]')!;
   const emptyResult = result.textContent;
-  const groups = Array.from(container.querySelectorAll<HTMLElement>('[data-cvss-metric]'));
-  const baseKeys = groups.map((el) => el.getAttribute('data-cvss-metric')!);
+  const groups = Array.from(container.querySelectorAll('[data-cvss-metric]'), (group) => [group.getAttribute('data-cvss-metric')!, group] as const);
+  const baseKeys = groups.map(([key]) => key);
+
+  const syncMode = () => {
+    const selected = severity.value === `cvss:${version}`;
+    toggleElem(container, selected);
+    input.disabled = !selected;
+  };
+  severity.addEventListener('change', syncMode);
+  syncMode();
 
   const selectButton = (btn: Element, selected: boolean) => {
     btn.classList.toggle('active', selected);
@@ -51,32 +57,28 @@ function initCvssCalculator(container: HTMLElement) {
     const data = new FormData();
     data.append('vector', vector);
     const resp = await POST(container.getAttribute('data-preview-url')!, {data});
-    if (!resp.ok || input.value.trim() !== vector) return; // the vector changed while waiting
+    if (!resp.ok) return;
     const json = await resp.json();
+    if (input.value.trim() !== vector) return;
     result.classList.toggle('red', Boolean(json.error));
     result.textContent = json.error ?? `${json.score.toFixed(1)} ${json.severity}`;
   }, 300);
 
   const syncButtons = () => {
     const metrics = parseCvssVector(input.value, prefix);
-    for (const group of groups) {
-      const value = metrics.get(group.getAttribute('data-cvss-metric')!);
+    for (const [key, group] of groups) {
+      const value = metrics.get(key);
       for (const btn of group.querySelectorAll('.button')) selectButton(btn, btn.getAttribute('data-value') === value);
     }
   };
 
-  const activeButtonMetrics = () => {
-    const metrics = new Map<string, string>();
-    for (const group of groups) {
-      const active = group.querySelector('.button.active');
-      if (active) metrics.set(group.getAttribute('data-cvss-metric')!, active.getAttribute('data-value')!);
-    }
-    return metrics;
-  };
-
   addDelegatedEventListener(container, 'click', '[data-cvss-metric] .button', (btn) => {
     for (const sibling of btn.parentElement!.children) selectButton(sibling, sibling === btn);
-    const metrics = new Map([...parseCvssVector(input.value, prefix), ...activeButtonMetrics()]);
+    const metrics = parseCvssVector(input.value, prefix);
+    for (const [key, group] of groups) {
+      const active = group.querySelector('.button.active');
+      if (active) metrics.set(key, active.getAttribute('data-value')!);
+    }
     const vector = composeCvssVector(prefix, baseKeys, metrics);
     if (!vector) return;
     input.value = vector;
@@ -87,23 +89,12 @@ function initCvssCalculator(container: HTMLElement) {
     updatePreview();
   });
   syncButtons();
-  updatePreview();
+  if (input.value) updatePreview();
 }
 
-/** The backend rejects a manual severity together with a CVSS vector, which determines the severity then */
-function initSeverityLock(form: HTMLFormElement) {
-  const dropdown = form.querySelector<HTMLElement>('.security-advisory-severity')!;
-  const vectors = Array.from(form.querySelectorAll<HTMLInputElement>('.security-advisory-cvss input[name]'));
-  const sync = (clear: boolean) => {
-    const hasVector = vectors.some((el) => el.value.trim());
-    dropdown.classList.toggle('disabled', hasVector);
-    if (hasVector && clear) fomanticQuery(dropdown).dropdown('set selected', '');
-  };
-  for (const el of vectors) el.addEventListener('input', () => sync(true));
-  sync(false);
-}
-
-function initRows(form: HTMLFormElement) {
+export function initSecurityAdvisoryForm(form: HTMLFormElement) {
+  const severity = form.querySelector<HTMLInputElement>('input[name="severity"]')!;
+  for (const calculator of form.querySelectorAll<HTMLElement>('[data-cvss-version]')) initCvssCalculator(calculator, severity);
   addDelegatedEventListener(form, 'click', '[data-remove-row]', (btn) => {
     btn.closest('.security-advisory-row')!.remove();
   });
@@ -114,21 +105,19 @@ function initRows(form: HTMLFormElement) {
   });
 }
 
-function initCloseForm(form: HTMLFormElement) {
-  const originalField = form.querySelector<HTMLElement>('[data-close-duplicate-field]');
-  if (!originalField) return; // no candidates, so the duplicate reason is disabled
-  form.addEventListener('change', (e) => {
-    const radio = e.target as HTMLInputElement;
-    if (radio.name === 'close_reason') toggleElem(originalField, radio.value === 'duplicate');
-  });
-}
-
 export function initRepoSecurityAdvisory() {
-  registerGlobalInitFunc('initSecurityAdvisoryCloseForm', initCloseForm);
-  registerGlobalInitFunc('initSecurityAdvisoryForm', (form: HTMLFormElement) => {
-    initRows(form);
-    initSeverityLock(form);
-    for (const el of form.querySelectorAll<HTMLElement>('.security-advisory-cvss')) initCvssCalculator(el);
+  registerGlobalInitFunc('initSecurityAdvisoryForm', initSecurityAdvisoryForm);
+  registerGlobalInitFunc('initSecurityAdvisoryCloseForm', (form: HTMLFormElement) => {
+    const originalField = form.querySelector<HTMLElement>('[data-close-duplicate-field]')!;
+    form.addEventListener('change', (event) => {
+      const radio = event.target as HTMLInputElement;
+      if (radio.name === 'close_reason') toggleElem(originalField, radio.value === 'duplicate');
+    });
+  });
+  registerGlobalInitFunc('initSecurityAdvisoryConfidentialQuote', (item) => {
+    item.addEventListener('click', () => {
+      document.querySelector<HTMLInputElement>('#advisory-comment-confidential')!.checked = true;
+    });
   });
   registerGlobalInitFunc('initSecurityAdvisoryUserSearch', attachSearchUserBox);
   registerGlobalInitFunc('initSecurityAdvisoryTeamSearch', attachSearchTeamBox);

@@ -285,7 +285,6 @@ func DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.R
 	}
 }
 
-// NewSecurityAdvisoryReport notifies a private vulnerability report to notifiers
 func NewSecurityAdvisoryReport(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
 	defer recoverPanic()
 
@@ -294,7 +293,6 @@ func NewSecurityAdvisoryReport(ctx context.Context, doer *user_model.User, a *ad
 	}
 }
 
-// SecurityAdvisoryStateChanged notifies an advisory state change, e.g. publishing, to notifiers
 func SecurityAdvisoryStateChanged(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, oldState advisory_model.State) {
 	defer recoverPanic()
 
@@ -303,7 +301,6 @@ func SecurityAdvisoryStateChanged(ctx context.Context, doer *user_model.User, a 
 	}
 }
 
-// SecurityAdvisoryCollaboratorAdded notifies a user or team granted access to an advisory to notifiers
 func SecurityAdvisoryCollaboratorAdded(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, user *user_model.User, team *organization.Team) {
 	defer recoverPanic()
 
@@ -312,7 +309,6 @@ func SecurityAdvisoryCollaboratorAdded(ctx context.Context, doer *user_model.Use
 	}
 }
 
-// NewSecurityAdvisoryComment notifies an advisory comment to notifiers
 func NewSecurityAdvisoryComment(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, c *advisory_model.Comment) {
 	defer recoverPanic()
 

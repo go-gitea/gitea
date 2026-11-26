@@ -23,10 +23,9 @@ type Result struct {
 	Version Version
 	Vector  string
 	Score   float64
-	Rating  string // none, low, medium, high or critical
+	Rating  string
 }
 
-// DetectVersion returns "" for unsupported vectors
 func DetectVersion(vector string) Version {
 	switch {
 	case strings.HasPrefix(vector, "CVSS:3.1/"):
@@ -37,35 +36,34 @@ func DetectVersion(vector string) Version {
 	return ""
 }
 
-// Parse validates a vector and computes the base score for 3.1 and the single defined score for 4.0
+// Parse uses the base score for 3.1, which defines several scores.
 func Parse(vector string) (*Result, error) {
 	vector = strings.TrimSpace(vector)
-	res := &Result{Version: DetectVersion(vector), Vector: vector}
+	result := &Result{Version: DetectVersion(vector), Vector: vector}
 	var err error
-	switch res.Version {
+	switch result.Version {
 	case Version31:
-		var v *gocvss31.CVSS31
-		if v, err = gocvss31.ParseVector(vector); err == nil {
-			res.Score = v.BaseScore()
-			res.Rating, err = gocvss31.Rating(res.Score)
+		var parsed *gocvss31.CVSS31
+		if parsed, err = gocvss31.ParseVector(vector); err == nil {
+			result.Score = parsed.BaseScore()
+			result.Rating, err = gocvss31.Rating(result.Score)
 		}
 	case Version40:
-		var v *gocvss40.CVSS40
-		if v, err = gocvss40.ParseVector(vector); err == nil {
-			res.Score = v.Score()
-			res.Rating, err = gocvss40.Rating(res.Score)
+		var parsed *gocvss40.CVSS40
+		if parsed, err = gocvss40.ParseVector(vector); err == nil {
+			result.Score = parsed.Score()
+			result.Rating, err = gocvss40.Rating(result.Score)
 		}
 	default:
 		return nil, util.NewInvalidArgumentErrorf("unsupported CVSS vector, only 3.1 and 4.0 are supported")
 	}
 	if err != nil {
-		return nil, util.NewInvalidArgumentErrorf("invalid CVSS %s vector: %v", res.Version, err)
+		return nil, util.NewInvalidArgumentErrorf("invalid CVSS %s vector: %v", result.Version, err)
 	}
-	res.Rating = strings.ToLower(res.Rating)
-	return res, nil
+	result.Rating = strings.ToLower(result.Rating)
+	return result, nil
 }
 
-// Metric is a base metric, used to render the calculator. Names are the untranslated CVSS specification terms.
 type Metric struct {
 	Key    string
 	Name   string

@@ -8,7 +8,7 @@ import (
 
 	advisory_model "gitea.dev/models/advisory"
 	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/db"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -21,17 +21,16 @@ import (
 
 type requestViewerKey struct{}
 
-// RequestViewer looks up the security teams once per request, a failed lookup only hides the non-public advisories
-func RequestViewer(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, isRepoAdmin, publicOnly bool) advisory_model.Viewer {
-	if v, ok := ctx.GetContextValue(requestViewerKey{}).(advisory_model.Viewer); ok {
-		return v
+func RequestViewer(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, perm access_model.Permission, publicOnly bool) advisory_model.Viewer {
+	if viewer, ok := ctx.GetContextValue(requestViewerKey{}).(advisory_model.Viewer); ok {
+		return viewer
 	}
-	v, err := advisory_model.NewViewer(ctx, doer, repo, isRepoAdmin, publicOnly)
+	viewer, err := advisory_model.NewViewer(ctx, doer, repo, perm, publicOnly)
 	if err != nil {
 		log.Error("NewViewer: %v", err)
 	}
-	ctx.SetContextValue(requestViewerKey{}, v)
-	return v
+	ctx.SetContextValue(requestViewerKey{}, viewer)
+	return viewer
 }
 
 type requestAdvisoryKey struct{}
@@ -41,8 +40,8 @@ type requestAdvisory struct {
 	perms    advisory_model.Permissions
 }
 
-func SetRequestAdvisory(ctx reqctx.RequestContext, a *advisory_model.Advisory, perms advisory_model.Permissions) {
-	ctx.SetContextValue(requestAdvisoryKey{}, &requestAdvisory{advisory: a, perms: perms})
+func SetRequestAdvisory(ctx reqctx.RequestContext, advisory *advisory_model.Advisory, perms advisory_model.Permissions) {
+	ctx.SetContextValue(requestAdvisoryKey{}, &requestAdvisory{advisory: advisory, perms: perms})
 }
 
 func RequestAdvisory(ctx context.Context) (*advisory_model.Advisory, advisory_model.Permissions) {
@@ -51,24 +50,34 @@ func RequestAdvisory(ctx context.Context) (*advisory_model.Advisory, advisory_mo
 }
 
 // isBlockedFromAdvisory also checks the reporter because a private report is their content
-func isBlockedFromAdvisory(ctx context.Context, a *advisory_model.Advisory, u *user_model.User) bool {
-	if a.IsReport {
-		return user_model.IsUserBlockedBy(ctx, u, a.Repo.OwnerID, a.ReporterID)
+func isBlockedFromAdvisory(ctx context.Context, advisory *advisory_model.Advisory, user *user_model.User) bool {
+	if advisory.IsReport {
+		return user_model.IsUserBlockedBy(ctx, user, advisory.Repo.OwnerID, advisory.ReporterID)
 	}
-	return user_model.IsUserBlockedBy(ctx, u, a.Repo.OwnerID)
+	return user_model.IsUserBlockedBy(ctx, user, advisory.Repo.OwnerID)
 }
 
-// CreateAdvisory creates a draft, only repository admins may call it
+// CreateAdvisory requires the caller to check repository admin permission.
 func CreateAdvisory(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, opts *ContentOptions) (*advisory_model.Advisory, error) {
-	a := &advisory_model.Advisory{RepoID: repo.ID, Repo: repo, State: advisory_model.StateDraft, ReporterID: doer.ID, Reporter: doer}
-	if err := applyContent(ctx, doer, a, opts); err != nil {
+	advisory, err := createAdvisory(ctx, doer, repo, advisory_model.StateDraft, opts)
+	if err != nil {
 		return nil, err
 	}
-	if err := advisory_model.CreateAdvisory(ctx, a); err != nil {
+	audit.RecordAs(ctx, doer, audit_model.SecurityAdvisoryCreate, repo, "advisory", advisory.Identifier)
+	return advisory, nil
+}
+
+func createAdvisory(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, state advisory_model.State, opts *ContentOptions) (*advisory_model.Advisory, error) {
+	advisory := &advisory_model.Advisory{
+		RepoID: repo.ID, Repo: repo, State: state, IsReport: state == advisory_model.StateTriage, ReporterID: doer.ID, Reporter: doer,
+	}
+	if err := applyContent(ctx, doer, advisory, opts); err != nil {
 		return nil, err
 	}
-	audit.RecordAs(ctx, doer, audit_model.SecurityAdvisoryCreate, a.Repo, "advisory", a.Identifier)
-	return a, nil
+	if err := advisory_model.CreateAdvisory(ctx, advisory); err != nil {
+		return nil, err
+	}
+	return advisory, nil
 }
 
 func IsPrivateReportingEnabled(ctx context.Context, repo *repo_model.Repository) bool {
@@ -79,12 +88,14 @@ func IsPrivateReportingEnabled(ctx context.Context, repo *repo_model.Repository)
 	return err == nil && ru.SecurityAdvisoriesConfig().PrivateVulnerabilityReporting
 }
 
-// IsPrivateReportingConfigured ignores whether reports are possible at the moment, unlike IsPrivateReportingEnabled
+func IsPrivateReportingEnabledForUser(ctx context.Context, repo *repo_model.Repository, user *user_model.User) bool {
+	return user.IsIndividual() && IsPrivateReportingEnabled(ctx, repo)
+}
+
 func IsPrivateReportingConfigured(ctx context.Context, repo *repo_model.Repository) bool {
 	return repo.MustGetUnit(ctx, unit.TypeSecurityAdvisories).SecurityAdvisoriesConfig().PrivateVulnerabilityReporting
 }
 
-// RecordPrivateReportingChange audits a change of the setting, also by the repository settings which update all units at once
 func RecordPrivateReportingChange(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, wasEnabled, enabled bool) {
 	if wasEnabled != enabled {
 		audit.RecordAs(ctx, doer, audit_model.SecurityAdvisoryPrivateReporting, repo, "enabled", enabled)
@@ -109,9 +120,8 @@ func SetPrivateReporting(ctx context.Context, doer *user_model.User, repo *repo_
 	return nil
 }
 
-// ReportVulnerability creates a triage advisory from a private report, the reporter is credited and can't assign a CVE ID
 func ReportVulnerability(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, opts *ContentOptions) (*advisory_model.Advisory, error) {
-	if !doer.IsIndividual() || !IsPrivateReportingEnabled(ctx, repo) {
+	if !IsPrivateReportingEnabledForUser(ctx, repo, doer) {
 		return nil, util.NewPermissionDeniedErrorf("private vulnerability reporting is not enabled")
 	}
 	if user_model.IsUserBlockedBy(ctx, doer, repo.OwnerID) {
@@ -119,35 +129,19 @@ func ReportVulnerability(ctx context.Context, doer *user_model.User, repo *repo_
 	}
 	opts.CveID, opts.LabelIDs = "", nil
 	opts.Credits = []*advisory_model.Credit{{UserID: doer.ID, Type: "reporter"}}
-	a := &advisory_model.Advisory{RepoID: repo.ID, Repo: repo, State: advisory_model.StateTriage, IsReport: true, ReporterID: doer.ID, Reporter: doer}
-	if err := applyContent(ctx, doer, a, opts); err != nil {
+	advisory, err := createAdvisory(ctx, doer, repo, advisory_model.StateTriage, opts)
+	if err != nil {
 		return nil, err
 	}
-	if err := advisory_model.CreateAdvisory(ctx, a); err != nil {
-		return nil, err
-	}
-	notify_service.NewSecurityAdvisoryReport(ctx, doer, a)
-	return a, nil
+	notify_service.NewSecurityAdvisoryReport(ctx, doer, advisory)
+	return advisory, nil
 }
 
-// DeleteAdvisory deletes an advisory which has never been published, only repository admins may call it
-func DeleteAdvisory(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) error {
-	var revokedAccess bool
-	err := db.WithTx(ctx, func(ctx context.Context) (err error) {
-		if err := advisory_model.DeleteAdvisory(ctx, a); err != nil {
-			return err
-		}
-		if a.IsReport && a.DuplicateOfID != 0 {
-			revokedAccess, err = advisory_model.RemoveDuplicateReporter(ctx, a.DuplicateOfID, a.ReporterID)
-		}
-		return err
-	})
-	if err != nil {
+// DeleteAdvisory requires the caller to check repository admin permission.
+func DeleteAdvisory(ctx context.Context, doer *user_model.User, advisory *advisory_model.Advisory) error {
+	if err := advisory_model.DeleteAdvisory(ctx, advisory); err != nil {
 		return err
 	}
-	audit.RecordAs(ctx, doer, audit_model.SecurityAdvisoryDelete, a.Repo, "advisory", a.Identifier)
-	if revokedAccess {
-		auditDuplicateAccessRevoked(ctx, doer, a, a.DuplicateOfID)
-	}
+	audit.RecordAs(ctx, doer, audit_model.SecurityAdvisoryDelete, advisory.Repo, "advisory", advisory.Identifier)
 	return nil
 }

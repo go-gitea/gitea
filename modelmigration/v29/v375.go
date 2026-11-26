@@ -6,6 +6,7 @@ package v29
 import (
 	"context"
 	"slices"
+	"strings"
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/setting"
@@ -24,10 +25,8 @@ type SecurityAdvisory struct {
 	Description       string             `xorm:"LONGTEXT"`
 	ReportDescription string             `xorm:"LONGTEXT"`
 	Severity          int                `xorm:"NOT NULL DEFAULT 0"`
-	CvssV3Vector      string             `xorm:"VARCHAR(255)"`
-	CvssV3ScoreTenths int                `xorm:"NOT NULL DEFAULT 0"`
-	CvssV4Vector      string             `xorm:"VARCHAR(255)"`
-	CvssV4ScoreTenths int                `xorm:"NOT NULL DEFAULT 0"`
+	CvssVector        string             `xorm:"VARCHAR(255)"`
+	CvssScoreTenths   int                `xorm:"NOT NULL DEFAULT 0"`
 	ContentVersion    int                `xorm:"NOT NULL DEFAULT 0"`
 	CweIDs            []string           `xorm:"'cwe_ids' JSON TEXT"`
 	State             int                `xorm:"INDEX NOT NULL"`
@@ -70,7 +69,6 @@ type SecurityAdvisoryCollaborator struct {
 	AdvisoryID int64 `xorm:"UNIQUE(s) NOT NULL"`
 	UserID     int64 `xorm:"UNIQUE(s) INDEX NOT NULL DEFAULT 0"`
 	TeamID     int64 `xorm:"UNIQUE(s) INDEX NOT NULL DEFAULT 0"`
-	ReadOnly   bool  `xorm:"NOT NULL DEFAULT false"`
 }
 
 type SecurityAdvisoryLabel struct {
@@ -80,55 +78,46 @@ type SecurityAdvisoryLabel struct {
 }
 
 type SecurityAdvisoryComment struct {
-	ID          int64              `xorm:"pk autoincr"`
-	AdvisoryID  int64              `xorm:"INDEX NOT NULL"`
-	PosterID    int64              `xorm:"INDEX NOT NULL"`
-	Content     string             `xorm:"LONGTEXT"`
-	IsInternal  bool               `xorm:"NOT NULL DEFAULT false"`
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+	ID             int64              `xorm:"pk autoincr"`
+	AdvisoryID     int64              `xorm:"INDEX NOT NULL"`
+	PosterID       int64              `xorm:"INDEX NOT NULL"`
+	Content        string             `xorm:"LONGTEXT"`
+	IsConfidential bool               `xorm:"NOT NULL DEFAULT false"`
+	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix    timeutil.TimeStamp `xorm:"updated"`
 }
 
 type Team struct {
 	IsSecurityTeam bool `xorm:"NOT NULL DEFAULT false"`
 }
 
-// AddSecurityAdvisoryTables adds the advisory tables and enables the advisories unit for existing repositories and teams
-func AddSecurityAdvisoryTables(_ context.Context, x base.EngineMigration) error {
-	if err := x.Sync(new(SecurityAdvisory), new(SecurityAdvisoryIndex), new(SecurityAdvisoryVulnerability), new(SecurityAdvisoryCredit),
+func AddSecurityAdvisoryTables(_ctx context.Context, engine base.EngineMigration) error {
+	if err := engine.Sync(new(SecurityAdvisory), new(SecurityAdvisoryIndex), new(SecurityAdvisoryVulnerability), new(SecurityAdvisoryCredit),
 		new(SecurityAdvisoryCollaborator), new(SecurityAdvisoryLabel), new(SecurityAdvisoryComment)); err != nil {
 		return err
 	}
-	if _, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true, IgnoreConstrains: true}, new(Team)); err != nil {
+	if _, err := engine.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true, IgnoreConstrains: true}, new(Team)); err != nil {
 		return err
 	}
 	defaultUnits := setting.Repository.DefaultRepoUnits
-	if len(defaultUnits) > 0 && !slices.Contains(defaultUnits, "repo.security_advisories") {
-		return nil // the instance doesn't want the unit by default
+	if len(defaultUnits) > 0 && !slices.ContainsFunc(defaultUnits, func(key string) bool {
+		return strings.EqualFold(strings.TrimSpace(key), "repo.security_advisories")
+	}) {
+		return nil
 	}
-	if err := enableAdvisoriesUnitForRepos(x); err != nil {
-		return err
-	}
-	return grantAdvisoriesReadToCodeTeams(x)
-}
-
-func enableAdvisoriesUnitForRepos(x base.EngineMigration) error {
-	const typeSecurityAdvisories = 11
-	_, err := x.Exec(`INSERT INTO repo_unit (repo_id, type, config, created_unix, anonymous_access_mode, everyone_access_mode)
-SELECT id, ?, '{}', ?, 0, 0 FROM repository
-WHERE is_fork = ? AND is_mirror = ? AND NOT EXISTS (SELECT 1 FROM repo_unit ru WHERE ru.repo_id = repository.id AND ru.type = ?)`,
-		typeSecurityAdvisories, timeutil.TimeStampNow(), false, false, typeSecurityAdvisories)
-	return err
-}
-
-// grantAdvisoriesReadToCodeTeams only changes teams with per-unit permissions, a general permission already covers new units
-func grantAdvisoriesReadToCodeTeams(x base.EngineMigration) error {
 	const (
 		typeCode               = 1
 		typeSecurityAdvisories = 11
 		accessModeRead         = 1
 	)
-	_, err := x.Exec(`INSERT INTO team_unit (org_id, team_id, type, access_mode)
+	if _, err := engine.Exec(`INSERT INTO repo_unit (repo_id, type, config, created_unix, anonymous_access_mode, everyone_access_mode)
+SELECT id, ?, '{}', ?, 0, 0 FROM repository
+WHERE is_fork = ? AND is_mirror = ? AND NOT EXISTS (SELECT 1 FROM repo_unit ru WHERE ru.repo_id = repository.id AND ru.type = ?)`,
+		typeSecurityAdvisories, timeutil.TimeStampNow(), false, false, typeSecurityAdvisories); err != nil {
+		return err
+	}
+	// Teams with general permissions already cover new units.
+	_, err := engine.Exec(`INSERT INTO team_unit (org_id, team_id, type, access_mode)
 SELECT org_id, id, ?, ? FROM team
 WHERE authorize = 0
 AND EXISTS (SELECT 1 FROM team_unit tu WHERE tu.team_id = team.id AND tu.type = ? AND tu.access_mode > 0)

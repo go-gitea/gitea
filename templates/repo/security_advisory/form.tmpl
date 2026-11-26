@@ -36,24 +36,27 @@
 				<button type="button" class="ui small button" data-add-row="vulnerability">{{svg "octicon-plus"}} {{ctx.Locale.Tr "repo.security_advisories.add_package"}}</button>
 			</div>
 
-			<h4 class="ui dividing header">{{ctx.Locale.Tr "repo.security_advisories.severity"}}</h4>
+			<h4 class="ui dividing header" id="advisory-severity-label">{{ctx.Locale.Tr "repo.security_advisories.severity"}}</h4>
 			<div class="field">
-				<label>{{ctx.Locale.Tr "repo.security_advisories.severity_manual"}}</label>
-				<div class="ui selection dropdown security-advisory-severity">
-					<input type="hidden" name="severity" value="{{.Content.Severity}}">
-					<div class="text"></div>
+				<div class="ui selection dropdown" aria-labelledby="advisory-severity-label">
+					<input type="hidden" name="severity" value="{{.FormSeverity}}">
+					<div class="text">{{ctx.Locale.Tr "repo.security_advisories.severity.unknown"}}</div>
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					<div class="menu">
 						<div class="item" data-value="">{{ctx.Locale.Tr "repo.security_advisories.severity.unknown"}}</div>
 						{{range .Severities}}
 							<div class="item" data-value="{{.}}">{{ctx.Locale.Tr .LocaleKey}}</div>
 						{{end}}
+						<div class="divider"></div>
+						{{range .CVSSCalculators}}
+							<div class="item" data-value="cvss:{{.Version}}">{{ctx.Locale.Tr "repo.security_advisories.cvss.version" .Version}}</div>
+						{{end}}
 					</div>
 				</div>
-				<p class="help">{{ctx.Locale.Tr "repo.security_advisories.severity_help"}}</p>
 			</div>
-			{{template "repo/security_advisory/form_cvss" dict "Name" "cvss_v4_vector" "Label" "CVSS 4.0" "SpecLink" "https://www.first.org/cvss/v4.0/specification-document" "Prefix" "CVSS:4.0/" "Vector" .Content.CvssV4Vector "Metrics" .CVSSMetricsV40 "PreviewLink" .CVSSPreviewLink}}
-			{{template "repo/security_advisory/form_cvss" dict "Name" "cvss_v3_vector" "Label" "CVSS 3.1" "SpecLink" "https://www.first.org/cvss/v3.1/specification-document" "Prefix" "CVSS:3.1/" "Vector" .Content.CvssV3Vector "Metrics" .CVSSMetricsV31 "PreviewLink" .CVSSPreviewLink}}
+			{{range .CVSSCalculators}}
+				{{template "repo/security_advisory/form_cvss" dict "Calculator" . "PreviewLink" $.CVSSPreviewLink}}
+			{{end}}
 
 			<h4 class="ui dividing header">{{ctx.Locale.Tr "repo.security_advisories.details"}}</h4>
 			<div class="field">
@@ -65,7 +68,7 @@
 					<div class="field">
 						<label>{{ctx.Locale.Tr "repo.issues.new.labels"}}</label>
 						<div class="ui fluid multiple search selection dropdown">
-							<input type="hidden" name="label_ids" value="{{.LabelIDsText}}">
+							<input type="hidden" name="label_ids">
 							<div class="default text">{{ctx.Locale.Tr "repo.issues.new.no_labels"}}</div>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">

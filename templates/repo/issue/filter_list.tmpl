@@ -4,7 +4,7 @@
 {{$showAllProjects := not $projectIDs}}
 {{$showNoProjectSelected := and (eq (len $projectIDs) 1) (eq (index $projectIDs 0) -1)}}
 
-{{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLink "SupportArchivedLabel" true}}
+{{template "shared/label/filter_item" dict "Labels" .Labels "QueryLink" $queryLink "SupportArchivedLabel" true}}
 
 {{if not .Milestone}}
 {{template "repo/issue/filter_item_milestone" dict

@@ -121,20 +121,16 @@ func (*NullNotifier) UpdateRelease(ctx context.Context, doer *user_model.User, r
 func (*NullNotifier) DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
 }
 
-// NewSecurityAdvisoryReport places a place holder function
-func (*NullNotifier) NewSecurityAdvisoryReport(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
+func (*NullNotifier) NewSecurityAdvisoryReport(_ctx context.Context, _doer *user_model.User, _a *advisory_model.Advisory) {
 }
 
-// SecurityAdvisoryStateChanged places a place holder function
-func (*NullNotifier) SecurityAdvisoryStateChanged(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, oldState advisory_model.State) {
+func (*NullNotifier) SecurityAdvisoryStateChanged(_ctx context.Context, _doer *user_model.User, _a *advisory_model.Advisory, _oldState advisory_model.State) {
 }
 
-// SecurityAdvisoryCollaboratorAdded places a place holder function
-func (*NullNotifier) SecurityAdvisoryCollaboratorAdded(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, user *user_model.User, team *organization.Team) {
+func (*NullNotifier) SecurityAdvisoryCollaboratorAdded(_ctx context.Context, _doer *user_model.User, _a *advisory_model.Advisory, _user *user_model.User, _team *organization.Team) {
 }
 
-// NewSecurityAdvisoryComment places a place holder function
-func (*NullNotifier) NewSecurityAdvisoryComment(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, c *advisory_model.Comment) {
+func (*NullNotifier) NewSecurityAdvisoryComment(_ctx context.Context, _doer *user_model.User, _a *advisory_model.Advisory, _c *advisory_model.Comment) {
 }
 
 // IssueChangeMilestone places a place holder function

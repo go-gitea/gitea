@@ -8,49 +8,42 @@ import (
 	"errors"
 
 	advisory_model "gitea.dev/models/advisory"
-	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
-	"gitea.dev/services/audit"
 	notify_service "gitea.dev/services/notify"
 
 	"xorm.io/builder"
 )
 
-// StateOptions closing an advisory need a reason, duplicates also the original advisory
-type StateOptions struct {
+type stateOptions struct {
 	State       advisory_model.State
 	CloseReason advisory_model.CloseReason
 	DuplicateOf *advisory_model.Advisory
-	// ShareOriginal lets the reporter of a duplicate report follow the original read-only, otherwise they only see its metadata
-	ShareOriginal bool
 }
 
-// NewStateOptions parses the names, the original of a duplicate is looked up in the repository of the advisory
-func NewStateOptions(ctx context.Context, a *advisory_model.Advisory, state, closeReason, duplicateOf string, shareOriginal bool) (StateOptions, error) {
-	opts := StateOptions{State: advisory_model.ParseState(state), CloseReason: advisory_model.ParseCloseReason(closeReason), ShareOriginal: shareOriginal}
+func newStateOptions(ctx context.Context, advisory *advisory_model.Advisory, state advisory_model.State, closeReason, duplicateOf string) (stateOptions, error) {
+	opts := stateOptions{State: state, CloseReason: advisory_model.ParseCloseReason(closeReason)}
 	if closeReason != "" && opts.CloseReason == advisory_model.CloseReasonNone {
 		return opts, util.NewInvalidArgumentErrorf("invalid close reason %q", closeReason)
 	}
 	if duplicateOf != "" {
-		original, err := advisory_model.GetAdvisoryByIdentifier(ctx, a.RepoID, duplicateOf)
+		original, err := advisory_model.GetAdvisoryByIdentifier(ctx, advisory.RepoID, duplicateOf)
 		if errors.Is(err, util.ErrNotExist) {
 			return opts, util.NewInvalidArgumentErrorf("advisory %q does not exist", duplicateOf)
 		} else if err != nil {
 			return opts, err
 		}
-		original.Repo = a.Repo
+		original.Repo = advisory.Repo
 		opts.DuplicateOf = original
 	}
-	return opts, validateStateOptions(a, opts)
+	return opts, validateStateOptions(advisory, opts)
 }
 
-func validateStateOptions(a *advisory_model.Advisory, opts StateOptions) error {
-	if !a.State.CanTransitionTo(opts.State) {
-		return util.NewInvalidArgumentErrorf("cannot change the state of the advisory from %s to %s", a.State, opts.State)
+func validateStateOptions(advisory *advisory_model.Advisory, opts stateOptions) error {
+	if !advisory.State.CanTransitionTo(opts.State) {
+		return util.NewInvalidArgumentErrorf("cannot change the state of the advisory from %s to %s", advisory.State, opts.State)
 	}
 	if opts.State != advisory_model.StateClosed {
 		if opts.CloseReason != advisory_model.CloseReasonNone || opts.DuplicateOf != nil {
@@ -58,145 +51,72 @@ func validateStateOptions(a *advisory_model.Advisory, opts StateOptions) error {
 		}
 		return nil
 	}
-	if opts.CloseReason == advisory_model.CloseReasonNone {
-		return util.NewInvalidArgumentErrorf("a close reason is required")
-	}
 	if (opts.CloseReason == advisory_model.CloseReasonDuplicate) != (opts.DuplicateOf != nil) {
 		return util.NewInvalidArgumentErrorf("duplicates and only duplicates need the original advisory")
 	}
-	if opts.DuplicateOf != nil && opts.DuplicateOf.ID == a.ID {
-		return util.NewInvalidArgumentErrorf("an advisory cannot be a duplicate of itself")
-	}
-	if opts.DuplicateOf != nil && opts.DuplicateOf.DuplicateOfID != 0 {
-		return util.NewInvalidArgumentErrorf("the original advisory is a duplicate itself")
-	}
-	if opts.ShareOriginal && (opts.DuplicateOf == nil || !a.IsReport) {
-		return util.NewInvalidArgumentErrorf("the original can only be shared with the reporter of a duplicate report")
+	if original := opts.DuplicateOf; original != nil {
+		switch {
+		case original.ID == advisory.ID:
+			return util.NewInvalidArgumentErrorf("an advisory cannot be a duplicate of itself")
+		case original.DuplicateOfID != 0:
+			return util.NewInvalidArgumentErrorf("the original advisory is a duplicate itself")
+		}
 	}
 	return nil
 }
 
-// ChangeState publishes, closes, reopens or withdraws an advisory, only repository admins may call it
-func ChangeState(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, opts StateOptions) error {
-	change, err := updateState(ctx, doer, a, opts)
+// ChangeState requires the caller to check repository admin permission.
+func ChangeState(ctx context.Context, doer *user_model.User, advisory *advisory_model.Advisory, state, closeReason, duplicateOf string) error {
+	opts, err := newStateOptions(ctx, advisory, advisory_model.ParseState(state), closeReason, duplicateOf)
 	if err != nil {
 		return err
 	}
-	change.notify(ctx, doer, a)
+	oldState := advisory.State
+	if err := updateState(ctx, doer, advisory, opts); err != nil {
+		return err
+	}
+	notify_service.SecurityAdvisoryStateChanged(ctx, doer, advisory, oldState)
 	return nil
 }
 
-// stateChange is what updateState changed, for the notifications after the transaction
-type stateChange struct {
-	oldState         advisory_model.State
-	oldDuplicateOfID int64
-	sharedOriginal   *advisory_model.Advisory
-	revokedAccess    bool
-}
-
-func updateState(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, opts StateOptions) (*stateChange, error) {
-	if err := validateStateOptions(a, opts); err != nil {
-		return nil, err
-	}
-	change := &stateChange{oldState: a.State, oldDuplicateOfID: a.DuplicateOfID, sharedOriginal: util.Iif(opts.ShareOriginal, opts.DuplicateOf, nil)}
-	a.State = opts.State
+func updateState(ctx context.Context, doer *user_model.User, advisory *advisory_model.Advisory, opts stateOptions) error {
+	oldState := advisory.State
+	advisory.State = opts.State
 	now := timeutil.TimeStampNow()
 	var cols []string
 	switch opts.State {
 	case advisory_model.StatePublished:
-		a.PublisherID, a.Publisher, a.PublishedUnix = doer.ID, doer, now
+		advisory.PublisherID, advisory.Publisher, advisory.PublishedUnix = doer.ID, doer, now
 		cols = []string{"publisher_id", "published_unix"}
 	case advisory_model.StateWithdrawn:
-		a.WithdrawnUnix = now
+		advisory.WithdrawnUnix = now
 		cols = []string{"withdrawn_unix"}
 	case advisory_model.StateClosed, advisory_model.StateDraft:
-		a.ClosedUnix = util.Iif(opts.State == advisory_model.StateClosed, now, 0)
-		a.CloseReason, a.DuplicateOf, a.DuplicateOfID = opts.CloseReason, opts.DuplicateOf, 0
+		advisory.ClosedUnix = util.Iif(opts.State == advisory_model.StateClosed, now, 0)
+		advisory.CloseReason, advisory.DuplicateOf, advisory.DuplicateOfID = opts.CloseReason, opts.DuplicateOf, 0
 		if opts.DuplicateOf != nil {
-			a.DuplicateOfID = opts.DuplicateOf.ID
+			advisory.DuplicateOfID = opts.DuplicateOf.ID
 		}
 		cols = []string{"closed_unix", "close_reason", "duplicate_of_id"}
-		if keepOriginalReport(a, opts) {
+		if advisory.IsReport && opts.State == advisory_model.StateDraft {
+			keepOriginalReport(advisory)
 			cols = append(cols, "report_description")
 		}
 	}
-	return change, db.WithTx(ctx, func(ctx context.Context) (err error) {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		if opts.DuplicateOf != nil {
-			if has, err := db.Exist[advisory_model.Advisory](ctx, builder.Eq{"duplicate_of_id": a.ID}); err != nil {
+			if has, err := db.Exist[advisory_model.Advisory](ctx, builder.Eq{"duplicate_of_id": advisory.ID}); err != nil {
 				return err
 			} else if has {
 				return util.NewInvalidArgumentErrorf("advisories with duplicates cannot be duplicates themselves")
 			}
 		}
-		if err := advisory_model.UpdateAdvisoryState(ctx, a, change.oldState, cols...); err != nil {
-			return err
-		}
-		if a.IsReport && change.oldDuplicateOfID != 0 {
-			change.revokedAccess, err = advisory_model.RemoveDuplicateReporter(ctx, change.oldDuplicateOfID, a.ReporterID)
-		}
-		return err
+		return advisory_model.UpdateAdvisoryState(ctx, advisory, oldState, cols...)
 	})
 }
 
-// keepOriginalReport saves the description of a report when it is accepted, a later edit replaces only the description
-func keepOriginalReport(a *advisory_model.Advisory, opts StateOptions) bool {
-	if opts.State != advisory_model.StateDraft || !a.IsReport {
-		return false
+func keepOriginalReport(advisory *advisory_model.Advisory) {
+	if advisory.ReportDescription == "" {
+		advisory.ReportDescription = advisory.Description
 	}
-	if a.ReportDescription == "" {
-		a.ReportDescription = a.Description
-	}
-	return true
-}
-
-// notify also lets the reporter of a duplicate follow the original advisory if it is shared
-func (c *stateChange) notify(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
-	notify_service.SecurityAdvisoryStateChanged(ctx, doer, a, c.oldState)
-	if c.revokedAccess {
-		auditDuplicateAccessRevoked(ctx, doer, a, c.oldDuplicateOfID)
-	}
-	if c.sharedOriginal != nil {
-		// the state has been changed already, the reporter just can't follow the original
-		err := grantReporterAccessToOriginal(ctx, doer, a, c.sharedOriginal)
-		reporterCannotCollaborate := errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) || errors.Is(err, user_model.ErrBlockedUser)
-		if err != nil && !reporterCannotCollaborate {
-			log.Error("the reporter of %d cannot follow the original %d: %v", a.ID, c.sharedOriginal.ID, err)
-		}
-	}
-}
-
-// grantReporterAccessToOriginal adds the reporter of a duplicate as read-only collaborator
-func grantReporterAccessToOriginal(ctx context.Context, doer *user_model.User, duplicate, original *advisory_model.Advisory) error {
-	reporterOwnsOriginal := original.IsReport && original.ReporterID == duplicate.ReporterID
-	if reporterOwnsOriginal {
-		return nil
-	}
-	reporter, err := user_model.GetUserByID(ctx, duplicate.ReporterID)
-	if err != nil {
-		return err
-	}
-	c := collaborator{user: reporter}
-	if err := validateCollaborator(ctx, original, c); err != nil {
-		return err
-	}
-	added, err := advisory_model.AddCollaborator(ctx, c.row(original.ID, true))
-	if err != nil || !added {
-		return err
-	}
-	notify_service.SecurityAdvisoryCollaboratorAdded(ctx, doer, original, reporter, nil)
-	return nil
-}
-
-func auditDuplicateAccessRevoked(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, originalID int64) {
-	original, has, err := db.GetByID[advisory_model.Advisory](ctx, originalID)
-	if err != nil || !has {
-		log.Error("auditDuplicateAccessRevoked: original %d, has %v: %v", originalID, has, err)
-		return
-	}
-	_, reporter, err := user_model.GetPossibleUserByID(ctx, a.ReporterID)
-	if err != nil {
-		log.Error("auditDuplicateAccessRevoked: reporter %d: %v", a.ReporterID, err)
-		return
-	}
-	audit.RecordAs(ctx, doer, audit_model.SecurityAdvisoryCollaboratorRemove, a.Repo, "advisory", original.Identifier, "collaborator", audit.AdvisoryCollaboratorName(reporter, nil))
 }

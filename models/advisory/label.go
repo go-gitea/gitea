@@ -11,7 +11,6 @@ import (
 	"xorm.io/builder"
 )
 
-// LabelLink assigns a repository or organization label to an advisory
 type LabelLink struct {
 	ID         int64 `xorm:"pk autoincr"`
 	AdvisoryID int64 `xorm:"UNIQUE(s) NOT NULL"`
@@ -26,7 +25,7 @@ func (LabelLink) TableName() string {
 	return "security_advisory_label"
 }
 
-// DeleteLabelLinks only deletes the links if the label doesn't exist anymore, deleting another owner's label is a no-op
+// DeleteLabelLinks keeps links if a delete request named another owner's label.
 func DeleteLabelLinks(ctx context.Context, labelID int64) error {
 	_, err := db.GetEngine(ctx).Where("label_id = ?", labelID).
 		And(builder.NotIn("label_id", builder.Select("id").From("label").Where(builder.Eq{"id": labelID}))).
@@ -34,7 +33,6 @@ func DeleteLabelLinks(ctx context.Context, labelID int64) error {
 	return err
 }
 
-// DeleteOrgLabelLinksByRepoID is used when the repository leaves the organization of the labels
 func DeleteOrgLabelLinksByRepoID(ctx context.Context, repoID, orgID int64) error {
 	_, err := db.GetEngine(ctx).
 		Where(builder.In("advisory_id", builder.Select("id").From("security_advisory").Where(builder.Eq{"repo_id": repoID}))).

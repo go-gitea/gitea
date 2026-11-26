@@ -59,7 +59,6 @@ func TestTransferOwnership(t *testing.T) {
 	}
 	assert.NoError(t, AcceptTransferOwnership(t.Context(), sourceRepo, doer))
 
-	// teams of the old organization lose access to the advisories, users keep it
 	unittest.AssertNotExistsBean(t, &advisory_model.Collaborator{AdvisoryID: advisory.ID, TeamID: 2})
 	unittest.AssertExistsAndLoadBean(t, &advisory_model.Collaborator{AdvisoryID: advisory.ID, UserID: 4})
 

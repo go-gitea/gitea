@@ -38,7 +38,6 @@ func TestTeam_RemoveRepository(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
-	// team 2 has the private repository 3
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
 	a := &advisory_model.Advisory{RepoID: 3, Summary: "s", State: advisory_model.StateDraft, ReporterID: 2}
 	require.NoError(t, advisory_model.CreateAdvisory(ctx, a))

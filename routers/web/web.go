@@ -1552,6 +1552,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Group("", func() {
 					m.Combo("/edit", repo.MustEditSecurityAdvisory).Get(repo.EditSecurityAdvisory).Post(repo.EditSecurityAdvisoryPost)
 					m.Group("", func() {
+						m.Post("/labels", repo.UpdateSecurityAdvisoryLabels)
 						m.Post("/state", repo.ChangeSecurityAdvisoryState)
 						m.Post("/delete", repo.DeleteSecurityAdvisory)
 						m.Post("/collaborators", repo.AddSecurityAdvisoryCollaborator)

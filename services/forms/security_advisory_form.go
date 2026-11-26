@@ -7,19 +7,15 @@ import (
 	"gitea.dev/modules/web/middleware"
 )
 
-// SecurityAdvisoryForm is the form for creating, reporting and editing a security advisory,
-// the vulnerability and credit fields are repeated once per row
 type SecurityAdvisoryForm struct {
 	middleware.FormDefaultValidator
-	Summary      string `binding:"Required"`
-	Content      string `binding:"Required"`
-	CveID        string `form:"cve_id"`
-	Severity     string
-	CvssV3Vector string `form:"cvss_v3_vector"`
-	CvssV4Vector string `form:"cvss_v4_vector"`
-	CweIDs       string `form:"cwe_ids"`
-	LabelIDs     string `form:"label_ids"`
-	// ContentVersion detects concurrent edits
+	Summary        string `binding:"Required"`
+	Content        string `binding:"Required"`
+	CveID          string `form:"cve_id"`
+	Severity       string
+	CvssVector     string `form:"cvss_vector"`
+	CweIDs         string `form:"cwe_ids"`
+	LabelIDs       string `form:"label_ids"`
 	ContentVersion int
 
 	Ecosystem              []string
@@ -32,9 +28,8 @@ type SecurityAdvisoryForm struct {
 	CreditType []string
 }
 
-// SecurityAdvisoryCommentForm is the form for a comment on a security advisory
 type SecurityAdvisoryCommentForm struct {
 	middleware.FormDefaultValidator
-	Content    string `binding:"Required"`
-	IsInternal bool
+	Content        string `binding:"Required"`
+	IsConfidential bool
 }

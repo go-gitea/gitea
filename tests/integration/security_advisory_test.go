@@ -5,6 +5,8 @@ package integration
 
 import (
 	"net/http"
+	"net/url"
+	"strconv"
 	"testing"
 
 	advisory_model "gitea.dev/models/advisory"
@@ -25,9 +27,12 @@ func TestSecurityAdvisoryWeb(t *testing.T) {
 	reporter := loginUser(t, "user4")
 	outsider := loginUser(t, "user5")
 	const advisoriesURL = "/user2/repo1/security/advisories"
+	const summary = "Incorrect permissions in uploads"
+	const description = "Uploaded files have incorrect permissions."
+	const vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
 
-	page := func(s *TestSession, url string) string {
-		return s.MakeRequest(t, NewRequest(t, "GET", url), http.StatusOK).Body.String()
+	page := func(session *TestSession, url string) string {
+		return session.MakeRequest(t, NewRequest(t, "GET", url), http.StatusOK).Body.String()
 	}
 	privateReporting := func() bool {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -43,59 +48,87 @@ func TestSecurityAdvisoryWeb(t *testing.T) {
 	assert.True(t, privateReporting())
 
 	assert.Contains(t, page(reporter, advisoriesURL), advisoriesURL+"/report")
-	reporter.MakeRequest(t, NewRequest(t, "GET", advisoriesURL+"/report"), http.StatusOK)
-	resp := reporter.MakeRequest(t, NewRequestWithValues(t, "POST", advisoriesURL+"/report", map[string]string{
-		"summary":                  "Path traversal in uploads",
-		"content":                  "Uploading `../x` writes outside the data directory.",
-		"cvss_v3_vector":           "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
-		"ecosystem":                "go",
-		"package_name":             "gitea.dev",
-		"vulnerable_version_range": "< 1.0.0",
+	assert.Contains(t, page(reporter, advisoriesURL+"/report"), "Select an ecosystem")
+	resp := reporter.MakeRequest(t, NewRequestWithURLValues(t, "POST", advisoriesURL+"/report", url.Values{
+		"summary":     {summary},
+		"content":     {description},
+		"severity":    {"cvss:3.1"},
+		"cvss_vector": {vector},
+		"ecosystem":   {"", "go"},
 	}), http.StatusOK)
-	a := unittest.AssertExistsAndLoadBean(t, &advisory_model.Advisory{RepoID: 1, ReporterID: 4})
-	assert.Equal(t, advisory_model.StateTriage, a.State)
-	assert.Equal(t, advisory_model.SeverityCritical, a.Severity)
-	advisoryURL := advisoriesURL + "/" + a.Identifier
+	advisory := unittest.AssertExistsAndLoadBean(t, &advisory_model.Advisory{RepoID: 1, ReporterID: 4})
+	assert.Equal(t, advisory_model.StateTriage, advisory.State)
+	assert.Equal(t, advisory_model.SeverityCritical, advisory.Severity)
+	assert.Equal(t, vector, advisory.CvssVector)
+	unittest.AssertCount(t, &advisory_model.Vulnerability{AdvisoryID: advisory.ID}, 1)
+	unittest.AssertExistsAndLoadBean(t, &advisory_model.Vulnerability{AdvisoryID: advisory.ID, Ecosystem: "go"})
+	advisoryURL := advisoriesURL + "/" + advisory.Identifier
 	assert.Equal(t, advisoryURL, *test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
 
-	assert.Contains(t, page(admin, advisoriesURL+"?state=triage&q=traversal"), a.Identifier)
-	assert.NotContains(t, page(admin, advisoriesURL+"?state=triage&q=nomatch"), a.Identifier)
+	assert.Contains(t, page(admin, advisoriesURL+"?state=triage&q=uploads"), advisory.Identifier)
+	assert.NotContains(t, page(admin, advisoriesURL+"?state=triage&q=nomatch"), advisory.Identifier)
 
-	reporter.MakeRequest(t, NewRequest(t, "GET", advisoryURL), http.StatusOK)
 	outsider.MakeRequest(t, NewRequest(t, "GET", advisoryURL), http.StatusNotFound)
 	MakeRequest(t, NewRequest(t, "GET", advisoryURL), http.StatusNotFound)
-	assert.NotContains(t, page(outsider, advisoriesURL+"?state=triage"), a.Identifier)
+	assert.NotContains(t, page(outsider, advisoriesURL+"?state=triage"), advisory.Identifier)
 	outsider.MakeRequest(t, NewRequestWithValues(t, "POST", advisoryURL+"/state", map[string]string{"state": "draft"}), http.StatusNotFound)
+
+	labels := map[string]string{"id": "1,2"}
+	reporter.MakeRequest(t, NewRequestWithValues(t, "POST", advisoryURL+"/labels", labels), http.StatusForbidden)
+	resp = admin.MakeRequest(t, NewRequestWithValues(t, "POST", advisoryURL+"/labels", labels), http.StatusOK)
+	assert.JSONEq(t, `{"ok":true}`, resp.Body.String())
+	unittest.AssertExistsAndLoadBean(t, &advisory_model.LabelLink{AdvisoryID: advisory.ID, LabelID: 1})
+	unittest.AssertExistsAndLoadBean(t, &advisory_model.LabelLink{AdvisoryID: advisory.ID, LabelID: 2})
 
 	const comment = "Confirmed, the fix is in progress."
 	reporter.MakeRequest(t, NewRequestWithValues(t, "POST", advisoryURL+"/comments", map[string]string{"content": comment}), http.StatusOK)
 	body := page(admin, advisoryURL)
 	assert.Contains(t, body, comment)
-	assert.NotContains(t, body, "data-mentions-url", "mentions would suggest users who cannot see the advisory")
+	assert.Contains(t, body, `data-update-url="`+advisoryURL+`/labels"`)
+	assert.NotContains(t, body, "data-mentions-url")
 	assert.Contains(t, body, `data-global-click="onConvContentQuoteReply"`)
+	assert.NotContains(t, body, `data-global-init="initSecurityAdvisoryConfidentialQuote"`)
 	assert.Contains(t, body, `data-global-click="onConvContentDelete" data-comment-hash-tag="advisory-comment-`)
-	assert.Contains(t, page(reporter, advisoryURL), `data-global-click="onConvContentEdit"`)
 
-	const internalComment = "The reporter asked for a bounty twice."
-	admin.MakeRequest(t, NewRequestWithValues(t, "POST", advisoryURL+"/comments", map[string]string{"content": internalComment, "is_internal": "on"}), http.StatusOK)
-	assert.Contains(t, page(admin, advisoryURL), internalComment)
+	const confidentialComment = "The maintenance team is reviewing the release schedule."
+	admin.MakeRequest(t, NewRequestWithValues(t, "POST", advisoryURL+"/comments", map[string]string{"content": confidentialComment, "is_confidential": "on"}), http.StatusOK)
+	body = page(admin, advisoryURL)
+	assert.Contains(t, body, confidentialComment)
+	assert.Contains(t, body, `data-global-init="initSecurityAdvisoryConfidentialQuote"`)
 	body = page(reporter, advisoryURL)
 	assert.Contains(t, body, comment)
-	assert.NotContains(t, body, internalComment)
+	assert.NotContains(t, body, confidentialComment)
+	assert.Contains(t, body, `class="ui dropdown full-width disabled"`)
+	assert.Contains(t, body, `data-global-click="onConvContentEdit"`)
 
-	admin.MakeRequest(t, NewRequest(t, "GET", advisoriesURL+"/new"), http.StatusOK)
+	assert.Contains(t, page(admin, advisoriesURL+"/new"), `name="label_ids"`)
 	outsider.MakeRequest(t, NewRequest(t, "GET", advisoriesURL+"/new"), http.StatusForbidden)
 	body = page(reporter, advisoryURL+"/edit")
-	assert.Contains(t, body, "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H")
-	assert.NotContains(t, body, `name="credit_user"`, "only admins manage credits")
+	assert.Contains(t, body, `name="severity" value="cvss:3.1"`)
+	assert.Contains(t, body, vector)
+	assert.NotContains(t, body, `name="credit_user"`)
+
+	advisory = unittest.AssertExistsAndLoadBean(t, &advisory_model.Advisory{ID: advisory.ID})
+	admin.MakeRequest(t, NewRequestWithValues(t, "POST", advisoryURL+"/edit", map[string]string{
+		"summary":         summary,
+		"content":         description,
+		"content_version": strconv.Itoa(advisory.ContentVersion),
+		"severity":        "medium",
+		"cvss_vector":     vector,
+		"ecosystem":       "go",
+	}), http.StatusOK)
+	advisory = unittest.AssertExistsAndLoadBean(t, &advisory_model.Advisory{ID: advisory.ID})
+	assert.Equal(t, advisory_model.SeverityMedium, advisory.Severity)
+	assert.Empty(t, advisory.CvssVector)
+	unittest.AssertCount(t, &advisory_model.LabelLink{AdvisoryID: advisory.ID}, 2)
 
 	reporter.MakeRequest(t, NewRequestWithValues(t, "POST", advisoryURL+"/state", map[string]string{"state": "draft"}), http.StatusForbidden)
 	admin.MakeRequest(t, NewRequestWithValues(t, "POST", advisoryURL+"/state", map[string]string{"state": "draft"}), http.StatusOK)
 	admin.MakeRequest(t, NewRequestWithValues(t, "POST", advisoryURL+"/state", map[string]string{"state": "published"}), http.StatusOK)
 
-	body = page(nil, advisoryURL) // anonymous
-	assert.Contains(t, body, "Path traversal in uploads")
-	assert.NotContains(t, body, comment, "the discussion stays private after publishing")
+	body = page(nil, advisoryURL)
+	assert.Contains(t, body, summary)
+	assert.NotContains(t, body, comment)
 	reporter.MakeRequest(t, NewRequest(t, "GET", advisoryURL+"/edit"), http.StatusForbidden)
 
 	saveUnits(map[string]string{})

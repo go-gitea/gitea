@@ -621,7 +621,7 @@ func TestGetRepositoryAdvisoryPayloadInfo(t *testing.T) {
 	}{
 		{api.HookRepositoryAdvisoryPublished, "[test/repo] Security advisory published: XSS in markdown by user1", redColor},
 		{api.HookRepositoryAdvisoryWithdrawn, "[test/repo] Security advisory withdrawn: XSS in markdown by user1", greyColor},
-		{api.HookRepositoryAdvisoryReported, "[test/repo] Vulnerability reported privately: abcd-efgh-ijkl", orangeColor}, // neither the summary nor the reporter are disclosed
+		{api.HookRepositoryAdvisoryReported, "[test/repo] Vulnerability reported privately: abcd-efgh-ijkl", orangeColor},
 	} {
 		p.Action = c.action
 		text, color := getRepositoryAdvisoryPayloadInfo(p, noneLinkFormatter, true)

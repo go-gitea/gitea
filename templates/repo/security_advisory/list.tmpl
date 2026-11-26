@@ -11,7 +11,7 @@
 					<input type="hidden" name="severity" value="{{$.SelectedSeverity.String}}">
 					{{if $.SelectLabels}}<input type="hidden" name="labels" value="{{$.SelectLabels}}">{{end}}
 					{{if $.CloseReason}}<input type="hidden" name="close_reason" value="{{$.CloseReason}}">{{end}}
-					{{template "shared/search/input" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "repo.security_advisories.search_placeholder")}}
+					{{template "shared/search/input" dict "Value" .Keyword}}
 					{{template "shared/search/button"}}
 				</div>
 			</form>
@@ -36,7 +36,7 @@
 			</div>
 			<div class="issue-list-toolbar-right">
 				<div class="ui secondary filter menu labels">
-					{{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLink}}
+					{{template "shared/label/filter_item" dict "Labels" .Labels "QueryLink" $queryLink}}
 					<div class="item ui dropdown jump">
 						<span class="text">{{ctx.Locale.Tr "repo.security_advisories.severity"}}</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -51,28 +51,32 @@
 			</div>
 		</div>
 
-		<div class="flex-divided-list items-with-main">
+		<div id="issue-list" class="flex-divided-list items-with-main">
 			{{range .Advisories}}
 				<div class="item">
-					<div class="item-leading">{{svg "octicon-shield" 16}}</div>
+					<div class="item-leading">
+						<div class="flex-text-inline tw-mt-[3px]">{{svg .State.Icon 16 (print "tw-text-" .State.Color)}}</div>
+					</div>
 					<div class="item-main">
-						<div class="item-title">
-							<a class="muted" href="{{.Link}}">{{.Summary}}</a>
-							{{template "repo/security_advisory/severity_label" .}}
-							{{if eq .State.String "withdrawn"}}<span class="ui basic label">{{ctx.Locale.Tr "repo.security_advisories.state.withdrawn"}}</span>{{end}}
-							{{if .CloseReason.String}}<span class="ui basic label">{{ctx.Locale.Tr (print "repo.security_advisories.close_reason." .CloseReason.String)}}</span>{{end}}
-							{{range .Labels}}{{ctx.RenderUtils.RenderLabel .}}{{end}}
+						<div class="item-header">
+							<div class="tw-min-w-0">
+								<a class="list-item-large-title" href="{{.Link}}">{{.Summary}}</a>
+								<span class="labels-list">
+									{{- if .Severity.String}}<span class="item">{{template "repo/security_advisory/severity_label" .}}</span>{{end -}}
+									{{- if eq .State.String "withdrawn"}}<span class="item"><span class="ui basic label">{{ctx.Locale.Tr "repo.security_advisories.state.withdrawn"}}</span></span>{{end -}}
+									{{- if .CloseReason.String}}<span class="item"><span class="ui basic label">{{ctx.Locale.Tr (print "repo.security_advisories.close_reason." .CloseReason.String)}}</span></span>{{end -}}
+									{{- range .Labels}}<a class="item" href="{{QueryBuild $queryLink "labels" .ID}}">{{ctx.RenderUtils.RenderLabel .}}</a>{{end -}}
+								</span>
+							</div>
 						</div>
-						<div class="item-body flex-text-inline tw-flex-wrap">
-							<span>#{{.Index}}</span>
-							<span>·</span>
+						<div class="item-body tw-gap-2">
+							<a class="index flex-text-inline" href="{{.Link}}">#{{.Index}}</a>
 							<span class="tw-font-mono">{{.Identifier}}</span>
-							{{if .CveID}}<span>·</span><span>{{.CveID}}</span>{{end}}
-							<span>·</span>
+							{{if .CveID}}<span>{{.CveID}}</span>{{end}}
 							{{if .PublishedUnix}}
-								<span>{{ctx.Locale.Tr "repo.security_advisories.published_at" (DateUtils.TimeSince .PublishedUnix)}}</span>
+								<span>{{ctx.Locale.Tr "repo.security_advisories.published_by" (DateUtils.TimeSince .PublishedUnix) .Publisher.HomeLink .Publisher.GetDisplayName}}</span>
 							{{else}}
-								<span>{{ctx.Locale.Tr "repo.security_advisories.opened_at" (DateUtils.TimeSince .CreatedUnix)}}</span>
+								<span>{{ctx.Locale.Tr (Iif .IsReport "repo.security_advisories.reported_by" "repo.issues.opened_by") (DateUtils.TimeSince .CreatedUnix) .Reporter.HomeLink .Reporter.GetDisplayName}}</span>
 							{{end}}
 						</div>
 					</div>
@@ -91,8 +95,8 @@
 					</div>
 				{{end}}
 			{{end}}
-			{{template "base/paginate" .}}
 		</div>
+		{{template "base/paginate" .}}
 	</div>
 </div>
 {{template "base/footer" .}}

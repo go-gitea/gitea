@@ -4,7 +4,6 @@
 package advisory
 
 import (
-	"cmp"
 	"context"
 	"maps"
 	"math"
@@ -34,57 +33,48 @@ var (
 	cwePattern = regexp.MustCompile(`^CWE-[1-9][0-9]{0,5}$`)
 )
 
-// ContentOptions are the editable details of an advisory
 type ContentOptions struct {
 	Summary         string
 	Description     string
 	CveID           string
-	Severity        string // only without CVSS vectors, which determine the severity otherwise
-	CvssV3Vector    string
-	CvssV4Vector    string
+	Severity        string
+	CvssVector      string
 	CweIDs          []string
 	Vulnerabilities []*advisory_model.Vulnerability
 	Credits         []*advisory_model.Credit
 	LabelIDs        []int64
-	ContentVersion  int // the update is rejected if the advisory has been changed since this version
+	ContentVersion  int
 }
 
-// ContentFromAdvisory returns the current content of an advisory with loaded attributes, for partial updates
-func ContentFromAdvisory(a *advisory_model.Advisory) *ContentOptions {
+func ContentFromAdvisory(advisory *advisory_model.Advisory) *ContentOptions {
 	opts := &ContentOptions{
-		Summary:         a.Summary,
-		Description:     a.Description,
-		CveID:           a.CveID,
-		CvssV3Vector:    a.CvssV3Vector,
-		CvssV4Vector:    a.CvssV4Vector,
-		CweIDs:          a.CweIDs,
-		Vulnerabilities: a.Vulnerabilities,
-		Credits:         a.Credits,
-		LabelIDs:        labelIDs(a.Labels),
-		ContentVersion:  a.ContentVersion,
+		Summary:         advisory.Summary,
+		Description:     advisory.Description,
+		CveID:           advisory.CveID,
+		CvssVector:      advisory.CvssVector,
+		CweIDs:          advisory.CweIDs,
+		Vulnerabilities: advisory.Vulnerabilities,
+		Credits:         advisory.Credits,
+		LabelIDs:        labelIDs(advisory.Labels),
+		ContentVersion:  advisory.ContentVersion,
 	}
-	if !a.HasCVSS() {
-		opts.Severity = a.Severity.String()
+	if advisory.CvssVector == "" {
+		opts.Severity = advisory.Severity.String()
 	}
 	return opts
 }
 
-func IsValidCweID(id string) bool {
-	return cwePattern.MatchString(id)
-}
-
 func labelIDs(labels []*issues_model.Label) []int64 {
-	return container.FilterSlice(labels, func(l *issues_model.Label) (int64, bool) { return l.ID, true })
+	return container.FilterSlice(labels, func(label *issues_model.Label) (int64, bool) { return label.ID, true })
 }
 
-func tooLong(maxLength int, values ...string) bool {
-	return slices.ContainsFunc(values, func(s string) bool { return utf8.RuneCountInString(s) > maxLength })
+func fieldsTooLong(values ...string) bool {
+	return slices.ContainsFunc(values, func(value string) bool { return utf8.RuneCountInString(value) > maxFieldLength })
 }
 
-// applyContent validates everything before changing the advisory, so that a rejected update doesn't leave it half changed
-func applyContent(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, opts *ContentOptions) error {
+func applyContent(ctx context.Context, doer *user_model.User, advisory *advisory_model.Advisory, opts *ContentOptions) error {
 	summary := strings.TrimSpace(opts.Summary)
-	if summary == "" || tooLong(maxSummaryLength, summary) {
+	if summary == "" || utf8.RuneCountInString(summary) > maxSummaryLength {
 		return util.NewInvalidArgumentErrorf("summary must be between 1 and %d characters", maxSummaryLength)
 	}
 	description := strings.TrimRight(opts.Description, " \t\r\n") // keeps an indented code block at the start
@@ -95,7 +85,7 @@ func applyContent(ctx context.Context, doer *user_model.User, a *advisory_model.
 	if cveID != "" && !cvePattern.MatchString(cveID) {
 		return util.NewInvalidArgumentErrorf("invalid CVE ID %q", opts.CveID)
 	}
-	scores, err := scoreSeverity(opts)
+	severity, vector, scoreTenths, err := scoreSeverity(opts.Severity, opts.CvssVector)
 	if err != nil {
 		return err
 	}
@@ -110,20 +100,18 @@ func applyContent(ctx context.Context, doer *user_model.User, a *advisory_model.
 	if err != nil {
 		return err
 	}
-	credits, err := resolveCredits(ctx, doer, a, opts.Credits)
+	credits, err := resolveCredits(ctx, doer, advisory, opts.Credits)
 	if err != nil {
 		return err
 	}
-	labels, err := resolveLabels(ctx, a, opts.LabelIDs)
+	labels, err := resolveLabels(ctx, advisory, opts.LabelIDs)
 	if err != nil {
 		return err
 	}
 
-	a.Summary, a.Description, a.CveID = summary, description, cveID
-	a.Severity = scores.severity
-	a.CvssV3Vector, a.CvssV3ScoreTenths = scores.v3Vector, scores.v3ScoreTenths
-	a.CvssV4Vector, a.CvssV4ScoreTenths = scores.v4Vector, scores.v4ScoreTenths
-	a.CweIDs, a.Vulnerabilities, a.Credits, a.Labels = cweIDs, vulnerabilities, credits, labels
+	advisory.Summary, advisory.Description, advisory.CveID = summary, description, cveID
+	advisory.Severity, advisory.CvssVector, advisory.CvssScoreTenths = severity, vector, scoreTenths
+	advisory.CweIDs, advisory.Vulnerabilities, advisory.Credits, advisory.Labels = cweIDs, vulnerabilities, credits, labels
 	return nil
 }
 
@@ -134,7 +122,7 @@ func normalizeCweIDs(ids []string) ([]string, error) {
 		if id == "" || slices.Contains(res, id) {
 			continue
 		}
-		if !IsValidCweID(id) {
+		if !cwePattern.MatchString(id) {
 			return nil, util.NewInvalidArgumentErrorf("invalid CWE ID %q", id)
 		}
 		res = append(res, id)
@@ -142,43 +130,38 @@ func normalizeCweIDs(ids []string) ([]string, error) {
 	return res, nil
 }
 
-func normalizeVulnerabilities(vulns []*advisory_model.Vulnerability) ([]*advisory_model.Vulnerability, error) {
-	res := make([]*advisory_model.Vulnerability, 0, len(vulns))
-	for _, v := range vulns {
-		if !slices.Contains(advisory_model.Ecosystems, v.Ecosystem) {
-			return nil, util.NewInvalidArgumentErrorf("invalid package ecosystem %q", v.Ecosystem)
+func normalizeVulnerabilities(vulnerabilities []*advisory_model.Vulnerability) ([]*advisory_model.Vulnerability, error) {
+	normalized := make([]*advisory_model.Vulnerability, 0, len(vulnerabilities))
+	for _, vulnerability := range vulnerabilities {
+		if !slices.Contains(advisory_model.Ecosystems, vulnerability.Ecosystem) {
+			return nil, util.NewInvalidArgumentErrorf("invalid package ecosystem %q", vulnerability.Ecosystem)
 		}
-		packageName := strings.TrimSpace(v.PackageName)
-		versionRange := strings.TrimSpace(v.VulnerableVersionRange)
-		patchedVersions := strings.TrimSpace(v.PatchedVersions)
-		var functions []string
-		for _, f := range v.VulnerableFunctions {
-			if f = strings.TrimSpace(f); f != "" {
-				functions = append(functions, f)
+		entry := &advisory_model.Vulnerability{
+			Ecosystem:              vulnerability.Ecosystem,
+			PackageName:            strings.TrimSpace(vulnerability.PackageName),
+			VulnerableVersionRange: strings.TrimSpace(vulnerability.VulnerableVersionRange),
+			PatchedVersions:        strings.TrimSpace(vulnerability.PatchedVersions),
+		}
+		for _, function := range vulnerability.VulnerableFunctions {
+			if function = strings.TrimSpace(function); function != "" {
+				entry.VulnerableFunctions = append(entry.VulnerableFunctions, function)
 			}
 		}
-		if len(functions) > maxListLength || tooLong(maxFieldLength, packageName, versionRange, patchedVersions) || tooLong(maxFieldLength, functions...) {
+		if len(entry.VulnerableFunctions) > maxListLength || fieldsTooLong(entry.PackageName, entry.VulnerableVersionRange, entry.PatchedVersions) || fieldsTooLong(entry.VulnerableFunctions...) {
 			return nil, util.NewInvalidArgumentErrorf("at most %d functions and %d characters per package field are allowed", maxListLength, maxFieldLength)
 		}
-		res = append(res, &advisory_model.Vulnerability{
-			Ecosystem:              v.Ecosystem,
-			PackageName:            packageName,
-			VulnerableVersionRange: versionRange,
-			PatchedVersions:        patchedVersions,
-			VulnerableFunctions:    functions,
-		})
+		normalized = append(normalized, entry)
 	}
-	return res, nil
+	return normalized, nil
 }
 
-// resolveCredits only checks the newly credited users, existing credits stay valid
-func resolveCredits(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, credits []*advisory_model.Credit) ([]*advisory_model.Credit, error) {
+func resolveCredits(ctx context.Context, doer *user_model.User, advisory *advisory_model.Advisory, credits []*advisory_model.Credit) ([]*advisory_model.Credit, error) {
 	userIDs := make([]int64, 0, len(credits))
-	for _, c := range credits {
-		if !slices.Contains(advisory_model.CreditTypes, c.Type) {
-			return nil, util.NewInvalidArgumentErrorf("invalid credit type %q", c.Type)
+	for _, credit := range credits {
+		if !slices.Contains(advisory_model.CreditTypes, credit.Type) {
+			return nil, util.NewInvalidArgumentErrorf("invalid credit type %q", credit.Type)
 		}
-		userIDs = append(userIDs, c.UserID)
+		userIDs = append(userIDs, credit.UserID)
 	}
 	users, err := user_model.GetUsersMapByIDs(ctx, userIDs)
 	if err != nil {
@@ -186,42 +169,31 @@ func resolveCredits(ctx context.Context, doer *user_model.User, a *advisory_mode
 	}
 
 	res := make([]*advisory_model.Credit, 0, len(credits))
-	for _, c := range credits {
-		if slices.ContainsFunc(res, func(e *advisory_model.Credit) bool { return e.UserID == c.UserID }) {
+	for _, credit := range credits {
+		if slices.ContainsFunc(res, func(existing *advisory_model.Credit) bool { return existing.UserID == credit.UserID }) {
 			continue
 		}
-		u := users[c.UserID]
-		if u == nil || !u.IsIndividual() {
+		user := users[credit.UserID]
+		if user == nil || !user.IsIndividual() {
 			return nil, util.NewInvalidArgumentErrorf("only users can be credited")
 		}
-		alreadyCredited := slices.ContainsFunc(a.Credits, func(e *advisory_model.Credit) bool { return e.UserID == c.UserID })
-		if !alreadyCredited && u.ID != doer.ID {
-			if err := checkCreditable(ctx, doer, u); err != nil {
-				return nil, err
+		if user.ID != doer.ID && !slices.ContainsFunc(advisory.Credits, func(existing *advisory_model.Credit) bool { return existing.UserID == credit.UserID }) {
+			if !user_model.IsUserVisibleToViewer(ctx, user, nil) { // Published credits are public.
+				return nil, errCannotCredit(user.Name)
+			}
+			if user_model.IsUserBlockedBy(ctx, doer, user.ID) {
+				return nil, user_model.ErrBlockedUser
 			}
 		}
-		res = append(res, &advisory_model.Credit{UserID: c.UserID, User: u, Type: c.Type})
+		res = append(res, &advisory_model.Credit{UserID: credit.UserID, User: user, Type: credit.Type})
 	}
 	return res, nil
 }
 
-// checkCreditable requires public users who accept contact from the doer because published credits are public
-func checkCreditable(ctx context.Context, doer, u *user_model.User) error {
-	if !user_model.IsUserVisibleToViewer(ctx, u, nil) {
-		return errCannotCredit(u.Name)
-	}
-	if user_model.IsUserBlockedBy(ctx, doer, u.ID) {
-		return user_model.ErrBlockedUser
-	}
-	return nil
-}
-
-// errCannotCredit doesn't tell missing and private users apart
 func errCannotCredit(login string) error {
 	return util.NewInvalidArgumentErrorf("user %q cannot be credited", login)
 }
 
-// CreditsByLogins checks the number of credits first to not look up unlimited logins, types are matched by index
 func CreditsByLogins(ctx context.Context, logins, types []string) ([]*advisory_model.Credit, error) {
 	if len(logins) > maxListLength {
 		return nil, util.NewInvalidArgumentErrorf("at most %d credits are allowed", maxListLength)
@@ -231,22 +203,21 @@ func CreditsByLogins(ctx context.Context, logins, types []string) ([]*advisory_m
 		if login = strings.TrimSpace(login); login == "" {
 			continue
 		}
-		u, err := user_model.GetUserByName(ctx, login)
+		user, err := user_model.GetUserByName(ctx, login)
 		if user_model.IsErrUserNotExist(err) {
 			return nil, errCannotCredit(login)
 		} else if err != nil {
 			return nil, err
 		}
-		c := &advisory_model.Credit{UserID: u.ID}
+		credit := &advisory_model.Credit{UserID: user.ID}
 		if i < len(types) {
-			c.Type = types[i]
+			credit.Type = types[i]
 		}
-		credits = append(credits, c)
+		credits = append(credits, credit)
 	}
 	return credits, nil
 }
 
-// RepoAndOrgLabels returns the labels which can be assigned to the advisories of a repository
 func RepoAndOrgLabels(ctx context.Context, repo *repo_model.Repository) ([]*issues_model.Label, error) {
 	if err := repo.LoadOwner(ctx); err != nil {
 		return nil, err
@@ -259,51 +230,43 @@ func RepoAndOrgLabels(ctx context.Context, repo *repo_model.Repository) ([]*issu
 	return append(labels, orgLabels...), err
 }
 
-// resolveLabels keeps unchanged labels even if they have become invalid, e.g. by making a scope exclusive
-func resolveLabels(ctx context.Context, a *advisory_model.Advisory, ids []int64) ([]*issues_model.Label, error) {
-	if maps.Equal(container.SetOf(ids...), container.SetOf(labelIDs(a.Labels)...)) {
-		return a.Labels, nil
+func resolveLabels(ctx context.Context, advisory *advisory_model.Advisory, ids []int64) ([]*issues_model.Label, error) {
+	wanted := container.SetOf(ids...)
+	if maps.Equal(wanted, container.SetOf(labelIDs(advisory.Labels)...)) {
+		return advisory.Labels, nil // A label scope can become exclusive after labels were assigned.
 	}
-	return validateLabels(ctx, a, ids)
-}
-
-// validateLabels allows the labels of the repository and its organization with at most one label per exclusive scope,
-// other labels are reported as unknown to not reveal their names
-func validateLabels(ctx context.Context, a *advisory_model.Advisory, ids []int64) ([]*issues_model.Label, error) {
 	if len(ids) > maxListLength {
 		return nil, util.NewInvalidArgumentErrorf("at most %d labels are allowed", maxListLength)
 	}
-	if err := a.LoadRepo(ctx); err != nil {
+	if err := advisory.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
-	labels, err := RepoAndOrgLabels(ctx, a.Repo)
+	labels, err := RepoAndOrgLabels(ctx, advisory.Repo)
 	if err != nil {
 		return nil, err
 	}
-	wanted := container.SetOf(ids...)
-	labels = slices.DeleteFunc(labels, func(l *issues_model.Label) bool { return !wanted.Contains(l.ID) })
+	labels = slices.DeleteFunc(labels, func(label *issues_model.Label) bool { return !wanted.Contains(label.ID) })
 	if len(labels) != len(wanted) {
 		return nil, util.NewInvalidArgumentErrorf("unknown label")
 	}
 	scopes := make(container.Set[string])
-	for _, l := range labels {
-		if scope := l.ExclusiveScope(); scope != "" && !scopes.Add(scope) {
+	for _, label := range labels {
+		if scope := label.ExclusiveScope(); scope != "" && !scopes.Add(scope) {
 			return nil, util.NewInvalidArgumentErrorf("only one label of the scope %q is allowed", scope)
 		}
 	}
 	return labels, nil
 }
 
-// LabelIDsByNames prefers repository labels over organization labels of the same name
 func LabelIDsByNames(ctx context.Context, repo *repo_model.Repository, names []string) (ids []int64, allFound bool, err error) {
 	labels, err := RepoAndOrgLabels(ctx, repo)
 	if err != nil {
 		return nil, false, err
 	}
 	byName := make(map[string]int64, len(labels))
-	for _, l := range labels {
-		if _, ok := byName[l.Name]; !ok { // the repository labels come first
-			byName[l.Name] = l.ID
+	for _, label := range labels {
+		if _, ok := byName[label.Name]; !ok { // the repository labels come first
+			byName[label.Name] = label.ID
 		}
 	}
 	for _, name := range names {
@@ -316,63 +279,24 @@ func LabelIDsByNames(ctx context.Context, repo *repo_model.Repository, names []s
 	return ids, true, nil
 }
 
-type cvssScores struct {
-	severity      advisory_model.Severity
-	v3Vector      string
-	v3ScoreTenths int
-	v4Vector      string
-	v4ScoreTenths int
-}
-
-// parseCVSS returns nil for an empty vector
-func parseCVSS(vector string, version cvss.Version) (*cvss.Result, error) {
-	if strings.TrimSpace(vector) == "" {
-		return nil, nil //nolint:nilnil // no vector of this version
-	}
-	r, err := cvss.Parse(vector)
-	if err != nil {
-		return nil, err
-	}
-	if r.Version != version {
-		return nil, util.NewInvalidArgumentErrorf("only one CVSS vector per version is allowed")
-	}
-	if len(r.Vector) > maxFieldLength {
-		return nil, util.NewInvalidArgumentErrorf("CVSS vector is too long")
-	}
-	return r, nil
-}
-
-// scoreSeverity derives the severity from the CVSS vectors, CVSS 4.0 takes precedence, a manual severity is only allowed without vectors
-func scoreSeverity(opts *ContentOptions) (res cvssScores, err error) {
-	v3, err := parseCVSS(opts.CvssV3Vector, cvss.Version31)
-	if err != nil {
-		return res, err
-	}
-	v4, err := parseCVSS(opts.CvssV4Vector, cvss.Version40)
-	if err != nil {
-		return res, err
-	}
-	var v3Rating, v4Rating string
-	if v3 != nil {
-		res.v3Vector, res.v3ScoreTenths, v3Rating = v3.Vector, int(math.Round(v3.Score*10)), v3.Rating
-	}
-	if v4 != nil {
-		res.v4Vector, res.v4ScoreTenths, v4Rating = v4.Vector, int(math.Round(v4.Score*10)), v4.Rating
-	}
-
-	severity := strings.TrimSpace(opts.Severity)
-	if rating := cmp.Or(v4Rating, v3Rating); rating != "" {
-		if severity != "" {
-			return res, util.NewInvalidArgumentErrorf("severity cannot be set together with a CVSS vector")
+func scoreSeverity(manualSeverity, vector string) (advisory_model.Severity, string, int, error) {
+	manualSeverity, vector = strings.TrimSpace(manualSeverity), strings.TrimSpace(vector)
+	if vector == "" {
+		severity := advisory_model.ParseSeverity(manualSeverity)
+		if manualSeverity != "" && severity == advisory_model.SeverityUnknown {
+			return 0, "", 0, util.NewInvalidArgumentErrorf("invalid severity %q", manualSeverity)
 		}
-		res.severity = advisory_model.ParseSeverity(rating) // a score of 0 is rated "none", which has no severity like on GitHub
-		return res, nil
+		return severity, "", 0, nil
 	}
-	if severity == "" {
-		return res, nil
+	if manualSeverity != "" {
+		return 0, "", 0, util.NewInvalidArgumentErrorf("severity cannot be set together with a CVSS vector")
 	}
-	if res.severity = advisory_model.ParseSeverity(severity); res.severity == advisory_model.SeverityUnknown {
-		return res, util.NewInvalidArgumentErrorf("invalid severity %q", severity)
+	if len(vector) > maxFieldLength {
+		return 0, "", 0, util.NewInvalidArgumentErrorf("CVSS vector is too long")
 	}
-	return res, nil
+	score, err := cvss.Parse(vector)
+	if err != nil {
+		return 0, "", 0, err
+	}
+	return advisory_model.ParseSeverity(score.Rating), score.Vector, int(math.Round(score.Score * 10)), nil // Match GitHub's empty severity for a score of zero.
 }
