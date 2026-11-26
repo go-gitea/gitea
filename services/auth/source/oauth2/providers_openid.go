@@ -5,6 +5,7 @@ package oauth2
 
 import (
 	"html/template"
+	"slices"
 
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -37,11 +38,20 @@ func (o *OpenIDProvider) IconHTML(size int) template.HTML {
 }
 
 // CreateGothProvider creates a GothProvider from this Provider
-func (o *OpenIDProvider) CreateGothProvider(providerName, callbackURL string, source *Source) (goth.Provider, error) {
-	scopes := setting.OAuth2Client.OpenIDConnectScopes
-	if len(scopes) == 0 {
-		scopes = append(scopes, source.Scopes...)
+// mergeOIDCScopes keeps the configured baseline scopes and adds the ones set on
+// the authentication source, without mutating the shared config slice.
+func mergeOIDCScopes(global, source []string) []string {
+	scopes := slices.Clone(global)
+	for _, scope := range source {
+		if !slices.Contains(scopes, scope) {
+			scopes = append(scopes, scope)
+		}
 	}
+	return scopes
+}
+
+func (o *OpenIDProvider) CreateGothProvider(providerName, callbackURL string, source *Source) (goth.Provider, error) {
+	scopes := mergeOIDCScopes(setting.OAuth2Client.OpenIDConnectScopes, source.Scopes)
 
 	provider, err := openidConnect.New(source.ClientID, source.ClientSecret, callbackURL, source.OpenIDConnectAutoDiscoveryURL, scopes...)
 	if err != nil {
