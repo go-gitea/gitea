@@ -2,7 +2,7 @@
 import {computed, nextTick, shallowRef, useTemplateRef, watch} from 'vue';
 import SvgIcon from './SvgIcon.vue';
 import {createTippy, getAttachedTippyInstance} from '../modules/tippy.ts';
-import {TrSlots} from '../modules/i18n.ts';
+import {trSlots} from '../modules/i18n.ts';
 
 type MergeStyle = {
   name: string,

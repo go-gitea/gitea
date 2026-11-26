@@ -1,4 +1,4 @@
-import type {FunctionalComponent} from 'vue';
+import type {Slots} from 'vue';
 import {getCurrentLocale} from '../utils.ts';
 
 /** frontend `Locale.TrN`: pick the `_1` or `_n` form for `count` and interpolate `%d` */
@@ -7,8 +7,8 @@ export function trN(count: number, form1: string, formN: string, {lang = getCurr
   return trString(text, String(count));
 }
 
+/** Replace placeholders via `getArg`, mostly like backend TrString */
 function trParts<T>(s: string, getArg: (argNum: number) => T | undefined): Array<string | T> {
-  // the same behavior (almost) as backend TrString
   let curIdx = 0;
   return s.split(/(%%|%(?:\[[1-9]\d*\])?[sd])/).map((part, index) => {
     if (index % 2 === 0) return part;
@@ -17,13 +17,12 @@ function trParts<T>(s: string, getArg: (argNum: number) => T | undefined): Array
   });
 }
 
-/**
- * Fills variables in a translated string (like TrString in Golang)
- * Only `%s`, `%d` or one-based position like `%[1]s` are supported.
- */
+/** Fill `%s`, `%d` and `%[1]s` placeholders, like backend TrString */
 export function trString(s: string, ...args: Array<string | number>) {
   return trParts(s, (argNum) => args[argNum - 1]).join('');
 }
 
-/** `trString` as a Vue component, slot N fills argument N, so arguments can be elements (like Tr in Golang) */
-export const TrSlots: FunctionalComponent<{text: string}> = ({text}, {slots}) => trParts(text, (argNum) => slots[argNum]?.());
+/** Component form of trString, slot N fills placeholder N */
+export function trSlots({text}: {text: string}, {slots}: {slots: Slots}) {
+  return trParts(text, (argNum) => slots[argNum]?.());
+}
