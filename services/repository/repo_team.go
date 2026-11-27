@@ -98,42 +98,36 @@ func AddAllRepositoriesToTeam(ctx context.Context, t *organization.Team) error {
 	return nil
 }
 
-// RemoveSpecifiedRepositoriesFromTeam removes all repositories from team and recalculates access,
-// ignored if the team includes all repositories
+// RemoveSpecifiedRepositoriesFromTeam removes all repositories from team and recalculates access, ignored if the team includes all repositories
 func RemoveSpecifiedRepositoriesFromTeam(ctx context.Context, t *organization.Team) error {
 	if t.IncludesAllRepositories {
 		return nil
 	}
-	return ClearTeamRepositories(ctx, t)
+	return RemoveAllRepositoriesFromTeam(ctx, t)
 }
 
-// ClearTeamRepositories removes all repositories from team and recalculates access, regardless of IncludesAllRepositories
-func ClearTeamRepositories(ctx context.Context, t *organization.Team) (err error) {
-	var removed repo_model.RepositoryList
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		var err error
-		removed, err = repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{TeamID: t.ID})
+// RemoveAllRepositoriesFromTeam removes all repositories from team and recalculates access, regardless of IncludesAllRepositories
+func RemoveAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) error {
+	removed, err := db.WithTx2(ctx, func(ctx context.Context) (repo_model.RepositoryList, error) {
+		removed, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{TeamID: t.ID})
 		if err != nil {
-			return fmt.Errorf("GetTeamRepositories: %w", err)
+			return nil, fmt.Errorf("GetTeamRepositories: %w", err)
 		}
-		return removeAllRepositoriesFromTeam(ctx, t)
-	}); err != nil {
+		return removed, removeAllRepositoriesFromTeam(ctx, t)
+	})
+	if err != nil {
 		return err
 	}
-
 	for _, repo := range removed {
 		audit.Record(ctx, audit_model.RepositoryCollaboratorTeamRemove, repo, "team", t.Name)
 	}
-
 	return nil
 }
 
 // removeAllRepositoriesFromTeam removes all repositories from team and recalculates access
 func removeAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) (err error) {
-	e := db.GetEngine(ctx)
-	repos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
-		TeamID: t.ID,
-	})
+	sess := db.GetEngine(ctx)
+	repos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{TeamID: t.ID})
 	if err != nil {
 		return fmt.Errorf("GetTeamRepositories: %w", err)
 	}
@@ -165,14 +159,13 @@ func removeAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) (e
 	}
 
 	// Delete team-repo
-	if _, err := e.
-		Where("team_id=?", t.ID).
-		Delete(new(organization.TeamRepo)); err != nil {
+	_, err = sess.Where("team_id=?", t.ID).Delete(new(organization.TeamRepo))
+	if err != nil {
 		return err
 	}
 
 	t.NumRepos = 0
-	if _, err = e.ID(t.ID).Cols("num_repos").Update(t); err != nil {
+	if _, err = sess.ID(t.ID).Cols("num_repos").Update(t); err != nil {
 		return err
 	}
 
