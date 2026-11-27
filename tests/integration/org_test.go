@@ -312,6 +312,16 @@ func testTeamsPage(t *testing.T) {
 		assert.Equal(t, "limited", checked.AttrOr("value", ""))
 	})
 
+	t.Run("RenameOwnerTeam", func(t *testing.T) {
+		ownerTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 5})
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/org/%s/teams/%s/edit", org.Name, ownerTeam.LowerName), map[string]string{"team_name": "Admins"})
+		ownerSession.MakeRequest(t, req, http.StatusSeeOther)
+		assert.Equal(t, []string{"Admins", "review_team", "test_team"}, listTeams(t, ownerSession, ""))
+		renamed, err := organization.GetOwnerTeam(t.Context(), org.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, ownerTeam.ID, renamed.ID)
+	})
+
 	t.Run("Pagination", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.UI.MembersPagingNum, 2)()
 		assert.Len(t, listTeams(t, ownerSession, "?page=1"), 2)

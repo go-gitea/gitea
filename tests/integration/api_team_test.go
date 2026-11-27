@@ -259,9 +259,18 @@ func TestAPITeam(t *testing.T) {
 		token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteOrganization)
 		teamURL := fmt.Sprintf("/api/v1/teams/%d", ownerTeam.ID)
 
-		req := NewRequestWithJSON(t, "PATCH", teamURL, api.EditTeamOption{Name: "renamed"}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusUnprocessableEntity)
-		unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: ownerTeam.ID, Name: organization.OwnerTeamName})
+		// the owner team can be renamed and is still identified as the owner team
+		req := NewRequestWithJSON(t, "PATCH", teamURL, api.EditTeamOption{Name: "Admins"}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+		renamed, err := organization.GetOwnerTeam(t.Context(), ownerTeam.OrgID)
+		assert.NoError(t, err)
+		assert.Equal(t, ownerTeam.ID, renamed.ID)
+		assert.Equal(t, "Admins", renamed.Name)
+
+		// names must stay unique within the organization
+		otherTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{OrgID: ownerTeam.OrgID, Name: "test_team"})
+		req = NewRequestWithJSON(t, "PATCH", teamURL, api.EditTeamOption{Name: otherTeam.Name}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusConflict)
 
 		description := "owner team"
 		req = NewRequestWithJSON(t, "PATCH", teamURL, api.EditTeamOption{Name: organization.OwnerTeamName, Description: &description}).AddTokenAuth(token)

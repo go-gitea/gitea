@@ -12,10 +12,7 @@
 						{{template "base/alert" .}}
 						<div class="required field {{if .Err_TeamName}}error{{end}}">
 							<label for="team_name">{{ctx.Locale.Tr "org.team_name"}}</label>
-							{{if .Team.IsOwnerTeam}}
-								<input type="hidden" name="team_name" value="{{.Team.Name}}">
-							{{end}}
-							<input id="team_name" name="team_name" value="{{.Team.Name}}" required {{if .Team.IsOwnerTeam}}disabled{{end}} autofocus>
+							<input id="team_name" name="team_name" value="{{.Team.Name}}" required autofocus>
 							<span class="help">{{ctx.Locale.Tr "org.team_name_helper"}}</span>
 						</div>
 						<div class="field {{if .Err_Description}}error{{end}}">
