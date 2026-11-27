@@ -650,7 +650,6 @@ func TestUpdateLdapBindDn(t *testing.T) {
 		withConfig(&ldap.Source{AttributesInBind: true}, "--attributes-in-bind"),
 		// case 16
 		withConfig(&ldap.Source{AttributeSSHPublicKey: "publickey"}, "--public-ssh-key-attribute", "publickey"),
-		withConfig(&ldap.Source{AttributeGPGPublicKey: "gpgPublicKey"}, "--public-gpg-key-attribute", "gpgPublicKey"),
 		// case 17
 		withConfig(&ldap.Source{BindDN: "cn=readonly,dc=domain,dc=org"}, "--bind-dn", "cn=readonly,dc=domain,dc=org"),
 		// case 18
@@ -728,6 +727,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				},
 			},
 		},
+		// case 25
+		withConfig(&ldap.Source{AttributeGPGPublicKey: "gpgPublicKey"}, "--public-gpg-key-attribute", "  gpgPublicKey  "),
 	}
 
 	for n, c := range cases {
@@ -910,7 +911,6 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 		withConfig(&ldap.Source{AttributeMail: "mail"}, "--email-attribute", "mail"),
 		// case 15
 		withConfig(&ldap.Source{AttributeSSHPublicKey: "publickey"}, "--public-ssh-key-attribute", "publickey"),
-		withConfig(&ldap.Source{AttributeGPGPublicKey: "gpgPublicKey"}, "--public-gpg-key-attribute", "gpgPublicKey"),
 		// case 16
 		withConfig(
 			&ldap.Source{UserDN: "cn=%s,ou=Users,dc=domain,dc=org"},
@@ -971,6 +971,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				},
 			},
 		},
+		// case 21
+		withConfig(&ldap.Source{AttributeGPGPublicKey: "gpgPublicKey"}, "--public-gpg-key-attribute", "  gpgPublicKey  "),
 	}
 
 	for n, c := range cases {

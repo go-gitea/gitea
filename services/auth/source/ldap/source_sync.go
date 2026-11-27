@@ -7,7 +7,6 @@ import (
 	"context"
 	"strings"
 
-	asymkey_model "gitea.dev/models/asymkey"
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
@@ -240,10 +239,10 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 }
 
 func (source *Source) syncGPGKeys(ctx context.Context, user *user_model.User, keys []string) {
-	if strings.TrimSpace(source.AttributeGPGPublicKey) == "" || user.LoginSource != source.AuthSource.ID {
+	if !source.ProvidesGPGKeys() || user.LoginSource != source.AuthSource.ID {
 		return
 	}
-	if err := asymkey_model.SynchronizeGPGKeys(ctx, user.ID, source.AuthSource.ID, keys); err != nil {
+	if err := asymkey_service.SynchronizeGPGKeys(ctx, user, source.AuthSource.ID, keys); err != nil {
 		log.Error("Synchronize LDAP GPG keys for user %d from source %d: %v", user.ID, source.AuthSource.ID, err)
 	}
 }

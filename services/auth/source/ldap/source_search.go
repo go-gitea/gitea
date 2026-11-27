@@ -407,15 +407,14 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 	if isAttributeSSHPublicKeySet {
 		attribs = append(attribs, source.AttributeSSHPublicKey)
 	}
-	gpgAttribute := strings.TrimSpace(source.AttributeGPGPublicKey)
-	if gpgAttribute != "" {
-		attribs = append(attribs, gpgAttribute)
+	if source.ProvidesGPGKeys() {
+		attribs = append(attribs, source.AttributeGPGPublicKey)
 	}
 	if isAttributeAvatarSet {
 		attribs = append(attribs, source.AttributeAvatar)
 	}
 
-	log.Trace("Fetching attributes %v with filter %q and base %q", attribs, userFilter, userDN)
+	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v', '%v' with filter '%s' and base '%s'", source.AttributeUsername, source.AttributeName, source.AttributeSurname, source.AttributeMail, source.AttributeSSHPublicKey, source.AttributeAvatar, source.UserUID, userFilter, userDN)
 	search := ldap.NewSearchRequest(
 		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
 		attribs, nil)
@@ -483,7 +482,7 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 		Surname:      surname,
 		Mail:         mail,
 		SSHPublicKey: sshPublicKey,
-		GPGPublicKey: sr.Entries[0].GetEqualFoldAttributeValues(gpgAttribute),
+		GPGPublicKey: sr.Entries[0].GetEqualFoldAttributeValues(source.AttributeGPGPublicKey),
 		IsAdmin:      isAdmin,
 		IsRestricted: isRestricted,
 		Avatar:       Avatar,
@@ -526,15 +525,14 @@ func (source *Source) SearchEntries() ([]*SearchResult, error) {
 	if isAttributeSSHPublicKeySet {
 		attribs = append(attribs, source.AttributeSSHPublicKey)
 	}
-	gpgAttribute := strings.TrimSpace(source.AttributeGPGPublicKey)
-	if gpgAttribute != "" {
-		attribs = append(attribs, gpgAttribute)
+	if source.ProvidesGPGKeys() {
+		attribs = append(attribs, source.AttributeGPGPublicKey)
 	}
 	if isAttributeAvatarSet {
 		attribs = append(attribs, source.AttributeAvatar)
 	}
 
-	log.Trace("Fetching attributes %v with filter %q and base %q", attribs, userFilter, source.UserBase)
+	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v' with filter %s and base %s", source.AttributeUsername, source.AttributeName, source.AttributeSurname, source.AttributeMail, source.AttributeSSHPublicKey, source.AttributeAvatar, userFilter, source.UserBase)
 	search := ldap.NewSearchRequest(
 		source.UserBase, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
 		attribs, nil)
@@ -574,7 +572,7 @@ func (source *Source) SearchEntries() ([]*SearchResult, error) {
 			Name:         v.GetAttributeValue(source.AttributeName),
 			Surname:      v.GetAttributeValue(source.AttributeSurname),
 			Mail:         v.GetAttributeValue(source.AttributeMail),
-			GPGPublicKey: v.GetEqualFoldAttributeValues(gpgAttribute),
+			GPGPublicKey: v.GetEqualFoldAttributeValues(source.AttributeGPGPublicKey),
 			IsAdmin:      checkAdmin(l, source, v.DN),
 			Groups:       usersLdapGroups,
 		}

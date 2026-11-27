@@ -102,6 +102,10 @@ func (source *Source) ProvidesSSHKeys() bool {
 	return strings.TrimSpace(source.AttributeSSHPublicKey) != ""
 }
 
+func (source *Source) ProvidesGPGKeys() bool {
+	return source.AttributeGPGPublicKey != ""
+}
+
 func init() {
 	auth.RegisterTypeConfig(auth.LDAP, &Source{})
 	auth.RegisterTypeConfig(auth.DLDAP, &Source{})

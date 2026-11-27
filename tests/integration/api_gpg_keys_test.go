@@ -9,11 +9,17 @@ import (
 	"strconv"
 	"testing"
 
+	asymkey_model "gitea.dev/models/asymkey"
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
+	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/auth/source/ldap"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type makeRequestFunc func(testing.TB, *RequestWrapper, int) *httptest.ResponseRecorder
@@ -123,6 +129,32 @@ func TestGPGKeys(t *testing.T) {
 	})
 }
 
+func TestExternallyManagedGPGKey(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
+	source := &auth_model.Source{Type: auth_model.LDAP, Name: "GPG directory", Cfg: &ldap.Source{AttributeGPGPublicKey: "gpgPublicKey"}}
+	require.NoError(t, auth_model.CreateSource(t.Context(), source))
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
+	require.NoError(t, asymkey_service.SynchronizeGPGKeys(t.Context(), user, source.ID, []string{user2GPGPublicKey}))
+	key := unittest.AssertExistsAndLoadBean(t, &asymkey_model.GPGKey{KeyID: "38EA3BCED732982C", LoginSourceID: source.ID})
+	id := strconv.FormatInt(key.ID, 10)
+	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/settings/keys"), http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
+	assert.Equal(t, 1, doc.Find(`button[disabled][data-url$="type=gpg&id=`+id+`"]`).Length())
+	resp = session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user/settings/keys/delete", map[string]string{"type": "gpg", "id": id}), http.StatusBadRequest)
+	assert.Contains(t, resp.Body.String(), "externally managed")
+	remove := func(status int) {
+		MakeRequest(t, NewRequest(t, "DELETE", "/api/v1/user/gpg_keys/"+id).AddTokenAuth(token), status)
+	}
+	remove(http.StatusForbidden)
+	unittest.AssertExistsAndLoadBean(t, &asymkey_model.GPGKey{ID: key.ID})
+	source.Cfg = &ldap.Source{}
+	require.NoError(t, auth_model.UpdateSource(t.Context(), source))
+	remove(http.StatusNoContent)
+	unittest.AssertNotExistsBean(t, &asymkey_model.GPGKey{ID: key.ID})
+}
+
 func testViewOwnGPGKeys(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {
 	req := NewRequest(t, "GET", "/api/v1/user/gpg_keys").
 		AddTokenAuth(token)
@@ -178,9 +210,7 @@ INx/MmBfmtCq05FqNclvU+sj2R3N1JJOtBOjZrJHQbJhzoILou8AkxeX1A+q9OAz
 -----END PGP PUBLIC KEY BLOCK-----`)
 }
 
-func testCreateValidGPGKey(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {
-	// User2 <user2@example.com> //primary & activated
-	testCreateGPGKey(t, makeRequest, token, expected, `-----BEGIN PGP PUBLIC KEY BLOCK-----
+const user2GPGPublicKey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mQENBFmGVsMBCACuxgZ7W7rI9xN08Y4M7B8yx/6/I4Slm94+wXf8YNRvAyqj30dW
 VJhyBcnfNRDLKSQp5o/hhfDkCgdqBjLa1PnHlGS3PXJc0hP/FyYPD2BFvNMPpCYS
@@ -209,7 +239,11 @@ NKAE9N5EG3rbsZ33LzJj40rEKlzFSseAAPft8qA3IXjzFBx+PQXHMpNCagL79he6
 lqockTJ+oPmta4CF/J0U5LUr1tOZXheL3TP6m8d08gDrtn0YuGOPk87i9sJz+jR9
 uy6MA3VSB99SK9ducGmE1Jv8mcziREroz2TEGr0zPs6h
 =J59D
------END PGP PUBLIC KEY BLOCK-----`)
+-----END PGP PUBLIC KEY BLOCK-----`
+
+func testCreateValidGPGKey(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {
+	// User2 <user2@example.com> //primary & activated
+	testCreateGPGKey(t, makeRequest, token, expected, user2GPGPublicKey)
 }
 
 func testCreateValidSecondaryEmailGPGKey(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {

@@ -72,8 +72,9 @@ share the following fields:
   * The LDAP attribute containing ASCII-armored public GPG keys. Each key must
       include an active email address on the Gitea account.
   * Gitea reads the attribute at sign-in and during LDAP user synchronization.
-      Removing a key from LDAP removes the synchronized key from Gitea. Keys
-      added manually are preserved.
+      Changes to a certificate, including signing subkeys, are synchronized.
+      To remove a synchronized key, remove it from LDAP. Keys added manually
+      are preserved.
   * Make the attribute readable to the account used for LDAP searches.
 
 **LDAP via BindDN** adds the following fields:

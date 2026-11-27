@@ -266,17 +266,13 @@ func DeleteKey(ctx *context.Context) {
 			ctx.JSONError("gpg keys setting is not allowed to be visited")
 			return
 		}
-		key, err := asymkey_model.GetGPGKeyForUserByID(ctx, ctx.Doer.ID, ctx.FormInt64("id"))
-		if err != nil && !asymkey_model.IsErrGPGKeyNotExist(err) {
-			ctx.ServerErrorAuto(err)
+		if err := asymkey_service.DeleteGPGKey(ctx, ctx.Doer, ctx.FormInt64("id")); err != nil {
+			if errors.Is(err, asymkey_service.ErrGPGKeyExternallyManaged) {
+				ctx.JSONError(ctx.Tr("settings.gpg_externally_managed"))
+			} else {
+				ctx.JSONErrorAuto(err)
+			}
 			return
-		}
-		if err := asymkey_model.DeleteGPGKey(ctx, ctx.Doer, ctx.FormInt64("id")); err != nil {
-			ctx.JSONError("Failed to delete PGP key")
-			return
-		}
-		if key != nil {
-			audit.Record(ctx, audit_model.UserKeyGPGRemove, ctx.Doer, "gpg_key_id", key.KeyID)
 		}
 		ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
 	case "ssh":
@@ -344,6 +340,18 @@ func loadKeysData(ctx *context.Context) {
 		ctx.ServerErrorAuto(err)
 		return
 	}
+	externalGPGSources := make(map[int64]bool)
+	for _, key := range gpgkeys {
+		if _, ok := externalGPGSources[key.LoginSourceID]; ok {
+			continue
+		}
+		externalGPGSources[key.LoginSourceID], err = asymkey_service.SourceManagesGPGKeys(ctx, key.LoginSourceID)
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+	}
+	ctx.Data["ExternalGPGSources"] = externalGPGSources
 	ctx.Data["GPGKeys"] = gpgkeys
 	tokenToSign := asymkey_model.VerificationToken(ctx.Doer, 1)
 

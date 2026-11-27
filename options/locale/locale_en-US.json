@@ -739,6 +739,7 @@
   "settings.ssh_desc": "These public SSH keys are associated with your account. The corresponding private keys allow full access to your repositories.",
   "settings.principal_desc": "These SSH certificate principals are associated with your account and allow full access to your repositories.",
   "settings.gpg_desc": "These public GPG keys are associated with your account. Keep your private keys safe as they allow commits to be verified.",
+  "settings.gpg_externally_managed": "This GPG key is externally managed for this user",
   "settings.ssh_helper": "<strong>Need help?</strong> Have a look at GitHub's guide to <a href=\"%s\">create your own SSH keys</a> or solve <a href=\"%s\">common problems</a> you may encounter using SSH.",
   "settings.gpg_helper": "<strong>Need help?</strong> Have a look at GitHub's guide <a href=\"%s\">about GPG</a>.",
   "settings.add_new_key": "Add SSH Key",

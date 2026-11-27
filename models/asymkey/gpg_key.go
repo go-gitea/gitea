@@ -72,6 +72,7 @@ func PaddedKeyID(keyID string) string {
 type FindGPGKeyOptions struct {
 	db.ListOptions
 	OwnerID        int64
+	LoginSourceID  int64
 	KeyID          string
 	IncludeSubKeys bool
 }
@@ -88,6 +89,9 @@ func (opts FindGPGKeyOptions) ToConds() builder.Cond {
 
 	if opts.OwnerID != 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+	}
+	if opts.LoginSourceID > 0 {
+		cond = cond.And(builder.Eq{"login_source_id": opts.LoginSourceID})
 	}
 	if opts.KeyID != "" {
 		cond = cond.And(builder.Eq{"key_id": opts.KeyID})
@@ -210,19 +214,17 @@ func parseGPGKey(ctx context.Context, ownerID int64, e *openpgp.Entity, verified
 	}, nil
 }
 
-func deleteGPGKey(ctx context.Context, key *GPGKey) error {
-	if key.KeyID == "" {
-		return errors.New("empty KeyId forbidden")
+// deleteGPGKey does the actual key deletion
+func deleteGPGKey(ctx context.Context, keyID string) (int64, error) {
+	if keyID == "" {
+		return 0, errors.New("empty KeyId forbidden") // Should never happen but just to be sure
 	}
-	deleted, err := db.DeleteByID[GPGKey](ctx, key.ID)
-	if err != nil || deleted == 0 {
-		return err
+	// Delete imported key
+	n, err := db.GetEngine(ctx).Where("key_id=?", keyID).Delete(new(GPGKeyImport))
+	if err != nil {
+		return n, err
 	}
-	if _, err := db.GetEngine(ctx).ID(key.KeyID).Delete(new(GPGKeyImport)); err != nil {
-		return err
-	}
-	_, err = db.GetEngine(ctx).Where("owner_id=? AND primary_key_id=?", key.OwnerID, key.KeyID).Delete(new(GPGKey))
-	return err
+	return db.GetEngine(ctx).Where("key_id=?", keyID).Or("primary_key_id=?", keyID).Delete(new(GPGKey))
 }
 
 // DeleteGPGKey deletes GPG key information in database.
@@ -232,11 +234,12 @@ func DeleteGPGKey(ctx context.Context, doer *user_model.User, id int64) (err err
 		if IsErrGPGKeyNotExist(err) {
 			return nil
 		}
-		return fmt.Errorf("DeleteGPGKey: %w", err)
+		return fmt.Errorf("GetPublicKeyByID: %w", err)
 	}
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		return deleteGPGKey(ctx, key)
+		_, err = deleteGPGKey(ctx, key.KeyID)
+		return err
 	})
 }
 

@@ -159,3 +159,23 @@ func AddGPGKey(ctx context.Context, ownerID int64, content, token, signature str
 		return keys, nil
 	})
 }
+
+// StoreGPGKeyFromSource replaces the import and subkeys together when refreshing a managed certificate.
+func StoreGPGKeyFromSource(ctx context.Context, ownerID, sourceID int64, entity *openpgp.Entity, content string, existing *GPGKey) error {
+	key, err := parseGPGKey(ctx, ownerID, entity, existing != nil && existing.Verified)
+	if err != nil {
+		return err
+	}
+	key.LoginSourceID = sourceID
+	if existing != nil && (key.Content != existing.Content || existing.OwnerID != ownerID || existing.LoginSourceID != sourceID) {
+		return ErrGPGKeyIDAlreadyUsed{KeyID: key.KeyID}
+	}
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if existing != nil {
+			if _, err := deleteGPGKey(ctx, existing.KeyID); err != nil {
+				return err
+			}
+		}
+		return addGPGKey(ctx, key, content)
+	})
+}

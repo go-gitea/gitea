@@ -117,6 +117,10 @@ type SSHKeyProvider interface {
 	ProvidesSSHKeys() bool
 }
 
+type GPGKeyProvider interface {
+	ProvidesGPGKeys() bool
+}
+
 // RegisterableSource configurations provide RegisterSource which needs to be run on creation
 type RegisterableSource interface {
 	RegisterSource() error
