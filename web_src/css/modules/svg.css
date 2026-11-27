@@ -4,7 +4,6 @@
   display: inline-block;
   vertical-align: middle; /* middle is the best choice for different font sizes from 1px to 36px when no flex */
   fill: currentcolor;
-  overflow: visible; /* avoid glyphs being cut off like octicon-kebab-horizontal */
 }
 
 /* some browsers like Chrome have a bug: when a SVG is in a "display: none" container and referenced
