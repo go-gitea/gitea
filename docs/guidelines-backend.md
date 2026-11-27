@@ -113,6 +113,8 @@ Gitea uses Go's built-in HTML template engine which is dynamically & weakly type
 To make template code maintainable:
 
 - Go code should take over complex logic and prepare template data as much as possible, templates only render the data.
+- Compute permission checks in Go with the same function the handler enforces.
+- Prepare data for templates rendered by several handlers in one shared function.
 - Prefer struct types provided by Go code instead of map types for template data.
 - Avoid using single word names for non-local variables.
 - Avoid passing `"root" $` or `"." .` to sub-templates, instead pass the specific data needed by the sub-template.
