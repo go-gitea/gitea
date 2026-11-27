@@ -275,12 +275,12 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 
 	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
 	if runJob.Status == actions_model.StatusWaiting {
-		invalidRunsOn, jobsToCancel, err := admitJob(ctx, runJob, slots, checkRunsOn, evaluateConcurrency)
+		jobsToCancel, runsOnErr, err := admitJob(ctx, runJob, slots, checkRunsOn, evaluateConcurrency)
 		if err != nil {
 			return nil, nil, false, err
 		}
-		if invalidRunsOn != nil {
-			invalidKey, invalidErr = "runs-on", invalidRunsOn
+		if runsOnErr != nil {
+			invalidKey, invalidErr = "runs-on", runsOnErr
 		}
 		cancelledConcurrencyJobs = jobsToCancel
 	} else if runJob.RawConcurrency != "" && len(needs) == 0 && run.NeedApproval {

@@ -27,7 +27,7 @@ func TestAdmitJob(t *testing.T) {
 	}
 
 	first := newJob()
-	invalid, cancelled, err := admitJob(t.Context(), first, slots, nil, evaluate(first))
+	cancelled, invalid, err := admitJob(t.Context(), first, slots, nil, evaluate(first))
 	require.NoError(t, err)
 	require.NoError(t, invalid)
 	assert.Empty(t, cancelled)
@@ -36,7 +36,7 @@ func TestAdmitJob(t *testing.T) {
 
 	// the slot is taken: a starved job neither checks its runs-on nor evaluates its concurrency
 	starved := newJob()
-	invalid, _, err = admitJob(t.Context(), starved, slots, badRunsOn, evaluate(starved))
+	_, invalid, err = admitJob(t.Context(), starved, slots, badRunsOn, evaluate(starved))
 	require.NoError(t, err)
 	require.NoError(t, invalid)
 	assert.Equal(t, actions_model.StatusBlocked, starved.Status)
@@ -44,7 +44,7 @@ func TestAdmitJob(t *testing.T) {
 	assert.Equal(t, 1, evaluated)
 
 	failed := newJob()
-	invalid, _, err = admitJob(t.Context(), failed, maxParallelSlots{}, badRunsOn, evaluate(failed))
+	_, invalid, err = admitJob(t.Context(), failed, maxParallelSlots{}, badRunsOn, evaluate(failed))
 	require.NoError(t, err)
 	assert.ErrorContains(t, invalid, "bad runs-on")
 	assert.Equal(t, actions_model.StatusFailure, failed.Status)

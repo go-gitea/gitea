@@ -185,15 +185,15 @@ func invalidRunsOn(job *actions_model.ActionRunJob) error {
 // so it neither fails nor cancels its group peers. Otherwise checkRunsOn, if set, fails it with the returned error,
 // and its concurrency group and max-parallel decide whether it starts; evaluateConcurrency, if set, fills the group
 // of a job declaring one right before that check.
-func admitJob(ctx context.Context, job *actions_model.ActionRunJob, slots maxParallelSlots, checkRunsOn, evaluateConcurrency func() error) (invalidRunsOn error, cancelled []*actions_model.ActionRunJob, err error) {
+func admitJob(ctx context.Context, job *actions_model.ActionRunJob, slots maxParallelSlots, checkRunsOn, evaluateConcurrency func() error) (cancelled []*actions_model.ActionRunJob, runsOnErr, err error) {
 	if !slots.available(job) {
 		applyMaxParallel(job, slots)
 		return nil, nil, nil
 	}
 	if checkRunsOn != nil {
-		if invalidRunsOn = checkRunsOn(); invalidRunsOn != nil {
+		if runsOnErr = checkRunsOn(); runsOnErr != nil {
 			job.Status, job.Stopped = actions_model.StatusFailure, timeutil.TimeStampNow()
-			return invalidRunsOn, nil, nil
+			return nil, runsOnErr, nil
 		}
 	}
 	if evaluateConcurrency != nil && job.RawConcurrency != "" {
@@ -206,7 +206,7 @@ func admitJob(ctx context.Context, job *actions_model.ActionRunJob, slots maxPar
 		return nil, nil, fmt.Errorf("prepare to start job with concurrency: %w", err)
 	}
 	applyMaxParallel(job, slots)
-	return nil, cancelled, nil
+	return cancelled, nil, nil
 }
 
 func findJobNeedsAndFillJobResults(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*jobparser.JobResult, error) {

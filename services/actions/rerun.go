@@ -323,7 +323,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				}
 
 				if newJob.Status == actions_model.StatusWaiting {
-					_, jobsToCancel, err = admitJob(ctx, newJob, slots, nil, func() error {
+					jobsToCancel, _, err = admitJob(ctx, newJob, slots, nil, func() error {
 						return EvaluateJobConcurrencyFillModel(ctx, plan.run, newAttempt, newJob, vars, nil)
 					})
 					if err != nil {
