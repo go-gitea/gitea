@@ -180,6 +180,7 @@ func updateHookEvents(events []string) webhook_module.HookEvents {
 	hookEvents[webhook_module.HookEventStatus] = util.SliceContainsString(events, string(webhook_module.HookEventStatus), true)
 	hookEvents[webhook_module.HookEventWorkflowRun] = util.SliceContainsString(events, string(webhook_module.HookEventWorkflowRun), true)
 	hookEvents[webhook_module.HookEventWorkflowJob] = util.SliceContainsString(events, string(webhook_module.HookEventWorkflowJob), true)
+	hookEvents[webhook_module.HookEventMergeGroup] = util.SliceContainsString(events, string(webhook_module.HookEventMergeGroup), true)
 
 	// Issues
 	hookEvents[webhook_module.HookEventIssues] = issuesHook(events, "issues_only")

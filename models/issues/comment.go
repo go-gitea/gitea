@@ -121,6 +121,9 @@ const (
 	CommentTypeUnpin // 37 unpin Issue/PullRequest
 
 	CommentTypeChangeTimeEstimate // 38 Change time estimate
+
+	CommentTypePRAddedToMergeQueue
+	CommentTypePRRemovedFromMergeQueue
 )
 
 var commentStrings = []string{
@@ -163,6 +166,8 @@ var commentStrings = []string{
 	"pin",
 	"unpin",
 	"change_time_estimate",
+	"added_to_merge_queue",
+	"removed_from_merge_queue",
 }
 
 func (t CommentType) String() string {
@@ -1106,17 +1111,18 @@ func GetCommentWithRepoID(ctx context.Context, repoID, commentID int64) (*Commen
 // FindCommentsOptions describes the conditions to Find comments
 type FindCommentsOptions struct {
 	db.ListOptions
-	RepoID      int64
-	IssueID     int64
-	ReviewID    int64
-	Since       int64
-	Before      int64
-	Line        int64
-	TreePath    string
-	Type        CommentType
-	IssueIDs    []int64
-	Invalidated optional.Option[bool]
-	IsPull      optional.Option[bool]
+	RepoID       int64
+	IssueID      int64
+	ReviewID     int64
+	Since        int64
+	Before       int64
+	Line         int64
+	TreePath     string
+	Type         CommentType
+	ExcludeTypes []CommentType
+	IssueIDs     []int64
+	Invalidated  optional.Option[bool]
+	IsPull       optional.Option[bool]
 }
 
 func (opts FindCommentsOptions) ToOrders() string {
@@ -1145,6 +1151,9 @@ func (opts FindCommentsOptions) ToConds() builder.Cond {
 	}
 	if opts.Type != CommentTypeUndefined {
 		cond = cond.And(builder.Eq{"comment.type": opts.Type})
+	}
+	if len(opts.ExcludeTypes) > 0 {
+		cond = cond.And(builder.NotIn("comment.type", opts.ExcludeTypes))
 	}
 	if opts.Line != 0 {
 		cond = cond.And(builder.Eq{"comment.line": opts.Line})
@@ -1268,20 +1277,16 @@ func UpdateCommentsMigrationsByType(ctx context.Context, tp structs.GitServiceTy
 	return err
 }
 
-// CreateAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
-func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User, content string) (comment *Comment, err error) {
-	if typ != CommentTypePRScheduledToAutoMerge && typ != CommentTypePRUnScheduledToAutoMerge {
-		return nil, fmt.Errorf("comment type %d cannot be used to create an auto merge comment", typ)
-	}
-	if err = pr.LoadIssue(ctx); err != nil {
+func CreatePullRequestComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User, content string) (*Comment, error) {
+	if err := pr.LoadIssue(ctx); err != nil {
 		return nil, err
 	}
 
-	if err = pr.LoadBaseRepo(ctx); err != nil {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, err
 	}
 
-	comment, err = CreateComment(ctx, &CreateCommentOptions{
+	return CreateComment(ctx, &CreateCommentOptions{
 		Type:  typ,
 		Doer:  doer,
 		Repo:  pr.BaseRepo,
@@ -1289,8 +1294,24 @@ func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullReques
 
 		Content: content,
 	})
-	return comment, err
 }
+
+type MergeQueueRemovalReason string
+
+const (
+	MergeQueueRemovedByUser        MergeQueueRemovalReason = "dequeued"
+	MergeQueueRemovedChecksFailed  MergeQueueRemovalReason = "checks_failed"
+	MergeQueueRemovedChecksTimeout MergeQueueRemovalReason = "checks_timeout"
+	MergeQueueRemovedConflict      MergeQueueRemovalReason = "conflict"
+	MergeQueueRemovedHeadChanged   MergeQueueRemovalReason = "head_changed"
+	MergeQueueRemovedNotMergeable  MergeQueueRemovalReason = "not_mergeable"
+	MergeQueueRemovedClosed        MergeQueueRemovalReason = "closed"
+	MergeQueueRemovedMerged        MergeQueueRemovalReason = "merged"
+	MergeQueueRemovedAlreadyMerged MergeQueueRemovalReason = "already_merged"
+	MergeQueueRemovedBaseChanged   MergeQueueRemovalReason = "base_changed"
+	MergeQueueRemovedBaseDeleted   MergeQueueRemovalReason = "base_deleted"
+	MergeQueueRemovedCleared       MergeQueueRemovalReason = "queue_cleared"
+)
 
 // RemapExternalUser ExternalUserRemappable interface
 func (c *Comment) RemapExternalUser(externalName string, externalID, userID int64) error {

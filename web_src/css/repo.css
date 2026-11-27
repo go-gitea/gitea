@@ -996,6 +996,7 @@
   list-style: none;
   display: flex;
   gap: var(--gap-block);
+  overflow-wrap: anywhere;
 }
 
 #search-user-box .results .result .image {

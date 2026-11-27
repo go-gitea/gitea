@@ -32,6 +32,7 @@ const (
 	HookEventRelease                   HookEventType = "release"
 	HookEventPackage                   HookEventType = "package"
 	HookEventStatus                    HookEventType = "status"
+	HookEventMergeGroup                HookEventType = "merge_group"
 	// once a new event added here, please also added to AllEvents() function
 
 	// FIXME: This event should be a group of pull_request_review_xxx events
@@ -71,6 +72,7 @@ func AllEvents() []HookEventType {
 		HookEventStatus,
 		HookEventWorkflowRun,
 		HookEventWorkflowJob,
+		HookEventMergeGroup,
 	}
 }
 

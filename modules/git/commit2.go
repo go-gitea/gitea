@@ -7,7 +7,6 @@ import (
 	"context"
 	"strconv"
 	"strings"
-	"time"
 
 	"gitea.dev/modules/git/gitcmd"
 )
@@ -84,14 +83,4 @@ func AllCommitsCount(ctx context.Context, repo RepositoryFacade, hidePRRefs bool
 	}
 
 	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
-}
-
-// GetLatestCommitTime returns time for latest commit in repository (across all branches)
-func GetLatestCommitTime(ctx context.Context, repo RepositoryFacade) (time.Time, error) {
-	stdout, _, err := gitcmd.NewCommand("for-each-ref", "--sort=-committerdate", BranchPrefix, "--count", "1", "--format=%(committerdate)").WithRepo(repo).RunStdString(ctx)
-	if err != nil {
-		return time.Time{}, err
-	}
-	commitTime := strings.TrimSpace(stdout)
-	return time.Parse("Mon Jan _2 15:04:05 2006 -0700", commitTime)
 }
