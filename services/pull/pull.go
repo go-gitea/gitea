@@ -400,17 +400,12 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 // RemoveScheduledAutoMerge cancels a previously scheduled pull request
 func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, reason string) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		exists, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
-		if err != nil || !exists {
+		if n, err := pull_model.DeleteScheduledAutoMerge(ctx, pull.ID); err != nil {
 			return err
-		}
-		if _, err := pull_model.DeleteScheduledAutoMerge(ctx, pull.ID); err != nil {
-			return err
-		}
-		if autoMerge.IsCanceled() { // already disabled by the failed merge
+		} else if n == 0 {
 			return nil
 		}
-		_, err = issues_model.CreatePullRequestComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer, reason)
+		_, err := issues_model.CreatePullRequestComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer, reason)
 		return err
 	})
 }

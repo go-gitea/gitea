@@ -107,6 +107,30 @@ func CancelScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *
 	return pull_service.RemoveScheduledAutoMerge(ctx, doer, pull, "")
 }
 
+func disableAutoMergeIfHookRejected(ctx context.Context, gitRepo *git.Repository, pr *issues_model.PullRequest, autoMerge *pull_model.AutoMerge, headCommitID string, mergeErr error) error {
+	rejected, ok := errors.AsType[*git.ErrPushRejected](mergeErr)
+	if !ok || !rejected.HookDeclined() || strings.Contains(rejected.Message, "Internal Server") {
+		return nil // Gitea's internal hook failures pass on retry
+	}
+	if currentHeadCommitID, err := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName()); err != nil || currentHeadCommitID != headCommitID {
+		return err
+	}
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if deleted, err := db.DeleteByID[pull_model.AutoMerge](ctx, autoMerge.ID); err != nil || deleted == 0 {
+			return err
+		}
+		_, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
+			Type:                issues_model.CommentTypePRUnScheduledToAutoMerge,
+			Doer:                autoMerge.Doer,
+			Repo:                pr.BaseRepo,
+			Issue:               pr.Issue,
+			Content:             "push_rejected",
+			PushRejectedMessage: util.TruncateRunes(rejected.Message, 4096),
+		})
+		return err
+	})
+}
+
 var errSkipAutoMerge = errors.New("skip auto merge")
 
 func handleAutoMergeItem(item automergequeue.AutoMergeItem) {
@@ -135,14 +159,6 @@ func handleAutoMergeItem(item automergequeue.AutoMergeItem) {
 	}
 }
 
-// mergeErrorMessage returns what the pull request page may show for a failed merge, other errors can contain server paths
-func mergeErrorMessage(err error) string {
-	if pushRejectedErr, ok := errors.AsType[*git.ErrPushRejected](err); ok && pushRejectedErr.Message != "" {
-		return pushRejectedErr.Message
-	}
-	return "Internal error, see the server logs for details."
-}
-
 // handlePullRequestAutoMerge merge the pull request if all checks are successful
 func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullRequest, expectedHeadCommitID string) error {
 	_ = pr.LoadIssue(ctx)
@@ -167,9 +183,6 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 	}
 	if !exists {
 		return errors.Join(errSkipAutoMerge, errors.New("pull request doesn't exist"))
-	}
-	if scheduledPRM.IsCanceled() {
-		return errors.Join(errSkipAutoMerge, errors.New("auto merge was canceled after a failed merge"))
 	}
 
 	if err = pr.LoadBaseRepo(ctx); err != nil {
@@ -255,8 +268,8 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 		if pull_service.IsErrSHADoesNotMatch(err) {
 			return errors.Join(errSkipAutoMerge, err)
 		}
-		if updateErr := pull_model.UpdateScheduledAutoMergeError(ctx, pr.ID, mergeErrorMessage(err)); updateErr != nil {
-			log.Error("UpdateScheduledAutoMergeError: %v", updateErr)
+		if disableErr := disableAutoMergeIfHookRejected(ctx, baseGitRepo, pr, scheduledPRM, expectedHeadCommitID, err); disableErr != nil {
+			log.Error("disableAutoMergeIfHookRejected[%d]: %v", pr.ID, disableErr)
 		}
 		return fmt.Errorf("failed to merge PR:%d: %w", pr.ID, err)
 	}

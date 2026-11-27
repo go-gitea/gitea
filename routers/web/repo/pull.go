@@ -252,13 +252,13 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 type pullMergeBoxData struct {
 	ReloadingInterval int
 	IsMergeStateClean bool // mergeable now without bypass and every check passed, GitHub's "clean" merge state
+	HasPermToMerge    bool
 
 	StatusCheckData *pullCommitStatusCheckData
 
 	hasOverridableBlockers bool
 	canBypassProtection    bool
 	hasOpenDependencies    bool
-	hasPermToMerge         bool
 	mergeSigningError      error
 	mergeBlockers          []template.HTML
 
@@ -279,11 +279,10 @@ type pullMergeBoxData struct {
 	AutodetectManualMerge bool
 	IsPullBranchDeletable bool
 
-	ReviewSection          *pullMergeBoxSection
-	MergeSection           *pullMergeBoxSection
-	BlockedSection         *pullMergeBoxSection
-	WorkInProgressSection  *pullMergeBoxSection
-	AutoMergeFailedSection *pullMergeBoxSection
+	ReviewSection         *pullMergeBoxSection
+	MergeSection          *pullMergeBoxSection
+	BlockedSection        *pullMergeBoxSection
+	WorkInProgressSection *pullMergeBoxSection
 }
 
 func (d *pullMergeBoxData) addOverridableBlocker(info template.HTML) {

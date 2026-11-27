@@ -1942,7 +1942,7 @@
   "repo.pulls.auto_merge_disabled_reason.pushed_by_non_writer": "Head branch was pushed to by a user without write access",
   "repo.pulls.auto_merge_disabled_reason.base_changed": "Base branch was changed",
   "repo.pulls.auto_merge_disabled_reason.work_in_progress": "Pull request was marked as work in progress",
-  "repo.pulls.auto_merge_failed": "Auto-merge was disabled because the merge failed",
+  "repo.pulls.auto_merge_disabled_reason.push_rejected": "Merge was rejected by a Git hook",
   "repo.pulls.auto_merge_already_enabled": "Auto-merge is already enabled for this pull request.",
   "repo.pulls.merge_queue.added_comment": "added this pull request to the %[1]s %[2]s",
   "repo.pulls.merge_queue.removed_comment.dequeued": "removed this pull request from the %[1]s due to a manual request %[2]s",

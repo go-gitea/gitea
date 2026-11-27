@@ -4,6 +4,8 @@
 package automerge
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
@@ -12,6 +14,8 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/test"
 	"gitea.dev/services/automergequeue"
 	issue_service "gitea.dev/services/issue"
@@ -58,6 +62,24 @@ func TestAutoMergeDisabledOrCanceled(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.IssueID, Type: issues_model.CommentTypePRUnScheduledToAutoMerge, Content: "closed"})
 
 	require.NoError(t, issue_service.ReopenIssue(t.Context(), pr.Issue, writer, ""))
+	require.NoError(t, ScheduleAutoMerge(t.Context(), writer, pr, repo_model.MergeStyleMerge, "title", false))
+	pr.Status = issues_model.PullRequestStatusMergeable
+	hooks := t.TempDir()
+	rejectPushes := func(message string) {
+		require.NoError(t, os.WriteFile(filepath.Join(hooks, "pre-receive"), []byte("#!/bin/sh\necho '"+message+"' >&2\nexit 1\n"), 0o755))
+	}
+	require.NoError(t, git.ManagedConfigSet(t.Context(), pr.BaseRepo, "core.hooksPath", hooks))
+	defer func(repo *repo_model.Repository) {
+		require.NoError(t, gitcmd.NewCommand("config", "--unset", "core.hooksPath").WithRepo(repo).RunWithStderr(t.Context()))
+	}(pr.BaseRepo)
+	rejectPushes("error: Internal Server Error (no message for end users)")
+	require.ErrorContains(t, handlePullRequestAutoMerge(t.Context(), pr, pr.HeadCommitID), "Internal Server Error")
+	unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: pr.ID})
+	rejectPushes("invalid commit message")
+	require.ErrorContains(t, handlePullRequestAutoMerge(t.Context(), pr, pr.HeadCommitID), "invalid commit message")
+	unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: pr.ID})
+	assert.Equal(t, "invalid commit message", unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.IssueID, Type: issues_model.CommentTypePRUnScheduledToAutoMerge, Content: "push_rejected"}).CommentMetaData.PushRejectedMessage)
+
 	require.NoError(t, ScheduleAutoMerge(t.Context(), writer, pr, repo_model.MergeStyleMerge, "title", false))
 	require.NoError(t, issue_service.ChangeTitle(t.Context(), pr.Issue, writer, "WIP: "+pr.Issue.Title))
 	unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: pr.ID})

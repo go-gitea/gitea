@@ -26,17 +26,11 @@ type AutoMerge struct {
 	DeleteBranchAfterMerge bool
 	CreatedUnix            timeutil.TimeStamp `xorm:"created"`
 	MergedCommitID         string             `xorm:"VARCHAR(64)"`
-	ErrorMessage           string             `xorm:"LONGTEXT"` // why the merge attempt failed
 }
 
 // TableName return database table name for xorm
 func (AutoMerge) TableName() string {
 	return "pull_auto_merge"
-}
-
-// IsCanceled reports whether the merge attempt failed, the record is only kept to show the error
-func (am *AutoMerge) IsCanceled() bool {
-	return am.ErrorMessage != ""
 }
 
 func init() {
@@ -65,15 +59,10 @@ func IsErrAlreadyScheduledToAutoMerge(err error) bool {
 // ScheduleAutoMerge schedules a pull request to be merged when all checks succeed
 func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pullID int64, style repo_model.MergeStyle, message string, deleteBranchAfterMerge bool) error {
 	// Check if we already have a merge scheduled for that pull request
-	if exists, scheduledPRM, err := GetScheduledMergeByPullID(ctx, pullID); err != nil {
+	if exists, _, err := GetScheduledMergeByPullID(ctx, pullID); err != nil {
 		return err
 	} else if exists {
-		if !scheduledPRM.IsCanceled() {
-			return ErrAlreadyScheduledToAutoMerge{PullID: pullID}
-		}
-		if _, err := DeleteScheduledAutoMerge(ctx, pullID); err != nil {
-			return err
-		}
+		return ErrAlreadyScheduledToAutoMerge{PullID: pullID}
 	}
 
 	_, err := db.GetEngine(ctx).Insert(&AutoMerge{
@@ -125,11 +114,6 @@ func GetScheduledMergePullIDsSince(ctx context.Context, since timeutil.TimeStamp
 	var pullIDs []int64
 	err := db.GetEngine(ctx).Table(&AutoMerge{}).Where("created_unix >= ?", since).Cols("pull_id").Find(&pullIDs)
 	return pullIDs, err
-}
-
-func UpdateScheduledAutoMergeError(ctx context.Context, pullID int64, errorMessage string) error {
-	_, err := db.GetEngine(ctx).Where("pull_id = ?", pullID).Cols("error_message").Update(&AutoMerge{ErrorMessage: errorMessage})
-	return err
 }
 
 func DeleteScheduledAutoMerge(ctx context.Context, pullID int64) (int64, error) {

@@ -12,7 +12,6 @@ import (
 	"slices"
 	"sort"
 	"strconv"
-	"strings"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -27,7 +26,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/emoji"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/markdown"
@@ -875,12 +873,12 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 			ctx.ServerErrorAuto(err)
 			return
 		}
-		data.hasPermToMerge, err = pull_service.IsUserAllowedToMerge(ctx, pull, perm, ctx.Doer)
+		data.HasPermToMerge, err = pull_service.IsUserAllowedToMerge(ctx, pull, perm, ctx.Doer)
 		if err != nil {
 			ctx.ServerErrorAuto(err)
 			return
 		}
-		if !data.hasPermToMerge && perm.CanWrite(unit.TypeCode) {
+		if !data.HasPermToMerge && perm.CanWrite(unit.TypeCode) {
 			data.mergeBlockers = append(data.mergeBlockers, ctx.Locale.Tr("repo.pulls.no_merge_access"))
 		}
 
@@ -956,18 +954,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	if data.AutoMerge != nil && data.AutoMerge.IsCanceled() {
-		if data.hasPermToMerge {
-			data.AutoMergeFailedSection = &pullMergeBoxSection{StatusIcon: "octicon-x", StatusIconClass: "tw-bg-red", SectionTitle: ctx.Locale.Tr("repo.pulls.auto_merge_failed")}
-			for line := range strings.SplitSeq(data.AutoMerge.ErrorMessage, "\n") {
-				data.AutoMergeFailedSection.SectionDetails = append(data.AutoMergeFailedSection.SectionDetails, htmlutil.HTMLFormat("%s", line))
-			}
-		}
-		data.AutoMerge = nil
-	}
 	if data.AutoMerge != nil {
 		data.AutoMergeStyleName = trMergeStyleShortName(ctx.Locale, data.AutoMerge.MergeStyle)
-		data.CanCancelAutoMerge = ctx.IsSigned && (data.hasPermToMerge || ctx.Doer.ID == data.AutoMerge.DoerID || issue.IsPoster(ctx.Doer.ID))
+		data.CanCancelAutoMerge = ctx.IsSigned && (data.HasPermToMerge || ctx.Doer.ID == data.AutoMerge.DoerID || issue.IsPoster(ctx.Doer.ID))
 	}
 	prInfo.prepareMergeBoxFormProps(ctx, prConfig, ctx.Repo.GitRepo)
 

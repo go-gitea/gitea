@@ -3,7 +3,7 @@
 {{$queued := $mergeBoxData.IsQueued}}
 <div class="timeline-item comment pull-merge-box"
 	data-global-init="initRepoPullMergeBox"
-	{{if $queued}}data-pull-merge-queued{{end}}
+	data-pull-merge-schedule="{{if $queued}}queued{{else if $mergeBoxData.AutoMerge}}auto-merge{{end}}"
 	{{if $mergeBoxData.ReloadingInterval}}
 		data-pull-merge-box-reloading-interval="{{$mergeBoxData.ReloadingInterval}}"
 		data-pull-link="{{$issue.Link}}"
@@ -43,9 +43,6 @@
 					</button>
 					{{end}}
 				</div>
-			{{end}}
-			{{if $mergeBoxData.AutoMergeFailedSection}}
-				<div class="item">{{template "repo/issue/view_content/pull_merge_section" (dict "MergeBoxSection" $mergeBoxData.AutoMergeFailedSection)}}</div>
 			{{end}}
 			{{if or $mergeBoxData.AutoMerge $mergeBoxData.MergeFormProps $mergeBoxData.ShowPullCommands}}
 				<div class="item merge-box-footer tw-items-center tw-bg-box-header">

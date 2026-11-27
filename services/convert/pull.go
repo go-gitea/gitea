@@ -288,7 +288,7 @@ func toAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	} else if !pr.Issue.IsClosed {
 		if scheduled, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pr.ID); err != nil {
 			log.Error("GetScheduledMergeByPullID[%d]: %v", pr.ID, err)
-		} else if scheduled && !autoMerge.IsCanceled() {
+		} else if scheduled {
 			apiPullRequest.AutoMerge = toAPIAutoMerge(ctx, autoMerge)
 		}
 	}
@@ -506,7 +506,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 			apiPullRequest.Merged = pr.MergedUnix.AsTimePtr()
 			apiPullRequest.MergedCommitID = &pr.MergedCommitID
 			apiPullRequest.MergedBy = ToUser(ctx, pr.Merger, nil)
-		} else if autoMerge := autoMerges[pr.ID]; autoMerge != nil && !autoMerge.IsCanceled() {
+		} else if autoMerge := autoMerges[pr.ID]; autoMerge != nil {
 			apiPullRequest.AutoMerge = toAPIAutoMerge(ctx, autoMerge)
 		}
 

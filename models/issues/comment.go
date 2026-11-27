@@ -260,6 +260,8 @@ type CommentMetaData struct {
 	ProjectWorkflowEvent project_model.WorkflowEvent `json:"project_workflow_event,omitempty"`
 
 	SpecialDoerName SpecialDoerNameType `json:"special_doer_name,omitempty"` // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
+
+	PushRejectedMessage string `json:"push_rejected_message,omitempty"`
 }
 
 type projectWorkflowContextKey struct{}
@@ -872,6 +874,7 @@ func buildCreateCommentMetaData(ctx context.Context, opts *CreateCommentOptions)
 	if opts.SpecialDoerName != "" {
 		meta.SpecialDoerName = opts.SpecialDoerName
 	}
+	meta.PushRejectedMessage = opts.PushRejectedMessage
 	if meta == (CommentMetaData{}) {
 		return nil
 	}
@@ -1080,6 +1083,8 @@ type CreateCommentOptions struct {
 	IsForcePush        bool
 	Invalidated        bool
 	SpecialDoerName    SpecialDoerNameType // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
+
+	PushRejectedMessage string
 }
 
 // GetCommentByID returns the comment by given ID.

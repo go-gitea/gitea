@@ -94,6 +94,11 @@ func (err *ErrPushRejected) Unwrap() error {
 	return fmt.Errorf("%w - %s", err.Err, err.StdErr)
 }
 
+// HookDeclined reports whether a hook declined the push, unlike a ref update lost to a concurrent push
+func (err *ErrPushRejected) HookDeclined() bool {
+	return strings.Contains(err.StdErr, "hook declined")
+}
+
 // GenerateMessage generates the remote message from the stderr
 func (err *ErrPushRejected) GenerateMessage() {
 	// The stderr is like this:

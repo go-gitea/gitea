@@ -26,7 +26,7 @@ func (prInfo *pullRequestViewInfo) prepareQueuedMergeBox(ctx *context.Context) {
 	}
 	data := prInfo.MergeBoxData
 	data.IsQueued = true
-	data.CanDequeue = ctx.Doer != nil && (ctx.Doer.ID == prInfo.queueEntry.EnqueuerID || prInfo.issue.IsPoster(ctx.Doer.ID) || data.hasPermToMerge)
+	data.CanDequeue = ctx.Doer != nil && (ctx.Doer.ID == prInfo.queueEntry.EnqueuerID || prInfo.issue.IsPoster(ctx.Doer.ID) || data.HasPermToMerge)
 	queueLink := htmlutil.HTMLFormat(`<a href="%s">%s</a>`, data.MergeQueueLink, ctx.Tr("repo.pulls.merge_queue.link_text"))
 	detail := ctx.Tr("repo.pulls.merge_queue.next_up", queueLink)
 	if ahead := position - 1; ahead > 0 {

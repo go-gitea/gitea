@@ -674,6 +674,7 @@
 					<div class="detail flex-text-block">
 						<span class="comment-text-line">{{.RenderedContent}}</span>
 					</div>
+					{{with $message := and $.PullMergeBoxData $.PullMergeBoxData.HasPermToMerge $comment.CommentMetaData $comment.CommentMetaData.PushRejectedMessage}}<pre class="detail commit-body">{{$message}}</pre>{{end}}
 				{{else}}
 					{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
 					<span class="comment-text-line">
