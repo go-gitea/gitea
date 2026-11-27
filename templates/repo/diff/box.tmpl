@@ -89,8 +89,7 @@
 					{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
 					{{$isImage:= $file.IsBlobTypeImage}}
 					{{$isCsv := $file.IsBlobTypeCsv}}
-					{{$isRichDiff := and (ne $file.RichDiffLink "") (not $.PageIsWiki) ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
-					{{$showFileViewToggle := or $file.CanShowFileViewToggle $isRichDiff}}
+					{{$showFileViewToggle := $file.CanShowFileViewToggle}}
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.Repository.IsArchived) $.IsShowingAllCommits}}
 					<div class="diff-file-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if $file.ShouldBeHidden}}data-folded="true"{{end}}>
 						<div class="diff-file-header sticky-2nd-row ui top attached header">
@@ -131,8 +130,8 @@
 
 								{{if $showFileViewToggle}}
 									<div class="ui compact icon buttons" data-global-init="initDiffFileViewToggle">
-										<button type="button" class="ui tiny basic button file-view-toggle {{if $isRichDiff}}active{{end}}" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code"}}</button>
-										<button type="button" class="ui tiny basic button file-view-toggle {{if not $isRichDiff}}active{{end}}" data-toggle-selector="#diff-rendered-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_rendered"}}">{{svg "octicon-file"}}</button>
+										<button type="button" class="ui tiny basic button file-view-toggle {{if $file.RichDiffLink}}active{{end}}" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code"}}</button>
+										<button type="button" class="ui tiny basic button file-view-toggle {{if not $file.RichDiffLink}}active{{end}}" data-toggle-selector="#diff-rendered-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_rendered"}}">{{svg "octicon-file"}}</button>
 									</div>
 								{{end}}
 								{{if $file.IsProtected}}
@@ -149,7 +148,7 @@
 								{{if not $file.IsSubmodule}}
 									<button type="button" class="btn tw-p-1" data-global-init="initDiffHeaderPopupMenu">{{svg "octicon-kebab-horizontal" 18}}</button>
 									<div class="tippy-target">
-										{{if or $isRichDiff (not (or $file.IsIncomplete $file.IsBin))}}
+										{{if not (or $file.IsIncomplete $file.IsBin)}}
 											<button type="button" class="unescape-button item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
 											<button type="button" class="escape-button tw-hidden item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 										{{end}}
@@ -168,8 +167,8 @@
 								{{end}}
 							</div>
 						</div>
-						<div class="diff-file-body ui attached unstackable table segment" {{if and $file.IsViewed $.IsShowingAllCommits}}data-folded="true"{{end}}>
-							<div id="diff-source-{{$file.NameHash}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if and $showFileViewToggle (not $isRichDiff)}} tw-hidden{{end}}">
+						<div class="diff-file-body unicode-escaped ui attached unstackable table segment" {{if and $file.IsViewed $.IsShowingAllCommits}}data-folded="true"{{end}}>
+							<div id="diff-source-{{$file.NameHash}}" class="file-body file-code code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if and $showFileViewToggle (not $file.RichDiffLink)}} tw-hidden{{end}}">
 								{{if or $file.IsIncomplete $file.IsBin}}
 									<div class="tw-p-3">
 										{{if $file.IsIncomplete}}
@@ -206,8 +205,8 @@
 									<div class="tw-p-3">{{ctx.Locale.Tr "repo.diff.file_whitespace_only_changes"}}</div>
 								{{end}}
 							</div>
-							{{if $isRichDiff}}
-								<div id="diff-rendered-{{$file.NameHash}}" class="file-body unicode-escaped tw-hidden">
+							{{if $file.RichDiffLink}}
+								<div id="diff-rendered-{{$file.NameHash}}" class="file-body tw-hidden">
 									<div class="is-loading tw-py-8" data-rich-diff-link="{{$file.RichDiffLink}}"></div>
 								</div>
 							{{else if $showFileViewToggle}}

@@ -23,7 +23,7 @@ function initDiffFileViewToggle(el: HTMLElement) {
     queryElemSiblings(btn, '.file-view-toggle', (el) => el.classList.remove('active'));
     btn.classList.add('active');
 
-    const target = btn.closest('.diff-file-box')!.querySelector(btn.getAttribute('data-toggle-selector')!);
+    const target = document.querySelector(btn.getAttribute('data-toggle-selector')!);
     if (!target) throw new Error('Target element not found');
 
     hideElem(queryElemSiblings(target));
@@ -214,7 +214,7 @@ async function onLocationHashChange() {
     const targetElement = document.querySelector<HTMLElement>(`#${CSS.escape(targetElementId)}`);
     if (targetElement) {
       const elHiddenView = targetElement.closest('.file-body.tw-hidden'); // e.g. a comment in the source view while rendered is shown
-      if (elHiddenView) elHiddenView.closest('.diff-file-box')!.querySelector<HTMLElement>(`.file-view-toggle[data-toggle-selector="#${CSS.escape(elHiddenView.id)}"]`)!.click();
+      if (elHiddenView) document.querySelector<HTMLElement>(`.file-view-toggle[data-toggle-selector="#${CSS.escape(elHiddenView.id)}"]`)!.click();
       // need to change hash to re-trigger ":target" CSS selector, let's manually scroll to it
       targetElement.scrollIntoView();
       document.body.setAttribute(attrAutoScrollRunning, 'true');

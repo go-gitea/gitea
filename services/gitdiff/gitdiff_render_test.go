@@ -146,6 +146,7 @@ func TestGetDiffForRenderRenamedFile(t *testing.T) {
 		MaxLines:          setting.Git.MaxGitDiffLines,
 		MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:          setting.Git.MaxGitDiffFiles,
+		EnableRichDiff:    true,
 	})
 	require.NoError(t, err)
 	require.Len(t, diff.Files, 3)

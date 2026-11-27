@@ -504,7 +504,7 @@ func (diffFile *DiffFile) GetType() int {
 }
 
 func (diffFile *DiffFile) CanShowFileViewToggle() bool {
-	return diffFile.IsBlobTypeImage || (diffFile.IsBlobTypeCsv && !diffFile.IsIncomplete && !diffFile.HasTruncatedLines)
+	return diffFile.IsBlobTypeImage || (diffFile.IsBlobTypeCsv && !diffFile.IsIncomplete && !diffFile.HasTruncatedLines) || diffFile.RichDiffLink != ""
 }
 
 type DiffRenderDetail struct {
@@ -513,7 +513,7 @@ type DiffRenderDetail struct {
 	leftContent, rightContent     *limitByteWriter
 }
 
-func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, repoLink string, gitRepo *git.Repository, leftCommit, rightCommit *git.Commit) (ret DiffRenderDetail) {
+func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, gitRepo *git.Repository, leftCommit, rightCommit *git.Commit) (ret DiffRenderDetail) {
 	if diffFile.IsLFSFile {
 		return ret
 	}
@@ -544,7 +544,6 @@ func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, repoLink 
 	diffFile.LeftBlobMimeType, diffFile.RightBlobMimeType = leftBlobType.GetMimeType(), rightBlobType.GetMimeType()
 	diffFile.IsBlobTypeImage = isFileTypeImage(leftBlobType) || isFileTypeImage(rightBlobType)
 	diffFile.IsBlobTypeCsv = isFileTypeCsv(diffFile.Name)
-	diffFile.RichDiffLink = diffFile.richDiffLink(repoLink, leftCommit, rightCommit)
 
 	if diffFile.IsBin || len(diffFile.Sections) == 0 || diffFile.Type != DiffFileChange {
 		return ret
@@ -1307,6 +1306,7 @@ type DiffOptions struct {
 	MaxLines          int
 	MaxLineCharacters int
 	MaxFiles          int
+	EnableRichDiff    bool
 }
 
 // prepareDiffCommits prepares the before and after commits for a diff operation based on the provided options.
@@ -1432,9 +1432,12 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 		diffFile.IsGenerated = isGenerated.Value()
 
 		// prepare more details for the rendering, e.g.: blob (file) size, type, limited content to highlight, etc
-		renderDetail := diffFile.prepareDiffRenderDetail(ctx, repoLink, gitRepo, beforeCommit, afterCommit)
+		renderDetail := diffFile.prepareDiffRenderDetail(ctx, gitRepo, beforeCommit, afterCommit)
 		if renderDetail.needTailSection {
 			diffFile.addTailSection(renderDetail)
+		}
+		if opts.EnableRichDiff {
+			diffFile.RichDiffLink = diffFile.richDiffLink(repoLink, beforeCommit, afterCommit)
 		}
 
 		// only do highlight for text files which have no custom diff command
