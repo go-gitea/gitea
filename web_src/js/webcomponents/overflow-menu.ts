@@ -7,6 +7,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
   overflowItems: Array<HTMLElement> = [];
   button: HTMLButtonElement | null = null;
   menuItemsEl!: HTMLElement;
+  controlsEl: HTMLElement | null = null;
   resizeObserver!: ResizeObserver;
   mutationObserver!: MutationObserver;
   lastWidth!: number;
@@ -113,7 +114,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     itemFlexSpace?.style.setProperty('display', 'none', 'important');
     itemOverFlowMenuButton?.style.setProperty('display', 'none', 'important');
     this.overflowItems = [];
-    const menuRight = this.offsetLeft + this.offsetWidth;
+    const menuRight = this.offsetLeft + this.offsetWidth - (this.controlsEl?.offsetWidth ?? 0);
     const menuItems = this.menuItemsEl.querySelectorAll<HTMLElement>('.item, .item-flex-space');
     let afterFlexSpace = false;
     for (const [idx, item] of menuItems.entries()) {
@@ -207,19 +208,19 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
 
     // ResizeObserver triggers on initial render, so we don't manually call `updateItems` here which
     // also avoids a full-page FOUC in Firefox that happens when `updateItems` is called too soon.
-    this.resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const newWidth = entry.contentBoxSize[0].inlineSize;
-        if (newWidth !== this.lastWidth) {
-          requestAnimationFrame(() => {
-            this.updateItems();
-            this.setAttribute('data-ready', ''); // reveal via CSS [data-ready]
-          });
-          this.lastWidth = newWidth;
-        }
+    this.controlsEl = this.querySelector(':scope > .overflow-menu-controls');
+    this.resizeObserver = new ResizeObserver(() => {
+      const newWidth = this.offsetWidth - (this.controlsEl?.offsetWidth ?? 0);
+      if (newWidth !== this.lastWidth) {
+        requestAnimationFrame(() => {
+          this.updateItems();
+          this.setAttribute('data-ready', ''); // reveal via CSS [data-ready]
+        });
+        this.lastWidth = newWidth;
       }
     });
     this.resizeObserver.observe(this);
+    if (this.controlsEl) this.resizeObserver.observe(this.controlsEl);
     this.handleItemClick(this, '.overflow-menu-items > .item');
   }
 

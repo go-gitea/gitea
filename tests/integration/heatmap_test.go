@@ -5,6 +5,7 @@ package integration
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -54,4 +55,17 @@ func TestHeatmapEndpoints(t *testing.T) {
 			assert.Contains(t, result, "totalContributions")
 		})
 	}
+
+	t.Run("FeedDivOnly", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		for link, hasItems := range map[string]bool{
+			"/?div-only=true": true,
+			"/user2?tab=activity&div-only=true&year=2020": true,
+			"/user2?tab=activity&div-only=true&year=2019": false,
+		} {
+			resp := session.MakeRequest(t, NewRequest(t, "GET", link), http.StatusOK)
+			assert.True(t, strings.HasPrefix(resp.Body.String(), `<div id="activity-feed"`), link)
+			assert.Equal(t, hasItems, NewHTMLParser(t, resp.Body).Find("#activity-feed > .item").Length() > 0, link)
+		}
+	})
 }
