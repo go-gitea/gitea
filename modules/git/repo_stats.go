@@ -5,8 +5,8 @@ package git
 
 import (
 	"bufio"
+	"bytes"
 	"context"
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -35,124 +35,127 @@ type CodeActivityAuthor struct {
 }
 
 // GetCodeActivityStats returns code statistics for activity page
-func (repo *Repository) GetCodeActivityStats(ctx context.Context, fromTime time.Time, branch string) (*CodeActivityStats, error) {
-	stats := &CodeActivityStats{}
-
-	since := fromTime.Format(time.RFC3339)
-
+func (repo *Repository) GetCodeActivityStats(ctx context.Context, fromTime time.Time, branchName string) (*CodeActivityStats, error) {
 	stdout, _, runErr := gitcmd.NewCommand("rev-list", "--count", "--no-merges", "--branches=*", "--date=iso").
-		AddOptionFormat("--since=%s", since).
+		AddOptionFormat("--since=%s", fromTime.Format(time.RFC3339)).
 		WithRepo(repo).
 		RunStdString(ctx)
 	if runErr != nil {
 		return nil, runErr
 	}
 
-	c, err := strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
+	commitCountInAllBranches, err := strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
 	if err != nil {
 		return nil, err
 	}
-	stats.CommitCountInAllBranches = c
 
-	gitCmd := gitcmd.NewCommand("log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso").
-		AddOptionFormat("--since=%s", since)
-	if len(branch) == 0 {
-		gitCmd.AddArguments("--branches=*")
-	} else {
-		gitCmd.AddArguments("--first-parent").AddDynamicArguments(branch)
-	}
-	if err := parseCodeActivityLog(ctx, repo, gitCmd, stats); err != nil {
+	cmd := prepareCodeActivityLogCmd(fromTime, branchName).AddArguments("--numstat").WithRepo(repo)
+	stats, err := parseCodeActivityLog(ctx, cmd)
+	if err != nil {
 		return nil, err
 	}
-
-	return stats, nil
+	stats.CommitCountInAllBranches = commitCountInAllBranches
+	return &stats, nil
 }
 
 // GetCodeActivityAuthors returns the authors of non-merge commits in all branches since fromTime, sorted by commit count
 func GetCodeActivityAuthors(ctx context.Context, repo RepositoryFacade, fromTime time.Time) ([]*CodeActivityAuthor, error) {
-	stats := &CodeActivityStats{}
-	gitCmd := gitcmd.NewCommand("log", "--no-merges", "--pretty=format:---%n%H%n%aN%n%aE%n", "--branches=*").
-		AddOptionFormat("--since=%s", fromTime.Format(time.RFC3339))
-	if err := parseCodeActivityLog(ctx, repo, gitCmd, stats); err != nil {
+	cmd := prepareCodeActivityLogCmd(fromTime, "").WithRepo(repo)
+	stats, err := parseCodeActivityLog(ctx, cmd)
+	if err != nil {
 		return nil, err
 	}
 	return stats.Authors, nil
 }
 
-func parseCodeActivityLog(ctx context.Context, repo RepositoryFacade, gitCmd *gitcmd.Command, stats *CodeActivityStats) error {
-	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
-	defer stdoutReaderClose()
-	err := gitCmd.
-		WithRepo(repo).
-		WithPipelineFunc(func(ctx gitcmd.Context) error {
-			scanner := bufio.NewScanner(stdoutReader)
-			scanner.Split(bufio.ScanLines)
-			stats.CommitCount = 0
-			stats.Additions = 0
-			stats.Deletions = 0
-			authors := make(map[string]*CodeActivityAuthor)
-			files := make(container.Set[string])
-			var author string
-			p := 0
-			for scanner.Scan() {
-				l := strings.TrimSpace(scanner.Text())
-				if l == "---" {
-					p = 1
-				} else if p == 0 {
-					continue
-				} else {
-					p++
-				}
-				if p > 4 && len(l) == 0 {
-					continue
-				}
-				switch p {
-				case 1: // Separator
-				case 2: // Commit sha-1
-					stats.CommitCount++
-				case 3: // Author
-					author = l
-				case 4: // E-mail
-					email := strings.ToLower(l)
-					if _, ok := authors[email]; !ok {
-						authors[email] = &CodeActivityAuthor{Name: author, Email: email, Commits: 0}
-					}
-					authors[email].Commits++
-				default: // Changed file
-					if parts := strings.SplitN(l, "\t", 3); len(parts) == 3 {
-						if parts[0] != "-" {
-							if c, err := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 64); err == nil {
-								stats.Additions += c
-							}
-						}
-						if parts[1] != "-" {
-							if c, err := strconv.ParseInt(strings.TrimSpace(parts[1]), 10, 64); err == nil {
-								stats.Deletions += c
-							}
-						}
-						files.Add(parts[2])
-					}
-				}
-			}
-			if err := scanner.Err(); err != nil {
-				return fmt.Errorf("parseCodeActivityLog scan: %w", err)
-			}
-			a := make([]*CodeActivityAuthor, 0, len(authors))
-			for _, v := range authors {
-				a = append(a, v)
-			}
-			// Sort authors descending depending on commit count
-			sort.Slice(a, func(i, j int) bool {
-				return a[i].Commits > a[j].Commits
-			})
-			stats.AuthorCount = int64(len(authors))
-			stats.ChangedFiles = int64(len(files))
-			stats.Authors = a
-			return nil
-		}).
-		RunWithStderr(ctx)
-	if err != nil {
-		return fmt.Errorf("parseCodeActivityLog: %w", err)
+const gitLogSep = ":::---:::" // should not conflict with any line of our git log output
+
+func prepareCodeActivityLogCmd(fromTime time.Time, branchName string) *gitcmd.Command {
+	cmd := gitcmd.NewCommand("log", "--no-merges", "--pretty=format:"+gitLogSep+"%n%h%n%aN%n%aE%n", "--date=iso").
+		AddOptionFormat("--since=%s", fromTime.Format(time.RFC3339))
+	if branchName == "" {
+		cmd.AddArguments("--branches=*")
+	} else {
+		cmd.AddArguments("--first-parent").AddDynamicArguments(branchName)
 	}
-	return nil
+	return cmd
+}
+
+func parseCodeActivityLog(ctx context.Context, gitCmd *gitcmd.Command) (stats CodeActivityStats, _ error) {
+	authors := make(map[string]*CodeActivityAuthor)
+	files := make(container.Set[string])
+
+	// output format is like this, see "man git-log" for details:
+	//
+	// ---
+	// 1234567890
+	// user-a
+	// email-a@example.com
+	//
+	// 1       0       README.md
+	//
+	// ---
+	// 1234abcd12
+	// user-b
+	// email-b@example.com
+	// ...
+
+	author := ""
+	subIdx := 0
+	err := gitcmd.RunWithScannerSplit(ctx, gitCmd, bufio.ScanLines, func(ctx gitcmd.Context, line []byte) error {
+		if bytes.HasPrefix(line, []byte(gitLogSep)) {
+			subIdx = 1
+			return nil
+		} else if subIdx == 0 {
+			return nil
+		}
+
+		subIdx++
+		if subIdx > 4 && len(line) == 0 {
+			return nil
+		}
+
+		switch subIdx {
+		case 1: // Separator
+		case 2: // Commit ID (short)
+			stats.CommitCount++
+		case 3: // Author
+			author = string(line)
+		case 4: // E-mail
+			email := strings.ToLower(string(line))
+			if _, ok := authors[email]; !ok {
+				authors[email] = &CodeActivityAuthor{Name: author, Email: email, Commits: 0}
+			}
+			authors[email].Commits++
+		default: // Changed files
+			parts := bytes.SplitN(line, []byte{'\t'}, 3)
+			if len(parts) != 3 {
+				return nil
+			}
+			if add, _ := strconv.ParseInt(string(parts[0]), 10, 64); add > 0 {
+				stats.Additions += add
+			}
+			if del, _ := strconv.ParseInt(string(parts[1]), 10, 64); del > 0 {
+				stats.Deletions += del
+			}
+			filename := string(parts[2])
+			filename, _ = UnquoteDiffFilePath(filename)
+			files.Add(filename)
+		}
+		return nil
+	})
+	if err != nil {
+		return stats, err
+	}
+
+	activityAuthors := make([]*CodeActivityAuthor, 0, len(authors))
+	for _, v := range authors {
+		activityAuthors = append(activityAuthors, v)
+	}
+	// Sort authors descending depending on commit count
+	sort.Slice(activityAuthors, func(i, j int) bool { return activityAuthors[i].Commits > activityAuthors[j].Commits })
+	stats.Authors = activityAuthors
+	stats.AuthorCount = int64(len(authors))
+	stats.ChangedFiles = int64(len(files))
+	return stats, nil
 }
