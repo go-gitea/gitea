@@ -4,12 +4,14 @@
 package cran
 
 import (
-	"archive/tar"
-	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"strings"
 	"testing"
+
+	"gitea.dev/modules/packages"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -40,51 +42,26 @@ func createDescription(name, version string) *bytes.Buffer {
 func TestParsePackage(t *testing.T) {
 	for _, archive := range []struct {
 		extension string
-		create    func(string, []byte) *bytes.Reader
+		create    func(string, []byte) *bytes.Buffer
 	}{
-		{".tar.gz", func(filename string, content []byte) *bytes.Reader {
-			var buf bytes.Buffer
-			gw := gzip.NewWriter(&buf)
-			tw := tar.NewWriter(gw)
-			hdr := &tar.Header{
-				Name: filename,
-				Mode: 0o600,
-				Size: int64(len(content)),
-			}
-			tw.WriteHeader(hdr)
-			tw.Write(content)
-			tw.Close()
-			gw.Close()
-			return bytes.NewReader(buf.Bytes())
+		{".tar.gz", func(filename string, content []byte) *bytes.Buffer {
+			return test.WriteTarCompression(gzip.NewWriter, map[string]string{filename: string(content)})
 		}},
-		{".zip", func(filename string, content []byte) *bytes.Reader {
-			var buf bytes.Buffer
-			archive := zip.NewWriter(&buf)
-			w, _ := archive.Create(filename)
-			w.Write(content)
-			archive.Close()
-			return bytes.NewReader(buf.Bytes())
+		{".zip", func(filename string, content []byte) *bytes.Buffer {
+			return test.WriteZipArchive(map[string]string{filename: string(content)})
 		}},
 	} {
 		t.Run(archive.extension, func(t *testing.T) {
 			t.Run("MissingDescriptionFile", func(t *testing.T) {
-				buf := archive.create(
-					"dummy.txt",
-					[]byte{},
-				)
-
-				p, err := ParsePackage(buf, buf.Size())
+				buf := archive.create("dummy.txt", []byte{})
+				p, err := ParsePackage(bytes.NewReader(buf.Bytes()))
 				assert.Nil(t, p)
 				assert.ErrorIs(t, err, ErrMissingDescriptionFile)
 			})
 
 			t.Run("Valid", func(t *testing.T) {
-				buf := archive.create(
-					"package/DESCRIPTION",
-					createDescription(packageName, packageVersion).Bytes(),
-				)
-
-				p, err := ParsePackage(buf, buf.Size())
+				buf := archive.create("package/DESCRIPTION", createDescription(packageName, packageVersion).Bytes())
+				p, err := ParsePackage(bytes.NewReader(buf.Bytes()))
 				assert.NotNil(t, p)
 				assert.NoError(t, err)
 
@@ -93,6 +70,13 @@ func TestParsePackage(t *testing.T) {
 			})
 		})
 	}
+
+	t.Run("DecompressionLimit", func(t *testing.T) {
+		defer test.MockVariableValue(&packages.ArchiveDecompressionFloor, 0)()
+		buf := test.WriteTarCompression(gzip.NewWriter, map[string]string{"dummy.txt": strings.Repeat("\x00", 1024*1024)})
+		_, err := ParsePackage(bytes.NewReader(buf.Bytes()))
+		assert.ErrorIs(t, err, packages.ErrContentTooLarge)
+	})
 }
 
 func TestParseDescription(t *testing.T) {
