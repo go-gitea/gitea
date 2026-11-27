@@ -43,8 +43,8 @@ function fileMenuHtml(entry: DiffFile, config: DiffViewerConfig, locale: DiffVie
   if (config.repoLink) {
     items += html`<a class="item" rel="nofollow" href="${fileUrl(config, 'src', file.type === 'deleted' ? 'old' : 'new', file.name)}">${locale.viewFile}</a>`;
     if (file.type !== 'deleted' && config.editFileLink) {
-      const returnUri = encodeURIComponent(`${config.editReturnUri}#diff-${file.nameHash}`);
-      items += html`<a class="item" rel="nofollow" href="${config.editFileLink}${pathEscapeSegments(file.name)}?return_uri=${returnUri}">${locale.editFile}</a>`;
+      const query = new URLSearchParams({return_uri: `${config.editReturnUri}#diff-${file.nameHash}`});
+      items += html`<a class="item" rel="nofollow" href="${config.editFileLink}${pathEscapeSegments(file.name)}?${query}">${locale.editFile}</a>`;
     }
   }
   return html`<button type="button" class="btn tw-p-1" data-global-init="initDiffHeaderPopupMenu">${htmlRaw(svg('octicon-kebab-horizontal', 18))}</button><div class="tippy-target">${htmlRaw(items)}</div>`;
