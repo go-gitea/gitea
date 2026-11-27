@@ -3,6 +3,7 @@
 This document covers frontend-specific architecture and contribution expectations.
 For the general workflow see [CONTRIBUTING.md](../CONTRIBUTING.md), and for building
 and testing see [development.md](development.md) and [testing.md](testing.md).
+Code highlighting and the diff viewer are described in [code-rendering.md](code-rendering.md).
 
 ## Background
 
