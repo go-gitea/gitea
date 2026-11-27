@@ -260,6 +260,8 @@ func GetArchive(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
+	//     schema:
+	//       type: file
 	//   default:
 	//     "$ref": "#/responses/error"
 	serveRepoArchive(ctx, ctx.PathParam("*"), ctx.FormStrings("path"))
