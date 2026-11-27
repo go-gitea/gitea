@@ -205,6 +205,7 @@ func ParseHookEvent(form forms.WebhookForm) *webhook_module.HookEvent {
 			webhook_module.HookEventPackage:                  form.Package,
 			webhook_module.HookEventStatus:                   form.Status,
 			webhook_module.HookEventWorkflowRun:              form.WorkflowRun,
+			webhook_module.HookEventMergeGroup:               form.MergeGroup,
 			webhook_module.HookEventWorkflowJob:              form.WorkflowJob,
 		},
 		BranchFilter: form.BranchFilter,

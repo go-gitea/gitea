@@ -10,7 +10,7 @@ import (
 	actions_model "gitea.dev/models/actions"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/private"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
@@ -19,10 +19,7 @@ import (
 // GenerateActionsRunnerToken generates a new runner token for a given scope
 func GenerateActionsRunnerToken(ctx *context.PrivateContext) {
 	var genRequest private.GenerateTokenRequest
-	rd := ctx.Req.Body
-	defer rd.Close()
-
-	if err := json.NewDecoder(rd).Decode(&genRequest); err != nil {
+	if err := jsonlimit.DecodeWithLimit(ctx.Req.Body, 10*1024*1024, &genRequest); err != nil {
 		ctx.PrivateInternalErrorf("JSON Decode failed: %v", err)
 		return
 	}

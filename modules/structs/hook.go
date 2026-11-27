@@ -153,7 +153,8 @@ type PayloadUser struct {
 // PayloadCommit represents a commit
 type PayloadCommit struct {
 	// sha1 hash of the commit
-	ID string `json:"id"`
+	ID     string `json:"id"`
+	TreeID string `json:"tree_id,omitempty"`
 	// The commit message
 	Message string `json:"message"`
 	// The URL to view this commit
@@ -430,6 +431,8 @@ const (
 	HookIssueReviewRequested HookIssueAction = "review_requested"
 	// HookIssueReviewRequestRemoved is an issue action for removing a review request to someone on a pull request.
 	HookIssueReviewRequestRemoved HookIssueAction = "review_request_removed"
+	HookIssueEnqueued             HookIssueAction = "enqueued"
+	HookIssueDequeued             HookIssueAction = "dequeued"
 )
 
 // IssuePayload represents the payload information that is sent along with an issue event.
@@ -507,6 +510,8 @@ type PullRequestPayload struct {
 	After string `json:"after,omitempty"`
 	// The index number of the pull request
 	Index int64 `json:"number"`
+	// Why the pull request left the merge queue, like MERGE or CI_FAILURE, only for the dequeued action
+	Reason string `json:"reason,omitempty"`
 	// Changes made to the pull request
 	Changes *ChangesPayload `json:"changes,omitempty"`
 	// The pull request that was acted upon
@@ -737,5 +742,32 @@ type WorkflowJobPayload struct {
 
 // JSONPayload implements Payload
 func (p *WorkflowJobPayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}
+
+type HookMergeGroupAction string
+
+const (
+	HookMergeGroupChecksRequested HookMergeGroupAction = "checks_requested"
+	HookMergeGroupDestroyed       HookMergeGroupAction = "destroyed"
+)
+
+type MergeGroup struct {
+	HeadSHA    string         `json:"head_sha"`
+	HeadRef    string         `json:"head_ref"`
+	BaseSHA    string         `json:"base_sha"`
+	BaseRef    string         `json:"base_ref"`
+	HeadCommit *PayloadCommit `json:"head_commit"`
+}
+
+type MergeGroupPayload struct {
+	Action     HookMergeGroupAction `json:"action"`
+	Reason     string               `json:"reason,omitempty"`
+	MergeGroup *MergeGroup          `json:"merge_group"`
+	Repo       *Repository          `json:"repository"`
+	Sender     *User                `json:"sender"`
+}
+
+func (p *MergeGroupPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }

@@ -99,6 +99,7 @@ var (
 			DelayCheckForInactiveDays                int
 			DefaultDeleteBranchAfterMerge            bool
 			DefaultTitleSource                       string
+			MergeQueueBranchPrefix                   string
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -193,6 +194,7 @@ var (
 			DelayCheckForInactiveDays                int
 			DefaultDeleteBranchAfterMerge            bool
 			DefaultTitleSource                       string
+			MergeQueueBranchPrefix                   string
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
@@ -211,6 +213,7 @@ var (
 			DelayCheckForInactiveDays:                7,
 			DefaultDeleteBranchAfterMerge:            true,
 			DefaultTitleSource:                       RepoPRTitleSourceAuto,
+			MergeQueueBranchPrefix:                   "gitea-merge-queue/",
 		},
 
 		// Issue settings
@@ -342,6 +345,7 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	if !slices.Contains([]string{"BLANK", "COMMIT_MESSAGES", "PR_BODY"}, Repository.PullRequest.DefaultSquashMergeMessage) { // uppercase unlike other config values, to match GitHub's squash_merge_commit_message which the API also uses
 		log.Fatal("Invalid repository.pull-request.DEFAULT_SQUASH_MERGE_MESSAGE: %s", Repository.PullRequest.DefaultSquashMergeMessage)
 	}
+	Repository.PullRequest.MergeQueueBranchPrefix = strings.Trim(Repository.PullRequest.MergeQueueBranchPrefix, "/") + "/" // validated in mergequeue.Init
 
 	if !rootCfg.Section("packages").Key("ENABLED").MustBool(Packages.Enabled) {
 		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.packages")
