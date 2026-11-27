@@ -6,17 +6,13 @@ package repo
 import (
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
-	"strconv"
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
-	"gitea.dev/models/renderhelper"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -211,24 +207,27 @@ func UpdateCommentContent(ctx *context.Context) {
 		}
 	}
 
-	var renderedContent template.HTML
 	if comment.Content != "" {
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{
-			FootnoteContextID: strconv.FormatInt(comment.ID, 10),
-		})
-		var err error
-		renderedContent, err = markdown.RenderString(rctx, comment.Content)
-		if err != nil {
+		if err := comment.RenderContent(ctx, ctx.Repo.Repository); err != nil {
 			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
-
-	ctx.JSON(http.StatusOK, map[string]any{
-		"content":        commentContentHTML(ctx, renderedContent),
+	response := map[string]any{
+		"content":        commentContentHTML(ctx, comment.RenderedContent),
 		"contentVersion": comment.ContentVersion,
 		"attachments":    attachmentsHTML(ctx, comment.Attachments, comment.Content),
-	})
+	}
+	if comment.Type == issues_model.CommentTypeCode {
+		pull_service.LoadCodeSuggestionStates(ctx, ctx.Doer, comment.Issue, issues_model.CommentList{comment})
+		controls, err := ctx.RenderToHTML("repo/diff/code_suggestion_controls", comment)
+		if err != nil {
+			ctx.JSONErrorAuto(err)
+			return
+		}
+		response["suggestionControls"] = controls
+	}
+	ctx.JSON(http.StatusOK, response)
 }
 
 // DeleteComment delete comment of issue

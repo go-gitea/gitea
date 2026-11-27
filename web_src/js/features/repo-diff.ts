@@ -8,7 +8,7 @@ import {queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventLis
 import {errorMessage} from '../modules/errors.ts';
 import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
-import {invertFileFolding} from './file-fold.ts';
+import {invertFileFolding, setFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
 import {performFetchActionRequest, performFetchActionTrigger} from '../modules/fetch-action.ts';
@@ -16,6 +16,10 @@ import {applyFiltersToFileBoxes, type DiffFileTreeLocale, diffTreeStore} from '.
 import {initImageDiff} from './imagediff.ts';
 import DiffCommitSelector from '../components/DiffCommitSelector.vue';
 import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
+import {
+  findDiffLine, findDiffLineExpander, initRepoDiffReview, isDiffLineSelected, parseDiffLineHash, resolveDiffRange,
+  setDiffLineSelection, type DiffLineHash,
+} from './repo-diff-review.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -198,19 +202,51 @@ async function diffLoadFileBody(el: Element) {
   }
 }
 
-async function onLocationHashChange() {
+async function scrollToDiffLines(box: HTMLElement, {start, end}: DiffLineHash, hash: string) {
+  if (box.getAttribute('data-folded') === 'true') setFileFolding(box, box.querySelector('.fold-file')!, false);
+  const loadButton = box.querySelector('[data-global-click="diffLoadFileBody"]');
+  if (loadButton) await diffLoadFileBody(loadButton);
+  const table = box.querySelector<HTMLTableElement>('.diff-review-table');
+  if (!table) return;
+
+  for (const line of [start, end]) {
+    while (hash === window.location.hash && !findDiffLine(table, line)) {
+      const button = findDiffLineExpander(table, line);
+      if (!button) return;
+      await performFetchActionTrigger(button, 'load');
+      if (button.isConnected) return;
+    }
+  }
+  if (hash !== window.location.hash) return;
+  const resolved = resolveDiffRange(table, start, end)!;
+  showElem(box);
+  const source = table.closest('.code-diff')!;
+  if (source.classList.contains('tw-hidden')) {
+    box.querySelector<HTMLButtonElement>(`[data-toggle-selector="${CSS.escape(`#${source.id}`)}"]`)!.click();
+  }
+  setDiffLineSelection(resolved);
+  window.history.scrollRestoration = 'manual';
+  findDiffLine(table, resolved.start.line)!.focus({preventScroll: true});
+  resolved.start.row.scrollIntoView({block: 'start'});
+}
+
+async function onLocationHashChange(event: HashChangeEvent) {
   // try to scroll to the target element by the current hash
   const currentHash = window.location.hash;
+  const lineRange = parseDiffLineHash(currentHash);
+  if (lineRange && ((event.newURL && event.newURL !== window.location.href) || isDiffLineSelected(currentHash))) return;
+  setDiffLineSelection();
   if (!currentHash.startsWith('#diff-') && !currentHash.startsWith('#issuecomment-')) return;
 
   // avoid reentrance when we are changing the hash to scroll and trigger ":target" selection
   const attrAutoScrollRunning = 'data-auto-scroll-running';
   if (document.body.hasAttribute(attrAutoScrollRunning)) return;
 
-  const targetElementId = currentHash.substring(1);
+  const targetElementId = lineRange ? `diff-${lineRange.fileHash}` : currentHash.substring(1);
   while (currentHash === window.location.hash) {
     const targetElement = document.querySelector<HTMLElement>(`#${CSS.escape(targetElementId)}`);
     if (targetElement) {
+      if (lineRange) return scrollToDiffLines(targetElement, lineRange, currentHash);
       // need to change hash to re-trigger ":target" CSS selector, let's manually scroll to it
       targetElement.scrollIntoView();
       document.body.setAttribute(attrAutoScrollRunning, 'true');
@@ -258,6 +294,7 @@ function initDiffCommitSelect(el: HTMLElement) {
 }
 
 export function initRepoDiffView() {
+  initRepoDiffReview();
   initRepoDiffConversationForm(); // such form appears on the "conversation" page and "diff" page
   registerGlobalEventFunc('click', 'diffLoadMoreFiles', (el) => { diffLoadMoreFiles(el) });
   registerGlobalEventFunc('click', 'diffLoadFileBody', diffLoadFileBody);

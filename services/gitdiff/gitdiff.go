@@ -1611,6 +1611,14 @@ func GetCodeCommentPatch(ctx context.Context, gitRepo *git.Repository, mergeBase
 	return patch, nil
 }
 
+func GetCodeCommentRangePatch(ctx context.Context, gitRepo *git.Repository, mergeBase, headCommitID, treePath string, startLine, line int64) (string, error) {
+	patch, err := git.GetFileDiffCutAroundRange(ctx, gitRepo, mergeBase, headCommitID, treePath, startLine, line)
+	if err != nil || patch != "" {
+		return patch, err
+	}
+	return GetCodeCommentPatch(ctx, gitRepo, mergeBase, headCommitID, treePath, line)
+}
+
 // GeneratePatchForUnchangedLine creates a patch showing code context for an unchanged line
 func GeneratePatchForUnchangedLine(ctx context.Context, gitRepo *git.Repository, commitID, treePath string, line int64, contextLines int) (string, error) {
 	commit, err := gitRepo.GetCommit(ctx, commitID)

@@ -1,17 +1,10 @@
 import {errorMessage} from '../modules/errors.ts';
-import {html, htmlEscape, htmlRaw} from '../utils/html.ts';
+import {htmlEscape} from '../utils/html.ts';
 import {createTippy} from '../modules/tippy.ts';
-import {
-  addDelegatedEventListener,
-  createElementFromHTML,
-  hideElem,
-  queryElems,
-  showElem,
-  toggleElem, toggleElemClass,
-} from '../utils/dom.ts';
+import {addDelegatedEventListener, hideElem, queryElems, showElem, toggleElem, toggleElemClass} from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
-import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
-import {GET, POST} from '../modules/fetch.ts';
+import {ComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
+import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {showModal} from '../modules/modal.ts';
@@ -20,6 +13,7 @@ import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observ
 import type {FomanticApiResponse} from '../types.ts';
 import {performFetchActionRequest} from '../modules/fetch-action.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
+import {initCodeCommentEditor, refreshCodeSuggestionControls} from './repo-diff-review.ts';
 
 const {appSubUrl} = window.config;
 
@@ -109,6 +103,7 @@ export function initRepoIssueCommentDelete() {
     // Delete the current comment from the DOM
     const commentHashTag = deleteButton.getAttribute('data-comment-hash-tag')!;
     const deletedComment = document.querySelector(`#${commentHashTag}`);
+    if (deletedComment) refreshCodeSuggestionControls(deletedComment.querySelector('.code-suggestion-actions'), '');
     deletedComment?.remove();
 
     // only pr review comments have the "conversation-holder" element, so if it's not found, we can return early
@@ -157,7 +152,7 @@ export function initRepoIssueCodeCommentCancel() {
       hideElem(form);
       showElem(form.closest('.comment-code-cloud')!.querySelectorAll('button.comment-form-reply'));
     } else {
-      form.closest('.comment-code-cloud')?.remove();
+      form.closest('.diff-comment-draft')!.remove();
     }
   });
 }
@@ -184,12 +179,11 @@ export function initRepoIssueCommentTargetHashReset() {
 }
 
 export async function handleCommentReply(el: HTMLElement) {
-  const form = el.closest('.comment-code-cloud')!.querySelector('.comment-form')!;
-  const textarea = form.querySelector('textarea');
+  const form = el.closest('.comment-code-cloud')!.querySelector<HTMLFormElement>('.comment-form')!;
 
   hideElem(el);
   showElem(form);
-  const editor = getComboMarkdownEditor(textarea) ?? await initComboMarkdownEditor(form.querySelector('.combo-markdown-editor')!);
+  const editor = await initCodeCommentEditor(form);
   editor.focus();
   return editor;
 }
@@ -256,40 +250,6 @@ export function initRepoPullRequestReview() {
       hideOnClick: true,
     });
     elReviewPanel.querySelector('.close-review-panel')!.addEventListener('click', () => tippy.hide());
-  });
-
-  addDelegatedEventListener(document, 'click', '.add-code-comment', async (el, e) => {
-    e.preventDefault();
-
-    const isSplit = el.closest('.code-diff')?.classList.contains('code-diff-split');
-    const side = el.getAttribute('data-side')!;
-    const idx = el.getAttribute('data-idx')!;
-    const path = el.closest('[data-path]')?.getAttribute('data-path');
-    const tr = el.closest('tr')!;
-    const lineType = tr.getAttribute('data-line-type')!;
-
-    let ntr = tr.nextElementSibling;
-    if (!ntr?.classList.contains('add-comment')) {
-      const tdSplit = html`<td class="add-comment-left" colspan="4"></td><td class="add-comment-right" colspan="4"></td>`;
-      const tdUnified = html`<td class="add-comment-left add-comment-right" colspan="5"></td>`;
-      ntr = createElementFromHTML(html`
-        <tr class="add-comment" data-line-type="${lineType}">
-          ${isSplit ? htmlRaw(tdSplit) : htmlRaw(tdUnified)}
-        </tr>
-      `);
-      tr.after(ntr);
-    }
-    const td = ntr.querySelector(`.add-comment-${side}`)!;
-    const commentCloud = td.querySelector('.comment-code-cloud');
-    if (!commentCloud && !ntr.querySelector('button[name="pending_review"]')) {
-      const response = await GET(el.closest('[data-new-comment-url]')?.getAttribute('data-new-comment-url') ?? '');
-      td.innerHTML = await response.text();
-      td.querySelector<HTMLInputElement>("input[name='line']")!.value = idx;
-      td.querySelector<HTMLInputElement>("input[name='side']")!.value = (side === 'left' ? 'previous' : 'proposed');
-      td.querySelector<HTMLInputElement>("input[name='path']")!.value = String(path);
-      const editor = await initComboMarkdownEditor(td.querySelector<HTMLElement>('.combo-markdown-editor')!);
-      editor.focus();
-    }
   });
 }
 

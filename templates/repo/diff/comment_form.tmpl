@@ -2,15 +2,24 @@
 {{$replyReviewComment := $.ReplyReviewComment -}}{{/* can be nil */ -}}
 {{$canAddComment := and $root.SignedUserID (not $root.Repository.IsArchived) -}}
 {{if $canAddComment}}
-	<form class="ui form {{if $replyReviewComment}}tw-hidden comment-form{{end}}" action="{{$root.Issue.Link}}/files/reviews/comments" method="post">
+	{{$canSuggest := $root.CanSuggestCode}}
+	{{with $replyReviewComment}}
+		{{$canSuggest = and (gt .CodeStartLine 0) .CodeCommitID ($root.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
+	{{end}}
+	<form class="ui form {{if $replyReviewComment}}tw-hidden comment-form{{end}}" action="{{$root.Issue.Link}}/files/reviews/comments" method="post"
+		{{if $canSuggest}}data-code-suggestion-source-url="{{$root.Issue.Link}}/files/reviews/suggestion_source"{{end}}>
 		<input type="hidden" name="origin" value="{{if $root.PageIsPullFiles}}diff{{else}}timeline{{end}}">
-		<input type="hidden" name="latest_commit_id" value="{{$root.ReviewCommitID}}">
+		<input type="hidden" name="latest_commit_id" value="{{with $replyReviewComment}}{{.CodeCommitID}}{{else}}{{$root.ReviewCommitID}}{{end}}">
 		<input type="hidden" name="side" value="{{$replyReviewComment.DiffSide}}">
+		<input type="hidden" name="start_line" value="{{with $replyReviewComment}}{{if ne .CodeStartLine .Line}}{{.CodeStartLine}}{{end}}{{end}}">
 		<input type="hidden" name="line" value="{{$replyReviewComment.UnsignedLine}}">
 		<input type="hidden" name="path" value="{{$replyReviewComment.TreePath}}">
 		<input type="hidden" name="diff_start_cid">
 		<input type="hidden" name="diff_end_cid">
 		<input type="hidden" name="diff_base_cid">
+		{{if not $replyReviewComment}}
+			<div class="field diff-comment-lines tw-hidden" data-text-lines="{{ctx.Locale.TrString "repo.diff.comment.lines"}}"></div>
+		{{end}}
 		<div class="field">
 		{{template "shared/combomarkdowneditor" (dict
 			"CustomInit" true
@@ -19,6 +28,7 @@
 			"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
 			"DropzoneParentContainer" "form"
 			"DisableAutosize" "true"
+			"ToolbarButton" (and $canSuggest (dict "Click" "onInsertCodeSuggestion" "Label" (ctx.Locale.Tr "repo.diff.suggestion.add") "Icon" "octicon-file-diff"))
 		)}}
 		</div>
 		{{if $root.IsAttachmentEnabled}}

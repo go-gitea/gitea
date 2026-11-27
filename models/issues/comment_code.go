@@ -9,8 +9,11 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/renderhelper"
+	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -115,11 +118,7 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		comments[n] = comment
 		n++
 
-		var err error
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{
-			FootnoteContextID: strconv.FormatInt(comment.ID, 10),
-		})
-		if comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content); err != nil {
+		if err := comment.RenderContent(ctx, issue.Repo); err != nil {
 			return nil, err
 		}
 	}
@@ -135,4 +134,42 @@ func FetchCodeCommentsByLine(ctx context.Context, issue *Issue, currentUser *use
 		Line:     line,
 	}
 	return findCodeComments(ctx, opts, issue, currentUser, nil, showOutdatedComments)
+}
+
+type CodeSuggestionState struct{ Reason string }
+
+func (c *Comment) CodeSuggestionCommitMessage() string {
+	return "Apply suggestion from @" + c.Poster.Name
+}
+
+func (c *Comment) RenderContent(ctx context.Context, repo *repo_model.Repository) (err error) {
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, repo, renderhelper.RepoCommentOptions{
+		FootnoteContextID: strconv.FormatInt(c.ID, 10),
+	})
+	if startLine, commitID := c.CodeStartLine(), c.CodeCommitID(); c.Type == CommentTypeCode && startLine > 0 && commitID != "" {
+		rctx.RenderOptions.CodeSuggestion = &markup.CodeSuggestionAnchor{
+			CommitID: commitID, FilePath: c.TreePath, StartLine: uint64(startLine), EndLine: uint64(c.Line),
+		}
+	}
+	c.RenderedContent, err = markdown.RenderString(rctx, c.Content)
+	return err
+}
+
+func GetPublishedCodeConversationRoot(ctx context.Context, issueID int64, treePath string, line int64) (*Comment, error) {
+	first := new(Comment)
+	has, err := db.GetEngine(ctx).Select("comment.*").Join("LEFT", "review", "review.id = comment.review_id").
+		Where(builder.Eq{"comment.issue_id": issueID, "comment.tree_path": treePath, "comment.line": line, "comment.type": CommentTypeCode, "comment.invalidated": false}).
+		And(builder.IsNull{"review.type"}.Or(builder.Neq{"review.type": ReviewTypePending})).
+		Asc("comment.created_unix", "comment.id").Get(first)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, util.ErrNotExist
+	}
+	return first, nil
+}
+
+func FindCodeCommentsByIDs(ctx context.Context, issueID int64, ids []int64) (map[int64]*Comment, error) {
+	comments := make(map[int64]*Comment, len(ids))
+	return comments, db.GetEngine(ctx).In("id", ids).Where(builder.Eq{"issue_id": issueID, "type": CommentTypeCode}).Find(&comments)
 }

@@ -35,6 +35,12 @@
 	{{end}}
 	<div class="ui tab active" data-tab-panel="markdown-writer">
 		<markdown-toolbar>
+			{{with .ToolbarButton}}
+			<div class="markdown-toolbar-group">
+				<button type="button" class="markdown-toolbar-button markdown-toolbar-extra-button" aria-label="{{.Label}}"
+					data-tooltip-content="{{.Label}}" data-global-click="{{.Click}}">{{svg .Icon}}</button>
+			</div>
+			{{end}}
 			<div class="markdown-toolbar-group">
 				<md-header class="markdown-toolbar-button" level="1" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.heading.tooltip"}}">{{svg "octicon-heading"}}</md-header>
 				<md-header class="markdown-toolbar-button" level="2" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.heading.tooltip"}}">{{svg "octicon-heading"}}</md-header>

@@ -429,6 +429,63 @@ func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
 	})
 }
 
+func TestApplyPullReviewSuggestions(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		ctx := t.Context()
+		pr, err := issues_model.GetPullRequestByIndex(ctx, 1, 3)
+		require.NoError(t, err)
+		require.NoError(t, pr.Issue.LoadRepo(ctx))
+		gitRepo, err := git.OpenRepository(ctx, pr.Issue.Repo)
+		require.NoError(t, err)
+		defer gitRepo.Close()
+		initialHead, err := gitRepo.GetBranchCommitID(ctx, pr.HeadBranch)
+		require.NoError(t, err)
+
+		const treePath = "README.md"
+		reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 24})
+		var commentIDs []string
+		for index, replacement := range []string{"# Repository", "A new description", "First branch change"} {
+			comment, err := pull_service.CreateCodeComment(ctx, reviewer, gitRepo, pr.Issue, int64(2*index+1),
+				"```suggestion\n"+replacement+"\n```", treePath, false, 0, initialHead, nil)
+			require.NoError(t, err)
+			commentIDs = append(commentIDs, fmt.Sprintf("%d:%d", comment.ID, comment.ContentVersion))
+		}
+
+		session := loginUser(t, pr.Issue.Repo.OwnerName)
+		resp := session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, pr.Issue.Link()+"/files/reviews/comments", map[string]string{
+			"origin": "diff", "content": "Review these lines", "path": treePath,
+			"side": "proposed", "line": "2", "start_line": "-1", "single_review": "true", "latest_commit_id": initialHead,
+		}), http.StatusOK)
+		assert.Equal(t, "Lines L1 to R2", NewHTMLParser(t, resp.Body).Find(".code-comment-range").Text())
+
+		apply := func(ids, head string, status int) {
+			t.Helper()
+			session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, pr.Issue.Link()+"/suggestions/apply", map[string]string{
+				"origin": "diff", "comment_ids": ids, "head_commit_id": head,
+			}), status)
+		}
+		assertCommit := func(parent, expected string) string {
+			t.Helper()
+			commit, err := gitRepo.GetBranchCommit(ctx, pr.HeadBranch)
+			require.NoError(t, err)
+			require.Len(t, commit.Parents, 1)
+			assert.Equal(t, parent, commit.Parents[0].String())
+			actual, err := commit.GetFileContent(ctx, gitRepo, treePath, 1024)
+			require.NoError(t, err)
+			assert.Equal(t, expected, actual)
+			return commit.ID.String()
+		}
+
+		apply(commentIDs[0]+","+commentIDs[0], initialHead, http.StatusBadRequest)
+		apply(commentIDs[0], initialHead, http.StatusOK)
+		singleHead := assertCommit(initialHead, "# Repository\n\nDescription for repo1\n\nAnd change for branch2\nand a second one\n")
+		batchIDs := strings.Join(commentIDs[1:], ",")
+		apply(batchIDs, initialHead, http.StatusConflict)
+		apply(batchIDs, singleHead, http.StatusOK)
+		assertCommit(singleHead, "# Repository\n\nA new description\n\nFirst branch change\nand a second one\n")
+	})
+}
+
 func testSubmitReview(t *testing.T, session *TestSession, owner, repo, pullNumber, commitID, reviewType string, expectedSubmitStatus int) *httptest.ResponseRecorder {
 	options := map[string]string{
 		"commit_id": commitID,

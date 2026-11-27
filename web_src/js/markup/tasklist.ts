@@ -1,5 +1,6 @@
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
+import {refreshCodeSuggestionControls} from '../features/repo-diff-review.ts';
 
 const preventListener = (e: Event) => e.preventDefault();
 
@@ -81,6 +82,7 @@ export function initMarkupTasklist(elMarkup: HTMLElement): void {
         }
         editContentZone.setAttribute('data-content-version', data.contentVersion);
         rawContent.textContent = newContent;
+        refreshCodeSuggestionControls(container.querySelector(':scope > .code-suggestion-actions'), data.suggestionControls);
       } catch (err) {
         checkbox.checked = !checkbox.checked;
         console.error('exception occurred when updating markup task list', err);

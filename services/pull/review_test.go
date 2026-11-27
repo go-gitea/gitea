@@ -90,20 +90,31 @@ func TestCreateCodeCommentContextOfUnchangedLine(t *testing.T) {
 	for _, c := range []struct {
 		name     string
 		line     int64
+		start    int64
 		doerID   int64
 		commitID string
 	}{
-		{"NewSide", 17, 2, ""},
-		{"OldSide", -15, 2, ""},
-		{"UnknownReviewCommit", 17, 4, strings.Repeat("a", 40)},
+		{"NewSideRangeUsesLegacyContextAndSharesAnchor", 17, 5, 2, ""},
+		{"OldSide", -15, 0, 2, ""},
+		{"UnknownReviewCommit", 17, 0, 4, strings.Repeat("a", 40)},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: c.doerID})
 			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pr.IssueID})
 			require.NoError(t, issue.LoadRepo(ctx))
-			comment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, issue, c.line, "test", treePath, true, 0, c.commitID, nil)
+			comment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, issue, c.line, "test", treePath, true, 0, c.commitID, nil, c.start)
 			require.NoError(t, err)
 			assert.True(t, strings.HasSuffix(comment.Patch, "\n old 10\n"), "patch: %q", comment.Patch)
+			if c.start != 0 {
+				assert.Equal(t, c.start, comment.CodeStartLine())
+				assert.Equal(t, headCommit.ID.String(), comment.CodeCommitID())
+
+				next, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, issue, c.line, "test", treePath, true, 0, mergeBase.String(), nil)
+				require.NoError(t, err)
+				assert.Equal(t, comment.CodeStartLine(), next.CodeStartLine())
+				assert.Equal(t, comment.CodeCommitID(), next.CodeCommitID())
+				assert.Equal(t, comment.Patch, next.Patch)
+			}
 			if c.line > 0 {
 				assert.Equal(t, lineCommitID.String(), comment.CommitSHA)
 				require.NoError(t, pull_service.InvalidateCodeComments(ctx, issues_model.PullRequestList{pr}, pr.BaseRepo, headRef))

@@ -607,6 +607,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 		comment              *issues_model.Comment
 		participants         = make([]*user_model.User, 1, 10)
 		latestCloseCommentID int64
+		reviewComments       issues_model.CommentList
 		err                  error
 	)
 
@@ -730,6 +731,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 			}
 			for _, codeComments := range comment.Review.CodeComments {
 				for _, lineComments := range codeComments {
+					reviewComments = append(reviewComments, lineComments...)
 					for _, c := range lineComments {
 						// Check tag.
 						role, ok = marked[c.PosterID]
@@ -789,6 +791,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 		}
 	}
 
+	pull_service.LoadCodeSuggestionStates(ctx, ctx.Doer, issue, reviewComments)
 	ctx.Data["LatestCloseCommentID"] = latestCloseCommentID
 
 	// Combine multiple label assignments into a single comment

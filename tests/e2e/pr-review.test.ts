@@ -1,4 +1,5 @@
-import {test, expect} from '@playwright/test';
+import {env} from 'node:process';
+import {test, expect, type APIRequestContext} from '@playwright/test';
 import {
   apiAddCollaborator,
   apiCreateFiles,
@@ -7,6 +8,7 @@ import {
   apiCreateReview,
   apiCreateUser,
   apiUserHeaders,
+  login,
   loginUser,
   logout,
   randomString,
@@ -141,4 +143,54 @@ test('pr review flow', async ({page, request}) => {
   await logout(page);
   await loginUser(page, officialReviewer);
   await reRequestAndApprove(officialReviewer, 'Approved', 'tw-text-yellow', true);
+});
+
+const reviewFile = 'added.txt';
+
+async function createReviewDiff(request: APIRequestContext) {
+  const owner = env.GITEA_TEST_E2E_USER;
+  const repo = `e2e-review-diff-${randomString(8)}`;
+  await apiCreateRepo(request, {name: repo});
+  await apiCreateFiles(request, owner, repo, [{path: reviewFile, content: 'first\nsecond\nthird\nfourth\n'}], {branch: 'main', newBranch: 'feat'});
+  const index = await apiCreatePR(request, owner, repo, 'feat', 'main', 'review diff');
+  return {owner, repo, index, url: `/${owner}/${repo}/pulls/${index}/files`};
+}
+
+test('applies a code suggestion from the PR diff', async ({page, request}) => {
+  const [{owner, repo, index, url}] = await Promise.all([createReviewDiff(request), login(page)]);
+  await apiCreateReview(request, owner, repo, index, {
+    comments: [{path: reviewFile, body: '```suggestion\nsecond revised\n```', new_position: 2}],
+  });
+
+  await page.goto(url);
+  const file = page.locator(`.diff-file-box[data-new-filename="${reviewFile}"]`);
+  await expect(file.getByText('second revised', {exact: true})).toBeVisible();
+  await file.getByRole('row').filter({has: page.getByRole('link', {name: 'R1', exact: true})})
+    .getByRole('button', {name: 'Add line comment', exact: true}).click();
+  await file.getByRole('button', {name: 'Add a suggestion', exact: true}).click();
+  await expect(file.getByRole('textbox', {name: 'Leave a comment', exact: true})).toHaveValue('```suggestion\nfirst\n```');
+  await file.getByRole('button', {name: 'Cancel', exact: true}).click();
+
+  await file.getByRole('button', {name: 'Apply suggestion', exact: true}).click();
+  await page.getByRole('dialog').getByRole('button', {name: 'Commit suggestion', exact: true}).click();
+  const updatedLine = file.getByRole('row').filter({has: page.getByRole('link', {name: 'R2', exact: true})});
+  await expect(updatedLine.getByText('second revised', {exact: true})).toBeVisible();
+});
+
+test('pr diff line selection and links', async ({page, request}) => {
+  const [{url}] = await Promise.all([createReviewDiff(request), login(page)]);
+  await page.goto(url);
+  const file = page.locator(`.diff-file-box[data-new-filename="${reviewFile}"]`);
+  const lastLine = page.getByRole('link', {name: 'R4', exact: true});
+
+  await file.getByRole('link', {name: 'R2', exact: true}).click();
+  await file.locator(lastLine).click({modifiers: ['Shift']});
+  await expect(page).toHaveURL(/#diff-[a-f0-9]{40}R2-R4$/);
+  await page.reload();
+  await expect(file.locator('tr.diff-range-highlight')).toHaveText([/second/, /third/, /fourth/]);
+
+  await file.getByRole('row').filter({has: lastLine}).getByRole('button', {name: 'Add line comment', exact: true}).click();
+  await file.getByRole('textbox', {name: 'Leave a comment', exact: true}).fill('Reviewing these lines together.');
+  await file.getByRole('button', {name: 'Add single comment', exact: true}).click();
+  await expect(file.getByText('Lines 2 to 4', {exact: true})).toBeVisible();
 });

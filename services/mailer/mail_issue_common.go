@@ -94,7 +94,18 @@ func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang
 		reviewComments = make([]*issues_model.Comment, 0, 10)
 		for _, lines := range comment.Comment.Review.CodeComments {
 			for _, comments := range lines {
-				reviewComments = append(reviewComments, comments...)
+				for _, codeComment := range comments {
+					if len(markdown.ParseCodeSuggestions(codeComment.Content)) != 0 {
+						codeComment = new(*codeComment)
+						rctx := renderhelper.NewRenderContextRepoComment(ctx, comment.Issue.Repo, renderhelper.RepoCommentOptions{
+							FootnoteContextID: strconv.FormatInt(codeComment.ID, 10),
+						})
+						if codeComment.RenderedContent, err = markdown.RenderString(rctx, codeComment.Content); err != nil {
+							return nil, err
+						}
+					}
+					reviewComments = append(reviewComments, codeComment)
+				}
 			}
 		}
 	}

@@ -4,17 +4,23 @@
 package repo
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	pull_model "gitea.dev/models/pull"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
@@ -22,7 +28,9 @@ import (
 	"gitea.dev/services/context/upload"
 	"gitea.dev/services/forms"
 	issue_service "gitea.dev/services/issue"
+	markup_service "gitea.dev/services/markup"
 	pull_service "gitea.dev/services/pull"
+	files_service "gitea.dev/services/repository/files"
 	user_service "gitea.dev/services/user"
 )
 
@@ -57,8 +65,25 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
 	ctx.Data["ReviewCommitID"] = pullHeadCommitID // it's questionable why it only needs the head commit ID but not correct "AfterCommitID" (single commit review)
+	ctx.Data["CanSuggestCode"] = ctx.FormBool("all_commits") && ctx.Repo.Permission.CanRead(unit.TypeCode)
 	upload.AddUploadContext(ctx, "comment")
 	ctx.HTML(http.StatusOK, tplNewComment)
+}
+
+// RenderCodeSuggestionSource responds with the raw code a new suggestion replaces, to prefill it in the comment editor
+func RenderCodeSuggestionSource(ctx *context.Context) {
+	line := uint64(ctx.FormInt64("line"))
+	lines, err := markup_service.ReadCodeSuggestionLines(ctx, ctx.Repo.GitRepo, markup.CodeSuggestionAnchor{
+		CommitID:  ctx.FormString("commit_id"),
+		FilePath:  ctx.FormString("path"),
+		StartLine: cmp.Or(uint64(ctx.FormInt64("start_line")), line),
+		EndLine:   line,
+	})
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	ctx.PlainText(http.StatusOK, strings.Join(lines, "\n"))
 }
 
 // CreateCodeComment will create a code comment including an pending review if required
@@ -103,6 +128,7 @@ func CreateCodeComment(ctx *context.Context) {
 		form.Reply,
 		form.LatestCommitID,
 		attachments,
+		form.StartLine,
 	)
 	if err != nil {
 		ctx.JSONErrorAuto(err)
@@ -211,6 +237,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
 	ctx.Data["ReviewCommitID"] = pullHeadCommitID // it's questionable why it only needs the head commit ID but not correct "AfterCommitID" (single commit review)
+	pull_service.LoadCodeSuggestionStates(ctx, ctx.Doer, comment.Issue, comments)
 	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
@@ -458,4 +485,45 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 	}
 
 	ctx.JSONOK()
+}
+
+// ApplyCodeSuggestions commits the suggestions of code comments to the head branch of the pull request
+func ApplyCodeSuggestions(ctx *context.Context) {
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
+	if err != nil {
+		ctx.JSONErrorAuto(err)
+		return
+	}
+	pr.Issue.Repo = ctx.Repo.Repository
+
+	form := context.GetFetchActionForm[*forms.ApplyCodeSuggestionsForm](ctx)
+	if form == nil {
+		return
+	}
+	opts := files_service.ApplyCodeSuggestionsOptions{
+		HeadCommitID: form.HeadCommitID,
+		Summary:      form.CommitSummary,
+		Description:  form.CommitMessage,
+	}
+	seen := container.SetOf[int64]()
+	for item := range strings.SplitSeq(form.CommentIDs, ",") {
+		idStr, versionStr, _ := strings.Cut(item, ":")
+		id, idErr := strconv.ParseInt(idStr, 10, 64)
+		version, versionErr := strconv.Atoi(versionStr)
+		if idErr != nil || versionErr != nil || !seen.Add(id) {
+			ctx.HTTPError(http.StatusBadRequest)
+			return
+		}
+		opts.Suggestions = append(opts.Suggestions, pull_service.CodeSuggestionVersion{CommentID: id, ContentVersion: version})
+	}
+	if err := files_service.ApplyCodeSuggestions(ctx, ctx.Doer, pr, opts); err != nil {
+		ctx.JSONErrorAuto(err)
+		return
+	}
+
+	if form.Origin == "diff" {
+		ctx.JSONRedirect(pr.Issue.Link() + "/files")
+	} else {
+		ctx.JSONRedirect(pr.Issue.Link() + "#" + issues_model.CommentHashTag(opts.Suggestions[0].CommentID))
+	}
 }

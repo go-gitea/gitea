@@ -4,13 +4,16 @@
 package markdown
 
 import (
+	"errors"
 	"fmt"
 
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/highlight"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/internal"
 	"gitea.dev/modules/markup/markdown/math"
+	giteautil "gitea.dev/modules/util"
 
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
@@ -76,6 +79,9 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 		case *ast.CodeSpan:
 			g.transformCodeSpan(ctx, v, reader)
 		case *ast.FencedCodeBlock:
+			if ctx.RenderOptions.CodeSuggestion != nil && isCodeSuggestionFence(v, reader.Source()) {
+				v.SetAttributeString(codeSuggestionAttribute, ctx)
+			}
 			g.transformFencedCodeblock(v, reader)
 		case *ast.Blockquote:
 			return g.transformBlockquote(v, reader)
@@ -151,6 +157,22 @@ func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 }
 
 func (r *HTMLRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+	helpers := markup.DefaultRenderHelperFuncs
+	suggestion, _ := n.AttributeString(codeSuggestionAttribute)
+	if ctx, ok := suggestion.(*markup.RenderContext); ok && helpers != nil && helpers.GetCodeSuggestionSource != nil {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+		anchor := *ctx.RenderOptions.CodeSuggestion
+		original, err := helpers.GetCodeSuggestionSource(ctx, anchor)
+		if err == nil {
+			return ast.WalkContinue, r.renderCodeSuggestion(w, anchor, original, string(n.Lines().Value(source)))
+		}
+		if !errors.Is(err, giteautil.ErrNotExist) {
+			log.Error("Unable to render code suggestion: %v", err)
+		}
+		n.SetAttributeString(codeSuggestionAttribute, nil)
+	}
 	if entering {
 		var language string
 		if fenced, ok := n.(*ast.FencedCodeBlock); ok {

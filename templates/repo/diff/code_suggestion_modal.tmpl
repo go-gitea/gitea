@@ -1,0 +1,21 @@
+{{if and ctx.RootData.SignedUserID .HeadCommitID (not ctx.RootData.Repository.IsArchived) (not ctx.RootData.Issue.IsClosed)}}
+	<template id="code-suggestion-modal">
+		<dialog class="modal-dialog">
+			<div class="header">{{ctx.Locale.Tr "repo.diff.suggestion.commit"}}</div>
+			<form class="content ui form form-fetch-action" method="post" action="{{ctx.RootData.Issue.Link}}/suggestions/apply">
+				<input type="hidden" name="origin" value="{{.Origin}}">
+				<input type="hidden" name="head_commit_id" value="{{.HeadCommitID}}">
+				<input type="hidden" name="comment_ids">
+				<div class="field">
+					<label>{{ctx.Locale.Tr "form.CommitSummary"}}</label>
+					<input name="commit_summary" maxlength="100">
+				</div>
+				<div class="field">
+					<label>{{ctx.Locale.Tr "form.CommitMessage"}}</label>
+					<textarea name="commit_message" rows="3" placeholder="{{ctx.Locale.Tr "repo.editor.commit_message_desc"}}"></textarea>
+				</div>
+				{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm" "ModalButtonOkText" (ctx.Locale.Tr "repo.diff.suggestion.commit"))}}
+			</form>
+		</dialog>
+	</template>
+{{end}}

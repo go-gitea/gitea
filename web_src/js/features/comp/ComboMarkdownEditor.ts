@@ -57,6 +57,8 @@ type Heights = {
 type ComboMarkdownEditorOptions = {
   editorHeights?: Heights,
   easyMDEOptions?: Omit<EasyMDE.Options, 'toolbar'> & {toolbar?: ReadonlyArray<string>},
+  easyMDEToolbarButton?: HTMLButtonElement,
+  appendPreviewData?: (data: FormData) => void,
 };
 
 type ComboMarkdownEditorTextarea = HTMLTextAreaElement & {_giteaComboMarkdownEditor: ComboMarkdownEditor};
@@ -268,6 +270,7 @@ export class ComboMarkdownEditor {
       formData.append('mode', this.previewMode);
       formData.append('context', this.previewContext);
       formData.append('text', this.value());
+      this.options.appendPreviewData?.(formData);
       const resp = this.previewFetch.request(this.previewUrl, {method: 'POST', data: formData});
       resp.onResponseError((details) => showErrorToast(`Failed to render preview: ${details.message}`, {duration: 2500}));
       await resp.fetchText(renderPreview);
@@ -314,6 +317,22 @@ export class ComboMarkdownEditor {
     this.tabEditor!.click(); // when this function is called, the tab must exist
   }
 
+  replaceSelection(transform: (value: string, start: number, end: number) => {text: string, cursor: number}) {
+    if (this.easyMDE) {
+      const editor = this.easyMDE.codemirror;
+      const from = editor.getCursor('from');
+      const to = editor.getCursor('to');
+      const {text, cursor} = transform(editor.getValue(), editor.indexFromPos(from), editor.indexFromPos(to));
+      editor.replaceRange(text, from, to);
+      editor.setCursor(editor.posFromIndex(cursor));
+      editor.focus();
+    } else {
+      const {text, cursor} = transform(this.textarea.value, this.textarea.selectionStart, this.textarea.selectionEnd);
+      replaceTextareaSelection(this.textarea, text);
+      this.textarea.setSelectionRange(cursor, cursor);
+    }
+  }
+
   prepareEasyMDEToolbarActions() {
     this.easyMDEToolbarDefault = [
       'bold', 'italic', 'strikethrough', '|', 'heading-1', 'heading-2', 'heading-3',
@@ -326,6 +345,15 @@ export class ComboMarkdownEditor {
   parseEasyMDEToolbar(easyMde: typeof EasyMDE, actions: ReadonlyArray<string>) {
     this.easyMDEToolbarActions = this.easyMDEToolbarActions || easyMDEToolbarActions(easyMde, this);
     const processed: EasyMdeToolbarAction[] = [];
+    const extraButton = this.options.easyMDEToolbarButton;
+    if (extraButton) {
+      processed.push({
+        name: 'gitea-extra-toolbar-button',
+        action: () => extraButton.click(),
+        icon: extraButton.innerHTML,
+        title: extraButton.getAttribute('aria-label')!,
+      }, '|');
+    }
     for (const action of actions) {
       const actionButton = this.easyMDEToolbarActions[action];
       if (!actionButton) throw new Error(`Unknown EasyMDE toolbar action ${action}`);

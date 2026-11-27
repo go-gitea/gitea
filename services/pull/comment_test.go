@@ -17,6 +17,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestSpliceCodeSuggestionsRejectsOverlap(t *testing.T) {
+	_, err := spliceCodeSuggestions([]byte("first\nsecond\nthird\n"), []codeSuggestionEdit{
+		{start: 6, end: 19},
+		{start: 0, end: 13},
+	})
+	assert.ErrorIs(t, err, codeSuggestionRejection(codeSuggestionReasonPrefix+"overlap"))
+}
+
+func TestCodeSuggestionAnchorMovesForShiftOrOverlap(t *testing.T) {
+	assert.True(t, codeSuggestionAnchorMoved([]git.FileDiffHunk{{OldStart: 1, NewCount: 2}}, 4, 5))
+	assert.True(t, codeSuggestionAnchorMoved([]git.FileDiffHunk{{OldStart: 5, OldCount: 1, NewCount: 1}}, 4, 5))
+	assert.False(t, codeSuggestionAnchorMoved([]git.FileDiffHunk{{OldStart: 1, OldCount: 1, NewCount: 1}}, 4, 5))
+}
+
 func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 	ctx := t.Context()
 	require.NoError(t, unittest.PrepareTestDatabase())

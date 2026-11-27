@@ -1640,6 +1640,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Get("/{sha:[a-f0-9]{7,64}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForSingleCommit)
 			})
 			m.Post("/merge", context.RepoMustNotBeArchived(), web.Bind[*forms.MergePullRequestForm](), repo.MergePullRequest)
+			m.Post("/suggestions/apply", reqSignIn, context.RepoMustNotBeArchived(), repo.ApplyCodeSuggestions)
 			m.Post("/cancel_auto_merge", reqSignIn, context.RepoMustNotBeArchived(), repo.CancelAutoMergePullRequest)
 			m.Post("/merge_queue/remove", reqSignIn, context.RepoMustNotBeArchived(), repo.RemoveFromMergeQueue)
 			m.Post("/merge_queue/jump", reqSignIn, reqRepoAdmin, context.RepoMustNotBeArchived(), repo.JumpMergeQueue)
@@ -1651,6 +1652,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Get("/{shaFrom:[a-f0-9]{7,64}}..{shaTo:[a-f0-9]{7,64}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForRange)
 				m.Group("/reviews", func() {
 					m.Get("/new_comment", repo.RenderNewCodeCommentForm)
+					m.Get("/suggestion_source", reqUnitCodeReader, repo.RenderCodeSuggestionSource)
 					m.Post("/comments", web.Bind[*forms.CodeCommentForm](), repo.SetShowOutdatedComments, repo.CreateCodeComment)
 					m.Post("/submit", web.Bind[*forms.SubmitReviewForm](), repo.SubmitReview)
 				}, reqSignIn, context.RepoMustNotBeArchived())

@@ -11,7 +11,7 @@
 	{{$canAddComment := and $root.SignedUserID (not $root.Repository.IsArchived)}}
 	{{$canMarkAsResolved := and $root.CanMarkConversation $hasReview (not $isReviewPending)}}
 	{{$repoLink := $root.RepoLink}}
-	<div class="conversation-holder" data-path="{{$firstComment.TreePath}}" data-side="{{if lt $firstComment.Line 0}}left{{else}}right{{end}}" data-idx="{{$firstComment.UnsignedLine}}">
+	<div class="conversation-holder" data-path="{{$firstComment.TreePath}}" data-side="{{if lt $firstComment.Line 0}}left{{else}}right{{end}}" data-idx="{{$firstComment.UnsignedLine}}"{{if ne $firstComment.CodeStartLine $firstComment.Line}} data-range-start="{{$firstComment.CodeStartLine}}" data-range-end="{{$firstComment.Line}}"{{end}}>
 		{{if $resolved}}
 			<div class="resolved-placeholder">
 				<div class="flex-text-block tw-flex-wrap tw-text-text-light">

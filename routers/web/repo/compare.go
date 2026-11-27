@@ -39,6 +39,7 @@ import (
 	"gitea.dev/services/context/upload"
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
+	pull_service "gitea.dev/services/pull"
 	user_service "gitea.dev/services/user"
 )
 
@@ -788,6 +789,11 @@ func ExcerptBlob(ctx *context.Context) {
 				if lineComments, ok := allComments[filePath]; ok {
 					attachCommentsToLines(section, lineComments)
 					attachHiddenCommentIDs(section, lineComments)
+					var comments issues_model.CommentList
+					for _, line := range section.Lines {
+						comments = append(comments, line.Comments...)
+					}
+					pull_service.LoadCodeSuggestionStates(ctx, ctx.Doer, issue, comments)
 				}
 			}
 		}

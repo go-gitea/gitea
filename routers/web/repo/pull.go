@@ -383,6 +383,7 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCompareInfo(ctx *context.Conte
 
 	ctx.Data["NumCommits"] = len(prInfo.CompareInfo.Commits)
 	ctx.Data["NumFiles"] = prInfo.CompareInfo.NumFiles
+	ctx.Data["PullHeadCommitID"] = prInfo.CompareInfo.HeadCommitID
 	prInfo.setTemplateDataMergeTarget(ctx)
 }
 
@@ -501,8 +502,6 @@ func (prInfo *pullRequestViewInfo) prepareViewOpenPullInfo(ctx *context.Context)
 	if ctx.Written() {
 		return
 	}
-
-	ctx.Data["PullHeadCommitID"] = prInfo.CompareInfo.HeadCommitID
 
 	if prInfo.CompareInfo.HeadCommitID == prInfo.CompareInfo.CompareBase {
 		ctx.Data["IsNothingToCompare"] = true
@@ -802,6 +801,8 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		ctx.ServerErrorAuto(err)
 		return
 	}
+	pull_service.LoadCodeSuggestionStates(ctx, ctx.Doer, issue, allComments)
+	ctx.Data["CodeSuggestionBatchCommitMessage"] = pull_service.CodeSuggestionsBatchCommitMessage
 
 	pb := prViewInfo.ProtectedBranchRule
 	if prViewInfo.ProtectedBranchRule != nil {
