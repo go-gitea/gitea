@@ -347,6 +347,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 			assert.NoError(t, err)
 
 			session := loginUser(t, "user5")
+			assert.Zero(t, NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/user5/test_codeowner/src/branch/master/README.md"), http.StatusOK).Body).Find(".flash-warning, .file-codeowners").Length())
 
 			// create a pull request on the forked repository, code reviewers should not be mentioned
 			testPullCreateDirectly(t, session, createPullRequestOptions{

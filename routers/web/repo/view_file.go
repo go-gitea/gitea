@@ -161,6 +161,9 @@ type fileCodeOwner struct {
 }
 
 func prepareFileCodeOwners(ctx *context.Context) {
+	if ctx.Repo.Repository.IsFork {
+		return // pull requests into forks don't apply CODEOWNERS
+	}
 	rules, warnings1, err := issue_service.GetCodeOwnerRules(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.Commit)
 	if msg, _ := util.ErrorUnwrapForHTML(err, ctx.Locale); msg != "" {
 		ctx.Flash.Error(msg, true)
