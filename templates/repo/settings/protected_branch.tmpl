@@ -3,7 +3,7 @@
 		<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
 			<h4 class="ui top attached header">
 				{{if .Rule.RuleName}}
-					{{ctx.Locale.Tr "repo.settings.branch_protection" .Rule.RuleName}}
+					{{ctx.Locale.Tr "repo.settings.branch_protection_title" (HTMLFormat "<b>%s</b>" .Rule.RuleName)}}
 				{{else}}
 					{{ctx.Locale.Tr "repo.settings.branches.add_new_rule"}}
 				{{end}}
@@ -14,17 +14,18 @@
 					<label>{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern"}}</label>
 					<input name="rule_name" type="text" value="{{.Rule.RuleName}}" required>
 					<input name="rule_id" type="hidden" value="{{.Rule.ID}}">
-					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern_desc" "https://github.com/gobwas/glob#syntax"}}</p>
+					{{$globSyntax := ctx.Locale.Tr "repo.settings.glob_syntax_desc" (HTMLFormat `<a href="%s">%s</a>` "https://github.com/gobwas/glob#syntax" "github.com/gobwas/glob")}}
+					<p class="help tw-ml-0">{{$globSyntax}} {{ctx.Locale.Tr "repo.settings.glob_examples" (HTMLFormat "<code>%s</code>, <code>%s</code>" "main" "release/**")}}</p>
 				</div>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_protected_file_patterns"}}</label>
 					<input name="protected_file_patterns" type="text" value="{{.Rule.ProtectedFilePatterns}}">
-					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_protected_file_patterns_desc" "https://github.com/gobwas/glob#syntax" "github.com/gobwas/glob"}}</p>
+					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_protected_files_desc"}} {{$globSyntax}} {{ctx.Locale.Tr "repo.settings.glob_examples" (HTMLFormat "<code>%s</code>, <code>%s</code>" ".drone.yml" "docs/**")}}</p>
 				</div>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns"}}</label>
 					<input name="unprotected_file_patterns" type="text" value="{{.Rule.UnprotectedFilePatterns}}">
-					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns_desc" "https://github.com/gobwas/glob#syntax" "github.com/gobwas/glob"}}</p>
+					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_unprotected_files_desc"}} {{$globSyntax}} {{ctx.Locale.Tr "repo.settings.glob_examples" (HTMLFormat "<code>%s</code>, <code>%s</code>" ".drone.yml" "docs/**")}}</p>
 				</div>
 
 				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.event_push"}}</h5>
