@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/packages"
 	"gitea.dev/modules/packages/container/helm"
 	"gitea.dev/modules/validation"
@@ -164,7 +165,7 @@ func parseOCIImageConfig(r io.Reader) (*Metadata, error) {
 
 func parseHelmConfig(r io.Reader) (*Metadata, error) {
 	var config helm.Metadata
-	if err := json.NewDecoder(r).Decode(&config); err != nil {
+	if err := jsonlimit.DecodeWithLimit(r, 100*1024*1024, &config); err != nil {
 		return nil, err
 	}
 

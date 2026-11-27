@@ -24,7 +24,7 @@ import (
 )
 
 // LFSPush pushes lfs objects referred to in new commits in the head repository from the base repository
-func LFSPush(ctx context.Context, tmpBasePath string, tmpRepo git.RepositoryFacade, mergeHeadSHA, mergeBaseSHA string, pr *issues_model.PullRequest) error {
+func LFSPush(ctx context.Context, repo git.RepositoryFacade, mergeHeadSHA, mergeBaseSHA string, pr *issues_model.PullRequest) error {
 	// Now we have to implement git-lfs push
 	// git rev-list --objects --filter=blob:limit=1k HEAD --not base
 	// pass blob shas in to git cat-file --batch-check (possibly unnecessary)
@@ -54,7 +54,7 @@ func LFSPush(ctx context.Context, tmpBasePath string, tmpRepo git.RepositoryFaca
 
 	// 5. Take the shas of the blobs and batch read them
 	wg.Go(func() error {
-		return pipeline.CatFileBatch(ctx, cmd5BatchContent, tmpRepo)
+		return pipeline.CatFileBatch(ctx, cmd5BatchContent, repo)
 	})
 
 	// 4. From the provided objects restrict to blobs <=1k
@@ -64,7 +64,7 @@ func LFSPush(ctx context.Context, tmpBasePath string, tmpRepo git.RepositoryFaca
 
 	// 3. Run batch-check on the objects retrieved from rev-list
 	wg.Go(func() error {
-		return pipeline.CatFileBatchCheck(ctx, cmd3BathCheck, tmpRepo)
+		return pipeline.CatFileBatchCheck(ctx, cmd3BathCheck, repo)
 	})
 
 	// 2. Check each object retrieved rejecting those without names as they will be commits or trees
@@ -74,7 +74,7 @@ func LFSPush(ctx context.Context, tmpBasePath string, tmpRepo git.RepositoryFaca
 
 	// 1. Run rev-list objects from mergeHead to mergeBase
 	wg.Go(func() error {
-		return pipeline.RevListObjects(ctx, cmd1RevList, tmpRepo, mergeHeadSHA, mergeBaseSHA)
+		return pipeline.RevListObjects(ctx, cmd1RevList, repo, mergeHeadSHA, mergeBaseSHA)
 	})
 
 	return wg.Wait()

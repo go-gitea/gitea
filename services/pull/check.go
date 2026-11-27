@@ -42,9 +42,8 @@ var (
 	ErrNotReadyToMerge           = errors.New("not ready to merge")
 	ErrHasMerged                 = errors.New("has already been merged")
 	ErrIsWorkInProgress          = errors.New("work in progress PRs cannot be merged")
-	ErrIsChecking                = errors.New("cannot merge while conflict checking is in progress")
 	ErrNotMergeableState         = errors.New("not in mergeable state")
-	ErrDependenciesLeft          = errors.New("is blocked by an open dependency")
+	ErrDependenciesLeft          = util.ErrorWrap(util.ErrUnprocessableContent, "is blocked by an open dependency")
 	ErrHeadCommitsNotAllVerified = errors.New("the branch requires signed commits but not all head commits are verified")
 )
 
@@ -167,12 +166,8 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 			return ErrIsWorkInProgress
 		}
 
-		if !pr.IsStatusMergeable() && !pr.IsEmpty() {
+		if !pr.IsStatusMergeable() && (mergeCheckType != MergeCheckTypeAuto || !pr.IsFilesConflicted() && !pr.IsChecking()) { // auto merge waits out conflicts and checking
 			return ErrNotMergeableState
-		}
-
-		if pr.IsChecking() {
-			return ErrIsChecking
 		}
 
 		if errProtection := CheckPullBranchProtections(ctx, pr, false); errProtection != nil {
@@ -211,7 +206,7 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 			}
 		}
 
-		if err := checkSigningRequirements(ctx, pr, doer, mergeStyle); err != nil {
+		if err := checkSigningRequirements(ctx, pr, doer, mergeStyle, forceMerge); err != nil {
 			return err
 		}
 
@@ -233,13 +228,16 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 //   - fast-forward-only creates no Gitea commit, so Gitea's signing key is not used.
 //   - merge, rebase, rebase-merge and squash produce a Gitea-signed commit, so
 //     Gitea must be configured to sign it.
-func checkSigningRequirements(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle) error {
+func checkSigningRequirements(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, forceMerge bool) error {
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
 	if err != nil {
 		return err
 	}
 	if pb == nil || !pb.RequireSignedCommits {
 		return nil
+	}
+	if MergesThroughQueue(ctx, pb, pr.BaseRepo, doer, forceMerge) {
+		mergeStyle = pb.MergeQueue.MergeMethod
 	}
 
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)

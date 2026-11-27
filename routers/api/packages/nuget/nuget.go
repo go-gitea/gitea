@@ -18,10 +18,10 @@ import (
 	"gitea.dev/models/db"
 	packages_model "gitea.dev/models/packages"
 	nuget_model "gitea.dev/models/packages/nuget"
+	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/optional"
 	packages_module "gitea.dev/modules/packages"
 	nuget_module "gitea.dev/modules/packages/nuget"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/api/packages/helper"
 	"gitea.dev/services/context"
@@ -42,9 +42,13 @@ func xmlResponse(ctx *context.Context, status int, obj any) { //nolint:unparam /
 	_ = xml.NewEncoder(ctx.Resp).Encode(obj)
 }
 
+func buildNuGetRegistryURL(ctx *context.Context) string {
+	return httplib.GuessCurrentAppURL(ctx) + "api/packages/" + ctx.Package.Owner.Name + "/nuget"
+}
+
 // https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Protocol/LegacyFeed/V2FeedQueryBuilder.cs
 func ServiceIndexV2(ctx *context.Context) {
-	base := setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"
+	base := buildNuGetRegistryURL(ctx)
 
 	xmlResponse(ctx, http.StatusOK, &ServiceIndexResponseV2{
 		Base:      base,
@@ -68,7 +72,7 @@ func ServiceIndexV2(ctx *context.Context) {
 
 // https://docs.microsoft.com/en-us/nuget/api/service-index
 func ServiceIndexV3(ctx *context.Context) {
-	root := setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"
+	root := buildNuGetRegistryURL(ctx)
 
 	ctx.JSON(http.StatusOK, &ServiceIndexResponseV3{
 		Version: "3.0.0",
@@ -170,7 +174,7 @@ func SearchServiceV2(ctx *context.Context) {
 	}
 
 	resp := createFeedResponse(
-		&linkBuilder{Base: setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget", Next: next},
+		&linkBuilder{Base: buildNuGetRegistryURL(ctx), Next: next},
 		total,
 		pds,
 	)
@@ -216,7 +220,7 @@ func SearchServiceV3(ctx *context.Context) {
 	}
 
 	resp := createSearchResultResponse(
-		&linkBuilder{Base: setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
+		&linkBuilder{Base: buildNuGetRegistryURL(ctx)},
 		count,
 		pds,
 	)
@@ -245,7 +249,7 @@ func RegistrationIndex(ctx *context.Context) {
 	}
 
 	resp := createRegistrationIndexResponse(
-		&linkBuilder{Base: setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
+		&linkBuilder{Base: buildNuGetRegistryURL(ctx)},
 		pds,
 	)
 
@@ -274,7 +278,7 @@ func RegistrationLeafV2(ctx *context.Context) {
 	}
 
 	resp := createEntry(
-		&linkBuilder{Base: setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
+		&linkBuilder{Base: buildNuGetRegistryURL(ctx)},
 		pd,
 		true,
 	)
@@ -304,7 +308,7 @@ func RegistrationLeafV3(ctx *context.Context) {
 	}
 
 	resp := createRegistrationLeafResponse(
-		&linkBuilder{Base: setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
+		&linkBuilder{Base: buildNuGetRegistryURL(ctx)},
 		pd,
 	)
 
@@ -353,7 +357,7 @@ func EnumeratePackageVersionsV2(ctx *context.Context) {
 	}
 
 	resp := createFeedResponse(
-		&linkBuilder{Base: setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget", Next: next},
+		&linkBuilder{Base: buildNuGetRegistryURL(ctx), Next: next},
 		total,
 		pds,
 	)

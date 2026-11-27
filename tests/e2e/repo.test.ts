@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, apiCreateBranch, apiCreateFiles, apiCreateRepo, randomString} from './utils.ts';
+import {login, apiCreateBranch, apiCreateFiles, apiCreateRepo, apiHeaders, randomString} from './utils.ts';
 
 test('create a repository', async ({page}) => {
   const repoName = `e2e-repo-${randomString(8)}`;
@@ -47,30 +47,49 @@ test('search code', async ({page, request}) => {
   await expect(page.getByText('src/main.go', {exact: true})).toBeVisible();
 });
 
-test('file tree, history and go to file navigate between nested files', async ({page, request}) => {
+test('file tree, go to file and tag selector navigate nested files', async ({page, request}) => {
   const repoName = `e2e-file-nav-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
+  const tagName = 'review/café';
+  const guideUrlPath = 'docs/%231%20guide.txt';
   await Promise.all([
     (async () => {
       await apiCreateRepo(request, {name: repoName, autoInit: false});
       await apiCreateFiles(request, owner, repoName, [
         {path: 'start.txt', content: 'Starting file content\n'},
-        {path: 'docs/guide.txt', content: 'Nested guide content\n'},
+        {path: 'docs/#1 guide.txt', content: 'Nested guide content\n'},
       ]);
+      expect((await request.post(`/api/v1/repos/${owner}/${repoName}/tags`, {
+        headers: apiHeaders(), data: {tag_name: tagName},
+      })).status()).toBe(201);
     })(),
     login(page),
   ]);
   await page.goto(`/${owner}/${repoName}/src/branch/main/start.txt`);
   const tree = page.locator('#view-file-tree');
   await tree.getByRole('link', {name: 'docs', exact: true}).locator('.item-toggle svg').click();
-  await tree.getByRole('link', {name: 'guide.txt', exact: true}).click();
-  await expect(page.getByText('Nested guide content', {exact: true})).toBeVisible();
+  await tree.getByRole('link', {name: '#1 guide.txt', exact: true}).click();
+  const guideContent = page.getByText('Nested guide content', {exact: true});
+  await expect(guideContent).toBeVisible();
   await page.goBack();
   await expect(page.getByText('Starting file content', {exact: true})).toBeVisible();
 
   const search = page.getByRole('combobox', {name: 'Go to file'});
   await search.fill('docs/gu');
-  await expect(page.getByRole('option')).toHaveText(['docs/guide.txt']);
+  await expect(page.getByRole('option')).toHaveText(['docs/#1 guide.txt']);
   await search.press('Enter');
-  await expect(page.getByText('Nested guide content', {exact: true})).toBeVisible();
+  await page.waitForURL(`/${owner}/${repoName}/src/branch/main/${guideUrlPath}`);
+  await expect(guideContent).toBeVisible();
+
+  await page.getByText('main', {exact: true}).click();
+  await expect(page.getByText('default', {exact: true})).toBeVisible();
+  await page.getByRole('button', {name: 'Tags', exact: true}).click();
+  await page.keyboard.insertText(tagName);
+  const tagText = page.getByText(tagName, {exact: true});
+  await expect(tagText).toBeVisible();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await page.waitForURL(`/${owner}/${repoName}/src/tag/review/caf%C3%A9/${guideUrlPath}`);
+  await expect(guideContent).toBeVisible();
+  await expect(tagText).toBeVisible();
 });

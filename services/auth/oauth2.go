@@ -17,7 +17,6 @@ import (
 	"gitea.dev/modules/auth/httpauth"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/actions"
 	"gitea.dev/services/oauth2_provider"
@@ -82,18 +81,19 @@ func (o *OAuth2) Name() string {
 // parseToken returns the token from request, and a boolean value
 // representing whether the token exists or not
 func parseToken(req *http.Request) (string, bool) {
-	_ = req.ParseForm()
-	if !setting.DisableQueryAuthToken {
-		// Check token.
-		if token := req.Form.Get("token"); token != "" {
-			return token, true
+	if strings.Contains(req.URL.RawQuery, "token=") {
+		// only parse the legacy query parameters if the query parameters contain "token=" (also includes "access_token=")
+		queryParams := req.URL.Query()
+		if !setting.DisableQueryAuthToken {
+			if token := queryParams.Get("token"); token != "" {
+				return token, true
+			}
+			if token := queryParams.Get("access_token"); token != "" {
+				return token, true
+			}
+		} else if queryParams.Get("token") != "" || queryParams.Get("access_token") != "" {
+			log.Warn("API token sent in query string but DISABLE_QUERY_AUTH_TOKEN=true")
 		}
-		// Check access token.
-		if token := req.Form.Get("access_token"); token != "" {
-			return token, true
-		}
-	} else if req.Form.Get("token") != "" || req.Form.Get("access_token") != "" {
-		log.Warn("API token sent in query string but DISABLE_QUERY_AUTH_TOKEN=true")
 	}
 
 	// check header token
@@ -138,9 +138,8 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string) (*user_mode
 		return nil, err
 	}
 
-	t.UpdatedUnix = timeutil.TimeStampNow()
-	if err = auth_model.UpdateAccessToken(ctx, t); err != nil {
-		log.Error("UpdateAccessToken: %v", err)
+	if err = auth_model.TouchAccessToken(ctx, t); err != nil {
+		log.Error("userFromToken: %v", err)
 	}
 	user, err := user_model.GetUserByID(ctx, t.UID)
 	if err != nil {

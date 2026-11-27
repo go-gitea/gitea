@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"gitea.dev/modules/log"
 )
 
 // StorageType is a type of Storage
@@ -17,16 +19,18 @@ type StorageType string
 const (
 	// LocalStorageType is the type descriptor for local storage
 	LocalStorageType StorageType = "local"
-	// MinioStorageType is the type descriptor for minio storage
-	MinioStorageType StorageType = "minio"
+	// S3StorageType is the type descriptor for S3-compatible storage
+	S3StorageType StorageType = "s3"
 	// AzureBlobStorageType is the type descriptor for azure blob storage
-	AzureBlobStorageType StorageType = "azureblob"
+	AzureBlobStorageType   StorageType = "azureblob"
+	legacyMinioStorageType StorageType = "minio" // deprecated alias of S3StorageType
 )
 
 var storageTypes = []StorageType{
 	LocalStorageType,
-	MinioStorageType,
+	S3StorageType,
 	AzureBlobStorageType,
+	legacyMinioStorageType,
 }
 
 // IsValidStorageType returns true if the given storage type is valid
@@ -34,23 +38,58 @@ func IsValidStorageType(storageType StorageType) bool {
 	return slices.Contains(storageTypes, storageType)
 }
 
-// MinioStorageConfig represents the configuration for a minio storage
-type MinioStorageConfig struct {
-	Endpoint           string `ini:"MINIO_ENDPOINT" json:",omitempty"`
-	AccessKeyID        string `ini:"MINIO_ACCESS_KEY_ID" json:",omitempty"`
-	SecretAccessKey    string `ini:"MINIO_SECRET_ACCESS_KEY" json:",omitempty"`
-	IamEndpoint        string `ini:"MINIO_IAM_ENDPOINT" json:",omitempty"`
-	Bucket             string `ini:"MINIO_BUCKET" json:",omitempty"`
-	Location           string `ini:"MINIO_LOCATION" json:",omitempty"`
-	BasePath           string `ini:"MINIO_BASE_PATH" json:",omitempty"`
-	UseSSL             bool   `ini:"MINIO_USE_SSL"`
-	InsecureSkipVerify bool   `ini:"MINIO_INSECURE_SKIP_VERIFY"`
-	ChecksumAlgorithm  string `ini:"MINIO_CHECKSUM_ALGORITHM" json:",omitempty"`
+// S3StorageConfig represents the configuration for an S3-compatible storage
+type S3StorageConfig struct {
+	Endpoint           string `ini:"S3_ENDPOINT" json:",omitempty"`
+	AccessKeyID        string `ini:"S3_ACCESS_KEY_ID" json:",omitempty"`
+	SecretAccessKey    string `ini:"S3_SECRET_ACCESS_KEY" json:",omitempty"`
+	IamEndpoint        string `ini:"S3_IAM_ENDPOINT" json:",omitempty"`
+	Bucket             string `ini:"S3_BUCKET" json:",omitempty"`
+	Location           string `ini:"S3_LOCATION" json:",omitempty"`
+	BasePath           string `ini:"S3_BASE_PATH" json:",omitempty"`
+	UseSSL             bool   `ini:"S3_USE_SSL"`
+	InsecureSkipVerify bool   `ini:"S3_INSECURE_SKIP_VERIFY"`
+	ChecksumAlgorithm  string `ini:"S3_CHECKSUM_ALGORITHM" json:",omitempty"`
 	ServeDirect        bool   `ini:"SERVE_DIRECT"`
-	BucketLookUpType   string `ini:"MINIO_BUCKET_LOOKUP_TYPE" json:",omitempty"`
+	BucketLookUpType   string `ini:"S3_BUCKET_LOOKUP_TYPE" json:",omitempty"`
 }
 
-func (cfg *MinioStorageConfig) ToShadow() {
+// minioToS3KeyRenames is a slice, not a map, for stable startup-log order
+var minioToS3KeyRenames = []struct{ oldKey, newKey string }{
+	{"MINIO_ACCESS_KEY_ID", "S3_ACCESS_KEY_ID"},
+	{"MINIO_BASE_PATH", "S3_BASE_PATH"},
+	{"MINIO_BUCKET", "S3_BUCKET"},
+	{"MINIO_BUCKET_LOOKUP_TYPE", "S3_BUCKET_LOOKUP_TYPE"},
+	{"MINIO_CHECKSUM_ALGORITHM", "S3_CHECKSUM_ALGORITHM"},
+	{"MINIO_ENDPOINT", "S3_ENDPOINT"},
+	{"MINIO_IAM_ENDPOINT", "S3_IAM_ENDPOINT"},
+	{"MINIO_INSECURE_SKIP_VERIFY", "S3_INSECURE_SKIP_VERIFY"},
+	{"MINIO_LOCATION", "S3_LOCATION"},
+	{"MINIO_SECRET_ACCESS_KEY", "S3_SECRET_ACCESS_KEY"},
+	{"MINIO_USE_SSL", "S3_USE_SSL"},
+}
+
+// migrateDeprecatedStorageKeys copies all keys before deleting any, so `%(MINIO_*)s` interpolations still resolve
+func migrateDeprecatedStorageKeys(rootCfg ConfigProvider) {
+	sections := rootCfg.Sections()
+	for _, sec := range sections {
+		for _, rename := range minioToS3KeyRenames {
+			if oldKey := ConfigSectionKey(sec, rename.oldKey); oldKey != nil && ConfigSectionKey(sec, rename.newKey) == nil {
+				_, _ = sec.NewKey(rename.newKey, oldKey.String())
+			}
+		}
+	}
+	for _, sec := range sections {
+		for _, rename := range minioToS3KeyRenames {
+			if ConfigSectionKey(sec, rename.oldKey) != nil {
+				LogStartupProblem(1, log.WARN, "Deprecation: config option `[%s].%s` present, please use `[%s].%s` instead", sec.Name(), rename.oldKey, sec.Name(), rename.newKey)
+				sec.DeleteKey(rename.oldKey)
+			}
+		}
+	}
+}
+
+func (cfg *S3StorageConfig) ToShadow() {
 	if cfg.AccessKeyID != "" {
 		cfg.AccessKeyID = "******"
 	}
@@ -79,22 +118,22 @@ func (cfg *AzureBlobStorageConfig) ToShadow() {
 
 // Storage represents configuration of storages
 type Storage struct {
-	Type            StorageType            // local or minio or azureblob
+	Type            StorageType            // local or s3 or azureblob
 	Path            string                 `json:",omitempty"` // for local type
 	TemporaryPath   string                 `json:",omitempty"`
-	MinioConfig     MinioStorageConfig     // for minio type
+	S3Config        S3StorageConfig        // for s3 type
 	AzureBlobConfig AzureBlobStorageConfig // for azureblob type
 }
 
 func (storage *Storage) ToShadowCopy() Storage {
 	shadowStorage := *storage
-	shadowStorage.MinioConfig.ToShadow()
+	shadowStorage.S3Config.ToShadow()
 	shadowStorage.AzureBlobConfig.ToShadow()
 	return shadowStorage
 }
 
 func (storage *Storage) ServeDirect() bool {
-	return (storage.Type == MinioStorageType && storage.MinioConfig.ServeDirect) ||
+	return (storage.Type == S3StorageType && storage.S3Config.ServeDirect) ||
 		(storage.Type == AzureBlobStorageType && storage.AzureBlobConfig.ServeDirect)
 }
 
@@ -103,20 +142,20 @@ const storageSectionName = "storage"
 func getDefaultStorageSection(rootCfg ConfigProvider) ConfigSection {
 	storageSec := rootCfg.Section(storageSectionName)
 	// Global Defaults
-	storageSec.Key("STORAGE_TYPE").MustString("local")               // FIXME: INI-MUST-SIDE-EFFECT
-	storageSec.Key("MINIO_ENDPOINT").MustString("localhost:9000")    // FIXME: INI-MUST-SIDE-EFFECT
-	storageSec.Key("MINIO_ACCESS_KEY_ID").MustString("")             // FIXME: INI-MUST-SIDE-EFFECT
-	storageSec.Key("MINIO_SECRET_ACCESS_KEY").MustString("")         // FIXME: INI-MUST-SIDE-EFFECT
-	storageSec.Key("MINIO_BUCKET").MustString("gitea")               // FIXME: INI-MUST-SIDE-EFFECT
-	storageSec.Key("MINIO_LOCATION").MustString("us-east-1")         // FIXME: INI-MUST-SIDE-EFFECT
-	storageSec.Key("MINIO_USE_SSL").MustBool(false)                  // FIXME: INI-MUST-SIDE-EFFECT
-	storageSec.Key("MINIO_INSECURE_SKIP_VERIFY").MustBool(false)     // FIXME: INI-MUST-SIDE-EFFECT
-	storageSec.Key("MINIO_CHECKSUM_ALGORITHM").MustString("default") // FIXME: INI-MUST-SIDE-EFFECT
-	storageSec.Key("MINIO_BUCKET_LOOKUP_TYPE").MustString("auto")    // FIXME: INI-MUST-SIDE-EFFECT
-	storageSec.Key("AZURE_BLOB_ENDPOINT").MustString("")             // FIXME: INI-MUST-SIDE-EFFECT
-	storageSec.Key("AZURE_BLOB_ACCOUNT_NAME").MustString("")         // FIXME: INI-MUST-SIDE-EFFECT
-	storageSec.Key("AZURE_BLOB_ACCOUNT_KEY").MustString("")          // FIXME: INI-MUST-SIDE-EFFECT
-	storageSec.Key("AZURE_BLOB_CONTAINER").MustString("gitea")       // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("STORAGE_TYPE").MustString("local")            // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("S3_ENDPOINT").MustString("localhost:9000")    // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("S3_ACCESS_KEY_ID").MustString("")             // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("S3_SECRET_ACCESS_KEY").MustString("")         // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("S3_BUCKET").MustString("gitea")               // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("S3_LOCATION").MustString("us-east-1")         // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("S3_USE_SSL").MustBool(false)                  // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("S3_INSECURE_SKIP_VERIFY").MustBool(false)     // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("S3_CHECKSUM_ALGORITHM").MustString("default") // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("S3_BUCKET_LOOKUP_TYPE").MustString("auto")    // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("AZURE_BLOB_ENDPOINT").MustString("")          // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("AZURE_BLOB_ACCOUNT_NAME").MustString("")      // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("AZURE_BLOB_ACCOUNT_KEY").MustString("")       // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("AZURE_BLOB_CONTAINER").MustString("gitea")    // FIXME: INI-MUST-SIDE-EFFECT
 	return storageSec
 }
 
@@ -127,6 +166,7 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		return nil, errors.New("no name for storage")
 	}
 
+	migrateDeprecatedStorageKeys(rootCfg)
 	targetSec, tp, err := getStorageTargetSection(rootCfg, name, typ, sec)
 	if err != nil {
 		return nil, err
@@ -138,8 +178,11 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 	switch targetType {
 	case string(LocalStorageType):
 		return getStorageForLocal(targetSec, overrideSec, tp, name)
-	case string(MinioStorageType):
-		return getStorageForMinio(targetSec, overrideSec, tp, name)
+	case string(legacyMinioStorageType):
+		LogStartupProblem(1, log.WARN, "Deprecation: storage type `%s` for `%s` is deprecated, please use `%s` instead", legacyMinioStorageType, name, S3StorageType)
+		fallthrough
+	case string(S3StorageType):
+		return getStorageForS3(targetSec, overrideSec, tp, name)
 	case string(AzureBlobStorageType):
 		return getStorageForAzureBlob(targetSec, overrideSec, tp, name)
 	default:
@@ -158,12 +201,19 @@ const (
 )
 
 func getStorageSectionByType(rootCfg ConfigProvider, typ string) (ConfigSection, targetSecType, error) { //nolint:unparam // FIXME: targetSecType is always 0, wrong design?
+	legacySecName := storageSectionName + "." + string(legacyMinioStorageType)
 	targetSec, err := rootCfg.GetSection(storageSectionName + "." + typ)
+	if err != nil && typ == string(S3StorageType) {
+		targetSec, err = rootCfg.GetSection(legacySecName)
+	}
+	if err == nil && targetSec.Name() == legacySecName {
+		LogStartupProblem(1, log.WARN, "Deprecation: storage section `[%s]` is deprecated, please rename it to `[%s.%s]` and use `STORAGE_TYPE = %s`", legacySecName, storageSectionName, S3StorageType, S3StorageType)
+	}
 	if err != nil {
 		if !IsValidStorageType(StorageType(typ)) {
 			return nil, 0, fmt.Errorf("get section via storage type %q failed: %v", typ, err)
 		}
-		// if typ is a valid storage type, but there is no [storage.local] or [storage.minio] section
+		// if typ is a valid storage type, but there is no [storage.local] or [storage.s3] section
 		// it's not an error
 		return nil, 0, nil
 	}
@@ -187,9 +237,10 @@ func getStorageTargetSection(rootCfg ConfigProvider, name, typ string, sec Confi
 		if sec != nil { // check sec's type secondly
 			typ = sec.Key("STORAGE_TYPE").String()
 			if IsValidStorageType(StorageType(typ)) {
-				if targetSec, _ := rootCfg.GetSection(storageSectionName + "." + typ); targetSec == nil {
-					return sec, targetSecIsSec, nil
+				if targetSec, tp, err := getStorageSectionByType(rootCfg, typ); targetSec != nil || err != nil {
+					return targetSec, tp, err
 				}
+				return sec, targetSecIsSec, nil
 			}
 		}
 	}
@@ -225,7 +276,7 @@ func getStorageTargetSection(rootCfg ConfigProvider, name, typ string, sec Confi
 	return getDefaultStorageSection(rootCfg), targetSecIsDefault, nil
 }
 
-// getStorageOverrideSection override section will be read SERVE_DIRECT, PATH, MINIO_BASE_PATH, MINIO_BUCKET to override the targetsec when possible
+// getStorageOverrideSection override section will be read SERVE_DIRECT, PATH, S3_BASE_PATH, S3_BUCKET to override the targetsec when possible
 func getStorageOverrideSection(rootConfig ConfigProvider, sec ConfigSection, targetSecType targetSecType, name string) ConfigSection {
 	if targetSecType == targetSecIsSec {
 		return nil
@@ -282,19 +333,18 @@ func getStorageForLocal(targetSec, overrideSec ConfigSection, tp targetSecType, 
 	return &storage, nil
 }
 
-func getStorageForMinio(targetSec, overrideSec ConfigSection, tp targetSecType, name string) (*Storage, error) { //nolint:dupl // duplicates azure setup
-	var storage Storage
-	storage.Type = StorageType(targetSec.Key("STORAGE_TYPE").String())
-	if err := targetSec.MapTo(&storage.MinioConfig); err != nil {
-		return nil, fmt.Errorf("map minio config failed: %v", err)
+func getStorageForS3(targetSec, overrideSec ConfigSection, tp targetSecType, name string) (*Storage, error) {
+	storage := Storage{Type: S3StorageType}
+	if err := targetSec.MapTo(&storage.S3Config); err != nil {
+		return nil, fmt.Errorf("map S3 config failed: %v", err)
 	}
 
 	var defaultPath string
-	if storage.MinioConfig.BasePath != "" {
+	if storage.S3Config.BasePath != "" {
 		if tp == targetSecIsStorage || tp == targetSecIsDefault {
-			defaultPath = strings.TrimSuffix(storage.MinioConfig.BasePath, "/") + "/" + name + "/"
+			defaultPath = strings.TrimSuffix(storage.S3Config.BasePath, "/") + "/" + name + "/"
 		} else {
-			defaultPath = storage.MinioConfig.BasePath
+			defaultPath = storage.S3Config.BasePath
 		}
 	}
 	if defaultPath == "" {
@@ -302,16 +352,16 @@ func getStorageForMinio(targetSec, overrideSec ConfigSection, tp targetSecType, 
 	}
 
 	if overrideSec != nil {
-		storage.MinioConfig.ServeDirect = ConfigSectionKeyBool(overrideSec, "SERVE_DIRECT", storage.MinioConfig.ServeDirect)
-		storage.MinioConfig.BasePath = ConfigSectionKeyString(overrideSec, "MINIO_BASE_PATH", defaultPath)
-		storage.MinioConfig.Bucket = ConfigSectionKeyString(overrideSec, "MINIO_BUCKET", storage.MinioConfig.Bucket)
+		storage.S3Config.ServeDirect = ConfigSectionKeyBool(overrideSec, "SERVE_DIRECT", storage.S3Config.ServeDirect)
+		storage.S3Config.BasePath = ConfigSectionKeyString(overrideSec, "S3_BASE_PATH", defaultPath)
+		storage.S3Config.Bucket = ConfigSectionKeyString(overrideSec, "S3_BUCKET", storage.S3Config.Bucket)
 	} else {
-		storage.MinioConfig.BasePath = defaultPath
+		storage.S3Config.BasePath = defaultPath
 	}
 	return &storage, nil
 }
 
-func getStorageForAzureBlob(targetSec, overrideSec ConfigSection, tp targetSecType, name string) (*Storage, error) { //nolint:dupl // duplicates minio setup
+func getStorageForAzureBlob(targetSec, overrideSec ConfigSection, tp targetSecType, name string) (*Storage, error) {
 	var storage Storage
 	storage.Type = StorageType(targetSec.Key("STORAGE_TYPE").String())
 	if err := targetSec.MapTo(&storage.AzureBlobConfig); err != nil {

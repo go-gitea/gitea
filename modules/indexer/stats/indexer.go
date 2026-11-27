@@ -5,6 +5,7 @@ package stats
 
 import (
 	"context"
+	"sync"
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
@@ -23,14 +24,14 @@ type Indexer interface {
 var indexer Indexer
 
 // Init initialize the repo indexer
-func Init() error {
+func Init(startup *sync.WaitGroup) error {
 	indexer = &DBIndexer{}
 
 	if err := initStatsQueue(); err != nil {
 		return err
 	}
 
-	go populateRepoIndexer(graceful.GetManager().ShutdownContext())
+	startup.Go(func() { populateRepoIndexer(graceful.GetManager().ShutdownContext()) })
 
 	return nil
 }

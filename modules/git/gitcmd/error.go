@@ -55,8 +55,13 @@ func ErrorAsStderr(err error) (string, bool) {
 	return "", false
 }
 
+type exitCoder interface {
+	error
+	ExitCode() int
+}
+
 func IsErrorExitCode(err error, code int) bool {
-	if exitError, ok := errors.AsType[*exec.ExitError](err); ok {
+	if exitError, ok := errors.AsType[exitCoder](err); ok {
 		return exitError.ExitCode() == code
 	}
 	return false
@@ -94,6 +99,7 @@ const (
 	StderrBadRevision        StderrPrefix = "fatal: bad revision"
 	StderrNoSuchPath         StderrPrefix = "fatal: no such path"
 	StderrBadObject          StderrPrefix = "fatal: bad object "
+	StderrUnrelatedHistories StderrPrefix = "fatal: refusing to merge unrelated histories"
 
 	StderrAuthenticationFailed StderrPrefix = "fatal: Authentication failed for"
 	StderrCouldNotReadUsername StderrPrefix = "fatal: could not read Username"

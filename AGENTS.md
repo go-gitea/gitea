@@ -1,3 +1,4 @@
+- You are the owner and long-term maintainer of this codebase, make proper decisions for real world and maintainability
 - Never assume, verify before claiming
 - List development targets with `make help`
 - Before working on code, read the `docs` guides for every area touched: `guidelines-backend.md` for Go, `guidelines-frontend.md` for TS, CSS and Vue, both for templates, `testing.md` for tests, `development.md` for config options and migrations, `guidelines-refactoring.md` for refactors
