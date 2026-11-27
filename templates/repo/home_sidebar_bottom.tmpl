@@ -19,6 +19,27 @@
 		</div>
 	{{end}}
 
+	{{if .TopContributors}}
+		<div class="divider"></div>
+		<div class="repo-home-sidebar-header">
+			<a class="item muted" href="{{.RepoLink}}/activity/contributors">
+				{{ctx.Locale.Tr "repo.activity.navbar.contributors"}}
+			</a>
+			<span class="ui small label">{{ctx.Locale.PrettyNumber .NumContributors}}</span>
+		</div>
+		<div class="tw-flex tw-flex-wrap tw-gap-1">
+			{{range $contributor := .TopContributors}}
+				{{if $contributor.User}}
+					{{template "shared/user/avatarlink" dict "user" $contributor.User "size" 32 "tooltip" true}}
+				{{else}}
+					<span data-tooltip-content="{{$contributor.Name}}">
+						{{ctx.AvatarUtils.AvatarByEmail $contributor.Email $contributor.Name 32}}
+					</span>
+				{{end}}
+			{{end}}
+		</div>
+	{{end}}
+
 	{{if and (not .IsEmptyRepo) .LanguageStats}}
 		<div class="divider"></div>
 		<div class="repo-home-sidebar-header">
