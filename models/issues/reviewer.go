@@ -24,11 +24,8 @@ func getReviewerIDs(ctx context.Context, repo *repo_model.Repository) (container
 		return nil, err
 	}
 
-	var userIDs []int64
-	if err := db.GetEngine(ctx).Table("collaboration").Where("repo_id=?", repo.ID).
-		And("mode >= ?", perm.AccessModeRead).
-		Select("user_id").
-		Find(&userIDs); err != nil {
+	userIDs, err := db.FindIDs(ctx, "collaboration", "user_id", builder.Eq{"repo_id": repo.ID}.And(builder.Gte{"mode": perm.AccessModeRead}))
+	if err != nil {
 		return nil, err
 	}
 

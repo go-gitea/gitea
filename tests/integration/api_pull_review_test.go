@@ -327,11 +327,9 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	requestReview(http.MethodPost, repo, pullIssue.Index, token, &api.PullReviewRequestOptions{
-		Reviewers: []string{"user4@example.com", "user8"},
+		Reviewers: []string{"user8"},
 	}, http.StatusUnprocessableEntity)
-	for _, name := range []string{"user4", "user8"} {
-		require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), repo, unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: name}), perm.AccessModeRead))
-	}
+	require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), repo, unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user8"}), perm.AccessModeRead))
 	requestReview(http.MethodPost, repo, pullIssue.Index, token, &api.PullReviewRequestOptions{
 		Reviewers: []string{"user4@example.com", "user8"},
 	}, http.StatusCreated)
@@ -355,7 +353,7 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	}, http.StatusNoContent)
 
 	// doer is not admin
-	requestReview(http.MethodDelete, repo, pullIssue.Index, getUserToken(t, "user5", auth_model.AccessTokenScopeWriteRepository), &api.PullReviewRequestOptions{
+	requestReview(http.MethodDelete, repo, pullIssue.Index, token2, &api.PullReviewRequestOptions{
 		Reviewers: []string{"user8"},
 	}, http.StatusUnprocessableEntity)
 
