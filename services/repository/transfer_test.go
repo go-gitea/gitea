@@ -9,6 +9,7 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
+	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
@@ -53,6 +54,7 @@ func TestTransferOwnership(t *testing.T) {
 	transferredRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	assert.EqualValues(t, 1, transferredRepo.OwnerID) // repo_transfer.yml id=1
 	unittest.AssertNotExistsBean(t, &repo_model.RepoTransfer{ID: 1})
+	unittest.AssertNotExistsBean(t, &issues_model.Review{ID: 11})
 	unittest.AssertCount(t, &actions_model.ActionScopedWorkflowSource{SourceRepoID: 3}, 1)
 	unittest.AssertCountByCond(t, "action_scoped_workflow_source", builder.Eq{"owner_id": 0, "source_repo_id": 3}, 1)
 

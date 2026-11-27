@@ -42,7 +42,10 @@ func TestPullReview(t *testing.T) {
 	t.Run("DetachTeamFromAnotherOrg", func(t *testing.T) {
 		review := &issues_model.Review{Type: issues_model.ReviewTypeRequest, IssueID: 2, ReviewerTeamID: 2}
 		require.NoError(t, db.Insert(t.Context(), review))
-		loginUser(t, "user2").MakeRequest(t, NewRequestf(t, "POST", "/user2/repo1/issues/request_review?action=detach&issue_ids=%d&id=%d", review.IssueID, -review.ReviewerTeamID), http.StatusOK)
+		session := loginUser(t, "user2")
+		resp := session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/pulls/2"), http.StatusOK)
+		assert.Equal(t, "team1", strings.TrimSpace(NewHTMLParser(t, resp.Body).Find(".issue-sidebar-combo .list .octicon-people").Parent().Text()))
+		session.MakeRequest(t, NewRequestf(t, "POST", "/user2/repo1/issues/request_review?action=detach&issue_ids=%d&id=%d", review.IssueID, -review.ReviewerTeamID), http.StatusOK)
 		unittest.AssertNotExistsBean(t, &issues_model.Review{ID: review.ID})
 	})
 }

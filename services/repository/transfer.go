@@ -25,6 +25,8 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
 	notify_service "gitea.dev/services/notify"
+
+	"xorm.io/builder"
 )
 
 type LimitReachedError struct{ Limit int }
@@ -230,6 +232,13 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		if err != nil {
 			return fmt.Errorf("Unable to delete project's issues: %w", err)
 		}
+	}
+
+	if _, err := sess.Where(builder.Eq{"type": issues_model.ReviewTypeRequest}).
+		And(builder.Gt{"reviewer_team_id": 0}).
+		And(builder.In("issue_id", builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repo.ID}))).
+		Delete(new(issues_model.Review)); err != nil {
+		return fmt.Errorf("delete team review requests: %w", err)
 	}
 
 	if newOwner.IsOrganization() {
