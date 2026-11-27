@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        - **Security issue?** Email security@gitea.io instead of opening a public issue.
+        - **Security issue?** Open a [security advisory](https://github.com/go-gitea/gitea/security/advisories/new) instead of a public issue.
         - **Need help** with setup or configuration? Ask on [Discord](https://discord.gg/Gitea) or the [forum](https://forum.gitea.com).
         - Search [existing issues](https://github.com/go-gitea/gitea/issues?q=is%3Aissue) first.
   - type: input

@@ -169,11 +169,12 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 	}
 
 	opts := &issues_model.FindCommentsOptions{
-		ListOptions: utils.GetListOptions(ctx),
-		IssueID:     issue.ID,
-		Since:       since,
-		Before:      before,
-		Type:        issues_model.CommentTypeUndefined,
+		ListOptions:  utils.GetListOptions(ctx),
+		IssueID:      issue.ID,
+		Since:        since,
+		Before:       before,
+		Type:         issues_model.CommentTypeUndefined,
+		ExcludeTypes: []issues_model.CommentType{issues_model.CommentTypeCode},
 	}
 
 	comments, err := issues_model.FindComments(ctx, opts)
@@ -193,10 +194,8 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 
 	var apiComments []*api.TimelineComment
 	for _, comment := range comments {
-		if comment.Type != issues_model.CommentTypeCode {
-			comment.Issue = issue
-			apiComments = append(apiComments, convert.ToTimelineComment(ctx, issue.Repo, comment, ctx.Doer))
-		}
+		comment.Issue = issue
+		apiComments = append(apiComments, convert.ToTimelineComment(ctx, issue.Repo, comment, ctx.Doer))
 	}
 
 	ctx.SetTotalCountHeader(int64(len(apiComments)))

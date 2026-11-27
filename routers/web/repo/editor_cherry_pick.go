@@ -79,5 +79,5 @@ func CherryPickPost(ctx *context.Context) {
 			return
 		}
 	}
-	redirectForCommitChoice(ctx, parsed, parsed.form.TreePath)
+	redirectForCommitChoice(ctx, parsed, "")
 }

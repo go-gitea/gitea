@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/git"
@@ -76,6 +78,12 @@ func Branches(ctx *context.Context) {
 		commitStatus[commitID] = git_model.CalcCommitStatus(cs)
 	}
 
+	if ctx.Repo.Repository.AllowsPulls(ctx) && ctx.Repo.Permission.CanRead(unit.TypePullRequests) {
+		if ctx.Data["MergeQueueSizes"], err = pull_model.CountMergeQueueEntries(ctx, ctx.Repo.Repository.ID); err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+	}
 	ctx.Data["Keyword"] = kw
 	ctx.Data["Branches"] = branches
 	ctx.Data["CommitStatus"] = commitStatus
@@ -97,6 +105,8 @@ func DeleteBranchPost(ctx *context.Context) {
 		ctx.JSONError(ctx.Tr("repo.branch.deletion_failed", branchName))
 	case errors.Is(err, repo_service.ErrBranchIsDefault):
 		ctx.JSONError(ctx.Tr("repo.branch.default_deletion_failed", branchName))
+	case errors.Is(err, issues_model.ErrQueuedPullHead):
+		ctx.JSONErrorAuto(err)
 	case errors.Is(err, git_model.ErrBranchIsProtected):
 		ctx.JSONError(ctx.Tr("repo.branch.protected_deletion_failed", branchName))
 	default:

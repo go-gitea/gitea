@@ -5,28 +5,20 @@ package v29
 
 import (
 	"context"
+	"fmt"
 
 	"gitea.dev/modelmigration/base"
+	"gitea.dev/modules/setting"
 )
 
-func AddRepoContributorTables(_ctx context.Context, x base.EngineMigration) error {
-	type RepoContributor struct {
-		ID      int64  `xorm:"pk autoincr"`
-		RepoID  int64  `xorm:"UNIQUE(s) INDEX(commits) NOT NULL"`
-		UserID  int64  `xorm:"UNIQUE(s) NOT NULL DEFAULT 0"`
-		Email   string `xorm:"UNIQUE(s) VARCHAR(255) NOT NULL DEFAULT ''"`
-		Name    string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
-		Commits int64  `xorm:"INDEX(commits) NOT NULL DEFAULT 0"`
+func ChangeActionsRawConcurrencyToText(_ context.Context, x base.EngineMigration) error {
+	if !setting.Database.Type.IsMSSQL() { // startup sync widens VARCHAR to TEXT on MySQL and PostgreSQL
+		return nil
 	}
-	type RepoContributorWeek struct {
-		ID        int64  `xorm:"pk autoincr"`
-		RepoID    int64  `xorm:"UNIQUE(s) NOT NULL"`
-		UserID    int64  `xorm:"UNIQUE(s) NOT NULL DEFAULT 0"`
-		Email     string `xorm:"UNIQUE(s) VARCHAR(255) NOT NULL DEFAULT ''"`
-		Week      int64  `xorm:"UNIQUE(s) NOT NULL"`
-		Commits   int64  `xorm:"NOT NULL DEFAULT 0"`
-		Additions int64  `xorm:"NOT NULL DEFAULT 0"`
-		Deletions int64  `xorm:"NOT NULL DEFAULT 0"`
+	for _, table := range []string{"action_run", "action_run_job"} {
+		if _, err := x.Exec("ALTER TABLE " + table + " ALTER COLUMN raw_concurrency NVARCHAR(MAX) NULL"); err != nil {
+			return fmt.Errorf("ChangeActionsRawConcurrencyToText: %s: %w", table, err)
+		}
 	}
-	return x.Sync(new(RepoContributor), new(RepoContributorWeek))
+	return nil
 }

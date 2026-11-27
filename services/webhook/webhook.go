@@ -64,6 +64,8 @@ func getPayloadRef(p api.Payloader) git.RefName {
 		}
 	case *api.PushPayload:
 		return git.RefName(pp.Ref)
+	case *api.MergeGroupPayload:
+		return git.RefName(pp.MergeGroup.BaseRef)
 	}
 	return ""
 }

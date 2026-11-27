@@ -4,6 +4,7 @@
 package stats
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -29,7 +30,7 @@ func TestRepoStatsIndex(t *testing.T) {
 
 	setting.LoadQueueSettings()
 
-	err := Init()
+	err := Init(&sync.WaitGroup{})
 	assert.NoError(t, err)
 
 	repo, err := repo_model.GetRepositoryByID(t.Context(), 1)

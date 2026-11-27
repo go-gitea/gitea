@@ -268,6 +268,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		if _, err := os.Stat(appTempPathInternal); err != nil {
 			log.Fatal("APP_TEMP_PATH %q is not accessible: %v", appTempPathInternal, err)
 		}
+		appTempPathInternal, _ = filepath.Abs(appTempPathInternal)
 	}
 
 	// TODO: GOLANG-HTTP-TMPDIR: Some Golang packages (like "http") use os.TempDir() to create temporary files when uploading files.

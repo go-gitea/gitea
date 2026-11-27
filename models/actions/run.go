@@ -51,12 +51,13 @@ type ActionRun struct {
 	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
 	Status            Status                       `xorm:"index index(repo_status)"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
-	RawConcurrency    string                       // raw concurrency
+	RawConcurrency    string                       `xorm:"TEXT"`              // raw concurrency
 
 	// WorkflowRepoID/WorkflowCommitSHA record the (repo, commit) the run's workflow file content came from.
 	// Always filled (repo-level run = the repo itself; scoped run = the source repo).
 	WorkflowRepoID    int64  `xorm:"NOT NULL DEFAULT 0"`
 	WorkflowCommitSHA string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+	WorkflowRef       string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"` // the default branch ref a pull_request_target run read its workflow from, empty for scoped and older runs
 
 	IsScopedRun bool `xorm:"NOT NULL DEFAULT false"` // IsScopedRun explicitly classifies scoped runs.
 

@@ -1015,7 +1015,6 @@
   "repo.release.deletion_tag_desc": "Poistetaanko tämä tagi reposta? Repon sisältö ja historia pysyvät muuttumattomina. Jatketaanko?",
   "repo.release.deletion_tag_success": "Tagi on poistettu.",
   "repo.release.tag_name_invalid": "Tagin nimi ei ole kelvollinen.",
-  "repo.release.downloads": "Lataukset",
   "repo.branch.name": "Haaran nimi",
   "repo.branch.delete_head": "Poista",
   "repo.branch.create_branch": "Luo haara %s",
