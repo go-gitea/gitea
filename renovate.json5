@@ -12,7 +12,6 @@
   "separateMajorMinor": false, // include major updates in group PRs
   "minimumReleaseAge": "5 days",
   "postUpdateOptions": ["gomodUpdateImportPaths", "pnpmDedupe"],
-  "constraints": {"gomodMod": "v0.10.0"},
   "semanticCommits": "enabled",
   "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
@@ -67,14 +66,6 @@
       "semanticCommitType": "chore", // dep updates are rarely fixes for gitea
     },
     {
-      "matchPackageNames": ["@mcaptcha/vanilla-glue"],
-      "allowedVersions": "^0.1", // breaking changes in rc versions need to be handled
-    },
-    {
-      "matchPackageNames": ["cropperjs"],
-      "allowedVersions": "^1", // need to migrate to v2 but v2 is not compatible with v1
-    },
-    {
       "matchPackageNames": ["tailwindcss"],
       "allowedVersions": "^3", // need to migrate
     },
@@ -88,7 +79,7 @@
     },
     {
       "matchPackageNames": ["postgres"],
-      "allowedVersions": "/^14($|[.-])/", // pin to oldest supported major
+      "allowedVersions": "/^15($|[.-])/", // pin to oldest supported major
     },
     {
       "matchPackageNames": ["bitnamilegacy/mysql"],

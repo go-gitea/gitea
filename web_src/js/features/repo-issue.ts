@@ -420,7 +420,8 @@ export function initRepoIssueTitleEdit() {
         if (newTargetBranch !== oldTargetBranch) {
           const resp = await POST(prTargetUpdateUrl, {data: new URLSearchParams({target_branch: String(newTargetBranch)})});
           if (!resp.ok) {
-            throw new Error(`Failed to update PR target branch: ${resp.statusText}`);
+            const message = resp.headers.get('content-type')?.includes('application/json') && (await resp.json()).errorMessage;
+            throw new Error(message || `Failed to update PR target branch: ${resp.statusText}`);
           }
         }
       }

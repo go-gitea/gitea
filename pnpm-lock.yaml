@@ -211,6 +211,9 @@ importers:
       '@deltablot/dropzone':
         specifier: 7.4.4
         version: 7.4.4
+      '@github/image-crop-element':
+        specifier: 5.0.0
+        version: 5.0.0
       '@github/markdown-toolbar-element':
         specifier: 2.2.3
         version: 2.2.3
@@ -268,9 +271,6 @@ importers:
       compare-versions:
         specifier: 6.1.1
         version: 6.1.1
-      cropperjs:
-        specifier: 1.7.0
-        version: 1.7.0
       dayjs:
         specifier: 1.11.23
         version: 1.11.23
@@ -885,6 +885,9 @@ packages:
 
   '@github/combobox-nav@2.3.1':
     resolution: {integrity: sha512-gwxPzLw8XKecy1nP63i9lOBritS3bWmxl02UX6G0TwMQZbMem1BCS1tEZgYd3mkrkiDrUMWaX+DbFCuDFo3K+A==}
+
+  '@github/image-crop-element@5.0.0':
+    resolution: {integrity: sha512-Vgm2OwWAs1ESoib/t5sjxsAYo6YTOxxAjWDRxswX7qrqoyCejTZ3hshdo4Ep5e+Mz/GVTZC3rdMtg06dk/eT4g==}
 
   '@github/markdown-toolbar-element@2.2.3':
     resolution: {integrity: sha512-AlquKGee+IWiAMYVB0xyHFZRMnu4n3X4HTvJHu79GiVJ1ojTukCWyxMlF5NMsecoLcBKsuBhx3QPv2vkE/zQ0A==}
@@ -2017,9 +2020,6 @@ packages:
 
   crelt@1.0.6:
     resolution: {integrity: sha512-VQ2MBenTq1fWZUH9DJNGti7kKv6EeAuYr3cLwxUWhIu1baTaXh4Ib5W2CqHVqib4/MqbYGJqiL3Zb8GJZr3l4g==}
-
-  cropperjs@1.7.0:
-    resolution: {integrity: sha512-AkGnZxr7xAJBa63ObXq5ZKLkh9c8wisC+Ym8VzIDn3KZ+6qRTbBnOl2w2dFOTMzLP5IcfOpEK9PICDywNXhncg==}
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -4739,6 +4739,8 @@ snapshots:
 
   '@github/combobox-nav@2.3.1': {}
 
+  '@github/image-crop-element@5.0.0': {}
+
   '@github/markdown-toolbar-element@2.2.3': {}
 
   '@github/paste-markdown@1.5.3': {}
@@ -5931,8 +5933,6 @@ snapshots:
       js-yaml: 5.5.0
 
   crelt@1.0.6: {}
-
-  cropperjs@1.7.0: {}
 
   cross-spawn@7.0.6:
     dependencies:

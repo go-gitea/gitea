@@ -14,6 +14,7 @@ import (
 	git_model "gitea.dev/models/git"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/optional"
@@ -245,6 +246,8 @@ func CreateBranch(ctx *context.APIContext) {
 			ctx.APIError(http.StatusConflict, "The branch already exists.")
 		} else if git_model.IsErrBranchNameConflict(err) {
 			ctx.APIError(http.StatusConflict, "The branch with the same name already exists.")
+		} else if rejected, ok := errors.AsType[*git.ErrPushRejected](err); ok {
+			ctx.APIError(http.StatusForbidden, rejected.Message)
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -790,6 +793,11 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		Priority: form.Priority,
 	}
 
+	if err := applyMergeQueueOption(ctx, protectBranch, &form.RequireMergeQueue, form.MergeQueue); err != nil {
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
 	if err := pull_service.CreateOrUpdateProtectedBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
@@ -968,6 +976,11 @@ func EditBranchProtection(ctx *context.APIContext) {
 
 	if form.BlockAdminMergeOverride != nil {
 		protectBranch.BlockAdminMergeOverride = *form.BlockAdminMergeOverride
+	}
+
+	if err := applyMergeQueueOption(ctx, protectBranch, form.RequireMergeQueue, form.MergeQueue); err != nil {
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+		return
 	}
 
 	whitelistUsers := loadBranchProtectionUserIDs(ctx, form.PushWhitelistUsernames, protectBranch.WhitelistUserIDs)
@@ -1290,4 +1303,21 @@ func MergeUpstream(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusOK, &api.MergeUpstreamResponse{MergeStyle: mergeStyle})
+}
+
+func applyMergeQueueOption(ctx *context.APIContext, pb *git_model.ProtectedBranch, require *bool, opt *api.BranchProtectionMergeQueueOption) error {
+	if require == nil && opt == nil {
+		return nil
+	}
+	cfg := pb.MergeQueue.WithDefaults()
+	if opt != nil {
+		cfg.MergeMethod = repo_model.MergeStyle(string(optional.FromPtr(opt.MergeMethod).ValueOrDefault(api.MergeQueueMergeMethod(cfg.MergeMethod))))
+		cfg.MaxEntriesToBuild = optional.FromPtr(opt.MaxEntriesToBuild).ValueOrDefault(cfg.MaxEntriesToBuild)
+		cfg.MinEntriesToMerge = optional.FromPtr(opt.MinEntriesToMerge).ValueOrDefault(cfg.MinEntriesToMerge)
+		cfg.MaxEntriesToMerge = optional.FromPtr(opt.MaxEntriesToMerge).ValueOrDefault(cfg.MaxEntriesToMerge)
+		cfg.MinEntriesToMergeWaitMinutes = optional.FromPtr(opt.MinEntriesToMergeWaitMinutes).ValueOrDefault(cfg.MinEntriesToMergeWaitMinutes)
+		cfg.GroupingStrategy = git_model.MergeQueueGroupingStrategy(string(optional.FromPtr(opt.GroupingStrategy).ValueOrDefault(api.MergeQueueGroupingStrategy(cfg.GroupingStrategy))))
+		cfg.CheckResponseTimeoutMinutes = optional.FromPtr(opt.CheckResponseTimeoutMinutes).ValueOrDefault(cfg.CheckResponseTimeoutMinutes)
+	}
+	return pb.SetMergeQueue(optional.FromPtr(require).ValueOrDefault(pb.RequireMergeQueue), cfg, ctx.Repo.Repository.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig())
 }

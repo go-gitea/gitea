@@ -256,6 +256,14 @@ func clearMergeIntent(ctx context.Context, pr *issues_model.PullRequest) error {
 	})
 }
 
+func clearUnmergedIntent(ctx context.Context, pr *issues_model.PullRequest) {
+	if merged, err := hasPullRequestCommitBeenMerged(ctx, pr); err == nil && !merged && pr.MergedCommitID != "" { // clear the intent only if the commit verifiably didn't reach the base branch
+		if err := clearMergeIntent(ctx, pr); err != nil {
+			log.Error("Unable to clear merge intent of %-v: %v", pr, err)
+		}
+	}
+}
+
 func hasPullRequestCommitBeenMerged(ctx context.Context, pr *issues_model.PullRequest) (bool, error) {
 	if pr.MergedCommitID == "" {
 		return false, nil
@@ -318,12 +326,7 @@ func Merge(outerCtx context.Context, prID int64, doer *user_model.User, mergeSty
 				},
 			})
 			if err != nil {
-				// clear the intent only if the commit verifiably didn't reach the base branch
-				if merged, checkErr := hasPullRequestCommitBeenMerged(ctx, pr); checkErr == nil && !merged && pr.MergedCommitID != "" {
-					if clearErr := clearMergeIntent(ctx, pr); clearErr != nil {
-						log.Error("Unable to clear merge intent of %-v: %v", pr, clearErr)
-					}
-				}
+				clearUnmergedIntent(ctx, pr)
 				return err
 			}
 		}
@@ -419,32 +422,15 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	}
 
 	// Clone base repo.
-	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, opts.expectedHeadCommitID)
+	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, opts.expectedHeadCommitID, "")
 	if err != nil {
 		return "", err
 	}
 	defer cancel()
 
 	// Merge commits.
-	switch mergeStyle {
-	case repo_model.MergeStyleMerge:
-		if err := doMergeStyleMerge(mergeCtx, message); err != nil {
-			return "", err
-		}
-	case repo_model.MergeStyleRebase, repo_model.MergeStyleRebaseMerge:
-		if err := doMergeStyleRebase(mergeCtx, mergeStyle, message); err != nil {
-			return "", err
-		}
-	case repo_model.MergeStyleSquash:
-		if err := doMergeStyleSquash(mergeCtx, message); err != nil {
-			return "", err
-		}
-	case repo_model.MergeStyleFastForwardOnly:
-		if err := doMergeStyleFastForwardOnly(mergeCtx); err != nil {
-			return "", err
-		}
-	default:
-		return "", ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
+	if err := doMergeStyle(mergeCtx, mergeStyle, message); err != nil {
+		return "", err
 	}
 
 	mergeCommitID, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, tmpRepoBaseBranch)
@@ -549,6 +535,21 @@ func pushMergeCommit(ctx context.Context, pr *issues_model.PullRequest, doer *us
 		return "", err
 	}
 	return mergeCommitID, nil
+}
+
+func doMergeStyle(mergeCtx *mergeContext, mergeStyle repo_model.MergeStyle, message string) error {
+	switch mergeStyle {
+	case repo_model.MergeStyleMerge:
+		return doMergeStyleMerge(mergeCtx, message)
+	case repo_model.MergeStyleRebase, repo_model.MergeStyleRebaseMerge:
+		return doMergeStyleRebase(mergeCtx, mergeStyle, message)
+	case repo_model.MergeStyleSquash:
+		return doMergeStyleSquash(mergeCtx, message)
+	case repo_model.MergeStyleFastForwardOnly:
+		return doMergeStyleFastForwardOnly(mergeCtx)
+	default:
+		return ErrInvalidMergeStyle{ID: mergeCtx.pr.BaseRepo.ID, Style: mergeStyle}
+	}
 }
 
 func commitAndSignNoAuthor(ctx *mergeContext, message string) error {
@@ -710,14 +711,8 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 		return util.ErrorWrap(ErrNotReadyToMerge, "Not all required status checks successful")
 	}
 
-	if !issues_model.HasEnoughApprovals(ctx, pb, pr) {
-		return util.ErrorWrap(ErrNotReadyToMerge, "Does not have enough approvals")
-	}
-	if issues_model.MergeBlockedByRejectedReview(ctx, pb, pr) {
-		return util.ErrorWrap(ErrNotReadyToMerge, "There are requested changes")
-	}
-	if issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pr) {
-		return util.ErrorWrap(ErrNotReadyToMerge, "There are official review requests")
+	if err := checkPullReviews(ctx, pb, pr); err != nil {
+		return err
 	}
 
 	if issues_model.MergeBlockedByOutdatedBranch(pb, pr) {
@@ -736,6 +731,18 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 		return util.ErrorWrap(ErrNotReadyToMerge, "Changed protected files")
 	}
 
+	return nil
+}
+
+func checkPullReviews(ctx context.Context, pb *git_model.ProtectedBranch, pr *issues_model.PullRequest) error {
+	switch {
+	case !issues_model.HasEnoughApprovals(ctx, pb, pr):
+		return util.ErrorWrap(ErrNotReadyToMerge, "Does not have enough approvals")
+	case issues_model.MergeBlockedByRejectedReview(ctx, pb, pr):
+		return util.ErrorWrap(ErrNotReadyToMerge, "There are requested changes")
+	case issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pr):
+		return util.ErrorWrap(ErrNotReadyToMerge, "There are official review requests")
+	}
 	return nil
 }
 

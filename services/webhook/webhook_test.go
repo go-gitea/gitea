@@ -8,6 +8,7 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -28,6 +29,7 @@ func TestWebhookService(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	t.Run("GetSlackHook", testWebhookGetSlackHook)
 	t.Run("PrepareWebhooks", testWebhookPrepare)
+	t.Run("MergeGroup", testWebhookMergeGroup)
 	t.Run("AssigneeChanges", testWebhookAssigneeChanges)
 	t.Run("PrepareBranchFilterMatch", testWebhookPrepareBranchFilterMatch)
 	t.Run("PrepareBranchFilterNoMatch", testWebhookPrepareBranchFilterNoMatch)
@@ -113,6 +115,35 @@ func testWebhookPrepare(t *testing.T) {
 	err := PrepareWebhooks(t.Context(), EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{Commits: []*api.PayloadCommit{{}}})
 	require.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
+}
+
+func testWebhookMergeGroup(t *testing.T) {
+	ctx := t.Context()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	hook := &webhook_model.Webhook{RepoID: repo.ID, Type: webhook_module.GITEA, Events: `{"send_everything":true}`, IsActive: true}
+	require.NoError(t, db.Insert(ctx, hook))
+	headSHA, err := git.GetBranchCommitID(ctx, repo, repo.DefaultBranch)
+	require.NoError(t, err)
+	entry := &pull_model.MergeQueueEntry{BaseBranch: repo.DefaultBranch, GroupRef: "refs/heads/gitea-merge-queue/master/pr-1", GroupHeadSHA: headSHA}
+	doer := repo.MustOwner(ctx)
+	notifier := new(webhookNotifier)
+	notifier.MergeGroupChanged(ctx, doer, repo, entry, api.HookMergeGroupChecksRequested, "")
+	notifier.MergeGroupChanged(ctx, doer, repo, entry, api.HookMergeGroupDestroyed, "merged")
+
+	tasks, err := hook.History(ctx, 1)
+	require.NoError(t, err)
+	require.Len(t, tasks, 5)
+	for index, event := range []webhook_module.HookEventType{
+		webhook_module.HookEventDelete, webhook_module.HookEventMergeGroup,
+		webhook_module.HookEventMergeGroup, webhook_module.HookEventCreate, webhook_module.HookEventPush,
+	} {
+		assert.Equal(t, event, tasks[index].EventType)
+	}
+	var payload api.MergeGroupPayload
+	require.NoError(t, json.Unmarshal([]byte(tasks[2].PayloadContent), &payload))
+	assert.Equal(t, git.RefNameFromBranch(repo.DefaultBranch), getPayloadRef(&payload))
+	require.NotNil(t, payload.MergeGroup.HeadCommit)
+	assert.NotEmpty(t, payload.MergeGroup.HeadCommit.TreeID)
 }
 
 func testWebhookPrepareBranchFilterMatch(t *testing.T) {
