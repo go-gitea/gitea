@@ -345,8 +345,8 @@ func (c *Command) MakeStdinStdoutPipe() (stdin PipeWriter, stdout PipeReader, cl
 	}
 }
 
-func (c *Command) WithStdinBytes(stdin []byte) *Command {
-	c.cmdStdin = bytes.NewReader(stdin)
+func (c *Command) WithStdinBytes[T string | []byte](stdin T) *Command {
+	c.cmdStdin = bytes.NewReader([]byte(stdin))
 	return c
 }
 
