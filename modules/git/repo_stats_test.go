@@ -8,7 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"gitea.dev/modules/git/gitcmd"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRepository_GetCodeActivityStats(t *testing.T) {
@@ -37,4 +40,30 @@ func TestRepository_GetCodeActivityStats(t *testing.T) {
 	authors, err := GetCodeActivityAuthors(t.Context(), bareRepo1, timeFrom)
 	assert.NoError(t, err)
 	assert.Equal(t, code.Authors, authors)
+}
+
+func TestRepository_GetCodeActivityStatsPathWithSpaces(t *testing.T) {
+	repoDir := filepath.Join(t.TempDir(), "repo.git")
+	require.NoError(t, gitcmd.NewCommand("init", "--bare").AddDynamicArguments(repoDir).RunWithStderr(t.Context()))
+	stdin := `blob
+mark :1
+data 2
+a
+
+commit refs/heads/master
+author test <test@example.com> 1769202331 +0000
+committer test <test@example.com> 1769202331 +0000
+data 2
+A
+M 100644 :1 docs/release notes.md
+M 100644 :1 docs/release plan.md
+`
+	require.NoError(t, gitcmd.NewCommand("fast-import").WithDir(repoDir).WithStdinBytes([]byte(stdin)).RunWithStderr(t.Context()))
+	repo, err := OpenRepositoryLocal(t.Context(), repoDir)
+	require.NoError(t, err)
+	defer repo.Close()
+
+	code, err := repo.GetCodeActivityStats(t.Context(), time.Unix(1769202000, 0), "")
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, code.ChangedFiles)
 }
