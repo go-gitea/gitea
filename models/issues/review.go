@@ -128,7 +128,7 @@ type Review struct {
 	// HINT: REVIEWER-ID-NEGATIVE: ReviewerID and ReviewerTeamID must be positive at the moment,
 	// because the current template uses a trick "ItemID < 0" means "team id"
 	ReviewerID     int64 `xorm:"index"`
-	ReviewerTeamID int64 `xorm:"NOT NULL DEFAULT 0"`
+	ReviewerTeamID int64 `xorm:"NOT NULL DEFAULT 0 INDEX"`
 
 	ReviewerTeam     *organization.Team `xorm:"-"`
 	OriginalAuthor   string

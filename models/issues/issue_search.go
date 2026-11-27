@@ -392,23 +392,13 @@ func applyMentionedCondition(sess db.Session, mentionedID int64) {
 }
 
 func applyReviewRequestedCondition(sess db.Session, reviewRequestedID int64) {
-	existInTeamQuery := builder.Select("team_user.team_id").
-		From("team_user").
-		Where(builder.Eq{"team_user.uid": reviewRequestedID})
-
-	subQuery := builder.Select("review.issue_id").
-		From("review").
-		Where(builder.Eq{"review.type": ReviewTypeRequest}).
-		And(builder.Or(
-			builder.Eq{"review.reviewer_id": reviewRequestedID},
-			builder.In("review.reviewer_team_id", existInTeamQuery),
-		)).
-		// if the review is approved or rejected, it should not be shown in the review requested list
-		And(builder.NotExists(builder.Select("1").From("review as r").
-			Where(builder.Expr("r.issue_id = review.issue_id AND r.reviewer_id = review.reviewer_id AND r.reviewer_team_id = review.reviewer_team_id AND r.id > review.id").
-				And(builder.In("r.type", []ReviewType{ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest})))))
-	sess.Where("issue.poster_id <> ?", reviewRequestedID).
-		And(builder.In("issue.id", subQuery))
+	notSuperseded := fmt.Sprintf("NOT EXISTS (SELECT 1 FROM review AS r WHERE r.issue_id = review.issue_id AND r.reviewer_id = review.reviewer_id AND r.reviewer_team_id = review.reviewer_team_id AND r.id > review.id AND r.type IN (%d, %d, %d))", ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest)
+	// joining a UNION lets the database start from the few requested issues, raw SQL because SQLite rejects the parentheses of builder.Union
+	requested := fmt.Sprintf("(SELECT review.issue_id FROM review WHERE review.type = %[1]d AND review.reviewer_id = ? AND %[2]s"+
+		" UNION SELECT review.issue_id FROM review INNER JOIN team_user ON team_user.team_id = review.reviewer_team_id"+
+		" WHERE review.reviewer_team_id > 0 AND review.type = %[1]d AND team_user.uid = ? AND %[2]s) review_requested", ReviewTypeRequest, notSuperseded)
+	sess.Join("INNER", requested, "review_requested.issue_id = issue.id", reviewRequestedID, reviewRequestedID).
+		And("issue.poster_id <> ?", reviewRequestedID)
 }
 
 func applyReviewedCondition(sess db.Session, reviewedID int64) {
