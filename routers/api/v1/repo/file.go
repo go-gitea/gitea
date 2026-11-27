@@ -233,7 +233,7 @@ func GetArchive(ctx *context.APIContext) {
 	// ---
 	// summary: Get an archive of a repository
 	// produces:
-	// - application/json
+	// - application/octet-stream
 	// parameters:
 	// - name: owner
 	//   in: path
