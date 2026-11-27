@@ -57,18 +57,6 @@ func GetRunnerToken(ctx context.Context, token string) (*ActionRunnerToken, erro
 	return &runnerToken, nil
 }
 
-// UpdateRunnerToken updates runner token information.
-func UpdateRunnerToken(ctx context.Context, r *ActionRunnerToken, cols ...string) (err error) {
-	e := db.GetEngine(ctx)
-
-	if len(cols) == 0 {
-		_, err = e.ID(r.ID).AllCols().Update(r)
-	} else {
-		_, err = e.ID(r.ID).Cols(cols...).Update(r)
-	}
-	return err
-}
-
 // NewRunnerTokenWithValue creates a new active runner token and invalidate all old tokens
 // ownerID will be ignored and treated as 0 if repoID is non-zero.
 func NewRunnerTokenWithValue(ctx context.Context, ownerID, repoID int64, token string) (*ActionRunnerToken, error) {

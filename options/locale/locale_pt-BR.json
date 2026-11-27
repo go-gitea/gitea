@@ -2028,7 +2028,6 @@
   "repo.settings.event_issue_comment": "Comentário da Issue",
   "repo.settings.event_issue_comment_desc": "Comentário da issue criado, editado ou excluído.",
   "repo.settings.event_header_pull_request": "Eventos de Pull Request",
-  "repo.settings.event_pull_request_desc": "Pull request aberto, fechado, reaberto, editado ou excluído.",
   "repo.settings.event_pull_request_assign": "Pull Request Atribuído",
   "repo.settings.event_pull_request_assign_desc": "Pull request atribuído ou desatribuído.",
   "repo.settings.event_pull_request_label": "Pull Request Rotulado",

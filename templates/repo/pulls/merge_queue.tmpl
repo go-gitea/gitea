@@ -1,0 +1,88 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		{{$branchPath := PathEscapeSegments .MergeQueueBranch}}
+		<div class="flex-text-block tw-mb-4">
+			<h2 class="flex-text-inline tw-m-0">
+				{{.Title}}
+				<a class="ui basic label tw-font-mono" href="{{.RepoLink}}/src/branch/{{$branchPath}}">{{.MergeQueueBranch}}</a>
+			</h2>
+			{{if and .Permission.IsAdmin .MergeQueueEntries}}
+				<button type="button" class="ui basic red small button link-action tw-ml-auto"
+					{{template "repo/pulls/merge_queue_action_attrs" dict "url" (print .RepoLink "/queue/clear/" $branchPath) "action" "clear"}}
+				>{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.pulls.merge_queue.clear"}}</button>
+			{{end}}
+		</div>
+		<h4 class="ui top attached header flex-text-block">
+			{{svg "octicon-git-pull-request"}} {{ctx.Locale.Tr "repo.pulls.merge_queue.queued_count" (len .MergeQueueEntries)}}
+		</h4>
+		<div class="ui attached segment">
+			<div class="flex-divided-list items-with-main">
+				{{range $entry := .MergeQueueEntries}}
+					{{$issue := $entry.PullRequest.Issue}}
+					<div class="item">
+						<div class="item-leading">
+							{{ctx.AvatarUtils.Avatar (Iif $issue.OriginalAuthor nil $issue.Poster) 32}}
+						</div>
+						<div class="item-main">
+							<div class="item-header">
+								<div class="tw-min-w-0">
+									<a class="list-item-large-title" href="{{$issue.Link}}">{{$issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
+									{{template "repo/commit_statuses" dict "Status" $entry.Status "Statuses" $entry.Statuses "AdditionalClasses" "tw-text-16 tw-align-[calc(0.5cap-9px)]"}}
+								</div>
+							</div>
+							<div class="item-body tw-gap-2">
+								<a class="index" href="{{$issue.Link}}">#{{$issue.Index}}</a>
+								<span>
+									{{$enqueuer := HTMLFormat `<a class="muted" href="%s">%s</a>` $entry.Enqueuer.HomeLink $entry.Enqueuer.GetDisplayName}}
+									{{if and (eq $issue.PosterID $entry.EnqueuerID) (not $issue.OriginalAuthor)}}
+										{{ctx.Locale.Tr "repo.pulls.merge_queue.opened_and_enqueued_by" $enqueuer}}
+									{{else}}
+										{{ctx.Locale.Tr "repo.pulls.merge_queue.opened_by_enqueued_by" (or $issue.OriginalAuthor (HTMLFormat `<a class="muted" href="%s">%s</a>` $issue.Poster.HomeLink $issue.Poster.GetDisplayName)) $enqueuer}}
+									{{end}}
+									· {{ctx.Locale.Tr "repo.pulls.merge_queue.enqueued_at" (DateUtils.TimeSince $entry.CreatedUnix)}}
+									{{if $entry.WaitingFor}}· {{ctx.Locale.Tr "repo.pulls.merge_queue.waiting_for" (StringUtils.Join $entry.WaitingFor ", ")}}{{end}}
+								</span>
+							</div>
+						</div>
+						<div class="item-trailing">
+							{{if or $.Permission.IsAdmin $entry.CanRemove}}
+								<div class="ui dropdown jump tw-p-2" aria-label="{{ctx.Locale.Tr "repo.pulls.merge_queue.entry_actions"}}">
+									{{svg "octicon-kebab-horizontal"}}
+									<div class="menu flex-items-menu">
+										{{if $.Permission.IsAdmin}}
+											{{template "repo/pulls/merge_queue_action" dict "link" $issue.Link "action" "jump" "icon" "octicon-move-to-top"}}
+										{{end}}
+										{{if $entry.CanRemove}}
+											{{template "repo/pulls/merge_queue_action" dict "link" $issue.Link "action" "remove" "icon" "octicon-x"}}
+										{{end}}
+									</div>
+								</div>
+							{{end}}
+						</div>
+					</div>
+				{{else}}
+					<div class="empty-placeholder">
+						{{svg "octicon-git-merge-queue" 48}}
+						<h2>{{ctx.Locale.Tr "repo.pulls.merge_queue.empty"}}</h2>
+						<p>{{ctx.Locale.Tr "repo.pulls.merge_queue.empty_desc"}}</p>
+					</div>
+				{{end}}
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}
+
+{{define "repo/pulls/merge_queue_action"}}
+	<a class="item link-action" {{template "repo/pulls/merge_queue_action_attrs" dict "url" (print .link "/merge_queue/" .action) "action" .action}}>{{svg .icon}}{{ctx.Locale.Tr (print "repo.pulls.merge_queue." .action)}}</a>
+{{end}}
+
+{{define "repo/pulls/merge_queue_action_attrs"}}
+	{{$label := print "repo.pulls.merge_queue." .action}}
+	data-url="{{.url}}"
+	data-modal-confirm-header="{{ctx.Locale.Tr (print $label "_confirm_title")}}"
+	data-modal-confirm-content="{{ctx.Locale.Tr (print $label "_confirm_desc")}}"
+{{end}}

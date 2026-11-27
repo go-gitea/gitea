@@ -25,7 +25,6 @@ func RouterMockPoint(pointName string) func(next http.Handler) http.Handler {
 	if !setting.IsInTesting {
 		return nil
 	}
-	routeMockPoints[pointName] = nil
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if h := routeMockPoints[pointName]; h != nil {
@@ -34,6 +33,15 @@ func RouterMockPoint(pointName string) func(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 			}
 		})
+	}
+}
+
+func RouterMockPointCall(pointName string, w http.ResponseWriter, r *http.Request) {
+	if !setting.IsInTesting {
+		return
+	}
+	if h := routeMockPoints[pointName]; h != nil {
+		h(nil).ServeHTTP(w, r)
 	}
 }
 
@@ -47,19 +55,12 @@ func RouterMockPoint(pointName string) func(next http.Handler) http.Handler {
 // Then the mock function will be executed as a middleware at the mock point.
 // It only takes effect in testing mode (setting.IsInTesting == true).
 func RouteMock(pointName string, h any) func() {
-	if _, ok := routeMockPoints[pointName]; !ok {
-		panic("route mock point not found: " + pointName)
-	}
 	old := routeMockPoints[pointName]
 	routeMockPoints[pointName] = toHandlerProvider(h)
-	return func() {
-		routeMockPoints[pointName] = old
-	}
+	return func() { routeMockPoints[pointName] = old }
 }
 
 // RouteMockReset resets all mock points (no mock anymore)
 func RouteMockReset() {
-	for k := range routeMockPoints {
-		routeMockPoints[k] = nil // keep the keys because RouteMock will check the keys to make sure no misspelling
-	}
+	clear(routeMockPoints)
 }

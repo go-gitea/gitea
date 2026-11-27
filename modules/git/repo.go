@@ -230,6 +230,7 @@ type PushOptions struct {
 	Force          bool
 	ForceWithLease string
 	Mirror         bool
+	MirrorExclude  []string
 	Env            []string
 	Timeout        time.Duration
 }
@@ -244,6 +245,9 @@ func Push(ctx context.Context, repo RepositoryFacade, opts PushOptions) error {
 	}
 	if opts.Mirror {
 		cmd.AddArguments("--mirror")
+		for _, ref := range opts.MirrorExclude {
+			cmd.AddConfig("remote."+opts.Remote+".push", "^"+ref)
+		}
 	}
 	remoteBranchArgs := []string{opts.Remote}
 	if len(opts.Branch) > 0 {

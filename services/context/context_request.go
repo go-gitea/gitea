@@ -14,7 +14,7 @@ import (
 func (ctx *Context) UploadStream() (rd io.ReadCloser, needToClose bool, err error) {
 	contentType := strings.ToLower(ctx.Req.Header.Get("Content-Type"))
 	if strings.HasPrefix(contentType, "application/x-www-form-urlencoded") || strings.HasPrefix(contentType, "multipart/form-data") {
-		if err := ctx.Req.ParseMultipartForm(32 << 20); err != nil {
+		if err := ctx.Req.ParseMultipartForm(32 * 1024 * 1024); err != nil {
 			return nil, false, err
 		}
 		if ctx.Req.MultipartForm.File == nil {

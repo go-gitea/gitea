@@ -75,7 +75,12 @@ function initRepoSettingsBranches() {
   for (const el of document.querySelectorAll<HTMLInputElement>('.toggle-target-enabled')) {
     el.addEventListener('change', function () {
       const target = document.querySelector(this.getAttribute('data-target')!);
-      target?.classList.toggle('disabled', !this.checked);
+      if (target instanceof HTMLFieldSetElement) {
+        target.disabled = !this.checked;
+        target.inert = !this.checked;
+      } else {
+        target?.classList.toggle('disabled', !this.checked);
+      }
     });
   }
 
