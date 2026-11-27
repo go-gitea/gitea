@@ -48,11 +48,6 @@
   font-size: inherit;
 }
 
-.dropdown-field > .ui.label img {
-  width: auto;
-  max-height: 20px;
-}
-
 .dropdown-field > .ui.label ~ .dropdown-text {
   display: none;
 }
@@ -118,11 +113,6 @@
   text-overflow: ellipsis;
 }
 
-.dropdown-text > img {
-  margin: -4px 8px -4px 0;
-  max-height: 2em;
-}
-
 .dropdown-container:has(> .dropdown-value:is([value=""], :not([value]))) .dropdown-text[data-placeholder] {
   color: var(--color-placeholder-text);
 }
@@ -156,6 +146,11 @@
   min-width: 10rem;
 }
 
+.dropdown-popup-autocomplete {
+  max-width: calc(100vw - 32px);
+  overflow-wrap: anywhere;
+}
+
 .dropdown-item {
   position: relative;
   display: block;
@@ -173,6 +168,12 @@
   cursor: pointer;
 }
 
+.dropdown-item-detail {
+  display: block;
+  color: var(--color-text-light-2);
+  font-size: 0.9em;
+}
+
 .dropdown-popup-flex .dropdown-item {
   display: flex;
   align-items: center;
@@ -180,12 +181,7 @@
   min-width: 0;
 }
 
-.dropdown-item > img {
-  width: auto;
-  max-height: 2em;
-  vertical-align: middle;
-}
-
+.dropdown-text > img,
 .dropdown-popup:not(.dropdown-popup-flex) .dropdown-item:not(.flex-text-block, .flex-text-inline) > :is(img, .svg) {
   margin-right: 8px;
 }

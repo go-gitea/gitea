@@ -28,10 +28,14 @@ test('the merge queue offers admin bypass and shows missing checks and automatic
   await page.goto(pullLink, {waitUntil: 'commit'});
 
   const bypass = page.getByLabel('Merge without waiting for requirements to be met (bypass rules)');
+  const mergeStyle = page.getByRole('button', {name: 'Select merge style'});
   await bypass.check();
   await expect(page.getByRole('button', {name: 'Bypass rules and merge (merge commit)'})).toBeVisible();
+  await mergeStyle.click();
+  await expect(page.getByRole('menu', {name: 'Select merge style'})).toBeFocused();
+  await page.keyboard.press('Escape');
   await bypass.uncheck();
-  await expect(page.getByRole('button', {name: 'Select merge style'})).toBeHidden();
+  await expect(mergeStyle).toBeHidden();
   await page.getByRole('button', {name: 'Merge when ready', exact: true}).click();
   await page.getByRole('button', {name: 'Confirm merge when ready', exact: true}).click();
 

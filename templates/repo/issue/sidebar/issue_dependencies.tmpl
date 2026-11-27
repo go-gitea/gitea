@@ -112,11 +112,8 @@
 				<form method="post" action="{{.Issue.Link}}/dependency/add" id="addDependencyForm" class="form-fetch-action">
 					<div class="ui fluid action input">
 						<div class="dropdown-container" id="new-dependency-drop-list" data-issue-id="{{.Issue.ID}}" data-issue-cross-repo-search="{{.AllowCrossRepositoryDependencies}}">
-							<div class="dropdown-trigger dropdown-field dropdown-search-field">
-								<input class="dropdown-filter" type="text" aria-label="{{ctx.Locale.Tr "repo.issues.dependency.add"}}">
-								<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.issues.dependency.add"}}">{{ctx.Locale.Tr "repo.issues.dependency.add"}}</span>
-								{{svg "octicon-triangle-down" 14}}
-							</div>
+							{{$label := ctx.Locale.Tr "repo.issues.dependency.add"}}
+							{{template "shared/dropdown_search_field" dict "AriaLabel" $label "Placeholder" $label "Caret" true}}
 							<input name="newDependency" type="hidden" class="dropdown-value">
 							<div class="dropdown-popup issue-sidebar-popup"></div>
 						</div>

@@ -95,6 +95,8 @@ in new code. Never bind user-provided data directly onto DOM nodes.
 
 Menus and custom selects use the `.dropdown-container` component from
 [`web_src/js/modules/dropdown.ts`](../web_src/js/modules/dropdown.ts), see `/devtest/dropdown` for the markup.
+For editable autocomplete, use the named text input as `.dropdown-trigger` and supply `loadItems`.
+Enter submits the typed value unless the user has highlighted a suggestion with the arrow keys.
 Plain-text single choices in forms use a native `<select>` inside a `.select-field` wrapper, which draws the field's triangle.
 
 ## UI component gallery

@@ -125,6 +125,7 @@
 					{{end}}
 					</tbody>
 				</table>
+				{{template "repo/code_line_menu" dict "Permission" .Permission "RepoLink" .RepoLink "Repository" .Repository "CommitID" .CommitID "TreePath" .TreePath "HasSourceRenderedToggle" .HasSourceRenderedToggle "ShowBlame" true}}
 			{{else}}
 				<div class="view-raw">
 					{{if .IsImageFile}}
@@ -146,14 +147,6 @@
 					{{end}}
 				</div>
 			{{end}}
-		</div>
-
-		<div class="code-line-menu tippy-target">
-			{{if $.Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}
-			<a class="item ref-in-new-issue" role="menuitem" href="#" data-url-issue-new="{{.RepoLink}}/issues/new" data-url-param-body-link="{{.Repository.HTMLURL ctx}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}" rel="nofollow noindex">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</a>
-			{{end}}
-			<a class="item view_git_blame" role="menuitem" href="{{.Repository.Link}}/blame/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.view_git_blame"}}</a>
-			<button type="button" class="item copy-line-permalink" role="menuitem" data-url="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}">{{ctx.Locale.Tr "repo.file_copy_permalink"}}</button>
 		</div>
 	</div>
 </div>

@@ -11,10 +11,8 @@
 					<div class="ui top attached segment">
 						<form class="ui form ignore-dirty tw-flex tw-flex-wrap tw-gap-2" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/add" method="post">
 							<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
-							<div id="search-user-box" class="ui search tw-mr-2"{{if .IsEmailInviteEnabled}} data-allow-email="true" data-allow-email-description="{{ctx.Locale.Tr "org.teams.invite_team_member" $.Team.Name}}"{{end}}>
-								<div class="ui input">
-									<input class="prompt" name="uname" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" required>
-								</div>
+							<div id="search-user-box" class="dropdown-container ui input tw-mr-2"{{if .IsEmailInviteEnabled}} data-allow-email-description="{{ctx.Locale.Tr "org.teams.invite_team_member" $.Team.Name}}"{{end}}>
+								{{template "shared/search_field" dict "Name" "uname" "Label" "search.user_kind"}}
 							</div>
 							<button type="submit" class="ui primary button">{{ctx.Locale.Tr "org.teams.add_team_member"}}</button>
 						</form>

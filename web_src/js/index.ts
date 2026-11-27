@@ -65,7 +65,6 @@ import {initRefIssueContextPopup} from './features/ref-issue.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
 import {initProjectWorkflow} from './features/project-workflow.ts';
 import {initDevtest} from './modules/devtest.ts';
-import {initRepoWatch} from './features/repo-watch.ts';
 import {initPackagesView} from './features/packages.ts';
 import {initAsyncHashChangeListeners} from './modules/hashchange.ts';
 import {initGlobalModal} from './modules/modal.ts';
@@ -145,7 +144,6 @@ const initPerformanceTracer = callInitFunctions([
   initRepoContributors,
   initRepoCodeFrequency,
   initRepoRecentCommits,
-  initRepoWatch,
 
   initCommitStatuses,
   initAvatarStackPopup,

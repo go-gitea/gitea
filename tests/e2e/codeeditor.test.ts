@@ -2,7 +2,7 @@ import {env} from 'node:process';
 import {expect, test} from '@playwright/test';
 import {login, apiCreateFiles, apiCreateRepo, randomString} from './utils.ts';
 
-test('codeeditor textarea updates correctly', async ({page, request}) => {
+test('codeeditor updates the textarea and opens the command palette from the context menu', async ({page, request}) => {
   const repoName = `e2e-codeeditor-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
   await Promise.all([
@@ -13,9 +13,18 @@ test('codeeditor textarea updates correctly', async ({page, request}) => {
     login(page),
   ]);
   await page.goto(`/${owner}/${repoName}/_new/feature`);
-  await page.locator('.cm-content[role="textbox"]').click();
+  const editor = page.locator('.cm-content[role="textbox"]');
+  await editor.click();
   await page.keyboard.press('Tab');
   await expect(page.locator('textarea[name="content"]')).toHaveValue('  ');
+
+  await editor.click({button: 'right'});
+  const menu = page.getByRole('menu', {name: 'Editor context menu'});
+  await expect(menu).toBeFocused();
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('Enter');
+  await expect(menu).toBeHidden();
+  await expect(page.getByPlaceholder('Type a command...')).toBeFocused();
 });
 
 test('preview and propose a markdown edit', async ({page, request}) => {

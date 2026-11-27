@@ -1,4 +1,5 @@
 import {isMac, keySymbols} from '../../utils.ts';
+import {createElementFromAttrs} from '../../utils/dom.ts';
 import {trimTrailingWhitespaceFromView} from './utils.ts';
 import type {EditorView} from '@codemirror/view';
 import type {CodemirrorModules} from './main.ts';
@@ -9,8 +10,13 @@ export type PaletteCommand = {
   run: (view: EditorView) => void;
 };
 
-function formatKeys(keys: string): string[][] {
-  return keys.split(' ').map((chord) => chord.split('+').map((k) => keySymbols[k] || k));
+export function renderShortcut(keys: string, className: string): HTMLElement {
+  const wrapper = createElementFromAttrs('span', {class: className});
+  for (const [index, chord] of keys.split(' ').entries()) {
+    if (index > 0) wrapper.append('→');
+    wrapper.append(...chord.split('+').map((key) => createElementFromAttrs('kbd', null, keySymbols[key] || key)));
+  }
+  return wrapper;
 }
 
 export function commandPalette(cm: CodemirrorModules) {
@@ -84,19 +90,7 @@ export function commandPalette(cm: CodemirrorModules) {
       }
       item.append(label);
 
-      if (cmd.keys) {
-        const keysEl = document.createElement('span');
-        keysEl.className = 'cm-command-palette-keys';
-        for (const [chordIndex, chord] of formatKeys(cmd.keys).entries()) {
-          if (chordIndex > 0) keysEl.append('→');
-          for (const k of chord) {
-            const kbd = document.createElement('kbd');
-            kbd.textContent = k;
-            keysEl.append(kbd);
-          }
-        }
-        item.append(keysEl);
-      }
+      if (cmd.keys) item.append(renderShortcut(cmd.keys, 'cm-command-palette-keys'));
       list.append(item);
     }
   }

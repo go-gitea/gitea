@@ -1,20 +1,18 @@
 {{$updateAction := $.UpdatePrimaryAction}}
 {{$hasStyleMenu := gt (len $.UpdateStyleOptions) 1}}
-<div class="ui buttons tw-shrink-0"{{if $hasStyleMenu}} data-pull-update-buttons{{end}}>
+<div class="ui buttons tw-shrink-0{{if $hasStyleMenu}} dropdown-container{{end}}"{{if $hasStyleMenu}} data-pull-update-buttons data-placement="bottom-end"{{end}}>
 	<button type="button" class="ui button link-action" data-url="{{$updateAction.URL}}">
 		{{$updateAction.StyleButtonText}}
 	</button>
 	{{if $hasStyleMenu}}
-	<button type="button" class="ui icon button" aria-label="{{ctx.Locale.Tr "repo.pulls.select_update_style"}}">{{svg "octicon-triangle-down" 14}}</button>
+	<button type="button" class="dropdown-trigger ui icon button" aria-label="{{ctx.Locale.Tr "repo.pulls.select_update_style"}}">{{svg "octicon-triangle-down" 14}}</button>
+	<div class="dropdown-popup dropdown-popup-flex merge-box-menu">
+		{{range $updateOption := $.UpdateStyleOptions}}
+			<button type="button" class="dropdown-item" role="menuitemradio" aria-checked="{{$updateOption.Selected}}" data-value="{{$updateOption.URL}}" data-update-text="{{$updateOption.StyleButtonText}}">
+				{{svg "octicon-check"}}
+				<div><strong>{{$updateOption.StyleTitle}}</strong><small>{{$updateOption.StyleDescription}}</small></div>
+			</button>
+		{{end}}
+	</div>
 	{{end}}
 </div>
-{{if $hasStyleMenu}}
-<div class="tippy-target merge-box-menu" data-pull-update-menu>
-	{{range $updateOption := $.UpdateStyleOptions}}
-		<button type="button" class="item" role="menuitemradio" aria-checked="{{$updateOption.Selected}}" data-update-url="{{$updateOption.URL}}" data-update-text="{{$updateOption.StyleButtonText}}">
-			{{svg "octicon-check"}}
-			<div><strong>{{$updateOption.StyleTitle}}</strong><small>{{$updateOption.StyleDescription}}</small></div>
-		</button>
-	{{end}}
-</div>
-{{end}}

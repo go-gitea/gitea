@@ -1,0 +1,5 @@
+<div class="dropdown-trigger dropdown-field dropdown-search-field">
+	<input class="dropdown-filter" type="text"{{if ne .AriaLabel nil}} aria-label="{{.AriaLabel}}"{{end}}>
+	<span class="dropdown-text"{{if ne .Placeholder nil}} data-placeholder="{{.Placeholder}}"{{end}}>{{if ne .Text nil}}{{.Text}}{{else}}{{.Placeholder}}{{end}}</span>
+	{{if .Caret}}{{svg "octicon-triangle-down" 14}}{{end}}
+</div>

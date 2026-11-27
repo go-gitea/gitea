@@ -27,10 +27,9 @@ test('add team member search', async ({page, request}) => {
   ]);
 
   await page.goto(`/org/${orgName}/teams/${teamName}`);
-  const input = page.locator('#search-user-box input.prompt');
+  const input = page.getByRole('combobox', {name: 'Search users…'});
   await input.fill(userName.slice(-6));
-  const result = page.locator('#search-user-box .results .result').first();
-  await expect(result).toContainText(userName);
+  await expect(page.getByRole('option', {name: userName})).toBeVisible();
 });
 
 test('delete team via confirm modal', async ({page, request}) => {

@@ -7,10 +7,7 @@
 			<div class="field">
 				<label><strong>{{ctx.Locale.Tr "repository"}}</strong></label>
 				<div class="dropdown-container issue_reference_repository_search">
-					<div class="dropdown-trigger dropdown-field dropdown-search-field">
-						<input class="dropdown-filter" type="text">
-						<span class="dropdown-text">{{.Repository.FullName}}</span>
-					</div>
+					{{template "shared/dropdown_search_field" dict "Text" .Repository.FullName}}
 					<input type="hidden" class="dropdown-value" value="{{.Repository.FullName}}">
 					<div class="dropdown-popup"></div>
 				</div>

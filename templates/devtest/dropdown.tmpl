@@ -68,10 +68,7 @@
 		<div class="field">
 			<label>Filter and rich items</label>
 			<div class="dropdown-container">
-				<div class="dropdown-trigger dropdown-field dropdown-search-field">
-					<input class="dropdown-filter" type="text" aria-label="Filter repositories">
-					<span class="dropdown-text">{{svg "octicon-repo"}} Repository 1</span>
-				</div>
+				{{template "shared/dropdown_search_field" dict "AriaLabel" "Filter repositories" "Text" (HTMLFormat "%s Repository 1" (svg "octicon-repo"))}}
 				<input type="hidden" class="dropdown-value" name="repo" value="1">
 				<div class="dropdown-popup">
 					{{range $i := 30}}
@@ -83,10 +80,7 @@
 		<div class="field">
 			<label>Grouped items</label>
 			<div class="dropdown-container">
-				<div class="dropdown-trigger dropdown-field dropdown-search-field">
-					<input class="dropdown-filter" type="text" aria-label="Filter labels">
-					<span class="dropdown-text" data-placeholder="Pick a label">Pick a label</span>
-				</div>
+				{{template "shared/dropdown_search_field" dict "AriaLabel" "Filter labels" "Placeholder" "Pick a label"}}
 				<input type="hidden" class="dropdown-value" name="label" value="">
 				<div class="dropdown-popup">
 					<div class="dropdown-item" data-value="bug">bug</div>
@@ -103,10 +97,7 @@
 		<div class="field">
 			<label>Multiselect</label>
 			<div class="dropdown-container" data-kind="multiselect">
-				<div class="dropdown-trigger dropdown-field dropdown-search-field">
-					<input class="dropdown-filter" type="text" aria-label="Filter colors">
-					<span class="dropdown-text" data-placeholder="Pick colors">Pick colors</span>
-				</div>
+				{{template "shared/dropdown_search_field" dict "AriaLabel" "Filter colors" "Placeholder" "Pick colors"}}
 				<input type="hidden" class="dropdown-value" name="colors" value="red,blue">
 				<div class="dropdown-popup">
 					<div class="dropdown-item" data-value="red">Red</div>
@@ -118,10 +109,7 @@
 		<div class="field">
 			<label>Remote items, type "error" to fail the request</label>
 			<div class="dropdown-container" data-global-init="initDevtestDropdownRemote">
-				<div class="dropdown-trigger dropdown-field dropdown-search-field">
-					<input class="dropdown-filter" type="text" aria-label="Search">
-					<span class="dropdown-text" data-placeholder="Search remote items">Search remote items</span>
-				</div>
+				{{template "shared/dropdown_search_field" dict "AriaLabel" "Search" "Placeholder" "Search remote items"}}
 				<input type="hidden" class="dropdown-value" name="remote" value="">
 				<div class="dropdown-popup">
 				</div>

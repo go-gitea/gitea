@@ -26,7 +26,7 @@ const isShown = (el: HTMLElement) => !el.hidden && !el.classList.contains('tw-hi
 
 export class Dropdown {
   container: HTMLElement;
-  trigger: HTMLButtonElement;
+  trigger: HTMLElement & {disabled?: boolean};
   popup: HTMLElement;
   valueInput: HTMLInputElement | null;
   filterInput: HTMLInputElement | null;
@@ -45,8 +45,9 @@ export class Dropdown {
     this.container = container;
     this.trigger = container.querySelector(':scope > .dropdown-trigger')!;
     this.popup = container.querySelector(':scope > .dropdown-popup')!;
-    this.valueInput = container.querySelector(':scope > .dropdown-value');
-    this.filterInput = container.querySelector('.dropdown-filter');
+    const input = this.trigger instanceof HTMLInputElement && this.trigger.name ? this.trigger : null;
+    this.valueInput = input ?? container.querySelector(':scope > .dropdown-value');
+    this.filterInput = input ?? container.querySelector('.dropdown-filter');
     this.combobox = this.trigger.contains(this.filterInput) ? this.filterInput! : this.trigger;
     this.kind = container.getAttribute('data-kind') === 'multiselect' ? 'multiselect' : (this.valueInput ? 'select' : 'menu');
     this.delimiter = container.getAttribute('data-delimiter') || ',';
@@ -59,6 +60,8 @@ export class Dropdown {
     this.popup.tabIndex = -1;
     if (!this.popup.hasAttribute('role')) this.popup.setAttribute('role', isMenu ? 'menu' : 'listbox');
     if (this.kind === 'multiselect') this.popup.setAttribute('aria-multiselectable', 'true');
+    if (input) this.popup.classList.add('dropdown-popup-autocomplete');
+    else if (this.valueInput) this.renderLabel();
     const combobox = this.combobox;
     combobox.setAttribute('aria-haspopup', isMenu ? 'menu' : 'listbox');
     combobox.setAttribute('aria-controls', this.popup.id);
@@ -67,9 +70,9 @@ export class Dropdown {
     const fieldLabel = container.parentElement!.querySelector(':scope.field > label');
     if (fieldLabel) {
       fieldLabel.id ||= generateElemId('_dropdown_label_');
-      const valueEl = this.trigger.querySelector('.dropdown-text') ?? this.trigger;
+      const valueEl = input ?? this.trigger.querySelector('.dropdown-text') ?? this.trigger;
       valueEl.id ||= generateElemId('_dropdown_text_');
-      combobox.setAttribute('aria-labelledby', `${fieldLabel.id} ${valueEl.id}`);
+      combobox.setAttribute('aria-labelledby', input ? fieldLabel.id : `${fieldLabel.id} ${valueEl.id}`);
     }
     this.popup.setAttribute('aria-labelledby', combobox.getAttribute('aria-labelledby') ?? this.trigger.id);
     if (this.filterInput) {
@@ -81,29 +84,28 @@ export class Dropdown {
         if (this.filterInput !== combobox) this.filterInput.setAttribute('aria-expanded', 'true');
       }
     }
-    if (this.valueInput) this.renderLabel();
 
-    this.trigger.addEventListener('click', (e) => {
-      const target = e.target as Element;
-      const label = target.closest<HTMLElement>('.ui.label[data-value]');
-      if (label) {
-        if (target.closest('.delete.icon')) {
-          this.pick(label.getAttribute('data-value')!);
-          this.combobox.focus();
+    if (!input) {
+      this.trigger.addEventListener('click', (e) => {
+        const target = e.target as Element;
+        const label = target.closest<HTMLElement>('.ui.label[data-value]');
+        if (label) {
+          if (target.closest('.delete.icon')) {
+            this.pick(label.getAttribute('data-value')!);
+            this.combobox.focus();
+          }
+        } else if (!this.tippy) {
+          this.show(e.detail === 0 ? 1 : 0);
+        } else if (target !== this.filterInput) {
+          this.hide();
         }
-        return;
-      }
-      if (this.tippy) {
-        if (target !== this.filterInput) this.hide();
-      } else {
-        this.show(e.detail === 0 ? 1 : 0);
-      }
-    });
+      });
+    }
     this.trigger.addEventListener('keydown', (e) => {
       if (e.isComposing) return;
-      if (this.tippy) {
-        this.onPopupKeyDown(e);
-      } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || (e.key === 'Enter' && e.target === this.filterInput)) {
+      if (this.tippy) return this.onPopupKeyDown(e);
+      if (e.key === 'Escape') return this.hide();
+      if (!input && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || (e.key === 'Enter' && e.target === this.filterInput))) {
         e.preventDefault();
         this.show(e.key === 'ArrowUp' ? -1 : 1);
       }
@@ -115,17 +117,24 @@ export class Dropdown {
       if (!(e.target as Element).closest('input, textarea, select')) e.preventDefault();
     });
     this.filterInput?.addEventListener('input', () => this.onFilterInput());
-    this.filterInput?.addEventListener('keydown', (e) => {
-      if (e.key !== 'Backspace' || e.isComposing || this.kind !== 'multiselect' || this.filterInput!.value) return;
-      const lastValue = this.values().at(-1);
-      if (lastValue) this.pick(lastValue);
-    });
+    if (this.kind === 'multiselect' && this.filterInput) {
+      this.filterInput.addEventListener('keydown', (e) => {
+        if (e.key !== 'Backspace' || e.isComposing || this.filterInput!.value) return;
+        const lastValue = this.values().at(-1);
+        if (lastValue) this.pick(lastValue);
+      });
+    }
     for (const el of [this.container, this.popup]) {
       el.addEventListener('focusout', (e) => {
         const related = e.relatedTarget as Node | null;
-        if (related && !this.container.contains(related) && !this.popup.contains(related)) this.leave();
+        if (input && e.target === input) this.hide();
+        else if (related && !this.container.contains(related) && !this.popup.contains(related)) this.leave();
       });
     }
+  }
+
+  private get editable(): boolean {
+    return this.valueInput === this.trigger;
   }
 
   get keyboardOwner(): HTMLElement {
@@ -177,7 +186,7 @@ export class Dropdown {
       placement: (this.container.getAttribute('data-placement') || 'bottom-start') as Placement,
       appendTo: this.container.closest('.modal-backdrop') ?? document.body, // outside the backdrop, the page is inert
       zIndex: 1000,
-      limitSizeToViewport: {vertical: true},
+      limitSizeToViewport: true,
       onMount: () => this.onMount(),
       onClickOutside: () => this.leave(),
       onHide: () => {
@@ -197,6 +206,7 @@ export class Dropdown {
   }
 
   onMount() {
+    if (this.editable) return;
     this.keyboardOwner.focus();
     if (!this.loadItems && this.filterInput) {
       if (this.filterInput.value) return this.applyFilter();
@@ -213,11 +223,20 @@ export class Dropdown {
   }
 
   hide() {
-    this.tippy?.hide();
+    if (this.tippy) this.tippy.hide();
+    else this.cancelLoad();
+  }
+
+  private cancelLoad() {
+    this.reloadDebounced.cancel();
+    this.loadAbort?.abort();
+    this.popup.removeAttribute('aria-busy');
   }
 
   leave() { // a search field keeps what the user typed or arrowed to like an autocomplete, popup pickers cancel
-    if (this.kind === 'select' && this.combobox === this.filterInput && this.userNavigated && this.highlighted) this.pick(this.highlighted.getAttribute('data-value')!);
+    if (this.kind === 'select' && !this.editable && this.combobox === this.filterInput && this.userNavigated && this.highlighted) {
+      this.pick(this.highlighted.getAttribute('data-value')!);
+    }
     this.hide();
   }
 
@@ -233,10 +252,8 @@ export class Dropdown {
     this.trigger._tippy?.enable();
     this.highlight(null);
     this.popup.removeAttribute('data-keyboard-nav');
-    this.reloadDebounced.cancel();
-    this.loadAbort?.abort();
-    this.popup.removeAttribute('aria-busy');
-    if (this.filterInput) {
+    this.cancelLoad();
+    if (this.filterInput && !this.editable) {
       this.filterInput.value = this.filterInput.defaultValue;
       this.trigger.classList.remove('filtering');
       if (!this.loadItems) this.applyFilter();
@@ -257,6 +274,7 @@ export class Dropdown {
       this.userNavigated = true;
       this.moveHighlight(e.key === 'ArrowDown' ? 1 : -1);
     } else if (onOwner && (e.key === 'Enter' || (e.key === ' ' && !this.filterInput))) {
+      if (this.editable && !this.highlighted) return;
       if (this.highlighted) {
         this.highlighted.dispatchEvent(new MouseEvent('click', {
           bubbles: true, cancelable: true, view: window,
@@ -301,10 +319,14 @@ export class Dropdown {
   }
 
   onFilterInput() {
-    this.userNavigated = Boolean(this.filterInput!.value.trim());
-    this.trigger.classList.toggle('filtering', Boolean(this.filterInput!.value));
-    if (!this.tippy) return this.show(); // onMount filters, highlighting earlier would scroll the page to the unpositioned popup
-    if (!this.loadItems) return this.applyFilter();
+    if (!this.editable) {
+      this.userNavigated = Boolean(this.filterInput!.value.trim());
+      this.trigger.classList.toggle('filtering', Boolean(this.filterInput!.value));
+      if (!this.tippy) return this.show(); // onMount filters, highlighting earlier would scroll the page to the unpositioned popup
+      if (!this.loadItems) return this.applyFilter();
+    } else if (this.value.length < 2) {
+      return this.hide();
+    }
     this.loadAbort?.abort();
     this.highlight(null);
     this.popup.setAttribute('aria-busy', 'true');
@@ -375,6 +397,7 @@ export class Dropdown {
 
   setValue(value: string) {
     this.valueInput!.value = value;
+    if (this.editable) return;
     if (this.tippy) {
       this.refreshItems();
       this.updateState();
@@ -436,10 +459,12 @@ export class Dropdown {
     this.highlight(null);
     for (const item of this.popup.querySelectorAll(':scope > .dropdown-item')) item.remove();
     this.popup.append(...items);
-    if (this.kind === 'select') this.renderLabel();
-    this.tippy!.popper.style.removeProperty('--tippy-max-height'); // flip by the uncapped height of the new items
+    if (!this.tippy) return this.show();
+    if (this.kind === 'select' && !this.editable) this.renderLabel();
+    this.tippy.popper.style.removeProperty('--tippy-max-height'); // flip by the uncapped height of the new items
     this.refreshItems();
-    this.updateState();
+    if (this.editable) this.tippy.popperInstance!.update();
+    else this.updateState();
   }
 
   async reload() {
@@ -452,9 +477,11 @@ export class Dropdown {
       const items = await this.loadItems!(this.filterInput?.value.trim() ?? '', abort.signal);
       if (abort.signal.aborted) return;
       this.popup.removeAttribute('aria-busy');
+      if (this.editable && !items.length) return this.hide();
       this.setItems(items);
     } catch (err) {
       if (abort.signal.aborted) return;
+      if (this.editable) return this.hide();
       this.popup.removeAttribute('aria-busy');
       console.error(err);
       this.updateState(window.config.i18n.error_occurred);
@@ -463,8 +490,9 @@ export class Dropdown {
 
   updateState(message = '') {
     const isBusy = this.popup.hasAttribute('aria-busy');
-    const visibleItems = this.items().filter((item) => isElemVisible(item));
+    const visibleItems = this.items().filter(isElemVisible);
     const items = visibleItems.filter(isItemEnabled);
+    this.popup.querySelector(':scope > .dropdown-message')?.remove(); // after the visibility reads, to not force another layout
     if (this.highlighted && !items.includes(this.highlighted)) this.highlight(null);
     if (!this.highlighted && !isBusy && (this.highlightDelta || this.loadItems)) {
       const active = items.find((item) => item.matches('.active, [aria-selected="true"]'));
@@ -472,7 +500,6 @@ export class Dropdown {
       else this.moveHighlight(this.highlightDelta || 1, items);
     }
     if (!message && !isBusy && !visibleItems.length) message = window.config.i18n.no_results_found;
-    this.popup.querySelector(':scope > .dropdown-message')?.remove(); // after the visibility reads, to not force another layout
     if (message) this.popup.append(createElementFromAttrs('div', {class: 'dropdown-message'}, message));
     this.tippy!.popperInstance!.update();
   }

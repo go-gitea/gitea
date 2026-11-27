@@ -4,22 +4,17 @@
 		<input type="hidden" class="dropdown-value" name="uid" value="{{ctx.RootData.ContextUser.ID}}" required>
 		<button type="button" class="dropdown-trigger dropdown-field">
 			<span class="dropdown-text" title="{{ctx.RootData.ContextUser.Name}}">
-				{{ctx.AvatarUtils.Avatar ctx.RootData.ContextUser 28 "mini"}}
+				{{ctx.AvatarUtils.Avatar ctx.RootData.ContextUser 20}}
 				{{ctx.RootData.ContextUser.ShortName 40}}
 			</span>
 			{{svg "octicon-triangle-down" 14}}
 		</button>
 		<div class="dropdown-popup">
 			<div class="dropdown-item" data-value="{{ctx.RootData.SignedUser.ID}}">
-				{{ctx.AvatarUtils.Avatar ctx.RootData.SignedUser 28 "mini"}}
+				{{ctx.AvatarUtils.Avatar ctx.RootData.SignedUser 20}}
 				{{ctx.RootData.SignedUser.ShortName 40}}
 			</div>
-			{{range $org := ctx.RootData.Orgs}}
-				<div class="dropdown-item" data-value="{{$org.ID}}" title="{{$org.Name}}">
-					{{ctx.AvatarUtils.Avatar $org 28 "mini"}}
-					{{$org.ShortName 40}}
-				</div>
-			{{end}}
+			{{template "repo/owner_dropdown_items" ctx.RootData.Orgs}}
 		</div>
 	</div>
 </div>

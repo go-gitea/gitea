@@ -52,16 +52,23 @@
   color: var(--color-text-dark);
 }
 
-.file-view.code-view .ui.button.code-line-button {
-  border: 1px solid var(--color-secondary);
-  padding: 1px 4px;
-  margin: 0;
-  min-height: 0;
+.file-view > .code-line-menu {
+  display: none;
+}
+
+.code-line-menu {
   position: absolute;
+  top: 0;
   left: 6px;
 }
 
-.file-view.code-view .ui.button.code-line-button:hover {
+.code-line-menu > .dropdown-trigger {
+  background: var(--color-button);
+  border: 1px solid var(--color-secondary);
+  padding: 1px 4px;
+}
+
+.code-line-menu > .dropdown-trigger:hover {
   background: var(--color-secondary);
 }
 

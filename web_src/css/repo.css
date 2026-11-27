@@ -2,6 +2,10 @@
   padding: 1em 0 0.25em;
 }
 
+.repo-watch-popup {
+  max-width: 350px;
+}
+
 .secondary-nav .secondary-info {
   margin-top: 0.25em;
   font-size: 12px;
@@ -967,19 +971,6 @@
   display: flex;
   gap: var(--gap-block);
   overflow-wrap: anywhere;
-}
-
-#search-user-box .results .result .image {
-  order: 0;
-  margin-right: 12px;
-  width: 2em;
-  height: 2em;
-  min-width: 2em;
-  min-height: 2em;
-}
-
-#search-user-box .results .result .content {
-  margin: 0; /* remove margin reserved for avatar because we move it to left via `order: 0` */
 }
 
 .page.buttons {

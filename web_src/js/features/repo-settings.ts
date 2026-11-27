@@ -1,13 +1,11 @@
 import {createCodeEditor} from '../modules/codeeditor/main.ts';
-import {addDelegatedEventListener, onInputDebounce, queryElems, toggleElem} from '../utils/dom.ts';
+import {addDelegatedEventListener, createElementFromAttrs, onInputDebounce, queryElems, toggleElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 import {initDropdown} from '../modules/dropdown.ts';
-import {attachSearchBox} from '../modules/search.ts';
 import {globMatch} from '../utils/glob.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
-
-const {appSubUrl} = window.config;
+import {fetchSearchResults} from './comp/SearchUserBox.ts';
 
 function initRepoSettingsCollaboration() {
   for (const dropdownEl of queryElems(document, '.page-content.repository .dropdown-container.access-mode')) {
@@ -31,17 +29,20 @@ function initRepoSettingsCollaboration() {
   }
 }
 
-type TeamSearchResponse = {data: Array<{name: string; permission: string}>};
+type TeamSearchResult = {name: string; permission: string};
 
 function initRepoSettingsSearchTeamBox() {
   const box = document.querySelector<HTMLElement>('#search-team-box');
   if (!box) return;
 
-  const url = `${appSubUrl}/org/${box.getAttribute('data-org-name')}/teams/-/search?q={query}`;
-  attachSearchBox(box, url, (response: TeamSearchResponse) => response.data.map((item) => ({
-    title: item.name,
-    description: `${item.permission} access`, // TODO: translate this string
-  })));
+  const orgName = box.getAttribute('data-org-name')!;
+  initDropdown(box, {
+    async loadItems(query, signal) {
+      const data = await fetchSearchResults<TeamSearchResult>(`/org/${orgName}/teams/-/search`, {q: query}, signal);
+      return data?.map(({name, permission}) => createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': name},
+        name, createElementFromAttrs('span', {class: 'dropdown-item-detail'}, `${permission} access`))) ?? []; // TODO: translate this string
+    },
+  });
 }
 
 function initRepoSettingsGitHook(form: HTMLFormElement) {

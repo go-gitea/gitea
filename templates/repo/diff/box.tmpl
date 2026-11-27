@@ -146,23 +146,21 @@
 									</label>
 								{{end}}
 								{{if not $file.IsSubmodule}}
-									<button type="button" class="btn tw-p-1" data-global-init="initDiffHeaderPopupMenu">{{svg "octicon-kebab-horizontal" 18}}</button>
-									<div class="tippy-target">
-										{{if not (or $file.IsIncomplete $file.IsBin)}}
-											<button type="button" class="unescape-button item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
-											<button type="button" class="escape-button tw-hidden item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
-										{{end}}
-										<button type="button" class="item" data-clipboard-text="{{$file.GetDiffFileBaseName}}">{{ctx.Locale.Tr "copy_filename"}}</button>
-										{{if not $.PageIsWiki}}
-											{{if $file.IsDeleted}}
-												<a class="item" rel="nofollow" href="{{$.BeforeSourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
-											{{else}}
-												<a class="item" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
-												{{if and $.Repository.CanContentChange $.CanEditFile}}
-													<a class="item" rel="nofollow" href="{{$.HeadRepoLink}}/_edit/{{PathEscapeSegments $.HeadBranchName}}/{{PathEscapeSegments $file.Name}}?return_uri={{print $.BackToLink "#diff-" $file.NameHash | QueryEscape}}">{{ctx.Locale.Tr "repo.editor.edit_this_file"}}</a>
+									<div class="dropdown-container" data-placement="bottom-end" data-keep-open>
+										<button type="button" class="dropdown-trigger btn tw-p-1" aria-label="{{ctx.Locale.Tr "more_items"}}">{{svg "octicon-kebab-horizontal" 18}}</button>
+										<div class="dropdown-popup">
+											{{if not (or $file.IsIncomplete $file.IsBin)}}
+												<button type="button" class="dropdown-item unescape-button" data-unicode-content-selector="#diff-{{$file.NameHash}}" data-global-click="diffHighlightUnicodeToggle">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
+												<button type="button" class="dropdown-item escape-button tw-hidden" data-unicode-content-selector="#diff-{{$file.NameHash}}" data-global-click="diffHighlightUnicodeToggle">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
+											{{end}}
+											<button type="button" class="dropdown-item" data-clipboard-text="{{$file.GetDiffFileBaseName}}">{{ctx.Locale.Tr "copy_filename"}}</button>
+											{{if not $.PageIsWiki}}
+												<a class="dropdown-item" rel="nofollow" href="{{Iif $file.IsDeleted $.BeforeSourcePath $.SourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
+												{{if and (not $file.IsDeleted) $.Repository.CanContentChange $.CanEditFile}}
+													<a class="dropdown-item" rel="nofollow" href="{{$.HeadRepoLink}}/_edit/{{PathEscapeSegments $.HeadBranchName}}/{{PathEscapeSegments $file.Name}}?return_uri={{print $.BackToLink "#diff-" $file.NameHash | QueryEscape}}">{{ctx.Locale.Tr "repo.editor.edit_this_file"}}</a>
 												{{end}}
 											{{end}}
-										{{end}}
+										</div>
 									</div>
 								{{end}}
 							</div>

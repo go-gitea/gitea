@@ -1,7 +1,8 @@
 import {createApp, type App, type Component} from 'vue';
 import {GET} from '../modules/fetch.ts';
 import {shouldTriggerAreYouSure} from '../modules/are-you-sure.ts';
-import {createTippy, getAttachedTippyInstance} from '../modules/tippy.ts';
+import {initDropdown} from '../modules/dropdown.ts';
+import {getAttachedTippyInstance} from '../modules/tippy.ts';
 import {addDelegatedEventListener, createElementFromHTML, activePageTimerRefresh} from '../utils/dom.ts';
 
 const reloadingIntervalAttr = 'data-pull-merge-box-reloading-interval';
@@ -43,38 +44,25 @@ class PullMergeBox {
   }
 
   private initUpdateStyleMenu() {
-    const elButtons = this.el.querySelector('[data-pull-update-buttons]');
+    const elButtons = this.el.querySelector<HTMLElement>('[data-pull-update-buttons]');
     if (!elButtons) return;
-    const [elButton, elTrigger] = elButtons.querySelectorAll<HTMLButtonElement>(':scope > button');
-    const menu = this.el.querySelector('[data-pull-update-menu]')!;
-    const menuTippy = createTippy(elTrigger, {
-      content: menu,
-      getReferenceClientRect: () => elButtons.getBoundingClientRect(),
-      theme: 'menu',
-      arrow: false,
-      maxWidth: 400,
-      placement: 'bottom-end',
-      trigger: 'click',
-      interactive: true,
-      hideOnClick: true,
-    });
-    const choose = (choice: Element) => {
-      this.chosenUpdateUrl = choice.getAttribute('data-update-url')!;
-      for (const item of menu.querySelectorAll('.item')) item.setAttribute('aria-checked', String(item === choice));
+    const elButton = elButtons.querySelector(':scope > .link-action')!;
+    const dropdown = initDropdown(elButtons);
+    elButton.addEventListener('click', () => dropdown.hide());
+    const choose = (choice: HTMLElement) => {
+      this.chosenUpdateUrl = choice.getAttribute('data-value')!;
+      for (const item of dropdown.items()) item.setAttribute('aria-checked', String(item === choice));
       elButton.textContent = choice.getAttribute('data-update-text');
       elButton.setAttribute('data-url', this.chosenUpdateUrl);
     };
-    addDelegatedEventListener(menu, 'click', '.item', (choice) => {
-      choose(choice);
-      menuTippy.hide();
-    });
-    const chosen = [...menu.querySelectorAll('.item')].find((item) => item.getAttribute('data-update-url') === this.chosenUpdateUrl);
+    addDelegatedEventListener(dropdown.popup, 'click', '.dropdown-item', choose);
+    const chosen = dropdown.findItem(this.chosenUpdateUrl);
     if (chosen) choose(chosen);
   }
 
   private isBusy() {
     return Boolean(document.querySelector('dialog[open]') || this.el.querySelector(
-      ':focus:not([data-kind]), [aria-haspopup][aria-expanded="true"], [data-fetch-is-loading], [data-pull-merge-busy]'));
+      ':focus:not([data-kind]), .dropdown-container[data-shown], [data-fetch-is-loading], [data-pull-merge-busy]'));
   }
 
   private async refresh() {

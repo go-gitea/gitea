@@ -1,13 +1,10 @@
 <div class="dropdown-container" data-kind="multiselect">
 	<input type="hidden" class="dropdown-value" name="{{.Name}}" value="{{.Value}}">
-	<div class="dropdown-trigger dropdown-field dropdown-search-field">
-		<input class="dropdown-filter" type="text">
-		<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "search.user_kind"}}">{{ctx.Locale.Tr "search.user_kind"}}</span>
-	</div>
+	{{template "shared/dropdown_search_field" dict "Placeholder" (ctx.Locale.Tr "search.user_kind")}}
 	<div class="dropdown-popup">
 		{{range .Users}}
 			<div class="dropdown-item" data-value="{{.ID}}">
-				{{ctx.AvatarUtils.Avatar . 28 "mini"}}{{template "repo/search_name" .}}
+				{{ctx.AvatarUtils.Avatar . 20}}{{template "repo/search_name" .}}
 			</div>
 		{{end}}
 	</div>

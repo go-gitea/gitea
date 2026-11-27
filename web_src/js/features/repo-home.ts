@@ -58,6 +58,7 @@ export function initRepoTopicBar() {
         queryElemChildren(viewDiv, '.repo-topic', (el) => el.remove());
         viewDiv.append(...topics.sort().map((topic) => createElementFromAttrs('a', {
           class: 'repo-topic ui large label gt-ellipsis',
+          title: topic,
           href: `${appSubUrl}/explore/repos?q=${encodeURIComponent(topic)}&topic=1`,
         }, topic)));
         topicDropdown.hide();

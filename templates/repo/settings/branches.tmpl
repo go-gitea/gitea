@@ -15,11 +15,7 @@
 					<div class="flex-text-block">
 						<div class="dropdown-container tw-flex-1 tw-min-w-56 tw-mr-2 tw-max-w-96">
 							<input type="hidden" class="dropdown-value" name="branch" value="{{.Repository.DefaultBranch}}">
-							<div class="dropdown-trigger dropdown-field dropdown-search-field">
-								<input class="dropdown-filter" type="text" aria-label="{{ctx.Locale.Tr "search.branch_kind"}}">
-								<span class="dropdown-text">{{.Repository.DefaultBranch}}</span>
-								{{svg "octicon-triangle-down" 14}}
-							</div>
+							{{template "shared/dropdown_search_field" dict "AriaLabel" (ctx.Locale.Tr "search.branch_kind") "Text" .Repository.DefaultBranch "Caret" true}}
 							<div class="dropdown-popup">
 								{{range .Branches}}
 									<div class="dropdown-item" data-value="{{.}}">{{.}}</div>

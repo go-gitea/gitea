@@ -92,8 +92,7 @@
   height: 1.21428571em;
 }
 
-.ui.form input:not([type="checkbox"], [type="radio"], .dropdown-filter),
-.ui.search > .prompt {
+.ui.form input:not([type="checkbox"], [type="radio"], .dropdown-filter) {
   font-family: var(--fonts-regular);
   margin: 0;
   outline: none;
@@ -128,8 +127,7 @@ textarea,
 .ui.form input:not([type="checkbox"], [type="radio"], .dropdown-filter),
 .ui.form select,
 .select-field > select,
-.ui.form textarea,
-.ui.search > .prompt {
+.ui.form textarea {
   background: var(--color-input-background);
   border: 1px solid var(--color-input-border);
   color: var(--color-input-text);
@@ -141,8 +139,7 @@ textarea:focus,
 .ui.form input:not([type="checkbox"], [type="radio"], .dropdown-filter):focus,
 .ui.form select:focus,
 .select-field > select:focus,
-.ui.form textarea:focus,
-.ui.search > .prompt:focus {
+.ui.form textarea:focus {
   background: var(--color-input-background);
   border-color: var(--color-primary);
   color: var(--color-input-text);

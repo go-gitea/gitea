@@ -7,10 +7,8 @@
 				{{ctx.Locale.Tr "repo.commit_graph"}}
 				<div class="ui icon buttons tiny color-buttons">
 					<div class="dropdown-container" data-kind="multiselect" data-delimiter=" " id="flow-select-refs-dropdown">{{/* refs can contain commas but no spaces */}}
-						<div class="dropdown-trigger dropdown-field dropdown-search-field">
-							<input class="dropdown-filter" type="text" aria-label="{{ctx.Locale.Tr "repo.commit_graph.select"}}">
-							<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.commit_graph.select"}}">{{ctx.Locale.Tr "repo.commit_graph.select"}}</span>
-						</div>
+						{{$label := ctx.Locale.Tr "repo.commit_graph.select"}}
+						{{template "shared/dropdown_search_field" dict "AriaLabel" $label "Placeholder" $label}}
 						<input type="hidden" class="dropdown-value" name="flow">
 						<div class="dropdown-popup">
 							<div class="dropdown-item" data-value="...flow-hide-pr-refs">

@@ -5,8 +5,8 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form flex-text-block" action="{{.Link}}" method="post">
-				<div id="search-user-box" class="ui search input">
-					<input class="prompt" name="user" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" autofocus required>
+				<div id="search-user-box" class="dropdown-container ui input">
+					{{template "shared/search_field" dict "Name" "user" "Label" "search.user_kind" "Autofocus" true}}
 				</div>
 				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "admin.badges.add_user"}}</button>
 			</form>

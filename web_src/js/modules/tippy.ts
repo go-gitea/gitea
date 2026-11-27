@@ -1,13 +1,13 @@
 import tippy, {followCursor} from 'tippy.js';
-import {isDocumentFragmentOrElementNode, isElemVisible} from '../utils/dom.ts';
+import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
 import type {Content, Instance, Placement, Props} from 'tippy.js';
 import {html, htmlEscape} from '../utils/html.ts';
 import {stripTags} from '../utils.ts';
 
 type TippyOpts = {
   role?: string,
-  theme?: 'default' | 'tooltip' | 'menu' | 'box-with-header' | 'bare' | 'dropdown',
-  limitSizeToViewport?: {horizontal?: boolean, vertical?: boolean}, // cap to the viewport and scroll the content
+  theme?: 'default' | 'tooltip' | 'box-with-header' | 'bare' | 'dropdown',
+  limitSizeToViewport?: boolean, // cap to the viewport and scroll the content
 } & Partial<Props>;
 
 type PopperModifier = NonNullable<NonNullable<Props['popperOptions']>['modifiers']>[number];
@@ -26,85 +26,39 @@ function arrowPadding({placement, reference}: {placement: Placement, reference: 
 
 const viewportPadding = 8;
 
-// space left on the side the popup opens towards, the viewport on the other axis
-export function availableSizeForPlacement(referenceRect: DOMRect, placement: string, offset: number): {width: number, height: number} {
+export function availableHeightForPlacement(referenceRect: DOMRect, placement: Placement, offset: number): number {
   const gap = Math.abs(offset) + viewportPadding;
-  const spanWidth = window.innerWidth - viewportPadding * 2;
-  const spanHeight = window.innerHeight - viewportPadding * 2;
-  const side = placement.split('-')[0];
-  if (side === 'top') return {width: spanWidth, height: referenceRect.top - gap};
-  if (side === 'bottom') return {width: spanWidth, height: window.innerHeight - referenceRect.bottom - gap};
-  if (side === 'left') return {width: referenceRect.left - gap, height: spanHeight};
-  return {width: window.innerWidth - referenceRect.right - gap, height: spanHeight};
+  if (placement.startsWith('top')) return referenceRect.top - gap;
+  if (placement.startsWith('bottom')) return window.innerHeight - referenceRect.bottom - gap;
+  return window.innerHeight - viewportPadding * 2;
 }
 
 // popper does not constrain size, publish it for the styles. Replaced by floating-ui's "size" on migration
-function sizeModifier(limit: {horizontal?: boolean, vertical?: boolean}): PopperModifier {
-  return {
-    name: 'tippyLimitSize',
-    enabled: true,
-    phase: 'beforeWrite',
-    requires: ['computeStyles'], // runs after "flip" and "offset", so both are final
-    fn({state}) {
-      const referenceRect = state.elements.reference.getBoundingClientRect();
-      const availableFor = (placement: Placement) => {
-        const offset = state.modifiersData.offset?.[placement];
-        const isVertical = placement.startsWith('top') || placement.startsWith('bottom');
-        return availableSizeForPlacement(referenceRect, placement, (isVertical ? offset?.y : offset?.x) ?? 0);
-      };
-      const available = availableFor(state.placement);
-      const opposite = state.placement.replace(/^(top|bottom)/, (side) => side === 'top' ? 'bottom' : 'top') as Placement;
-      if (limit.vertical && state.rects.popper.height > available.height && availableFor(opposite).height > available.height) { // Popper keeps the preferred side when neither fits.
-        state.placement = opposite;
-        state.modifiersData.flip._skip = true;
-        state.reset = true;
-        return;
-      }
-      const {style} = state.elements.popper;
-      if (limit.horizontal) style.setProperty('--tippy-max-width', `${Math.max(0, Math.floor(available.width))}px`);
-      if (limit.vertical) style.setProperty('--tippy-max-height', `${Math.max(0, Math.floor(available.height))}px`);
-    },
-  };
-}
-
-function isMenu(instance: Instance): boolean {
-  return instance.props.role === 'menu' && instance.props.theme === 'menu'; // role defaults to "menu" for every non-tooltip popup
-}
-
-function focusMenuItem(instance: Instance, delta: number) {
-  const items = [...instance.popper.querySelectorAll<HTMLElement>('.item:not(.disabled)')].filter(isElemVisible);
-  if (!items.length) return;
-  const current = items.indexOf(document.activeElement as HTMLElement);
-  const next = current === -1 ? (delta > 0 ? 0 : items.length - 1) : (current + delta + items.length) % items.length;
-  items[next].focus();
-}
-
-document.addEventListener('keydown', (e: KeyboardEvent) => {
-  if (e.isComposing) return;
-  const menuInstance = [...visibleInstances].findLast(isMenu);
-  if (!menuInstance) return;
-  const focused = document.activeElement as HTMLElement;
-  const inMenu = menuInstance.popper.contains(focused);
-  if (!inMenu && focused !== menuInstance.reference && focused !== document.body) return; // body: macOS Safari and Firefox do not focus clicked buttons
-  if (e.key === 'Escape') {
-    menuInstance.hide();
-  } else if (['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft'].includes(e.key)) {
-    focusMenuItem(menuInstance, e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : -1);
-  } else if ((e.key === 'Enter' || e.key === ' ') && inMenu) {
-    focused.click();
-  } else {
-    return;
-  }
-  e.preventDefault();
-});
+const sizeModifier: PopperModifier = {
+  name: 'tippyLimitSize',
+  enabled: true,
+  phase: 'beforeWrite',
+  requires: ['computeStyles'], // runs after "flip" and "offset", so both are final
+  fn({state}) {
+    const referenceRect = state.elements.reference.getBoundingClientRect();
+    const availableFor = (placement: Placement) => availableHeightForPlacement(referenceRect, placement, state.modifiersData.offset?.[placement]?.y ?? 0);
+    const available = availableFor(state.placement);
+    const opposite = state.placement.replace(/^(top|bottom)/, (side) => side === 'top' ? 'bottom' : 'top') as Placement;
+    if (state.rects.popper.height > available && availableFor(opposite) > available) { // Popper keeps the preferred side when neither fits.
+      state.placement = opposite;
+      state.modifiersData.flip._skip = true;
+      state.reset = true;
+      return;
+    }
+    state.elements.popper.style.setProperty('--tippy-max-height', `${Math.max(0, Math.floor(available))}px`);
+  },
+};
 
 export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   // the callback functions should be destructured from opts,
   // because we should use our own wrapper functions to handle them, do not let the user override them
-  const {onHide, onHidden, onShow, onDestroy, role, theme, arrow, limitSizeToViewport, ...other} = opts;
-  // CSS theme, either "default", "tooltip", "menu", "box-with-header", "bare" or "dropdown"
-  const resolvedTheme = theme || role || 'default';
-  const resolvedArrow = arrow ?? (resolvedTheme === 'bare' ? false : arrowSvg);
+  const {onHide, onHidden, onShow, onDestroy, role, theme = 'default', arrow, limitSizeToViewport, ...other} = opts;
+  const resolvedArrow = arrow ?? (theme === 'bare' ? false : arrowSvg);
 
   const instance: Instance = tippy(target, {
     appendTo: document.body,
@@ -116,7 +70,6 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
     maxWidth: 500, // increase over default 350px
     onHide: (instance: Instance) => {
       visibleInstances.delete(instance);
-      if (isMenu(instance) && instance.popper.contains(document.activeElement)) (instance.reference as HTMLElement).focus();
       return onHide?.(instance);
     },
     onHidden: (instance: Instance) => {
@@ -140,19 +93,16 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
       visibleInstances.add(instance);
       if (!['tooltip', 'presentation'].includes(instance.props.role)) target.setAttribute('aria-controls', instance.popper.id);
       if (limitSizeToViewport) instance.popper.style.removeProperty('--tippy-max-height'); // flip by the uncapped height
-      if (isMenu(instance)) { // focusable by the arrow keys, out of the Tab order
-        for (const item of instance.popper.querySelectorAll<HTMLElement>('.item')) item.tabIndex = -1;
-      }
       return onShow?.(instance);
     },
     arrow: resolvedArrow,
     popperOptions: {modifiers: [
       {name: 'arrow', options: {padding: arrowPadding}},
-      ...(limitSizeToViewport ? [sizeModifier(limitSizeToViewport)] : []),
+      ...(limitSizeToViewport ? [sizeModifier] : []),
     ]},
     // HTML role attribute, ideally the default role would be "popover" but it does not exist
     role: role || 'menu',
-    theme: resolvedTheme,
+    theme,
     offset: [0, resolvedArrow ? 8.5 : 3], // the arrow is 7px tall
     plugins: [followCursor],
     ...other,

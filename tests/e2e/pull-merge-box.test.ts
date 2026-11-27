@@ -39,6 +39,7 @@ test('auto-merge can be canceled before a squash bypass merge', async ({page, re
   await page.getByRole('menuitemradio', {name: /^Create squash commit/}).click();
   await page.getByLabel('Merge without waiting for requirements to be met (bypass rules)').check();
   await page.getByRole('button', {name: 'Bypass rules and merge (squash)'}).click();
+  await expect(page.getByRole('textbox', {name: 'Commit message', exact: true})).toBeFocused();
   await page.getByRole('button', {name: 'Confirm bypass rules and merge (squash)'}).click();
 
   await expect(page.getByText('Merged', {exact: true})).toBeVisible();
@@ -51,8 +52,11 @@ test('outdated branch can be rebased from the update style menu', async ({page, 
     login(page),
   ]);
   await page.goto(prLink);
-  await page.getByRole('button', {name: 'Update branch options'}).click();
-  await page.getByRole('menuitemradio', {name: /^Update with rebase/}).click();
+  const updateOptions = page.getByRole('button', {name: 'Update branch options'});
+  await updateOptions.press('ArrowUp');
+  await expect(page.getByRole('menu', {name: 'Update branch options'})).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(updateOptions).toBeFocused();
   const [updateRequest] = await Promise.all([
     page.waitForRequest((req) => req.method() === 'POST' && new URL(req.url()).pathname === `${prLink}/update`),
     page.getByRole('button', {name: 'Rebase branch'}).click(),

@@ -1,0 +1,6 @@
+{{range $org := .}}
+	<div class="dropdown-item" data-value="{{$org.ID}}" title="{{$org.Name}}">
+		{{ctx.AvatarUtils.Avatar $org 20}}
+		{{$org.ShortName 40}}
+	</div>
+{{end}}

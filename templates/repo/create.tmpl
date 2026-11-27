@@ -14,7 +14,7 @@
 					<div class="dropdown-container" id="repo_owner_dropdown">
 						<input type="hidden" class="dropdown-value" name="uid" value="{{.ContextUser.ID}}">
 						<button type="button" class="dropdown-trigger dropdown-field">
-							<span class="dropdown-text">{{ctx.AvatarUtils.Avatar .ContextUser 28 "mini"}} {{.ContextUser.ShortName 40}}</span>
+							<span class="dropdown-text">{{ctx.AvatarUtils.Avatar .ContextUser 20}} {{.ContextUser.ShortName 40}}</span>
 							{{svg "octicon-triangle-down" 14}}
 						</button>
 						<div class="dropdown-popup">
@@ -23,15 +23,10 @@
 									data-create-repo-disallowed-prompt="{{ctx.Locale.TrN .MaxCreationLimit "repo.form.reach_limit_of_creation_1" "repo.form.reach_limit_of_creation_n" .MaxCreationLimitOfDoer}}"
 								{{end}}
 							>
-								{{ctx.AvatarUtils.Avatar .SignedUser 28 "mini"}}
+								{{ctx.AvatarUtils.Avatar .SignedUser 20}}
 								{{.SignedUser.ShortName 40}}
 							</div>
-							{{range .Orgs}}
-								<div class="dropdown-item" data-value="{{.ID}}" title="{{.Name}}">
-									{{ctx.AvatarUtils.Avatar . 28 "mini"}}
-									{{.ShortName 40}}
-								</div>
-							{{end}}
+							{{template "repo/owner_dropdown_items" .Orgs}}
 						</div>
 					</div>
 					<span class="help">{{ctx.Locale.Tr "repo.owner_helper"}}</span>
@@ -65,10 +60,7 @@
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.template"}}</label>
 					<div id="repo_template_search" class="dropdown-container">
-						<div class="dropdown-trigger dropdown-field dropdown-search-field">
-							<input class="dropdown-filter" type="text">
-							<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.template_select"}}">{{.repo_template_name}}</span>
-						</div>
+						{{template "shared/dropdown_search_field" dict "Placeholder" (ctx.Locale.Tr "repo.template_select") "Text" (or .repo_template_name "")}}
 						<input type="hidden" class="dropdown-value" name="repo_template" value="{{or .repo_template ""}}">
 						<div class="dropdown-popup">
 							<div class="dropdown-item" data-value="">{{ctx.Locale.Tr "repo.template_select"}}</div>
@@ -124,10 +116,7 @@
 						<label>{{ctx.Locale.Tr "repo.issue_labels"}}</label>
 						<div class="dropdown-container">
 							<input type="hidden" class="dropdown-value" name="issue_labels" value="{{.issue_labels}}">
-							<div class="dropdown-trigger dropdown-field dropdown-search-field">
-								<input class="dropdown-filter" type="text">
-								<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.issue_labels_helper"}}">{{or .issue_labels (ctx.Locale.Tr "repo.issue_labels_helper")}}</span>
-							</div>
+							{{template "shared/dropdown_search_field" dict "Placeholder" (ctx.Locale.Tr "repo.issue_labels_helper") "Text" (or .issue_labels nil)}}
 							<div class="dropdown-popup">
 								<div class="dropdown-item" data-value="">{{ctx.Locale.Tr "repo.issue_labels_helper"}}</div>
 								{{range .LabelTemplateFiles}}
@@ -143,10 +132,7 @@
 						<label>.gitignore</label>
 						<div class="dropdown-container" data-kind="multiselect">
 							<input type="hidden" class="dropdown-value" name="gitignores" value="{{.gitignores}}">
-							<div class="dropdown-trigger dropdown-field dropdown-search-field">
-								<input class="dropdown-filter" type="text">
-								<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.repo_gitignore_helper"}}">{{ctx.Locale.Tr "repo.repo_gitignore_helper"}}</span>
-							</div>
+							{{template "shared/dropdown_search_field" dict "Placeholder" (ctx.Locale.Tr "repo.repo_gitignore_helper")}}
 							<div class="dropdown-popup">
 								{{range .Gitignores}}
 									<div class="dropdown-item" data-value="{{.}}">{{.}}</div>
@@ -159,10 +145,7 @@
 						<label>{{ctx.Locale.Tr "repo.license"}}</label>
 						<div class="dropdown-container">
 							<input type="hidden" class="dropdown-value" name="license" value="{{.license}}">
-							<div class="dropdown-trigger dropdown-field dropdown-search-field">
-								<input class="dropdown-filter" type="text">
-								<span class="dropdown-text" data-placeholder="{{ctx.Locale.Tr "repo.license_helper"}}">{{or .license (ctx.Locale.Tr "repo.license_helper")}}</span>
-							</div>
+							{{template "shared/dropdown_search_field" dict "Placeholder" (ctx.Locale.Tr "repo.license_helper") "Text" (or .license nil)}}
 							<div class="dropdown-popup">
 								<div class="dropdown-item" data-value="">{{ctx.Locale.Tr "repo.license_helper"}}</div>
 								{{range .Licenses}}

@@ -601,11 +601,7 @@
 							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch"}}</label>
 							<div class="dropdown-container">
 								<input type="hidden" class="dropdown-value" name="default_target_branch" value="{{$prUnit.PullRequestsConfig.DefaultTargetBranch}}">
-								<div class="dropdown-trigger dropdown-field dropdown-search-field">
-									<input class="dropdown-filter" type="text">
-									<span class="dropdown-text">{{or $prUnit.PullRequestsConfig.DefaultTargetBranch (ctx.Locale.Tr "repo.settings.pulls.default_target_branch_default" $.Repository.DefaultBranch)}}</span>
-									{{svg "octicon-triangle-down" 14}}
-								</div>
+								{{template "shared/dropdown_search_field" dict "Text" (or $prUnit.PullRequestsConfig.DefaultTargetBranch (ctx.Locale.Tr "repo.settings.pulls.default_target_branch_default" $.Repository.DefaultBranch)) "Caret" true}}
 								<div class="dropdown-popup">
 									<div class="dropdown-item" data-value="">{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch_default" $.Repository.DefaultBranch}}</div>
 									{{range $branchName := $.Branches}}

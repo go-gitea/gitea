@@ -1,42 +1,42 @@
 {{$isIgnoring := and $.IsSigned $.RepoWatch.IsIgnoring}}
 {{$buttonText := ctx.Locale.Tr (Iif $isIgnoring "repo.ignoring" (Iif $.RepoWatch.IsWatching "repo.watching" "repo.watch"))}}
 {{$count := CountFmt .Repository.NumWatches}}
-<div id="repo-header-watch" class="flex-text-block">
+<div id="repo-header-watch" class="flex-text-block{{if $.IsSigned}} dropdown-container{{end}}" {{if $.IsSigned}}data-placement="bottom-end"{{end}}>
 	{{if $.IsSigned}}
 		{{$mode := $.RepoWatch.SelectedMode}}
 		{{$isAll := eq $mode "all"}}
 		{{$isCustom := eq $mode "custom"}}
 		{{$isParticipating := eq $mode "participate"}}
-		<button type="button" class="dropdown-trigger ui compact small basic button" data-global-init="initRepoWatchMenu" aria-label="{{$buttonText}}">
+		<button type="button" class="dropdown-trigger ui compact small basic button" aria-label="{{$buttonText}}">
 			{{svg (Iif $isIgnoring "octicon-eye-closed" "octicon-eye")}}
 			<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
 			<span class="ui small label">{{$count}}</span>
 			{{svg "octicon-triangle-down" 14}}
 		</button>
-		<div class="tippy-target">
-			{{$testParticipating := ctx.Locale.Tr "repo.watch.mode.participating"}}
-			<button type="button" class="item {{if $isParticipating}}active{{end}}" role="menuitem" aria-label="{{$testParticipating}}"
+		<div class="dropdown-popup dropdown-popup-flex repo-watch-popup">
+			{{$textParticipating := ctx.Locale.Tr "repo.watch.mode.participating"}}
+			<button type="button" class="dropdown-item{{if $isParticipating}} active{{end}}" aria-label="{{$textParticipating}}"
 				data-fetch-method="post" data-fetch-url="{{$.RepoLink}}/action/participate" data-fetch-sync="$body #repo-header-watch"
 			>
 				{{svg "octicon-check" 16 (Iif $isParticipating "" "tw-invisible")}}
-				<div>{{$testParticipating}}<div class="tw-text-12 tw-text-text-light-2">{{ctx.Locale.Tr "repo.watch.mode.participating.desc"}}</div></div>
+				<div>{{$textParticipating}}<div class="tw-text-12 tw-text-text-light-2">{{ctx.Locale.Tr "repo.watch.mode.participating.desc"}}</div></div>
 			</button>
 			{{$textAll := ctx.Locale.Tr "repo.watch.mode.all"}}
-			<button type="button" class="item {{if $isAll}}active{{end}}" role="menuitem" aria-label="{{$textAll}}"
+			<button type="button" class="dropdown-item{{if $isAll}} active{{end}}" aria-label="{{$textAll}}"
 				data-fetch-method="post" data-fetch-url="{{$.RepoLink}}/action/watch" data-fetch-sync="$body #repo-header-watch"
 			>
 				{{svg "octicon-check" 16 (Iif $isAll "" "tw-invisible")}}
 				<div>{{$textAll}}<div class="tw-text-12 tw-text-text-light-2">{{ctx.Locale.Tr "repo.watch.mode.all.desc"}}</div></div>
 			</button>
 			{{$textIgnore := ctx.Locale.Tr "repo.watch.mode.ignore"}}
-			<button type="button" class="item {{if $isIgnoring}}active{{end}}" role="menuitem" aria-label="{{$textIgnore}}"
+			<button type="button" class="dropdown-item{{if $isIgnoring}} active{{end}}" aria-label="{{$textIgnore}}"
 				data-fetch-method="post" data-fetch-url="{{$.RepoLink}}/action/ignore" data-fetch-sync="$body #repo-header-watch"
 			>
 				{{svg "octicon-check" 16 (Iif $isIgnoring "" "tw-invisible")}}
 				<div>{{$textIgnore}}<div class="tw-text-12 tw-text-text-light-2">{{ctx.Locale.Tr "repo.watch.mode.ignore.desc"}}</div></div>
 			</button>
 			{{$textCustom := ctx.Locale.Tr "repo.watch.mode.custom"}}
-			<button type="button" class="item {{if $isCustom}}active{{end}} show-modal" role="menuitem" aria-label="{{$textCustom}}"
+			<button type="button" class="dropdown-item show-modal{{if $isCustom}} active{{end}}" aria-label="{{$textCustom}}"
 				data-modal="#repo-watch-options-modal"
 				data-modal-form.url="{{$.RepoLink}}/action/watch/options"
 				data-modal-issues="{{$.RepoWatch.IncludeIssues}}"

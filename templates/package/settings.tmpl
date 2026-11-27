@@ -34,10 +34,8 @@
 			<p>- {{ctx.Locale.Tr "packages.settings.link.notice3"}}</p>
 			<form class="ui form form-fetch-action ignore-dirty flex-text-block" action="{{.Link}}" method="post">
 				<input type="hidden" name="action" value="link">
-				<div data-global-init="initSearchRepoBox" class="ui search" data-uid="{{.PackageDescriptor.Owner.ID}}">
-					<div class="ui input">
-						<input class="prompt" name="repo_name" value="{{.LinkedRepoName}}" placeholder="{{ctx.Locale.Tr "search.repo_kind"}}" autocomplete="off">
-					</div>
+				<div data-global-init="initSearchRepoBox" data-uid="{{.PackageDescriptor.Owner.ID}}" class="dropdown-container ui input">
+					{{template "shared/search_field" dict "Name" "repo_name" "Label" "search.repo_kind" "Value" (or .LinkedRepoName "") "Optional" true}}
 				</div>
 				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "packages.settings.link.button"}}</button>
 			</form>

@@ -13,7 +13,7 @@
 						<input type="hidden" class="dropdown-value" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
 						<button type="button" class="dropdown-trigger dropdown-field">
 							<span class="dropdown-text" title="{{.ContextUser.Name}}">
-								{{ctx.AvatarUtils.Avatar .ContextUser 28 "mini"}}
+								{{ctx.AvatarUtils.Avatar .ContextUser 20}}
 								{{.ContextUser.ShortName 40}}
 							</span>
 							{{svg "octicon-triangle-down" 14}}
@@ -21,16 +21,11 @@
 						<div class="dropdown-popup">
 							{{if .CanForkToUser}}
 								<div class="dropdown-item" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
-									{{ctx.AvatarUtils.Avatar .SignedUser 28 "mini"}}
+									{{ctx.AvatarUtils.Avatar .SignedUser 20}}
 									{{.SignedUser.ShortName 40}}
 								</div>
 							{{end}}
-							{{range .Orgs}}
-								<div class="dropdown-item" data-value="{{.ID}}" title="{{.Name}}">
-									{{ctx.AvatarUtils.Avatar . 28 "mini"}}
-									{{.ShortName 40}}
-								</div>
-							{{end}}
+							{{template "repo/owner_dropdown_items" .Orgs}}
 						</div>
 					</div>
 				</div>

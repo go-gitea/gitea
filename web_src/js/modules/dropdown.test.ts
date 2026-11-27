@@ -148,3 +148,36 @@ test('remote multiselect', async () => {
   expect(document.activeElement).toBe(dropdown.filterInput);
   form.remove();
 });
+
+test('editable autocomplete submits the typed value unless an arrow key highlighted an option', async () => {
+  const {promise, resolve} = Promise.withResolvers<Element[]>();
+  const loadItems = vi.fn(() => promise);
+  const {form, dropdown} = createFormDropdown(`<div class="dropdown-container">
+    <input class="dropdown-trigger" name="fruit" aria-label="Fruit" required>
+    <div class="dropdown-popup"></div>
+  </div><button type="submit" name="add" value="true">Add</button>`, {loadItems});
+  const submissions: Array<[FormDataEntryValue | null, FormDataEntryValue | null]> = [];
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const data = new FormData(form, e.submitter);
+    submissions.push([data.get('fruit'), data.get('add')]);
+  });
+
+  await userEvent.click(dropdown.trigger);
+  await userEvent.keyboard('ap');
+  await vi.waitFor(() => expect(loadItems).toHaveBeenCalledWith('ap', expect.any(AbortSignal)));
+  expect(dropdown.combobox.getAttribute('aria-expanded')).toBe('false');
+  resolve([createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': 'apple'}, 'Apple')]);
+  await vi.waitFor(() => expect(dropdown.combobox.getAttribute('aria-expanded')).toBe('true'));
+  await userEvent.keyboard('{Enter}');
+  expect(submissions).toEqual([['ap', 'true']]);
+
+  const changes: string[] = [];
+  form.addEventListener('change', () => { changes.push(dropdown.value) });
+  await userEvent.keyboard('{ArrowDown}{Enter}');
+  expect(submissions).toEqual([['ap', 'true']]);
+  expect(changes).toEqual(['apple']);
+  expect(dropdown.value).toBe('apple');
+  expect(dropdown.combobox.getAttribute('aria-expanded')).toBe('false');
+  form.remove();
+});

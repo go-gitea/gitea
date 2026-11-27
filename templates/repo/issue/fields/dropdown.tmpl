@@ -4,11 +4,7 @@
 	{{/* FIXME: required validation */}}
 	<div class="dropdown-container" data-kind="multiselect">
 		<input type="hidden" class="dropdown-value" name="form-field-{{.item.ID}}" value="{{.item.Attributes.default}}">
-		<div class="dropdown-trigger dropdown-field dropdown-search-field">
-			<input class="dropdown-filter" type="text" aria-label="{{.item.Attributes.label}}">
-			<span class="dropdown-text"></span>
-			{{svg "octicon-triangle-down" 14}}
-		</div>
+		{{template "shared/dropdown_search_field" dict "AriaLabel" .item.Attributes.label "Caret" true}}
 		<div class="dropdown-popup">
 			{{range $i, $opt := .item.Attributes.options}}
 				<div class="dropdown-item" data-value="{{$i}}">{{$opt}}</div>

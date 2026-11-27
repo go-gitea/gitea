@@ -15,7 +15,7 @@ export function initRepoReleaseNew() {
     hideElem(`#attachment-${id}`);
   });
   registerGlobalInitFunc('initReleaseEditForm', (elForm: HTMLFormElement) => {
-    const existingTags: string[] = JSON.parse(elForm.getAttribute('data-existing-tags')!);
+    const existingTags = Array.from(document.querySelectorAll('#generate-release-notes-modal .dropdown-item'), (el) => el.getAttribute('data-value')!);
     initTagNameEditor(elForm, existingTags);
     initGenerateReleaseNotes(elForm, existingTags);
   });
@@ -122,7 +122,8 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement, existingTags: string[
       return;
     }
 
-    previousTagDropdown.setValue(guessPreviousReleaseTag(tagName, existingTags)); // empty means the server picks the default
+    const guessedTag = guessPreviousReleaseTag(tagName, existingTags);
+    if (guessedTag) previousTagDropdown.setValue(guessedTag);
 
     showModal(elModal, {
       onApprove: () => {
