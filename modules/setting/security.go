@@ -217,6 +217,9 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	}
 
 	DisableQueryAuthToken = sec.Key("DISABLE_QUERY_AUTH_TOKEN").MustBool(true)
+	if !DisableQueryAuthToken {
+		LogStartupProblem(1, log.WARN, "Deprecation: config option `[security].DISABLE_QUERY_AUTH_TOKEN = false` enables URL query tokens, clients should send tokens in the Authorization header instead")
+	}
 
 	RecordUserSignupMetadata = sec.Key("RECORD_USER_SIGNUP_METADATA").MustBool(false)
 }
