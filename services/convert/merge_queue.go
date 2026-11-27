@@ -27,6 +27,7 @@ var mergeQueueRemovalReasons = map[issues_model.MergeQueueRemovalReason]string{
 	issues_model.MergeQueueRemovedChecksTimeout: "CI_TIMEOUT",
 	issues_model.MergeQueueRemovedConflict:      "MERGE_CONFLICT",
 	issues_model.MergeQueueRemovedNotMergeable:  "BRANCH_PROTECTIONS",
+	issues_model.MergeQueueRemovedPushRejected:  "INVALID_MERGE_COMMIT",
 	issues_model.MergeQueueRemovedBaseDeleted:   "QUEUE_CLEARED",
 	issues_model.MergeQueueRemovedCleared:       "QUEUE_CLEARED",
 }

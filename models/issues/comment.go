@@ -1310,6 +1310,7 @@ const (
 	MergeQueueRemovedConflict      MergeQueueRemovalReason = "conflict"
 	MergeQueueRemovedHeadChanged   MergeQueueRemovalReason = "head_changed"
 	MergeQueueRemovedNotMergeable  MergeQueueRemovalReason = "not_mergeable"
+	MergeQueueRemovedPushRejected  MergeQueueRemovalReason = "push_rejected"
 	MergeQueueRemovedClosed        MergeQueueRemovalReason = "closed"
 	MergeQueueRemovedMerged        MergeQueueRemovalReason = "merged"
 	MergeQueueRemovedAlreadyMerged MergeQueueRemovalReason = "already_merged"

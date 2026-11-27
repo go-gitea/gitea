@@ -108,9 +108,9 @@ func CancelScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *
 }
 
 func disableAutoMergeIfHookRejected(ctx context.Context, gitRepo *git.Repository, pr *issues_model.PullRequest, autoMerge *pull_model.AutoMerge, headCommitID string, mergeErr error) error {
-	rejected, ok := errors.AsType[*git.ErrPushRejected](mergeErr)
-	if !ok || !rejected.HookDeclined() || strings.Contains(rejected.Message, "Internal Server") {
-		return nil // Gitea's internal hook failures pass on retry
+	message, declined := pull_service.HookDeclinedMessage(mergeErr)
+	if !declined {
+		return nil
 	}
 	if currentHeadCommitID, err := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName()); err != nil || currentHeadCommitID != headCommitID {
 		return err
@@ -125,7 +125,7 @@ func disableAutoMergeIfHookRejected(ctx context.Context, gitRepo *git.Repository
 			Repo:                pr.BaseRepo,
 			Issue:               pr.Issue,
 			Content:             "push_rejected",
-			PushRejectedMessage: util.TruncateRunes(rejected.Message, 4096),
+			PushRejectedMessage: message,
 		})
 		return err
 	})

@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -23,7 +22,6 @@ import (
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/private"
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/queue"
 	api "gitea.dev/modules/structs"
@@ -253,7 +251,7 @@ func (s *queueState) readyGroup(ctx context.Context, base string) ([]*QueueEntry
 	}
 	group := built[:min(ready, cfg.MaxEntriesToMerge)]
 	if failureReason != "" {
-		return group, s.dropEntry(ctx, failedAt, failureReason)
+		return group, s.dropEntry(ctx, failedAt, failureReason, "")
 	}
 	return group, nil
 }
@@ -273,8 +271,9 @@ func (s *queueState) invalidateFrom(ctx context.Context, index int) error {
 	return nil
 }
 
-func (s *queueState) dropEntry(ctx context.Context, index int, reason issues_model.MergeQueueRemovalReason) error {
-	if err := s.removeEntries(ctx, reason, s.entries[index]); err != nil {
+func (s *queueState) dropEntry(ctx context.Context, index int, reason issues_model.MergeQueueRemovalReason, pushRejectedMessage string) error {
+	entry := s.entries[index]
+	if err := removeEntry(ctx, s.repo, entry.MergeQueueEntry, entry.PullRequest, entry.Enqueuer, reason, pushRejectedMessage); err != nil {
 		return err
 	}
 	s.entries = slices.Delete(s.entries, index, index+1)
@@ -301,26 +300,51 @@ func (s *queueState) mergeReadyEntries(ctx context.Context, base string) (bool, 
 		if blocked, err := entry.IsBlocked(ctx, s.gitRepo, s.rule); err != nil {
 			return false, err
 		} else if blocked {
-			return false, s.dropEntry(ctx, i, issues_model.MergeQueueRemovedNotMergeable)
+			return false, s.dropEntry(ctx, i, issues_model.MergeQueueRemovedNotMergeable, "")
 		}
 	}
-	if err := pull_service.MergeQueuePullRequests(ctx, group); err != nil {
-		if rejected, ok := errors.AsType[*git.ErrPushRejected](err); ok && !strings.Contains(rejected.Message, private.InternalServerConnectionError) {
-			last := len(group) - 1
-			log.Warn("Merge queue push of %-v rejected: %v", group[last].PullRequest, err)
-			return false, s.dropEntry(ctx, last, issues_model.MergeQueueRemovedNotMergeable)
-		}
+	declined, message, err := mergeGroup(ctx, group)
+	if err != nil {
 		return false, err
 	}
+	merged := false
 	for _, entry := range group {
 		if !entry.PullRequest.HasMerged {
 			continue
 		}
+		merged = true
 		if err := s.removeEntries(ctx, issues_model.MergeQueueRemovedMerged, entry); err != nil {
 			return true, err
 		}
 	}
-	return true, nil
+	if declined < 0 {
+		return true, nil
+	}
+	log.Warn("Merge queue push of %-v declined by a hook: %s", group[declined].PullRequest, message)
+	return merged, s.dropEntry(ctx, declined, issues_model.MergeQueueRemovedPushRejected, message)
+}
+
+// mergeGroup retries a hook-declined group per green prefix, returning the declined index or -1
+func mergeGroup(ctx context.Context, group []*QueueEntry) (int, string, error) {
+	err := pull_service.MergeQueuePullRequests(ctx, group)
+	message, declined := pull_service.HookDeclinedMessage(err)
+	if !declined {
+		return -1, "", err
+	}
+	for start := 0; start < len(group); {
+		end := start + 1 + slices.IndexFunc(group[start:], func(entry *QueueEntry) bool { return entry.State == pull_model.MergeQueueStateMergeable })
+		if start == 0 && end == len(group) {
+			return end - 1, message, nil // no shorter green prefix to retry
+		}
+		err = pull_service.MergeQueuePullRequests(ctx, group[start:end])
+		if message, declined = pull_service.HookDeclinedMessage(err); declined {
+			return end - 1, message, nil
+		} else if err != nil {
+			return -1, "", err
+		}
+		start = end
+	}
+	return -1, "", nil
 }
 
 func (s *queueState) buildEntries(ctx context.Context, base string) error {
@@ -367,20 +391,30 @@ func destroyGroup(ctx context.Context, repo *repo_model.Repository, doer *user_m
 
 func (s *queueState) removeEntries(ctx context.Context, reason issues_model.MergeQueueRemovalReason, entries ...*QueueEntry) error {
 	for _, entry := range entries {
-		if err := removeEntry(ctx, s.repo, entry.MergeQueueEntry, entry.PullRequest, entry.Enqueuer, reason); err != nil {
+		if err := removeEntry(ctx, s.repo, entry.MergeQueueEntry, entry.PullRequest, entry.Enqueuer, reason, ""); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func removeEntry(ctx context.Context, repo *repo_model.Repository, entry *pull_model.MergeQueueEntry, pr *issues_model.PullRequest, doer *user_model.User, reason issues_model.MergeQueueRemovalReason) error {
+func removeEntry(ctx context.Context, repo *repo_model.Repository, entry *pull_model.MergeQueueEntry, pr *issues_model.PullRequest, doer *user_model.User, reason issues_model.MergeQueueRemovalReason, pushRejectedMessage string) error {
 	deleted, err := db.WithTx2(ctx, func(ctx context.Context) (bool, error) {
 		deleted, err := pull_model.DeleteMergeQueueEntry(ctx, entry.PullID)
 		if err != nil || !deleted || pr == nil || reason == issues_model.MergeQueueRemovedMerged || reason == issues_model.MergeQueueRemovedAlreadyMerged {
 			return deleted, err
 		}
-		_, err = issues_model.CreatePullRequestComment(ctx, issues_model.CommentTypePRRemovedFromMergeQueue, pr, doer, string(reason))
+		if err := pr.LoadIssue(ctx); err != nil {
+			return true, err
+		}
+		_, err = issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
+			Type:                issues_model.CommentTypePRRemovedFromMergeQueue,
+			Doer:                doer,
+			Repo:                repo,
+			Issue:               pr.Issue,
+			Content:             string(reason),
+			PushRejectedMessage: pushRejectedMessage,
+		})
 		return true, err
 	})
 	if err != nil || !deleted {
