@@ -105,6 +105,8 @@ func (p *Paginator) PagingNum() int {
 func (p *Paginator) Pages() []int {
 	total, current := p.TotalPages(), p.current
 	switch {
+	case total == -1:
+		return []int{current}
 	case total <= 7:
 		return []int{1, 2, 3, 4, 5, 6, 7}[:max(total, 0)]
 	case current <= 4:

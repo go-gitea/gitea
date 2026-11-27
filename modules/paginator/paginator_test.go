@@ -69,6 +69,7 @@ func TestPaginator(t *testing.T) {
 
 	t.Run("Pages", func(t *testing.T) {
 		assert.Empty(t, New(0, 10, 1).Pages())
+		assert.Equal(t, []int{3}, New(-1, 10, 3).Pages())
 		assert.Equal(t, []int{1, 2, 3, 4, 5, 6, 7}, New(70, 10, 4).Pages())
 		assert.Equal(t, []int{1, 2, 3, 4, 5, -1, 8}, New(80, 10, 4).Pages())
 		assert.Equal(t, []int{1, -1, 4, 5, 6, 7, 8}, New(80, 10, 5).Pages())
