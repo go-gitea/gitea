@@ -2,16 +2,14 @@
 	<div class="repo-setting-content">
 		<h4 class="ui top attached header">{{.Environment.Name}}</h4>
 		<div class="ui attached segment">
-			<form class="ui form" action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
+			<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
 				<div class="field">
-					<label for="allowed-branch-patterns">{{ctx.Locale.Tr "environments.allowed_branch_patterns"}}</label>
+					<label>{{ctx.Locale.Tr "environments.allowed_branch_patterns"}}</label>
 					<textarea
-						id="allowed-branch-patterns"
 						name="allowed_branch_patterns"
 						rows="4"
 						placeholder="{{ctx.Locale.Tr "environments.allowed_branch_patterns_placeholder"}}"
-					>{{StringUtils.Join .Environment.BranchPatterns "\n"}}</textarea>
+					>{{.Environment.AllowedBranchPatterns}}</textarea>
 					<p class="help">{{ctx.Locale.Tr "environments.allowed_branch_patterns_help"}}</p>
 				</div>
 				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
@@ -28,8 +26,8 @@
 		{{template "shared/variables/variable_list" (dict
 			"Link" (print .Link "/variables")
 			"Variables" .Variables
-			"DataMaxLength" .DataMaxLength
-			"DescriptionMaxLength" .DescriptionMaxLength
+			"DataMaxLength" .VariableDataMaxLength
+			"DescriptionMaxLength" .VariableDescriptionMaxLength
 		)}}
 
 		<h4 class="ui top attached error header">{{ctx.Locale.Tr "repo.settings.danger_zone"}}</h4>

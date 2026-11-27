@@ -21,7 +21,7 @@ func CreateVariable(ctx context.Context, scope actions_model.BelongingScope, nam
 	if err != nil {
 		return nil, err
 	}
-	audit.RecordScopedByID(ctx, v.OwnerID, v.RepoID, audit.VariableAdd, "variable", v.Name)
+	audit.RecordScopedByID(ctx, v.OwnerID, v.RepoID, audit.VariableAdd, audit.EnvironmentMeta(ctx, v.EnvironmentID, "variable", v.Name)...)
 
 	return v, nil
 }
@@ -35,7 +35,7 @@ func UpdateVariableNameData(ctx context.Context, variable *actions_model.ActionV
 
 	updated, err := actions_model.UpdateVariableCols(ctx, variable, "name", "data", "description")
 	if updated {
-		audit.RecordScopedByID(ctx, variable.OwnerID, variable.RepoID, audit.VariableUpdate, "variable", variable.Name)
+		audit.RecordScopedByID(ctx, variable.OwnerID, variable.RepoID, audit.VariableUpdate, audit.EnvironmentMeta(ctx, variable.EnvironmentID, "variable", variable.Name)...)
 	}
 	return updated, err
 }
@@ -44,7 +44,7 @@ func DeleteVariable(ctx context.Context, variable *actions_model.ActionVariable)
 	if err := actions_model.DeleteVariable(ctx, variable.ID); err != nil {
 		return err
 	}
-	audit.RecordScopedByID(ctx, variable.OwnerID, variable.RepoID, audit.VariableRemove, "variable", variable.Name)
+	audit.RecordScopedByID(ctx, variable.OwnerID, variable.RepoID, audit.VariableRemove, audit.EnvironmentMeta(ctx, variable.EnvironmentID, "variable", variable.Name)...)
 	return nil
 }
 

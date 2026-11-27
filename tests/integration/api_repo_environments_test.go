@@ -26,7 +26,7 @@ func TestAPIRepoEnvironments(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	token := getTokenForLoggedInUser(t, loginUser(t, user.Name), auth_model.AccessTokenScopeWriteRepository)
+	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeWriteRepository)
 	baseURL := fmt.Sprintf("/api/v1/repos/%s/environments", repo.FullName())
 
 	t.Run("PutCreatesThenUpdatesInPlace", func(t *testing.T) {
@@ -60,7 +60,7 @@ func TestAPIRepoEnvironments(t *testing.T) {
 	})
 
 	t.Run("OnlyTheOwnerMayUseIt", func(t *testing.T) {
-		other := getTokenForLoggedInUser(t, loginUser(t, "user4"), auth_model.AccessTokenScopeWriteRepository)
+		other := getUserToken(t, "user4", auth_model.AccessTokenScopeWriteRepository)
 		req := NewRequestWithJSON(t, "PUT", baseURL+"/production", &api.CreateOrUpdateEnvironmentOption{}).AddTokenAuth(other)
 		MakeRequest(t, req, http.StatusForbidden)
 	})

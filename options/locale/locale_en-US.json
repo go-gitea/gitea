@@ -4116,7 +4116,7 @@
   "environments.deletion.success": "The environment has been deleted.",
   "environments.creation.success": "Environment \"%s\" has been created.",
   "environments.update.success": "The environment has been updated.",
-  "environments.name_invalid": "The environment name must not be empty or longer than %d characters.",
+  "environments.name_invalid": "The environment name must not be empty, \".\", \"..\" or longer than %d characters.",
   "environments.name_already_exists": "An environment named \"%s\" already exists.",
   "environments.branch_pattern_invalid": "\"%s\" is not a valid branch pattern.",
   "projects.deleted.display_name": "Deleted Project",

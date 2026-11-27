@@ -169,27 +169,27 @@ func (j *Job) DisplayName() string {
 	return util.EllipsisDisplayString(unescapeExpressions(j.Name), 255)
 }
 
-// DeploymentEnvironmentName reads the scalar or object form of "environment:"; the url is evaluated by the runner.
-func (j *Job) DeploymentEnvironmentName() string {
-	if HasDeferredMatrix(j) {
-		return "" // only the expanded combinations resolve the raw expression
-	}
-	switch j.RawEnvironment.Kind {
+// environmentNameNode returns the name in the scalar or object form of "environment:", an empty node if there is none.
+func (j *Job) environmentNameNode() *yaml.Node {
+	switch env := &j.RawEnvironment; env.Kind {
 	case yaml.ScalarNode:
-		if j.RawEnvironment.Tag == "!!null" {
-			return ""
-		}
-		return j.RawEnvironment.Value
+		return env
 	case yaml.MappingNode:
-		var envMap struct {
-			Name string `yaml:"name"`
+		for i := 0; i+1 < len(env.Content); i += 2 {
+			if env.Content[i].Value == "name" {
+				return env.Content[i+1]
+			}
 		}
-		if err := j.RawEnvironment.Decode(&envMap); err != nil {
-			return ""
-		}
-		return envMap.Name
 	}
-	return ""
+	return &yaml.Node{}
+}
+
+func (j *Job) DeploymentEnvironmentName() string {
+	name := j.environmentNameNode()
+	if name.Kind != yaml.ScalarNode || name.Tag == "!!null" {
+		return ""
+	}
+	return unescapeExpressions(name.Value)
 }
 
 type Step struct {

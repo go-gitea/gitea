@@ -1263,7 +1263,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 						m.Post("/{variable_id}/edit", web.Bind[*forms.EditVariableForm](), shared_actions.VariableUpdate)
 						m.Post("/{variable_id}/delete", shared_actions.VariableDelete)
 					})
-				}, repo_setting.EnvironmentAssignment)
+				}, shared_actions.EnvironmentAssignment)
 			})
 			m.Group("/general", func() {
 				m.Group("/collaborative_owner", func() {

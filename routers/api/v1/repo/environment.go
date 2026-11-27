@@ -4,16 +4,15 @@
 package repo
 
 import (
-	"errors"
 	"net/http"
 
 	actions_model "gitea.dev/models/actions"
-	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	secret_model "gitea.dev/models/secret"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/shared"
 	"gitea.dev/routers/api/v1/utils"
 	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/audit"
@@ -147,22 +146,13 @@ func CreateOrUpdateEnvironment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	opt := web.GetForm[*api.CreateOrUpdateEnvironmentOption](ctx)
-	env, created, err := actions_service.GetOrCreateEnvironment(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"), opt.AllowedBranchPatterns)
+	env, created, err := actions_service.GetOrCreateEnvironment(ctx, ctx.Repo.Repository, ctx.PathParam("environment_name"), opt.AllowedBranchPatterns)
+	if err == nil && !created {
+		err = actions_service.UpdateEnvironment(ctx, ctx.Repo.Repository, env, opt.AllowedBranchPatterns)
+	}
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
-	}
-	if created {
-		audit.Record(ctx, audit_model.RepositoryEnvironmentAdd, ctx.Repo.Repository, "environment", env.Name)
-	} else {
-		changed, err := actions_service.UpdateEnvironment(ctx, env, opt.AllowedBranchPatterns)
-		if err != nil {
-			ctx.APIErrorAuto(err)
-			return
-		}
-		if changed {
-			audit.Record(ctx, audit_model.RepositoryEnvironmentUpdate, ctx.Repo.Repository, "environment", env.Name)
-		}
 	}
 	ctx.JSON(util.Iif(created, http.StatusCreated, http.StatusOK), toAPIEnvironment(env))
 }
@@ -198,11 +188,10 @@ func DeleteEnvironment(ctx *context.APIContext) {
 	if !ok {
 		return
 	}
-	if err := actions_model.DeleteEnvironment(ctx, ctx.Repo.Repository.ID, env.ID); err != nil {
+	if err := actions_service.DeleteEnvironment(ctx, ctx.Repo.Repository, env); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	audit.Record(ctx, audit_model.RepositoryEnvironmentRemove, ctx.Repo.Repository, "environment", env.Name)
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -249,7 +238,7 @@ func ListEnvSecrets(ctx *context.APIContext) {
 	}
 	listOptions := utils.GetListOptions(ctx)
 	secrets, count, err := db.FindAndCount[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
-		BelongingScope: actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID),
+		BelongingScope: env.Scope(),
 		ListOptions:    listOptions,
 	})
 	if err != nil {
@@ -317,21 +306,13 @@ func CreateOrUpdateEnvSecret(ctx *context.APIContext) {
 		return
 	}
 	opt := web.GetForm[*api.CreateOrUpdateSecretOption](ctx)
-	s, created, err := secret_service.CreateOrUpdateSecret(ctx, actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID), ctx.PathParam("secretname"), opt.Data, opt.Description)
+	s, created, err := secret_service.CreateOrUpdateSecret(ctx, env.Scope(), ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
-	action := audit.SecretUpdate
-	if created {
-		action = audit.SecretAdd
-	}
-	audit.RecordScoped(ctx, nil, ctx.Repo.Repository, action, "secret", s.Name, "environment", env.Name)
-	if created {
-		ctx.Status(http.StatusCreated)
-	} else {
-		ctx.Status(http.StatusNoContent)
-	}
+	audit.RecordScoped(ctx, nil, ctx.Repo.Repository, util.Iif(created, audit.SecretAdd, audit.SecretUpdate), audit.EnvironmentMeta(ctx, s.EnvironmentID, "secret", s.Name)...)
+	ctx.Status(util.Iif(created, http.StatusCreated, http.StatusNoContent))
 }
 
 // DeleteEnvSecret deletes an environment secret
@@ -370,12 +351,12 @@ func DeleteEnvSecret(ctx *context.APIContext) {
 	if !ok {
 		return
 	}
-	s, err := secret_service.DeleteSecretByName(ctx, actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID), ctx.PathParam("secretname"))
+	s, err := secret_service.DeleteSecretByName(ctx, env.Scope(), ctx.PathParam("secretname"))
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
-	audit.RecordScoped(ctx, nil, ctx.Repo.Repository, audit.SecretRemove, "secret", s.Name, "environment", env.Name)
+	audit.RecordScoped(ctx, nil, ctx.Repo.Repository, audit.SecretRemove, audit.EnvironmentMeta(ctx, s.EnvironmentID, "secret", s.Name)...)
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -420,28 +401,7 @@ func ListEnvVariables(ctx *context.APIContext) {
 	if !ok {
 		return
 	}
-	listOptions := utils.GetListOptions(ctx)
-	vars, count, err := db.FindAndCount[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
-		BelongingScope: actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID),
-		ListOptions:    listOptions,
-	})
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	result := make([]*api.ActionVariable, len(vars))
-	for i, v := range vars {
-		result[i] = &api.ActionVariable{
-			RepoID:      v.RepoID,
-			Name:        v.Name,
-			Data:        v.Data,
-			Description: v.Description,
-		}
-	}
-	ctx.SetLinkHeader(count, listOptions.PageSize)
-	ctx.SetTotalCountHeader(count)
-	ctx.JSON(http.StatusOK, result)
+	shared.ListVariables(ctx, env.Scope())
 }
 
 // CreateEnvVariable creates a variable for an environment
@@ -488,24 +448,7 @@ func CreateEnvVariable(ctx *context.APIContext) {
 	if !ok {
 		return
 	}
-	opt := web.GetForm[*api.CreateVariableOption](ctx)
-	variableName := ctx.PathParam("variablename")
-
-	_, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{BelongingScope: actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID), Name: variableName})
-	if err == nil {
-		ctx.APIError(http.StatusConflict, "variable name already exists")
-		return
-	}
-	if !errors.Is(err, util.ErrNotExist) {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	if _, err := actions_service.CreateVariable(ctx, actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID), variableName, opt.Value, opt.Description); err != nil {
-		ctx.APIErrorAuto(err)
-		return
-	}
-	ctx.Status(http.StatusCreated)
+	shared.CreateVariable(ctx, env.Scope())
 }
 
 // UpdateEnvVariable updates an environment variable
@@ -552,22 +495,7 @@ func UpdateEnvVariable(ctx *context.APIContext) {
 	if !ok {
 		return
 	}
-	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{BelongingScope: actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID), Name: ctx.PathParam("variablename")})
-	if err != nil {
-		ctx.APIErrorAuto(err)
-		return
-	}
-	opt := web.GetForm[*api.UpdateVariableOption](ctx)
-	if opt.Name != "" {
-		v.Name = opt.Name
-	}
-	v.Data = opt.Value
-	v.Description = opt.Description
-	if _, err := actions_service.UpdateVariableNameData(ctx, v); err != nil {
-		ctx.APIErrorAuto(err)
-		return
-	}
-	ctx.Status(http.StatusNoContent)
+	shared.UpdateVariable(ctx, env.Scope())
 }
 
 // DeleteEnvVariable deletes an environment variable
@@ -606,15 +534,10 @@ func DeleteEnvVariable(ctx *context.APIContext) {
 	if !ok {
 		return
 	}
-	if err := actions_service.DeleteVariableByName(ctx, actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID), ctx.PathParam("variablename")); err != nil {
-		ctx.APIErrorAuto(err)
-		return
-	}
-	ctx.Status(http.StatusNoContent)
+	shared.DeleteVariable(ctx, env.Scope())
 }
 
-// getEnvironmentOrError loads the environment named by the request path, writing the API error
-// response and returning ok=false if it cannot be found.
+// getEnvironmentOrError writes the API error response itself when it returns ok=false
 func getEnvironmentOrError(ctx *context.APIContext) (env *actions_model.ActionEnvironment, ok bool) {
 	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"))
 	if err != nil {

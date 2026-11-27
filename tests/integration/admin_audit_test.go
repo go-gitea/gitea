@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"mime"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -206,6 +207,23 @@ func TestAuditLogAdministrationEvents(t *testing.T) {
 		for _, action := range []audit_model.Action{audit_model.RepositoryVariableAdd, audit_model.RepositoryVariableUpdate, audit_model.RepositoryVariableRemove} {
 			assertEvent(t, action, audit_model.ScopeRepository, 1)
 		}
+	})
+
+	t.Run("ActionsEnvironments", func(t *testing.T) {
+		const envAPI = repoAPI + "/environments/audit-env"
+		MakeRequest(t, NewRequestWithJSON(t, "PUT", envAPI, &api.CreateOrUpdateEnvironmentOption{}).AddTokenAuth(token), http.StatusCreated)
+		MakeRequest(t, NewRequestWithJSON(t, "PUT", envAPI, &api.CreateOrUpdateEnvironmentOption{AllowedBranchPatterns: []string{"main"}}).AddTokenAuth(token), http.StatusOK)
+		MakeRequest(t, NewRequestWithJSON(t, "POST", envAPI+"/variables/AUDIT_ENV_VAR", &api.CreateVariableOption{Value: "a"}).AddTokenAuth(token), http.StatusCreated)
+		MakeRequest(t, NewRequest(t, "DELETE", envAPI).AddTokenAuth(token), http.StatusNoContent)
+		for _, action := range []audit_model.Action{audit_model.RepositoryEnvironmentAdd, audit_model.RepositoryEnvironmentUpdate, audit_model.RepositoryEnvironmentRemove} {
+			assertEvent(t, action, audit_model.ScopeRepository, 1)
+		}
+		events, _, err := audit_model.FindEvents(t.Context(), &audit_model.EventSearchOptions{Action: audit_model.RepositoryVariableAdd})
+		require.NoError(t, err)
+		assert.True(t, slices.ContainsFunc(events, func(e *audit_model.Event) bool {
+			metadata := audit_model.DecodeMetadata(e.Metadata)
+			return metadata["variable"] == "AUDIT_ENV_VAR" && metadata["environment"] == "audit-env"
+		}), "an environment variable event must name its environment")
 	})
 
 	t.Run("SystemConfig", func(t *testing.T) {

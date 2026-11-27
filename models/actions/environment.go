@@ -5,7 +5,6 @@ package actions
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"strings"
 	"unicode/utf8"
@@ -40,29 +39,13 @@ func init() {
 
 const EnvironmentNameMaxLength = 255
 
-type ErrEnvironmentNotFound struct {
-	Name string
-}
-
-func (err ErrEnvironmentNotFound) Error() string {
-	return fmt.Sprintf("environment not found [name: %s]", err.Name)
-}
-
-func (err ErrEnvironmentNotFound) Unwrap() error {
-	return util.ErrNotExist
-}
-
 type FindEnvironmentsOptions struct {
 	db.ListOptions
 	RepoID int64
 }
 
 func (opts FindEnvironmentsOptions) ToConds() builder.Cond {
-	cond := builder.NewCond()
-	if opts.RepoID != 0 {
-		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
-	}
-	return cond
+	return builder.Eq{"repo_id": opts.RepoID}
 }
 
 func (opts FindEnvironmentsOptions) ToOrders() string {
@@ -70,26 +53,18 @@ func (opts FindEnvironmentsOptions) ToOrders() string {
 }
 
 func ValidateEnvironmentName(name string) error {
-	if name == "" || utf8.RuneCountInString(name) > EnvironmentNameMaxLength {
-		return util.ErrorWrapTranslatable(util.NewInvalidArgumentErrorf("invalid environment name %q", name), "environments.name_invalid", EnvironmentNameMaxLength)
+	// "." and ".." would be resolved as dot segments of the URL addressing the environment
+	if name == "" || name == "." || name == ".." || utf8.RuneCountInString(name) > EnvironmentNameMaxLength {
+		// a workflow may name anything, so the message must not grow with it
+		err := util.NewInvalidArgumentErrorf("invalid environment name %q", util.EllipsisDisplayString(name, 100))
+		return util.ErrorWrapTranslatable(err, "environments.name_invalid", EnvironmentNameMaxLength)
 	}
 	return nil
 }
 
-func SplitBranchPatterns(patterns string) []string {
-	result := []string{}
-	for pattern := range strings.SplitSeq(patterns, "\n") {
-		if pattern = strings.TrimSpace(pattern); pattern != "" {
-			result = append(result, pattern)
-		}
-	}
-	return result
-}
-
 // qualifyPattern scopes a bare pattern to branches, so that tags and pull refs need an explicit "refs/..." pattern.
 func qualifyPattern(pattern string) string {
-	negated := strings.HasPrefix(pattern, "!")
-	pattern = strings.TrimPrefix(pattern, "!")
+	pattern, negated := strings.CutPrefix(pattern, "!")
 	if !strings.HasPrefix(pattern, "refs/") {
 		pattern = git.BranchPrefix + pattern
 	}
@@ -97,21 +72,21 @@ func qualifyPattern(pattern string) string {
 }
 
 func JoinBranchPatterns(patterns []string) (string, error) {
-	var kept []string
+	patterns = util.SplitTrimSpace(strings.Join(patterns, "\n"), "\n") // validate exactly what BranchPatterns reads back
 	for _, pattern := range patterns {
-		if pattern = strings.TrimSpace(pattern); pattern == "" {
-			continue
-		}
 		if _, err := workflowpattern.CompilePatterns(qualifyPattern(pattern)); err != nil {
 			return "", util.ErrorWrapTranslatable(util.NewInvalidArgumentErrorf("invalid branch pattern %q: %v", pattern, err), "environments.branch_pattern_invalid", pattern)
 		}
-		kept = append(kept, pattern)
 	}
-	return strings.Join(kept, "\n"), nil
+	return strings.Join(patterns, "\n"), nil
+}
+
+func (env *ActionEnvironment) Scope() BelongingScope {
+	return BelongingScopeEnvironment(env.RepoID, env.ID)
 }
 
 func (env *ActionEnvironment) BranchPatterns() []string {
-	return SplitBranchPatterns(env.AllowedBranchPatterns)
+	return util.SliceNilAsEmpty(util.SplitTrimSpace(env.AllowedBranchPatterns, "\n"))
 }
 
 // MatchesRef takes a full ref name; an uncompilable policy denies rather than grants.
@@ -143,7 +118,7 @@ func GetEnvironmentByRepoAndName(ctx context.Context, repoID int64, name string)
 		return nil, err
 	}
 	if !has {
-		return nil, ErrEnvironmentNotFound{Name: name}
+		return nil, util.NewNotExistErrorf("environment %q not found", name)
 	}
 	return env, nil
 }
@@ -161,18 +136,4 @@ func InsertEnvironment(ctx context.Context, repoID int64, name, allowedBranchPat
 func UpdateEnvironment(ctx context.Context, env *ActionEnvironment) error {
 	_, err := db.GetEngine(ctx).ID(env.ID).Cols("allowed_branch_patterns").Update(env)
 	return err
-}
-
-func DeleteEnvironment(ctx context.Context, repoID, envID int64) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		cond := builder.Eq{"repo_id": repoID, "environment_id": envID}
-		if _, err := db.GetEngine(ctx).Table("secret").Where(cond).Delete(); err != nil {
-			return err
-		}
-		if _, err := db.GetEngine(ctx).Where(cond).Delete(new(ActionVariable)); err != nil {
-			return err
-		}
-		_, err := db.GetEngine(ctx).Where("id = ? AND repo_id = ?", envID, repoID).Delete(new(ActionEnvironment))
-		return err
-	})
 }

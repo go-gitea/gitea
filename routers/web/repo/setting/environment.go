@@ -7,14 +7,12 @@ import (
 	"net/http"
 
 	actions_model "gitea.dev/models/actions"
-	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
+	shared_actions "gitea.dev/routers/web/shared/actions"
 	shared_secrets "gitea.dev/routers/web/shared/secrets"
 	actions_service "gitea.dev/services/actions"
-	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 )
 
@@ -22,23 +20,6 @@ const (
 	tplEnvironments    templates.TplName = "repo/settings/environments"
 	tplEnvironmentEdit templates.TplName = "repo/settings/environment_edit"
 )
-
-func contextEnvironment(ctx *context.Context) *actions_model.ActionEnvironment {
-	env, ok := ctx.Data["Environment"].(*actions_model.ActionEnvironment)
-	if !ok {
-		panic("EnvironmentAssignment must run before this handler")
-	}
-	return env
-}
-
-func EnvironmentAssignment(ctx *context.Context) {
-	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"))
-	if err != nil {
-		ctx.ServerErrorAuto(err)
-		return
-	}
-	ctx.Data["Environment"] = env
-}
 
 func Environments(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("environments.environments")
@@ -57,33 +38,32 @@ func Environments(ctx *context.Context) {
 }
 
 func EnvironmentCreate(ctx *context.Context) {
-	env, created, err := actions_service.GetOrCreateEnvironment(ctx, ctx.Repo.Repository.ID, ctx.FormString("name"), formBranchPatterns(ctx))
+	env, created, err := actions_service.GetOrCreateEnvironment(ctx, ctx.Repo.Repository, ctx.FormString("name"), formBranchPatterns(ctx))
 	if err == nil && !created {
 		err = util.ErrorWrapTranslatable(util.NewAlreadyExistErrorf("environment %q already exists", env.Name), "environments.name_already_exists", env.Name)
 	}
 	if err != nil {
-		flashEnvironmentError(ctx, err)
-		ctx.Redirect(ctx.Link)
+		ctx.JSONErrorAuto(err)
 		return
 	}
-
-	audit.Record(ctx, audit_model.RepositoryEnvironmentAdd, ctx.Repo.Repository, "environment", env.Name)
 	ctx.Flash.Success(ctx.Tr("environments.creation.success", env.Name))
-	ctx.Redirect(env.SettingsLink(ctx.Repo.RepoLink))
+	ctx.JSONRedirect(env.SettingsLink(ctx.Repo.RepoLink))
 }
 
 func EnvironmentEdit(ctx *context.Context) {
-	env := contextEnvironment(ctx)
+	env := shared_actions.EnvironmentFromContext(ctx)
 	ctx.Data["Title"] = env.Name
 	ctx.Data["PageIsRepoSettingsEnvironments"] = true
 
-	scope := actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID)
+	scope := env.Scope()
 	variables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{BelongingScope: scope})
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Variables"] = variables
+	ctx.Data["VariableDataMaxLength"] = actions_model.VariableDataMaxLength
+	ctx.Data["VariableDescriptionMaxLength"] = actions_model.VariableDescriptionMaxLength
 
 	shared_secrets.SetSecretsContext(ctx, scope)
 	if ctx.Written() {
@@ -93,38 +73,24 @@ func EnvironmentEdit(ctx *context.Context) {
 }
 
 func EnvironmentUpdate(ctx *context.Context) {
-	env := contextEnvironment(ctx)
-	if changed, err := actions_service.UpdateEnvironment(ctx, env, formBranchPatterns(ctx)); err != nil {
-		flashEnvironmentError(ctx, err)
-	} else {
-		if changed {
-			audit.Record(ctx, audit_model.RepositoryEnvironmentUpdate, ctx.Repo.Repository, "environment", env.Name)
-		}
-		ctx.Flash.Success(ctx.Tr("environments.update.success"))
+	if err := actions_service.UpdateEnvironment(ctx, ctx.Repo.Repository, shared_actions.EnvironmentFromContext(ctx), formBranchPatterns(ctx)); err != nil {
+		ctx.JSONErrorAuto(err)
+		return
 	}
-	ctx.Redirect(ctx.Link)
+	ctx.Flash.Success(ctx.Tr("environments.update.success"))
+	ctx.JSONRedirect(ctx.Link)
 }
 
 func EnvironmentDelete(ctx *context.Context) {
-	env := contextEnvironment(ctx)
-	if err := actions_model.DeleteEnvironment(ctx, ctx.Repo.Repository.ID, env.ID); err != nil {
-		flashEnvironmentError(ctx, err)
-	} else {
-		audit.Record(ctx, audit_model.RepositoryEnvironmentRemove, ctx.Repo.Repository, "environment", env.Name)
-		ctx.Flash.Success(ctx.Tr("environments.deletion.success"))
+	if err := actions_service.DeleteEnvironment(ctx, ctx.Repo.Repository, shared_actions.EnvironmentFromContext(ctx)); err != nil {
+		ctx.JSONErrorAuto(err)
+		return
 	}
+	ctx.Flash.Success(ctx.Tr("environments.deletion.success"))
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/actions/environments")
 }
 
+// formBranchPatterns leaves the textarea to JoinBranchPatterns, which splits it into lines
 func formBranchPatterns(ctx *context.Context) []string {
-	return actions_model.SplitBranchPatterns(ctx.FormString("allowed_branch_patterns"))
-}
-
-func flashEnvironmentError(ctx *context.Context, err error) {
-	if msg, ok := util.ErrorTranslateHTML(err, ctx.Locale); ok {
-		ctx.Flash.Error(msg)
-		return
-	}
-	log.Error("Environment settings failed: %v", err)
-	ctx.Flash.Error(ctx.Tr("error.occurred"))
+	return []string{ctx.FormString("allowed_branch_patterns")}
 }

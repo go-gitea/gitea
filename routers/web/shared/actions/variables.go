@@ -37,10 +37,9 @@ type variablesCtx struct {
 }
 
 func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
-	if env, ok := ctx.Data["Environment"].(*actions_model.ActionEnvironment); ok {
+	if env := EnvironmentFromContext(ctx); env != nil {
 		return &variablesCtx{
-			BelongingScope: actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID),
-			IsRepo:         true,
+			BelongingScope: env.Scope(),
 			RedirectLink:   env.SettingsLink(ctx.Repo.RepoLink),
 		}, nil
 	}

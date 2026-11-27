@@ -40,7 +40,7 @@ type Secret struct {
 	ID            int64
 	OwnerID       int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL"`
 	RepoID        int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
-	EnvironmentID int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
+	EnvironmentID int64              `xorm:"UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
 	Name          string             `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
 	Data          string             `xorm:"LONGTEXT"` // encrypted data
 	Description   string             `xorm:"TEXT"`
@@ -179,33 +179,30 @@ func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask, env *
 		return nil, err
 	}
 
-	for _, secret := range append(ownerSecrets, repoSecrets...) {
-		v, err := secret_module.DecryptSecret(setting.SecretKey, secret.Data)
-		if err != nil {
-			log.Error("Unable to decrypt Actions secret %v %q, maybe SECRET_KEY is wrong: %v", secret.ID, secret.Name, err)
-			continue
-		}
-		baseSecrets[secret.Name] = v
-	}
+	decryptSecretsInto(baseSecrets, append(ownerSecrets, repoSecrets...))
 
 	// a caller's secrets policy must not reach the environment the called job deploys to
 	scoped, err := getScopedSecretsForJob(ctx, task.Job, baseSecrets)
 	if err != nil || env == nil {
 		return scoped, err
 	}
-	envSecrets, err := db.Find[Secret](ctx, FindSecretsOptions{BelongingScope: actions_model.BelongingScopeEnvironment(task.Job.Run.RepoID, env.ID)})
+	envSecrets, err := db.Find[Secret](ctx, FindSecretsOptions{BelongingScope: env.Scope()})
 	if err != nil {
 		return nil, fmt.Errorf("find secrets of environment %d: %w", env.ID, err)
 	}
-	for _, s := range envSecrets {
-		v, err := secret_module.DecryptSecret(setting.SecretKey, s.Data)
+	decryptSecretsInto(scoped, envSecrets)
+	return scoped, nil
+}
+
+func decryptSecretsInto(dst map[string]string, secrets []*Secret) {
+	for _, secret := range secrets {
+		v, err := secret_module.DecryptSecret(setting.SecretKey, secret.Data)
 		if err != nil {
-			log.Error("Unable to decrypt environment secret %v %q: %v", s.ID, s.Name, err)
+			log.Error("Unable to decrypt Actions secret %v %q, maybe SECRET_KEY is wrong: %v", secret.ID, secret.Name, err)
 			continue
 		}
-		scoped[s.Name] = v
+		dst[secret.Name] = v
 	}
-	return scoped, nil
 }
 
 // getScopedSecretsForJob walks up the caller chain (ParentJobID) and applies

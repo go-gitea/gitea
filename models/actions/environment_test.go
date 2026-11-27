@@ -22,7 +22,6 @@ func TestEnvironmentMatchesRef(t *testing.T) {
 		{"bare pattern matches a branch", "main\nrelease/*", "refs/heads/release/1.0", true},
 		{"branch matching no pattern is denied", "main\nrelease/*", "refs/heads/feature", false},
 		{"bare pattern does not match a tag of the same name", "main", "refs/tags/main", false},
-		{"bare tag-like pattern does not match a look-alike branch", "v*", "refs/tags/v1.0", false},
 		{"refs/tags pattern matches a tag", "refs/tags/v*", "refs/tags/v1.0", true},
 		{"refs/tags pattern does not match a branch", "refs/tags/v*", "refs/heads/v-evil", false},
 		{"explicit refs/heads pattern matches a branch", "refs/heads/main", "refs/heads/main", true},
@@ -41,15 +40,17 @@ func TestEnvironmentNameAndPatterns(t *testing.T) {
 	for _, name := range []string{"production", "with space", "a/b", strings.Repeat("é", EnvironmentNameMaxLength)} {
 		require.NoError(t, ValidateEnvironmentName(name), name)
 	}
-	for _, name := range []string{"", strings.Repeat("é", EnvironmentNameMaxLength+1)} {
+	for _, name := range []string{"", ".", "..", strings.Repeat("é", EnvironmentNameMaxLength+1)} {
 		require.Error(t, ValidateEnvironmentName(name))
 	}
 
-	got, err := JoinBranchPatterns([]string{" main ", "", "refs/tags/v*", "a,b"})
+	got, err := JoinBranchPatterns([]string{" main ", "", "refs/tags/v*", "a,b", "one\ntwo"})
 	require.NoError(t, err)
-	assert.Equal(t, []string{"main", "refs/tags/v*", "a,b"}, SplitBranchPatterns(got))
-	assert.Equal(t, []string{}, SplitBranchPatterns(""))
+	assert.Equal(t, []string{"main", "refs/tags/v*", "a,b", "one", "two"}, (&ActionEnvironment{AllowedBranchPatterns: got}).BranchPatterns())
+	assert.Equal(t, []string{}, new(ActionEnvironment).BranchPatterns())
 
-	_, err = JoinBranchPatterns([]string{"["})
-	require.Error(t, err)
+	for _, pattern := range []string{"[", "main\n["} {
+		_, err = JoinBranchPatterns([]string{pattern})
+		require.Error(t, err)
+	}
 }

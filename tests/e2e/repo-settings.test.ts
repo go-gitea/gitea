@@ -49,3 +49,17 @@ test('branch protection toggles queue controls and keeps the push allowlist and 
   await expect(allowlistRadio).toBeChecked();
   await expect(page.locator('#whitelist_box .dropdown > .label')).toHaveText(owner);
 });
+
+test('environment is created through the dialog and keeps its allowed refs', async ({page, request}) => {
+  const owner = env.GITEA_TEST_E2E_USER;
+  const repo = `e2e-environment-${randomString(8)}`;
+  await Promise.all([apiCreateRepo(request, {name: repo, autoInit: false}), login(page)]);
+  await page.goto(`/${owner}/${repo}/settings/actions/environments`);
+  await page.getByRole('button', {name: 'New environment', exact: true}).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Name', {exact: true}).fill('production');
+  await dialog.getByLabel('Allowed refs', {exact: true}).fill('main');
+  await dialog.getByRole('button', {name: 'Confirm', exact: true}).click();
+  await page.waitForURL(`/${owner}/${repo}/settings/actions/environments/production`);
+  await expect(page.getByLabel('Allowed refs', {exact: true})).toHaveValue('main');
+});

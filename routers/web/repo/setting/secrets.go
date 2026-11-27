@@ -12,6 +12,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	shared_actions "gitea.dev/routers/web/shared/actions"
 	shared "gitea.dev/routers/web/shared/secrets"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
@@ -36,11 +37,10 @@ type secretsCtx struct {
 }
 
 func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
-	if env, ok := ctx.Data["Environment"].(*actions_model.ActionEnvironment); ok {
+	if env := shared_actions.EnvironmentFromContext(ctx); env != nil {
 		return &secretsCtx{
 			Repo:           ctx.Repo.Repository,
-			BelongingScope: actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID),
-			IsRepo:         true,
+			BelongingScope: env.Scope(),
 			RedirectLink:   env.SettingsLink(ctx.Repo.RepoLink),
 		}, nil
 	}

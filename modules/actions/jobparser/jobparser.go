@@ -21,7 +21,7 @@ func HasDeferredMatrix(job *Job) bool {
 	return len(job.Needs()) > 0 && (nodeMatches(&job.Strategy.RawMatrix, expressionReadsNeeds) || expressionReadsNeeds(job.Strategy.RawExpression.Value) ||
 		expressionReadsNeeds(job.Strategy.MaxParallelString) || expressionReadsNeeds(job.Strategy.FailFastString) ||
 		expressionReadsNeeds(job.Name) || nodeMatches(&job.RawRunsOn, expressionReadsNeeds) || nodeMatches(&job.RawContinueOnError, expressionReadsNeeds) ||
-		nodeMatches(&job.RawEnvironment, expressionReadsNeeds))
+		nodeMatches(job.environmentNameNode(), expressionReadsNeeds))
 }
 
 func nodeMatches(node *yaml.Node, match func(string) bool) bool {
@@ -238,7 +238,7 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []model.MatrixCombinatio
 		if combo.Name, err = jobName(combo.Name, jobID, names[index], evaluator, len(matrix) > 0 || gitCtx != nil); err != nil {
 			return nil, fmt.Errorf("interpolate name for job %q: %w", jobID, err)
 		}
-		if gitCtx != nil { // callers without one don't read runs-on
+		if gitCtx != nil { // callers without one read neither runs-on nor the environment
 			combo.RawRunsOn = model.CloneYamlNode(src.RawRunsOn)
 			if err := evaluator.EvaluateYamlNode(&combo.RawRunsOn); err != nil {
 				return nil, fmt.Errorf("interpolate runs-on for job %q: %w", jobID, err)
@@ -250,6 +250,13 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []model.MatrixCombinatio
 				}
 				combo.RawRunsOn = model.RunsOnNode(runsOn, "")
 			}
+			// only the name is resolved here, the url may read the steps context that the runner alone has
+			combo.RawEnvironment = model.CloneYamlNode(src.RawEnvironment)
+			environmentName := combo.environmentNameNode()
+			if err := evaluator.EvaluateYamlNode(environmentName); err != nil {
+				return nil, fmt.Errorf("evaluate environment for job %q: %w", jobID, err)
+			}
+			replaceScalars(environmentName, escapeExpressions)
 		}
 		if err := evaluator.EvaluateYamlNode(&combo.RawContinueOnError); err != nil {
 			return nil, fmt.Errorf("evaluate continue-on-error for job %q: %w", jobID, err)
@@ -261,9 +268,6 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []model.MatrixCombinatio
 			} else {
 				replaceScalars(&combo.RawContinueOnError, escapeExpressions)
 			}
-		}
-		if err := evaluator.EvaluateYamlNode(&combo.RawEnvironment); err != nil {
-			return nil, fmt.Errorf("evaluate environment for job %q: %w", jobID, err)
 		}
 		combos = append(combos, combo)
 	}

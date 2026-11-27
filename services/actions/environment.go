@@ -10,14 +10,16 @@ import (
 	"strings"
 
 	actions_model "gitea.dev/models/actions"
-	"gitea.dev/modules/container"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
+	audit_model "gitea.dev/models/audit"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	secret_model "gitea.dev/models/secret"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 )
 
 // GetOrCreateEnvironment trims and validates name, then returns the environment, creating it when absent.
-func GetOrCreateEnvironment(ctx context.Context, repoID int64, name string, branchPatterns []string) (env *actions_model.ActionEnvironment, created bool, err error) {
+func GetOrCreateEnvironment(ctx context.Context, repo *repo_model.Repository, name string, branchPatterns []string) (env *actions_model.ActionEnvironment, created bool, err error) {
 	name = strings.TrimSpace(name)
 	if err := actions_model.ValidateEnvironmentName(name); err != nil {
 		return nil, false, err
@@ -27,7 +29,7 @@ func GetOrCreateEnvironment(ctx context.Context, repoID int64, name string, bran
 		return nil, false, err
 	}
 
-	env, err = actions_model.GetEnvironmentByRepoAndName(ctx, repoID, name)
+	env, err = actions_model.GetEnvironmentByRepoAndName(ctx, repo.ID, name)
 	if err == nil {
 		return env, false, nil
 	}
@@ -35,79 +37,80 @@ func GetOrCreateEnvironment(ctx context.Context, repoID int64, name string, bran
 		return nil, false, err
 	}
 
-	env, err = actions_model.InsertEnvironment(ctx, repoID, name, patterns)
+	env, err = actions_model.InsertEnvironment(ctx, repo.ID, name, patterns)
 	if err != nil {
 		// the constraint text differs per driver, so re-fetch to tell a lost race from a real failure
-		if existing, lookupErr := actions_model.GetEnvironmentByRepoAndName(ctx, repoID, name); lookupErr == nil {
+		if existing, lookupErr := actions_model.GetEnvironmentByRepoAndName(ctx, repo.ID, name); lookupErr == nil {
 			return existing, false, nil
 		}
 		return nil, false, err
 	}
+	audit.Record(ctx, audit_model.RepositoryEnvironmentAdd, repo, "environment", env.Name)
 	return env, true, nil
 }
 
-func UpdateEnvironment(ctx context.Context, env *actions_model.ActionEnvironment, branchPatterns []string) (changed bool, err error) {
+func UpdateEnvironment(ctx context.Context, repo *repo_model.Repository, env *actions_model.ActionEnvironment, branchPatterns []string) error {
 	patterns, err := actions_model.JoinBranchPatterns(branchPatterns)
-	if err != nil {
-		return false, err
-	}
-	if patterns == env.AllowedBranchPatterns {
-		return false, nil
+	if err != nil || patterns == env.AllowedBranchPatterns {
+		return err
 	}
 	env.AllowedBranchPatterns = patterns
 	if err := actions_model.UpdateEnvironment(ctx, env); err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+	audit.Record(ctx, audit_model.RepositoryEnvironmentUpdate, repo, "environment", env.Name)
+	return nil
 }
 
-// ResolveJobEnvironment returns the environment a job deploys to (nil for none) and, when the job may not
-// run, the reason. A job naming an environment it cannot get must fail, not run without its branch policy.
-func ResolveJobEnvironment(ctx context.Context, job *actions_model.ActionRunJob) (env *actions_model.ActionEnvironment, denyReason string, err error) {
-	if job.EnvironmentName == "" {
-		return nil, "", nil
+func DeleteEnvironment(ctx context.Context, repo *repo_model.Repository, env *actions_model.ActionEnvironment) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		return db.DeleteBeans(ctx,
+			&secret_model.Secret{RepoID: env.RepoID, EnvironmentID: env.ID},
+			&actions_model.ActionVariable{RepoID: env.RepoID, EnvironmentID: env.ID},
+			&actions_model.ActionEnvironment{ID: env.ID},
+		)
+	}); err != nil {
+		return err
+	}
+	audit.Record(ctx, audit_model.RepositoryEnvironmentRemove, repo, "environment", env.Name)
+	return nil
+}
+
+// resolveJobEnvironment returns the environment a job deploys to (nil for none), or why the job is denied.
+// A job naming an environment it cannot get must fail, not run without its branch policy.
+func resolveJobEnvironment(ctx context.Context, job *actions_model.ActionRunJob) (env *actions_model.ActionEnvironment, denied, err error) {
+	parsed, err := job.ParseJob()
+	if err != nil {
+		return nil, nil, err
+	}
+	name := parsed.DeploymentEnvironmentName()
+	if name == "" {
+		return nil, nil, nil
 	}
 	if err := job.LoadRun(ctx); err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
-	if job.Run.IsUntrustedFork() {
-		return nil, "", nil
-	}
-
-	env, _, err = GetOrCreateEnvironment(ctx, job.RepoID, job.EnvironmentName, nil)
-	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			return nil, fmt.Sprintf("Environment name `%s` is invalid.", job.EnvironmentName), nil
-		}
-		return nil, "", err
-	}
-	if !env.MatchesRef(runRef(job.Run)) {
-		return env, fmt.Sprintf("Branch is not allowed to deploy to `%s` due to environment protection rules.", env.Name), nil
-	}
-	return env, "", nil
-}
-
-// EnsureEnvironments creates the named environments up front so they show in the settings UI before any job runs.
-// It must stay outside the transaction inserting the jobs: a lost creation race would abort it on PostgreSQL.
-func EnsureEnvironments(ctx context.Context, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) {
+	run := job.Run
 	if run.IsUntrustedFork() {
-		return
+		return nil, nil, nil
 	}
-	seen := make(container.Set[string])
-	for _, job := range jobs {
-		if job.EnvironmentName == "" || !seen.Add(strings.ToLower(job.EnvironmentName)) {
-			continue
-		}
-		if _, _, err := GetOrCreateEnvironment(ctx, job.RepoID, job.EnvironmentName, nil); err != nil {
-			log.Error("Cannot resolve environment %q of repo %d: %v", job.EnvironmentName, job.RepoID, err)
-		}
+	if err := run.LoadRepo(ctx); err != nil {
+		return nil, nil, err
 	}
-}
+	if err := run.LoadTriggerUser(ctx); err != nil {
+		return nil, nil, err
+	}
 
-// runRef is the ref github.ref reports: pull_request_target runs on the base branch.
-func runRef(run *actions_model.ActionRun) string {
-	if base := run.PullRequestTargetBase(); base != nil {
-		return git.BranchPrefix + base.Ref
+	// whoever triggered the run is the one creating an environment it names for the first time
+	env, _, err = GetOrCreateEnvironment(audit.WithDoer(ctx, run.TriggerUser), run.Repo, name, nil)
+	if errors.Is(err, util.ErrInvalidArgument) {
+		return nil, err, nil
 	}
-	return run.Ref
+	if err != nil {
+		return nil, nil, err
+	}
+	if _, _, ref, _ := runRefs(run); !env.MatchesRef(ref) {
+		return nil, fmt.Errorf("branch is not allowed to deploy to %q due to environment protection rules", env.Name), nil
+	}
+	return env, nil, nil
 }

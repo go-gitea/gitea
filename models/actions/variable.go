@@ -34,7 +34,7 @@ type ActionVariable struct {
 	ID            int64              `xorm:"pk autoincr"`
 	OwnerID       int64              `xorm:"UNIQUE(owner_repo_name)"`
 	RepoID        int64              `xorm:"INDEX UNIQUE(owner_repo_name)"`
-	EnvironmentID int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
+	EnvironmentID int64              `xorm:"UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
 	Name          string             `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
 	Data          string             `xorm:"LONGTEXT NOT NULL"`
 	Description   string             `xorm:"TEXT"`
@@ -173,20 +173,13 @@ func GetVariablesOfRun(ctx context.Context, run *ActionRun) (map[string]string, 
 	return variables, nil
 }
 
-// GetVariablesOfJob precedence (high to low): environment > repo > org/user > global
-func GetVariablesOfJob(ctx context.Context, job *ActionRunJob, env *ActionEnvironment) (map[string]string, error) {
-	if err := job.LoadRun(ctx); err != nil {
-		return nil, err
+// GetVariablesOfRunInEnvironment precedence (high to low): environment > repo > org/user > global
+func GetVariablesOfRunInEnvironment(ctx context.Context, run *ActionRun, env *ActionEnvironment) (map[string]string, error) {
+	variables, err := GetVariablesOfRun(ctx, run)
+	if err != nil || env == nil {
+		return variables, err
 	}
-	variables, err := GetVariablesOfRun(ctx, job.Run)
-	if err != nil {
-		return nil, err
-	}
-	if env == nil {
-		return variables, nil
-	}
-
-	envVars, err := db.Find[ActionVariable](ctx, FindVariablesOpts{BelongingScope: BelongingScopeEnvironment(job.RepoID, env.ID)})
+	envVars, err := db.Find[ActionVariable](ctx, FindVariablesOpts{BelongingScope: env.Scope()})
 	if err != nil {
 		return nil, fmt.Errorf("find variables of environment %d: %w", env.ID, err)
 	}
