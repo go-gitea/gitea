@@ -172,8 +172,12 @@ func StoreGPGKeyFromSource(ctx context.Context, ownerID, sourceID int64, entity 
 	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if existing != nil {
-			if _, err := deleteGPGKey(ctx, existing.KeyID); err != nil {
+			deleted, err := deleteGPGKey(ctx, existing.KeyID)
+			if err != nil {
 				return err
+			}
+			if deleted == 0 {
+				return ErrGPGKeyNotExist{ID: existing.ID}
 			}
 		}
 		return addGPGKey(ctx, key, content)
