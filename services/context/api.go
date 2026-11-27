@@ -131,7 +131,7 @@ func GetAPIContext(req *http.Request) *APIContext {
 }
 
 func genAPILinks(curURL *url.URL, total int64, pageSize, curPage int) []string {
-	p := paginator.New(int(total), pageSize, curPage, 0)
+	p := paginator.New(int(total), pageSize, curPage)
 	links := make([]string, 0, 4)
 
 	if p.HasNext() {
@@ -193,14 +193,6 @@ func APIContexter() func(http.Handler) http.Handler {
 			}
 			ctx.SetContextValue(apiContextKey, ctx)
 			httplib.MarkRequestSupportPublicURL(ctx)
-
-			// FIXME: GLOBAL-PARSE-FORM: see more details in another FIXME comment
-			if ctx.Req.Method == http.MethodPost && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
-				if !ctx.ParseMultipartForm() {
-					return
-				}
-			}
-
 			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{})
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})

@@ -159,13 +159,7 @@ func Repos(ctx *context.Context) {
 		ownerID = ctx.Doer.ID
 	}
 
-	onlyShowRelevant := setting.UI.OnlyShowRelevantRepos
-
-	_ = ctx.Req.ParseForm() // parse the form first, to prepare the ctx.Req.Form field
-	if len(ctx.Req.Form[relevantReposOnlyParam]) != 0 {
-		onlyShowRelevant = ctx.FormBool(relevantReposOnlyParam)
-	}
-
+	onlyShowRelevant := ctx.FormBool(relevantReposOnlyParam, setting.UI.OnlyShowRelevantRepos)
 	RenderRepoSearch(ctx, &RepoSearchOptions{
 		PageSize:         setting.UI.ExplorePagingNum,
 		OwnerID:          ownerID,

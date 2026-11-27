@@ -267,6 +267,12 @@ func TestRelease_Update(t *testing.T) {
 	release.Attachments = nil
 	assert.NoError(t, repo_model.GetReleaseAttachments(t.Context(), release))
 	assert.Empty(t, release.Attachments)
+
+	release.TagName = "v-1.1"
+	assert.True(t, IsErrProtectedTagName(UpdateRelease(t.Context(), &user_model.User{ID: 4}, gitRepo, release, nil, nil, nil, "")))
+	assert.False(t, git.IsTagExist(t.Context(), repo, "v-1.1"))
+	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil, ""))
+	assert.True(t, git.IsTagExist(t.Context(), repo, "v-1.1"))
 }
 
 func TestRelease_createTag(t *testing.T) {
@@ -309,7 +315,7 @@ func TestRelease_createTag(t *testing.T) {
 			IsPrerelease: testCase.isPrerelease,
 			IsTag:        false,
 		}
-		err = createTag(t.Context(), gitRepo, release, "")
+		err = createTag(t.Context(), gitRepo, user, release, "")
 		assert.NoError(t, err)
 		if !testCase.isDraft && !testCase.isPrerelease {
 			assert.NotEmpty(t, release.CreatedUnix)
@@ -322,7 +328,7 @@ func TestRelease_createTag(t *testing.T) {
 		if !testCase.isDraft {
 			release.Note = "Changed note"
 		}
-		err = createTag(t.Context(), gitRepo, release, "")
+		err = createTag(t.Context(), gitRepo, user, release, "")
 		assert.NoError(t, err)
 		if testCase.isDraft {
 			assert.Less(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))

@@ -44,6 +44,15 @@ func (ctx *prTmpRepoContext) PrepareGitCmd(cmd *gitcmd.Command) *gitcmd.Command 
 	return cmd.WithRepo(ctx.tmpRepo).WithStdoutBuffer(ctx.outbuf)
 }
 
+func getPullHeadRef(pr *issues_model.PullRequest) string {
+	if pr.Flow == issues_model.PullRequestFlowGithub {
+		return git.BranchPrefix + pr.HeadBranch
+	} else if len(pr.HeadCommitID) == git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName).FullLength() { // for not created pull request
+		return pr.HeadCommitID
+	}
+	return pr.GetGitHeadRefName()
+}
+
 // createTemporaryRepoForPR creates a temporary repo with "base" for pr.BaseBranch and "tracking" for  pr.HeadBranch
 // it also create a second base branch called "original_base"
 func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest) (prCtx *prTmpRepoContext, cancel context.CancelFunc, retErr error) {
@@ -140,16 +149,8 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 		return nil, nil, fmt.Errorf("unable to add head repository as head_repo [%s -> tmpBasePath]: %w\n%s\n%s", pr.HeadRepo.FullName(), err, prCtx.outbuf.String(), err.Stderr())
 	}
 
-	objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
 	// Fetch head branch
-	var headBranch string
-	if pr.Flow == issues_model.PullRequestFlowGithub {
-		headBranch = git.BranchPrefix + pr.HeadBranch
-	} else if len(pr.HeadCommitID) == objectFormat.FullLength() { // for not created pull request
-		headBranch = pr.HeadCommitID
-	} else {
-		headBranch = pr.GetGitHeadRefName()
-	}
+	headBranch := getPullHeadRef(pr)
 	if err := prCtx.PrepareGitCmd(gitcmd.NewCommand("fetch").AddArguments(fetchArgs...).AddDynamicArguments(remoteRepoName, headBranch+":"+tmpRepoTrackingBranch)).
 		RunWithStderr(ctx); err != nil {
 		if exist, _ := git_model.IsBranchExist(ctx, pr.HeadRepo.ID, pr.HeadBranch); !exist {

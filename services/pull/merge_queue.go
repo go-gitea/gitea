@@ -128,7 +128,7 @@ func (entry *MergeQueueEntry) CreateMergeQueueCommit(ctx context.Context, gitRep
 		return "", fmt.Errorf("CreateMergeQueueCommit: %w", err)
 	}
 	if setting.LFS.StartServer {
-		if err := LFSPush(ctx, mergeCtx.tmpBasePath, mergeCtx.tmpRepo, commitID, base, pr); err != nil {
+		if err := LFSPush(ctx, mergeCtx.tmpRepo, commitID, base, pr); err != nil {
 			return "", err
 		}
 	}

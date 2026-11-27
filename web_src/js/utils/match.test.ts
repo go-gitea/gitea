@@ -67,6 +67,17 @@ test('matchEmoji', () => {
       "jellyfish",
     ]
   `);
+
+  expect(matchEmoji('boat')).toMatchInlineSnapshot(`
+    [
+      "boat",
+      "rowboat",
+      "speedboat",
+      "motor_boat",
+    ]
+  `);
+
+  expect(['uk', 'raised_hand'].map((query) => matchEmoji(query)[0])).toEqual(['gb', 'hand']);
 });
 
 test('matchMention', async () => {
