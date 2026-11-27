@@ -119,7 +119,7 @@ func parseCodeActivityLog(ctx context.Context, repo RepositoryFacade, gitCmd *gi
 					}
 					authors[email].Commits++
 				default: // Changed file
-					if parts := strings.Fields(l); len(parts) >= 3 {
+					if parts := strings.SplitN(l, "\t", 3); len(parts) == 3 {
 						if parts[0] != "-" {
 							if c, err := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 64); err == nil {
 								stats.Additions += c
