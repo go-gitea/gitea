@@ -100,8 +100,8 @@ func testAPIListIssues(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues", owner.Name, repo.Name))
 
-	link.RawQuery = url.Values{"token": {token}, "state": {"all"}}.Encode()
-	resp := MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	link.RawQuery = url.Values{"state": {"all"}}.Encode()
+	resp := MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
 	apiIssues := DecodeJSON(t, resp, []*api.Issue{})
 	assert.Len(t, apiIssues, unittest.GetCount(t, &issues_model.Issue{RepoID: repo.ID}))
 	for _, apiIssue := range apiIssues {
@@ -109,30 +109,30 @@ func testAPIListIssues(t *testing.T) {
 	}
 
 	// test milestone filter
-	link.RawQuery = url.Values{"token": {token}, "state": {"all"}, "type": {"all"}, "milestones": {"ignore,milestone1,3,4"}}.Encode()
-	resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	link.RawQuery = url.Values{"state": {"all"}, "type": {"all"}, "milestones": {"ignore,milestone1,3,4"}}.Encode()
+	resp = MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
 	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
 	if assert.Len(t, apiIssues, 2) {
 		assert.EqualValues(t, 3, apiIssues[0].Milestone.ID)
 		assert.EqualValues(t, 1, apiIssues[1].Milestone.ID)
 	}
 
-	link.RawQuery = url.Values{"token": {token}, "state": {"all"}, "created_by": {"user2"}}.Encode()
-	resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	link.RawQuery = url.Values{"state": {"all"}, "created_by": {"user2"}}.Encode()
+	resp = MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
 	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
 	if assert.Len(t, apiIssues, 1) {
 		assert.EqualValues(t, 5, apiIssues[0].ID)
 	}
 
-	link.RawQuery = url.Values{"token": {token}, "state": {"all"}, "assigned_by": {"user1"}}.Encode()
-	resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	link.RawQuery = url.Values{"state": {"all"}, "assigned_by": {"user1"}}.Encode()
+	resp = MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
 	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
 	if assert.Len(t, apiIssues, 1) {
 		assert.EqualValues(t, 1, apiIssues[0].ID)
 	}
 
-	link.RawQuery = url.Values{"token": {token}, "state": {"all"}, "mentioned_by": {"user4"}}.Encode()
-	resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	link.RawQuery = url.Values{"state": {"all"}, "mentioned_by": {"user4"}}.Encode()
+	resp = MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
 	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
 	if assert.Len(t, apiIssues, 1) {
 		assert.EqualValues(t, 1, apiIssues[0].ID)
