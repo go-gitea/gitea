@@ -109,11 +109,48 @@ func RemoveSpecifiedRepositoriesFromTeam(ctx context.Context, t *organization.Te
 // RemoveAllRepositoriesFromTeam removes all repositories from team and recalculates access, regardless of IncludesAllRepositories
 func RemoveAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) error {
 	removed, err := db.WithTx2(ctx, func(ctx context.Context) (repo_model.RepositoryList, error) {
-		removed, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{TeamID: t.ID})
+		sess := db.GetEngine(ctx)
+		repos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{TeamID: t.ID})
 		if err != nil {
 			return nil, fmt.Errorf("GetTeamRepositories: %w", err)
 		}
-		return removed, removeAllRepositoriesFromTeam(ctx, t)
+
+		// Delete all accesses.
+		for _, repo := range repos {
+			if err := access_model.RecalculateTeamAccesses(ctx, repo, t.ID); err != nil {
+				return nil, err
+			}
+
+			// Remove watches from all users and now inaccessible repos
+			for _, user := range t.Members {
+				has, err := access_model.HasAnyUnitAccess(ctx, user.ID, repo)
+				if err != nil {
+					return nil, err
+				} else if has {
+					continue
+				}
+
+				if err = repo_model.WatchRepoAuto(ctx, user, repo, false); err != nil {
+					return nil, err
+				}
+
+				// Remove all IssueWatches a user has subscribed to in the repositories
+				if err = issues_model.RemoveIssueWatchersByRepoID(ctx, user.ID, repo.ID); err != nil {
+					return nil, err
+				}
+			}
+		}
+
+		// Delete team-repo
+		if _, err = sess.Where("team_id=?", t.ID).Delete(new(organization.TeamRepo)); err != nil {
+			return nil, err
+		}
+
+		t.NumRepos = 0
+		if _, err = sess.ID(t.ID).Cols("num_repos").Update(t); err != nil {
+			return nil, err
+		}
+		return repos, nil
 	})
 	if err != nil {
 		return err
@@ -121,54 +158,6 @@ func RemoveAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) er
 	for _, repo := range removed {
 		audit.Record(ctx, audit_model.RepositoryCollaboratorTeamRemove, repo, "team", t.Name)
 	}
-	return nil
-}
-
-// removeAllRepositoriesFromTeam removes all repositories from team and recalculates access
-func removeAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) (err error) {
-	sess := db.GetEngine(ctx)
-	repos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{TeamID: t.ID})
-	if err != nil {
-		return fmt.Errorf("GetTeamRepositories: %w", err)
-	}
-
-	// Delete all accesses.
-	for _, repo := range repos {
-		if err := access_model.RecalculateTeamAccesses(ctx, repo, t.ID); err != nil {
-			return err
-		}
-
-		// Remove watches from all users and now inaccessible repos
-		for _, user := range t.Members {
-			has, err := access_model.HasAnyUnitAccess(ctx, user.ID, repo)
-			if err != nil {
-				return err
-			} else if has {
-				continue
-			}
-
-			if err = repo_model.WatchRepoAuto(ctx, user, repo, false); err != nil {
-				return err
-			}
-
-			// Remove all IssueWatches a user has subscribed to in the repositories
-			if err = issues_model.RemoveIssueWatchersByRepoID(ctx, user.ID, repo.ID); err != nil {
-				return err
-			}
-		}
-	}
-
-	// Delete team-repo
-	_, err = sess.Where("team_id=?", t.ID).Delete(new(organization.TeamRepo))
-	if err != nil {
-		return err
-	}
-
-	t.NumRepos = 0
-	if _, err = sess.ID(t.ID).Cols("num_repos").Update(t); err != nil {
-		return err
-	}
-
 	return nil
 }
 
