@@ -79,14 +79,20 @@ func TestNonInternalURLReturnsErrorWithoutPanic(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("Download empty or non-HTTP href", func(t *testing.T) {
+		const validOID = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
 		for _, href := range []string{"", "not-a-url", "ftp://example.com/file"} {
 			args := transfer.Args{argID: encodeActionID(t, actionDownload, href)}
-			_, _, err := b.Download("abcdef", args)
+			_, _, err := b.Download(validOID, args)
 			assert.Error(t, err, href)
 		}
+	})
+
+	t.Run("Download invalid OID with external href", func(t *testing.T) {
 		args := transfer.Args{argID: encodeActionID(t, actionDownload, "https://s3.example.com/obj")}
-		_, _, err := b.Download("..", args)
-		assert.Error(t, err)
+		for _, badOID := range []string{"", ".", "..", "../..", "..%2f..", "abcdef"} {
+			_, _, err := b.Download(badOID, args)
+			assert.Error(t, err, badOID)
+		}
 	})
 
 	t.Run("Upload non-internal href", func(t *testing.T) {

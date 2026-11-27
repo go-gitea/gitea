@@ -187,7 +187,7 @@ func (g *GiteaBackend) Download(oid string, args transfer.Args) (_ io.ReadCloser
 		headerAccept:            mimeOctetStream,
 	}
 	internalURL := toInternalLFSURL(action.Href)
-	if internalURL == "" && isExternalHTTPURL(action.Href) && oid != "" && oid != "." && oid != ".." {
+	if internalURL == "" && isExternalHTTPURL(action.Href) && (lfs.Pointer{Oid: oid}).IsValid() {
 		// When SERVE_DIRECT is enabled, batch responses return a presigned external URL in action.Href.
 		// Pure SSH transfers must proxy through Gitea's internal LFS endpoint.
 		internalURL = g.server.JoinPath("objects", url.PathEscape(oid)).String()
