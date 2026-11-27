@@ -41,19 +41,6 @@
   text-decoration: underline dotted;
 }
 
-.markup.rich-diff .rich-diff-added img {
-  outline: 2px solid var(--color-diff-added-fg);
-}
-
-.markup.rich-diff .rich-diff-removed img {
-  outline: 2px solid var(--color-diff-removed-fg);
-}
-
-.markup.rich-diff .rich-diff-changed img,
-.markup.rich-diff .rich-diff-changed input {
-  outline: 2px dotted;
-}
-
 .markup.rich-diff ol > .rich-diff-removed {
   list-style-type: none;
   counter-increment: list-item 0;
