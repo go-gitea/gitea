@@ -6,6 +6,7 @@ package devtest
 import (
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
 	"path"
 	"strconv"
@@ -25,7 +26,6 @@ import (
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
-	"gitea.dev/modules/web/binding"
 	"gitea.dev/services/context"
 )
 
@@ -48,11 +48,8 @@ func List(ctx *context.Context) {
 }
 
 func FetchActionTest(ctx *context.Context) {
-	_ = ctx.Req.ParseMultipartForm(binding.ParseMultipartFormMaxMemory)
-	ctx.Flash.Info("fetch action: " + ctx.Req.Method + " " + ctx.Req.RequestURI + "\n" +
-		"Form: " + ctx.Req.Form.Encode() + "\n" +
-		"PostForm: " + ctx.Req.PostForm.Encode(),
-	)
+	body, _ := io.ReadAll(ctx.Req.Body)
+	ctx.Flash.Info("fetch action: " + ctx.Req.Method + " " + ctx.Req.RequestURI + "\n" + "Body: " + string(body))
 	time.Sleep(2 * time.Second)
 	ctx.JSONRedirect("")
 }
