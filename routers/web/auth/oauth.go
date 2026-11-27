@@ -78,7 +78,7 @@ func SignInOAuth(ctx *context.Context) {
 func SignInOAuthCallback(ctx *context.Context) {
 	if ctx.Req.FormValue("error") != "" {
 		var errorKeyValues []string
-		for k, vv := range ctx.Req.Form {
+		for k, vv := range ctx.FormValues() {
 			for _, v := range vv {
 				errorKeyValues = append(errorKeyValues, fmt.Sprintf("%s = %s", html.EscapeString(k), html.EscapeString(v)))
 			}

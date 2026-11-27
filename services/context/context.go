@@ -171,16 +171,6 @@ func Contexter() func(next http.Handler) http.Handler {
 				}
 			})
 
-			// FIXME: GLOBAL-PARSE-FORM: this ParseMultipartForm was used for parsing the csrf token from multipart/form-data
-			// We have dropped the csrf token, so ideally this global ParseMultipartForm should be removed.
-			// When removing this, we need to avoid regressions in the handler functions because Golang's http framework is quite fragile
-			// and developers sometimes need to manually parse the form before accessing some values.
-			if ctx.Req.Method == http.MethodPost && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
-				if !ctx.ParseMultipartForm() {
-					return
-				}
-			}
-
 			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{})
 
 			ctx.Data["SystemConfig"] = setting.Config()

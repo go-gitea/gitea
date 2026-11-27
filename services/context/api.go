@@ -193,14 +193,6 @@ func APIContexter() func(http.Handler) http.Handler {
 			}
 			ctx.SetContextValue(apiContextKey, ctx)
 			httplib.MarkRequestSupportPublicURL(ctx)
-
-			// FIXME: GLOBAL-PARSE-FORM: see more details in another FIXME comment
-			if ctx.Req.Method == http.MethodPost && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
-				if !ctx.ParseMultipartForm() {
-					return
-				}
-			}
-
 			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{})
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})

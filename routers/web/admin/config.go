@@ -134,9 +134,8 @@ func validateConfigKeyValue(dynKey, input string) error {
 }
 
 func ChangeConfig(ctx *context.Context) {
-	_ = ctx.Req.ParseForm()
-	configKeys := ctx.Req.Form["key"]
-	configValues := ctx.Req.Form["value"]
+	configKeys := ctx.FormStrings("key")
+	configValues := ctx.FormStrings("value")
 	configSettings := map[string]string{}
 loop:
 	for i, key := range configKeys {
