@@ -53,7 +53,7 @@ func TestSource(t *testing.T) {
 	err = user_model.LinkExternalToUser(t.Context(), user, e)
 	assert.NoError(t, err)
 
-	provider, err := createProvider(source.AuthSource.Name, source)
+	provider, err := createProvider(source.AuthSource.Name, setting.AppURL, source)
 	assert.NoError(t, err)
 
 	t.Run("refresh", func(t *testing.T) {

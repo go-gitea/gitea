@@ -400,7 +400,7 @@ func RetrieveTemplateRepo(ctx *Context, repo *repo_model.Repository) {
 
 // ComposeGoGetImport returns go-get-import meta content.
 func ComposeGoGetImport(ctx context.Context, owner, repo string) string {
-	curAppURL, _ := url.Parse(httplib.GuessCurrentAppURL(ctx))
+	curAppURL, _ := url.Parse(httplib.GuessCurrentRootURL(ctx))
 	return path.Join(curAppURL.Host, setting.AppSubURL, url.PathEscape(owner), url.PathEscape(repo))
 }
 
@@ -1057,7 +1057,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 				// If short commit ID add canonical link header
 				if len(refShortName) < ctx.Repo.GetObjectFormat().FullLength() {
 					// FIXME: the dirty hack of "strings.Replace" should be fixed
-					canonicalURL := strings.TrimSuffix(httplib.GuessCurrentAppURL(ctx), "/") + strings.Replace(ctx.Req.URL.RequestURI(), util.PathEscapeSegments(refShortName), url.PathEscape(ctx.Repo.Commit.ID.String()), 1)
+					canonicalURL := strings.TrimSuffix(httplib.GuessCurrentRootURL(ctx), "/") + strings.Replace(ctx.Req.URL.RequestURI(), util.PathEscapeSegments(refShortName), url.PathEscape(ctx.Repo.Commit.ID.String()), 1)
 					ctx.RespHeader().Set("Link", fmt.Sprintf(`<%s>; rel="canonical"`, canonicalURL))
 				}
 			} else {

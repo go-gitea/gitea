@@ -43,7 +43,7 @@ func xmlResponse(ctx *context.Context, status int, obj any) { //nolint:unparam /
 }
 
 func buildNuGetRegistryURL(ctx *context.Context) string {
-	return httplib.GuessCurrentAppURL(ctx) + "api/packages/" + ctx.Package.Owner.Name + "/nuget"
+	return httplib.GuessCurrentRootURL(ctx) + "api/packages/" + ctx.Package.Owner.Name + "/nuget"
 }
 
 // https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Protocol/LegacyFeed/V2FeedQueryBuilder.cs

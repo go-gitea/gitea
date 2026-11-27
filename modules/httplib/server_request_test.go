@@ -113,6 +113,21 @@ func TestGuessCurrentHostURL(t *testing.T) {
 		ctx = testCtxWithPublicURL(t, &http.Request{Host: "req-host:3000", Header: headersWithProto})
 		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
 	})
+
+	t.Run("AlternativeRootURLs", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.AlternativeRootURLs, []string{"https://alt-host:3000/sub/"})()
+		defer test.MockVariableValue(&setting.PublicURLDetection)()
+
+		for _, detection := range []string{setting.PublicURLLegacy, setting.PublicURLAuto, setting.PublicURLNever} {
+			setting.PublicURLDetection = detection
+			ctx := testCtxWithPublicURL(t, &http.Request{Host: "ALT-HOST:3000", Header: http.Header{"X-Forwarded-Proto": {"http"}}})
+			assert.Equal(t, "https://alt-host:3000/sub/", GuessCurrentRootURL(ctx))
+			assert.Equal(t, "https://alt-host:3000", GuessCurrentHostURL(ctx))
+		}
+
+		ctx := testCtxWithPublicURL(t, &http.Request{Host: "alt-host:3000"}, false)
+		assert.Equal(t, "http://cfg-host/sub/", GuessCurrentRootURL(ctx))
+	})
 }
 
 func TestMakeAbsoluteURL(t *testing.T) {
