@@ -274,7 +274,7 @@ func TestAuditLogUserEvents(t *testing.T) {
 	t.Run("TwoFactorFailOnSignInAndPasswordReset", func(t *testing.T) {
 		loginUser(t, "user24").MakeRequest(t, NewRequestWithValues(t, "POST", "/user/two_factor/scratch", map[string]string{
 			"token": "wrong-token",
-		}), http.StatusOK)
+		}), http.StatusBadRequest)
 		findEvent(t, audit_model.UserAuthenticationFailTwoFactor, 24)
 
 		code := user_model.GenerateUserTimeLimitCode(&user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeResetPassword}, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 24}))

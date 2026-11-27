@@ -91,7 +91,7 @@ func TwoFactorPost(ctx *context.Context) {
 		log.Warn("Failed authentication attempt for %s from %s: invalid two-factor passcode", u.Name, ctx.RemoteAddr())
 	}
 	errMsg := ctx.Tr(util.Iif(tfaResult == auth.TwoFactorResultTooManyAttempts, "auth.twofa_too_many_attempts", "auth.twofa_passcode_incorrect"))
-	ctx.RenderWithErrDeprecated(errMsg, tplTwofa, forms.TwoFactorAuthForm{})
+	ctx.JSONError(errMsg)
 }
 
 // TwoFactorScratch shows the scratch code form for two-factor authentication.
@@ -166,5 +166,5 @@ func TwoFactorScratchPost(ctx *context.Context) {
 	if u, err := user_model.GetUserByID(ctx, id); err == nil {
 		audit.RecordAs(ctx, u, audit_model.UserAuthenticationFailTwoFactor, u)
 	}
-	ctx.RenderWithErrDeprecated(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplTwofaScratch, forms.TwoFactorScratchAuthForm{})
+	ctx.JSONError(ctx.Tr("auth.twofa_scratch_token_incorrect"))
 }
