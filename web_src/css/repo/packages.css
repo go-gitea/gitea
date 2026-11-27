@@ -1,3 +1,8 @@
+.package-header {
+  margin-bottom: 18px;
+  overflow-wrap: anywhere;
+}
+
 .packages-content {
   display: flex;
   align-items: flex-start;
@@ -30,6 +35,7 @@
 .packages-content-right {
   margin: 0 !important;
   width: 250px;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 767.98px) {

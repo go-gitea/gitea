@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"gitea.dev/modules/container"
-	"gitea.dev/modules/optional"
 	"gitea.dev/modules/paginator"
 )
 
@@ -22,7 +21,6 @@ type PagerBuilder struct {
 	total        int64
 	curPage      int
 	perPageLimit int
-	navPageNum   *int
 }
 
 func NewPagerBuilder(ctx *Context) *PagerBuilder {
@@ -44,14 +42,8 @@ func (pb *PagerBuilder) CurPage(n int) *PagerBuilder {
 	return pb
 }
 
-func (pb *PagerBuilder) NavPageNum(n int) *PagerBuilder {
-	pb.navPageNum = &n
-	return pb
-}
-
 func (pb *PagerBuilder) Build() *Pagination {
-	navPageNum := optional.FromPtr(pb.navPageNum).ValueOrDefault(5)
-	p := newPagination(pb.total, pb.perPageLimit, pb.curPage, navPageNum)
+	p := newPagination(pb.total, pb.perPageLimit, pb.curPage)
 	p.AddParamFromRequest(pb.ctx.Req)
 	return p
 }
@@ -66,10 +58,10 @@ type Pagination struct {
 // "total" is usually from database result "count int64", so it also uses int64
 // "pagingNum" is "page size" or "limit", "current" is "page"
 // total=-1 means only showing prev/next
-func newPagination(total int64, pagingNum, current, numPages int) *Pagination {
+func newPagination(total int64, pagingNum, current int) *Pagination {
 	totalInt := int(min(total, int64(math.MaxInt)))
 	p := &Pagination{}
-	p.Paginator = paginator.New(totalInt, pagingNum, current, numPages)
+	p.Paginator = paginator.New(totalInt, pagingNum, current)
 	return p
 }
 

@@ -4,7 +4,7 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {initTabSwitcher} from '../modules/fomantic/tab.ts';
 import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
-import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
+import {initAvatarUploader} from './comp/Cropper.ts';
 import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
 import {initRepoSwitcher} from './repo-switcher.ts';
 import {initScopedWorkflowRequired} from './comp/ScopedWorkflows.ts';
@@ -101,7 +101,7 @@ export function initGlobalDropdown() {
 
 export function initGlobalComponent() {
   registerGlobalInitFunc('initTabSwitcher', initTabSwitcher);
-  registerGlobalInitFunc('initAvatarUploader', initAvatarUploaderWithCropper);
+  registerGlobalInitFunc('initAvatarUploader', initAvatarUploader);
   registerGlobalInitFunc('initSearchRepoBox', initCompSearchRepoBox);
   registerGlobalInitFunc('initRepoSwitcher', initRepoSwitcher);
   registerGlobalInitFunc('initScopedWorkflowRequired', initScopedWorkflowRequired);

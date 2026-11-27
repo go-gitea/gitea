@@ -98,19 +98,19 @@ type FileMetadata struct {
 }
 
 // ParsePackage parses an Arch package file
-func ParsePackage(r io.Reader) (*Package, error) {
+func ParsePackage(r packages.SizedReader) (*Package, error) {
 	header := make([]byte, 10)
 	n, err := util.ReadAtMost(r, header)
 	if err != nil {
 		return nil, err
 	}
 
-	r = io.MultiReader(bytes.NewReader(header[:n]), r)
+	mr := io.MultiReader(bytes.NewReader(header[:n]), r)
 
 	var inner io.Reader
 	var compressionType string
 	if bytes.HasPrefix(header, []byte{0x28, 0xB5, 0x2F, 0xFD}) { // zst
-		zr, err := zstd.NewReader(r)
+		zr, err := zstd.NewReader(mr)
 		if err != nil {
 			return nil, err
 		}
@@ -119,7 +119,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 		inner = zr
 		compressionType = "zst"
 	} else if bytes.HasPrefix(header, []byte{0xFD, 0x37, 0x7A, 0x58, 0x5A}) { // xz
-		xzr, err := xz.NewReader(r)
+		xzr, err := xz.NewReader(mr)
 		if err != nil {
 			return nil, err
 		}
@@ -127,7 +127,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 		inner = xzr
 		compressionType = "xz"
 	} else if bytes.HasPrefix(header, []byte{0x1F, 0x8B}) { // gz
-		gzr, err := gzip.NewReader(r)
+		gzr, err := gzip.NewReader(mr)
 		if err != nil {
 			return nil, err
 		}
@@ -142,7 +142,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 	var p *Package
 	files := packages.NewBoundedFileList(maxFileEntries, maxFileNameBytes)
 
-	tr := tar.NewReader(inner)
+	tr := tar.NewReader(packages.NewArchiveLimitedReader(inner, r.Size()))
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {
