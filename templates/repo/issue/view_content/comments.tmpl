@@ -15,6 +15,7 @@
 		35 = CANCEL_SCHEDULED_AUTO_MERGE_PR, 36 = PIN_ISSUE, 37 = UNPIN_ISSUE,
 		38 = COMMENT_TYPE_CHANGE_TIME_ESTIMATE -->
 		{{if eq .Type 0}}
+			{{$canEditContent := call $.CanEditComment $comment}}
 			<div class="timeline-item comment" id="{{.HashTag}}">
 			{{if .OriginalAuthor}}
 				<span class="timeline-avatar">
@@ -53,11 +54,11 @@
 						</div>
 						<div class="comment-header-right">
 							{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
-							{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_comment" "ConvContentItem" $comment}}
+							{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_comment" "ConvContentItem" $comment "ConvContentCanEdit" $canEditContent}}
 						</div>
 					</div>
 					<div class="ui attached segment comment-body" role="article">
-						<div class="render-content markup" {{if or $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID) (not $.Issue.IsLocked))}}data-can-edit="true"{{end}}>
+						<div class="render-content markup" {{if $canEditContent}}data-can-edit="true"{{end}}>
 							{{if .RenderedContent}}
 								{{.RenderedContent}}
 							{{else}}
@@ -391,6 +392,7 @@
 					</span>
 				</div>
 				{{if or .Content .Attachments}}
+				{{$canEditContent := call $.CanEditComment $comment}}
 				<div class="timeline-item comment">
 					<div class="content comment-container">
 						<div class="comment-header avatar-content-left-arrow">
@@ -418,12 +420,12 @@
 							<div class="comment-header-right">
 								{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 								{{if not $.Repository.IsArchived}}
-									{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "pull_review" "ConvContentItem" $comment}}
+									{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "pull_review" "ConvContentItem" $comment "ConvContentCanEdit" $canEditContent}}
 								{{end}}
 							</div>
 						</div>
 						<div class="ui attached segment comment-body">
-							<div class="render-content markup" {{if or $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID) (not $.Issue.IsLocked))}}data-can-edit="true"{{end}}>
+							<div class="render-content markup" {{if $canEditContent}}data-can-edit="true"{{end}}>
 								{{if .RenderedContent}}
 									{{.RenderedContent}}
 								{{else}}
