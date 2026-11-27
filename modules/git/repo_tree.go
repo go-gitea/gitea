@@ -61,7 +61,7 @@ func CommitTree(ctx context.Context, repo RepositoryFacade, author, committer *S
 
 	stdout, _, err := cmd.WithEnv(env).
 		WithRepo(repo).
-		WithStdinBytes([]byte(message)).
+		WithStdinBytes(message).
 		RunStdString(ctx)
 	if err != nil {
 		return nil, err

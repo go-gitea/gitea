@@ -322,7 +322,7 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 		WithEnv(env).
 		WithRepo(t.gitRepo).
 		WithStdoutBuffer(stdout).
-		WithStdinBytes([]byte(message)).
+		WithStdinBytes(message).
 		RunWithStderr(ctx); err != nil {
 		return "", fmt.Errorf("unable to commit-tree in temporary repo: %s, error: %w", t.repo.FullName(), err)
 	}

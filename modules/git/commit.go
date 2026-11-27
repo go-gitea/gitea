@@ -282,6 +282,6 @@ func AddObjectMessageArgument(cmd *gitcmd.Command, typ ObjectType, message strin
 	if err != nil {
 		return err
 	}
-	cmd.AddArguments("--cleanup=verbatim", "--file=-").WithStdinBytes([]byte(message))
+	cmd.AddArguments("--cleanup=verbatim", "--file=-").WithStdinBytes(message)
 	return nil
 }
