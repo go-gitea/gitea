@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"slices"
 
@@ -86,6 +87,7 @@ type FindRunOptions struct {
 	TriggerUserID    int64
 	TriggerEvent     webhook_module.HookEventType
 	Status           []Status
+	Sort             string
 	ConcurrencyGroup string
 	CommitSHA        string
 	// AccessibleRepoIDsSubQuery, when non-nil, restricts results to the repo IDs selected by the
@@ -139,7 +141,24 @@ func (opts FindRunOptions) ToJoins() []db.JoinFunc {
 	return nil
 }
 
+// Status priority is failure, blocked, running, cancelling, waiting, pending,
+// cancelled, skipped, success, then unknown; enum values encode runner results, not priority.
+var runStatusOrder = fmt.Sprintf("CASE `action_run`.`status` WHEN %d THEN 0 WHEN %d THEN 1 WHEN %d THEN 2 WHEN %d THEN 3 WHEN %d THEN 4 WHEN %d THEN 5 WHEN %d THEN 6 WHEN %d THEN 7 WHEN %d THEN 8 ELSE 9 END",
+	StatusFailure, StatusBlocked, StatusRunning, StatusCancelling, StatusWaiting, StatusPending, StatusCancelled, StatusSkipped, StatusSuccess)
+
+var RunOrderByMap = map[string]string{
+	"newest":         "`action_run`.`created` DESC, `action_run`.`id` DESC",
+	"oldest":         "`action_run`.`created` ASC, `action_run`.`id` ASC",
+	"status":         runStatusOrder + " ASC, `action_run`.`id` DESC",
+	"reverse_status": runStatusOrder + " DESC, `action_run`.`id` DESC",
+	"ref":            "`action_run`.`ref` ASC, `action_run`.`id` DESC",
+	"reverse_ref":    "`action_run`.`ref` DESC, `action_run`.`id` DESC",
+}
+
 func (opts FindRunOptions) ToOrders() string {
+	if order, ok := RunOrderByMap[opts.Sort]; ok {
+		return order
+	}
 	// When scoped to a repo, sort by `index`: it reuses the unique
 	// `repo_index` (repo_id, index) index, so the query seeks repo_id and
 	// walks index descending instead of filesorting all matching rows.
