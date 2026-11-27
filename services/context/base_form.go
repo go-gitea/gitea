@@ -4,12 +4,14 @@
 package context
 
 import (
+	"mime/multipart"
 	"strconv"
 	"strings"
 
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/util"
+	"gitea.dev/modules/web/binding"
 )
 
 // FormString returns the first value matching the provided key in the form as a string
@@ -23,17 +25,22 @@ func (b *Base) FormString(key string, def ...string) string {
 	return s
 }
 
-var ParseMultipartFormMaxMemory int64 = 10 * 1024 * 1024
-
 // FormStrings returns a values for the key in the form (including query parameters), similar to FormString
 func (b *Base) FormStrings(key string) []string {
-	_ = b.Req.ParseMultipartForm(ParseMultipartFormMaxMemory) // the same logic as http.Request.FormValue
+	_ = b.Req.ParseMultipartForm(binding.ParseMultipartFormMaxMemory) // the same logic as http.Request.FormValue
 	return b.Req.Form[key]
 }
 
 func (b *Base) FormStringInt64s(key string) []int64 {
 	vals, _ := base.StringsToInt64s(strings.Split(b.FormString(key), ","))
 	return vals
+}
+
+func (b *Base) FormFile(key string) (multipart.File, *multipart.FileHeader, error) {
+	if err := b.Req.ParseMultipartForm(binding.ParseMultipartFormMaxMemory); err != nil {
+		return nil, nil, err
+	}
+	return b.Req.FormFile(key)
 }
 
 // FormTrim returns the first value for the provided key in the form as a space trimmed string
@@ -54,8 +61,11 @@ func (b *Base) FormInt64(key string) int64 {
 }
 
 // FormBool returns true if the value for the provided key in the form is "1", "true" or "on"
-func (b *Base) FormBool(key string) bool {
+func (b *Base) FormBool(key string, def ...bool) bool {
 	s := b.Req.FormValue(key)
+	if s == "" {
+		return util.OptionalArg(def)
+	}
 	v, _ := strconv.ParseBool(s)
 	v = v || strings.EqualFold(s, "on")
 	return v
