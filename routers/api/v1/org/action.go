@@ -13,7 +13,6 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/shared"
 	"gitea.dev/routers/api/v1/utils"
-	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	secret_service "gitea.dev/services/secrets"
@@ -529,12 +528,12 @@ func (Action) ListWorkflowRuns(ctx *context.APIContext) {
 	shared.ListRuns(ctx, ctx.Org.Organization.ID, 0, "")
 }
 
-var _ actions_service.API = new(Action)
+var _ shared.ActionsAPI = new(Action)
 
-// Action implements actions_service.API
+// Action implements shared.ActionsAPI
 type Action struct{}
 
 // NewAction creates a new Action service
-func NewAction() actions_service.API {
+func NewAction() shared.ActionsAPI {
 	return Action{}
 }

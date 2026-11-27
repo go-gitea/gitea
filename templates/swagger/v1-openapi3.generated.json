@@ -8250,6 +8250,7 @@
             "x-go-name": "MergeTitleField"
           },
           "merge_when_checks_succeed": {
+            "description": "Merge once branch protection requirements like required status checks and approvals are met. Other checks are not awaited.",
             "type": "boolean",
             "x-go-name": "MergeWhenChecksSucceed"
           }

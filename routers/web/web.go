@@ -486,9 +486,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	addSettingsSecretsRoutes := func() {
 		m.Group("/secrets", func() {
-			m.Get("", repo_setting.Secrets)
-			m.Post("", web.Bind[*forms.AddSecretForm](), repo_setting.SecretsPost)
-			m.Post("/delete", repo_setting.SecretsDelete)
+			m.Get("", shared_actions.Secrets)
+			m.Post("", web.Bind[*forms.AddSecretForm](), shared_actions.SecretsPost)
+			m.Post("/delete", shared_actions.SecretsDelete)
 		})
 	}
 
@@ -510,6 +510,15 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/required", shared_actions.ScopedWorkflowSetRequired)
 			m.Post("/remove", shared_actions.ScopedWorkflowRemove)
 		})
+	}
+
+	addOwnerActionsRoutes := func() {
+		m.Get("", misc.LocationRedirect("./actions/general"))
+		m.Combo("/general").Get(shared_actions.GeneralSettings).Post(shared_actions.UpdateGeneralSettings)
+		addSettingsRunnersRoutes()
+		addSettingsSecretsRoutes()
+		addSettingsVariablesRoutes()
+		addSettingsScopedWorkflowsRoutes()
 	}
 
 	// FIXME: not all routes need go through same middleware.
@@ -688,17 +697,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/chef/regenerate_keypair", user_setting.RegenerateChefKeyPair)
 		}, packagesEnabled)
 
-		m.Group("/actions", func() {
-			m.Get("", misc.LocationRedirect("./actions/general"))
-			m.Group("/general", func() {
-				m.Get("", shared_actions.GeneralSettings)
-				m.Post("", shared_actions.UpdateGeneralSettings)
-			})
-			addSettingsRunnersRoutes()
-			addSettingsSecretsRoutes()
-			addSettingsVariablesRoutes()
-			addSettingsScopedWorkflowsRoutes()
-		}, actions.MustEnableActions)
+		m.Group("/actions", addOwnerActionsRoutes, actions.MustEnableActions)
 
 		m.Get("/organization", user_setting.Organization)
 		m.Get("/repos", user_setting.Repos)
@@ -1025,17 +1024,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Post("/initialize", web.Bind[*forms.InitializeLabelsForm](), org.InitializeLabels)
 				})
 
-				m.Group("/actions", func() {
-					m.Get("", misc.LocationRedirect("./actions/general"))
-					m.Group("/general", func() {
-						m.Get("", shared_actions.GeneralSettings)
-						m.Post("", shared_actions.UpdateGeneralSettings)
-					})
-					addSettingsRunnersRoutes()
-					addSettingsSecretsRoutes()
-					addSettingsVariablesRoutes()
-					addSettingsScopedWorkflowsRoutes()
-				}, actions.MustEnableActions)
+				m.Group("/actions", addOwnerActionsRoutes, actions.MustEnableActions)
 
 				m.Get("/audit_logs", org_setting.ViewAuditLogs)
 
@@ -1255,8 +1244,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Post("", repo_setting.EnvironmentUpdate)
 					m.Post("/delete", repo_setting.EnvironmentDelete)
 					m.Group("/secrets", func() {
-						m.Post("", web.Bind[*forms.AddSecretForm](), repo_setting.SecretsPost)
-						m.Post("/delete", repo_setting.SecretsDelete)
+						m.Post("", web.Bind[*forms.AddSecretForm](), shared_actions.SecretsPost)
+						m.Post("/delete", shared_actions.SecretsDelete)
 					})
 					m.Group("/variables", func() {
 						m.Post("/new", web.Bind[*forms.EditVariableForm](), shared_actions.VariableCreate)

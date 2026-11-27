@@ -341,6 +341,11 @@ jobs:
 			got, err := r.Resolve(ctx)
 			require.NoError(t, err)
 			assert.Equal(t, want, got)
+			for id, status := range want {
+				if status.IsFailure() {
+					assert.NotZero(t, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: id}).Stopped)
+				}
+			}
 			if tt.note != "" {
 				summaries, err := actions_model.ListActionRunJobSummaries(ctx, 1, runID, attemptID, 0)
 				require.NoError(t, err)
@@ -357,11 +362,13 @@ func Test_cancelFailedMatrixSiblings(t *testing.T) {
 		name            string
 		failFast        bool
 		continueOnError bool
+		sourceTaskID    int64
 		wantCancelled   bool
 	}{
 		{name: "fail fast cancels a queued combination", failFast: true, wantCancelled: true},
 		{name: "disabled fail fast keeps a queued combination", failFast: false},
 		{name: "continued failure keeps a queued combination", failFast: true, continueOnError: true},
+		{name: "failure carried over by a rerun keeps a queued combination", failFast: true, sourceTaskID: 7},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			ctx := t.Context()
@@ -372,7 +379,7 @@ func Test_cancelFailedMatrixSiblings(t *testing.T) {
 			_, err := db.Exec(ctx, "UPDATE `action_run` SET latest_attempt_id = ? WHERE id = ?", attempt.ID, run.ID)
 			require.NoError(t, err)
 			jobs := actions_model.ActionJobList{
-				{RunID: run.ID, RunAttemptID: attempt.ID, RepoID: 1, OwnerID: 1, JobID: "matrix", Status: actions_model.StatusFailure, ContinueOnError: test.continueOnError, WorkflowPayload: fmt.Appendf(nil, "jobs: {matrix: {strategy: {fail-fast: %t}}}", test.failFast)},
+				{RunID: run.ID, RunAttemptID: attempt.ID, RepoID: 1, OwnerID: 1, JobID: "matrix", Status: actions_model.StatusFailure, ContinueOnError: test.continueOnError, SourceTaskID: test.sourceTaskID, WorkflowPayload: fmt.Appendf(nil, "jobs: {matrix: {strategy: {fail-fast: %t}}}", test.failFast)},
 				{RunID: run.ID, RunAttemptID: attempt.ID, RepoID: 1, OwnerID: 1, JobID: "matrix", Status: actions_model.StatusWaiting},
 			}
 			for _, job := range jobs {
