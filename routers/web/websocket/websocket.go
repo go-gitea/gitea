@@ -4,8 +4,10 @@
 package websocket
 
 import (
+	"bytes"
 	gocontext "context"
 	"net/http"
+	"strings"
 	"time"
 
 	"gitea.dev/modules/graceful"
@@ -21,6 +23,8 @@ const (
 	pingInterval = 30 * time.Second
 	pingTimeout  = 10 * time.Second
 	writeTimeout = 10 * time.Second
+
+	maxTopicSubscriptions = 64
 
 	// First code in the IANA library/framework reserved range (3000–3999).
 	// Sentinel for an unauthenticated session so the SharedWorker can tell
@@ -56,9 +60,8 @@ func Serve(ctx *context.Context) {
 
 	sessionID := ctx.Session.ID()
 
-	// Ping requires a concurrent reader to observe the pong frame; CloseRead
-	// spawns one and cancels its context when the peer goes away.
-	wsCtx := conn.CloseRead(ctx.Req.Context())
+	wsCtx, cancelConnection := gocontext.WithCancel(ctx.Req.Context())
+	defer cancelConnection()
 	shutdownCtx := graceful.GetManager().ShutdownContext()
 	pingTicker := time.NewTicker(pingInterval)
 	defer pingTicker.Stop()
@@ -76,6 +79,8 @@ func Serve(ctx *context.Context) {
 		}
 		return err
 	}
+
+	go readClientMessages(wsCtx, cancelConnection, conn, ctx.Doer.ID, !ctx.DoerNeedTwoFactorAuth(), send) // also the concurrent reader Ping needs to observe pongs
 
 	var backlog [][]byte // published before the snapshot read, so it must not follow the snapshot
 	for len(ch) > 0 {
@@ -120,4 +125,52 @@ func rejectUnauthenticated(ctx *context.Context) {
 		return
 	}
 	_ = conn.Close(closeCodeUnauthenticated, "unauthenticated")
+}
+
+func readClientMessages(ctx gocontext.Context, cancelConnection gocontext.CancelFunc, conn *gitea_ws.Conn, doerID int64, canSubscribe bool, send func([]byte) error) {
+	defer cancelConnection()
+	subscriptions := map[string]gocontext.CancelFunc{}
+	for {
+		messageType, data, err := conn.Read(ctx)
+		if err != nil {
+			return
+		}
+		if !canSubscribe || messageType != gitea_ws.MessageText {
+			continue
+		}
+		msgType, msgJSON, _ := bytes.Cut(data, []byte("\n"))
+		action, eventType, _ := strings.Cut(string(msgType), "-") // keep in sync with web_src/js/user-events.sharedworker.ts
+		topic, currentEvent := websocket_service.Subscription(eventType, doerID, msgJSON)
+		if topic == "" || (action != "subscribe" && action != "unsubscribe") {
+			continue
+		}
+		if cancel := subscriptions[topic]; cancel != nil {
+			cancel()
+			delete(subscriptions, topic)
+		}
+		if action == "subscribe" && len(subscriptions) < maxTopicSubscriptions { // a restarted stream sends a joining tab the current event
+			topicCtx, cancel := gocontext.WithCancel(ctx)
+			subscriptions[topic] = cancel
+			go streamTopic(topicCtx, cancelConnection, topic, currentEvent, send)
+		}
+	}
+}
+
+func streamTopic(ctx gocontext.Context, cancelConnection gocontext.CancelFunc, topic string, currentEvent func(gocontext.Context) []byte, send func([]byte) error) {
+	ch, unsubscribe := pubsub.DefaultBroker.Subscribe(topic)
+	defer unsubscribe()
+	for {
+		if send(currentEvent(ctx)) != nil {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case _, ok := <-ch:
+			if !ok {
+				cancelConnection()
+				return
+			}
+		}
+	}
 }

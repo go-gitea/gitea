@@ -24,6 +24,11 @@
 			{{end}}
 		</div>
 		<div class="diff-detail-actions">
+			{{if and .IsShowingAllCommits $.SignedUserID (not .Issue.IsClosed)}}
+				<a class="ui tiny orange button flex-text-inline tw-hidden" href="{{.Issue.Link}}/files" data-global-init="initDiffRefresh" data-pull-id="{{.Issue.PullRequest.ID}}" data-head="{{.CompareInfo.HeadCommitID}}">
+					{{svg "octicon-sync"}}{{ctx.Locale.Tr "repo.pulls.refresh_diff"}}
+				</a>
+			{{end}}
 			{{if and .PageIsPullFiles $.SignedUserID (not .DiffNotAvailable)}}
 				<div class="not-mobile tw-flex tw-items-center tw-flex-col tw-whitespace-nowrap tw-mr-1">
 					<label for="viewed-files-summary" id="viewed-files-summary-label" data-text-changed-template="{{ctx.Locale.Tr "repo.pulls.viewed_files_label"}}">

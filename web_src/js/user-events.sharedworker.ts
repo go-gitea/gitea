@@ -76,6 +76,7 @@ class WsSource {
   failuresWithoutConnect: number;
   fallbackSignalled: boolean;
   closed: boolean;
+  subscriptions = new Map<string, Set<MessagePort>>();
 
   constructor(wsUrl: string, source: Source) {
     this.wsUrl = wsUrl;
@@ -96,6 +97,7 @@ class WsSource {
     this.ws.addEventListener('open', () => {
       this.reconnectDelay = 1000;
       this.failuresWithoutConnect = 0;
+      for (const key of this.subscriptions.keys()) this.sendClientMessage('subscribe', key);
       this.source.notifyClientsUserEvent({eventType: 'worker-connected'});
     });
 
@@ -132,6 +134,25 @@ class WsSource {
       this.maybeSignalFallback();
       this.scheduleReconnect();
     });
+  }
+
+  sendClientMessage(action: 'subscribe' | 'unsubscribe', key: string) { // keep in sync with routers/web/websocket
+    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(`${action}-${key}`);
+  }
+
+  subscribe(port: MessagePort, eventType: string, params: Record<string, unknown>) {
+    const key = `${eventType}\n${JSON.stringify(params)}`;
+    this.subscriptions.set(key, (this.subscriptions.get(key) ?? new Set()).add(port));
+    this.sendClientMessage('subscribe', key); // per tab, so the server sends each tab the current event
+  }
+
+  unsubscribe(port: MessagePort) {
+    for (const [key, ports] of this.subscriptions) {
+      if (ports.delete(port) && !ports.size) {
+        this.subscriptions.delete(key);
+        this.sendClientMessage('unsubscribe', key);
+      }
+    }
   }
 
   maybeSignalFallback() {
@@ -215,11 +236,15 @@ const wsSourcesByUrl = new Map<string, WsSource>();
         sourcesByUrl.set(url, source);
         sourcesByPort.set(port, source);
         wsSourcesByUrl.set(url, new WsSource(url, source));
+      } else if (event.data.type === 'subscribe') {
+        const source = sourcesByPort.get(port);
+        if (source) wsSourcesByUrl.get(source.url)!.subscribe(port, event.data.eventType, event.data.params);
       } else if (event.data.type === 'close') {
         logDebug('received control message close', event.data);
         const source = sourcesByPort.get(port);
         if (!source) return;
 
+        wsSourcesByUrl.get(source.url)!.unsubscribe(port);
         const count = source.deregister(port);
         sourcesByPort.delete(port);
         if (count === 0) {

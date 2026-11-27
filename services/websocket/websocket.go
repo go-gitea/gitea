@@ -38,6 +38,14 @@ func UserData(ctx context.Context, user *user_model.User) (data [][]byte) {
 	return data
 }
 
+// Subscription decodes a client subscription message by its event type, the topic is empty for unknown types and invalid messages.
+func Subscription(eventType string, doerID int64, msgJSON []byte) (topic string, currentEvent func(context.Context) []byte) {
+	if eventType == eventPullHead {
+		return pullHeadSubscription(doerID, msgJSON)
+	}
+	return "", nil
+}
+
 func EventForSession(brokerPayload []byte, sessionID string) []byte {
 	target, eventData, _ := bytes.Cut(brokerPayload, []byte("\n"))
 	if len(target) > 0 && string(target) != sessionID {
