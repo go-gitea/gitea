@@ -8,7 +8,6 @@ import (
 	"slices"
 	"strings"
 
-	actions_model "gitea.dev/models/actions"
 	git_model "gitea.dev/models/git"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/base"
@@ -20,6 +19,7 @@ type statusCheckKind struct{ KindName, countTrKey, strokeClass string }
 
 var (
 	statusCheckFailing    = statusCheckKind{"failing", "repo.pulls.status_checks_failing", "tw-stroke-red"}
+	statusCheckCancelled  = statusCheckKind{"cancelled", "repo.pulls.status_checks_cancelled", "tw-stroke-red"}
 	statusCheckPending    = statusCheckKind{"pending", "repo.pulls.status_checks_pending", "tw-stroke-yellow"}
 	statusCheckInProgress = statusCheckKind{"in_progress", "repo.pulls.status_checks_in_progress", "tw-stroke-yellow"}
 	statusCheckExpected   = statusCheckKind{"expected", "repo.pulls.status_checks_expected", "tw-stroke-yellow"}
@@ -27,7 +27,19 @@ var (
 	statusCheckSuccessful = statusCheckKind{"successful", "repo.pulls.status_checks_successful", "tw-stroke-green"}
 )
 
-var statusCheckKinds = []statusCheckKind{statusCheckFailing, statusCheckPending, statusCheckInProgress, statusCheckSkipped, statusCheckExpected, statusCheckSuccessful}
+var statusCheckKinds = []statusCheckKind{statusCheckFailing, statusCheckCancelled, statusCheckPending, statusCheckInProgress, statusCheckSkipped, statusCheckExpected, statusCheckSuccessful}
+
+// listGroup is the group a kind's checks are listed in, GitHub lists cancelled checks with the failing ones
+func (k statusCheckKind) listGroup() statusCheckKind {
+	switch k {
+	case statusCheckCancelled:
+		return statusCheckFailing
+	case statusCheckExpected:
+		return statusCheckPending
+	default:
+		return k
+	}
+}
 
 type pullStatusCheck struct {
 	StatusContext, StatusDescription, StatusTargetURL string
@@ -48,25 +60,31 @@ func (g *statusCheckGroup) GroupTitle(locale translation.Locale) template.HTML {
 func (d *pullCommitStatusCheckData) groupStatuses(commitStatuses []*git_model.CommitStatus, requiredContexts []string, actionsStatuses actions_module.CommitActionsStatusMap, locale translation.Locale) {
 	d.counts = map[statusCheckKind]int{}
 	byKind := map[statusCheckKind][]*pullStatusCheck{}
+	add := func(kind statusCheckKind, check *pullStatusCheck) {
+		d.counts[kind]++
+		byKind[kind.listGroup()] = append(byKind[kind.listGroup()], check)
+	}
 	checks := make([]*pullStatusCheck, len(commitStatuses))
 	for i, cs := range commitStatuses {
 		checks[i] = &pullStatusCheck{
 			StatusContext: cs.Context, StatusDescription: cs.Description, StatusTargetURL: cs.TargetURL,
 			StatusState: cs.State, ActionStatus: actionsStatuses.IconStatus(cs),
 		}
+		actionStatus := actionsStatuses[cs.ID]
 		kind := statusCheckPending // unknown states count as pending, like in the combined status
 		switch {
+		case actionStatus.IsCancelled() && cs.State.IsFailure():
+			kind = statusCheckCancelled
 		case cs.State.IsError() || cs.State.IsFailure() || cs.State.IsWarning():
 			kind = statusCheckFailing
-		case cs.State == commitstatus.CommitStatusRunning || actionsStatuses[cs.ID] == actions_model.StatusRunning && cs.State.IsPending():
+		case cs.State == commitstatus.CommitStatusRunning || actionStatus.IsRunning() && cs.State.IsPending():
 			kind = statusCheckInProgress
 		case cs.State.IsSuccess():
 			kind = statusCheckSuccessful
 		case cs.State.IsSkipped():
 			kind = statusCheckSkipped
 		}
-		d.counts[kind]++
-		byKind[kind] = append(byKind[kind], checks[i])
+		add(kind, checks[i])
 	}
 	for _, requiredContext := range requiredContexts {
 		matchesRequiredContext := createRequiredContextMatcher(requiredContext)
@@ -78,8 +96,7 @@ func (d *pullCommitStatusCheckData) groupStatuses(commitStatuses []*git_model.Co
 			}
 		}
 		if !contextFound {
-			d.counts[statusCheckExpected]++
-			byKind[statusCheckPending] = append(byKind[statusCheckPending], &pullStatusCheck{
+			add(statusCheckExpected, &pullStatusCheck{
 				StatusContext: requiredContext, StatusDescription: locale.TrString("repo.pulls.status_checks_waiting"),
 				StatusState: commitstatus.CommitStatusPending, IsRequired: true,
 			})
@@ -103,7 +120,7 @@ func (d *pullCommitStatusCheckData) count(kinds ...statusCheckKind) (count int) 
 }
 
 func (d *pullCommitStatusCheckData) allFinishedSuccessfully() bool {
-	return d.count(statusCheckFailing, statusCheckPending, statusCheckInProgress, statusCheckExpected) == 0
+	return d.count(statusCheckSuccessful, statusCheckSkipped) == d.count(statusCheckKinds...)
 }
 
 func (d *pullCommitStatusCheckData) AllPassed() bool {
@@ -117,11 +134,12 @@ func (d *pullCommitStatusCheckData) StatusChecksSection(locale translation.Local
 			parts = append(parts, string(locale.Tr(kind.countTrKey, count)))
 		}
 	}
+	total := d.count(statusCheckKinds...)
 	section := &pullMergeBoxSection{
 		StatusIcon: "octicon-check", StatusIconClass: "tw-bg-green", SectionTitle: locale.Tr("repo.pulls.status_checks_success"),
-		SectionDetails: []template.HTML{locale.TrN(d.count(statusCheckKinds...), "repo.pulls.status_checks_count_1", "repo.pulls.status_checks_count_n", template.HTML(strings.Join(parts, ", ")))},
+		SectionDetails: []template.HTML{locale.TrN(total, "repo.pulls.status_checks_count_1", "repo.pulls.status_checks_count_n", template.HTML(strings.Join(parts, ", ")))},
 	}
-	allFailed := d.RequireApprovalRunCount == 0 && len(d.StatusCheckGroups) == 1 && d.StatusCheckGroups[0].CheckKind == statusCheckFailing
+	allFailed := d.RequireApprovalRunCount == 0 && d.count(statusCheckFailing) == total
 	switch {
 	case d.RequireApprovalRunCount > 0:
 		section.StatusIcon, section.StatusIconClass = "octicon-alert-fill", "tw-bg-grey-light"
@@ -148,7 +166,7 @@ type statusCheckProgressSegment struct {
 func (d *pullCommitStatusCheckData) progressSegments() (segments []statusCheckProgressSegment) {
 	const segmentGap = 5
 	total, start := float64(d.count(statusCheckKinds...)), segmentGap/2.0
-	for _, kinds := range [][]statusCheckKind{{statusCheckSuccessful}, {statusCheckSkipped}, {statusCheckPending, statusCheckInProgress, statusCheckExpected}, {statusCheckFailing}} {
+	for _, kinds := range [][]statusCheckKind{{statusCheckSuccessful}, {statusCheckSkipped}, {statusCheckPending, statusCheckInProgress, statusCheckExpected}, {statusCheckFailing, statusCheckCancelled}} {
 		count := d.count(kinds...)
 		if count == 0 {
 			continue
