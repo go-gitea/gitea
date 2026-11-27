@@ -326,6 +326,15 @@
 				</div>
 			</div>
 		</div>
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input name="merge_group" type="checkbox" {{if .Webhook.HookEvents.Get "merge_group"}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_merge_group"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_merge_group_desc"}}</span>
+				</div>
+			</div>
+		</div>
 		<!-- Workflow Events -->
 		<div class="fourteen wide column">
 			<label>{{ctx.Locale.Tr "repo.settings.event_header_workflow"}}</label>
