@@ -308,8 +308,8 @@ func TestRender_FullIssueURLs(t *testing.T) {
 		assert.Equal(t, expected, result.String())
 	}
 	test := func(input, expected string) { testWithMetas(localMetas, input, expected) }
-	test("Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6",
-		"Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6")
+	test("Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6 and http://localhost:3000/test-owner/test-repo/issues/4",
+		`Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6 and <a href="http://localhost:3000/test-owner/test-repo/issues/4" class="ref-issue">#4</a>`)
 	test("Look here http://localhost:3000/person/repo/issues/4",
 		`Look here <a href="http://localhost:3000/person/repo/issues/4" class="ref-issue">person/repo#4</a>`)
 	test("http://localhost:3000/person/repo/issues/4#issuecomment-1234",

@@ -198,6 +198,14 @@ export function formatBytes(num: number, precision = 2): string {
   return `${value.toFixed(digits)} ${byteUnits[exp]}`;
 }
 
+// mirrors Paginator.Pages in modules/paginator/paginator.go
+export function getPaginationPages(current: number, total: number): Array<number> {
+  if (total <= 7) return [1, 2, 3, 4, 5, 6, 7].slice(0, total);
+  if (current <= 4) return [1, 2, 3, 4, 5, -1, total];
+  if (current >= total - 3) return [1, -1, total - 4, total - 3, total - 2, total - 1, total];
+  return [1, -1, current - 1, current, current + 1, -1, total];
+}
+
 export function toggleFullScreen(fullScreenEl: HTMLElement, isFullScreen: boolean, sourceParentSelector?: string): void {
   // hide other elements
   const headerEl = document.querySelector('#navbar')!;

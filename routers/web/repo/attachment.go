@@ -12,9 +12,9 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/httpcache"
 	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
+	"gitea.dev/modules/web"
 	"gitea.dev/services/attachment"
 	"gitea.dev/services/context"
 	"gitea.dev/services/context/upload"
@@ -49,7 +49,7 @@ func uploadAttachment(ctx *context.Context, repoID int64, uploadFunc attachment.
 		return
 	}
 
-	file, header, err := ctx.Req.FormFile("file")
+	file, header, err := ctx.FormFile("file")
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
@@ -71,10 +71,8 @@ func uploadAttachment(ctx *context.Context, repoID int64, uploadFunc attachment.
 		return
 	}
 
-	log.Trace("New attachment uploaded: %s", attach.UUID)
-	ctx.JSON(http.StatusOK, map[string]string{
-		"uuid": attach.UUID,
-	})
+	ctx.JSON(http.StatusOK, map[string]string{"uuid": attach.UUID})
+	web.RouterMockPointCall("mockpoint-attachment-uploaded", ctx.Resp, ctx.Req)
 }
 
 func DeletePendingAttachment(ctx *context.Context) {

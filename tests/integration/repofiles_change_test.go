@@ -532,12 +532,13 @@ func TestChangeRepoFilesForDelete(t *testing.T) {
 				NewBranch: repo.DefaultBranch,
 				Message:   "Message for deleting README.md",
 				Author:    &files_service.IdentityOptions{GitUserName: "Bob Smith", GitUserEmail: "bob@smith.com"},
+				Signoff:   true,
 			}
 			filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 			require.NoError(t, err)
 			require.NotNil(t, filesResponse)
 			assert.Nil(t, filesResponse.Files[0])
-			assert.Equal(t, "Message for deleting README.md\n", filesResponse.Commit.Message)
+			assert.Equal(t, "Message for deleting README.md\n\nSigned-off-by: Bob Smith <bob@smith.com>\n", filesResponse.Commit.Message)
 			assert.Equal(t, api.Identity{Name: "Bob Smith", Email: "bob@smith.com"}, filesResponse.Commit.Author.Identity)
 			assert.Equal(t, api.Identity{Name: "Bob Smith", Email: "bob@smith.com"}, filesResponse.Commit.Committer.Identity)
 			assert.Equal(t, &api.PayloadCommitVerification{Reason: "gpg.error.not_signed_commit"}, filesResponse.Verification)

@@ -323,6 +323,7 @@ func Diff(ctx *context.Context) {
 		MaxLines:          maxLines,
 		MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:          maxFiles,
+		EnableRichDiff:    ctx.Data["PageIsWiki"] == nil,
 	}, files...)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
