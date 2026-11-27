@@ -29,7 +29,7 @@ func RouterMockPoint(pointName string) func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if h := routeMockPoints[pointName]; h != nil {
 				h(next).ServeHTTP(w, r)
-			} else if next != nil {
+			} else {
 				next.ServeHTTP(w, r)
 			}
 		})
