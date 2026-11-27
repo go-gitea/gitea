@@ -119,24 +119,11 @@ func roleDescriptor(ctx *context.Context, repo *repo_model.Repository, poster *u
 
 // checkBlockedByIssues return canRead and notPermitted
 func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.DependencyInfo) (canRead, notPermitted []*issues_model.DependencyInfo) {
-	repoPerms := make(map[int64]access_model.Permission)
-	repoPerms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
 	for _, blocker := range blockers {
-		// Get the permissions for this repository
-		// If the repo ID exists in the map, return the exist permissions
-		// else get the permission and add it to the map
-		var perm access_model.Permission
-		existPerm, ok := repoPerms[blocker.RepoID]
-		if ok {
-			perm = existPerm
-		} else {
-			var err error
-			perm, err = access_model.GetDoerRepoPermission(ctx, &blocker.Repository, ctx.Doer)
-			if err != nil {
-				ctx.ServerErrorAuto(err)
-				return nil, nil
-			}
-			repoPerms[blocker.RepoID] = perm
+		perm, err := ctx.DoerRepoPermission(&blocker.Repository)
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return nil, nil
 		}
 		if perm.CanReadIssuesOrPulls(blocker.Issue.IsPull) {
 			canRead = append(canRead, blocker)

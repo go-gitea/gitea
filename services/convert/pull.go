@@ -35,6 +35,19 @@ func toAPIAutoMerge(ctx context.Context, autoMerge *pull_model.AutoMerge) *api.P
 	}
 }
 
+func doerRepoPermission(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) access_model.Permission {
+	repoPerm, err := cache.GetWithContextCache(ctx, cachegroup.RepoUserPermission, access_model.RepoUserPermissionCacheKey(repo.ID, doer),
+		func(ctx context.Context, _key string) (access_model.Permission, error) {
+			return access_model.GetDoerRepoPermission(ctx, repo, doer)
+		},
+	)
+	if err != nil {
+		log.Error("GetDoerRepoPermission[%d]: %v", repo.ID, err)
+		repoPerm.AccessMode = perm.AccessModeNone
+	}
+	return repoPerm
+}
+
 // ToAPIPullRequest hides a head repository the doer cannot see
 func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) *api.PullRequest {
 	return toAPIPullRequest(ctx, pr, doer, false)
@@ -77,15 +90,7 @@ func toAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		return nil
 	}
 
-	repoUserPerm, err := cache.GetWithContextCache(ctx, cachegroup.RepoUserPermission, access_model.RepoUserPermissionCacheKey(pr.BaseRepoID, doer),
-		func(ctx context.Context, _ string) (access_model.Permission, error) {
-			return access_model.GetDoerRepoPermission(ctx, pr.BaseRepo, doer)
-		},
-	)
-	if err != nil {
-		log.Error("GetDoerRepoPermission[%d]: %v", pr.BaseRepoID, err)
-		repoUserPerm.AccessMode = perm.AccessModeNone
-	}
+	repoUserPerm := doerRepoPermission(ctx, pr.BaseRepo, doer)
 
 	apiPullRequest := &api.PullRequest{
 		ID:             pr.ID,
@@ -200,10 +205,7 @@ func toAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	if pr.HeadRepo != nil && pr.Flow == issues_model.PullRequestFlowGithub {
 		var headRepoPerm access_model.Permission
 		if pr.IsFromFork() {
-			if headRepoPerm, err = access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, doer); err != nil {
-				log.Error("GetDoerRepoPermission[%d]: %v", pr.HeadRepoID, err)
-				headRepoPerm.AccessMode = perm.AccessModeNone
-			}
+			headRepoPerm = doerRepoPermission(ctx, pr.HeadRepo, doer)
 		}
 
 		// a hidden head repository is read from the base repository's PR ref
@@ -211,8 +213,6 @@ func toAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		exist = false
 		if isPayload || pr.IsSameRepo() || headRepoPerm.HasAnyUnitAccessOrPublicAccess() {
 			apiPullRequest.Head.RepoID = pr.HeadRepo.ID
-			apiPullRequest.Head.Repository = apiPullRequest.Base.Repository
-
 			if pr.IsFromFork() { // not request-cached, a lingering cat-file would block deleting the fork on Windows
 				apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, headRepoPerm)
 				headGitRepo, err = git.OpenRepository(ctx, pr.HeadRepo)
@@ -221,6 +221,8 @@ func toAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 					return nil
 				}
 				defer headGitRepo.Close()
+			} else {
+				apiPullRequest.Head.Repository = apiPullRequest.Base.Repository
 			}
 
 			exist, err = git_model.IsBranchExist(ctx, pr.HeadRepoID, pr.HeadBranch)
@@ -455,13 +457,8 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, bas
 
 		// pull request head branch, both repository and branch could not exist
 		if pr.HeadRepo != nil && pr.HeadRepoID != pr.BaseRepoID {
-			p, err := access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, doer)
-			if err != nil {
-				log.Error("GetDoerRepoPermission[%d]: %v", pr.HeadRepoID, err)
-				p.AccessMode = perm.AccessModeNone
-			}
-			if p.HasAnyUnitAccessOrPublicAccess() {
-				apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
+			if headRepoPerm := doerRepoPermission(ctx, pr.HeadRepo, doer); headRepoPerm.HasAnyUnitAccessOrPublicAccess() {
+				apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, headRepoPerm)
 			}
 		}
 		if apiPullRequest.Head.Repository != nil {

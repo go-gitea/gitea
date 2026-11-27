@@ -103,8 +103,9 @@ func Update(pr *issues_model.PullRequest, doer *user_model.User, message string,
 func isUserAllowedToPushOrForcePushInRepoBranch(ctx context.Context, user *user_model.User, repoPerm access_model.Permission, pb *git_model.ProtectedBranch) (pushAllowed, forcePushAllowed bool) {
 	if pb == nil {
 		return repoPerm.CanWrite(unit.TypeCode), repoPerm.CanWrite(unit.TypeCode)
+	} else {
+		return pb.CanUserPush(ctx, user, repoPerm), pb.CanUserForcePush(ctx, user, repoPerm)
 	}
-	return pb.CanUserPush(ctx, user, repoPerm), pb.CanUserForcePush(ctx, user, repoPerm)
 }
 
 // CheckUserAllowedToUpdate check if user is allowed to update PR with given permissions and branch protections

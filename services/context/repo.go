@@ -54,11 +54,11 @@ func (prc *PullRequestContext) SameRepo() bool {
 }
 
 func (ctx *Context) DoerRepoPermission(repo *repo_model.Repository) (access_model.Permission, error) {
-	if repo.ID == ctx.Repo.Repository.ID {
-		return ctx.Repo.Permission, nil
-	} else {
-		return access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
-	}
+	return cache.GetWithContextCache(ctx, cachegroup.RepoUserPermission, access_model.RepoUserPermissionCacheKey(repo.ID, ctx.Doer),
+		func(stdCtx context.Context, _key string) (access_model.Permission, error) {
+			return access_model.GetDoerRepoPermission(stdCtx, repo, ctx.Doer)
+		},
+	)
 }
 
 func (prc *PullRequestContext) CanCreateNewPull() bool {
