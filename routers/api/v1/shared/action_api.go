@@ -1,12 +1,12 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package actions
+package shared
 
 import "gitea.dev/services/context"
 
-// API for actions of a repository or organization
-type API interface {
+// ActionsAPI for actions of a repository or organization
+type ActionsAPI interface {
 	// ListActionsSecrets list secrets
 	ListActionsSecrets(*context.APIContext)
 	// CreateOrUpdateSecret create or update a secret
