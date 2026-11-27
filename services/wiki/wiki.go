@@ -7,6 +7,7 @@ package wiki
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
@@ -58,14 +59,20 @@ func prepareGitPath(ctx context.Context, gitRepo *git.Repository, defaultWikiBra
 		return false, gitPath, nil
 	}
 
-	// Look for both files
-	filesInIndex, err := gitRepo.LsTree(ctx, defaultWikiBranch, unescaped, gitPath)
+	// Files pushed directly with git may use a raw (not percent-encoded) name, e.g. "Café.md".
+	// The wiki viewer falls back to this name too (see findEntryForFile), so editing must find the same file.
+	rawPath, err := url.QueryUnescape(gitPath)
+	if err != nil {
+		rawPath = gitPath
+	}
+
+	filesInIndex, err := gitRepo.LsTree(ctx, defaultWikiBranch, unescaped, gitPath, rawPath)
 	if err != nil {
 		log.Error("Wiki LsTree failed, err: %v", err)
 		return false, gitPath, err
 	}
 
-	foundEscaped := false
+	foundEscaped, foundRaw := false, false
 	for _, filename := range filesInIndex {
 		switch filename {
 		case unescaped:
@@ -73,7 +80,13 @@ func prepareGitPath(ctx context.Context, gitRepo *git.Repository, defaultWikiBra
 			return true, unescaped, nil
 		case gitPath:
 			foundEscaped = true
+		case rawPath:
+			foundRaw = true
 		}
+	}
+
+	if !foundEscaped && foundRaw {
+		return true, rawPath, nil
 	}
 
 	// If not return whether the escaped file exists, and the escaped filename to keep backwards compatibility.

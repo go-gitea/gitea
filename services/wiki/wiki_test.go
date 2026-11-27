@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"strings"
 	"testing"
+	"time"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
@@ -297,6 +298,35 @@ func TestPrepareWikiFileName(t *testing.T) {
 			assert.Equal(t, tt.wikiPath, newWikiPath)
 		})
 	}
+}
+
+func TestPrepareWikiFileName_RawNonASCII(t *testing.T) {
+	// a page pushed with git can have a raw UTF-8 file name, editing it must not create a percent-encoded copy
+	tmpDir := t.TempDir()
+	require.NoError(t, git.InitRepositoryLocal(t.Context(), tmpDir, true, git.Sha1ObjectFormat.Name(), "master"))
+	gitRepo, err := git.OpenRepositoryLocal(t.Context(), tmpDir)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	const rawGitPath = "Café-menu.md"
+	objectID, err := gitRepo.HashObjectBytes(t.Context(), []byte("content"))
+	require.NoError(t, err)
+	require.NoError(t, gitRepo.AddObjectToIndex(t.Context(), "100644", objectID, rawGitPath))
+	tree, err := gitRepo.WriteTree(t.Context())
+	require.NoError(t, err)
+	sig := &git.Signature{Name: "test", Email: "test@example.com", When: time.Now()}
+	commitID, err := git.CommitTree(t.Context(), gitRepo, sig, sig, tree.ID.String(), git.CommitTreeOpts{Message: "init", NoGPGSign: true})
+	require.NoError(t, err)
+	require.NoError(t, git.UpdateRef(t.Context(), gitRepo, git.BranchPrefix+"master", commitID.String()))
+
+	webPath, err := GitPathToWebPath(rawGitPath)
+	require.NoError(t, err)
+	assert.Equal(t, "Caf%C3%A9-menu.md", WebPathToGitPath(webPath))
+
+	existence, gitPath, err := prepareGitPath(t.Context(), gitRepo, "master", webPath)
+	require.NoError(t, err)
+	assert.True(t, existence)
+	assert.Equal(t, rawGitPath, gitPath)
 }
 
 func TestPrepareWikiFileName_FirstPage(t *testing.T) {
