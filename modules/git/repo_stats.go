@@ -14,6 +14,7 @@ import (
 
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/util"
 )
 
 // CodeActivityStats represents git statistics data
@@ -74,7 +75,7 @@ const (
 )
 
 func prepareCodeActivityLogCmd(fromTime time.Time, branchName string) *gitcmd.Command {
-	cmd := gitcmd.NewCommand("log", "--no-merges", "--pretty=format:"+gitLogSepFormat+"%n%h%n%aN%n%aE%n", "--date=iso").
+	cmd := gitcmd.NewCommand("log", "--no-merges", "--pretty=format:"+gitLogSepFormat+"%n%H%n%aN%n%aE%n", "--date=iso").
 		AddOptionFormat("--since=%s", fromTime.Format(time.RFC3339))
 	if branchName == "" {
 		cmd.AddArguments("--branches=*")
@@ -88,19 +89,14 @@ func parseCodeActivityLog(ctx context.Context, gitCmd *gitcmd.Command) (stats Co
 	authors := make(map[string]*CodeActivityAuthor)
 	files := make(container.Set[string])
 
-	// output format is like this, see "man git-log" for details:
+	// output format, see "man git-log" for details:
 	//
-	// ---
+	// \x00---
 	// 1234567890
 	// user-a
 	// email-a@example.com
 	//
-	// 1       0       README.md
-	//
-	// ---
-	// 1234abcd12
-	// user-b
-	// email-b@example.com
+	// 1<TAB>0<TAB>README.md
 	// ...
 
 	author := ""
@@ -115,13 +111,12 @@ func parseCodeActivityLog(ctx context.Context, gitCmd *gitcmd.Command) (stats Co
 
 		subIdx++
 		switch subIdx {
-		case 1: // Separator
-		case 2: // Commit ID (short)
+		case 2: // Commit ID
 			stats.CommitCount++
 		case 3: // Author
-			author = string(line)
+			author = strings.TrimSpace(string(line))
 		case 4: // E-mail
-			email := strings.ToLower(string(line))
+			email := strings.ToLower(strings.TrimSpace(string(line)))
 			if _, ok := authors[email]; !ok {
 				authors[email] = &CodeActivityAuthor{Name: author, Email: email, Commits: 0}
 			}
@@ -137,9 +132,7 @@ func parseCodeActivityLog(ctx context.Context, gitCmd *gitcmd.Command) (stats Co
 			if del, _ := strconv.ParseInt(string(parts[1]), 10, 64); del > 0 {
 				stats.Deletions += del
 			}
-			filename := string(parts[2])
-			filename, _ = UnquoteDiffFilePath(filename)
-			files.Add(filename)
+			files.Add(string(parts[2]))
 		}
 		return nil
 	})
@@ -147,13 +140,9 @@ func parseCodeActivityLog(ctx context.Context, gitCmd *gitcmd.Command) (stats Co
 		return stats, err
 	}
 
-	activityAuthors := make([]*CodeActivityAuthor, 0, len(authors))
-	for _, v := range authors {
-		activityAuthors = append(activityAuthors, v)
-	}
+	stats.Authors = util.ValuesOfMap(authors)
 	// Sort authors descending depending on commit count
-	sort.Slice(activityAuthors, func(i, j int) bool { return activityAuthors[i].Commits > activityAuthors[j].Commits })
-	stats.Authors = activityAuthors
+	sort.Slice(stats.Authors, func(i, j int) bool { return stats.Authors[i].Commits > stats.Authors[j].Commits })
 	stats.AuthorCount = int64(len(authors))
 	stats.ChangedFiles = int64(len(files))
 	return stats, nil

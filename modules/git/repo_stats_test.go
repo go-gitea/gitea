@@ -42,19 +42,15 @@ func TestRepository_GetCodeActivityStats(t *testing.T) {
 
 func TestRepository_GetCodeActivityStatsPathWithSpaces(t *testing.T) {
 	repoFacade, err := ForceFastImportWithInit(t.Context(), t.TempDir(), []FastImportCommit{{
-		Ref:       "refs/heads/master",
-		Committer: &Signature{Name: "test", Email: "test@example.com", When: time.Unix(1769202331, 0)},
-		Files: []FastImportFile{
-			{Path: "docs/release notes.md", Content: "a\n"},
-			{Path: "docs/release plan.md", Content: "a\n"},
-		},
+		Ref:   "refs/heads/master",
+		Files: []FastImportFile{{Path: "docs/release notes.md"}, {Path: "docs/release plan.md"}},
 	}})
 	require.NoError(t, err)
 	repo, err := OpenRepository(t.Context(), repoFacade)
 	require.NoError(t, err)
 	defer repo.Close()
 
-	code, err := repo.GetCodeActivityStats(t.Context(), time.Unix(1769202000, 0), "")
+	code, err := repo.GetCodeActivityStats(t.Context(), time.Unix(0, 0), "")
 	require.NoError(t, err)
 	assert.EqualValues(t, 2, code.ChangedFiles)
 }
