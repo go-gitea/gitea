@@ -16916,6 +16916,51 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/pulls/{index}/conflicts": {
+      "get": {
+        "description": "Merges the head of the pull request into its base branch without committing anything. Responds with 501 if the git version of the server does not support it. A merged pull request has no conflicts to report (422).",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get the merge conflicts of a pull request",
+        "operationId": "repoGetPullRequestConflicts",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PullRequestConflicts"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls/{index}/files": {
       "get": {
         "produces": [
@@ -32490,6 +32535,83 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "PullRequestConflictBlob": {
+      "description": "PullRequestConflictBlob is one version of a conflicted file",
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "x-go-name": "Mode"
+        },
+        "sha": {
+          "description": "SHA is the blob ID, it can be fetched with the git blobs API",
+          "type": "string",
+          "x-go-name": "SHA"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PullRequestConflictFile": {
+      "description": "PullRequestConflictFile is a file that can't be merged automatically",
+      "type": "object",
+      "properties": {
+        "base": {
+          "$ref": "#/definitions/PullRequestConflictBlob"
+        },
+        "content": {
+          "description": "Content is the file of the merge result, null for binary or large files. It has conflict markers when both sides changed the file, and is the surviving version when one side deleted it.",
+          "type": "string",
+          "x-go-name": "Content"
+        },
+        "kind": {
+          "description": "Kind tells how the file conflicts: \"us\" is the base branch of the pull request and \"them\" is its head.",
+          "type": "string",
+          "enum": [
+            "both_modified",
+            "both_added",
+            "deleted_by_us",
+            "deleted_by_them",
+            "other"
+          ],
+          "x-go-name": "Kind"
+        },
+        "ours": {
+          "$ref": "#/definitions/PullRequestConflictBlob"
+        },
+        "path": {
+          "description": "Path is the path of the file. For directory/file conflicts git reports a synthetic path (such as \"name~\u003csha\u003e\") that exists on neither side.",
+          "type": "string",
+          "x-go-name": "Path"
+        },
+        "theirs": {
+          "$ref": "#/definitions/PullRequestConflictBlob"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PullRequestConflicts": {
+      "description": "PullRequestConflicts lists the files that prevent a pull request from being merged",
+      "type": "object",
+      "properties": {
+        "conflicted": {
+          "type": "boolean",
+          "x-go-name": "Conflicted"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PullRequestConflictFile"
+          },
+          "x-go-name": "Files"
+        },
+        "truncated": {
+          "description": "Truncated is true if there are more conflicted files than listed",
+          "type": "boolean",
+          "x-go-name": "Truncated"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "PullRequestMeta": {
       "description": "PullRequestMeta PR info if an issue is a PR",
       "type": "object",
@@ -35290,6 +35412,12 @@
       "description": "PullRequest",
       "schema": {
         "$ref": "#/definitions/PullRequest"
+      }
+    },
+    "PullRequestConflicts": {
+      "description": "PullRequestConflicts",
+      "schema": {
+        "$ref": "#/definitions/PullRequestConflicts"
       }
     },
     "PullRequestList": {

@@ -1548,3 +1548,97 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	ctx.JSON(http.StatusOK, &apiFiles)
 }
+
+// GetPullRequestConflicts lists the conflicted files of a pull request
+func GetPullRequestConflicts(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}/conflicts repository repoGetPullRequestConflicts
+	// ---
+	// summary: Get the merge conflicts of a pull request
+	// description: Merges the head of the pull request into its base branch without committing anything. Responds with 501 if the git version of the server does not support it. A merged pull request has no conflicts to report (422).
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullRequestConflicts"
+	//   default:
+	//     "$ref": "#/responses/error"
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
+	if err != nil {
+		if issues_model.IsErrPullRequestNotExist(err) {
+			ctx.APIErrorNotFound()
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+	if pr.HasMerged {
+		ctx.APIError(http.StatusUnprocessableEntity, "pull request is already merged")
+		return
+	}
+
+	hasConflicts, conflicts, truncated, err := pull_service.GetPullRequestConflicts(ctx, ctx.Repo.GitRepo, pr)
+	switch {
+	case errors.Is(err, pull_service.ErrConflictDetailUnsupported):
+		ctx.APIError(http.StatusNotImplemented, err.Error())
+		return
+	case errors.Is(err, pull_service.ErrConflictRefNotFound):
+		ctx.APIError(http.StatusUnprocessableEntity, pull_service.ErrConflictRefNotFound.Error())
+		return
+	case errors.Is(err, util.ErrNotExist):
+		ctx.APIError(http.StatusUnprocessableEntity, "pull request has no common history with its base branch")
+		return
+	case err != nil:
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	result := &api.PullRequestConflicts{Conflicted: hasConflicts, Files: make([]*api.PullRequestConflictFile, 0, len(conflicts)), Truncated: truncated}
+	for _, c := range conflicts {
+		blob := func(stage *git.MergeTreeConflictStage) *api.PullRequestConflictBlob {
+			if stage == nil {
+				return nil
+			}
+			return &api.PullRequestConflictBlob{SHA: stage.ObjectID, Mode: stage.Mode}
+		}
+		result.Files = append(result.Files, &api.PullRequestConflictFile{
+			Path:    c.Path,
+			Kind:    conflictKind(c.MergeTreeConflict),
+			Base:    blob(c.Base),
+			Ours:    blob(c.Ours),
+			Theirs:  blob(c.Theirs),
+			Content: c.Content,
+		})
+	}
+	ctx.JSON(http.StatusOK, result)
+}
+
+func conflictKind(c *git.MergeTreeConflict) string {
+	switch {
+	case c.Base != nil && c.Ours != nil && c.Theirs != nil:
+		return "both_modified"
+	case c.Base == nil && c.Ours != nil && c.Theirs != nil:
+		return "both_added"
+	case c.Base != nil && c.Ours != nil && c.Theirs == nil:
+		return "deleted_by_them"
+	case c.Base != nil && c.Ours == nil && c.Theirs != nil:
+		return "deleted_by_us"
+	}
+	return "other"
+}
