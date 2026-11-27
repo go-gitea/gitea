@@ -34,7 +34,7 @@ func TestRenderHelperCodePreview(t *testing.T) {
 		<a href="http://full" class="tw-font-semibold" rel="nofollow">repo1/README.md</a>
 		repo.code_preview_line_from_to:1,2,<a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" class="muted tw-font-mono tw-text-text" rel="nofollow">65f1bf27bc</a>
 	</div>
-	<table class="file-view code-highlight" data-paste-markdown-skip data-global-init="initCodeHighlight" data-highlight-language="Markdown">
+	<table class="file-view code-highlight" data-paste-markdown-skip data-highlight-language="Markdown">
 		<tbody><tr>
 				<td class="lines-num"><span data-line-number="1"></span></td>
 				<td class="lines-code"><div class="code-inner"># repo1
@@ -63,7 +63,7 @@ func TestRenderHelperCodePreview(t *testing.T) {
 		<a href="http://full" class="tw-font-semibold" rel="nofollow">repo1/README.md</a>
 		repo.code_preview_line_in:1,<a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" class="muted tw-font-mono tw-text-text" rel="nofollow">65f1bf27bc</a>
 	</div>
-	<table class="file-view code-highlight" data-paste-markdown-skip data-global-init="initCodeHighlight" data-highlight-language="Markdown">
+	<table class="file-view code-highlight" data-paste-markdown-skip data-highlight-language="Markdown">
 		<tbody><tr>
 				<td class="lines-num"><span data-line-number="1"></span></td>
 				<td class="lines-code"><div class="code-inner"># repo1

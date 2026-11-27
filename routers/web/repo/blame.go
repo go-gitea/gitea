@@ -277,5 +277,7 @@ func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames 
 
 	ctx.Data["EscapeStatus"] = escapeStatus
 	ctx.Data["BlameRows"] = rows
-	ctx.Data["FileLanguage"] = highlight.DetectLanguage(path.Base(ctx.Repo.TreePath), language, bufContent)
+	language = highlight.DetectLanguage(path.Base(ctx.Repo.TreePath), language, bufContent)
+	ctx.Data["FileLanguage"] = language
+	ctx.Data["FileLanguageName"] = util.IfZero(language, "Plaintext")
 }

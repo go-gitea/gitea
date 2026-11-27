@@ -125,6 +125,7 @@ func handleFileViewRenderSource(ctx *context.Context, attrs *attribute.Attribute
 	language := highlight.DetectLanguage(filename, attrs.GetLanguage().Value(), buf)
 	fileContent := highlight.RenderPlainLines(util.UnsafeBytesToString(buf))
 	ctx.Data["FileLanguage"] = language
+	ctx.Data["FileLanguageName"] = util.IfZero(language, "Plaintext")
 	status := &charset.EscapeStatus{}
 	statuses := make([]*charset.EscapeStatus, len(fileContent))
 	for i, line := range fileContent {

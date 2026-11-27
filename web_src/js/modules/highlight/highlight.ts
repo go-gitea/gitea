@@ -45,15 +45,18 @@ const scopeClasses: Array<[cls: string, scopes: string[]]> = [
   ['tok-deleted', ['markup.deleted']],
 ];
 
-// linguist names which neither match an id, a name nor an alias of a shiki grammar
-const linguistOverrides: Record<string, string> = {
+// names of linguist and of code blocks which neither match an id, a name nor an alias of a shiki grammar
+const languageOverrides: Record<string, string> = {
   'apacheconf': 'apache',
   'batchfile': 'bat',
   'cuda': 'cpp',
+  'cython': 'python',
   'editorconfig': 'ini',
+  'ex': 'elixir',
   'fortran': 'fortran-fixed-form',
   'gettext catalog': 'po',
   'git config': 'ini',
+  'golang': 'go',
   'gradle': 'groovy',
   'html+django': 'jinja',
   'html+erb': 'erb',
@@ -65,6 +68,10 @@ const linguistOverrides: Record<string, string> = {
   'justfile': 'just',
   'lean 4': 'lean',
   'mathematica': 'wolfram',
+  'mustache': 'handlebars',
+  'nasm': 'asm',
+  'patch': 'diff',
+  'pl': 'perl',
   'plpgsql': 'sql',
   'protocol buffer': 'proto',
   'sqlpl': 'sql',
@@ -73,6 +80,7 @@ const linguistOverrides: Record<string, string> = {
   'tsql': 'sql',
   'unix assembly': 'asm',
   'visual basic .net': 'vb',
+  'xml property list': 'xml',
 };
 
 // themes only take colors, so every class gets a stand-in color which the tokens are mapped back from
@@ -93,7 +101,7 @@ const highlighters = new Map<string, Promise<LineHighlighter | null>>();
 // the id of the shiki grammar for a language name of linguist or of the "linguist-language" attribute
 export function findLanguage(language: string): string | null {
   const lower = language.toLowerCase();
-  const id = linguistOverrides[lower] ?? lower.replaceAll(' ', '-');
+  const id = languageOverrides[lower] ?? lower.replaceAll(' ', '-');
   if (id in shikiLanguages) return id;
   for (const [key, lang] of Object.entries(shikiLanguages)) {
     if (lang.name.toLowerCase() === lower || lang.aliases.includes(lower)) return key;

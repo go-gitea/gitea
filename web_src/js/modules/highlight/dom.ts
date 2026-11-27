@@ -58,14 +58,17 @@ export async function highlightCodeElements(els: HTMLElement[], language: string
 }
 
 // code rendered by templates, with the lines of a file as ".code-inner" elements
-export function initCodeHighlight(): void {
-  registerGlobalInitFunc('initCodeHighlight', (el: HTMLElement) => {
-    highlightCodeElements(Array.from(el.querySelectorAll<HTMLElement>('.code-inner')), el.getAttribute('data-highlight-language')!);
-  });
+function highlightCodeLines(el: HTMLElement): void {
+  highlightCodeElements(Array.from(el.querySelectorAll<HTMLElement>('.code-inner')), el.getAttribute('data-highlight-language')!);
 }
 
-// the code blocks of rendered markup, mermaid and math blocks are replaced by their own renderers
+export function initCodeHighlight(): void {
+  registerGlobalInitFunc('initCodeHighlight', highlightCodeLines);
+}
+
+// the code blocks and code previews of rendered markup, mermaid and math blocks are replaced by their own renderers
 export function initMarkupCodeHighlight(elMarkup: HTMLElement): void {
+  queryElems<HTMLElement>(elMarkup, '.code-preview-container table[data-highlight-language]', highlightCodeLines); // the sanitizer drops "data-global-init"
   queryElems<HTMLElement>(elMarkup, 'pre.code-block > code', (el) => {
     const language = el.getAttribute('data-code-language') ?? /(?:^|\s)language-(\S+)/.exec(el.className)?.[1];
     if (!language || language === 'mermaid' || language === 'math') return;

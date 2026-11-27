@@ -30,7 +30,7 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 
 	// Line numbers and paste behavior on codepreview
 	policy.AllowAttrs("data-line-number").OnElements("span")
-	policy.AllowAttrs("data-paste-markdown-skip").OnElements("table")
+	policy.AllowAttrs("data-paste-markdown-skip", "data-highlight-language").OnElements("table")
 
 	// emoji aliases for dark theme inversion
 	policy.AllowAttrs("data-alias").OnElements("span")

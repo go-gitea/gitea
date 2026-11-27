@@ -6,6 +6,8 @@ test('findLanguage', () => {
   expect(findLanguage('Shell')).toEqual('shellscript');
   expect(findLanguage('Fortran Free Form')).toEqual('fortran-free-form');
   expect(findLanguage('Jupyter Notebook')).toEqual('json');
+  expect(findLanguage('golang')).toEqual('go');
+  expect(findLanguage('patch')).toEqual('diff');
   expect(findLanguage('Text')).toBeNull();
 });
 

@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, apiCreateBranch, apiCreateFiles, apiCreateRepo, apiHeaders, randomString} from './utils.ts';
+import {login, apiCreateBranch, apiCreateFiles, apiCreateIssue, apiCreateRepo, apiHeaders, baseUrl, randomString} from './utils.ts';
 
 test('create a repository', async ({page}) => {
   const repoName = `e2e-repo-${randomString(8)}`;
@@ -57,6 +57,14 @@ test('search and highlight code', async ({page, request}) => {
   }
   await page.goto(`/${owner}/${repoName}/src/branch/main/docs.md`);
   await expect(page.locator('.markup .code-block .tok-keyword')).toHaveText('const');
+
+  // a link to lines of a file is shown as a code preview, the lines can still be selected in the file view
+  const commitId = (await (await request.get(`/api/v1/repos/${owner}/${repoName}/branches/main`, {headers: apiHeaders()})).json()).commit.id;
+  const {index} = await apiCreateIssue(request, {owner, repo: repoName, title: 'preview', body: `${baseUrl()}/${owner}/${repoName}/src/commit/${commitId}/src/main.go#L3`});
+  await page.goto(`/${owner}/${repoName}/issues/${index}`);
+  await expect(page.locator('.code-preview-container .tok-keyword')).toHaveText('func');
+  await page.locator('.code-preview-header a').first().click();
+  await expect(page.locator('.code-view tr.active .tok-function')).toHaveText('alphaTerm');
 });
 
 test('file tree, go to file and tag selector navigate nested files', async ({page, request}) => {
