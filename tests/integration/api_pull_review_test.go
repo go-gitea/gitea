@@ -12,6 +12,7 @@ import (
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
@@ -21,6 +22,7 @@ import (
 	api "gitea.dev/modules/structs"
 	issue_service "gitea.dev/services/issue"
 	pull_service "gitea.dev/services/pull"
+	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -326,6 +328,12 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	requestReview(http.MethodPost, repo, pullIssue.Index, token, &api.PullReviewRequestOptions{
 		Reviewers: []string{"user4@example.com", "user8"},
+	}, http.StatusUnprocessableEntity)
+	for _, name := range []string{"user4", "user8"} {
+		require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), repo, unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: name}), perm.AccessModeRead))
+	}
+	requestReview(http.MethodPost, repo, pullIssue.Index, token, &api.PullReviewRequestOptions{
+		Reviewers: []string{"user4@example.com", "user8"},
 	}, http.StatusCreated)
 
 	// poster of pr can't be reviewer
@@ -347,7 +355,7 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	}, http.StatusNoContent)
 
 	// doer is not admin
-	requestReview(http.MethodDelete, repo, pullIssue.Index, token2, &api.PullReviewRequestOptions{
+	requestReview(http.MethodDelete, repo, pullIssue.Index, getUserToken(t, "user5", auth_model.AccessTokenScopeWriteRepository), &api.PullReviewRequestOptions{
 		Reviewers: []string{"user8"},
 	}, http.StatusUnprocessableEntity)
 
@@ -362,22 +370,22 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	user38Session := loginUser(t, "user38")
 	user38Token := getTokenForLoggedInUser(t, user38Session, auth_model.AccessTokenScopeWriteRepository)
 	requestReview(http.MethodPost, pull21Repo, pullIssue21.Index, user38Token, &api.PullReviewRequestOptions{
-		Reviewers: []string{"user4@example.com"},
+		Reviewers: []string{"user40@example.com"},
 	}, http.StatusCreated)
 
 	requestReview(http.MethodDelete, pull21Repo, pullIssue21.Index, user38Token, &api.PullReviewRequestOptions{
-		Reviewers: []string{"user4@example.com"},
+		Reviewers: []string{"user40@example.com"},
 	}, http.StatusNoContent)
 
 	// the poster of the PR can add/remove a review request
 	user39Session := loginUser(t, "user39")
 	user39Token := getTokenForLoggedInUser(t, user39Session, auth_model.AccessTokenScopeWriteRepository)
 	requestReview(http.MethodPost, pull21Repo, pullIssue21.Index, user39Token, &api.PullReviewRequestOptions{
-		Reviewers: []string{"user8"},
+		Reviewers: []string{"user38"},
 	}, http.StatusCreated)
 
 	requestReview(http.MethodDelete, pull21Repo, pullIssue21.Index, user39Token, &api.PullReviewRequestOptions{
-		Reviewers: []string{"user8"},
+		Reviewers: []string{"user38"},
 	}, http.StatusNoContent)
 
 	// user with read permission on pull requests unit can add/remove a review request
@@ -509,6 +517,7 @@ func TestAPIPullReviewStayDismissed(t *testing.T) {
 	user8 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 8})
 	session8 := loginUser(t, user8.LoginName)
 	token8 := getTokenForLoggedInUser(t, session8, auth_model.AccessTokenScopeWriteRepository)
+	require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), repo, user8, perm.AccessModeRead))
 
 	// user2 request user8
 	for _, name := range []string{

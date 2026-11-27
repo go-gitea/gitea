@@ -6,12 +6,15 @@ package issues
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	org_model "gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/optional"
 
@@ -22,12 +25,17 @@ import (
 // Return empty slice if files missing
 // Return warning messages on parsing errors
 // We're trying to do the best we can when parsing a file.
-// Invalid lines are skipped. Non-existent users and teams too.
+// Invalid lines are skipped. Owners that can't be requested to review too.
 func GetCodeOwnersFromContent(ctx context.Context, repo *repo_model.Repository, data string) (rules []*CodeOwnerRule, warnings []string) {
 	globalReview := optional.None[bool]()
 	sectionReview := optional.None[bool]()
 	section := ""
 	var owners []string
+	reviewers := &codeOwnerReviewers{
+		repo:    repo,
+		userIDs: sync.OnceValues(func() (container.Set[int64], error) { return getReviewerIDs(ctx, repo) }),
+		teams:   sync.OnceValues(func() ([]*org_model.Team, error) { return GetReviewerTeams(ctx, repo) }),
+	}
 
 	lineNum := 0
 	for line := range strings.SplitSeq(data, "\n") {
@@ -66,7 +74,7 @@ func GetCodeOwnersFromContent(ctx context.Context, repo *repo_model.Repository, 
 			warnings = append(warnings, fmt.Sprintf("Line: %d: incorrect format", lineNum))
 			continue
 		}
-		rule, wr := ParseCodeOwnersLine(ctx, repo, tokens)
+		rule, wr := parseCodeOwnersLine(ctx, reviewers, tokens)
 		for _, w := range wr {
 			warnings = append(warnings, fmt.Sprintf("Line: %d: %s", lineNum, w))
 		}
@@ -108,7 +116,14 @@ type CodeOwnerRule struct {
 	Teams []*org_model.Team
 }
 
-func ParseCodeOwnersLine(ctx context.Context, repo *repo_model.Repository, tokens []string) (rule *CodeOwnerRule, warnings []string) {
+// codeOwnerReviewers loads on first use because every file view parses CODEOWNERS
+type codeOwnerReviewers struct {
+	repo    *repo_model.Repository
+	userIDs func() (container.Set[int64], error)
+	teams   func() ([]*org_model.Team, error)
+}
+
+func parseCodeOwnersLine(ctx context.Context, reviewers *codeOwnerReviewers, tokens []string) (rule *CodeOwnerRule, warnings []string) {
 	rule = &CodeOwnerRule{Negative: strings.HasPrefix(tokens[0], "!")}
 
 	// Strip leading "!" for negative rules, then strip leading "/" since
@@ -144,24 +159,22 @@ func ParseCodeOwnersLine(ctx context.Context, repo *repo_model.Repository, token
 
 		// Only @org/team can contain slashes
 		if orgName, teamName, isTeam := strings.Cut(user, "/"); isTeam {
-			if strings.Contains(teamName, "/") {
-				warnings = append(warnings, "incorrect codeowner group: "+user)
+			teams, err := reviewers.teams()
+			idx := slices.IndexFunc(teams, func(team *org_model.Team) bool { return strings.EqualFold(team.Name, teamName) })
+			if err != nil || idx == -1 || !strings.EqualFold(orgName, reviewers.repo.OwnerName) {
+				warnings = append(warnings, "codeowner can't be requested to review: "+user)
 				continue
 			}
-			if !strings.EqualFold(orgName, repo.OwnerName) {
-				warnings = append(warnings, "codeowner team must belong to the repository owner: "+user)
-				continue
-			}
-			team, err := org_model.GetTeam(ctx, repo.OwnerID, teamName)
-			if err != nil {
-				warnings = append(warnings, "incorrect codeowner team: "+user)
-				continue
-			}
-			rule.Teams = append(rule.Teams, team)
+			rule.Teams = append(rule.Teams, teams[idx])
 		} else {
 			u, err := user_model.GetUserByName(ctx, user)
 			if err != nil {
 				warnings = append(warnings, "incorrect codeowner user: "+user)
+				continue
+			}
+			userIDs, err := reviewers.userIDs()
+			if err != nil || !u.IsActive || !userIDs.Contains(u.ID) {
+				warnings = append(warnings, "codeowner can't be requested to review: "+user)
 				continue
 			}
 			rule.Users = append(rule.Users, u)

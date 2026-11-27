@@ -18,6 +18,7 @@ import (
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -117,6 +118,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 		assert.NoError(t, err)
 
 		for _, reviewer := range []*user_model.User{user5, user8} {
+			require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), repo, reviewer, perm.AccessModeRead))
 			require.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), reviewer, repo, repo_model.WatchOptions{
 				Mode: repo_model.WatchModeCustom, WatchPullRequests: true,
 			}))

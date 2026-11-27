@@ -106,14 +106,14 @@ func TestPullRequestCodeOwnersReview(t *testing.T) {
 
 func TestMatchCodeOwnerRules(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	rules, warnings := issues_model.GetCodeOwnersFromContent(t.Context(), &repo_model.Repository{}, strings.TrimSpace(`
-*.md @user1
+	rules, warnings := issues_model.GetCodeOwnersFromContent(t.Context(), unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4}), strings.TrimSpace(`
+*.md @user4
 [Docs] @user5
 *.md
 README.md @user4
-[Docs] @user2
+[Docs] @user5
 other.md
-[Independent] @user1
+[Independent] @user4
 *.md
 `))
 	require.Empty(t, warnings)
