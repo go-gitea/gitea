@@ -23,17 +23,12 @@ func (b *Base) FormString(key string, def ...string) string {
 	return s
 }
 
+var ParseMultipartFormMaxMemory int64 = 10 * 1024 * 1024
+
 // FormStrings returns a values for the key in the form (including query parameters), similar to FormString
 func (b *Base) FormStrings(key string) []string {
-	if b.Req.Form == nil {
-		if err := b.Req.ParseForm(); err != nil {
-			return nil
-		}
-	}
-	if v, ok := b.Req.Form[key]; ok {
-		return v
-	}
-	return nil
+	_ = b.Req.ParseMultipartForm(ParseMultipartFormMaxMemory) // the same logic as http.Request.FormValue
+	return b.Req.Form[key]
 }
 
 func (b *Base) FormStringInt64s(key string) []int64 {

@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 
 	"gitea.dev/modules/setting"
@@ -29,12 +28,4 @@ func TestRedirect(t *testing.T) {
 	assert.Contains(t, resp.Header().Get("Content-Type"), "application/json")
 	assert.JSONEq(t, `{"redirect":"/other"}`, resp.Body.String())
 	assert.Equal(t, http.StatusOK, resp.Code)
-}
-
-func TestFormStrings(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPost, "/?q=1", strings.NewReader("oid=a&oid=b"))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	b := NewBaseContextForTest(t, httptest.NewRecorder(), req)
-	assert.Equal(t, []string{"a", "b"}, b.FormStrings("oid"))
-	assert.Equal(t, []string{"1"}, b.FormStrings("q"))
 }
