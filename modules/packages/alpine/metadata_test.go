@@ -4,12 +4,13 @@
 package alpine
 
 import (
-	"archive/tar"
 	"bytes"
 	"compress/gzip"
-	"io"
 	"strings"
 	"testing"
+
+	"gitea.dev/modules/packages"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -44,33 +45,11 @@ provides = gitea`)
 }
 
 func TestParsePackage(t *testing.T) {
-	createPackage := func(name string, content []byte) io.Reader {
-		names := []string{"first.stream", name}
-		contents := [][]byte{{0}, content}
-
-		var buf bytes.Buffer
-		zw := gzip.NewWriter(&buf)
-
-		for i := range names {
-			if i != 0 {
-				zw.Close()
-				zw.Reset(&buf)
-			}
-
-			tw := tar.NewWriter(zw)
-			hdr := &tar.Header{
-				Name: names[i],
-				Mode: 0o600,
-				Size: int64(len(contents[i])),
-			}
-			tw.WriteHeader(hdr)
-			tw.Write(contents[i])
-			tw.Close()
-		}
-
-		zw.Close()
-
-		return &buf
+	createPackage := func(name string, content []byte) *bytes.Reader {
+		return bytes.NewReader(append(
+			test.WriteTarCompression(gzip.NewWriter, map[string]string{"first.stream": "\x00"}).Bytes(),
+			test.WriteTarCompression(gzip.NewWriter, map[string]string{name: string(content)}).Bytes()...,
+		))
 	}
 
 	t.Run("MissingPKGINFOFile", func(t *testing.T) {
@@ -79,6 +58,13 @@ func TestParsePackage(t *testing.T) {
 		pp, err := ParsePackage(data)
 		assert.Nil(t, pp)
 		assert.ErrorIs(t, err, ErrMissingPKGINFOFile)
+	})
+
+	t.Run("DecompressionLimit", func(t *testing.T) {
+		defer test.MockVariableValue(&packages.ArchiveDecompressionFloor, 0)()
+		pp, err := ParsePackage(createPackage("dummy.txt", make([]byte, 1024*1024)))
+		assert.Nil(t, pp)
+		assert.ErrorIs(t, err, packages.ErrContentTooLarge)
 	})
 
 	t.Run("InvalidPKGINFOFile", func(t *testing.T) {

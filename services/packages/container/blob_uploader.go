@@ -113,18 +113,30 @@ func (u *BlobUploader) Size() int64 {
 	return u.BytesReceived
 }
 
-// Read implements io.Reader
-func (u *BlobUploader) Read(p []byte) (int, error) {
+func (u *BlobUploader) switchToRead() error {
 	if !u.reading {
 		_, err := u.file.Seek(0, io.SeekStart)
 		if err != nil {
-			return 0, err
+			return err
 		}
-
 		u.reading = true
 	}
+	return nil
+}
 
+// Read implements io.Reader
+func (u *BlobUploader) Read(p []byte) (int, error) {
+	if err := u.switchToRead(); err != nil {
+		return 0, err
+	}
 	return u.file.Read(p)
+}
+
+func (u *BlobUploader) ReadAt(p []byte, off int64) (int, error) {
+	if err := u.switchToRead(); err != nil {
+		return 0, err
+	}
+	return u.file.ReadAt(p, off)
 }
 
 // RemoveBlobUploadByID Remove deletes the data and the model of a blob upload
