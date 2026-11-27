@@ -22,87 +22,43 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCheckCallerChain_Cycle(t *testing.T) {
-	for _, testCase := range []struct {
-		name         string
-		uses         []string
-		sourceRepoID int64
-		error        string
-	}{
-		// A -> A: leaf's CallUses matches its direct parent's.
-		{"DirectCycle", []string{"./.gitea/workflows/a.yml", "./.gitea/workflows/a.yml"}, 0, "cycle detected"},
-		// A -> B -> A: leaf's CallUses matches its grandparent's.
-		{"IndirectCycle", []string{"./.gitea/workflows/a.yml", "./.gitea/workflows/b.yml", "./.gitea/workflows/a.yml"}, 0, "cycle detected"},
-		// A -> A written with both same-repo prefixes: they name the same file.
-		{"MixedPrefixCycle", []string{"./.gitea/workflows/a.yml", "$/.gitea/workflows/a.yml"}, 0, "cycle detected"},
-		// Sanity: linear chain with distinct CallUses must not trip cycle detection.
-		{"NoCycle", []string{"./.gitea/workflows/a.yml", "./.gitea/workflows/b.yml", "./.gitea/workflows/c.yml"}, 0, ""},
-		{"SameLocalPathInOtherRepo", []string{"./.gitea/workflows/a.yml", "owner/lib/.gitea/workflows/lib.yml@v1", "./.gitea/workflows/a.yml"}, 2, ""},
-	} {
-		t.Run(testCase.name, func(t *testing.T) {
-			require.NoError(t, unittest.PrepareTestDatabase())
-			chain := buildCallerChain(t, testCase.uses...)
-			leaf := chain[len(chain)-1]
-			leaf.WorkflowSourceRepoID = testCase.sourceRepoID
-			err := checkCallerChainOf(t, leaf)
-			if testCase.error == "" {
-				require.NoError(t, err)
-			} else {
-				assert.ErrorContains(t, err, testCase.error)
-			}
-			if testCase.name == "MixedPrefixCycle" {
-				assert.Equal(t, canonicalCallUses(&actions_model.ActionRunJob{CallUses: "owner/repo/.gitea/workflows/a.yml@v1"}), canonicalCallUses(&actions_model.ActionRunJob{CallUses: "self:owner/repo/.gitea/workflows/a.yml@v1"}))
-			}
-		})
+func TestCheckCallerChainMatchesAliasesWithinSource(t *testing.T) {
+	caller := &actions_model.ActionRunJob{CallUses: "$/.gitea/workflows/a.yml", WorkflowSourceRepoID: 1}
+	ancestors := []*actions_model.ActionRunJob{
+		{IsReusableCaller: true, CallUses: "owner/lib/.gitea/workflows/b.yml@v1"},
+		{IsReusableCaller: true, CallUses: "./.gitea/workflows/a.yml", WorkflowSourceRepoID: 2},
 	}
+	require.NoError(t, checkCallerChain(caller, ancestors))
+	ancestors[1].WorkflowSourceRepoID = 1
+	assert.ErrorContains(t, checkCallerChain(caller, ancestors), "cycle detected")
 
-	t.Run("ResolvedIdentityCycle", func(t *testing.T) {
-		require.NoError(t, unittest.PrepareTestDatabase())
-		chain := buildCallerChain(t,
-			"./.gitea/workflows/a.yml",
-			"owner/repo/.gitea/workflows/b.yml@v1",
-			"owner/repo/.gitea/workflows/a.yml@v1",
-		)
-		chain[1].WorkflowSourceRepoID = 4
-		chain[1].WorkflowSourceCommitSHA = "first-commit"
-		_, err := actions_model.UpdateRunJob(t.Context(), chain[1], nil, "workflow_source_repo_id", "workflow_source_commit_sha")
-		require.NoError(t, err)
-		chain[2].WorkflowSourceRepoID = 5
-		chain[2].WorkflowSourceCommitSHA = "second-commit"
-
-		ancestors := mustGetAncestorCallers(t, chain[2])
-		require.NoError(t, checkCallerChain(chain[2], ancestors))
-		require.ErrorContains(t, checkResolvedCallerCycle(t.Context(), chain[2], ancestors, 4, "first-commit", ".gitea/workflows/a.yml"), "cycle detected")
-		require.NoError(t, checkResolvedCallerCycle(t.Context(), chain[2], ancestors, 4, "other-commit", ".gitea/workflows/a.yml"))
-	})
+	ancestor := &actions_model.ActionRunJob{IsReusableCaller: true, CallUses: "owner/lib/.gitea/workflows/b.yml@v1"}
+	caller.CallUses = "self:" + ancestor.CallUses
+	assert.ErrorContains(t, checkCallerChain(caller, []*actions_model.ActionRunJob{ancestor}), "cycle detected")
 }
 
-func TestCheckCallerChain_DepthLimit(t *testing.T) {
-	// top + MaxReusableCallLevels nested callers is the longest accepted; one more exceeds the limit.
-	makeDistinctUses := func(n int) []string {
-		out := make([]string, n)
-		for i := range out {
-			out[i] = fmt.Sprintf("./.gitea/workflows/level%d.yml", i)
-		}
-		return out
+func TestCheckResolvedCallerCycleMatchesPathAtSameCommit(t *testing.T) {
+	caller := &actions_model.ActionRunJob{CallUses: "owner/repo/.gitea/workflows/a.yml@v1", WorkflowSourceRepoID: 5, WorkflowSourceCommitSHA: "second-commit"}
+	ancestors := []*actions_model.ActionRunJob{
+		{IsReusableCaller: true, CallUses: "owner/repo/.gitea/workflows/b.yml@v1", WorkflowSourceRepoID: 4, WorkflowSourceCommitSHA: "first-commit"},
+		{IsReusableCaller: true, CallUses: "./.gitea/workflows/a.yml"},
 	}
-
-	t.Run("ExactlyAtLimit", func(t *testing.T) {
-		require.NoError(t, unittest.PrepareTestDatabase())
-		chain := buildCallerChain(t, makeDistinctUses(MaxReusableCallLevels+1)...)
-		require.NoError(t, checkCallerChainOf(t, chain[len(chain)-1]))
-	})
-
-	t.Run("OneOverLimit", func(t *testing.T) {
-		require.NoError(t, unittest.PrepareTestDatabase())
-		chain := buildCallerChain(t, makeDistinctUses(MaxReusableCallLevels+2)...)
-		err := checkCallerChainOf(t, chain[len(chain)-1])
-		assert.ErrorContains(t, err, "exceeds the maximum nesting level")
-	})
+	require.NoError(t, checkCallerChain(caller, ancestors))
+	assert.ErrorContains(t, checkResolvedCallerCycle(t.Context(), caller, ancestors, 4, "first-commit", ".gitea/workflows/a.yml"), "cycle detected")
+	assert.NoError(t, checkResolvedCallerCycle(t.Context(), caller, ancestors, 4, "other-commit", ".gitea/workflows/a.yml"))
 }
 
-func checkCallerChainOf(t *testing.T, job *actions_model.ActionRunJob) error {
-	return checkCallerChain(job, mustGetAncestorCallers(t, job))
+func TestCheckCallerChainAllowsTenWorkflowLevelsAndReportsEarlierCycles(t *testing.T) {
+	caller := &actions_model.ActionRunJob{CallUses: "./.gitea/workflows/called.yml"}
+	ancestors := make([]*actions_model.ActionRunJob, 9)
+	for i := range ancestors {
+		ancestors[i] = &actions_model.ActionRunJob{IsReusableCaller: true, CallUses: fmt.Sprintf("./.gitea/workflows/level%d.yml", i+1)}
+	}
+	require.NoError(t, checkCallerChain(caller, ancestors[:8]))
+	assert.EqualError(t, checkCallerChain(caller, ancestors),
+		`reusable workflow call at "./.gitea/workflows/called.yml" exceeds the maximum of 10 workflow levels, including the top-level caller`)
+	ancestors[7].CallUses = caller.CallUses
+	assert.ErrorContains(t, checkCallerChain(caller, ancestors), "cycle detected")
 }
 
 func mustGetAncestorCallers(t *testing.T, job *actions_model.ActionRunJob) []*actions_model.ActionRunJob {

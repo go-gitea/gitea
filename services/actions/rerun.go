@@ -124,6 +124,7 @@ type rerunPlan struct {
 	templateAttempt *actions_model.ActionRunAttempt
 	templateJobs    actions_model.ActionJobList
 	triggerUser     *user_model.User
+	rerunAll        bool
 
 	// rerunAttemptJobIDs holds the AttemptJobIDs of jobs that will actually be re-run in the new attempt.
 	// If a job here is a reusable caller, the whole subtree under it will be re-run.
@@ -174,6 +175,7 @@ func buildRerunPlan(ctx context.Context, run *actions_model.ActionRun, triggerUs
 		templateAttempt: templateAttempt,
 		templateJobs:    templateJobs,
 		triggerUser:     triggerUser,
+		rerunAll:        len(jobsToRerun) == 0,
 	}
 
 	if err := plan.expandRerunJobIDs(jobsToRerun); err != nil {
@@ -313,21 +315,29 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				newJob.ParentJobID = newParentID
 			}
 
-			var invalidIf error
+			var invalidErr error
+			invalidKey := "if"
 			if plan.rerunAttemptJobIDs.Contains(templateJob.AttemptJobID) {
 				resetJobForRerun(newJob, shouldBlock)
+				if plan.rerunAll {
+					newJob.ReusableWorkflowRef = ""
+				}
 
-				invalidIf, err = decideJobIf(ctx, plan.run, newAttempt, newJob, vars)
+				invalidErr, err = decideJobIf(ctx, plan.run, newAttempt, newJob, vars)
 				if err != nil {
 					return fmt.Errorf("evaluate job if: %w", err)
 				}
 
 				if newJob.Status == actions_model.StatusWaiting {
-					jobsToCancel, _, err = admitJob(ctx, newJob, slots, nil, func() error {
+					runsOnErr := invalidRunsOn(newJob)
+					jobsToCancel, runsOnFailed, err := admitJob(ctx, newJob, slots, runsOnErr, func() error {
 						return EvaluateJobConcurrencyFillModel(ctx, plan.run, newAttempt, newJob, vars, nil)
 					})
 					if err != nil {
 						return err
+					}
+					if runsOnFailed {
+						invalidKey, invalidErr = "runs-on", runsOnErr
 					}
 					cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
 				}
@@ -340,8 +350,8 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				return err
 			}
 			templateIDToNewID[templateJob.ID] = newJob.ID
-			if invalidIf != nil {
-				if err := upsertJobErrorSummary(ctx, newJob, "if", invalidIf); err != nil {
+			if invalidErr != nil {
+				if err := upsertJobErrorSummary(ctx, newJob, invalidKey, invalidErr); err != nil {
 					return err
 				}
 			}

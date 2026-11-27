@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"fmt"
+	"strings"
 	"unicode/utf8"
 
 	act_model "gitea.dev/actionslib/pkg/model"
@@ -43,7 +44,7 @@ func EvaluateRunConcurrencyFillModel(ctx context.Context, run *actions_model.Act
 	if err != nil {
 		return fmt.Errorf("evaluate concurrency: %w", err)
 	}
-	attempt.ConcurrencyGroup = boundedConcurrencyGroup(attempt.ConcurrencyGroup)
+	attempt.ConcurrencyGroup = normalizeConcurrencyGroup(attempt.ConcurrencyGroup)
 	return nil
 }
 
@@ -86,12 +87,13 @@ func EvaluateJobConcurrencyFillModel(ctx context.Context, run *actions_model.Act
 	if err != nil {
 		return util.NewInvalidArgumentErrorf("%v", err)
 	}
-	actionRunJob.ConcurrencyGroup = boundedConcurrencyGroup(actionRunJob.ConcurrencyGroup)
+	actionRunJob.ConcurrencyGroup = normalizeConcurrencyGroup(actionRunJob.ConcurrencyGroup)
 	actionRunJob.IsConcurrencyEvaluated = true
 	return nil
 }
 
-func boundedConcurrencyGroup(group string) string {
+func normalizeConcurrencyGroup(group string) string {
+	group = strings.ToLower(group)
 	if utf8.RuneCountInString(group) > 255 {
 		return base.EncodeSha256(group)
 	}

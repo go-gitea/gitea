@@ -9,44 +9,30 @@ import (
 
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
 	shared_secrets "gitea.dev/routers/web/shared/secrets"
 	"gitea.dev/services/context"
 )
 
-const (
-	// TODO: Separate secrets from runners when layout is ready
-	tplRepoSecrets templates.TplName = "repo/settings/actions"
-	tplOrgSecrets  templates.TplName = "org/settings/actions"
-	tplUserSecrets templates.TplName = "user/settings/actions"
-)
-
-type secretsCtx struct {
-	*settingsScope
-	Owner           *user_model.User // audit records need the loaded owner or repo, not only its ID
-	Repo            *repo_model.Repository
-	SecretsTemplate templates.TplName
-	RedirectLink    string
-}
-
-func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
+func getSecretsScope(ctx *context.Context) (*settingsScope, error) {
 	scope, err := getSettingsScope(ctx)
 	if err != nil {
 		return nil, err
 	}
-	sCtx := &secretsCtx{settingsScope: scope, RedirectLink: scope.LinkPrefix + "/secrets"}
+	if scope.IsAdmin() {
+		return nil, errors.New("getSecretsScope: secrets are not managed at instance level")
+	}
+	return scope, nil
+}
+
+func secretAuditTarget(ctx *context.Context, scope *settingsScope) (*user_model.User, *repo_model.Repository) {
 	switch scope.Kind {
 	case settingsScopeRepo:
-		sCtx.Repo, sCtx.SecretsTemplate = ctx.Repo.Repository, tplRepoSecrets
+		return nil, ctx.Repo.Repository
 	case settingsScopeOrg:
-		sCtx.Owner, sCtx.SecretsTemplate = ctx.ContextUser, tplOrgSecrets
-	case settingsScopeUser:
-		sCtx.Owner, sCtx.SecretsTemplate = ctx.Doer, tplUserSecrets
+		return ctx.ContextUser, nil
 	default:
-		return nil, errors.New("getSecretsCtx: secrets are not managed at instance level")
+		return ctx.Doer, nil
 	}
-	return sCtx, nil
 }
 
 func Secrets(ctx *context.Context) {
@@ -54,25 +40,20 @@ func Secrets(ctx *context.Context) {
 	ctx.Data["PageType"] = "secrets"
 	ctx.Data["PageIsSharedSettingsSecrets"] = true
 
-	sCtx, err := getSecretsCtx(ctx)
+	scope, err := getSecretsScope(ctx)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}
 
-	if sCtx.IsRepo() {
-		ctx.Data["DisableSSH"] = setting.SSH.Disabled
+	shared_secrets.SetSecretsContext(ctx, scope.BelongingScope)
+	if !ctx.Written() {
+		ctx.HTML(http.StatusOK, scope.Template)
 	}
-
-	shared_secrets.SetSecretsContext(ctx, sCtx.BelongingScope())
-	if ctx.Written() {
-		return
-	}
-	ctx.HTML(http.StatusOK, sCtx.SecretsTemplate)
 }
 
 func SecretsPost(ctx *context.Context) {
-	sCtx, err := getSecretsCtx(ctx)
+	scope, err := getSecretsScope(ctx)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
@@ -83,26 +64,16 @@ func SecretsPost(ctx *context.Context) {
 		return
 	}
 
-	shared_secrets.PerformSecretsPost(
-		ctx,
-		sCtx.BelongingScope(),
-		sCtx.Owner,
-		sCtx.Repo,
-		sCtx.RedirectLink,
-	)
+	owner, repo := secretAuditTarget(ctx, scope)
+	shared_secrets.PerformSecretsPost(ctx, scope.BelongingScope, owner, repo, scope.LinkPrefix+"/secrets")
 }
 
 func SecretsDelete(ctx *context.Context) {
-	sCtx, err := getSecretsCtx(ctx)
+	scope, err := getSecretsScope(ctx)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	shared_secrets.PerformSecretsDelete(
-		ctx,
-		sCtx.BelongingScope(),
-		sCtx.Owner,
-		sCtx.Repo,
-		sCtx.RedirectLink,
-	)
+	owner, repo := secretAuditTarget(ctx, scope)
+	shared_secrets.PerformSecretsDelete(ctx, scope.BelongingScope, owner, repo, scope.LinkPrefix+"/secrets")
 }

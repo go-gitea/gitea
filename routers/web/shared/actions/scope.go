@@ -9,6 +9,7 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
 )
@@ -22,43 +23,37 @@ const (
 	settingsScopeAdmin
 )
 
-// settingsScope is the repo, owner or instance an actions settings page manages
 type settingsScope struct {
-	Kind    settingsScopeKind
-	OwnerID int64 // 0 for a repo or the instance
-	RepoID  int64
-	// LinkPrefix is the page's ".../actions" settings link
-	LinkPrefix string
+	Kind            settingsScopeKind
+	OwnerID, RepoID int64
+	BelongingScope  actions_model.BelongingScope
+	LinkPrefix      string
+	Template        templates.TplName
 }
 
-func (s *settingsScope) IsRepo() bool  { return s.Kind == settingsScopeRepo }
-func (s *settingsScope) IsOrg() bool   { return s.Kind == settingsScopeOrg }
-func (s *settingsScope) IsUser() bool  { return s.Kind == settingsScopeUser }
 func (s *settingsScope) IsAdmin() bool { return s.Kind == settingsScopeAdmin }
 
-func (s *settingsScope) BelongingScope() actions_model.BelongingScope {
-	switch s.Kind {
-	case settingsScopeRepo:
-		return actions_model.BelongingScopeRepo(s.RepoID)
-	case settingsScopeOrg, settingsScopeUser:
-		return actions_model.BelongingScopeOwner(s.OwnerID)
-	}
-	return actions_model.BelongingScopeGlobal()
-}
-
 func getSettingsScope(ctx *context.Context) (*settingsScope, error) {
+	scope := &settingsScope{}
 	switch {
 	case ctx.Data["PageIsRepoSettings"] == true:
-		return &settingsScope{Kind: settingsScopeRepo, RepoID: ctx.Repo.Repository.ID, LinkPrefix: ctx.Repo.RepoLink + "/settings/actions"}, nil
+		scope.Kind, scope.BelongingScope = settingsScopeRepo, actions_model.BelongingScopeRepo(ctx.Repo.Repository.ID)
+		scope.LinkPrefix, scope.Template = ctx.Repo.RepoLink+"/settings/actions", "repo/settings/actions"
 	case ctx.Data["PageIsOrgSettings"] == true:
 		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 			return nil, fmt.Errorf("getSettingsScope: %w", err)
 		}
-		return &settingsScope{Kind: settingsScopeOrg, OwnerID: ctx.Org.Organization.ID, LinkPrefix: ctx.Org.OrgLink + "/settings/actions"}, nil
+		scope.Kind, scope.BelongingScope = settingsScopeOrg, actions_model.BelongingScopeOwner(ctx.Org.Organization.ID)
+		scope.LinkPrefix, scope.Template = ctx.Org.OrgLink+"/settings/actions", "org/settings/actions"
 	case ctx.Data["PageIsUserSettings"] == true:
-		return &settingsScope{Kind: settingsScopeUser, OwnerID: ctx.Doer.ID, LinkPrefix: setting.AppSubURL + "/user/settings/actions"}, nil
+		scope.Kind, scope.BelongingScope = settingsScopeUser, actions_model.BelongingScopeOwner(ctx.Doer.ID)
+		scope.LinkPrefix, scope.Template = setting.AppSubURL+"/user/settings/actions", "user/settings/actions"
 	case ctx.Data["PageIsAdmin"] == true:
-		return &settingsScope{Kind: settingsScopeAdmin, LinkPrefix: setting.AppSubURL + "/-/admin/actions"}, nil
+		scope.Kind, scope.BelongingScope = settingsScopeAdmin, actions_model.BelongingScopeGlobal()
+		scope.LinkPrefix, scope.Template = setting.AppSubURL+"/-/admin/actions", "admin/actions"
+	default:
+		return nil, errors.New("getSettingsScope: not an actions settings page")
 	}
-	return nil, errors.New("getSettingsScope: not an actions settings page")
+	scope.OwnerID, scope.RepoID = scope.BelongingScope.GetOwnerRepoIDs()
+	return scope, nil
 }

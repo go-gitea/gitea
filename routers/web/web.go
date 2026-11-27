@@ -512,6 +512,15 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 	}
 
+	addOwnerActionsRoutes := func() {
+		m.Get("", misc.LocationRedirect("./actions/general"))
+		m.Combo("/general").Get(shared_actions.GeneralSettings).Post(shared_actions.UpdateGeneralSettings)
+		addSettingsRunnersRoutes()
+		addSettingsSecretsRoutes()
+		addSettingsVariablesRoutes()
+		addSettingsScopedWorkflowsRoutes()
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 
@@ -688,17 +697,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/chef/regenerate_keypair", user_setting.RegenerateChefKeyPair)
 		}, packagesEnabled)
 
-		m.Group("/actions", func() {
-			m.Get("", misc.LocationRedirect("./actions/general"))
-			m.Group("/general", func() {
-				m.Get("", shared_actions.GeneralSettings)
-				m.Post("", shared_actions.UpdateGeneralSettings)
-			})
-			addSettingsRunnersRoutes()
-			addSettingsSecretsRoutes()
-			addSettingsVariablesRoutes()
-			addSettingsScopedWorkflowsRoutes()
-		}, actions.MustEnableActions)
+		m.Group("/actions", addOwnerActionsRoutes, actions.MustEnableActions)
 
 		m.Get("/organization", user_setting.Organization)
 		m.Get("/repos", user_setting.Repos)
@@ -1025,17 +1024,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Post("/initialize", web.Bind[*forms.InitializeLabelsForm](), org.InitializeLabels)
 				})
 
-				m.Group("/actions", func() {
-					m.Get("", misc.LocationRedirect("./actions/general"))
-					m.Group("/general", func() {
-						m.Get("", shared_actions.GeneralSettings)
-						m.Post("", shared_actions.UpdateGeneralSettings)
-					})
-					addSettingsRunnersRoutes()
-					addSettingsSecretsRoutes()
-					addSettingsVariablesRoutes()
-					addSettingsScopedWorkflowsRoutes()
-				}, actions.MustEnableActions)
+				m.Group("/actions", addOwnerActionsRoutes, actions.MustEnableActions)
 
 				m.Get("/audit_logs", org_setting.ViewAuditLogs)
 

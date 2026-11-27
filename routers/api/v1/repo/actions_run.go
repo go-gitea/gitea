@@ -402,12 +402,12 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 
-	run, jobs := getCurrentRepoActionRunJobsByID(ctx)
+	run := getCurrentRepoActionRunByID(ctx)
 	if ctx.Written() {
 		return
 	}
 
-	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, jobs); err != nil {
+	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, nil); err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}

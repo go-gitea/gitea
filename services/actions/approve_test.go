@@ -49,9 +49,17 @@ func TestApproveRuns(t *testing.T) {
 		return job
 	}
 
-	t.Run("approve unblocks a job with no dependencies", func(t *testing.T) {
+	t.Run("approve unblocks a job with no dependencies that a newer job in its group did not replace", func(t *testing.T) {
 		run := insertRun(1001, actions_model.StatusBlocked, true, 0)
 		job := insertJob(run, actions_model.StatusBlocked)
+		job.RawConcurrency, job.ConcurrencyGroup, job.IsConcurrencyEvaluated = "group: g", "g", true
+		_, err := actions_model.UpdateRunJob(t.Context(), job, nil, "raw_concurrency", "concurrency_group", "is_concurrency_evaluated")
+		require.NoError(t, err)
+		newer := *job
+		newer.ID, newer.RunID = 0, insertRun(1010, actions_model.StatusRunning, false, 0).ID
+		_, cancelled, err := PrepareToStartJobWithConcurrency(t.Context(), &newer)
+		require.NoError(t, err)
+		assert.Empty(t, cancelled)
 
 		approved, err := ApproveRuns(t.Context(), repo, doer, []int64{run.ID})
 		require.NoError(t, err)

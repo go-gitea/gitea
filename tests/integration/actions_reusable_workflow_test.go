@@ -605,10 +605,13 @@ jobs:
 			unittest.AssertNotExistsBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "util_consumer_job"})
 		})
 
-		t.Run("Missing, invalid or cache-mode exceeding callee fails the run as an invalid workflow file", func(t *testing.T) {
+		t.Run("Invalid and cyclic reusable calls fail workflow validation", func(t *testing.T) {
 			apiRepo := createActionsTestRepo(t, user2Token, "invalid-callees", false)
 			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-			const caller = "on: push\njobs:\n  plain_job: {runs-on: ubuntu-latest, steps: [{run: echo}]}\n  call:\n    needs: plain_job\n    uses: ./.gitea/workflows/"
+			const callerJobs = "\njobs:\n  plain_job: {runs-on: ubuntu-latest, steps: [{run: echo}]}\n  call:\n"
+			const localCall = "    uses: ./.gitea/workflows/"
+			const caller = "on: push" + callerJobs + "    needs: plain_job\n" + localCall
+			cycleTarget := repo.FullName() + "/.gitea/workflows/nested/cycle.yaml@" + repo.DefaultBranch
 			testCreateFileInBranch(t, user2, repo, createFileInBranchOptions{}, map[string]string{
 				".gitea/workflows/missing.yaml":      caller + "absent.yml\n",
 				".gitea/workflows/invalid.yaml":      caller + "no-runs-on.yml\n",
@@ -617,12 +620,23 @@ jobs:
 				".gitea/workflows/leaf.yml":          "on: workflow_call\ncache-mode: read\njobs: {build: {runs-on: ubuntu-latest, cache-mode: write-only, steps: [{run: echo}]}}\n",
 				".gitea/workflows/relay.yml":         "on: workflow_call\njobs: {forward: {uses: ./.gitea/workflows/leaf.yml}}\n",
 				".gitea/workflows/job-cap.yaml":      "on: push\ncache-mode: read\njobs:\n  allow: {uses: ./.gitea/workflows/relay.yml, cache-mode: write}\n  inherit: {uses: ./.gitea/workflows/relay.yml}\n",
+				".gitea/workflows/direct-cycle.yaml": "on: [workflow_dispatch, workflow_call]" + callerJobs + localCall + "direct-cycle.yaml\n",
+				".gitea/workflows/nested/cycle.yaml": "on: [push, workflow_call]" + callerJobs + localCall + "cycle-relay.yml\n",
+				".gitea/workflows/cycle-relay.yml":   "on: workflow_call\njobs: {forward: {uses: " + cycleTarget + "}}\n",
 			})
+
+			req := NewRequestWithJSON(t, "POST", "/api/v1/repos/"+repo.FullName()+"/actions/workflows/direct-cycle.yaml/dispatches",
+				&api.CreateActionWorkflowDispatch{Ref: repo.DefaultBranch}).AddTokenAuth(user2Token)
+			resp := MakeRequest(t, req, http.StatusUnprocessableEntity)
+			assert.Contains(t, DecodeJSON(t, resp, &api.APIError{}).Message, `cycle detected: "./.gitea/workflows/direct-cycle.yaml"`)
+			unittest.AssertNotExistsBean(t, &actions_model.ActionRun{RepoID: repo.ID, WorkflowID: "direct-cycle.yaml"})
+
 			for workflowID, want := range map[string]string{
 				"missing.yaml":      "job call: read user2/invalid-callees@",
 				"invalid.yaml":      "job call: Error from called workflow ./.gitea/workflows/no-runs-on.yml: job inner: Required property is missing: runs-on",
 				"workflow-cap.yaml": "job call: Error from called workflow ./.gitea/workflows/leaf.yml: cache-mode: The workflow is requesting 'read', but is only allowed 'write-only'",
 				"job-cap.yaml":      "job inherit: Error from called workflow ./.gitea/workflows/relay.yml: job forward: Error from called workflow ./.gitea/workflows/leaf.yml: cache-mode: The nested job 'build' is requesting 'write-only', but is only allowed 'read'",
+				"nested/cycle.yaml": fmt.Sprintf("cycle detected: %q", cycleTarget),
 			} {
 				assertInvalidWorkflowRun(t, repo.ID, workflowID, want)
 			}
@@ -822,110 +836,82 @@ jobs:
 			assert.Equal(t, "release", taskContext["base_ref"].GetStringValue())
 		})
 
-		t.Run("Caller alternates expanding across attempts", func(t *testing.T) {
+		t.Run("Partial reruns reuse callee commits across skipped attempts and full reruns resolve the moved branch", func(t *testing.T) {
 			apiRepo := createActionsTestRepo(t, user2Token, "caller-walkback-test", false)
 			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-
 			runner := newMockRunner()
 			runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-walkback-runner", []string{"ubuntu-latest"}, false)
 
-			// Scenario:
-			//   attempt 1: gate succeeds -> caller expands -> inner runs (records inner.AttemptJobID = N)
-			//   attempt 2: rerun gate, mock Failure -> caller is Skipped without expanding (no children inserted)
-			//   attempt 3: rerun gate, mock Success -> caller expands again -> inner.AttemptJobID must equal N
-
-			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/lib.yaml",
-				`name: Lib
-on:
-  workflow_call:
-
+			testCreateFileInBranch(t, user2, repo, createFileInBranchOptions{}, map[string]string{
+				".gitea/workflows/inner.yaml": "on: workflow_call\njobs: {inner: {runs-on: ubuntu-latest, steps: [{run: echo inner}]}}\n",
+				".gitea/workflows/lib.yaml": fmt.Sprintf(`on: workflow_call
 jobs:
-  inner:
+  generate:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.output.outputs.matrix }}
     steps:
-      - run: echo inner
-`)
-			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/main.yaml",
-				`name: Main
-on:
+      - id: output
+        run: echo 'matrix=["a"]' >> "$GITHUB_OUTPUT"
+  nested:
+    needs: [generate]
+    strategy:
+      matrix:
+        value: ${{ fromJson(needs.generate.outputs.matrix) }}
+    uses: %s/.gitea/workflows/inner.yaml@%s
+`, repo.FullName(), repo.DefaultBranch),
+				".gitea/workflows/main.yaml": fmt.Sprintf(`on:
   push:
-    paths:
-      - '.gitea/workflows/main.yaml'
+    paths: ['.gitea/workflows/main.yaml']
 jobs:
-  gate:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo gate
-
+  gate: {runs-on: ubuntu-latest, steps: [{run: echo gate}]}
   caller:
     needs: [gate]
-    uses: ./.gitea/workflows/lib.yaml
-`)
+    uses: %s/.gitea/workflows/lib.yaml@%s
+`, repo.FullName(), repo.DefaultBranch),
+			})
 
 			run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID})
-			runID := run.ID
-
-			latestAttempt := func() *actions_model.ActionRunAttempt {
-				r := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runID})
-				return unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunAttempt{ID: r.LatestAttemptID})
-			}
 			jobInLatest := func(jobID string) *actions_model.ActionRunJob {
-				a := latestAttempt()
-				return unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, RunAttemptID: a.ID, JobID: jobID})
+				latest := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
+				return unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, RunAttemptID: latest.LatestAttemptID, JobID: jobID})
+			}
+			completeTask := func(jobID string, result runnerv1.Result, outputs map[string]string) {
+				task := runner.fetchTask(t)
+				require.Equal(t, jobID, task.GetContext().GetFields()["job"].GetStringValue())
+				runner.execTask(t, task, &mockTaskOutcome{result: result, outputs: outputs})
+			}
+			completeAttempt := func() {
+				completeTask("gate", runnerv1.Result_RESULT_SUCCESS, nil)
+				completeTask("generate", runnerv1.Result_RESULT_SUCCESS, map[string]string{"matrix": `["a"]`})
+				completeTask("inner", runnerv1.Result_RESULT_SUCCESS, nil)
+			}
+			assertCalleeCommits := func(commitSHA string) {
+				assert.Equal(t, commitSHA, jobInLatest("nested").WorkflowSourceCommitSHA)
+				assert.Equal(t, commitSHA, jobInLatest("inner").WorkflowSourceCommitSHA)
 			}
 
-			// attempt 1: gate Success -> caller expands -> inner runs
-			gate1Task := runner.fetchTask(t)
-			_, gate1, _ := getTaskAndJobAndRunByTaskID(t, gate1Task.Id)
-			assert.Equal(t, "gate", gate1.JobID)
-			runner.execTask(t, gate1Task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+			completeAttempt()
+			innerAttemptJobID := jobInLatest("inner").AttemptJobID
+			movedCommit := testCreateFileInBranch(t, user2, repo, createFileInBranchOptions{}, map[string]string{"advance-branch.txt": "new commit"}).Commit.SHA
+			require.NotEqual(t, run.WorkflowCommitSHA, movedCommit)
 
-			inner1Task := runner.fetchTask(t)
-			_, inner1, _ := getTaskAndJobAndRunByTaskID(t, inner1Task.Id)
-			assert.Equal(t, "inner", inner1.JobID)
-			innerAttemptJobID := inner1.AttemptJobID
-			callerAttempt1 := jobInLatest("caller")
-			assert.True(t, callerAttempt1.IsExpanded)
-			assert.Equal(t, callerAttempt1.ID, inner1.ParentJobID)
-			runner.execTask(t, inner1Task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
-
-			run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runID})
-			assert.Equal(t, actions_model.StatusSuccess, run.Status)
-
-			// attempt 2: rerun gate, mock Failure -> caller stays unexpanded (Skipped)
-			gateLatest := jobInLatest("gate")
-			req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", repo.OwnerName, repo.Name, runID, gateLatest.ID))
+			req := NewRequest(t, "POST", fmt.Sprintf("/%s/actions/runs/%d/jobs/%d/rerun", repo.FullName(), run.ID, jobInLatest("gate").ID))
 			user2Session.MakeRequest(t, req, http.StatusOK)
+			completeTask("gate", runnerv1.Result_RESULT_FAILURE, nil)
+			assert.Equal(t, actions_model.StatusSkipped, jobInLatest("caller").Status)
 
-			gate2Task := runner.fetchTask(t)
-			_, gate2, _ := getTaskAndJobAndRunByTaskID(t, gate2Task.Id)
-			assert.Equal(t, "gate", gate2.JobID)
-			runner.execTask(t, gate2Task, &mockTaskOutcome{result: runnerv1.Result_RESULT_FAILURE})
+			apiRunPath := fmt.Sprintf("/api/v1/repos/%s/actions/runs/%d", repo.FullName(), run.ID)
+			MakeRequest(t, NewRequest(t, "POST", apiRunPath+"/rerun-failed-jobs").AddTokenAuth(user2Token), http.StatusCreated)
+			completeAttempt()
+			assertCalleeCommits(run.WorkflowCommitSHA)
+			assert.Equal(t, innerAttemptJobID, jobInLatest("inner").AttemptJobID)
+			assert.Equal(t, "refs/heads/"+repo.DefaultBranch, jobInLatest("caller").ReusableWorkflowRef)
+			assert.Equal(t, "refs/heads/"+repo.DefaultBranch, jobInLatest("nested").ReusableWorkflowRef)
 
-			runner.fetchNoTask(t) // no inner because caller did not expand
-			attempt2 := latestAttempt()
-			assert.Equal(t, actions_model.StatusFailure, attempt2.Status)
-			callerAttempt2 := jobInLatest("caller")
-			assert.Equal(t, actions_model.StatusSkipped, callerAttempt2.Status)
-			assert.False(t, callerAttempt2.IsExpanded)
-			assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRunJob{RunID: runID, RunAttemptID: attempt2.ID, JobID: "inner"}))
-
-			// attempt 3: rerun gate, mock Success -> caller expands and inner reuses attempt 1's AttemptJobID
-			gateLatest = jobInLatest("gate")
-			req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", repo.OwnerName, repo.Name, runID, gateLatest.ID))
-			user2Session.MakeRequest(t, req, http.StatusOK)
-
-			gate3Task := runner.fetchTask(t)
-			runner.execTask(t, gate3Task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
-
-			inner3Task := runner.fetchTask(t)
-			_, inner3, _ := getTaskAndJobAndRunByTaskID(t, inner3Task.Id)
-			assert.Equal(t, "inner", inner3.JobID)
-			assert.Equal(t, innerAttemptJobID, inner3.AttemptJobID)
-			runner.execTask(t, inner3Task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
-
-			run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runID})
-			assert.Equal(t, actions_model.StatusSuccess, run.Status)
+			MakeRequest(t, NewRequest(t, "POST", apiRunPath+"/rerun").AddTokenAuth(user2Token), http.StatusCreated)
+			completeAttempt()
+			assertCalleeCommits(movedCommit)
 		})
 
 		t.Run("No-needs callers: if evaluated inline, called job concurrency serializes them", func(t *testing.T) {

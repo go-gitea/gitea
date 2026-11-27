@@ -57,19 +57,29 @@ func dispatchInputsForRunJobs(run *actions_model.ActionRun, jobs []*actions_mode
 //   - For top-level jobs, it falls back to the run's dispatch inputs (empty for non-dispatch events)
 //   - For reusable workflow children (and nested callers), this is calledWorkflowInputs of the direct parent caller
 func getInputsForJob(ctx context.Context, run *actions_model.ActionRun, job *actions_model.ActionRunJob) (map[string]any, error) {
+	return getInputsForJobWithAncestors(ctx, run, job, nil)
+}
+
+func getInputsForJobWithAncestors(ctx context.Context, run *actions_model.ActionRun, job *actions_model.ActionRunJob, ancestors []*actions_model.ActionRunJob) (map[string]any, error) {
 	if job.ParentJobID == 0 {
 		return dispatchInputsForJob(run, job)
 	}
 
-	caller, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, job.ParentJobID)
-	if err != nil {
-		return nil, fmt.Errorf("load caller job %d: %w", job.ParentJobID, err)
+	var caller *actions_model.ActionRunJob
+	if len(ancestors) > 0 {
+		caller, ancestors = ancestors[0], ancestors[1:]
+	} else {
+		var err error
+		caller, err = actions_model.GetRunJobByRunAndID(ctx, run.ID, job.ParentJobID)
+		if err != nil {
+			return nil, fmt.Errorf("load caller job %d: %w", job.ParentJobID, err)
+		}
 	}
 	workflowCallInputs, err := decodeWorkflowCallInputs(caller)
 	if err != nil {
 		return nil, err
 	}
-	return calledWorkflowInputs(ctx, run, caller, workflowCallInputs)
+	return calledWorkflowInputs(ctx, run, caller, ancestors, workflowCallInputs)
 }
 
 func decodeWorkflowCallInputs(caller *actions_model.ActionRunJob) (map[string]any, error) {
@@ -83,16 +93,17 @@ func decodeWorkflowCallInputs(caller *actions_model.ActionRunJob) (map[string]an
 }
 
 // calledWorkflowInputs overlays the run's dispatch inputs with `workflowCallInputs`, as GitHub does.
-func calledWorkflowInputs(ctx context.Context, run *actions_model.ActionRun, caller *actions_model.ActionRunJob, workflowCallInputs map[string]any) (map[string]any, error) {
-	top := caller
-	if run.Event == webhook_module.HookEventWorkflowDispatch {
-		ancestors, err := actions_model.GetAncestorCallers(ctx, caller)
+func calledWorkflowInputs(ctx context.Context, run *actions_model.ActionRun, caller *actions_model.ActionRunJob, ancestors []*actions_model.ActionRunJob, workflowCallInputs map[string]any) (map[string]any, error) {
+	if run.Event == webhook_module.HookEventWorkflowDispatch && len(ancestors) == 0 {
+		var err error
+		ancestors, err = actions_model.GetAncestorCallers(ctx, caller)
 		if err != nil {
 			return nil, err
 		}
-		if len(ancestors) > 0 {
-			top = ancestors[len(ancestors)-1]
-		}
+	}
+	top := caller
+	if len(ancestors) > 0 {
+		top = ancestors[len(ancestors)-1]
 	}
 	inputs, err := dispatchInputsForJob(run, top)
 	if err != nil {
@@ -181,32 +192,27 @@ func invalidRunsOn(job *actions_model.ActionRunJob) error {
 	return nil
 }
 
-// admitJob decides whether a job whose `if:` passed may start. A slot-starved job only gets max-parallel applied,
-// so it neither fails nor cancels its group peers. Otherwise checkRunsOn, if set, fails it with the returned error,
-// and its concurrency group and max-parallel decide whether it starts; evaluateConcurrency, if set, fills the group
-// of a job declaring one right before that check.
-func admitJob(ctx context.Context, job *actions_model.ActionRunJob, slots maxParallelSlots, checkRunsOn, evaluateConcurrency func() error) (cancelled []*actions_model.ActionRunJob, runsOnErr, err error) {
+// admitJob gates a job whose `if:` passed, a slot-starved job stays blocked without failing or cancelling its group peers.
+func admitJob(ctx context.Context, job *actions_model.ActionRunJob, slots maxParallelSlots, runsOnErr error, evaluateConcurrency func() error) (cancelled []*actions_model.ActionRunJob, runsOnFailed bool, err error) {
 	if !slots.available(job) {
 		applyMaxParallel(job, slots)
-		return nil, nil, nil
+		return nil, false, nil
 	}
-	if checkRunsOn != nil {
-		if runsOnErr = checkRunsOn(); runsOnErr != nil {
-			job.Status, job.Stopped = actions_model.StatusFailure, timeutil.TimeStampNow()
-			return nil, runsOnErr, nil
-		}
+	if runsOnErr != nil {
+		job.Status, job.Stopped = actions_model.StatusFailure, timeutil.TimeStampNow()
+		return nil, true, nil
 	}
 	if evaluateConcurrency != nil && job.RawConcurrency != "" {
 		if err := evaluateConcurrency(); err != nil {
-			return nil, nil, fmt.Errorf("evaluate job concurrency: %w", err)
+			return nil, false, fmt.Errorf("evaluate job concurrency: %w", err)
 		}
 	}
 	job.Status, cancelled, err = PrepareToStartJobWithConcurrency(ctx, job)
 	if err != nil {
-		return nil, nil, fmt.Errorf("prepare to start job with concurrency: %w", err)
+		return nil, false, fmt.Errorf("prepare to start job with concurrency: %w", err)
 	}
 	applyMaxParallel(job, slots)
-	return cancelled, nil, nil
+	return cancelled, false, nil
 }
 
 func findJobNeedsAndFillJobResults(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*jobparser.JobResult, error) {

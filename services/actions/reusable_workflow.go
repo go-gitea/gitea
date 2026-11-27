@@ -35,8 +35,7 @@ import (
 	"xorm.io/builder"
 )
 
-// MaxReusableCallLevels counts ancestors of the deepest caller, leaving room for the caller and its callee.
-const MaxReusableCallLevels = model.MaxWorkflowCallDepth - 2
+const maxReusableCallerAncestors = model.MaxWorkflowCallDepth - 2 // Reserve one level for the caller and one for its callee.
 
 // checkRunJobLimit rejects adding jobs that would push the attempt over actions_model.MaxJobNumPerRun.
 // checkCallerChain bounds nesting *depth*, but a reusable graph also fans out in *breadth*: without a
@@ -124,7 +123,7 @@ func validateCalledWorkflows(ctx context.Context, run *actions_model.ActionRun, 
 			if uses == "" {
 				continue
 			}
-			if level > MaxReusableCallLevels {
+			if level > maxReusableCallerAncestors {
 				return errCallLevelExceeded(uses)
 			}
 			if !validated.Add(fmt.Sprintf("%d@%s:%s:%s", source.WorkflowSourceRepoID, source.WorkflowSourceCommitSHA, uses, jobCacheMode)) {
@@ -137,6 +136,15 @@ func validateCalledWorkflows(ctx context.Context, run *actions_model.ActionRun, 
 			called, err := loadReusableWorkflowSource(ctx, run, source, ref)
 			if err != nil {
 				return fmt.Errorf("job %s: %w", id, err)
+			}
+			if called.repoID == run.WorkflowRepoID && called.commitSHA == run.WorkflowCommitSHA && strings.HasSuffix(ref.Path, "/"+run.WorkflowID) {
+				root, _, err := runWorkflowFile(ctx, run, "")
+				if err != nil {
+					return fmt.Errorf("validateCalledWorkflows: resolve root workflow file: %w", err)
+				}
+				if ref.Path == root.path {
+					return fmt.Errorf("job %s: reusable workflow call cycle detected: %q", id, uses)
+				}
 			}
 			if _, err = jobparser.ValidateWorkflowStatic(called.content); err == nil {
 				err = validate(called.content, &actions_model.ActionRunJob{WorkflowSourceRepoID: called.repoID, WorkflowSourceCommitSHA: called.commitSHA}, level+1, jobCacheMode)
@@ -167,7 +175,7 @@ func checkSelfRepoStepExpressions(run *actions_model.ActionRun, source *actions_
 }
 
 func errCallLevelExceeded(uses string) error {
-	return fmt.Errorf("reusable workflow call exceeds the maximum nesting level of %d at %q", MaxReusableCallLevels, uses)
+	return fmt.Errorf("reusable workflow call at %q exceeds the maximum of %d workflow levels, including the top-level caller", uses, model.MaxWorkflowCallDepth)
 }
 
 // resolveSameRepoWorkflowSourceCommit returns the commit to read a same-repo reusable workflow from.
@@ -220,13 +228,13 @@ func qualifyRef(ctx context.Context, repo *repo_model.Repository, gitRepo *git.R
 
 // checkCallerChain checks `caller`'s ancestors (nearest first) and:
 //   - rejects cycles (caller.CallUses appearing in any ancestor's CallUses)
-//   - enforces MaxReusableCallLevels on the number of ancestors above `caller`
+//   - enforces the maximum workflow call depth
 func checkCallerChain(caller *actions_model.ActionRunJob, ancestors []*actions_model.ActionRunJob) error {
-	if len(ancestors) > MaxReusableCallLevels {
-		return errCallLevelExceeded(caller.CallUses)
-	}
 	visited := container.SetOf(canonicalCallUses(caller))
-	for _, ancestor := range ancestors {
+	for i, ancestor := range ancestors {
+		if i == maxReusableCallerAncestors {
+			return errCallLevelExceeded(caller.CallUses)
+		}
 		if ancestor.IsReusableCaller && ancestor.CallUses != "" && !visited.Add(canonicalCallUses(ancestor)) {
 			return fmt.Errorf("reusable workflow call cycle detected: %q", ancestor.CallUses)
 		}
@@ -295,6 +303,16 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 	if err != nil {
 		return fmt.Errorf("resolve uses %q: %w", parsedJob.Uses, err)
 	}
+	priorChildren, err := actions_model.GetPriorAttemptChildrenByParent(ctx, run.ID, attempt.ID, caller.AttemptJobID)
+	if err != nil {
+		return fmt.Errorf("expandReusableWorkflowCaller: look up prior children of caller %d: %w", caller.ID, err)
+	}
+	var priorRef string
+	if !ref.IsLocal() && caller.ReusableWorkflowRef != "" {
+		if commitSHA := priorCalleeCommit(priorChildren); commitSHA != "" {
+			ref.Ref, priorRef = commitSHA, caller.ReusableWorkflowRef
+		}
+	}
 	source, err := loadReusableWorkflowSource(ctx, run, caller, ref)
 	if err != nil {
 		return err
@@ -344,7 +362,6 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 		caller.CallSecrets = string(mapBytes)
 	}
 	caller.ReusableWorkflowContent = source.content
-	caller.ReusableWorkflowRef = source.ref
 
 	// 6. Evaluate caller's `with:`, then match against the callee schema.
 	workflowCallInputs := map[string]any{}
@@ -353,7 +370,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 		if err != nil {
 			return fmt.Errorf("find caller needs: %w", err)
 		}
-		parentInputs, err := getInputsForJob(ctx, run, caller)
+		parentInputs, err := getInputsForJobWithAncestors(ctx, run, caller, ancestors)
 		if err != nil {
 			return err
 		}
@@ -363,7 +380,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 			return fmt.Errorf("caller %q inputs: %w", caller.JobID, err)
 		}
 	}
-	jobInputs, err := calledWorkflowInputs(ctx, run, caller, workflowCallInputs)
+	jobInputs, err := calledWorkflowInputs(ctx, run, caller, ancestors, workflowCallInputs)
 	if err != nil {
 		return err
 	}
@@ -398,13 +415,14 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 	}
 
 	// 9. We own the expansion: insert the direct children.
-	if err := insertCallerChildren(ctx, run, attempt, caller, cmp.Or(parsedJob.CacheMode, callerWorkflow.CacheMode), source, vars, jobInputs); err != nil {
+	if err := insertCallerChildren(ctx, run, attempt, caller, cmp.Or(parsedJob.CacheMode, callerWorkflow.CacheMode), source, vars, jobInputs, priorChildren); err != nil {
 		// On failure, undo the partial expansion so an error return always leaves the caller unexpanded and childless.
 		return errors.Join(err, undoExpansion(ctx, caller))
 	}
 
 	// 10. Persist the remaining caller metadata (the row is already ours via the claim above).
 	caller.CallPayload = string(callPayload)
+	caller.ReusableWorkflowRef = cmp.Or(priorRef, source.ref)
 	if _, err := actions_model.UpdateRunJob(ctx, caller, nil, "call_secrets", "reusable_workflow_content", "reusable_workflow_ref", "call_payload"); err != nil {
 		return errors.Join(fmt.Errorf("persist caller %d expansion metadata: %w", caller.ID, err), undoExpansion(ctx, caller))
 	}
@@ -412,7 +430,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 }
 
 // insertCallerChildren parses the called workflow with the caller's resolved inputs and inserts each parsed job.
-func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, callerCacheMode string, source *reusableWorkflowSource, vars map[string]string, inputs map[string]any) error {
+func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, callerCacheMode string, source *reusableWorkflowSource, vars map[string]string, inputs map[string]any, priorChildren map[string]map[string]*actions_model.ActionRunJob) error {
 	callerPermissions := caller.TokenPermissions
 	if callerPermissions == nil {
 		actionsUnit, err := run.Repo.GetUnit(ctx, unit.TypeActions)
@@ -447,11 +465,6 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 		return err
 	}
 
-	priorChildren, err := actions_model.GetPriorAttemptChildrenByParent(ctx, run.ID, attempt.ID, caller.AttemptJobID)
-	if err != nil {
-		return fmt.Errorf("lookup prior-attempt children of caller %d: %w", caller.ID, err)
-	}
-
 	for _, sw := range childWorkflows {
 		jobID, parsedChild := sw.Job()
 		if parsedChild == nil {
@@ -474,8 +487,9 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 
 		// AttemptJobID: prefer a prior-attempt match and fall back to a fresh allocator value for newly-appearing logical jobs.
 		var attemptJobID int64
-		if priorID, ok := priorAttemptJobID(priorChildren[jobID], parsedChild.Name, isMatrixDeferred); ok {
-			attemptJobID = priorID
+		prior := matchPriorChild(priorChildren[jobID], parsedChild.Name, isMatrixDeferred)
+		if prior != nil {
+			attemptJobID = prior.AttemptJobID
 		} else {
 			attemptJobID, err = actions_model.GetNextAttemptJobID(ctx, run.ID)
 			if err != nil {
@@ -516,6 +530,9 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 		if parsedChild.Uses != "" {
 			child.IsReusableCaller = true
 			child.CallUses = parsedChild.Uses
+			if caller.ReusableWorkflowRef != "" && prior != nil {
+				child.ReusableWorkflowRef = prior.ReusableWorkflowRef
+			}
 		}
 		if parsedChild.RawConcurrency != nil {
 			rawConcurrency, err := yaml.Marshal(parsedChild.RawConcurrency)
@@ -582,20 +599,23 @@ func undoExpansion(ctx context.Context, caller *actions_model.ActionRunJob) erro
 	return nil
 }
 
-// priorAttemptJobID returns the AttemptJobID a re-inserted child should reuse,
-// given the prior attempt's rows of the same JobID indexed by Name.
-func priorAttemptJobID(priorSameJobID map[string]*actions_model.ActionRunJob, name string, isMatrixDeferred bool) (int64, bool) {
+func priorCalleeCommit(priorChildren map[string]map[string]*actions_model.ActionRunJob) string {
+	for _, jobs := range priorChildren {
+		for _, child := range jobs {
+			return child.WorkflowSourceCommitSHA
+		}
+	}
+	return ""
+}
+
+func matchPriorChild(priorSameJobID map[string]*actions_model.ActionRunJob, name string, isMatrixDeferred bool) *actions_model.ActionRunJob {
 	if isMatrixDeferred {
 		for _, prior := range priorSameJobID {
 			if len(prior.DeferredMatrixPayload) > 0 {
-				return prior.AttemptJobID, true
+				return prior
 			}
 		}
-		return 0, false
+		return nil
 	}
-	prior, ok := priorSameJobID[name]
-	if !ok {
-		return 0, false
-	}
-	return prior.AttemptJobID, true
+	return priorSameJobID[name]
 }

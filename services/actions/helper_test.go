@@ -16,47 +16,49 @@ import (
 )
 
 func TestAdmitJob(t *testing.T) {
-	checked, evaluated := 0, 0
-	badRunsOn := func() error { checked++; return errors.New("bad runs-on") }
+	badRunsOn := errors.New("bad runs-on")
 	evaluate := func(job *actions_model.ActionRunJob) func() error {
-		return func() error { evaluated++; job.IsConcurrencyEvaluated = true; return nil }
+		return func() error { job.IsConcurrencyEvaluated = true; return nil }
 	}
-	slots := maxParallelSlots{}
 	newJob := func() *actions_model.ActionRunJob {
 		return &actions_model.ActionRunJob{JobID: "build", Status: actions_model.StatusWaiting, MaxParallel: 1, RawConcurrency: "group: g"}
 	}
 
+	slots := maxParallelSlots{}
 	first := newJob()
-	cancelled, invalid, err := admitJob(t.Context(), first, slots, nil, evaluate(first))
+	cancelled, runsOnFailed, err := admitJob(t.Context(), first, slots, nil, evaluate(first))
 	require.NoError(t, err)
-	require.NoError(t, invalid)
+	assert.False(t, runsOnFailed)
 	assert.Empty(t, cancelled)
 	assert.Equal(t, actions_model.StatusWaiting, first.Status)
-	assert.Equal(t, 1, evaluated)
+	assert.True(t, first.IsConcurrencyEvaluated)
 
-	// the slot is taken: a starved job neither checks its runs-on nor evaluates its concurrency
-	starved := newJob()
-	_, invalid, err = admitJob(t.Context(), starved, slots, badRunsOn, evaluate(starved))
-	require.NoError(t, err)
-	require.NoError(t, invalid)
-	assert.Equal(t, actions_model.StatusBlocked, starved.Status)
-	assert.Equal(t, 0, checked)
-	assert.Equal(t, 1, evaluated)
+	t.Run("SlotStarvedJobSkipsRunsOnAndConcurrency", func(t *testing.T) {
+		starved := newJob()
+		_, runsOnFailed, err := admitJob(t.Context(), starved, slots, badRunsOn, evaluate(starved))
+		require.NoError(t, err)
+		assert.False(t, runsOnFailed)
+		assert.Equal(t, actions_model.StatusBlocked, starved.Status)
+		assert.False(t, starved.IsConcurrencyEvaluated)
+	})
 
-	failed := newJob()
-	_, invalid, err = admitJob(t.Context(), failed, maxParallelSlots{}, badRunsOn, evaluate(failed))
-	require.NoError(t, err)
-	assert.ErrorContains(t, invalid, "bad runs-on")
-	assert.Equal(t, actions_model.StatusFailure, failed.Status)
-	assert.NotZero(t, failed.Stopped)
-	assert.Equal(t, 1, evaluated)
+	t.Run("InvalidRunsOnFailsBeforeConcurrency", func(t *testing.T) {
+		failed := newJob()
+		_, runsOnFailed, err := admitJob(t.Context(), failed, maxParallelSlots{}, badRunsOn, evaluate(failed))
+		require.NoError(t, err)
+		assert.True(t, runsOnFailed)
+		assert.Equal(t, actions_model.StatusFailure, failed.Status)
+		assert.NotZero(t, failed.Stopped)
+		assert.False(t, failed.IsConcurrencyEvaluated)
+	})
 
-	// a job without `concurrency:` has nothing to evaluate
-	plain := newJob()
-	plain.RawConcurrency = ""
-	_, _, err = admitJob(t.Context(), plain, maxParallelSlots{}, nil, evaluate(plain))
-	require.NoError(t, err)
-	assert.Equal(t, 1, evaluated)
+	t.Run("JobWithoutConcurrencySkipsEvaluation", func(t *testing.T) {
+		plain := newJob()
+		plain.RawConcurrency = ""
+		_, _, err := admitJob(t.Context(), plain, maxParallelSlots{}, nil, evaluate(plain))
+		require.NoError(t, err)
+		assert.False(t, plain.IsConcurrencyEvaluated)
+	})
 
 	_, _, err = admitJob(t.Context(), newJob(), maxParallelSlots{}, nil, func() error { return errors.New("bad concurrency") })
 	assert.ErrorContains(t, err, "bad concurrency")
@@ -92,16 +94,17 @@ func TestReusableChildInputs(t *testing.T) {
 	caller := insertJob("caller", 0,
 		"on: {workflow_dispatch: {inputs: {flag: {type: boolean}, Shared: {type: string}}}}\njobs:\n  caller:\n    uses: ./.gitea/workflows/mid.yml\n",
 		`{"inputs":{"shared":"from-call","mid_only":"mid"}}`)
-	mid := insertJob("mid", caller.ID, "", `{"inputs":{"env":"leaf"}}`)
+	mid := insertJob("mid", caller.ID, "", `{"inputs":{"shared":"from-mid","env":"leaf"}}`)
 	leaf := insertJob("leaf", mid.ID, "", "")
 
 	dispatchRun := &actions_model.ActionRun{ID: runID, Event: "workflow_dispatch", EventPayload: `{"inputs":{"flag":"true","Shared":"from-dispatch"}}`}
 	pushRun := &actions_model.ActionRun{ID: runID, Event: "push", EventPayload: `{}`}
+	dispatchInputs := map[string]any{"flag": true, "shared": "from-mid", "env": "leaf"}
 
-	t.Run("dispatch inputs overlaid case-insensitively with the caller's with", func(t *testing.T) {
-		inputs, err := getInputsForJob(ctx, dispatchRun, mid)
+	t.Run("preloaded ancestors supply top-level dispatch inputs and overlay direct caller inputs case-insensitively", func(t *testing.T) {
+		inputs, err := getInputsForJobWithAncestors(ctx, dispatchRun, leaf, mustGetAncestorCallers(t, leaf))
 		require.NoError(t, err)
-		assert.Equal(t, map[string]any{"flag": true, "shared": "from-call", "mid_only": "mid"}, inputs)
+		assert.Equal(t, dispatchInputs, inputs)
 	})
 
 	t.Run("task context of a nested child keeps the older runners' form and carries the original event", func(t *testing.T) {
@@ -111,13 +114,12 @@ func TestReusableChildInputs(t *testing.T) {
 			"event":      map[string]any{"inputs": map[string]any{"flag": "true", "Shared": "from-dispatch"}},
 		}
 		require.NoError(t, setCalledWorkflowContext(ctx, leaf, gitCtx))
-		inputs := map[string]any{"flag": true, "Shared": "from-dispatch", "env": "leaf"}
 		assert.Equal(t, "workflow_call", gitCtx["event_name"])
-		assert.Equal(t, map[string]any{"inputs": inputs}, gitCtx["event"])
+		assert.Equal(t, map[string]any{"inputs": dispatchInputs}, gitCtx["event"])
 		assert.Equal(t, map[string]any{
 			"original_event_name":   "workflow_dispatch",
 			"original_event_inputs": map[string]any{"flag": "true", "Shared": "from-dispatch"},
-			"inputs":                inputs,
+			"inputs":                dispatchInputs,
 		}, gitCtx["gitea_workflow_call"])
 	})
 
