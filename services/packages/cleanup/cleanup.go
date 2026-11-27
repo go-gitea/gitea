@@ -20,6 +20,7 @@ import (
 	cargo_service "gitea.dev/services/packages/cargo"
 	container_service "gitea.dev/services/packages/container"
 	debian_service "gitea.dev/services/packages/debian"
+	maven_service "gitea.dev/services/packages/maven"
 	rpm_service "gitea.dev/services/packages/rpm"
 )
 
@@ -165,6 +166,10 @@ func ExecuteCleanupRules(ctx context.Context) error {
 }
 
 func CleanupExpiredData(ctx context.Context, olderThan time.Duration) error {
+	if err := maven_service.CleanupSnapshotVersions(ctx); err != nil {
+		return err
+	}
+
 	pbs := make([]*packages_model.PackageBlob, 0, 100)
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := container_service.Cleanup(ctx, olderThan); err != nil {
