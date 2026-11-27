@@ -17,7 +17,7 @@ test('update biography and theme', async ({page, request}) => {
   await expect(page.getByLabel('Biography')).toHaveText('');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'gitea-auto');
   await page.locator('#footer-theme-selector').getByRole('button').click();
-  await page.getByRole('menu').locator('.dropdown-item[data-value="gitea-dark"]').click();
+  await page.getByRole('menuitem', {name: 'Dark', exact: true}).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'gitea-dark');
   await expect(page.locator('#footer-theme-selector')).toContainText('Dark');
 });

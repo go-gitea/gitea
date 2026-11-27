@@ -1,7 +1,7 @@
 import {POST} from '../modules/fetch.ts';
 import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
 import {getComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
-import {createElementFromAttrs, hideElem} from '../utils/dom.ts';
+import {hideElem} from '../utils/dom.ts';
 import {initDropdown} from '../modules/dropdown.ts';
 import {hideModal, showModal} from '../modules/modal.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
@@ -81,7 +81,6 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement, existingTags: string[
 
   const elModal = document.querySelector<HTMLDialogElement>('#generate-release-notes-modal')!;
   const previousTagDropdown = initDropdown(elModal.querySelector<HTMLElement>('.dropdown-container')!);
-  previousTagDropdown.setItems(existingTags.map((tag) => createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': tag}, tag)));
 
   const doSubmit = async (tagName: string) => {
     const comboEditor = getComboMarkdownEditor(elForm.querySelector<HTMLElement>('.combo-markdown-editor'))!;
@@ -123,8 +122,7 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement, existingTags: string[
       return;
     }
 
-    const guessedTag = guessPreviousReleaseTag(tagName, existingTags);
-    if (guessedTag) previousTagDropdown.setValue(guessedTag);
+    previousTagDropdown.setValue(guessPreviousReleaseTag(tagName, existingTags)); // empty means the server picks the default
 
     showModal(elModal, {
       onApprove: () => {

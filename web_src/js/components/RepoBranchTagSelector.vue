@@ -236,7 +236,7 @@ async function loadTabItems() {
       </span>
       <svg-icon name="octicon-triangle-down" :size="14"/>
     </button>
-    <div class="dropdown-popup" :id="popupId" v-show="menuVisible" v-cloak>
+    <div class="dropdown-popup branch-tag-popup" :id="popupId" v-show="menuVisible" v-cloak>
       <div class="ui icon input">
         <i class="icon"><svg-icon name="octicon-filter" :size="16"/></i>
         <input type="text" class="dropdown-filter" ref="elSearchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder" :aria-label="searchFieldPlaceholder">
@@ -249,7 +249,7 @@ async function loadTabItems() {
           <svg-icon name="octicon-tag" :size="16" class="tw-mr-1"/>{{ textTags }}
         </button>
       </div>
-      <div class="dropdown-divider branch-tag-divider"/>
+      <div class="branch-tag-divider"/>
       <div class="branch-tag-list" ref="elScrollContainer">
         <svg-icon name="octicon-rss" symbol-id="svg-symbol-octicon-rss"/>
         <div class="loading-indicator is-loading" v-if="tabLoadingStates[selectedTab] === 'loading'"/>

@@ -32,7 +32,7 @@
 					<span>{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_base"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_base"}}{{end}}: <strong>{{$BaseCompareName}}:{{$.BaseBranch}}</strong></span>
 					{{svg "octicon-triangle-down" 14}}
 				</button>
-				<div class="dropdown-popup issue-branch-popup">
+				<div class="dropdown-popup branch-tag-popup">
 					{{template "repo/branch_tag_popup_header"}}
 					<div class="branch-tag-list branch-list">
 						{{range .Branches}}
@@ -84,7 +84,7 @@
 					<span>{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_compare"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_head"}}{{end}}: <strong>{{$HeadCompareName}}:{{$.HeadBranch}}</strong></span>
 					{{svg "octicon-triangle-down" 14}}
 				</button>
-				<div class="dropdown-popup issue-branch-popup">
+				<div class="dropdown-popup branch-tag-popup">
 					{{template "repo/branch_tag_popup_header"}}
 					<div class="branch-tag-list branch-list">
 						{{range .HeadBranches}}

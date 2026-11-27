@@ -22,7 +22,7 @@
 								data-fetch-trigger="change" data-fetch-sync="$body #runWorkflowDispatchModalInputs"
 								data-fetch-url="{{$.Link}}/workflow-dispatch-inputs?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}"
 					>
-					<div class="dropdown-popup issue-branch-popup">
+					<div class="dropdown-popup branch-tag-popup">
 						{{template "repo/branch_tag_popup_header"}}
 						<div class="branch-tag-list branch-list">
 							{{range .Branches}}

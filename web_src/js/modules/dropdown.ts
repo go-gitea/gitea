@@ -316,7 +316,7 @@ export class Dropdown {
     this.filterItems(query);
     if (!this.tippy) return;
     const items = this.navigableItems();
-    const selected = items.find((item) => this.kind === 'select' && item.getAttribute('aria-selected') === 'true');
+    const selected = this.kind === 'select' ? items.find((item) => item.getAttribute('aria-selected') === 'true') : undefined;
     this.highlight(query ? selected ?? items[0] ?? null : null);
     this.updateState();
   }
@@ -326,7 +326,7 @@ export class Dropdown {
     let belowIsItem = true;
     const elements = this.popup.querySelectorAll<HTMLElement>('.dropdown-item, .dropdown-header, .dropdown-divider');
     for (const el of Array.from(elements).reverse()) { // reversed, so each header and divider knows whether the items below it match
-      const isItem = el.matches('.dropdown-item');
+      const isItem = el.classList.contains('dropdown-item');
       if (isItem) {
         el.hidden = Boolean(query) && !el.textContent.toLowerCase().includes(query);
         groupHasMatch = (belowIsItem && groupHasMatch) || isShown(el);
@@ -373,8 +373,8 @@ export class Dropdown {
     this.valueInput!.dispatchEvent(new Event('change', {bubbles: true}));
   }
 
-  setValue(value: string | string[]) {
-    this.valueInput!.value = Array.isArray(value) ? value.join(this.delimiter) : value;
+  setValue(value: string) {
+    this.valueInput!.value = value;
     if (this.tippy) {
       this.refreshItems();
       this.updateState();
@@ -437,11 +437,9 @@ export class Dropdown {
     for (const item of this.popup.querySelectorAll(':scope > .dropdown-item')) item.remove();
     this.popup.append(...items);
     if (this.kind === 'select') this.renderLabel();
-    if (this.tippy) {
-      this.tippy.popper.style.removeProperty('--tippy-max-height'); // flip by the uncapped height of the new items
-      this.refreshItems();
-      this.updateState();
-    }
+    this.tippy!.popper.style.removeProperty('--tippy-max-height'); // flip by the uncapped height of the new items
+    this.refreshItems();
+    this.updateState();
   }
 
   async reload() {
@@ -464,7 +462,6 @@ export class Dropdown {
   }
 
   updateState(message = '') {
-    this.popup.querySelector(':scope > .dropdown-message')?.remove();
     const isBusy = this.popup.hasAttribute('aria-busy');
     const visibleItems = this.items().filter((item) => isElemVisible(item));
     const items = visibleItems.filter(isItemEnabled);
@@ -475,8 +472,9 @@ export class Dropdown {
       else this.moveHighlight(this.highlightDelta || 1, items);
     }
     if (!message && !isBusy && !visibleItems.length) message = window.config.i18n.no_results_found;
+    this.popup.querySelector(':scope > .dropdown-message')?.remove(); // after the visibility reads, to not force another layout
     if (message) this.popup.append(createElementFromAttrs('div', {class: 'dropdown-message'}, message));
-    this.tippy?.popperInstance?.update();
+    this.tippy!.popperInstance!.update();
   }
 }
 

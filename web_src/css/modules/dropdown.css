@@ -119,7 +119,8 @@
 }
 
 .dropdown-text > img {
-  margin-right: 8px;
+  margin: -4px 8px -4px 0;
+  max-height: 2em;
 }
 
 .dropdown-container:has(> .dropdown-value:is([value=""], :not([value]))) .dropdown-text[data-placeholder] {

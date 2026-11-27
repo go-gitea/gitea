@@ -25,7 +25,7 @@ Still needs to figure out:
 		{{if $canChangeRef}}{{svg "octicon-triangle-down" 14}}{{end}}
 	</button>
 	<input class="dropdown-value" name="ref" type="hidden" value="{{.Reference}}">
-	<div class="dropdown-popup issue-branch-popup">
+	<div class="dropdown-popup branch-tag-popup">
 		{{template "repo/branch_tag_popup_header"}}
 		{{if or .Reference (not .Issue)}}
 			<div class="dropdown-item" data-value="">{{ctx.Locale.Tr "repo.clear_ref"}}</div>
@@ -37,7 +37,7 @@ Still needs to figure out:
 		</div>
 		<div class="branch-tag-list tag-list tw-hidden">
 			{{range .Tags}}
-				<div class="dropdown-item" data-value="refs/tags/{{.}}" data-text="tags/{{.}}">{{.}}</div>
+				<div class="dropdown-item" data-value="refs/tags/{{.}}" data-text="tags/{{.}}" title="{{.}}">{{.}}</div>
 			{{end}}
 		</div>
 	</div>

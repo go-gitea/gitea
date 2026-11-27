@@ -3,6 +3,7 @@ import {html, htmlRaw} from '../utils/html.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {
   addDelegatedEventListener,
+  createElementFromAttrs,
   createElementFromHTML,
   hideElem,
   queryElems,
@@ -32,7 +33,7 @@ function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
     selectedLabelIds.add(String(Math.abs(parseInt(id)))); // "labels" contains negative ids, which are excluded
   }
 
-  const excludeLabel = (e: MouseEvent | KeyboardEvent, item: Element) => {
+  const excludeLabel = (e: MouseEvent, item: Element) => {
     e.preventDefault();
     e.stopPropagation();
     const labelId = item.getAttribute('data-label-id')!;
@@ -293,9 +294,7 @@ export function initRepoIssueReferenceIssue() {
     async loadItems(query, signal) {
       const response = await GET(`${appSubUrl}/repo/search?${new URLSearchParams({q: query, limit: '20'})}`, {signal});
       const {data} = await response.json() as {data: Array<{repository: {full_name: string}}>};
-      return data.map(({repository}) => createElementFromHTML(html`
-        <div class="dropdown-item" data-value="${repository.full_name}">${repository.full_name}</div>
-      `));
+      return data.map(({repository}) => createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': repository.full_name}, repository.full_name));
     },
   });
   dropdown.valueInput!.addEventListener('change', () => {

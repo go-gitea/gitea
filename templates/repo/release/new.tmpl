@@ -161,7 +161,9 @@
 					{{svg "octicon-triangle-down" 14}}
 				</button>
 				<input type="hidden" class="dropdown-value" value="">
-				<div class="dropdown-popup"></div>
+				<div class="dropdown-popup">
+					{{range .Tags}}<div class="dropdown-item" data-value="{{.}}">{{.}}</div>{{end}}
+				</div>
 			</div>
 		</div>
 		<div class="actions">

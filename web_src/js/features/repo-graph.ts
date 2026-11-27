@@ -55,7 +55,7 @@ export function initRepoGraphGit() {
   }
 
   const dropdown = initDropdown(document.querySelector<HTMLElement>('#flow-select-refs-dropdown')!);
-  dropdown.setValue(dropdownSelected);
+  dropdown.setValue(dropdownSelected.join(dropdown.delimiter));
   dropdown.valueInput!.addEventListener('change', () => {
     params.delete('branch');
     params.delete('hide-pr-refs');
