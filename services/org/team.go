@@ -193,7 +193,7 @@ func DeleteTeam(ctx context.Context, t *organization.Team) error {
 			}
 		}
 
-		if err := repo_service.RemoveAllRepositoriesFromTeam(ctx, t); err != nil {
+		if err := repo_service.ClearTeamRepositories(ctx, t); err != nil {
 			return err
 		}
 

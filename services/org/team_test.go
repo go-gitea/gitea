@@ -153,6 +153,8 @@ func TestDeleteTeam(t *testing.T) {
 	assert.NoError(t, NewTeam(t.Context(), allReposTeam))
 	assert.NoError(t, AddTeamMember(t.Context(), allReposTeam, user))
 	assert.NoError(t, access_model.RecalculateTeamAccesses(t.Context(), repo, 0))
+	assert.NoError(t, repo_service.RemoveAllRepositoriesFromTeam(t.Context(), allReposTeam))
+	unittest.AssertExistsAndLoadBean(t, &organization.TeamRepo{TeamID: allReposTeam.ID, RepoID: repo.ID})
 	assert.NoError(t, DeleteTeam(t.Context(), allReposTeam))
 	unittest.AssertNotExistsBean(t, &organization.TeamRepo{TeamID: allReposTeam.ID})
 	accessMode, err = access_model.AccessLevel(t.Context(), user, repo)
