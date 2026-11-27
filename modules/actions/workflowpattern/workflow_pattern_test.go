@@ -177,6 +177,12 @@ func TestMatchPattern(t *testing.T) {
 			filterResult: true,
 		},
 		{
+			patterns:     []string{"**/README.md", "docs/**/guide.md"},
+			inputs:       [][]string{{"NOT-README.md"}, {"js/NOT-README.md"}, {"docs/misguide.md"}},
+			skipResult:   true,
+			filterResult: false,
+		},
+		{
 			patterns:     []string{"**/*src/**"},
 			inputs:       [][]string{{"a/src/app.js"}, {"my-src/code/js/app.js"}},
 			skipResult:   false,

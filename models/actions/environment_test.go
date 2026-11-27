@@ -26,6 +26,8 @@ func TestEnvironmentMatchesRef(t *testing.T) {
 		{"refs/tags pattern does not match a branch", "refs/tags/v*", "refs/heads/v-evil", false},
 		{"explicit refs/heads pattern matches a branch", "refs/heads/main", "refs/heads/main", true},
 		{"a catch-all bare pattern does not match a pull ref", "*", "refs/pull/3/head", false},
+		{"a double star spans whole path segments only", "release/**/stable", "refs/heads/release/unstable", false},
+		{"a double star spans any number of path segments", "release/**/stable", "refs/heads/release/1/2/stable", true},
 		{"a malformed pattern denies", "main\n[unterminated", "refs/heads/main", false},
 	}
 	for _, tt := range tests {

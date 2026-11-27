@@ -90,10 +90,10 @@ func (g *globCompiler) compile(subPattern bool) error {
 		case '*':
 			if g.pos < len(g.globPattern) && g.globPattern[g.pos] == '*' {
 				var matchRightSep bool
+				var rightRune rune
 				if g.superWildcardRight {
 					// check "**/" pattern, then the wildcards should also match the right separator
 					// e.g.: "**/docs" should match "docs"
-					var rightRune rune
 					if g.pos+1 < len(g.globPattern) {
 						rightRune = g.globPattern[g.pos+1]
 					}
@@ -103,10 +103,13 @@ func (g *globCompiler) compile(subPattern bool) error {
 				}
 				if matchRightSep {
 					g.pos += 2
+					g.builder.WriteString("(?:.*") // only whole segments, "a/**/b" must not match "a/xb"
+					g.writeLiteral(rightRune)
+					g.builder.WriteString(")?")
 				} else {
 					g.pos++
+					g.builder.WriteString(".*") // match any sequence of characters
 				}
-				g.builder.WriteString(".*") // match any sequence of characters
 			} else {
 				g.builder.WriteString(g.nonSeparatorChars)
 				g.builder.WriteByte('*') // match any sequence of non-separator characters
