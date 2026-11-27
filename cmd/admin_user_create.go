@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	audit_model "gitea.dev/models/audit"
@@ -52,6 +53,10 @@ func microcmdUserCreate() *cli.Command {
 			&cli.StringFlag{
 				Name:  "password",
 				Usage: "User password",
+			},
+			&cli.StringFlag{
+				Name:  "password-file",
+				Usage: "Read user password from file",
 			},
 			&cli.StringFlag{
 				Name:     "email",
@@ -115,13 +120,19 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 		// Some other commands like "change-password" also only support regular user accounts.
 		// It needs to clarify the "password" behavior for bot users in the future.
 		// At the moment, we do not allow setting password for bot users.
-		if c.IsSet("password") || c.IsSet("random-password") {
+		if c.IsSet("password") || c.IsSet("password-file") || c.IsSet("random-password") {
 			return errors.New("password can only be set for user accounts")
 		}
 	}
 
 	if c.IsSet("password") && c.IsSet("random-password") {
 		return errors.New("cannot set both -random-password and -password flags")
+	}
+	if c.IsSet("password") && c.IsSet("password-file") {
+		return errors.New("cannot set both -password and -password-file flags")
+	}
+	if c.IsSet("password-file") && c.IsSet("random-password") {
+		return errors.New("cannot set both -password-file and -random-password flags")
 	}
 
 	var username string
@@ -143,6 +154,12 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 	var password string
 	if c.IsSet("password") {
 		password = c.String("password")
+	} else if c.IsSet("password-file") {
+		data, err := os.ReadFile(c.String("password-file"))
+		if err != nil {
+			return fmt.Errorf("runCreateUser: %w", err)
+		}
+		password = strings.TrimRight(string(data), "\r\n")
 	} else if c.IsSet("random-password") {
 		var err error
 		password, err = pwd.Generate(c.Int("random-password-length"))
@@ -152,7 +169,7 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 		// codeql[disable-next-line=go/clear-text-logging]
 		cprintf(c, "generated random password is '%s'\n", password)
 	} else if userType == user_model.UserTypeIndividual {
-		return errors.New("must set either password or random-password flag")
+		return errors.New("must set either password, password-file or random-password flag")
 	}
 
 	isAdmin := c.Bool("admin")

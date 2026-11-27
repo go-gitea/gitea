@@ -5,6 +5,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -74,6 +76,23 @@ func TestAdminUserCreate(t *testing.T) {
 		}
 		assert.NoError(t, changeType("User"))
 		assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "u"}).IsIndividual())
+	})
+
+	t.Run("PasswordFile", func(t *testing.T) {
+		reset()
+		passwordFile := filepath.Join(t.TempDir(), "password")
+		require.NoError(t, os.WriteFile(passwordFile, []byte("foobar \r\n"), 0o600))
+
+		require.NoError(t, createUser("u", "--password-file", passwordFile))
+		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "u"})
+		assert.True(t, u.ValidatePassword("foobar "), "only trailing newlines should be trimmed")
+
+		reset()
+		assert.ErrorContains(t, createUser("u", "--user-type", "bot", "--password-file", passwordFile), "can only be set for user accounts")
+		assert.ErrorContains(t, createUser("u", "--password", "foobar", "--password-file", passwordFile), "cannot set both")
+		assert.ErrorContains(t, createUser("u", "--password-file", passwordFile, "--random-password"), "cannot set both")
+		assert.ErrorContains(t, createUser("u", "--password-file", filepath.Join(t.TempDir(), "missing")), "no such file")
+		assert.Equal(t, 0, unittest.GetCount(t, &user_model.User{}))
 	})
 
 	t.Run("AccessToken", func(t *testing.T) {
