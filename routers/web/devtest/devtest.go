@@ -6,7 +6,6 @@ package devtest
 import (
 	"fmt"
 	"html/template"
-	"io"
 	"net/http"
 	"path"
 	"strconv"
@@ -47,9 +46,12 @@ func List(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, "devtest/devtest-list")
 }
 
+func buildMockResponse(prefix string, ctx *context.Context) string {
+	return prefix + ctx.Req.Method + " " + ctx.Req.RequestURI + "\n" + "Request Form: " + ctx.FormValues().Encode()
+}
+
 func FetchActionTest(ctx *context.Context) {
-	body, _ := io.ReadAll(ctx.Req.Body)
-	ctx.Flash.Info("fetch action: " + ctx.Req.Method + " " + ctx.Req.RequestURI + "\n" + "Body: " + string(body))
+	ctx.Flash.Info(buildMockResponse("Fetch Action: ", ctx))
 	time.Sleep(2 * time.Second)
 	ctx.JSONRedirect("")
 }
@@ -313,11 +315,7 @@ func prepareMockDataUnicodeEscape(ctx *context.Context) {
 func TmplCommon(ctx *context.Context) {
 	prepareMockData(ctx)
 	if ctx.Req.Method == http.MethodPost && ctx.FormBool("mock_response_delay") {
-		ctx.Flash.Info("form submit: "+ctx.Req.Method+" "+ctx.Req.RequestURI+"\n"+
-			"Form: "+ctx.Req.Form.Encode()+"\n"+
-			"PostForm: "+ctx.Req.PostForm.Encode(),
-			true,
-		)
+		ctx.Flash.Info(buildMockResponse("Form Submit: ", ctx), true)
 		time.Sleep(2 * time.Second)
 	}
 	ctx.HTML(http.StatusOK, templates.TplName("devtest"+path.Clean("/"+ctx.PathParam("sub"))))

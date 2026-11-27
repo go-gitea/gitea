@@ -19,21 +19,19 @@ import (
 // It works the same as http.Request.FormValue:
 // try urlencoded request body first, then query string, then multipart form body
 func (b *Base) FormString(key string, def ...string) string {
-	s := b.Req.FormValue(key)
-	if s == "" {
-		s = util.OptionalArg(def)
+	if v := b.FormValues().Get(key); v != "" {
+		return v
 	}
-	return s
+	return util.OptionalArg(def)
 }
 
 // FormStrings returns a values for the key in the form (including query parameters), similar to FormString
 func (b *Base) FormStrings(key string) []string {
-	_ = b.Req.ParseMultipartForm(binding.ParseMultipartFormMaxMemory) // the same logic as http.Request.FormValue
-	return b.Req.Form[key]
+	return b.FormValues()[key]
 }
 
 func (b *Base) FormValues() url.Values {
-	_ = b.Req.ParseMultipartForm(binding.ParseMultipartFormMaxMemory)
+	_ = b.Req.ParseMultipartForm(binding.ParseMultipartFormMaxMemory) // the same logic as http.Request.FormValue
 	return b.Req.Form
 }
 
