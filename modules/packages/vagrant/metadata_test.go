@@ -4,13 +4,14 @@
 package vagrant
 
 import (
-	"archive/tar"
 	"bytes"
 	"compress/gzip"
-	"io"
+	"strings"
 	"testing"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -23,30 +24,22 @@ const (
 )
 
 func TestParseMetadataFromBox(t *testing.T) {
-	createArchive := func(files map[string][]byte) io.Reader {
-		var buf bytes.Buffer
-		zw := gzip.NewWriter(&buf)
-		tw := tar.NewWriter(zw)
-		for filename, content := range files {
-			hdr := &tar.Header{
-				Name: filename,
-				Mode: 0o600,
-				Size: int64(len(content)),
-			}
-			tw.WriteHeader(hdr)
-			tw.Write(content)
-		}
-		tw.Close()
-		zw.Close()
-		return &buf
+	createArchive := func(files map[string]string) *bytes.Reader {
+		return bytes.NewReader(test.WriteTarCompression(gzip.NewWriter, files).Bytes())
 	}
 
 	t.Run("MissingInfoFile", func(t *testing.T) {
-		data := createArchive(map[string][]byte{"dummy.txt": {}})
+		data := createArchive(map[string]string{"dummy.txt": ""})
 
 		metadata, err := ParseMetadataFromBox(data)
 		assert.NotNil(t, metadata)
 		assert.NoError(t, err)
+	})
+
+	t.Run("DecompressionLimit", func(t *testing.T) {
+		defer test.MockVariableValue(&packages.ArchiveDecompressionFloor, 0)()
+		_, err := ParseMetadataFromBox(createArchive(map[string]string{"dummy.txt": strings.Repeat("\x00", 1024*1024)}))
+		assert.ErrorIs(t, err, packages.ErrContentTooLarge)
 	})
 
 	t.Run("UnknownKeys", func(t *testing.T) {
@@ -68,7 +61,7 @@ func TestParseMetadataFromBox(t *testing.T) {
 
 	for name, parse := range map[string]func([]byte) (*Metadata, error){
 		"ValidBox": func(content []byte) (*Metadata, error) {
-			return ParseMetadataFromBox(createArchive(map[string][]byte{"info.json": content}))
+			return ParseMetadataFromBox(createArchive(map[string]string{"info.json": string(content)}))
 		},
 		"ValidInfoFile": func(content []byte) (*Metadata, error) {
 			return ParseInfoFile(bytes.NewReader(content))

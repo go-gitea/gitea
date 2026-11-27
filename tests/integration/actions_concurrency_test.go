@@ -333,7 +333,7 @@ jobs:
       version: ${{ steps.version_step.outputs.app_version }}
     steps:
       - id: version_step
-        run: echo "app_version=v1.23.0" >> "$GITHUB_OUTPUT"
+        run: echo "app_version=V1.23.0" >> "$GITHUB_OUTPUT"
   wf2-job2:
     runs-on: runner1
     needs: [wf2-job1]
@@ -373,7 +373,7 @@ jobs:
 		runner2.execTask(t, wf2Job1Task, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 			outputs: map[string]string{
-				"version": "v1.23.0",
+				"version": "V1.23.0",
 			},
 		})
 		// cannot fetch wf2-job2 because wf1-job1 is running
@@ -1185,7 +1185,7 @@ on:
     paths:
       - '.gitea/workflows/workflow-2.yml'
 concurrency:
-  group: test-group
+  group: Test-Group
 jobs:
   wf2-job1:
     runs-on: ubuntu-latest

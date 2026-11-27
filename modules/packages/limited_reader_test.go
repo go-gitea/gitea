@@ -8,6 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,4 +26,13 @@ func TestLimitedReader(t *testing.T) {
 	n, err := r.Read(make([]byte, 8))
 	assert.Zero(t, n)
 	assert.ErrorIs(t, err, ErrContentTooLarge)
+}
+
+func TestArchiveLimitedReader(t *testing.T) {
+	assert.Equal(t, NewLimitedReader(nil, 512*1024*1024), NewArchiveLimitedReader(nil, 1))
+	assert.Equal(t, NewLimitedReader(nil, 200*10*1024*1024), NewArchiveLimitedReader(nil, 10*1024*1024))
+
+	defer test.MockVariableValue(&setting.Packages.MaxDecompressionRatio, -1)()
+	r := strings.NewReader("abc")
+	assert.Same(t, r, NewArchiveLimitedReader(r, 1))
 }

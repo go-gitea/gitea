@@ -191,11 +191,11 @@ jobs:
     steps:
       - run: echo hi
 `)}
-	require.EqualError(t, insertCallerChildren(ctx, run, attempt, caller, "read", called, nil, nil),
+	require.EqualError(t, insertCallerChildren(ctx, run, attempt, caller, "read", called, nil, nil, nil),
 		"cache-mode: The nested job 'build' is requesting 'write-only', but is only allowed 'read'")
-	require.EqualError(t, insertCallerChildren(ctx, run, attempt, caller, "write-only", called, nil, nil),
+	require.EqualError(t, insertCallerChildren(ctx, run, attempt, caller, "write-only", called, nil, nil, nil),
 		"cache-mode: The workflow is requesting 'read', but is only allowed 'write-only'")
-	require.NoError(t, insertCallerChildren(ctx, run, attempt, caller, "", called, nil, nil))
+	require.NoError(t, insertCallerChildren(ctx, run, attempt, caller, "", called, nil, nil, nil))
 
 	children := 0
 	for _, job := range runJobs(t, run.ID, attempt.ID) {

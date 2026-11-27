@@ -53,13 +53,14 @@ func GeneralSettings(ctx *context.Context) {
 		return
 	}
 
-	if rCtx.IsOrg {
+	switch rCtx.Kind {
+	case settingsScopeOrg:
 		ctx.Data["PageIsOrgSettings"] = true
 		ctx.Data["PageIsOrgSettingsActionsGeneral"] = true
-	} else if rCtx.IsUser {
+	case settingsScopeUser:
 		ctx.Data["PageIsUserSettings"] = true
 		ctx.Data["PageIsUserSettingsActionsGeneral"] = true
-	} else {
+	default:
 		ctx.NotFound()
 		return
 	}
@@ -90,7 +91,7 @@ func GeneralSettings(ctx *context.Context) {
 	ctx.Data["AllowedRepos"] = allowedRepos
 	ctx.Data["OwnerID"] = rCtx.OwnerID
 
-	if rCtx.IsOrg {
+	if rCtx.Kind == settingsScopeOrg {
 		ctx.HTML(http.StatusOK, tplOrgSettingsActionsGeneral)
 	} else {
 		ctx.HTML(http.StatusOK, tplUserSettingsActionsGeneral)
@@ -105,7 +106,7 @@ func UpdateGeneralSettings(ctx *context.Context) {
 		return
 	}
 
-	if !rCtx.IsOrg && !rCtx.IsUser {
+	if rCtx.Kind != settingsScopeOrg && rCtx.Kind != settingsScopeUser {
 		ctx.NotFound()
 		return
 	}
