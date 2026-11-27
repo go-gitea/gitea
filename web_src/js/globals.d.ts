@@ -15,6 +15,12 @@ interface Element {
   _tippy: import('tippy.js').Instance;
 }
 
+interface HTMLElementEventMap {
+  'image-crop-change': CustomEvent<{x: number, y: number, width: number, height: number}>,
+  'text-expander-change': import('@github/text-expander-element').TextExpanderChangeEvent,
+  'text-expander-value': CustomEvent<{item: HTMLElement, key: string, value: string}>,
+}
+
 interface Window {
   config: {
     appUrl: string,

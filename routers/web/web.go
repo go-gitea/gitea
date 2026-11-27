@@ -434,12 +434,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		return func(ctx *context.Context) {
 			// only check global disabled units when ignoreGlobal is false
 			if !ignoreGlobal && unitType.UnitGlobalDisabled() {
-				ctx.NotFound(nil)
+				ctx.NotFound()
 				return
 			}
 			if ctx.ContextUser.IsOrganization() {
 				if ctx.Org.Organization.AnyRepoUnitPermission(ctx, ctx.Doer, unitType) < accessMode {
-					ctx.NotFound(nil)
+					ctx.NotFound()
 					return
 				}
 			}
@@ -547,7 +547,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", func(ctx *context.Context) {
 			if unit.TypeCode.UnitGlobalDisabled() {
-				ctx.NotFound(nil)
+				ctx.NotFound()
 				return
 			}
 		}, explore.Code)
@@ -709,6 +709,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addWebhookAddRoutes()
 			m.Group("/{id}", func() {
 				m.Get("", repo_setting.WebHooksEdit)
+				m.Get("/history", repo_setting.WebhookHistory)
 				m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 			})
 			addWebhookEditRoutes()
@@ -831,6 +832,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/delete", admin.DeleteDefaultOrSystemWebhook)
 			m.Group("/{id}", func() {
 				m.Get("", repo_setting.WebHooksEdit)
+				m.Get("/history", repo_setting.WebhookHistory)
 				m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 			})
 			addWebhookEditRoutes()
@@ -911,7 +913,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
 			if ctx.Package.AccessMode < accessMode {
-				ctx.NotFound(nil)
+				ctx.NotFound()
 			}
 		}
 	}
@@ -922,12 +924,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			switch ctx.ContextUser.Visibility {
 			case structs.VisibleTypePrivate:
 				if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
-					ctx.NotFound(nil)
+					ctx.NotFound()
 					return
 				}
 			case structs.VisibleTypeLimited:
 				if ctx.Doer == nil {
-					ctx.NotFound(nil)
+					ctx.NotFound()
 					return
 				}
 			}
@@ -1009,6 +1011,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					addWebhookAddRoutes()
 					m.Group("/{id}", func() {
 						m.Get("", repo_setting.WebHooksEdit)
+						m.Get("/history", repo_setting.WebhookHistory)
 						m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 					})
 					addWebhookEditRoutes()
@@ -1131,7 +1134,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				})
 			}, reqSignIn, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
 				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
-					ctx.NotFound(nil)
+					ctx.NotFound()
 					return
 				}
 			})
@@ -1207,6 +1210,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addWebhookAddRoutes()
 			m.Group("/{id}", func() {
 				m.Get("", repo_setting.WebHooksEdit)
+				m.Get("/history", repo_setting.WebhookHistory)
 				m.Post("/test", repo_setting.TestWebhook)
 				m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 			})
@@ -1280,12 +1284,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.TreeViewNodes)
 		})
 		m.Get("/compare", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
-		m.PathGroup("/compare/*", func(g *web.RouterPathGroup) {
-			g.MatchPath("GET", "/<basehead:*>.diff", repo.MustBeNotEmpty, repo.DownloadCompareDiff)
-			g.MatchPath("GET", "/<basehead:*>.patch", repo.MustBeNotEmpty, repo.DownloadComparePatch)
-			g.MatchPath("GET", "/<*:*>", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
-			g.MatchPath("POST", "/<*:*>", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, reqSignIn, context.RepoMustNotBeArchived(), reqUnitPullsReader, repo.MustAllowPulls, web.Bind[*forms.CreateIssueForm](), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
-		})
+		m.Get("/compare/*", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
+		m.Post("/compare/*", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, reqSignIn, context.RepoMustNotBeArchived(), reqUnitPullsReader, repo.MustAllowPulls, web.Bind[*forms.CreateIssueForm](), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
 		m.Get("/pulls/new/*", repo.PullsNewRedirect)
 	}, optSignIn, context.RepoAssignment, reqUnitCodeReader)
 	// end "/{username}/{reponame}": repo code: find, compare, list
@@ -1627,6 +1627,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/{type:pulls}", repo.Issues)
+		m.Get("/queue/*", repo.MergeQueue)
+		m.Post("/queue/clear/*", reqSignIn, reqRepoAdmin, context.RepoMustNotBeArchived(), repo.ClearMergeQueue)
 		m.Group("/{type:pulls}/{index}", func() {
 			m.Get("", repo.SetEditorconfigIfExists, repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewIssue)
 			m.Get(".diff", repo.DownloadPullDiff)
@@ -1638,7 +1640,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Get("/{sha:[a-f0-9]{7,64}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForSingleCommit)
 			})
 			m.Post("/merge", context.RepoMustNotBeArchived(), web.Bind[*forms.MergePullRequestForm](), repo.MergePullRequest)
-			m.Post("/cancel_auto_merge", context.RepoMustNotBeArchived(), repo.CancelAutoMergePullRequest)
+			m.Post("/cancel_auto_merge", reqSignIn, context.RepoMustNotBeArchived(), repo.CancelAutoMergePullRequest)
+			m.Post("/merge_queue/remove", reqSignIn, context.RepoMustNotBeArchived(), repo.RemoveFromMergeQueue)
+			m.Post("/merge_queue/jump", reqSignIn, reqRepoAdmin, context.RepoMustNotBeArchived(), repo.JumpMergeQueue)
 			m.Post("/update", repo.UpdatePullRequest)
 			m.Post("/set_allow_maintainer_edit", web.Bind[*forms.UpdateAllowEditsForm](), repo.SetAllowEdits)
 			m.Post("/cleanup", context.RepoMustNotBeArchived(), repo.CleanUpPullRequest)
@@ -1778,6 +1782,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Any("/mail-preview", devtest.MailPreview)
 			m.Any("/mail-preview/*", devtest.MailPreviewRender)
 			m.Any("/mail-preview-embed/*", devtest.MailPreviewEmbed)
+			m.Get("/pull-merge-box", repo.DevtestPullMergeBox)
 			m.Any("/{sub}", devtest.TmplCommon)
 			m.Get("/repo-action-view/runs/{run}", devtest.MockActionsView)
 			m.Get("/repo-action-view/artifacts/{artifact_name}/preview", devtest.MockActionsArtifactPreview)
@@ -1794,6 +1799,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.GetWebContext(req.Context())
 		defer routing.RecordFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "WebNotFound"))()
-		ctx.NotFound(nil)
+		ctx.NotFound()
 	})
 }

@@ -12,6 +12,8 @@ import (
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm/access"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -73,7 +75,7 @@ type ProcReceiveOptions struct {
 }
 
 // ProcReceive handle proc receive work
-func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, opts *ProcReceiveOptions) ([]private.HookProcReceiveRefResult, error) {
+func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, perm access.Permission, opts *ProcReceiveOptions) ([]private.HookProcReceiveRefResult, error) {
 	results := make([]private.HookProcReceiveRefResult, 0, len(opts.OldCommitIDs))
 	forcePush := opts.GitPushOptions.Bool(private.GitPushOptionForcePush)
 	topicBranch := opts.GitPushOptions["topic"]
@@ -193,7 +195,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				Issue:       prIssue,
 				PullRequest: pr,
 			}
-			if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
+			if err := pull_service.NewPullRequest(ctx, perm, prOpts); err != nil {
 				return nil, err
 			}
 
@@ -208,6 +210,18 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				URL:               fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
 				ShouldShowMessage: setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
 				HeadBranch:        headBranch,
+			})
+			continue
+		}
+
+		if entry, err := pull_model.GetMergeQueueEntryByPullID(ctx, pr.ID); err != nil {
+			return nil, err
+		} else if entry != nil {
+			results = append(results, private.HookProcReceiveRefResult{
+				OriginalRef: opts.RefFullNames[i],
+				OldOID:      opts.OldCommitIDs[i],
+				NewOID:      opts.NewCommitIDs[i],
+				Err:         "the pull request is in a merge queue, remove it from the queue to update it",
 			})
 			continue
 		}
@@ -251,6 +265,9 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		// Store old commit ID for review staleness checking
 		oldHeadCommitID := pr.HeadCommitID
 
+		if err := pull_service.DisableAutoMergeIfNotWriter(ctx, pusher, pr, "pushed_by_non_writer"); err != nil {
+			return nil, fmt.Errorf("ProcReceive: %w", err)
+		}
 		pr.HeadCommitID = opts.NewCommitIDs[i]
 		if err = pull_service.UpdateRefForAgit(ctx, pr); err != nil {
 			return nil, fmt.Errorf("failed to update pull ref. Error: %w", err)

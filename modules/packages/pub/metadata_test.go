@@ -4,12 +4,13 @@
 package pub
 
 import (
-	"archive/tar"
 	"bytes"
 	"compress/gzip"
-	"io"
 	"strings"
 	"testing"
+
+	"gitea.dev/modules/packages"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -42,34 +43,26 @@ dev_dependencies:
   http: '>=0.13.0'`
 
 func TestParsePackage(t *testing.T) {
-	createArchive := func(files map[string][]byte) io.Reader {
-		var buf bytes.Buffer
-		zw := gzip.NewWriter(&buf)
-		tw := tar.NewWriter(zw)
-		for filename, content := range files {
-			hdr := &tar.Header{
-				Name: filename,
-				Mode: 0o600,
-				Size: int64(len(content)),
-			}
-			tw.WriteHeader(hdr)
-			tw.Write(content)
-		}
-		tw.Close()
-		zw.Close()
-		return &buf
+	createArchive := func(files map[string]string) *bytes.Reader {
+		return bytes.NewReader(test.WriteTarCompression(gzip.NewWriter, files).Bytes())
 	}
 
 	t.Run("MissingPubspecFile", func(t *testing.T) {
-		data := createArchive(map[string][]byte{"dummy.txt": {}})
+		data := createArchive(map[string]string{"dummy.txt": ""})
 
 		pp, err := ParsePackage(data)
 		assert.Nil(t, pp)
 		assert.ErrorIs(t, err, ErrMissingPubspecFile)
 	})
 
+	t.Run("DecompressionLimit", func(t *testing.T) {
+		defer test.MockVariableValue(&packages.ArchiveDecompressionFloor, 0)()
+		_, err := ParsePackage(createArchive(map[string]string{"dummy.txt": strings.Repeat("\x00", 1024*1024)}))
+		assert.ErrorIs(t, err, packages.ErrContentTooLarge)
+	})
+
 	t.Run("PubspecFileTooLarge", func(t *testing.T) {
-		data := createArchive(map[string][]byte{"pubspec.yaml": make([]byte, 200*1024)})
+		data := createArchive(map[string]string{"pubspec.yaml": strings.Repeat("\x00", 200*1024)})
 
 		pp, err := ParsePackage(data)
 		assert.Nil(t, pp)
@@ -77,7 +70,7 @@ func TestParsePackage(t *testing.T) {
 	})
 
 	t.Run("InvalidPubspecFile", func(t *testing.T) {
-		data := createArchive(map[string][]byte{"pubspec.yaml": {}})
+		data := createArchive(map[string]string{"pubspec.yaml": ""})
 
 		pp, err := ParsePackage(data)
 		assert.Nil(t, pp)
@@ -85,7 +78,7 @@ func TestParsePackage(t *testing.T) {
 	})
 
 	t.Run("Valid", func(t *testing.T) {
-		data := createArchive(map[string][]byte{"pubspec.yaml": []byte(pubspecContent)})
+		data := createArchive(map[string]string{"pubspec.yaml": pubspecContent})
 
 		pp, err := ParsePackage(data)
 		assert.NoError(t, err)
@@ -94,7 +87,7 @@ func TestParsePackage(t *testing.T) {
 	})
 
 	t.Run("ValidWithReadme", func(t *testing.T) {
-		data := createArchive(map[string][]byte{"pubspec.yaml": []byte(pubspecContent), "README.md": []byte("readme")})
+		data := createArchive(map[string]string{"pubspec.yaml": pubspecContent, "README.md": "readme"})
 
 		pp, err := ParsePackage(data)
 		assert.NoError(t, err)

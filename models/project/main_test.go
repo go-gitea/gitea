@@ -19,5 +19,6 @@ func TestMain(m *testing.M) {
 			"project_issue.yml",
 			"repository.yml",
 		},
+		SkipRepoFixtures: true,
 	})
 }

@@ -30,6 +30,12 @@ func (*SpecOnBeforeRemovePackageVersion) OnBeforeRemovePackageVersion(ctx contex
 	return nil
 }
 
+type SpecOnAfterRemovePackage struct{}
+
+func (*SpecOnAfterRemovePackage) OnAfterRemovePackage(ctx context.Context, pkg *packages_model.Package) error {
+	return nil
+}
+
 type SpecRenderUsageManual struct{}
 
 func (*SpecRenderUsageManual) RenderSetupManual(ctx context.Context, pkg *packages_model.PackageDescriptor, viewData any) template.HTML {
@@ -47,6 +53,7 @@ type specDefault struct {
 	SpecGetViewPackageVersionData
 	SpecOnBeforeRemovePackageAll
 	SpecOnBeforeRemovePackageVersion
+	SpecOnAfterRemovePackage
 	SpecRenderUsageManual
 }
 

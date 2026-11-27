@@ -82,6 +82,7 @@ function processElement(ctx :ProcessorContext, processors: Processors, el: HTMLE
     return processElement(ctx, processors, el.firstElementChild as HTMLElement);
   }
 
+  const {elementIsFirst, elementIsLast} = ctx; // processing the children below overwrites them
   const isListContainer = el.tagName === 'OL' || el.tagName === 'UL';
   if (isListContainer) ctx.listNestingLevel++;
   for (let i = 0; i < el.children.length; i++) {
@@ -91,6 +92,8 @@ function processElement(ctx :ProcessorContext, processors: Processors, el: HTMLE
   }
   if (isListContainer) ctx.listNestingLevel--;
 
+  ctx.elementIsFirst = elementIsFirst;
+  ctx.elementIsLast = elementIsLast;
   if (processors[el.tagName]) {
     const ret = processors[el.tagName](el);
     if (ret && ret !== el) {

@@ -445,6 +445,12 @@ func prepareMigrationTasks() []*migration {
 		newMigration(366, "Drop user_open_id table", v29.DropUserOpenIDTable),
 		newMigration(367, "Add latest_release_id to repository table", v29.AddLatestReleaseIDToRepository),
 		newMigration(368, "Add unique index for team name", v29.AddUniqueTeamNameIndex),
+		newMigration(369, "Add runner_name to action_task", v29.AddRunnerNameToActionTask),
+		newMigration(370, "Change raw_concurrency of action_run and action_run_job to TEXT on MSSQL", v29.ChangeActionsRawConcurrencyToText),
+		newMigration(371, "Add hash_sha256 column to attachment", v29.AddHashSHA256ToAttachment),
+		newMigration(372, "Add workflow_ref to action_run", v29.AddWorkflowRefToActionRun),
+		newMigration(373, "Repair Debian and RPM signing keys rejected by Sequoia", v29.RepairPackageSigningKeys),
+		newMigration(374, "Add pull_merge_queue_entry table", v29.AddPullMergeQueueEntryTable),
 	}
 	return preparedMigrations
 }

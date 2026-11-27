@@ -12,6 +12,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 )
 
 // checkConflictsMergeTree uses git merge-tree to check for conflicts and if none are found checks if the patch is empty
@@ -41,7 +42,7 @@ func checkConflictsMergeTree(ctx context.Context, pr *issues_model.PullRequest, 
 	// against the current base commit (baseCommitID) using `git diff-tree`. The command returns exit code 0
 	// if there is no diff between these trees (empty patch) and exit code 1 if there is a diff.
 	gitErr := gitcmd.NewCommand("diff-tree", "-r", "--quiet").
-		AddDynamicArguments(treeHash, baseCommitID).WithRepo(pr.BaseRepo).Run(ctx)
+		AddDynamicArguments(treeHash, baseCommitID).WithRepo(pr.BaseRepo).RunWithStderr(ctx)
 	switch {
 	case gitErr == nil:
 		log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
@@ -110,8 +111,12 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 	}
 
 	pr.MergeBase, err = git.MergeBase(ctx, pr.BaseRepo, baseCommitID, pr.HeadCommitID)
-	if err != nil {
-		// if there is no merge base, then it's empty, still need to allow the pull request to be created
+	if errors.Is(err, util.ErrNotExist) {
+		pr.Status = issues_model.PullRequestStatusUnrelated
+		pr.ConflictedFiles, pr.ChangedProtectedFiles = nil, nil
+		return nil
+	} else if err != nil {
+		// if the merge base can't be determined, then it's empty, still need to allow the pull request to be created
 		// not quite right (e.g.: why not reset the fields like below), but no interest to do more investigation at the moment
 		log.Error("MergeBase: unable to find merge base between %s and %s: %v", baseCommitID, pr.HeadCommitID, err)
 		pr.Status = issues_model.PullRequestStatusEmpty

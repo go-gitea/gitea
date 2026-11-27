@@ -263,11 +263,9 @@ type FindReleasesOptions struct {
 	IncludeDrafts bool
 	IncludeTags   bool
 	IsPreRelease  optional.Option[bool]
-	IsDraft       optional.Option[bool]
 	TagNames      []string
 	HasSha1       optional.Option[bool] // useful to find draft releases which are created with existing tags
 	NamePattern   optional.Option[string]
-	TagFilter     string
 }
 
 func (opts FindReleasesOptions) ToConds() builder.Cond {
@@ -285,9 +283,6 @@ func (opts FindReleasesOptions) ToConds() builder.Cond {
 	if opts.IsPreRelease.Has() {
 		cond = cond.And(builder.Eq{"is_prerelease": opts.IsPreRelease.Value()})
 	}
-	if opts.IsDraft.Has() {
-		cond = cond.And(builder.Eq{"is_draft": opts.IsDraft.Value()})
-	}
 	if opts.HasSha1.Has() {
 		if opts.HasSha1.Value() {
 			cond = cond.And(builder.Neq{"sha1": ""})
@@ -298,6 +293,33 @@ func (opts FindReleasesOptions) ToConds() builder.Cond {
 
 	if opts.NamePattern.Has() && opts.NamePattern.Value() != "" {
 		cond = cond.And(builder.Like{"lower_tag_name", strings.ToLower(opts.NamePattern.Value())})
+	}
+	return cond
+}
+
+func (opts FindReleasesOptions) ToOrders() string {
+	return "created_unix DESC, id DESC"
+}
+
+type ReleaseListOptions struct {
+	db.ListOptions
+	RepoID        int64
+	IncludeDrafts bool
+	IsDraft       optional.Option[bool]
+	IsPreRelease  optional.Option[bool]
+	TagFilter     string
+}
+
+func (opts ReleaseListOptions) cond() builder.Cond {
+	var cond builder.Cond = builder.Eq{"repo_id": opts.RepoID, "is_tag": false}
+	if !opts.IncludeDrafts {
+		cond = cond.And(builder.Eq{"is_draft": false})
+	}
+	if opts.IsDraft.Has() {
+		cond = cond.And(builder.Eq{"is_draft": opts.IsDraft.Value()})
+	}
+	if opts.IsPreRelease.Has() {
+		cond = cond.And(builder.Eq{"is_prerelease": opts.IsPreRelease.Value()})
 	}
 	if opts.TagFilter != "" {
 		pattern := strings.ToLower(opts.TagFilter)
@@ -310,8 +332,19 @@ func (opts FindReleasesOptions) ToConds() builder.Cond {
 	return cond
 }
 
-func (opts FindReleasesOptions) ToOrders() string {
-	return "created_unix DESC, id DESC"
+// FindReleaseList sorts like GitHub, since a patch tagged on an old branch can predate the commits of earlier releases
+func FindReleaseList(ctx context.Context, opts ReleaseListOptions) ([]*Release, error) {
+	sess := db.GetEngine(ctx).Where(opts.cond()).Desc("is_draft", "published_unix", "created_unix", "id")
+	if opts.PageSize > 0 {
+		sess.Limit(opts.PageSize, (max(opts.Page, 1)-1)*opts.PageSize)
+	}
+	var rels []*Release
+	err := sess.Find(&rels)
+	return rels, err
+}
+
+func CountReleaseList(ctx context.Context, opts ReleaseListOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(opts.cond()).Count(new(Release))
 }
 
 // GetTagNamesByRepoID returns a list of release tag names of repository.

@@ -4,7 +4,6 @@
 package context
 
 import (
-	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -42,22 +41,6 @@ type Base struct {
 
 	// Locale is mainly for Web context, although the API context also uses it in some cases: message response, form validation
 	Locale translation.Locale
-}
-
-var ParseMultipartFormMaxMemory = int64(32 << 20)
-
-func (b *Base) ParseMultipartForm() bool {
-	err := b.Req.ParseMultipartForm(ParseMultipartFormMaxMemory)
-	if err != nil {
-		// TODO: all errors caused by client side should be ignored (connection closed).
-		if !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
-			// Errors caused by server side (disk full) should be logged.
-			log.Error("Failed to parse request multipart form for %s: %v", b.Req.RequestURI, err)
-		}
-		b.HTTPError(http.StatusInternalServerError, "failed to parse request multipart form")
-		return false
-	}
-	return true
 }
 
 // AppendAccessControlExposeHeaders append headers by name to "Access-Control-Expose-Headers" header
@@ -128,7 +111,7 @@ func (b *Base) RemoteAddr() string {
 func (b *Base) plainTextInternal(skip, status int, bs []byte) {
 	statusPrefix := status / 100
 	if statusPrefix == 4 || statusPrefix == 5 {
-		log.Log(skip, log.TRACE, "plainTextInternal (status=%d): %s", status, string(bs))
+		log.Log(skip+1, log.TRACE, "plainTextInternal (status=%d): %s", status, string(bs))
 	}
 	b.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	b.Resp.Header().Set("X-Content-Type-Options", "nosniff")
@@ -138,12 +121,12 @@ func (b *Base) plainTextInternal(skip, status int, bs []byte) {
 
 // PlainTextBytes renders bytes as plain text
 func (b *Base) PlainTextBytes(status int, bs []byte) {
-	b.plainTextInternal(2, status, bs)
+	b.plainTextInternal(1, status, bs)
 }
 
 // PlainText renders content as plain text
 func (b *Base) PlainText(status int, text string) {
-	b.plainTextInternal(2, status, []byte(text))
+	b.plainTextInternal(1, status, []byte(text))
 }
 
 // Redirect redirects the request

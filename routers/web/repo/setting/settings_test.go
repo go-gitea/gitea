@@ -6,9 +6,12 @@ package setting
 import (
 	"net/http"
 	"net/url"
+	"strconv"
 	"testing"
 
+	"gitea.dev/models/db"
 	deploykey_model "gitea.dev/models/deploykey"
+	git_model "gitea.dev/models/git"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
@@ -28,6 +31,26 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestDisableMergeQueueKeepsSettings(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx, _ := contexttest.MockContext(t, "POST /user2/repo1/settings/branches/edit")
+	contexttest.LoadRepo(t, ctx, 1)
+	rule := &git_model.ProtectedBranch{RepoID: 1, RuleName: "release"}
+	rule.RequireMergeQueue = true
+	rule.MergeQueue = git_model.DefaultMergeQueueConfig()
+	rule.MergeQueue.MinEntriesToMerge = 2
+	require.NoError(t, db.Insert(ctx, rule))
+	contexttest.MockRequestPostForm(ctx.Req, url.Values{
+		"rule_id":                          {strconv.FormatInt(rule.ID, 10)},
+		"rule_name":                        {rule.RuleName},
+		"merge_queue_min_entries_to_merge": {"6"},
+	})
+	SettingsProtectedBranchPost(ctx)
+	saved := unittest.AssertExistsAndLoadBean(t, &git_model.ProtectedBranch{ID: rule.ID})
+	assert.False(t, saved.RequireMergeQueue)
+	assert.Equal(t, rule.MergeQueue, saved.MergeQueue)
+}
 
 func TestAddDeployKey(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())

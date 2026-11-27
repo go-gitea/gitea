@@ -5,13 +5,12 @@ package chef
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"io"
 	"regexp"
 	"strings"
 	"sync"
 
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
@@ -76,14 +75,11 @@ type chefMetadata struct {
 }
 
 // ParsePackage parses the Chef package file
-func ParsePackage(r io.Reader) (*Package, error) {
-	gzr, err := gzip.NewReader(r)
+func ParsePackage(r packages.SizedReader) (*Package, error) {
+	tr, err := packages.NewArchiveTarGzReader(r, r.Size())
 	if err != nil {
 		return nil, err
 	}
-	defer gzr.Close()
-
-	tr := tar.NewReader(gzr)
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {
@@ -112,7 +108,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 // ParseChefMetadata parses a metadata.json file to retrieve the metadata of a Chef package
 func ParseChefMetadata(r io.Reader) (*Package, error) {
 	var cm chefMetadata
-	if err := json.NewDecoder(packages.NewLimitedReader(r, packages.MaxMetadataSize)).Decode(&cm); err != nil {
+	if err := jsonlimit.DecodeWithLimit(r, packages.MaxMetadataSize, &cm); err != nil {
 		return nil, err
 	}
 

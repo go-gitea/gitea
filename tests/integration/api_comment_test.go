@@ -123,6 +123,14 @@ func TestAPIComments(t *testing.T) {
 		comments := DecodeJSON(t, resp, []*api.TimelineComment{})
 		expectedCount := unittest.GetCount(t, &issues_model.Comment{IssueID: issue.ID})
 		assert.Len(t, comments, expectedCount)
+
+		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/issues/3/timeline?limit=2")
+		resp = MakeRequest(t, req, http.StatusOK)
+		comments = DecodeJSON(t, resp, []*api.TimelineComment{})
+		if assert.Len(t, comments, 2) {
+			assert.EqualValues(t, 10, comments[0].ID)
+			assert.EqualValues(t, 11, comments[1].ID)
+		}
 	})
 
 	t.Run("GetSystemUserComment", func(t *testing.T) {

@@ -8,7 +8,6 @@ import (
 	"archive/zip"
 	"bufio"
 	"cmp"
-	"compress/gzip"
 	"io"
 	"path"
 	"regexp"
@@ -40,12 +39,14 @@ var globalVars = sync.OnceValue(func() (ret struct {
 	namePattern          *regexp.Regexp
 	versionPattern       *regexp.Regexp
 	authorReplacePattern *regexp.Regexp
+	urlPattern           *regexp.Regexp
 },
 ) {
 	ret.fieldPattern = regexp.MustCompile(`\A\S+:`)
 	ret.namePattern = regexp.MustCompile(`\A[a-zA-Z][a-zA-Z0-9\.]*[a-zA-Z0-9]\z`)
 	ret.versionPattern = regexp.MustCompile(`\A[0-9]+(?:[.\-][0-9]+)+\z`)
 	ret.authorReplacePattern = regexp.MustCompile(`[\[\(].+?[\]\)]`)
+	ret.urlPattern = regexp.MustCompile(`(?:https?|ftp)://[^\s,<>]+`)
 	return ret
 })
 
@@ -71,14 +72,9 @@ type Metadata struct {
 	NeedsCompilation bool     `json:"needs_compilation"`
 }
 
-type ReaderReaderAt interface {
-	io.Reader
-	io.ReaderAt
-}
-
 // ParsePackage reads the package metadata from a CRAN package
 // .zip and .tar.gz/.tgz files are supported.
-func ParsePackage(r ReaderReaderAt, size int64) (*Package, error) {
+func ParsePackage(r packages.SizedReader) (*Package, error) {
 	magicBytes := make([]byte, 2)
 	if _, err := r.ReadAt(magicBytes, 0); err != nil {
 		return nil, err
@@ -87,17 +83,14 @@ func ParsePackage(r ReaderReaderAt, size int64) (*Package, error) {
 	if magicBytes[0] == 0x1F && magicBytes[1] == 0x8B {
 		return parsePackageTarGz(r)
 	}
-	return parsePackageZip(r, size)
+	return parsePackageZip(r)
 }
 
-func parsePackageTarGz(r io.Reader) (*Package, error) {
-	gzr, err := gzip.NewReader(r)
+func parsePackageTarGz(r packages.SizedReader) (*Package, error) {
+	tr, err := packages.NewArchiveTarGzReader(r, r.Size())
 	if err != nil {
 		return nil, err
 	}
-	defer gzr.Close()
-
-	tr := tar.NewReader(gzr)
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {
@@ -127,8 +120,8 @@ func parsePackageTarGz(r io.Reader) (*Package, error) {
 	return nil, ErrMissingDescriptionFile
 }
 
-func parsePackageZip(r io.ReaderAt, size int64) (*Package, error) {
-	zr, err := zip.NewReader(r, size)
+func parsePackageZip(r packages.SizedReader) (*Package, error) {
+	zr, err := zip.NewReader(r, r.Size())
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +163,7 @@ func ParseDescription(r io.Reader) (*Package, error) {
 		if line == "" {
 			continue
 		}
-		if !globalVars().fieldPattern.MatchString(line) {
+		if !globalVars().fieldPattern.Match(scanner.Bytes()) {
 			b.WriteRune(' ')
 			b.WriteString(line)
 			continue
@@ -224,7 +217,7 @@ func setField(p *Package, data string) error {
 	case "Description":
 		p.Metadata.Description = value
 	case "URL":
-		p.Metadata.ProjectURL = splitAndTrim(value)
+		p.Metadata.ProjectURL = globalVars().urlPattern.FindAllString(value, -1)
 	case "License":
 		p.Metadata.License = value
 	case "Author":

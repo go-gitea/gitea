@@ -96,7 +96,7 @@ func TestRunWithContextStd(t *testing.T) {
 
 		cmd = NewCommand("grep")
 		cmd.AddOptionGrepExpr("-x")
-		assert.NoError(t, cmd.Run(t.Context()))
+		assert.NoError(t, cmd.RunWithStderr(t.Context()))
 		assert.Equal(t, []string{"grep", "-e", "-x"}, cmd.args)
 	}
 
