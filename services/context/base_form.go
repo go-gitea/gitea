@@ -4,6 +4,8 @@
 package context
 
 import (
+	"errors"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -26,7 +28,7 @@ func (b *Base) FormString(key string, def ...string) string {
 // FormStrings returns a values for the key in the form (including query parameters), similar to FormString
 func (b *Base) FormStrings(key string) []string {
 	if b.Req.Form == nil {
-		if err := b.Req.ParseMultipartForm(32 << 20); err != nil {
+		if err := b.Req.ParseMultipartForm(32 << 20); err != nil && !errors.Is(err, http.ErrNotMultipart) {
 			return nil
 		}
 	}
