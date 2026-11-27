@@ -120,10 +120,11 @@ export class DiffViewer {
     for (const entry of this.entries) if (entry.element) this.renderBody(entry); // the files painted before they arrived
   }
 
-  // waits briefly for the first file's grammar and the comments, so the first paint usually has them, and for the rest it needs
+  // waits briefly for the first file's grammar, its content and the comments, so the first paint usually has them, and for the rest it needs
   async firstPaint(status: Element, file: DiffStreamFile, escapeTablesPromise: Promise<void> | null, commentsPromise: Promise<void>): Promise<void> {
-    const highlighterPromise = loadHighlighter(file.language);
-    await Promise.all([Promise.race([Promise.all([highlighterPromise, commentsPromise]), sleep(300)]), escapeTablesPromise]);
+    const entry = this.entriesByName.get(file.name)!;
+    const highlightPromise = Promise.all([loadHighlighter(file.language), this.canLoadContent(entry) ? this.tryLoadContent(entry) : null]);
+    await Promise.all([Promise.race([Promise.all([highlightPromise, commentsPromise]), sleep(300)]), escapeTablesPromise]);
     status.remove();
     this.updateVisibleEntries();
     this.list.start(); // the stream may have failed meanwhile and started it
@@ -210,6 +211,8 @@ export class DiffViewer {
         // the raw file may be decoded differently than the hunks, like a stripped BOM, then the ranges wouldn't match
         return lineSegments && lineContent === line.content ? lineSegments : [[line.content, '']];
       });
+    } else if (this.canLoadContent(entry) && !entry.contentFailed) {
+      segments = lines.map((line) => [[line.content, '']]); // highlighted once the whole file arrived, so the tokens never change after they appear
     } else {
       segments = highlightHunkLines(lines, entry.highlighter);
     }
@@ -260,20 +263,23 @@ export class DiffViewer {
     return buttons;
   }
 
-  // like the legacy viewer, small files are highlighted as a whole so that multi-line constructs around the hunks are known
+  // files are highlighted as a whole so that multi-line constructs around the hunks are known, only if that fails by their hunks
   async highlightWithContent(entry: DiffFile): Promise<void> {
     if (!this.canLoadContent(entry) || !await loadHighlighter(entry.file.language)) return;
-    try {
-      await this.loadContent(entry);
-    } catch {
-      return; // the hunks stay highlighted on their own
-    }
+    await this.tryLoadContent(entry);
     if (entry.element) this.rehighlight(entry);
   }
 
   // the CSV view has its own size limit
   contentLimit(entry: DiffFile): number {
     return renderedKind(entry) === 'csv' ? this.config.csvMaxFileSize : this.config.maxFileSize;
+  }
+
+  // a failure is recorded on the entry, see DiffFile.contentFailed
+  async tryLoadContent(entry: DiffFile): Promise<void> {
+    try {
+      await this.loadContent(entry);
+    } catch {}
   }
 
   loadContent(entry: DiffFile): Promise<FileContent> {
@@ -286,6 +292,7 @@ export class DiffViewer {
       entry.setContent(await fetchFileContent(this.config, entry.file, this.contentLimit(entry), this.locale.fileSuppressed));
     } catch (error) {
       entry.contentPromise = null; // a later expansion tries again
+      entry.contentFailed = true;
       throw error;
     }
     return entry.content!;

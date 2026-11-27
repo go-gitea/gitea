@@ -18,6 +18,7 @@ export class DiffFile {
   lfsState: LfsState = null; // the diff of the LFS objects instead of their pointers
   content: FileContent | null = null; // for highlighting and expanding the context
   contentPromise: Promise<FileContent> | null = null; // while it loads
+  contentFailed = false; // then the hunks are highlighted on their own
   renderedLines: RenderedLines | null = null;
   contentSegments: {old: Segment[][] | null; new: Segment[][]} | null = null; // the highlighted content
   #hunks: DiffHunk[];
@@ -68,6 +69,7 @@ export class DiffFile {
 
   setContent(content: FileContent): void {
     this.content = content;
+    this.contentFailed = false;
     this.contentSegments = null;
     this.#gaps = null; // the tail gap ends at the known line count now
   }
