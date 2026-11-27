@@ -40,12 +40,12 @@ func getScopedWorkflowsCtx(ctx *context.Context) (*scopedWorkflowsCtx, error) {
 		return nil, err
 	}
 	swCtx := &scopedWorkflowsCtx{settingsScope: scope, RedirectLink: scope.LinkPrefix + "/scoped-workflows"}
-	switch {
-	case scope.IsOrg:
+	switch scope.Kind {
+	case settingsScopeOrg:
 		swCtx.Template = tplOrgScopedWorkflows
-	case scope.IsUser:
+	case settingsScopeUser:
 		swCtx.Template = tplUserScopedWorkflows
-	case scope.IsAdmin:
+	case settingsScopeAdmin:
 		swCtx.Template = tplAdminScopedWorkflows
 	default:
 		return nil, errors.New("getScopedWorkflowsCtx: scoped workflows are not managed per repository")
@@ -80,10 +80,10 @@ func ScopedWorkflows(ctx *context.Context) {
 		return
 	}
 
-	switch {
-	case swCtx.IsOrg:
+	switch swCtx.Kind {
+	case settingsScopeOrg:
 		ctx.Data["ScopedWorkflowsDesc"] = ctx.Tr("actions.scoped_workflows.desc_org")
-	case swCtx.IsUser:
+	case settingsScopeUser:
 		ctx.Data["ScopedWorkflowsDesc"] = ctx.Tr("actions.scoped_workflows.desc_user")
 	default: // instance-level
 		ctx.Data["ScopedWorkflowsDesc"] = ctx.Tr("actions.scoped_workflows.desc_global")
@@ -112,8 +112,8 @@ func ScopedWorkflows(ctx *context.Context) {
 	ctx.Data["RepoSearchUID"] = swCtx.OwnerID // 0 searches all repos, the admin route allows it
 	// owner/user scopes the repo search to the owner (exclusive);
 	// instance-level (admin) searches all repos and so must submit owner/name to disambiguate the selection across owners.
-	ctx.Data["ScopedWorkflowsSearchExclusive"] = !swCtx.IsAdmin
-	ctx.Data["ScopedWorkflowsSearchFullName"] = swCtx.IsAdmin
+	ctx.Data["ScopedWorkflowsSearchExclusive"] = !swCtx.IsAdmin()
+	ctx.Data["ScopedWorkflowsSearchFullName"] = swCtx.IsAdmin()
 	ctx.Data["RedirectLink"] = swCtx.RedirectLink
 	ctx.Data["ScopedWorkflowDirs"] = strings.Join(setting.Actions.ScopedWorkflowDirs, ", ")
 	ctx.HTML(http.StatusOK, swCtx.Template)
@@ -210,7 +210,7 @@ func ScopedWorkflowAdd(ctx *context.Context) {
 
 	repoName := ctx.FormString("repo_name")
 	var repo *repo_model.Repository
-	if swCtx.IsAdmin {
+	if swCtx.IsAdmin() {
 		// instance-level: the source may be any repo on the instance, identified by owner/name
 		ownerName, name, ok := strings.Cut(repoName, "/")
 		if !ok {

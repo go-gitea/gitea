@@ -35,14 +35,14 @@ func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
 		return nil, err
 	}
 	vCtx := &variablesCtx{settingsScope: scope, RedirectLink: scope.LinkPrefix + "/variables"}
-	switch {
-	case scope.IsRepo:
+	switch scope.Kind {
+	case settingsScopeRepo:
 		vCtx.VariablesTemplate = tplRepoVariables
-	case scope.IsOrg:
+	case settingsScopeOrg:
 		vCtx.VariablesTemplate = tplOrgVariables
-	case scope.IsUser:
+	case settingsScopeUser:
 		vCtx.VariablesTemplate = tplUserVariables
-	case scope.IsAdmin:
+	case settingsScopeAdmin:
 		vCtx.VariablesTemplate = tplAdminVariables
 	}
 	return vCtx, nil
@@ -60,7 +60,7 @@ func Variables(ctx *context.Context) {
 	}
 
 	variables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
-		BelongingScope: vCtx.BelongingScope,
+		BelongingScope: vCtx.BelongingScope(),
 	})
 	if err != nil {
 		ctx.ServerErrorAuto(err)
@@ -86,7 +86,7 @@ func VariableCreate(ctx *context.Context) {
 
 	form := web.GetForm[*forms.EditVariableForm](ctx)
 
-	v, err := actions_service.CreateVariable(ctx, vCtx.BelongingScope, form.Name, form.Data, form.Description)
+	v, err := actions_service.CreateVariable(ctx, vCtx.BelongingScope(), form.Name, form.Data, form.Description)
 	if err != nil {
 		ctx.JSONErrorAuto(err)
 		return
@@ -131,7 +131,7 @@ func VariableUpdate(ctx *context.Context) {
 func findActionsVariable(ctx *context.Context, id int64, vCtx *variablesCtx) *actions_model.ActionVariable {
 	opts := actions_model.FindVariablesOpts{
 		IDs:            []int64{id},
-		BelongingScope: vCtx.BelongingScope,
+		BelongingScope: vCtx.BelongingScope(),
 	}
 	got, err := actions_model.FindVariables(ctx, opts)
 	if err != nil {

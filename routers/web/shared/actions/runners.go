@@ -42,14 +42,14 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 		return nil, err
 	}
 	rCtx := &runnersCtx{settingsScope: scope, RedirectLink: scope.LinkPrefix + "/runners/"}
-	switch {
-	case scope.IsRepo:
+	switch scope.Kind {
+	case settingsScopeRepo:
 		rCtx.RunnersTemplate, rCtx.RunnerEditTemplate = tplRepoRunners, tplRepoRunnerEdit
-	case scope.IsOrg:
+	case settingsScopeOrg:
 		rCtx.RunnersTemplate, rCtx.RunnerEditTemplate = tplOrgRunners, tplOrgRunnerEdit
-	case scope.IsUser:
+	case settingsScopeUser:
 		rCtx.RunnersTemplate, rCtx.RunnerEditTemplate = tplUserRunners, tplUserRunnerEdit
-	case scope.IsAdmin:
+	case settingsScopeAdmin:
 		rCtx.RunnersTemplate, rCtx.RunnerEditTemplate = tplAdminRunners, tplAdminRunnerEdit
 	}
 	return rCtx, nil
@@ -78,7 +78,7 @@ func Runners(ctx *context.Context) {
 		Filter: ctx.Req.URL.Query().Get("q"),
 	}
 	opts.OwnerID, opts.RepoID = rCtx.OwnerID, rCtx.RepoID
-	opts.WithAvailable = !rCtx.IsAdmin
+	opts.WithAvailable = !rCtx.IsAdmin()
 
 	runners, count, err := db.FindAndCount[actions_model.ActionRunner](ctx, opts)
 	if err != nil {
@@ -105,7 +105,7 @@ func Runners(ctx *context.Context) {
 	ctx.Data["RunnerOwnerID"] = opts.OwnerID
 	ctx.Data["RunnerRepoID"] = opts.RepoID
 	ctx.Data["SortType"] = opts.Sort
-	ctx.Data["AllowBulkActions"] = rCtx.IsAdmin
+	ctx.Data["AllowBulkActions"] = rCtx.IsAdmin()
 
 	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 
@@ -321,7 +321,7 @@ func RunnerBulkActionPost(ctx *context.Context) {
 		return
 	}
 
-	if !rCtx.IsAdmin {
+	if !rCtx.IsAdmin() {
 		ctx.HTTPError(http.StatusForbidden, "bulk actions are admin-only")
 		return
 	}

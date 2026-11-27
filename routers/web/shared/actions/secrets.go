@@ -36,12 +36,12 @@ func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 		return nil, err
 	}
 	sCtx := &secretsCtx{settingsScope: scope, RedirectLink: scope.LinkPrefix + "/secrets"}
-	switch {
-	case scope.IsRepo:
+	switch scope.Kind {
+	case settingsScopeRepo:
 		sCtx.Repo, sCtx.SecretsTemplate = ctx.Repo.Repository, tplRepoSecrets
-	case scope.IsOrg:
+	case settingsScopeOrg:
 		sCtx.Owner, sCtx.SecretsTemplate = ctx.ContextUser, tplOrgSecrets
-	case scope.IsUser:
+	case settingsScopeUser:
 		sCtx.Owner, sCtx.SecretsTemplate = ctx.Doer, tplUserSecrets
 	default:
 		return nil, errors.New("getSecretsCtx: secrets are not managed at instance level")
@@ -60,11 +60,11 @@ func Secrets(ctx *context.Context) {
 		return
 	}
 
-	if sCtx.IsRepo {
+	if sCtx.IsRepo() {
 		ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	}
 
-	shared_secrets.SetSecretsContext(ctx, sCtx.BelongingScope)
+	shared_secrets.SetSecretsContext(ctx, sCtx.BelongingScope())
 	if ctx.Written() {
 		return
 	}
@@ -85,7 +85,7 @@ func SecretsPost(ctx *context.Context) {
 
 	shared_secrets.PerformSecretsPost(
 		ctx,
-		sCtx.BelongingScope,
+		sCtx.BelongingScope(),
 		sCtx.Owner,
 		sCtx.Repo,
 		sCtx.RedirectLink,
@@ -100,7 +100,7 @@ func SecretsDelete(ctx *context.Context) {
 	}
 	shared_secrets.PerformSecretsDelete(
 		ctx,
-		sCtx.BelongingScope,
+		sCtx.BelongingScope(),
 		sCtx.Owner,
 		sCtx.Repo,
 		sCtx.RedirectLink,
