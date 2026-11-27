@@ -226,3 +226,51 @@ func TestMigrate_InsertIssueComments(t *testing.T) {
 
 	unittest.CheckConsistencyFor(t, &issues_model.Issue{})
 }
+
+func TestComment_CanDoerRead(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// Comment 4 belongs to Review 4 which has Type ReviewTypePending and ReviewerID 1
+	comment4 := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 4})
+	isPending, err := comment4.IsPendingReview(t.Context())
+	assert.NoError(t, err)
+	assert.True(t, isPending)
+
+	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	otherUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	adminUser := &user_model.User{ID: 3, IsAdmin: true}
+
+	// Reviewer can read
+	canRead, err := comment4.CanDoerRead(t.Context(), reviewer)
+	assert.NoError(t, err)
+	assert.True(t, canRead)
+
+	// Admin can read
+	canRead, err = comment4.CanDoerRead(t.Context(), adminUser)
+	assert.NoError(t, err)
+	assert.True(t, canRead)
+
+	// Other user cannot read
+	canRead, err = comment4.CanDoerRead(t.Context(), otherUser)
+	assert.NoError(t, err)
+	assert.False(t, canRead)
+
+	// Unauthenticated user cannot read
+	canRead, err = comment4.CanDoerRead(t.Context(), nil)
+	assert.NoError(t, err)
+	assert.False(t, canRead)
+
+	// Regular comment (Comment 1) does not belong to a review
+	comment1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 1})
+	isPending, err = comment1.IsPendingReview(t.Context())
+	assert.NoError(t, err)
+	assert.False(t, isPending)
+
+	canRead, err = comment1.CanDoerRead(t.Context(), otherUser)
+	assert.NoError(t, err)
+	assert.True(t, canRead)
+
+	canRead, err = comment1.CanDoerRead(t.Context(), nil)
+	assert.NoError(t, err)
+	assert.True(t, canRead)
+}

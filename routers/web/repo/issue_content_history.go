@@ -27,6 +27,20 @@ func GetContentHistoryOverview(ctx *context.Context) {
 	}
 
 	editedHistoryCountMap, _ := issues_model.QueryIssueContentHistoryEditedCountMap(ctx, issue.ID)
+	for commentID := range editedHistoryCountMap {
+		if commentID == 0 {
+			continue
+		}
+		comment, err := issues_model.GetCommentByID(ctx, commentID)
+		if err != nil {
+			delete(editedHistoryCountMap, commentID)
+			continue
+		}
+		canRead, err := comment.CanDoerRead(ctx, ctx.Doer)
+		if err != nil || !canRead {
+			delete(editedHistoryCountMap, commentID)
+		}
+	}
 	ctx.JSON(http.StatusOK, map[string]any{
 		"i18n": map[string]any{
 			"textEdited":                   ctx.Tr("repo.issues.content_history.edited"),
@@ -46,6 +60,31 @@ func GetContentHistoryList(ctx *context.Context) {
 	}
 
 	commentID := ctx.FormInt64("comment_id")
+	if commentID != 0 {
+		comment, err := issues_model.GetCommentByID(ctx, commentID)
+		if err != nil {
+			if issues_model.IsErrCommentNotExist(err) {
+				ctx.NotFound()
+			} else {
+				ctx.ServerErrorAuto(err)
+			}
+			return
+		}
+		if comment.IssueID != issue.ID {
+			ctx.NotFound()
+			return
+		}
+		canRead, err := comment.CanDoerRead(ctx, ctx.Doer)
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+		if !canRead {
+			ctx.NotFound()
+			return
+		}
+	}
+
 	items, _ := issues_model.FetchIssueContentHistoryList(ctx, issue.ID, commentID)
 
 	// render history list to HTML for frontend dropdown items: (name, value)
@@ -161,6 +200,19 @@ func GetContentHistoryDetail(ctx *context.Context) {
 			log.Error("can not get comment for issue content history %v. err=%v", historyID, err)
 			return
 		}
+		if comment.IssueID != issue.ID {
+			ctx.NotFound()
+			return
+		}
+		canRead, err := comment.CanDoerRead(ctx, ctx.Doer)
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+		if !canRead {
+			ctx.NotFound()
+			return
+		}
 	}
 
 	// get the previous history revision (if exists)
@@ -215,6 +267,15 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 			return
 		}
 		if comment.IssueID != issue.ID {
+			ctx.NotFound()
+			return
+		}
+		canRead, err := comment.CanDoerRead(ctx, ctx.Doer)
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+		if !canRead {
 			ctx.NotFound()
 			return
 		}

@@ -415,6 +415,16 @@ func GetIssueComment(ctx *context.APIContext) {
 		return
 	}
 
+	canRead, err := comment.CanDoerRead(ctx, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if !canRead {
+		ctx.APIErrorNotFound()
+		return
+	}
+
 	if comment.Type != issues_model.CommentTypeComment {
 		ctx.Status(http.StatusNoContent)
 		return

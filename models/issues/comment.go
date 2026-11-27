@@ -787,6 +787,32 @@ func (c *Comment) LoadReview(ctx context.Context) (err error) {
 	return nil
 }
 
+// IsPendingReview returns whether the comment belongs to an unsubmitted pending review
+func (c *Comment) IsPendingReview(ctx context.Context) (bool, error) {
+	if c.ReviewID == 0 {
+		return false, nil
+	}
+	if err := c.LoadReview(ctx); err != nil {
+		return false, err
+	}
+	return c.Review != nil && c.Review.Type == ReviewTypePending, nil
+}
+
+// CanDoerRead returns whether the doer can read this comment.
+// For comments in pending reviews, only the reviewer or site admin can read.
+func (c *Comment) CanDoerRead(ctx context.Context, doer *user_model.User) (bool, error) {
+	isPending, err := c.IsPendingReview(ctx)
+	if err != nil {
+		return false, err
+	}
+	if isPending {
+		if doer == nil || (doer.ID != c.Review.ReviewerID && !doer.IsAdmin) {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 // DiffSide returns "previous" if Comment.Line is a LOC of the previous changes and "proposed" if it is a LOC of the proposed changes.
 func (c *Comment) DiffSide() string {
 	if c.Line < 0 {

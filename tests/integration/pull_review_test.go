@@ -24,6 +24,7 @@ import (
 	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/timeutil"
 	issue_service "gitea.dev/services/issue"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
@@ -38,6 +39,7 @@ func TestPullReview(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	t.Run("ReviewerMissed", testPullReviewReviewerMissed)
 	t.Run("LockedOrBlocked", testPullReviewLockedOrBlocked)
+	t.Run("PendingReviewPrivacy", testPullReviewPendingReviewPrivacy)
 }
 
 func testPullReviewReviewerMissed(t *testing.T) {
@@ -450,4 +452,109 @@ func testIssueClose(t *testing.T, session *TestSession, owner, repo, issueNumber
 
 	req := NewRequestWithValues(t, "POST", closeURL, options)
 	return session.MakeRequest(t, req, http.StatusOK)
+}
+
+func testPullReviewPendingReviewPrivacy(t *testing.T) {
+	// Comment 4 in fixtures belongs to Review 4 (type 0: ReviewTypePending) on Issue 2 (PR 2 in repo1).
+	// Reviewer is user1 (ID: 1).
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 4})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: comment.IssueID})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+
+	// Create an attachment for comment 4
+	attachment := &repo_model.Attachment{
+		RepoID:    repo.ID,
+		IssueID:   issue.ID,
+		CommentID: comment.ID,
+		Name:      "secret.txt",
+		UUID:      "11111111-2222-3333-4444-555555555555",
+	}
+	require.NoError(t, db.Insert(t.Context(), attachment))
+
+	// Create a content history entry for comment 4 (simulating that the draft comment was edited)
+	history := &issues_model.ContentHistory{
+		PosterID:       comment.PosterID,
+		IssueID:        issue.ID,
+		CommentID:      comment.ID,
+		EditedUnix:     timeutil.TimeStampNow(),
+		ContentText:    "draft secret review text",
+		IsFirstCreated: false,
+	}
+	require.NoError(t, db.Insert(t.Context(), history))
+
+	// Also insert a first revision so history count > 1
+	history0 := &issues_model.ContentHistory{
+		PosterID:       comment.PosterID,
+		IssueID:        issue.ID,
+		CommentID:      comment.ID,
+		EditedUnix:     timeutil.TimeStampNow() - 10,
+		ContentText:    "original draft review text",
+		IsFirstCreated: true,
+	}
+	require.NoError(t, db.Insert(t.Context(), history0))
+
+	user1Session := loginUser(t, "user1") // Reviewer
+	user2Session := loginUser(t, "user2") // Repo owner/collaborator but NOT the reviewer
+
+	// 1. Content History Overview
+	// For user2: overview must NOT contain comment.ID in editedHistoryCountMap
+	req := NewRequestf(t, "GET", "/%s/%s/issues/%d/content-history/overview", repo.OwnerName, repo.Name, issue.Index)
+	resp := user2Session.MakeRequest(t, req, http.StatusOK)
+	var overviewUser2 struct {
+		EditedHistoryCountMap map[string]int `json:"editedHistoryCountMap"`
+	}
+	DecodeJSON(t, resp, &overviewUser2)
+	assert.NotContains(t, overviewUser2.EditedHistoryCountMap, strconv.FormatInt(comment.ID, 10))
+
+	// For user1 (reviewer): overview MUST contain comment.ID in editedHistoryCountMap
+	req = NewRequestf(t, "GET", "/%s/%s/issues/%d/content-history/overview", repo.OwnerName, repo.Name, issue.Index)
+	resp = user1Session.MakeRequest(t, req, http.StatusOK)
+	var overviewUser1 struct {
+		EditedHistoryCountMap map[string]int `json:"editedHistoryCountMap"`
+	}
+	DecodeJSON(t, resp, &overviewUser1)
+	assert.Contains(t, overviewUser1.EditedHistoryCountMap, strconv.FormatInt(comment.ID, 10))
+
+	// 2. Content History List
+	// user2: 404 Not Found
+	req = NewRequestf(t, "GET", "/%s/%s/issues/%d/content-history/list?comment_id=%d", repo.OwnerName, repo.Name, issue.Index, comment.ID)
+	user2Session.MakeRequest(t, req, http.StatusNotFound)
+
+	// user1: 200 OK
+	req = NewRequestf(t, "GET", "/%s/%s/issues/%d/content-history/list?comment_id=%d", repo.OwnerName, repo.Name, issue.Index, comment.ID)
+	user1Session.MakeRequest(t, req, http.StatusOK)
+
+	// 3. Content History Detail
+	// user2: 404 Not Found
+	req = NewRequestf(t, "GET", "/%s/%s/issues/%d/content-history/detail?history_id=%d", repo.OwnerName, repo.Name, issue.Index, history.ID)
+	user2Session.MakeRequest(t, req, http.StatusNotFound)
+
+	// user1: 200 OK
+	req = NewRequestf(t, "GET", "/%s/%s/issues/%d/content-history/detail?history_id=%d", repo.OwnerName, repo.Name, issue.Index, history.ID)
+	user1Session.MakeRequest(t, req, http.StatusOK)
+
+	// 4. Web comment attachments endpoint
+	// user2: 404 Not Found
+	req = NewRequestf(t, "GET", "/%s/%s/comments/%d/attachments", repo.OwnerName, repo.Name, comment.ID)
+	user2Session.MakeRequest(t, req, http.StatusNotFound)
+
+	// user1: 200 OK
+	req = NewRequestf(t, "GET", "/%s/%s/comments/%d/attachments", repo.OwnerName, repo.Name, comment.ID)
+	user1Session.MakeRequest(t, req, http.StatusOK)
+
+	// 5. API v1 comment assets endpoint
+	tokenUser2 := getUserToken(t, "user2", auth_model.AccessTokenScopeReadIssue)
+	tokenUser1 := getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)
+
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets", repo.OwnerName, repo.Name, comment.ID).AddTokenAuth(tokenUser2)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets", repo.OwnerName, repo.Name, comment.ID).AddTokenAuth(tokenUser1)
+	MakeRequest(t, req, http.StatusOK)
+
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets/%d", repo.OwnerName, repo.Name, comment.ID, attachment.ID).AddTokenAuth(tokenUser2)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets/%d", repo.OwnerName, repo.Name, comment.ID, attachment.ID).AddTokenAuth(tokenUser1)
+	MakeRequest(t, req, http.StatusOK)
 }

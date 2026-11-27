@@ -149,6 +149,15 @@ func getRepoIssueComment(ctx *context.Context, commentID int64) *issues_model.Co
 		ctx.NotFound()
 		return nil
 	}
+	canRead, err := comment.CanDoerRead(ctx, ctx.Doer)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return nil
+	}
+	if !canRead {
+		ctx.NotFound()
+		return nil
+	}
 	return comment
 }
 
