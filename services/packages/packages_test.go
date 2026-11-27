@@ -14,6 +14,7 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
@@ -112,6 +113,7 @@ func TestUnlinkFromRepositoryRequiresTargetRepoAdmin(t *testing.T) {
 	assert.Equal(t, repo.ID, unittest.AssertExistsAndLoadBean(t, &packages_model.Package{ID: pkg.ID}).RepoID)
 
 	require.NoError(t, db.Insert(t.Context(), &organization.TeamRepo{OrgID: repo.OwnerID, TeamID: 12, RepoID: repo.ID}))
+	require.NoError(t, access_model.RecalculateUserAccess(t.Context(), repo, doer))
 	require.NoError(t, UnlinkFromRepository(t.Context(), pkg, doer))
 	assert.Zero(t, unittest.AssertExistsAndLoadBean(t, &packages_model.Package{ID: pkg.ID}).RepoID)
 }
