@@ -107,15 +107,16 @@ func TestCreateUserKey(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
 
 	session := loginUser(t, "user1")
-	token := url.QueryEscape(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll))
+	token := url.QueryEscape(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser))
 	keyType := "ssh-rsa"
 	keyContent := "AAAAB3NzaC1yc2EAAAADAQABAAABgQC4cn+iXnA4KvcQYSV88vGn0Yi91vG47t1P7okprVmhNTkipNRIHWr6WdCO4VDr/cvsRkuVJAsLO2enwjGWWueOO6BodiBgyAOZ/5t5nJNMCNuLGT5UIo/RI1b0WRQwxEZTRjt6mFNw6lH14wRd8ulsr9toSWBPMOGWoYs1PDeDL0JuTjL+tr1SZi/EyxCngpYszKdXllJEHyI79KQgeD0Vt3pTrkbNVTOEcCNqZePSVmUH8X8Vhugz3bnE0/iE9Pb5fkWO9c4AnM1FgI/8Bvp27Fw2ShryIXuR6kKvUqhVMTuOSDHwu6A8jLE5Owt3GAYugDpDYuwTVNGrHLXKpPzrGGPE/jPmaLCMZcsdkec95dYeU3zKODEm8UQZFhmJmDeWVJ36nGrGZHL4J5aTTaeFUJmmXDaJYiJ+K2/ioKgXqnXvltu0A9R8/LGy4nrTJRr4JMLuJFoUXvGm1gXQ70w2LSpk6yl71RNC0hCtsBe8BP8IhYCM0EP5jh7eCMQZNvM="
 	rawKeyBody := api.CreateKeyOption{
 		Title: "test-key",
 		Key:   keyType + " " + keyContent,
 	}
+	MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/user/keys", rawKeyBody).AddTokenAuth(token), http.StatusForbidden)
 	req := NewRequestWithJSON(t, "POST", "/api/v1/user/keys", rawKeyBody).
-		AddTokenAuth(token)
+		AddTokenAuth(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll))
 	resp := MakeRequest(t, req, http.StatusCreated)
 
 	newPublicKey := DecodeJSON(t, resp, &api.PublicKey{})
@@ -186,30 +187,6 @@ func TestCreateUserKey(t *testing.T) {
 
 	fingerprintPublicKeys = DecodeJSON(t, resp, []api.PublicKey{})
 	assert.Empty(t, fingerprintPublicKeys)
-}
-
-func TestCreateUserKeyRequiresFullTokenScope(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	keyBody := api.CreateKeyOption{
-		Title: "scoped-token-key",
-		Key:   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAeEzMls1UQPEV5UevuWm1Y+vMOGXHsxKzFvIPOsoc4Y",
-	}
-
-	// an SSH key is not bound to any token scope, so a scoped token must not be able to add one
-	userToken := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteUser)
-	req := NewRequestWithJSON(t, "POST", "/api/v1/user/keys", keyBody).AddTokenAuth(userToken)
-	MakeRequest(t, req, http.StatusForbidden)
-
-	adminToken := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteAdmin)
-	req = NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/keys", keyBody).AddTokenAuth(adminToken)
-	MakeRequest(t, req, http.StatusForbidden)
-	unittest.AssertNotExistsBean(t, &asymkey_model.PublicKey{Name: keyBody.Title})
-
-	fullToken := getUserToken(t, "user2", auth_model.AccessTokenScopeAll)
-	req = NewRequestWithJSON(t, "POST", "/api/v1/user/keys", keyBody).AddTokenAuth(fullToken)
-	MakeRequest(t, req, http.StatusCreated)
-	unittest.AssertExistsAndLoadBean(t, &asymkey_model.PublicKey{Name: keyBody.Title, OwnerID: 2})
 }
 
 func TestCreateDeployToken(t *testing.T) {

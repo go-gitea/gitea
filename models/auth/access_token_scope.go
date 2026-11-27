@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"gitea.dev/models/perm"
+	"gitea.dev/modules/util"
 )
 
 // AccessTokenScopeCategory represents the scope category for an access token
@@ -209,12 +210,20 @@ var accessTokenScopes = map[AccessTokenScopeLevel]map[AccessTokenScopeCategory]A
 	},
 }
 
-func GetAccessTokenCategories() (res []string) {
-	for _, cat := range accessTokenScopes[Read] {
-		res = append(res, strings.TrimPrefix(string(cat), "read:"))
+func GetAccessTokenCategories(isAdmin bool) (res []string) {
+	for _, scope := range GetAccessTokenScopes(Read, isAdmin) {
+		res = append(res, strings.TrimPrefix(string(scope), "read:"))
 	}
 	slices.Sort(res)
 	return res
+}
+
+func GetAccessTokenScopes(level AccessTokenScopeLevel, isAdmin bool) []AccessTokenScope {
+	scopes := GetRequiredScopes(level, AllAccessTokenScopeCategories...)
+	if !isAdmin {
+		scopes = util.SliceRemoveAll(scopes, accessTokenScopes[level][AccessTokenScopeCategoryAdmin])
+	}
+	return scopes
 }
 
 // GetRequiredScopes gets the specific scopes for a given level and categories

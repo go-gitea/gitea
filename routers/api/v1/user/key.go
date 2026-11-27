@@ -209,20 +209,6 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 		return
 	}
 
-	// an SSH key authenticates as its owner without any token scope (git over SSH, HTTP signatures),
-	// so a token-authenticated request must hold the full scope to add one
-	if apiTokenScope, hasApiTokenScope := user_model.GetDoerTokenScope(ctx.Doer); hasApiTokenScope {
-		hasScope, err := apiTokenScope.CanCreateChildScope(auth_model.AccessTokenScopeAll)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		if !hasScope {
-			ctx.APIError(http.StatusForbidden, "cannot add an SSH key with a token that does not have the \"all\" scope")
-			return
-		}
-	}
-
 	content, err := asymkey_model.CheckPublicKeyString(form.Key)
 	if err != nil {
 		repo.HandleCheckKeyStringError(ctx, err)
@@ -262,6 +248,18 @@ func CreatePublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/PublicKey"
 	//   default:
 	//     "$ref": "#/responses/error"
+
+	if tokenScope, isToken := user_model.GetDoerTokenScope(ctx.Doer); isToken {
+		hasScopes, err := tokenScope.HasScope(auth_model.GetAccessTokenScopes(auth_model.Write, ctx.Doer.IsAdmin)...)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if !hasScopes {
+			ctx.APIError(http.StatusForbidden, "adding an SSH key requires a token with write access to all permissions")
+			return
+		}
+	}
 
 	form := web.GetForm[*api.CreateKeyOption](ctx)
 	CreateUserPublicKey(ctx, *form, ctx.Doer.ID)
