@@ -182,10 +182,8 @@ func parseCodeOwnersLine(ctx context.Context, reviewers *codeOwnerReviewers, tok
 	}
 
 	if len(rule.Users) == 0 && len(rule.Teams) == 0 {
-		warnings = append(warnings, "no users/groups matched")
-		return nil, warnings
+		warnings = append(warnings, "no users/groups matched") // still kept so it overrides earlier rules of its section, like GitHub
 	}
-
 	return rule, warnings
 }
 

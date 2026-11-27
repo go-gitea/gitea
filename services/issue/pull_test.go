@@ -110,13 +110,13 @@ func TestMatchCodeOwnerRules(t *testing.T) {
 *.md @user4
 [Docs] @user5
 *.md
-README.md @user4
+README.md @user1
 [Docs] @user5
 other.md
 [Independent] @user4
 *.md
 `))
-	require.Empty(t, warnings)
+	assert.Equal(t, []string{"Line: 4: codeowner can't be requested to review: user1", "Line: 4: no users/groups matched"}, warnings)
 	for _, tc := range []struct {
 		paths    []string
 		lineNums []int
