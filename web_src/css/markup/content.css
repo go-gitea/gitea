@@ -309,7 +309,8 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   display: none;
 }
 
-.file-view.markup {
+.file-view.markup,
+.markup.rich-diff {
   padding: 1em 2em;
   font-size: 16px;
 }
