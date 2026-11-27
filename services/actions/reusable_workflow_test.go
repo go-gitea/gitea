@@ -22,49 +22,51 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCheckCallerChainMatchesAliasesWithinSource(t *testing.T) {
-	caller := &actions_model.ActionRunJob{CallUses: "$/.gitea/workflows/a.yml", WorkflowSourceRepoID: 1}
-	ancestors := []*actions_model.ActionRunJob{
-		{IsReusableCaller: true, CallUses: "owner/lib/.gitea/workflows/b.yml@v1"},
-		{IsReusableCaller: true, CallUses: "./.gitea/workflows/a.yml", WorkflowSourceRepoID: 2},
+func TestCheckCallerChain(t *testing.T) {
+	levels := func(count int) []*actions_model.ActionRunJob {
+		ancestors := make([]*actions_model.ActionRunJob, count)
+		for i := range ancestors {
+			ancestors[i] = &actions_model.ActionRunJob{IsReusableCaller: true, CallUses: fmt.Sprintf("./.gitea/workflows/level%d.yml", i+1)}
+		}
+		return ancestors
 	}
-	require.NoError(t, checkCallerChain(caller, ancestors))
-	ancestors[1].WorkflowSourceRepoID = 1
-	assert.ErrorContains(t, checkCallerChain(caller, ancestors), "cycle detected")
+	const called = "./.gitea/workflows/called.yml"
+	cycleWithinLimit := levels(9)
+	cycleWithinLimit[7].CallUses = called
+	libCall := &actions_model.ActionRunJob{IsReusableCaller: true, CallUses: "owner/lib/.gitea/workflows/b.yml@v1"}
 
-	ancestor := &actions_model.ActionRunJob{IsReusableCaller: true, CallUses: "owner/lib/.gitea/workflows/b.yml@v1"}
-	caller.CallUses = "self:" + ancestor.CallUses
-	assert.ErrorContains(t, checkCallerChain(caller, []*actions_model.ActionRunJob{ancestor}), "cycle detected")
+	for _, testCase := range []struct {
+		name      string
+		caller    *actions_model.ActionRunJob
+		ancestors []*actions_model.ActionRunJob
+		err       string
+	}{
+		{"LocalAliasInOtherSourceRepo", &actions_model.ActionRunJob{CallUses: "$/.gitea/workflows/a.yml", WorkflowSourceRepoID: 1}, []*actions_model.ActionRunJob{libCall, {IsReusableCaller: true, CallUses: "./.gitea/workflows/a.yml", WorkflowSourceRepoID: 2}}, ""},
+		{"LocalAliasInSameSourceRepo", &actions_model.ActionRunJob{CallUses: "$/.gitea/workflows/a.yml", WorkflowSourceRepoID: 1}, []*actions_model.ActionRunJob{libCall, {IsReusableCaller: true, CallUses: "./.gitea/workflows/a.yml", WorkflowSourceRepoID: 1}}, "cycle detected"},
+		{"SelfAlias", &actions_model.ActionRunJob{CallUses: "self:" + libCall.CallUses}, []*actions_model.ActionRunJob{libCall}, "cycle detected"},
+		{"TenWorkflowLevels", &actions_model.ActionRunJob{CallUses: called}, levels(8), ""},
+		{"ElevenWorkflowLevels", &actions_model.ActionRunJob{CallUses: called}, levels(9), `reusable workflow call at "./.gitea/workflows/called.yml" exceeds the maximum of 10 workflow levels, including the top-level caller`},
+		{"CycleWithinLimitBeforeDepth", &actions_model.ActionRunJob{CallUses: called}, cycleWithinLimit, "cycle detected"},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			err := checkCallerChain(testCase.caller, testCase.ancestors)
+			if testCase.err == "" {
+				require.NoError(t, err)
+			} else {
+				assert.ErrorContains(t, err, testCase.err)
+			}
+		})
+	}
 }
 
-func TestCheckResolvedCallerCycleMatchesPathAtSameCommit(t *testing.T) {
+func TestCheckResolvedCallerCycle(t *testing.T) {
 	caller := &actions_model.ActionRunJob{CallUses: "owner/repo/.gitea/workflows/a.yml@v1", WorkflowSourceRepoID: 5, WorkflowSourceCommitSHA: "second-commit"}
 	ancestors := []*actions_model.ActionRunJob{
 		{IsReusableCaller: true, CallUses: "owner/repo/.gitea/workflows/b.yml@v1", WorkflowSourceRepoID: 4, WorkflowSourceCommitSHA: "first-commit"},
 		{IsReusableCaller: true, CallUses: "./.gitea/workflows/a.yml"},
 	}
-	require.NoError(t, checkCallerChain(caller, ancestors))
 	assert.ErrorContains(t, checkResolvedCallerCycle(t.Context(), caller, ancestors, 4, "first-commit", ".gitea/workflows/a.yml"), "cycle detected")
 	assert.NoError(t, checkResolvedCallerCycle(t.Context(), caller, ancestors, 4, "other-commit", ".gitea/workflows/a.yml"))
-}
-
-func TestCheckCallerChainAllowsTenWorkflowLevelsAndReportsEarlierCycles(t *testing.T) {
-	caller := &actions_model.ActionRunJob{CallUses: "./.gitea/workflows/called.yml"}
-	ancestors := make([]*actions_model.ActionRunJob, 9)
-	for i := range ancestors {
-		ancestors[i] = &actions_model.ActionRunJob{IsReusableCaller: true, CallUses: fmt.Sprintf("./.gitea/workflows/level%d.yml", i+1)}
-	}
-	require.NoError(t, checkCallerChain(caller, ancestors[:8]))
-	assert.EqualError(t, checkCallerChain(caller, ancestors),
-		`reusable workflow call at "./.gitea/workflows/called.yml" exceeds the maximum of 10 workflow levels, including the top-level caller`)
-	ancestors[7].CallUses = caller.CallUses
-	assert.ErrorContains(t, checkCallerChain(caller, ancestors), "cycle detected")
-}
-
-func mustGetAncestorCallers(t *testing.T, job *actions_model.ActionRunJob) []*actions_model.ActionRunJob {
-	ancestors, err := actions_model.GetAncestorCallers(t.Context(), job)
-	require.NoError(t, err)
-	return ancestors
 }
 
 // buildCallerChain inserts a linear chain of reusable caller jobs in a single run+attempt.

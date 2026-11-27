@@ -981,7 +981,7 @@ func Routes() *web.Router {
 		m *web.Router,
 		reqReaderCheck func(ctx *context.APIContext),
 		reqManagerCheck func(ctx *context.APIContext),
-		act shared.API,
+		act shared.ActionsAPI,
 	) {
 		m.Group("/actions", func() {
 			m.Group("/secrets", func() {

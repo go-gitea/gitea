@@ -407,7 +407,7 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, nil); err != nil {
+	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, nil); err != nil { // nil reruns all jobs, which re-resolves reusable workflow refs
 		ctx.APIErrorAuto(err)
 		return
 	}

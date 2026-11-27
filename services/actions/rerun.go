@@ -187,7 +187,6 @@ func buildRerunPlan(ctx context.Context, run *actions_model.ActionRun, triggerUs
 	return plan, nil
 }
 
-// resetJobForRerun clears a cloned job's results so it runs again.
 // The emitter decides `if:` once all needs have results, and is the only place expanding a deferred matrix.
 func resetJobForRerun(job *actions_model.ActionRunJob, shouldBlock bool) {
 	job.Status = util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting)
@@ -208,7 +207,6 @@ func resetJobForRerun(job *actions_model.ActionRunJob, shouldBlock bool) {
 	}
 }
 
-// markJobPassThrough keeps a cloned job's result and points it at the template's task.
 // An ancestor caller of a rerun job runs again through its children, so its timing is cleared.
 func markJobPassThrough(job, templateJob *actions_model.ActionRunJob, isAncestor bool) {
 	job.TaskID = 0
@@ -329,14 +327,13 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				}
 
 				if newJob.Status == actions_model.StatusWaiting {
-					runsOnErr := invalidRunsOn(newJob)
-					jobsToCancel, runsOnFailed, err := admitJob(ctx, newJob, slots, runsOnErr, func() error {
+					jobsToCancel, runsOnErr, err := admitJob(ctx, newJob, slots, func() error { return invalidRunsOn(newJob) }, func() error {
 						return EvaluateJobConcurrencyFillModel(ctx, plan.run, newAttempt, newJob, vars, nil)
 					})
 					if err != nil {
 						return err
 					}
-					if runsOnFailed {
+					if runsOnErr != nil {
 						invalidKey, invalidErr = "runs-on", runsOnErr
 					}
 					cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)

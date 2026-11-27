@@ -16,43 +16,45 @@ import (
 )
 
 func TestAdmitJob(t *testing.T) {
-	badRunsOn := errors.New("bad runs-on")
+	checked, evaluated := 0, 0
+	badRunsOn, badConcurrency := errors.New("bad runs-on"), errors.New("bad concurrency")
+	checkRunsOn := func() error { checked++; return badRunsOn }
 	evaluate := func(job *actions_model.ActionRunJob) func() error {
-		return func() error { job.IsConcurrencyEvaluated = true; return nil }
+		return func() error { evaluated++; job.IsConcurrencyEvaluated = true; return nil }
 	}
 	newJob := func() *actions_model.ActionRunJob {
 		return &actions_model.ActionRunJob{JobID: "build", Status: actions_model.StatusWaiting, MaxParallel: 1, RawConcurrency: "group: g"}
 	}
 
-	slots := maxParallelSlots{}
-	first := newJob()
-	cancelled, runsOnFailed, err := admitJob(t.Context(), first, slots, nil, evaluate(first))
-	require.NoError(t, err)
-	assert.False(t, runsOnFailed)
-	assert.Empty(t, cancelled)
-	assert.Equal(t, actions_model.StatusWaiting, first.Status)
-	assert.True(t, first.IsConcurrencyEvaluated)
-
-	t.Run("SlotStarvedJobSkipsRunsOnAndConcurrency", func(t *testing.T) {
-		starved := newJob()
-		_, runsOnFailed, err := admitJob(t.Context(), starved, slots, badRunsOn, evaluate(starved))
+	t.Run("a full slot blocks the next job before runs-on and concurrency checks", func(t *testing.T) {
+		slots := maxParallelSlots{}
+		first := newJob()
+		cancelled, runsOnErr, err := admitJob(t.Context(), first, slots, nil, evaluate(first))
 		require.NoError(t, err)
-		assert.False(t, runsOnFailed)
+		require.NoError(t, runsOnErr)
+		assert.Empty(t, cancelled)
+		assert.Equal(t, actions_model.StatusWaiting, first.Status)
+
+		starved := newJob()
+		_, runsOnErr, err = admitJob(t.Context(), starved, slots, checkRunsOn, evaluate(starved))
+		require.NoError(t, err)
+		require.NoError(t, runsOnErr)
 		assert.Equal(t, actions_model.StatusBlocked, starved.Status)
-		assert.False(t, starved.IsConcurrencyEvaluated)
+		assert.Equal(t, 0, checked)
+		assert.Equal(t, 1, evaluated)
 	})
 
-	t.Run("InvalidRunsOnFailsBeforeConcurrency", func(t *testing.T) {
+	t.Run("an invalid runs-on fails the job before concurrency", func(t *testing.T) {
 		failed := newJob()
-		_, runsOnFailed, err := admitJob(t.Context(), failed, maxParallelSlots{}, badRunsOn, evaluate(failed))
+		_, runsOnErr, err := admitJob(t.Context(), failed, maxParallelSlots{}, checkRunsOn, evaluate(failed))
 		require.NoError(t, err)
-		assert.True(t, runsOnFailed)
+		assert.ErrorIs(t, runsOnErr, badRunsOn)
 		assert.Equal(t, actions_model.StatusFailure, failed.Status)
 		assert.NotZero(t, failed.Stopped)
 		assert.False(t, failed.IsConcurrencyEvaluated)
 	})
 
-	t.Run("JobWithoutConcurrencySkipsEvaluation", func(t *testing.T) {
+	t.Run("a job without concurrency skips evaluation", func(t *testing.T) {
 		plain := newJob()
 		plain.RawConcurrency = ""
 		_, _, err := admitJob(t.Context(), plain, maxParallelSlots{}, nil, evaluate(plain))
@@ -60,8 +62,10 @@ func TestAdmitJob(t *testing.T) {
 		assert.False(t, plain.IsConcurrencyEvaluated)
 	})
 
-	_, _, err = admitJob(t.Context(), newJob(), maxParallelSlots{}, nil, func() error { return errors.New("bad concurrency") })
-	assert.ErrorContains(t, err, "bad concurrency")
+	t.Run("a concurrency evaluation error is returned", func(t *testing.T) {
+		_, _, err := admitJob(t.Context(), newJob(), maxParallelSlots{}, nil, func() error { return badConcurrency })
+		assert.ErrorIs(t, err, badConcurrency)
+	})
 }
 
 func TestDispatchInputsForRunJobs(t *testing.T) {
@@ -102,7 +106,7 @@ func TestReusableChildInputs(t *testing.T) {
 	dispatchInputs := map[string]any{"flag": true, "shared": "from-mid", "env": "leaf"}
 
 	t.Run("preloaded ancestors supply top-level dispatch inputs and overlay direct caller inputs case-insensitively", func(t *testing.T) {
-		inputs, err := getInputsForJobWithAncestors(ctx, dispatchRun, leaf, mustGetAncestorCallers(t, leaf))
+		inputs, err := getInputsForJobWithAncestors(ctx, dispatchRun, leaf, []*actions_model.ActionRunJob{mid, caller})
 		require.NoError(t, err)
 		assert.Equal(t, dispatchInputs, inputs)
 	})

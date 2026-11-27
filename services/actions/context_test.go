@@ -52,7 +52,7 @@ func TestEvaluateRunConcurrency_RunIDFallback(t *testing.T) {
 	assert.Contains(t, attemptB.ConcurrencyGroup, "792")
 	assert.NotEqual(t, attemptA.ConcurrencyGroup, attemptB.ConcurrencyGroup)
 
-	t.Run("normalizes case before bounding groups longer than 255 runes", func(t *testing.T) {
+	t.Run("preserves 255 runes and normalizes case before bounding longer groups", func(t *testing.T) {
 		evaluateGroup := func(group string) string {
 			require.NoError(t, EvaluateRunConcurrencyFillModel(ctx, runA, attemptA, &act_model.RawConcurrency{Group: group}, nil, nil))
 			return attemptA.ConcurrencyGroup

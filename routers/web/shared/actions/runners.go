@@ -18,12 +18,11 @@ import (
 	"gitea.dev/services/forms"
 )
 
-// TODO: Separate secrets from runners when layout is ready
-var runnerTemplates = map[settingsScopeKind]struct{ list, edit templates.TplName }{
-	settingsScopeRepo:  {"repo/settings/actions", "repo/settings/runner_edit"},
-	settingsScopeOrg:   {"org/settings/actions", "org/settings/runners_edit"},
-	settingsScopeUser:  {"user/settings/actions", "user/settings/runner_edit"},
-	settingsScopeAdmin: {"admin/actions", "admin/runners/edit"},
+var runnerEditTemplates = map[settingsScopeKind]templates.TplName{
+	settingsScopeRepo:  "repo/settings/runner_edit",
+	settingsScopeOrg:   "org/settings/runners_edit",
+	settingsScopeUser:  "user/settings/runner_edit",
+	settingsScopeAdmin: "admin/runners/edit",
 }
 
 type runnersCtx struct {
@@ -94,7 +93,7 @@ func Runners(ctx *context.Context) {
 
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(http.StatusOK, runnerTemplates[rCtx.Kind].list)
+	ctx.HTML(http.StatusOK, rCtx.Template)
 }
 
 // RunnersEdit renders runner edit page for repository level
@@ -153,7 +152,7 @@ func RunnersEdit(ctx *context.Context) {
 	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(http.StatusOK, runnerTemplates[rCtx.Kind].edit)
+	ctx.HTML(http.StatusOK, runnerEditTemplates[rCtx.Kind])
 }
 
 func RunnersEditPost(ctx *context.Context) {

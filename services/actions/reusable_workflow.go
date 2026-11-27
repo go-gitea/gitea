@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"bytes"
 	"cmp"
 	"context"
 	"errors"
@@ -103,7 +104,7 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 }
 
 // validateCalledWorkflows validates all workflows content calls, recursively.
-func validateCalledWorkflows(ctx context.Context, run *actions_model.ActionRun, content []byte) error {
+func validateCalledWorkflows(ctx context.Context, run *actions_model.ActionRun, rootContent []byte) error {
 	validated := make(container.Set[string])
 	var validate func([]byte, *actions_model.ActionRunJob, int, string) error
 	validate = func(content []byte, source *actions_model.ActionRunJob, level int, callerCacheMode string) error {
@@ -137,14 +138,9 @@ func validateCalledWorkflows(ctx context.Context, run *actions_model.ActionRun, 
 			if err != nil {
 				return fmt.Errorf("job %s: %w", id, err)
 			}
-			if called.repoID == run.WorkflowRepoID && called.commitSHA == run.WorkflowCommitSHA && strings.HasSuffix(ref.Path, "/"+run.WorkflowID) {
-				root, _, err := runWorkflowFile(ctx, run, "")
-				if err != nil {
-					return fmt.Errorf("validateCalledWorkflows: resolve root workflow file: %w", err)
-				}
-				if ref.Path == root.path {
-					return fmt.Errorf("job %s: reusable workflow call cycle detected: %q", id, uses)
-				}
+			// the root has no caller row for the runtime check, and a same-commit file with its content repeats its calls
+			if called.repoID == run.WorkflowRepoID && called.commitSHA == run.WorkflowCommitSHA && bytes.Equal(called.content, rootContent) {
+				return fmt.Errorf("job %s: reusable workflow call cycle detected: %q", id, uses)
 			}
 			if _, err = jobparser.ValidateWorkflowStatic(called.content); err == nil {
 				err = validate(called.content, &actions_model.ActionRunJob{WorkflowSourceRepoID: called.repoID, WorkflowSourceCommitSHA: called.commitSHA}, level+1, jobCacheMode)
@@ -155,7 +151,7 @@ func validateCalledWorkflows(ctx context.Context, run *actions_model.ActionRun, 
 		}
 		return nil
 	}
-	return validate(content, &actions_model.ActionRunJob{WorkflowSourceRepoID: run.WorkflowRepoID, WorkflowSourceCommitSHA: run.WorkflowCommitSHA}, 0, "")
+	return validate(rootContent, &actions_model.ActionRunJob{WorkflowSourceRepoID: run.WorkflowRepoID, WorkflowSourceCommitSHA: run.WorkflowCommitSHA}, 0, "")
 }
 
 // checkSelfRepoStepExpressions rejects `$/` steps with expressions that runnerWorkflowPayload can't pin to the workflow's source.
@@ -226,9 +222,7 @@ func qualifyRef(ctx context.Context, repo *repo_model.Repository, gitRepo *git.R
 	return sha
 }
 
-// checkCallerChain checks `caller`'s ancestors (nearest first) and:
-//   - rejects cycles (caller.CallUses appearing in any ancestor's CallUses)
-//   - enforces the maximum workflow call depth
+// checkCallerChain walks the nearest ancestors first, so a cycle within the depth limit is reported before the depth error.
 func checkCallerChain(caller *actions_model.ActionRunJob, ancestors []*actions_model.ActionRunJob) error {
 	visited := container.SetOf(canonicalCallUses(caller))
 	for i, ancestor := range ancestors {
@@ -422,7 +416,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 
 	// 10. Persist the remaining caller metadata (the row is already ours via the claim above).
 	caller.CallPayload = string(callPayload)
-	caller.ReusableWorkflowRef = cmp.Or(priorRef, source.ref)
+	caller.ReusableWorkflowRef = cmp.Or(priorRef, source.ref) // set after inserting children, they inherit a pin only from an already pinned caller
 	if _, err := actions_model.UpdateRunJob(ctx, caller, nil, "call_secrets", "reusable_workflow_content", "reusable_workflow_ref", "call_payload"); err != nil {
 		return errors.Join(fmt.Errorf("persist caller %d expansion metadata: %w", caller.ID, err), undoExpansion(ctx, caller))
 	}
@@ -599,6 +593,7 @@ func undoExpansion(ctx context.Context, caller *actions_model.ActionRunJob) erro
 	return nil
 }
 
+// priorCalleeCommit returns the callee commit of the previous expansion, all its direct children share it.
 func priorCalleeCommit(priorChildren map[string]map[string]*actions_model.ActionRunJob) string {
 	for _, jobs := range priorChildren {
 		for _, child := range jobs {

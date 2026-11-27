@@ -387,7 +387,8 @@ func GetConcurrencyWaiters(ctx context.Context, repoID int64, concurrencyGroup s
 func findConcurrencyGroupEntries(ctx context.Context, repoID int64, concurrencyGroup string, attemptCond, jobCond builder.Cond) ([]*ActionRunAttempt, []*ActionRunJob, error) {
 	groupCond := builder.Eq{"repo_id": repoID, "concurrency_group": concurrencyGroup}
 	notAwaitingApproval := func(table string) builder.Cond {
-		return builder.Expr("NOT EXISTS (SELECT 1 FROM action_run WHERE id = "+table+".run_id AND need_approval = ?)", true)
+		return builder.NotExists(builder.Select("1").From("action_run").
+			Where(builder.Expr("action_run.id = " + table + ".run_id").And(builder.Eq{"action_run.need_approval": true})))
 	}
 	attempts := make([]*ActionRunAttempt, 0)
 	if err := db.GetEngine(ctx).Where(groupCond.And(attemptCond, notAwaitingApproval("action_run_attempt"))).Find(&attempts); err != nil {

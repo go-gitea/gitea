@@ -28,7 +28,7 @@ type settingsScope struct {
 	OwnerID, RepoID int64
 	BelongingScope  actions_model.BelongingScope
 	LinkPrefix      string
-	Template        templates.TplName
+	Template        templates.TplName // TODO: Separate secrets from runners when layout is ready
 }
 
 func (s *settingsScope) IsAdmin() bool { return s.Kind == settingsScopeAdmin }

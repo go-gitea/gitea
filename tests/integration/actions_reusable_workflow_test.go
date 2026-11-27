@@ -620,7 +620,7 @@ jobs:
 				".gitea/workflows/leaf.yml":          "on: workflow_call\ncache-mode: read\njobs: {build: {runs-on: ubuntu-latest, cache-mode: write-only, steps: [{run: echo}]}}\n",
 				".gitea/workflows/relay.yml":         "on: workflow_call\njobs: {forward: {uses: ./.gitea/workflows/leaf.yml}}\n",
 				".gitea/workflows/job-cap.yaml":      "on: push\ncache-mode: read\njobs:\n  allow: {uses: ./.gitea/workflows/relay.yml, cache-mode: write}\n  inherit: {uses: ./.gitea/workflows/relay.yml}\n",
-				".gitea/workflows/direct-cycle.yaml": "on: [workflow_dispatch, workflow_call]" + callerJobs + localCall + "direct-cycle.yaml\n",
+				".gitea/workflows/direct-cycle.yaml": "on: [workflow_dispatch, workflow_call]\njobs:\n  call:\n" + localCall + "direct-cycle.yaml\n",
 				".gitea/workflows/nested/cycle.yaml": "on: [push, workflow_call]" + callerJobs + localCall + "cycle-relay.yml\n",
 				".gitea/workflows/cycle-relay.yml":   "on: workflow_call\njobs: {forward: {uses: " + cycleTarget + "}}\n",
 			})
@@ -877,6 +877,7 @@ jobs:
 				return unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, RunAttemptID: latest.LatestAttemptID, JobID: jobID})
 			}
 			completeTask := func(jobID string, result runnerv1.Result, outputs map[string]string) {
+				t.Helper()
 				task := runner.fetchTask(t)
 				require.Equal(t, jobID, task.GetContext().GetFields()["job"].GetStringValue())
 				runner.execTask(t, task, &mockTaskOutcome{result: result, outputs: outputs})
@@ -887,6 +888,7 @@ jobs:
 				completeTask("inner", runnerv1.Result_RESULT_SUCCESS, nil)
 			}
 			assertCalleeCommits := func(commitSHA string) {
+				t.Helper()
 				assert.Equal(t, commitSHA, jobInLatest("nested").WorkflowSourceCommitSHA)
 				assert.Equal(t, commitSHA, jobInLatest("inner").WorkflowSourceCommitSHA)
 			}

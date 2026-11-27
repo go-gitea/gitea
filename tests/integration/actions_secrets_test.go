@@ -6,25 +6,18 @@ package integration
 import (
 	"fmt"
 	"net/http"
-	"path/filepath"
 	"testing"
 
 	secret_model "gitea.dev/models/secret"
 	"gitea.dev/models/unittest"
-	"gitea.dev/modules/git/gitrepo"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestActionsSecretsSettings(t *testing.T) {
-	defer tests.PrintCurrentTest(t)()
-	require.NoError(t, unittest.LoadFixtures())
-	repoDir := gitrepo.RepoCodeGitRepoRelativePath("user2", "repo1")
-	require.NoError(t, unittest.SyncDirs(filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/gitea-repositories-meta", repoDir), filepath.Join(setting.RepoRootPath, repoDir)))
+	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	const secretName = "SCOPED_SECRET"
 

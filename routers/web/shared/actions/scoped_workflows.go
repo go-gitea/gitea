@@ -16,21 +16,13 @@ import (
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/context"
 )
 
-const (
-	tplOrgScopedWorkflows   templates.TplName = "org/settings/actions"
-	tplUserScopedWorkflows  templates.TplName = "user/settings/actions"
-	tplAdminScopedWorkflows templates.TplName = "admin/actions"
-)
-
 type scopedWorkflowsCtx struct {
 	*settingsScope
-	Template     templates.TplName
 	RedirectLink string
 }
 
@@ -39,18 +31,10 @@ func getScopedWorkflowsCtx(ctx *context.Context) (*scopedWorkflowsCtx, error) {
 	if err != nil {
 		return nil, err
 	}
-	swCtx := &scopedWorkflowsCtx{settingsScope: scope, RedirectLink: scope.LinkPrefix + "/scoped-workflows"}
-	switch scope.Kind {
-	case settingsScopeOrg:
-		swCtx.Template = tplOrgScopedWorkflows
-	case settingsScopeUser:
-		swCtx.Template = tplUserScopedWorkflows
-	case settingsScopeAdmin:
-		swCtx.Template = tplAdminScopedWorkflows
-	default:
+	if scope.Kind == settingsScopeRepo {
 		return nil, errors.New("getScopedWorkflowsCtx: scoped workflows are not managed per repository")
 	}
-	return swCtx, nil
+	return &scopedWorkflowsCtx{settingsScope: scope, RedirectLink: scope.LinkPrefix + "/scoped-workflows"}, nil
 }
 
 // scopedWorkflowInfo is one scoped workflow shown on the settings page, merged with its stored merge-gate config.
@@ -109,7 +93,7 @@ func ScopedWorkflows(ctx *context.Context) {
 	}
 
 	ctx.Data["ScopedWorkflowSources"] = views
-	ctx.Data["RepoSearchUID"] = swCtx.OwnerID // 0 searches all repos, the admin route allows it
+	ctx.Data["RepoSearchUID"] = swCtx.OwnerID
 	// owner/user scopes the repo search to the owner (exclusive);
 	// instance-level (admin) searches all repos and so must submit owner/name to disambiguate the selection across owners.
 	ctx.Data["ScopedWorkflowsSearchExclusive"] = !swCtx.IsAdmin()

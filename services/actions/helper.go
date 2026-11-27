@@ -72,7 +72,7 @@ func getInputsForJobWithAncestors(ctx context.Context, run *actions_model.Action
 		var err error
 		caller, err = actions_model.GetRunJobByRunAndID(ctx, run.ID, job.ParentJobID)
 		if err != nil {
-			return nil, fmt.Errorf("load caller job %d: %w", job.ParentJobID, err)
+			return nil, fmt.Errorf("getInputsForJobWithAncestors: load caller job %d: %w", job.ParentJobID, err)
 		}
 	}
 	workflowCallInputs, err := decodeWorkflowCallInputs(caller)
@@ -192,27 +192,29 @@ func invalidRunsOn(job *actions_model.ActionRunJob) error {
 	return nil
 }
 
-// admitJob gates a job whose `if:` passed, a slot-starved job stays blocked without failing or cancelling its group peers.
-func admitJob(ctx context.Context, job *actions_model.ActionRunJob, slots maxParallelSlots, runsOnErr error, evaluateConcurrency func() error) (cancelled []*actions_model.ActionRunJob, runsOnFailed bool, err error) {
+// admitJob gates a job whose `if:` passed, a slot-starved job stays blocked without checking runs-on or cancelling its group peers.
+func admitJob(ctx context.Context, job *actions_model.ActionRunJob, slots maxParallelSlots, checkRunsOn, evaluateConcurrency func() error) (cancelled []*actions_model.ActionRunJob, runsOnErr, err error) {
 	if !slots.available(job) {
 		applyMaxParallel(job, slots)
-		return nil, false, nil
+		return nil, nil, nil
 	}
-	if runsOnErr != nil {
-		job.Status, job.Stopped = actions_model.StatusFailure, timeutil.TimeStampNow()
-		return nil, true, nil
+	if checkRunsOn != nil {
+		if runsOnErr = checkRunsOn(); runsOnErr != nil {
+			job.Status, job.Stopped = actions_model.StatusFailure, timeutil.TimeStampNow()
+			return nil, runsOnErr, nil
+		}
 	}
 	if evaluateConcurrency != nil && job.RawConcurrency != "" {
 		if err := evaluateConcurrency(); err != nil {
-			return nil, false, fmt.Errorf("evaluate job concurrency: %w", err)
+			return nil, nil, fmt.Errorf("evaluate job concurrency: %w", err)
 		}
 	}
 	job.Status, cancelled, err = PrepareToStartJobWithConcurrency(ctx, job)
 	if err != nil {
-		return nil, false, fmt.Errorf("prepare to start job with concurrency: %w", err)
+		return nil, nil, fmt.Errorf("prepare to start job with concurrency: %w", err)
 	}
 	applyMaxParallel(job, slots)
-	return cancelled, false, nil
+	return cancelled, nil, nil
 }
 
 func findJobNeedsAndFillJobResults(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*jobparser.JobResult, error) {

@@ -50,16 +50,29 @@ func TestApproveRuns(t *testing.T) {
 	}
 
 	t.Run("approve unblocks a job with no dependencies that a newer job in its group did not replace", func(t *testing.T) {
-		run := insertRun(1001, actions_model.StatusBlocked, true, 0)
-		job := insertJob(run, actions_model.StatusBlocked)
-		job.RawConcurrency, job.ConcurrencyGroup, job.IsConcurrencyEvaluated = "group: g", "g", true
-		_, err := actions_model.UpdateRunJob(t.Context(), job, nil, "raw_concurrency", "concurrency_group", "is_concurrency_evaluated")
+		content := []byte("on: [pull_request, push]\njobs:\n  job1:\n    runs-on: ubuntu-latest\n    concurrency: ci-${{ github.base_ref || github.ref_name }}\n    steps:\n      - run: echo hi\n")
+		const pushCommit, pullCommit = "65f1bf27bc3bf70f64657658635e66094edbcb4d", "985f0301dba5e7b34be866819cd15ad3d8f508ee"
+		push := actions_model.ActionRun{
+			RepoID: repo.ID, OwnerID: repo.OwnerID, WorkflowID: "test.yaml", TriggerUserID: doer.ID,
+			Ref: "refs/heads/master", CommitSHA: pushCommit, WorkflowRepoID: repo.ID, WorkflowCommitSHA: pushCommit,
+			Event: "push", TriggerEvent: "push", EventPayload: `{"head_commit":{"id":"` + pushCommit + `"}}`,
+		}
+		run := push
+		run.Ref, run.CommitSHA, run.WorkflowCommitSHA, run.TriggerUserID = "refs/pull/1/head", pullCommit, pullCommit, 4
+		run.Event, run.TriggerEvent, run.IsForkPullRequest, run.NeedApproval = "pull_request", "pull_request", true, true
+		run.EventPayload = `{"pull_request":{"base":{"ref":"master"},"head":{"ref":"branch2","sha":"` + pullCommit + `"}}}`
+		require.NoError(t, PrepareRunAndInsert(t.Context(), content, &run, nil))
+		require.NoError(t, PrepareRunAndInsert(t.Context(), content, &push, nil))
+		job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID})
+		pushJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: push.ID})
+		require.Equal(t, "ci-master", pushJob.ConcurrencyGroup)
+		require.Equal(t, pushJob.ConcurrencyGroup, job.ConcurrencyGroup)
+		require.Equal(t, actions_model.StatusWaiting, pushJob.Status)
+		require.Equal(t, actions_model.StatusBlocked, job.Status)
+
+		pushJob.Status = actions_model.StatusCancelled
+		_, err := actions_model.UpdateRunJob(t.Context(), pushJob, nil, "status")
 		require.NoError(t, err)
-		newer := *job
-		newer.ID, newer.RunID = 0, insertRun(1010, actions_model.StatusRunning, false, 0).ID
-		_, cancelled, err := PrepareToStartJobWithConcurrency(t.Context(), &newer)
-		require.NoError(t, err)
-		assert.Empty(t, cancelled)
 
 		approved, err := ApproveRuns(t.Context(), repo, doer, []int64{run.ID})
 		require.NoError(t, err)

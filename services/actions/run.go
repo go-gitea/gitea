@@ -193,10 +193,7 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 	id, job := workflowJob.Job()
 	needs := job.Needs()
 	isMatrixDeferred := jobparser.HasDeferredMatrix(job)
-	var runsOnErr error
-	if problem := job.RunsOnProblem(); problem != "" { // SetJob's encoding drops the node's null tag
-		runsOnErr = errors.New(problem)
-	}
+	runsOnProblem := job.RunsOnProblem() // SetJob's encoding drops the node's null tag
 	if err := workflowJob.SetJob(id, job.EraseNeeds()); err != nil {
 		return nil, nil, false, err
 	}
@@ -272,11 +269,17 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 
 	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
 	if runJob.Status == actions_model.StatusWaiting {
-		jobsToCancel, runsOnFailed, err := admitJob(ctx, runJob, slots, runsOnErr, evaluateConcurrency)
+		checkRunsOn := func() error {
+			if runsOnProblem != "" {
+				return errors.New(runsOnProblem)
+			}
+			return nil
+		}
+		jobsToCancel, runsOnErr, err := admitJob(ctx, runJob, slots, checkRunsOn, evaluateConcurrency)
 		if err != nil {
 			return nil, nil, false, err
 		}
-		if runsOnFailed {
+		if runsOnErr != nil {
 			invalidKey, invalidErr = "runs-on", runsOnErr
 		}
 		cancelledConcurrencyJobs = jobsToCancel

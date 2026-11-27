@@ -5,8 +5,8 @@ package shared
 
 import "gitea.dev/services/context"
 
-// API for actions of a repository or organization
-type API interface {
+// ActionsAPI for actions of a repository or organization
+type ActionsAPI interface {
 	// ListActionsSecrets list secrets
 	ListActionsSecrets(*context.APIContext)
 	// CreateOrUpdateSecret create or update a secret
