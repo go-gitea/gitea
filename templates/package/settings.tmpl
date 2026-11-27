@@ -35,7 +35,7 @@
 			<form class="ui form form-fetch-action ignore-dirty flex-text-block" action="{{.Link}}" method="post">
 				<input type="hidden" name="action" value="link">
 				<div data-global-init="initSearchRepoBox" data-uid="{{.PackageDescriptor.Owner.ID}}" class="dropdown-container ui input">
-					{{template "shared/search_field" dict "Name" "repo_name" "Label" "search.repo_kind" "Value" (or .LinkedRepoName "") "Optional" true}}
+					{{template "shared/dropdown_autocomplete" dict "Name" "repo_name" "LabelTrKey" "search.repo_kind" "Value" (or .LinkedRepoName "") "Optional" true}}
 				</div>
 				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "packages.settings.link.button"}}</button>
 			</form>

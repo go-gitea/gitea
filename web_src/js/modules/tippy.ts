@@ -41,7 +41,7 @@ const sizeModifier: PopperModifier = {
   requires: ['computeStyles'], // runs after "flip" and "offset", so both are final
   fn({state}) {
     const referenceRect = state.elements.reference.getBoundingClientRect();
-    const availableFor = (placement: Placement) => availableHeightForPlacement(referenceRect, placement, state.modifiersData.offset?.[placement]?.y ?? 0);
+    const availableFor = (placement: Placement) => availableHeightForPlacement(referenceRect, placement, state.modifiersData.offset![placement]!.y);
     const available = availableFor(state.placement);
     const opposite = state.placement.replace(/^(top|bottom)/, (side) => side === 'top' ? 'bottom' : 'top') as Placement;
     if (state.rects.popper.height > available && availableFor(opposite) > available) { // Popper keeps the preferred side when neither fits.

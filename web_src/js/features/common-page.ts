@@ -6,6 +6,7 @@ import {addDelegatedEventListener, createElementFromHTML} from '../utils/dom.ts'
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {initAvatarUploader} from './comp/Cropper.ts';
 import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
+import {initCompSearchUserBox} from './comp/SearchUserBox.ts';
 import {initRepoSwitcher} from './repo-switcher.ts';
 import {initScopedWorkflowRequired} from './comp/ScopedWorkflows.ts';
 
@@ -66,6 +67,7 @@ export function initGlobalComponent() {
   registerGlobalInitFunc('initTabSwitcher', initTabSwitcher);
   registerGlobalInitFunc('initAvatarUploader', initAvatarUploader);
   registerGlobalInitFunc('initSearchRepoBox', initCompSearchRepoBox);
+  registerGlobalInitFunc('initSearchUserBox', initCompSearchUserBox);
   registerGlobalInitFunc('initRepoSwitcher', initRepoSwitcher);
   registerGlobalInitFunc('initScopedWorkflowRequired', initScopedWorkflowRequired);
 }

@@ -125,7 +125,7 @@
 					{{end}}
 					</tbody>
 				</table>
-				{{template "repo/code_line_menu" dict "Permission" .Permission "RepoLink" .RepoLink "Repository" .Repository "CommitID" .CommitID "TreePath" .TreePath "HasSourceRenderedToggle" .HasSourceRenderedToggle "ShowBlame" true}}
+				{{template "repo/code_line_menu" .}}
 			{{else}}
 				<div class="view-raw">
 					{{if .IsImageFile}}

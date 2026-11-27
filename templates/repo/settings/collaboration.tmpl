@@ -39,8 +39,8 @@
 		{{end}}
 		<div class="ui bottom attached segment">
 			<form class="ui form flex-text-block" id="repo-collab-form" action="{{.Link}}" method="post">
-				<div id="search-user-box" class="dropdown-container ui input">
-					{{template "shared/search_field" dict "Name" "collaborator" "Label" "search.user_kind" "Autofocus" true}}
+				<div data-global-init="initSearchUserBox" class="dropdown-container ui input">
+					{{template "shared/dropdown_autocomplete" dict "Name" "collaborator" "LabelTrKey" "search.user_kind" "Autofocus" true}}
 				</div>
 				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_collaborator"}}</button>
 			</form>
@@ -103,8 +103,8 @@
 			<div class="ui bottom attached segment">
 				{{if $allowedToChangeTeams}}
 					<form class="ui form flex-text-block" id="repo-collab-team-form" action="{{.Link}}/team" method="post">
-						<div id="search-team-box" class="dropdown-container ui input" data-org-name="{{.OrgName}}">
-							{{template "shared/search_field" dict "Name" "team" "Label" "search.team_kind"}}
+						<div data-global-init="initRepoSettingsSearchTeamBox" class="dropdown-container ui input" data-org-name="{{.OrgName}}">
+							{{template "shared/dropdown_autocomplete" dict "Name" "team" "LabelTrKey" "search.team_kind"}}
 						</div>
 						<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_team"}}</button>
 					</form>

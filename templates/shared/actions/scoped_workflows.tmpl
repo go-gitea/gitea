@@ -7,7 +7,7 @@
 	<div class="ui warning message">{{ctx.Locale.Tr "actions.scoped_workflows.security_note"}}</div>
 	<form class="ui form form-fetch-action flex-text-block" method="post" action="{{.Link}}/add">
 		<div data-global-init="initSearchRepoBox" data-uid="{{.RepoSearchUID}}" class="dropdown-container ui input tw-flex-1">
-			{{template "shared/search_field" dict "Name" "repo_name" "Label" "search.repo_kind"}}
+			{{template "shared/dropdown_autocomplete" dict "Name" "repo_name" "LabelTrKey" "search.repo_kind"}}
 		</div>
 		<button type="submit" class="ui primary button">{{ctx.Locale.Tr "actions.scoped_workflows.source.add"}}</button>
 	</form>

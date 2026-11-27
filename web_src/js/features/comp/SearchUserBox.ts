@@ -21,10 +21,7 @@ function userItem(login: string, fullName: string | null, avatarUrl?: string) {
   return item;
 }
 
-export function initCompSearchUserBox() {
-  const box = document.querySelector<HTMLElement>('#search-user-box');
-  if (!box) return;
-
+export function initCompSearchUserBox(box: HTMLElement) {
   const emailDescription = box.getAttribute('data-allow-email-description');
   const includeOrgs = box.getAttribute('data-include-orgs') === 'true';
 

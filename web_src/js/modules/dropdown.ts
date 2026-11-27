@@ -481,9 +481,9 @@ export class Dropdown {
       this.setItems(items);
     } catch (err) {
       if (abort.signal.aborted) return;
+      console.error(err);
       if (this.editable) return this.hide();
       this.popup.removeAttribute('aria-busy');
-      console.error(err);
       this.updateState(window.config.i18n.error_occurred);
     }
   }

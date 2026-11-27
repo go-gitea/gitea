@@ -66,7 +66,7 @@ export function initRepoCodeView() {
     if (!codeView) return;
     const first = selectRange(codeView, window.location.hash.slice(1));
     if (!first) return;
-    window.history.scrollRestoration = 'manual';
+    window.history.scrollRestoration = 'manual'; // so a refresh scrolls to the hash line instead of the remembered position
     first.scrollIntoView({block: 'start'});
   });
 }

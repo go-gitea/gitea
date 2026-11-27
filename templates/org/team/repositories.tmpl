@@ -14,7 +14,7 @@
 					<div class="ui top attached segment flex-text-block tw-flex-wrap">
 						<form class="ui form ignore-dirty tw-flex-1 tw-flex" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/add" method="post">
 							<div data-global-init="initSearchRepoBox" data-uid="{{.Org.ID}}" class="dropdown-container ui input">
-								{{template "shared/search_field" dict "Name" "repo_name" "Label" "search.repo_kind"}}
+								{{template "shared/dropdown_autocomplete" dict "Name" "repo_name" "LabelTrKey" "search.repo_kind"}}
 							</div>
 							<button type="submit" class="ui primary button tw-ml-2">{{ctx.Locale.Tr "add"}}</button>
 						</form>

@@ -76,7 +76,7 @@
 			</table>
 			{{end}}{{/* end if .IsFileTooLarge */}}
 			{{/* TODO: Set HasSourceRenderedToggle so links back to renderable files show source lines. */}}
-			{{template "repo/code_line_menu" dict "Permission" .Permission "RepoLink" .RepoLink "Repository" .Repository "CommitID" .CommitID "TreePath" .TreePath "HasSourceRenderedToggle" .HasSourceRenderedToggle "ShowBlame" false}}
+			{{template "repo/code_line_menu" .}}
 		</div>
 	</div>
 </div>

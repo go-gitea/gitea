@@ -1,5 +1,7 @@
 import {createCodeEditor} from '../modules/codeeditor/main.ts';
-import {addDelegatedEventListener, createElementFromAttrs, onInputDebounce, queryElems, toggleElem} from '../utils/dom.ts';
+import {
+  addDelegatedEventListener, createElementFromAttrs, onInputDebounce, queryElems, toggleElem,
+} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 import {initDropdown} from '../modules/dropdown.ts';
@@ -31,10 +33,7 @@ function initRepoSettingsCollaboration() {
 
 type TeamSearchResult = {name: string; permission: string};
 
-function initRepoSettingsSearchTeamBox() {
-  const box = document.querySelector<HTMLElement>('#search-team-box');
-  if (!box) return;
-
+function initRepoSettingsSearchTeamBox(box: HTMLElement) {
   const orgName = box.getAttribute('data-org-name')!;
   initDropdown(box, {
     async loadItems(query, signal) {
@@ -123,10 +122,10 @@ function initRepoSettingsOptions() {
 
 export function initRepoSettings() {
   registerGlobalInitFunc('initRepoSettingsGitHook', initRepoSettingsGitHook);
+  registerGlobalInitFunc('initRepoSettingsSearchTeamBox', initRepoSettingsSearchTeamBox);
   if (!document.querySelector('.page-content.repository.settings')) return;
   initRepoSettingsOptions();
   initRepoSettingsBranches();
   initRepoSettingsCollaboration();
-  initRepoSettingsSearchTeamBox();
   initRepoSettingsBranchesDrag();
 }

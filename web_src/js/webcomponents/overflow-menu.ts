@@ -1,5 +1,5 @@
 import {throttle} from '../utils/func.ts';
-import {createElementFromAttrs} from '../utils/dom.ts';
+import {createElementFromAttrs, hideElem, showElem} from '../utils/dom.ts';
 import octiconKebabHorizontal from '../../../public/assets/img/svg/octicon-kebab-horizontal.svg';
 
 window.customElements.define('overflow-menu', class extends HTMLElement {
@@ -30,18 +30,19 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
 
   updateItems = throttle(() => {
     const spacer = this.menuItemsEl.querySelector(':scope > .item-flex-space');
+    const moreButton = this.dropdown?.container.parentElement ? this.dropdown.container : null;
     for (const {item, tabIndex, hadRole, afterSpacer} of this.overflowItems) {
       item.classList.remove('dropdown-item');
       if (item.toggleAttribute('tabindex', tabIndex !== null)) item.setAttribute('tabindex', tabIndex!);
       if (!hadRole) item.removeAttribute('role');
       if (!spacer || afterSpacer) {
-        this.menuItemsEl.append(item);
+        this.menuItemsEl.insertBefore(item, moreButton);
       } else {
         spacer.before(item);
       }
     }
 
-    spacer?.classList.add('tw-hidden');
+    if (spacer) hideElem(spacer);
     this.menuItemsEl.classList.remove('overflow-menu-has-overflow');
     this.overflowItems = [];
     const menuWidth = this.clientWidth;
@@ -58,7 +59,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
         });
       }
     }
-    spacer?.classList.remove('tw-hidden');
+    if (spacer) showElem(spacer);
 
     if (!this.overflowItems.length) {
       this.dropdown?.container.remove();
