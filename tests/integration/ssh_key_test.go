@@ -51,7 +51,7 @@ func doAddChangesToCheckout(dstPath, filename string) func(*testing.T) {
 // TestSSHShellWelcome covers the "shell" request, which carries no command payload unlike "exec"
 func TestSSHShellWelcome(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
-		ctx := NewAPITestContext(t, "user2", "repo1", auth_model.GetAccessTokenScopes(auth_model.Write, false)...)
+		ctx := NewAPITestContext(t, "user2", "repo1", auth_model.GetAccessTokenScopes(auth_model.Write)...)
 		withKeyFile(t, "welcome-key", func(keyFile string) {
 			t.Run("CreateUserKey", doAPICreateUserKey(ctx, "welcome-key", keyFile))
 
@@ -167,7 +167,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 
 			t.Run("Push", doGitPushTestRepository(dstPath, "origin", "master"))
 
-			t.Run("DeleteUserKey", doAPIDeleteUserKey(ctxWithDeleteRepo, userKeyPublicKeyID))
+			t.Run("DeleteUserKey", doAPIDeleteUserKey(ctx, userKeyPublicKeyID))
 		})
 
 		t.Run("KeyCanBeAnyDeployButNotUserAswell", func(t *testing.T) {
@@ -236,7 +236,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 		t.Run("DeleteUserKeyShouldRemoveAbilityToClone", func(t *testing.T) {
 			sshURL := createSSHUrl(ctx.GitPath(), u)
 
-			t.Run("DeleteUserKey", doAPIDeleteUserKey(ctxWithDeleteRepo, userKeyPublicKeyID))
+			t.Run("DeleteUserKey", doAPIDeleteUserKey(ctx, userKeyPublicKeyID))
 
 			t.Run("FailToClone", doGitCloneFail(sshURL))
 		})

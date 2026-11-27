@@ -14,6 +14,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -51,7 +52,7 @@ func NewAccessTokensPanel(ctx *context.Context, owner *user_model.User, link str
 	}
 	return &AccessTokensPanel{
 		Tokens:          tokens,
-		ScopeCategories: auth_model.GetAccessTokenCategories(owner.IsAdmin),
+		ScopeCategories: util.Iif(owner.IsAdmin, auth_model.GetAccessTokenAdminCategories(), auth_model.GetAccessTokenCategories()),
 		ScopePublicOnly: auth_model.AccessTokenScopePublicOnly,
 		Link:            link,
 		IsBot:           owner.IsTypeBot(),

@@ -17,8 +17,8 @@ type scopeTestNormalize struct {
 }
 
 func TestAccessTokenScope_Normalize(t *testing.T) {
-	assert.Equal(t, []string{"activitypub", "admin", "commitstatus", "issue", "misc", "notification", "organization", "package", "repository", "user"}, GetAccessTokenCategories(true))
-	assert.NotContains(t, GetAccessTokenCategories(false), "admin")
+	assert.Equal(t, []string{"activitypub", "admin", "commitstatus", "issue", "misc", "notification", "organization", "package", "repository", "user"}, GetAccessTokenAdminCategories())
+	assert.NotContains(t, GetAccessTokenCategories(), "admin")
 	assert.False(t, AccessTokenScopeNone.HasPermissionScope())
 	tests := []scopeTestNormalize{
 		{"", "", nil},
@@ -35,7 +35,7 @@ func TestAccessTokenScope_Normalize(t *testing.T) {
 		{"read:repository,write:commitstatus", "read:repository,write:commitstatus", nil},
 	}
 
-	for _, scope := range GetAccessTokenCategories(true) {
+	for _, scope := range GetAccessTokenAdminCategories() {
 		tests = append(tests,
 			scopeTestNormalize{AccessTokenScope("read:" + scope), AccessTokenScope("read:" + scope), nil},
 			scopeTestNormalize{AccessTokenScope("write:" + scope), AccessTokenScope("write:" + scope), nil},
@@ -71,7 +71,7 @@ func TestAccessTokenScope_HasScope(t *testing.T) {
 		{"no-token-scope", "no-token-scope", true, nil},
 	}
 
-	for _, scope := range GetAccessTokenCategories(true) {
+	for _, scope := range GetAccessTokenAdminCategories() {
 		tests = append(tests,
 			scopeTestHasScope{
 				AccessTokenScopeNone,

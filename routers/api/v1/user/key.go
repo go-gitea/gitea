@@ -250,7 +250,11 @@ func CreatePublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	if tokenScope, isToken := user_model.GetDoerTokenScope(ctx.Doer); isToken {
-		hasScopes, err := tokenScope.HasScope(auth_model.GetAccessTokenScopes(auth_model.Write, ctx.Doer.IsAdmin)...)
+		requiredScopes := auth_model.GetAccessTokenScopes(auth_model.Write)
+		if ctx.Doer.IsAdmin {
+			requiredScopes = append(requiredScopes, auth_model.AccessTokenScopeWriteAdmin)
+		}
+		hasScopes, err := tokenScope.HasScope(requiredScopes...)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return

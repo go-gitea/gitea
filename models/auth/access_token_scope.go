@@ -210,20 +210,22 @@ var accessTokenScopes = map[AccessTokenScopeLevel]map[AccessTokenScopeCategory]A
 	},
 }
 
-func GetAccessTokenCategories(isAdmin bool) (res []string) {
-	for _, scope := range GetAccessTokenScopes(Read, isAdmin) {
+func GetAccessTokenCategories() (res []string) {
+	for _, scope := range GetAccessTokenScopes(Read) {
 		res = append(res, strings.TrimPrefix(string(scope), "read:"))
 	}
 	slices.Sort(res)
 	return res
 }
 
-func GetAccessTokenScopes(level AccessTokenScopeLevel, isAdmin bool) []AccessTokenScope {
+func GetAccessTokenAdminCategories() []string {
+	return util.Sorted(append(GetAccessTokenCategories(), "admin"))
+}
+
+// GetAccessTokenScopes excludes admin, which only site admins can use
+func GetAccessTokenScopes(level AccessTokenScopeLevel) []AccessTokenScope {
 	scopes := GetRequiredScopes(level, AllAccessTokenScopeCategories...)
-	if !isAdmin {
-		scopes = util.SliceRemoveAll(scopes, accessTokenScopes[level][AccessTokenScopeCategoryAdmin])
-	}
-	return scopes
+	return util.SliceRemoveAll(scopes, accessTokenScopes[level][AccessTokenScopeCategoryAdmin])
 }
 
 // GetRequiredScopes gets the specific scopes for a given level and categories
