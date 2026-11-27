@@ -1,4 +1,3 @@
-import '../fomantic/build/fomantic.js';
 import '../css/index.css';
 
 import {initDashboardRepoList} from './features/dashboard.ts';
@@ -33,7 +32,6 @@ import {initOrgTeam} from './features/org-team.ts';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.ts';
 import {initRepoReleaseNew} from './features/repo-release.ts';
 import {initRepoEditor} from './features/repo-editor.ts';
-import {initCompSearchUserBox} from './features/comp/SearchUserBox.ts';
 import {initInstall} from './features/install.ts';
 import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
 import {initCompLabelEdit} from './features/comp/LabelEdit.ts';
@@ -43,7 +41,6 @@ import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts'
 import {initCaptcha} from './features/captcha.ts';
 import {initRepositoryActions} from './features/repo-actions.ts';
 import {initGlobalTooltips} from './modules/tippy.ts';
-import {initGiteaFomantic} from './modules/fomantic.ts';
 import {initRepoIssueList} from './features/repo-issue-list.ts';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.ts';
 import {initRepoContributors} from './features/contributors.ts';
@@ -67,15 +64,12 @@ import {initRefIssueContextPopup} from './features/ref-issue.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
 import {initProjectWorkflow} from './features/project-workflow.ts';
 import {initDevtest} from './modules/devtest.ts';
-import {initRepoWatch} from './features/repo-watch.ts';
 import {initPackagesView} from './features/packages.ts';
 import {initAsyncHashChangeListeners} from './modules/hashchange.ts';
 import {initGlobalModal} from './modules/modal.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
-  initGiteaFomantic,
-
   initGlobalModal,
   initGlobalComponent,
   initGlobalDropdown,
@@ -92,7 +86,6 @@ const initPerformanceTracer = callInitFunctions([
 
   initCommonIssueListQuickGoto,
 
-  initCompSearchUserBox,
   initCompWebHookEditor,
   initCompLabelEdit,
 
@@ -149,7 +142,6 @@ const initPerformanceTracer = callInitFunctions([
   initRepoContributors,
   initRepoCodeFrequency,
   initRepoRecentCommits,
-  initRepoWatch,
 
   initCommitStatuses,
   initAvatarStackPopup,

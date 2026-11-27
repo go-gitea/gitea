@@ -31,10 +31,8 @@
 				{{ctx.Locale.Tr "actions.general.cross_repo_add"}}
 			</h5>
 			<div class="flex-text-block">
-				<div data-global-init="initSearchRepoBox" data-uid="{{.OwnerID}}" data-exclusive="true" class="ui search tw-flex-1">
-					<div class="ui input">
-						<input class="prompt" name="cross_repo_add_target_name" required placeholder="{{ctx.Locale.Tr "search.repo_kind"}}" autocomplete="off">
-					</div>
+				<div data-global-init="initSearchRepoBox" data-uid="{{.OwnerID}}" class="dropdown-container ui input tw-flex-1">
+					{{template "shared/dropdown_autocomplete" dict "Name" "cross_repo_add_target_name" "LabelTrKey" "search.repo_kind"}}
 				</div>
 				<button class="ui primary button" type="submit" name="cross_repo_add_target" value="true">{{ctx.Locale.Tr "add"}}</button>
 			</div>

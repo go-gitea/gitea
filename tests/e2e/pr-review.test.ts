@@ -116,13 +116,13 @@ test('pr review flow', async ({page, request}) => {
   await expect(counter).toHaveText('1');
   const pendingComment = fileBox.locator('.comment').filter({hasText: 'pending review comment'});
   await expect(pendingComment.locator('[data-clipboard-text]')).toHaveAttribute('data-clipboard-text', /\/files#issuecomment-\d+$/);
-  await pendingComment.getByRole('menu').filter({has: page.getByRole('menuitem', {name: 'Delete', exact: true, includeHidden: true})}).click();
-  await pendingComment.getByRole('menuitem', {name: 'Delete', exact: true}).click();
+  await pendingComment.getByRole('button', {name: 'More items', exact: true}).click();
+  await page.getByRole('menuitem', {name: 'Delete', exact: true}).click();
   await page.getByRole('button', {name: 'Cancel', exact: true}).click();
   await expect(pendingComment).toBeVisible();
   await expect(counter).toHaveAttribute('data-pending-comment-number', '1');
-  await pendingComment.getByRole('menu').filter({has: page.getByRole('menuitem', {name: 'Delete', exact: true, includeHidden: true})}).click();
-  await pendingComment.getByRole('menuitem', {name: 'Delete', exact: true}).click();
+  await pendingComment.getByRole('button', {name: 'More items', exact: true}).click();
+  await page.getByRole('menuitem', {name: 'Delete', exact: true}).click();
   await page.getByRole('button', {name: 'Confirm', exact: true}).click();
   await expect(pendingComment).toHaveCount(0);
   await expect(counter).toHaveAttribute('data-pending-comment-number', '0');

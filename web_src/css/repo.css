@@ -2,6 +2,10 @@
   padding: 1em 0 0.25em;
 }
 
+.repo-watch-popup {
+  max-width: 350px;
+}
+
 .secondary-nav .secondary-info {
   margin-top: 0.25em;
   font-size: 12px;
@@ -11,10 +15,6 @@
 .repository .diff-file-box .file-body.file-code .lines-num,
 .repository .diff-file-box .code-diff tbody tr .lines-type-marker {
   user-select: none;
-}
-
-.repository .owner.dropdown {
-  min-width: 40% !important;
 }
 
 .issue-content {
@@ -39,24 +39,16 @@
   width: 300px;
 }
 
-.issue-content-right .ui.dropdown.full-width {
-  width: 100%;
+.issue-sidebar-combo .dropdown-trigger:not(:disabled):hover {
+  color: var(--color-primary);
+  text-decoration-line: underline;
 }
 
-.issue-content-right .ui.dropdown.full-width > .fixed-text {
-  display: flex;
-  flex-grow: 1;
-  justify-content: space-between;
-}
-
-.issue-content-right .ui.dropdown > .menu {
+.issue-sidebar-popup {
   max-width: 270px;
-  min-width: 0;
-  max-height: 500px;
-  overflow-x: auto;
 }
 
-.issue-content-right .ui.dropdown > .menu .item-secondary-info small {
+.issue-sidebar-popup .item-secondary-info small {
   display: block;
   text-overflow: ellipsis;
   overflow: hidden;
@@ -67,7 +59,7 @@
   max-width: 100%;
 }
 
-.issue-sidebar-combo > .ui.dropdown .item:not(.checked) .item-check-mark {
+.issue-sidebar-popup .dropdown-item:not(.checked) .item-check-mark {
   visibility: hidden;
 }
 
@@ -96,22 +88,9 @@
   }
 }
 
-/* make all issue filter dropdown (user dashboard, repo issue list) menus popup leftward, to avoid go out the viewport (right side) */
-.list-header-filters .ui.dropdown .menu,
-.issue-list-toolbar .ui.dropdown .menu {
-  max-height: 500px;
+.issue-filter-popup {
   max-width: 300px;
   overflow-x: hidden;
-  right: 0;
-  left: auto;
-}
-
-/* the label-filter is the first dropdown, it shouldn't be shown leftward, otherwise it may go out the viewport (left side) */
-.list-header-filters .ui.dropdown.label-filter .menu,
-.issue-list-toolbar .ui.dropdown.label-filter .menu {
-  min-width: max-content;
-  right: unset;
-  left: 0;
 }
 
 /* For the secondary pointing menu, respect its own border-bottom */
@@ -663,11 +642,6 @@
   }
 }
 
-.repository.commits .header .search input {
-  font-weight: var(--font-weight-normal);
-  padding: 5px 10px;
-}
-
 .repository #commits-table td:not(.message) {
   white-space: nowrap;
 }
@@ -999,23 +973,6 @@
   overflow-wrap: anywhere;
 }
 
-#search-user-box .results .result .image {
-  order: 0;
-  margin-right: 12px;
-  width: 2em;
-  height: 2em;
-  min-width: 2em;
-  min-height: 2em;
-}
-
-#search-user-box .results .result .content {
-  margin: 0; /* remove margin reserved for avatar because we move it to left via `order: 0` */
-}
-
-.ui.menu .item > img:not(.ui) {
-  width: auto;
-}
-
 .page.buttons {
   padding-top: 15px;
 }
@@ -1103,10 +1060,6 @@
   justify-content: end;
 }
 
-.comment-header-right > .item.action {
-  padding: 4px; /* add some padding to make click area larger for the "item action ... ui dropdown" items */
-}
-
 .comment-body {
   background: var(--color-box-body);
   border: none !important;
@@ -1176,10 +1129,6 @@
   height: 30px;
 }
 
-.repo-button-row .ui.dropdown > .menu {
-  margin-top: 4px;
-}
-
 tbody.commit-list {
   vertical-align: baseline;
 }
@@ -1246,17 +1195,13 @@ tbody.commit-list {
   display: inline-block !important;
 }
 
-#new-dependency-drop-list.ui.selection.dropdown {
-  min-width: 0;
+#new-dependency-drop-list {
   width: 100%;
-  border-radius: var(--border-radius) 0 0 var(--border-radius);
-  border-right: 0;
-  white-space: nowrap;
 }
 
-#new-dependency-drop-list .text {
-  width: 100%;
-  overflow: hidden;
+#new-dependency-drop-list .dropdown-field {
+  min-width: 0;
+  border-right: 0;
 }
 
 .tag-code {
@@ -1666,31 +1611,30 @@ tbody.commit-list {
   }
 }
 
-#cherry-pick-modal .scrolling.menu {
-  max-height: 200px;
-}
-
 .branch-selector-dropdown {
+  position: relative;
+  display: inline-flex;
   max-width: 100%;
 }
 
-.ui.dropdown.branch-selector-dropdown > .menu {
-  margin-top: 4px;
+.branch-selector-dropdown > .dropdown-popup {
+  position: absolute;
+  z-index: 11;
+  top: 100%;
+  left: 0;
+  width: max-content;
+  min-width: min(16.5rem, 90vw);
+  margin-top: 2px;
+  font-size: 1rem;
+  text-align: left;
 }
 
-.ui.dropdown.branch-selector-dropdown .scrolling.menu {
-  max-width: min(400px, 90vw);
-}
-
-.branch-selector-dropdown .ui.button.branch-dropdown-button {
+.ui.button.branch-dropdown-button {
   margin: 0;
   max-width: 340px;
   padding: 0 0.5em 0 0.75em;
 }
 
-/* FIXME: These media selectors are not ideal (just keep them from old code).
-    There are many different pages, some need the max-width while some others don't,
-    they should be tested and improved in the future. */
 @media (min-width: 768px) and (max-width: 1235px) {
   .branch-selector-dropdown .branch-dropdown-button {
     max-width: 301px;
@@ -1703,11 +1647,15 @@ tbody.commit-list {
   }
 }
 
-.branch-selector-dropdown .branch-tag-tab {
+.branch-tag-popup {
+  max-width: min(400px, 90vw);
+}
+
+.branch-tag-popup .branch-tag-tab {
   padding: 0 10px;
 }
 
-.branch-selector-dropdown .branch-tag-item {
+.branch-tag-popup .branch-tag-item {
   display: inline-block;
   padding: 10px;
   border: 1px solid transparent;
@@ -1715,32 +1663,34 @@ tbody.commit-list {
   border-radius: 0;
 }
 
-.branch-selector-dropdown .branch-tag-item.active {
+.branch-tag-popup .branch-tag-item.active {
   border-color: var(--color-secondary);
   background: var(--color-menu);
   border-top-left-radius: var(--border-radius);
   border-top-right-radius: var(--border-radius);
 }
 
-.branch-selector-dropdown .branch-tag-divider {
-  margin-top: -1px !important;
+.branch-tag-popup .branch-tag-divider {
+  margin: -1px 0 0;
   border-top: 1px solid var(--color-secondary);
 }
 
-.branch-selector-dropdown .scrolling.menu {
-  border-top: none !important;
+.branch-tag-popup .dropdown-item {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.branch-selector-dropdown .menu .item .rss-icon {
+.branch-selector-dropdown .dropdown-item .rss-icon {
   position: absolute;
   right: 4px;
   visibility: hidden; /* only show RSS icon on hover */
 }
 
-.branch-selector-dropdown .menu .item:hover .rss-icon {
+.branch-selector-dropdown .dropdown-item:is(:hover, :focus-within) .rss-icon {
   visibility: visible;
 }
 
-.branch-selector-dropdown .scrolling.menu .loading-indicator {
+.branch-selector-dropdown .branch-tag-list .loading-indicator {
   height: 4em;
 }

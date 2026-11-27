@@ -108,16 +108,20 @@
   }
 }
 
-.merge-box-menu .item > .svg {
+.merge-box-menu {
+  max-width: min(400px, 100vw - 32px);
+}
+
+.merge-box-menu .dropdown-item > .svg {
   align-self: flex-start;
   margin-top: 2px;
 }
 
-.merge-box-menu .item[aria-checked="false"] > .svg {
+.merge-box-menu .dropdown-item[aria-checked="false"] > .svg {
   visibility: hidden;
 }
 
-.merge-box-menu .item small {
+.merge-box-menu small {
   display: block;
   margin-top: 4px;
   font-size: 12px;

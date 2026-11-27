@@ -1,9 +1,3 @@
-.dashboard.feeds .context.user.menu,
-.dashboard.issues .context.user.menu {
-  z-index: 101;
-  min-width: 200px;
-}
-
 .dashboard.issues .filter.menu {
   width: initial;
 }
@@ -28,12 +22,4 @@
 
 .dashboard .secondary-nav {
   padding: 1px 12px; /* match .overflow-menu-items in height */
-}
-
-.dashboard .secondary-nav .org-visibility .label {
-  margin-left: 5px;
-}
-
-.dashboard .secondary-nav .ui.dropdown {
-  max-width: 100%;
 }

@@ -2,6 +2,10 @@
   flex-wrap: wrap;
 }
 
+.code-editor-options .select-field > select {
+  min-height: auto;
+}
+
 .editor-loading {
   padding: 1rem;
   text-align: center;
@@ -519,23 +523,16 @@
 .code-editor-container[data-language="html"] .tok-propertyName,
 .code-editor-container[data-language="xml"] .tok-propertyName { color: var(--color-syntax-attribute); }
 
-/* context menu — uses tippy "menu" theme for base styling */
-.cm-context-menu {
-  min-width: 200px;
-  font-size: 13px;
-  user-select: none;
-}
-
-.cm-context-menu .item {
-  height: 24px !important;
-  padding: 0 12px !important;
-  cursor: pointer;
-}
-
-.cm-context-menu .item.disabled {
-  color: var(--color-text-light-3);
-  cursor: default;
+.cm-context-menu-anchor {
+  position: fixed;
+  width: 0;
+  height: 0;
+  opacity: 0;
   pointer-events: none;
+}
+
+.cm-context-menu {
+  user-select: none;
 }
 
 .cm-context-menu-keys {
@@ -544,9 +541,4 @@
   gap: 2px;
   margin-left: auto;
   padding-left: 30px;
-}
-
-.cm-context-menu-separator {
-  border-top: 1px solid var(--color-secondary);
-  margin: 4px 0;
 }

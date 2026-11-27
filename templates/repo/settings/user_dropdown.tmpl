@@ -1,10 +1,10 @@
-<div class="ui multiple search selection dropdown">
-	<input type="hidden" name="{{.Name}}" value="{{.Value}}">
-	<div class="default text">{{ctx.Locale.Tr "search.user_kind"}}</div>
-	<div class="menu">
+<div class="dropdown-container" data-kind="multiselect">
+	<input type="hidden" class="dropdown-value" name="{{.Name}}" value="{{.Value}}">
+	{{template "shared/dropdown_search_field" dict "Placeholder" (ctx.Locale.Tr "search.user_kind")}}
+	<div class="dropdown-popup">
 		{{range .Users}}
-			<div class="item" data-value="{{.ID}}">
-				{{ctx.AvatarUtils.Avatar . 28 "mini"}}{{template "repo/search_name" .}}
+			<div class="dropdown-item" data-value="{{.ID}}">
+				{{ctx.AvatarUtils.Avatar . 20}}{{template "repo/search_name" .}}
 			</div>
 		{{end}}
 	</div>

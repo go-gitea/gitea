@@ -1,0 +1,12 @@
+<div class="dropdown-container code-line-menu" data-placement="right-start">
+	<button type="button" class="dropdown-trigger btn" aria-label="{{ctx.Locale.Tr "more_items"}}">{{svg "octicon-kebab-horizontal"}}</button>
+	<div class="dropdown-popup">
+		{{if .Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}
+			<a class="dropdown-item ref-in-new-issue" href="#" data-url-issue-new="{{.RepoLink}}/issues/new" data-url-param-body-link="{{.Repository.HTMLURL ctx}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if .HasSourceRenderedToggle}}?display=source{{end}}" rel="nofollow noindex">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</a>
+		{{end}}
+		{{if not .IsBlame}}
+			<a class="dropdown-item view_git_blame" href="{{.Repository.Link}}/blame/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.view_git_blame"}}</a>
+		{{end}}
+		<button type="button" class="dropdown-item copy-line-permalink" data-url="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if .HasSourceRenderedToggle}}?display=source{{end}}">{{ctx.Locale.Tr "repo.file_copy_permalink"}}</button>
+	</div>
+</div>

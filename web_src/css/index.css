@@ -18,11 +18,9 @@
 @import "./modules/checkbox.css";
 @import "./modules/dimmer.css";
 @import "./modules/modal.css";
-@import "./modules/search.css";
 @import "./modules/tab.css";
 @import "./modules/form.css";
 @import "./modules/dropdown.css";
-@import "./modules/transition.css";
 
 @import "./modules/shortcut.css";
 @import "./modules/tippy.css";

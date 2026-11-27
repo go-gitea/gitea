@@ -11,11 +11,16 @@ test('star and watch a repository', async ({page, request}) => {
   ]);
   await page.goto(`/${owner}/${repoName}`);
 
-  // exact match so "Star"/"Watch" don't also match "Unstar"/"Watching"
   await page.getByRole('button', {name: 'Star', exact: true}).click();
   await expect(page.getByRole('button', {name: 'Unstar'})).toBeVisible();
 
   await page.getByRole('button', {name: 'Watch', exact: true}).click();
   await page.getByRole('menuitem', {name: 'All activity', exact: true}).click();
-  await expect(page.getByRole('button', {name: 'Watching'})).toBeVisible();
+
+  const watching = page.getByRole('button', {name: 'Watching', exact: true});
+  await watching.click();
+  await page.getByRole('menuitem', {name: 'Custom', exact: true}).click();
+  await expect(page.getByRole('dialog', {name: 'Notifications', exact: true})).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(watching).toBeFocused();
 });

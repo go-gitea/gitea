@@ -69,15 +69,23 @@ test('project workflow: configure, toggle, edit and view read-only', async ({pag
 test('project workflow: clone with labels and delete', async ({page}) => {
   const {repo, url} = await createWorkflowProject(page);
   try {
-    await apiCreateLabel(page.request, owner, repo, 'bug', 'ee0701');
+    await Promise.all([
+      apiCreateLabel(page.request, owner, repo, 'bug', 'ee0701'),
+      apiCreateLabel(page.request, owner, repo, 'needs review', '0075ca'),
+    ]);
     await page.goto(url);
     await configureItemAdded(page, 'Backlog');
 
     await editorButton(page, 'Clone').click();
     await editorField(page, 'Add labels').click();
-    await page.getByRole('menuitemcheckbox', {name: 'bug'}).click();
+    const bug = page.getByRole('menuitemcheckbox', {name: 'bug', exact: true});
+    await bug.click();
+    await page.getByRole('textbox', {name: 'Filter Label'}).fill('review');
+    await expect(bug).toBeHidden();
+    await page.getByRole('button', {name: 'Clear labels', exact: true}).click();
+    await page.getByRole('menuitemcheckbox', {name: 'needs review', exact: true}).click();
     await editorButton(page, 'Save').click();
-    await expect(editor(page).getByRole('group', {name: 'Add labels'})).toHaveText('bug');
+    await expect(editor(page).getByRole('group', {name: 'Add labels'})).toHaveText('needs review');
     await expect(workflowLink(page, 'Item added to project #2')).toHaveAttribute('aria-current', 'page');
 
     await editorButton(page, 'Edit').click();

@@ -1,21 +1,28 @@
-import {createApp, nextTick} from 'vue';
+import {createApp} from 'vue';
 import {userEvent} from 'vitest/browser';
 import ProjectWorkflowDropdown from './ProjectWorkflowDropdown.vue';
+import {initDropdown} from '../modules/dropdown.ts';
 
-test('label filter gets focus on open and keeps space, enter and left/right inside the menu', async () => {
+test('label filter focuses on open, supports spaces and caret movement, and picks the match on Enter', async () => {
   const root = document.createElement('div');
   document.body.append(root);
-  const app = createApp(ProjectWorkflowDropdown, {label: 'Labels', options: [{value: 1, text: 'bug', html: 'bug'}], readonly: false, modelValue: []});
+  const update = vi.fn();
+  const app = createApp(ProjectWorkflowDropdown, {
+    label: 'Labels', options: [{value: 1, text: 'a cb', html: 'a cb'}], readonly: false, modelValue: [], 'onUpdate:modelValue': update,
+  });
   app.mount(root);
-  await nextTick();
-  const menu = root.querySelector('button')!._tippy;
-  menu.show();
-  const filter = menu.popper.querySelector('input')!;
+  const dropdown = initDropdown(root.querySelector<HTMLElement>('.dropdown-container')!);
+  const filter = dropdown.filterInput!;
+  onTestFinished(() => {
+    dropdown.hide();
+    app.unmount();
+    root.remove();
+  });
+
+  await userEvent.click(dropdown.trigger);
   await expect.poll(() => document.activeElement).toBe(filter);
   await userEvent.keyboard('a b{ArrowLeft}c{Enter}');
-  expect(filter.value).toEqual('a cb');
-  expect(menu.state.isVisible).toBe(true);
-
-  app.unmount();
-  root.remove();
+  expect(filter.value).toBe('a cb');
+  expect(update).toHaveBeenCalledExactlyOnceWith([1]);
+  expect(document.activeElement).toBe(filter);
 });

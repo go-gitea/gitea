@@ -20,7 +20,6 @@ export default {
   ],
   ignoreFiles: [
     '**/*.go',
-    '/web_src/fomantic',
   ],
   overrides: [
     {

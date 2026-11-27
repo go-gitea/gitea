@@ -49,9 +49,9 @@
 						</div>
 						<div class="item-trailing">
 							{{if or $.Permission.IsAdmin $entry.CanRemove}}
-								<div class="ui dropdown jump tw-p-2" aria-label="{{ctx.Locale.Tr "repo.pulls.merge_queue.entry_actions"}}">
-									{{svg "octicon-kebab-horizontal"}}
-									<div class="menu flex-items-menu">
+								<div class="dropdown-container">
+									<button type="button" class="dropdown-trigger btn interact-bg tw-p-2" aria-label="{{ctx.Locale.Tr "repo.pulls.merge_queue.entry_actions"}}">{{svg "octicon-kebab-horizontal"}}</button>
+									<div class="dropdown-popup dropdown-popup-flex">
 										{{if $.Permission.IsAdmin}}
 											{{template "repo/pulls/merge_queue_action" dict "link" $issue.Link "action" "jump" "icon" "octicon-move-to-top"}}
 										{{end}}
@@ -77,7 +77,7 @@
 {{template "base/footer" .}}
 
 {{define "repo/pulls/merge_queue_action"}}
-	<a class="item link-action" {{template "repo/pulls/merge_queue_action_attrs" dict "url" (print .link "/merge_queue/" .action) "action" .action}}>{{svg .icon}}{{ctx.Locale.Tr (print "repo.pulls.merge_queue." .action)}}</a>
+	<a class="dropdown-item link-action" {{template "repo/pulls/merge_queue_action_attrs" dict "url" (print .link "/merge_queue/" .action) "action" .action}}>{{svg .icon}}{{ctx.Locale.Tr (print "repo.pulls.merge_queue." .action)}}</a>
 {{end}}
 
 {{define "repo/pulls/merge_queue_action_attrs"}}

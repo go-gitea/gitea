@@ -315,11 +315,13 @@
 					<fieldset id="merge_queue_box" class="checkbox-sub-item tw-m-0 tw-border-0 tw-py-0 tw-pr-0" {{if not .Rule.RequireMergeQueue}}disabled inert{{end}}>
 						<div class="field">
 							<label>{{ctx.Locale.Tr "repo.settings.merge_queue.merge_method"}}</label>
-							<select class="ui selection dropdown" name="merge_queue_merge_method">
-								{{range $method, $label := .MergeQueueMethods}}
-									<option value="{{$method}}" {{if eq $queue.MergeMethod $method}}selected{{end}}>{{ctx.Locale.Tr $label}}</option>
-								{{end}}
-							</select>
+							<div class="select-field">
+								<select name="merge_queue_merge_method">
+									{{range $method, $label := .MergeQueueMethods}}
+										<option value="{{$method}}" {{if eq $queue.MergeMethod $method}}selected{{end}}>{{ctx.Locale.Tr $label}}</option>
+									{{end}}
+								</select>
+							</div>
 							<p class="help">{{ctx.Locale.Tr "repo.settings.merge_queue.merge_method_desc"}}</p>
 						</div>
 						{{template "repo/settings/merge_queue_number" dict "field" "max_entries_to_build" "min" 0 "max" 100 "value" $queue.MaxEntriesToBuild}}

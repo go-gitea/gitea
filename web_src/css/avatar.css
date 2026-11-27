@@ -104,7 +104,7 @@ img.ui.avatar {
   min-width: 200px;
   display: flex;
   flex-direction: column;
-  padding: 4px 0;
+  padding: 8px 0;
 }
 
 .avatar-stack-popup > a {

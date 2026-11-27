@@ -1,17 +1,12 @@
 <script lang="ts" setup>
-import {computed, onMounted, onUnmounted, useTemplateRef} from 'vue';
-import type {Instance} from 'tippy.js';
+import {computed} from 'vue';
 import SvgIcon from './SvgIcon.vue';
 import type {SvgName} from '../svg.ts';
-import {createTippy} from '../modules/tippy.ts';
 import {diffTreeStore, extDotfile, getDiffTreeExtensionStats, type DiffExtensionFilterLocale} from '../modules/diff-file.ts';
 
 const props = defineProps<{locale: DiffExtensionFilterLocale}>();
 
 const store = diffTreeStore();
-const triggerEl = useTemplateRef<HTMLButtonElement>('triggerEl');
-const panelEl = useTemplateRef<HTMLDivElement>('panelEl');
-let tippyInstance: Instance;
 
 const allExtensions = computed(() => getDiffTreeExtensionStats(store));
 const isFiltering = computed(() => store.activeExtensions !== 'all' || Boolean(store.filenameFilterQuery));
@@ -39,59 +34,43 @@ function toggleExt(ext: string) {
 function toggleAll() {
   store.activeExtensions = store.activeExtensions === 'all' ? [] : 'all';
 }
-
-onMounted(() => {
-  tippyInstance = createTippy(triggerEl.value!, {
-    content: panelEl.value!,
-    trigger: 'click',
-    interactive: true,
-    hideOnClick: true,
-    placement: 'bottom-end',
-    theme: 'menu',
-    arrow: false,
-    limitSizeToViewport: {vertical: true},
-  });
-});
-
-onUnmounted(() => {
-  tippyInstance.destroy();
-});
 </script>
 
 <template>
-  <button
-    ref="triggerEl"
-    type="button"
-    class="diff-ext-filter-trigger"
-    :class="{'indicator-dot': isFiltering}"
-    :aria-label="props.locale.filterByFileExtension"
-  >
-    <SvgIcon name="octicon-filter"/>
-  </button>
-  <div ref="panelEl" class="tippy-target">
-    <div class="diff-ext-filter-menu" role="menu" :aria-label="props.locale.fileExtensions">
-      <div class="diff-ext-filter-header">{{ props.locale.fileExtensions }}</div>
-      <button
-        v-for="ext in allExtensions" :key="ext.ext"
-        type="button" class="item" role="menuitemcheckbox"
-        :aria-checked="isChecked(ext.ext)" @click="toggleExt(ext.ext)"
-      >
-        <span class="diff-ext-filter-check">
-          <SvgIcon v-if="isChecked(ext.ext)" name="octicon-check"/>
-        </span>
-        <span class="gt-ellipsis">{{ extLabel(ext.ext) }}</span>
-        <span class="diff-ext-filter-count">{{ ext.count }}</span>
-      </button>
-      <div class="divider"/>
-      <button
-        type="button" class="item" role="menuitemcheckbox"
-        :aria-checked="store.activeExtensions === 'all'" @click="toggleAll"
-      >
-        <span class="diff-ext-filter-check">
-          <SvgIcon v-if="allIcon" :name="allIcon"/>
-        </span>
-        <span class="gt-ellipsis">{{ props.locale.allFileExtensions }}</span>
-      </button>
+  <div class="dropdown-container" data-keep-open data-placement="bottom-end">
+    <button
+      type="button"
+      class="dropdown-trigger diff-ext-filter-trigger"
+      :class="{'indicator-dot': isFiltering}"
+      :aria-label="props.locale.filterByFileExtension"
+    >
+      <SvgIcon name="octicon-filter"/>
+    </button>
+    <div class="dropdown-popup dropdown-popup-flex">
+      <div class="diff-ext-filter-menu">
+        <div class="dropdown-header">{{ props.locale.fileExtensions }}</div>
+        <button
+          v-for="ext in allExtensions" :key="ext.ext"
+          type="button" class="dropdown-item" role="menuitemcheckbox"
+          :aria-checked="isChecked(ext.ext)" @click="toggleExt(ext.ext)"
+        >
+          <span class="diff-ext-filter-check">
+            <SvgIcon v-if="isChecked(ext.ext)" name="octicon-check"/>
+          </span>
+          <span class="gt-ellipsis">{{ extLabel(ext.ext) }}</span>
+          <span class="diff-ext-filter-count">{{ ext.count }}</span>
+        </button>
+        <div class="dropdown-divider"/>
+        <button
+          type="button" class="dropdown-item" role="menuitemcheckbox"
+          :aria-checked="store.activeExtensions === 'all'" @click="toggleAll"
+        >
+          <span class="diff-ext-filter-check">
+            <SvgIcon v-if="allIcon" :name="allIcon"/>
+          </span>
+          <span class="gt-ellipsis">{{ props.locale.allFileExtensions }}</span>
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -100,13 +79,6 @@ onUnmounted(() => {
 .diff-ext-filter-menu {
   min-width: 192px;
   max-width: 320px;
-}
-
-.diff-ext-filter-header {
-  padding: 6px 18px;
-  color: var(--color-text-light-2);
-  font-size: 12px;
-  font-weight: var(--font-weight-semibold);
 }
 
 .diff-ext-filter-check {

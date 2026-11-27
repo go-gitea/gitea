@@ -82,6 +82,9 @@ function createModalBackdrop(elModal: HTMLDialogElement): HTMLElement {
 export function showModal(elModal: HTMLDialogElement, opts: ModalOpts = {}) {
   if (elModal.open) return;
 
+  hideToastsAll();
+  hideTippyAll(); // before remembering the opener, a hidden popup returns the focus to its trigger
+
   modalStates.set(elModal, {opts, opener: document.activeElement, wasInDocument: elModal.isConnected && document.contains(elModal)});
   const elBackdrop = elModal.parentElement?.matches('.modal-backdrop') ? elModal.parentElement : createModalBackdrop(elModal);
   elModal.querySelector('.close-modal')?.setAttribute('aria-label', 'Close');
@@ -89,8 +92,6 @@ export function showModal(elModal: HTMLDialogElement, opts: ModalOpts = {}) {
   // Avoid "cancel" buttons submitting the form, otherwise "Enter" in the form clicks this "cancel" button before the "ok" button
   queryElems(elModal, 'form button.cancel:not([type])', (button) => button.setAttribute('type', 'button'));
 
-  hideToastsAll();
-  hideTippyAll();
   blockPage(elBackdrop);
 
   elBackdrop.classList.add('active');
@@ -102,6 +103,7 @@ export function hideModal(elModal: HTMLDialogElement) {
   if (!elModal.open) return;
   const {opts, opener, wasInDocument} = modalStates.get(elModal)!;
   const elBackdrop = elModal.parentElement!;
+  hideTippyAll();
   elModal.close();
   elBackdrop.classList.remove('active');
   blockPage(topModal()?.parentElement);

@@ -36,9 +36,6 @@ type scopedWorkflowsCtx struct {
 	IsGlobal     bool
 	Template     templates.TplName
 	RedirectLink string
-	// SearchUID is the uid passed to the repo-search box. For org/user it scopes the search to that owner;
-	// for admin (0) it searches all repos and therefore requires admin access on the route.
-	SearchUID int64
 }
 
 func getScopedWorkflowsCtx(ctx *context.Context) (*scopedWorkflowsCtx, error) {
@@ -52,7 +49,6 @@ func getScopedWorkflowsCtx(ctx *context.Context) (*scopedWorkflowsCtx, error) {
 			IsOrg:        true,
 			Template:     tplOrgScopedWorkflows,
 			RedirectLink: ctx.Org.OrgLink + "/settings/actions/scoped-workflows",
-			SearchUID:    ctx.Org.Organization.ID,
 		}, nil
 	}
 
@@ -62,7 +58,6 @@ func getScopedWorkflowsCtx(ctx *context.Context) (*scopedWorkflowsCtx, error) {
 			IsUser:       true,
 			Template:     tplUserScopedWorkflows,
 			RedirectLink: setting.AppSubURL + "/user/settings/actions/scoped-workflows",
-			SearchUID:    ctx.Doer.ID,
 		}, nil
 	}
 
@@ -72,7 +67,6 @@ func getScopedWorkflowsCtx(ctx *context.Context) (*scopedWorkflowsCtx, error) {
 			IsGlobal:     true,
 			Template:     tplAdminScopedWorkflows,
 			RedirectLink: setting.AppSubURL + "/-/admin/actions/scoped-workflows",
-			SearchUID:    0,
 		}, nil
 	}
 
@@ -138,11 +132,7 @@ func ScopedWorkflows(ctx *context.Context) {
 	}
 
 	ctx.Data["ScopedWorkflowSources"] = views
-	ctx.Data["RepoSearchUID"] = swCtx.SearchUID
-	// owner/user scopes the repo search to the owner (exclusive);
-	// instance-level (admin) searches all repos and so must submit owner/name to disambiguate the selection across owners.
-	ctx.Data["ScopedWorkflowsSearchExclusive"] = !swCtx.IsGlobal
-	ctx.Data["ScopedWorkflowsSearchFullName"] = swCtx.IsGlobal
+	ctx.Data["RepoSearchUID"] = swCtx.OwnerID
 	ctx.Data["RedirectLink"] = swCtx.RedirectLink
 	ctx.Data["ScopedWorkflowDirs"] = strings.Join(setting.Actions.ScopedWorkflowDirs, ", ")
 	ctx.HTML(http.StatusOK, swCtx.Template)

@@ -74,18 +74,18 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  padding: 0 4px;
+  padding: 4px;
 }
 
-.tippy-box .reaction-picker .item {
+.reaction-picker .dropdown-item {
   justify-content: center;
   width: 32px;
-  height: 32px;
+  min-height: 32px;
   margin: 0;
   padding: 0;
   font-size: 17.5px;
 }
 
-.tippy-box .reaction-picker .item[data-has-reacted="true"] {
+.reaction-picker .dropdown-item[data-has-reacted="true"] {
   background: var(--color-reaction-active-bg);
 }

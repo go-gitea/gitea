@@ -1,11 +1,22 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, apiCreateRepo, randomString} from './utils.ts';
+import {login, apiCreateIssue, apiCreateLabel, apiCreateRepo, randomString} from './utils.ts';
 
-test('create a label in the modal with a color from the picker popup', async ({page}) => {
+test('create and assign scoped labels', async ({page, request}) => {
   const repoName = `e2e-label-${randomString(8)}`;
-  await Promise.all([login(page), apiCreateRepo(page.request, {name: repoName, autoInit: false})]);
-  await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/labels`);
+  const owner = env.GITEA_TEST_E2E_USER;
+  await Promise.all([
+    (async () => {
+      await apiCreateRepo(request, {name: repoName, autoInit: false});
+      await Promise.all([
+        apiCreateLabel(request, owner, repoName, 'kind/bug', 'ee0701', {exclusive: true}),
+        apiCreateLabel(request, owner, repoName, 'kind/feature', 'ee0701', {exclusive: true}),
+        apiCreateIssue(request, {owner, repo: repoName, title: 'Scoped labels'}),
+      ]);
+    })(),
+    login(page),
+  ]);
+  await page.goto(`/${owner}/${repoName}/labels`);
   await page.getByRole('button', {name: 'New Label'}).click();
   const modal = page.getByRole('dialog');
   await modal.getByRole('button', {name: 'Save'}).click();
@@ -16,4 +27,14 @@ test('create a label in the modal with a color from the picker popup', async ({p
   await expect(colorInput).toHaveValue(/^#[0-9a-f]{6}$/);
   await modal.getByRole('button', {name: 'Save'}).click();
   await expect(page.locator('.issue-label-list')).toContainText('e2e-label');
+  await page.goto(`/${owner}/${repoName}/issues/1`);
+  const trigger = page.getByRole('button', {name: 'Labels'});
+  await trigger.click();
+  const bug = page.getByRole('menuitem').filter({hasText: 'bug'});
+  await bug.click();
+  await expect(bug).toContainClass('checked');
+  await page.getByRole('menuitem').filter({hasText: 'feature'}).click();
+  await expect(bug).not.toContainClass('checked');
+  await trigger.click();
+  await expect(page.locator('.issue-sidebar-combo', {has: trigger}).locator('.labels-list').getByRole('link')).toHaveText([/feature/]);
 });

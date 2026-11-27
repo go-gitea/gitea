@@ -34,7 +34,6 @@ export function initAvatarStackPopup() {
       placement: 'bottom-start',
       interactive: true,
       role: 'dialog',
-      theme: 'menu',
       trigger: 'click',
       hideOnClick: true,
     });

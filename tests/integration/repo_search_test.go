@@ -60,7 +60,7 @@ func TestSearchRepo(t *testing.T) {
 	})
 
 	doc := testSearch(t, "/user2/repo1/search?q=Description&page=1&search_mode=regexp&l=Go", []string{"README.md"})
-	assert.Zero(t, doc.doc.Find(`form input[name="search_mode"]`).Length())
+	assert.Zero(t, doc.doc.Find(`form [name="search_mode"]`).Length())
 	languageLink, exists := doc.doc.Find("a.label").First().Attr("href")
 	require.True(t, exists)
 	languageURL, err := url.Parse(languageLink)

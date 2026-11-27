@@ -45,8 +45,8 @@ Search "repo/branch_dropdown" in the template directory to find all occurrences.
 	data-enable-feed="{{ctx.RootData.EnableFeed}}"
 >
 	{{/* show dummy elements before Vue componment is mounted, this code must match the code in BranchTagSelector.vue */}}
-	<div class="ui dropdown custom branch-selector-dropdown ellipsis-text-items">
-		<div class="ui compact button branch-dropdown-button">
+	<div class="branch-selector-dropdown">
+		<button type="button" class="ui compact button branch-dropdown-button">
 			<span class="flex-text-block gt-ellipsis">
 				{{if .DropdownFixedText}}
 					{{.DropdownFixedText}}
@@ -61,7 +61,7 @@ Search "repo/branch_dropdown" in the template directory to find all occurrences.
 					<strong class="tw-inline-block gt-ellipsis">{{.CurrentRefShortName}}</strong>
 				{{end}}
 			</span>
-			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-		</div>
+			{{svg "octicon-triangle-down" 14}}
+		</button>
 	</div>
 </div>

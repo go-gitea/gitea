@@ -1,18 +1,20 @@
-import {attachSearchBox} from '../../modules/search.ts';
+import {initDropdown} from '../../modules/dropdown.ts';
+import {createElementFromAttrs} from '../../utils/dom.ts';
+import {fetchSearchResults} from './SearchUserBox.ts';
 
-const {appSubUrl} = window.config;
-
-type RepoSearchResponse = {data: Array<{repository: {full_name: string}}>};
+type RepoSearchResult = {repository: {full_name: string}};
 
 export function initCompSearchRepoBox(el: HTMLElement) {
-  const uid = el.getAttribute('data-uid');
-  const exclusive = el.getAttribute('data-exclusive');
-  // when set, the selected value is the full "owner/name" rather than the bare repo name, so a cross-owner search can be resolved unambiguously
-  const fullName = el.getAttribute('data-full-name') === 'true';
-  let url = `${appSubUrl}/repo/search?q={query}&uid=${uid}`;
-  if (exclusive === 'true') url += `&exclusive=true`;
-  attachSearchBox(el, url, (response: RepoSearchResponse) => response.data.map((item) => ({
-    title: fullName ? item.repository.full_name : item.repository.full_name.split('/')[1],
-    description: item.repository.full_name,
-  })));
+  const uid = el.getAttribute('data-uid')!;
+  const exclusive = Number(uid) > 0;
+  initDropdown(el, {
+    async loadItems(query, signal) {
+      const params: Record<string, string> = {q: query, uid};
+      if (exclusive) params.exclusive = 'true';
+      const data = await fetchSearchResults<RepoSearchResult>('/repo/search', params, signal);
+      return data?.map(({repository: {full_name}}) => createElementFromAttrs('div', {
+        class: 'dropdown-item', 'data-value': exclusive ? full_name.split('/')[1] : full_name,
+      }, full_name)) ?? [];
+    },
+  });
 }

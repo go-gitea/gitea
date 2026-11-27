@@ -14,17 +14,18 @@ test('toggle issue reactions', async ({page, request}) => {
 
   const reactions = page.locator('.timeline-item.comment.issue-content-comment').getByRole('group', {name: 'Reactions'});
   const reactionPicker = reactions.getByRole('button', {name: 'Reactions', exact: true});
+  const reactionMenu = page.getByRole('menu', {name: 'Reactions', exact: true});
 
   await reactionPicker.click();
-  await page.getByRole('menuitem', {name: '+1', exact: true}).click();
+  await reactionMenu.getByRole('menuitem', {name: '+1', exact: true}).click();
   await expect(reactions.getByRole('button', {name: /^\+1:/})).toContainText('1');
 
   await reactions.getByRole('button', {name: /^\+1:/}).click();
   await expect(reactions.getByRole('button', {name: /^\+1:/})).toHaveCount(0);
 
   await reactionPicker.press('Enter');
-  await page.keyboard.press('ArrowRight');
-  await page.keyboard.press('ArrowRight');
+  await expect(reactionMenu).toBeFocused();
+  await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter');
   await expect(reactions.getByRole('button', {name: /^-1:/})).toContainText('1');
   await expect(reactionPicker).toBeFocused();

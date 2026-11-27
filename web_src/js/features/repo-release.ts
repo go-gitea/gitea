@@ -2,10 +2,9 @@ import {POST} from '../modules/fetch.ts';
 import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
 import {getComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {hideElem} from '../utils/dom.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {initDropdown} from '../modules/dropdown.ts';
 import {hideModal, showModal} from '../modules/modal.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
-import {htmlEscape} from '../utils/html.ts';
 import {compareVersions} from 'compare-versions';
 
 export function initRepoReleaseNew() {
@@ -16,20 +15,16 @@ export function initRepoReleaseNew() {
     hideElem(`#attachment-${id}`);
   });
   registerGlobalInitFunc('initReleaseEditForm', (elForm: HTMLFormElement) => {
-    initTagNameEditor(elForm);
-    initGenerateReleaseNotes(elForm);
+    const existingTags = Array.from(document.querySelectorAll('#generate-release-notes-modal .dropdown-item'), (el) => el.getAttribute('data-value')!);
+    initTagNameEditor(elForm, existingTags);
+    initGenerateReleaseNotes(elForm, existingTags);
   });
 }
 
-function getReleaseFormExistingTags(elForm: HTMLFormElement): Array<string> {
-  return JSON.parse(elForm.getAttribute('data-existing-tags')!);
-}
-
-function initTagNameEditor(elForm: HTMLFormElement) {
+function initTagNameEditor(elForm: HTMLFormElement, existingTags: string[]) {
   const tagNameInput = elForm.querySelector<HTMLInputElement>('input[type=text][name=tag_name]');
   if (!tagNameInput) return; // only init if tag name input exists (the tag name is editable)
 
-  const existingTags = getReleaseFormExistingTags(elForm);
   const defaultTagHelperText = elForm.getAttribute('data-tag-helper');
   const newTagHelperText = elForm.getAttribute('data-tag-helper-new');
   const existingTagHelperText = elForm.getAttribute('data-tag-helper-existing');
@@ -76,24 +71,24 @@ export function guessPreviousReleaseTag(tagName: string, existingTags: Array<str
   return guessedPreviousTag;
 }
 
-function initGenerateReleaseNotes(elForm: HTMLFormElement) {
+function initGenerateReleaseNotes(elForm: HTMLFormElement, existingTags: string[]) {
   const buttonShowModal = elForm.querySelector<HTMLButtonElement>('.button.generate-release-notes')!;
   const tagNameInput = elForm.querySelector<HTMLInputElement>('input[name=tag_name]')!;
-  const targetInput = elForm.querySelector<HTMLInputElement>('input[name=tag_target]')!;
+  const targetInput = elForm.querySelector<HTMLInputElement | HTMLSelectElement>('[name=tag_target]')!;
 
   const textMissingTag = buttonShowModal.getAttribute('data-text-missing-tag')!;
   const generateUrl = buttonShowModal.getAttribute('data-generate-url')!;
 
   const elModal = document.querySelector<HTMLDialogElement>('#generate-release-notes-modal')!;
+  const previousTagDropdown = initDropdown(elModal.querySelector<HTMLElement>('.dropdown-container')!);
 
   const doSubmit = async (tagName: string) => {
-    const elPreviousTag = elModal.querySelector<HTMLSelectElement>('[name=previous_tag]')!;
     const comboEditor = getComboMarkdownEditor(elForm.querySelector<HTMLElement>('.combo-markdown-editor'))!;
 
     const form = new URLSearchParams();
     form.set('tag_name', tagName);
     form.set('tag_target', targetInput.value);
-    form.set('previous_tag', elPreviousTag.value);
+    form.set('previous_tag', previousTagDropdown.value);
 
     elModal.classList.add('loading', 'disabled');
     try {
@@ -118,7 +113,6 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
     }
   };
 
-  let inited = false;
   const doShowModal = () => {
     const tagName = tagNameInput.value.trim();
     if (!tagName) {
@@ -128,14 +122,8 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
       return;
     }
 
-    const existingTags = getReleaseFormExistingTags(elForm);
-    const $dropdown = fomanticQuery(elModal.querySelector('[name=previous_tag]')!);
-    if (!inited) {
-      inited = true;
-      const values = existingTags.map((tagName) => ({name: htmlEscape(tagName), value: tagName})); // ATTENTION: dropdown takes the "name" input as raw HTML
-      $dropdown.dropdown('change values', values);
-    }
-    $dropdown.dropdown('set selected', guessPreviousReleaseTag(tagName, existingTags));
+    const guessedTag = guessPreviousReleaseTag(tagName, existingTags);
+    if (guessedTag) previousTagDropdown.setValue(guessedTag);
 
     showModal(elModal, {
       onApprove: () => {

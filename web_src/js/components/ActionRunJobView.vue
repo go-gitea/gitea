@@ -5,9 +5,7 @@ import ActionStatusIcon from './ActionStatusIcon.vue';
 import {addDelegatedEventListener, createElementFromAttrs} from '../utils/dom.ts';
 import {formatDatetime, formatDatetimeISO} from '../utils/time.ts';
 import {ExclusiveFetch, request} from '../modules/fetch.ts';
-import {createTippy} from '../modules/tippy.ts';
 import {copyToClipboardWithFeedback} from '../modules/clipboard.ts';
-import type {Instance} from 'tippy.js';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
@@ -133,8 +131,6 @@ const currentJob = ref<CurrentJob>({
 const stepsContainer = ref<HTMLElement | null>(null);
 const jobStepLogs = ref<Array<StepContainerElement | undefined>>([]);
 const menuTriggerEl = useTemplateRef<HTMLButtonElement>('menuTriggerEl');
-const menuPanelEl = useTemplateRef<HTMLDivElement>('menuPanelEl');
-let menuTippy: Instance;
 
 // Reusable workflow caller view: the right pane shows just the header (name + uses path +
 // status). Callers don't run on a runner, and the dependency graph for their children lives
@@ -151,16 +147,6 @@ watch(optionAlwaysExpandRunning, () => {
 });
 
 onMounted(async () => {
-  menuTippy = createTippy(menuTriggerEl.value!, {
-    content: menuPanelEl.value!,
-    trigger: 'click',
-    interactive: true,
-    hideOnClick: true,
-    placement: 'bottom-end',
-    theme: 'menu',
-    arrow: false,
-  });
-
   // load job data and then auto-reload periodically
   // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
   intervalID = setInterval(() => loadJob(), 1000);
@@ -188,7 +174,6 @@ function stopPollingCurrentRun() {
 }
 
 onBeforeUnmount(() => {
-  menuTippy.destroy();
   removeAsyncHashChangeListener(hashChangeListener);
   stopPollingCurrentRun();
 });
@@ -422,6 +407,7 @@ function toggleTimeDisplay(type: 'seconds' | 'stamp') {
 function toggleFullScreenMode() {
   isFullScreen.value = !isFullScreen.value;
   toggleFullScreen(document.querySelector('.action-view-right')!, isFullScreen.value, '.action-view-body');
+  menuTriggerEl.value!.focus({preventScroll: true});
 }
 
 async function hashChangeListener() {
@@ -458,34 +444,34 @@ async function hashChangeListener() {
         {{ isCallerJob && selectedJob ? locale.status[selectedJob.status] : currentJob.detail }}
       </p>
     </div>
-    <div class="job-info-header-right">
-      <button ref="menuTriggerEl" type="button" class="btn interact-bg tw-p-2">
+    <div class="dropdown-container" data-placement="bottom-end">
+      <button ref="menuTriggerEl" type="button" class="dropdown-trigger btn interact-bg tw-p-2">
         <SvgIcon name="octicon-gear" :size="18"/>
       </button>
-      <div ref="menuPanelEl" class="tippy-target" @click="menuTippy.hide()">
-        <a class="item" role="menuitemcheckbox" :aria-checked="timeVisible['log-time-seconds']" @click="toggleTimeDisplay('seconds')">
+      <div class="dropdown-popup dropdown-popup-flex">
+        <button type="button" class="dropdown-item" role="menuitemcheckbox" :aria-checked="timeVisible['log-time-seconds']" @click="toggleTimeDisplay('seconds')">
           <SvgIcon :name="timeVisible['log-time-seconds'] ? 'octicon-check' : 'gitea-empty-checkbox'"/>
           {{ locale.showLogSeconds }}
-        </a>
-        <a class="item" role="menuitemcheckbox" :aria-checked="timeVisible['log-time-stamp']" @click="toggleTimeDisplay('stamp')">
+        </button>
+        <button type="button" class="dropdown-item" role="menuitemcheckbox" :aria-checked="timeVisible['log-time-stamp']" @click="toggleTimeDisplay('stamp')">
           <SvgIcon :name="timeVisible['log-time-stamp'] ? 'octicon-check' : 'gitea-empty-checkbox'"/>
           {{ locale.showTimeStamps }}
-        </a>
-        <a class="item" role="menuitemcheckbox" :aria-checked="isFullScreen" @click="toggleFullScreenMode()">
+        </button>
+        <button type="button" class="dropdown-item" role="menuitemcheckbox" :aria-checked="isFullScreen" @click="toggleFullScreenMode()">
           <SvgIcon :name="isFullScreen ? 'octicon-check' : 'gitea-empty-checkbox'"/>
           {{ locale.showFullScreen }}
-        </a>
-        <div class="divider"/>
-        <a class="item" role="menuitemcheckbox" :aria-checked="optionAlwaysAutoScroll" @click="optionAlwaysAutoScroll = !optionAlwaysAutoScroll">
+        </button>
+        <div class="dropdown-divider" role="separator"/>
+        <button type="button" class="dropdown-item" role="menuitemcheckbox" :aria-checked="optionAlwaysAutoScroll" @click="optionAlwaysAutoScroll = !optionAlwaysAutoScroll">
           <SvgIcon :name="optionAlwaysAutoScroll ? 'octicon-check' : 'gitea-empty-checkbox'"/>
           {{ locale.logsAlwaysAutoScroll }}
-        </a>
-        <a class="item" role="menuitemcheckbox" :aria-checked="optionAlwaysExpandRunning" @click="optionAlwaysExpandRunning = !optionAlwaysExpandRunning">
+        </button>
+        <button type="button" class="dropdown-item" role="menuitemcheckbox" :aria-checked="optionAlwaysExpandRunning" @click="optionAlwaysExpandRunning = !optionAlwaysExpandRunning">
           <SvgIcon :name="optionAlwaysExpandRunning ? 'octicon-check' : 'gitea-empty-checkbox'"/>
           {{ locale.logsAlwaysExpandRunning }}
-        </a>
-        <div class="divider"/>
-        <a class="item" role="menuitem" :class="{disabled: !currentJob.steps.length}" :href="run.link + '/jobs/' + jobId + '/logs'" download>
+        </button>
+        <div class="dropdown-divider" role="separator"/>
+        <a class="dropdown-item" :aria-disabled="!currentJob.steps.length" :href="run.link + '/jobs/' + jobId + '/logs'" download>
           <SvgIcon name="octicon-download"/>
           {{ locale.downloadLogs }}
         </a>

@@ -1,7 +1,7 @@
 import {test, expect} from '@playwright/test';
 import {login, loginUser, apiCreateUser, randomString} from './utils.ts';
 
-test('update profile biography', async ({page, request}) => {
+test('update biography and theme', async ({page, request}) => {
   const username = `e2e-settings-${randomString(8)}`;
   const bio = `e2e-bio-${randomString(8)}`;
   await apiCreateUser(request, username);
@@ -15,6 +15,11 @@ test('update profile biography', async ({page, request}) => {
   await page.getByRole('button', {name: 'Update Profile'}).click();
   await expect(page.getByText('Your profile has been updated.', {exact: true})).toBeVisible();
   await expect(page.getByLabel('Biography')).toHaveText('');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'gitea-auto');
+  await page.locator('#footer-theme-selector').getByRole('button').click();
+  await page.getByRole('menuitem', {name: 'Dark', exact: true}).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'gitea-dark');
+  await expect(page.locator('#footer-theme-selector')).toContainText('Dark');
 });
 
 test('crop avatar before upload', async ({page, request}) => {

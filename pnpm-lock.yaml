@@ -286,9 +286,6 @@ importers:
       is-network-error:
         specifier: 1.3.2
         version: 1.3.2
-      jquery:
-        specifier: 4.1.0
-        version: 4.1.0
       js-yaml:
         specifier: 5.5.0
         version: 5.5.0
@@ -359,9 +356,6 @@ importers:
       '@types/codemirror':
         specifier: 5.60.18
         version: 5.60.18
-      '@types/jquery':
-        specifier: 4.0.1
-        version: 4.0.1
       '@types/katex':
         specifier: 0.16.8
         version: 0.16.8
@@ -1391,9 +1385,6 @@ packages:
 
   '@types/istanbul-reports@3.0.4':
     resolution: {integrity: sha512-pk2B1NWalF9toCRu6gjBzR69syFjP4Od8WRAX+0mmf9lAjCRicLOWc+ZrxZHx/0XRjotgkF9t6iaMJ+aXcOdZQ==}
-
-  '@types/jquery@4.0.1':
-    resolution: {integrity: sha512-9a59A/tycXgYuPABcp6/3spSShn0NT2UOM4EfHvMumjYi4lJWTsK5SZWjhx3yRm9IHGCeWXdV2YfNsrWrft/CA==}
 
   '@types/jsdom@20.0.1':
     resolution: {integrity: sha512-d0r18sZPmMQr1eG35u12FZfhIXNrnsPU/g5wvRKCUf/tOGilKKwYMYGqh33BNR6ba+2gkHw1EUiHoN3mn7E5IQ==}
@@ -2965,9 +2956,6 @@ packages:
   jiti@2.7.0:
     resolution: {integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==}
     hasBin: true
-
-  jquery@4.1.0:
-    resolution: {integrity: sha512-tnN2N83S+xD3yhmdBP4nnJ1XOO0Fl586rG23FA5h/JAe8XN3W9a1zGwDMltBptn+UpcqEKicnO61+jQ0EiF2fw==}
 
   js-levenshtein-esm@2.0.0:
     resolution: {integrity: sha512-1n4LEPOL4wRXY8rOQcuA7Iuaphe5xCMayvufCzlLAi+hRsnBRDbSS6XPuV58CBVJxj5D9ApFLyjQ7KzFToyHBw==}
@@ -5277,8 +5265,6 @@ snapshots:
     dependencies:
       '@types/istanbul-lib-report': 3.0.3
 
-  '@types/jquery@4.0.1': {}
-
   '@types/jsdom@20.0.1':
     dependencies:
       '@types/node': 26.6.6
@@ -7051,8 +7037,6 @@ snapshots:
   jiti@1.21.7: {}
 
   jiti@2.7.0: {}
-
-  jquery@4.1.0: {}
 
   js-levenshtein-esm@2.0.0: {}
 

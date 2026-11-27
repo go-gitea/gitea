@@ -1,5 +1,3 @@
-import './globals.ts';
-
 window.config = {
   appUrl: `${window.location.origin}/`,
   appSubUrl: '',
@@ -10,6 +8,6 @@ window.config = {
   pageData: {},
   notificationSettings: {MinTimeout: 0, TimeoutStep: 0, MaxTimeout: 0},
   mermaidMaxSourceCharacters: 5000,
-  i18n: {},
+  i18n: {remove_label_str: 'Remove item "%s"'},
   frontendInited: false,
 };

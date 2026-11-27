@@ -19,13 +19,12 @@
 						<div class="item-trailing">
 							<div class="flex-text-block">
 								{{svg "octicon-shield-lock"}}
-								<div class="ui dropdown custom access-mode" data-url="{{$.Link}}/access_mode" data-uid="{{.ID}}" data-last-value="{{.Collaboration.Mode}}">
-									<div class="text">{{if eq .Collaboration.Mode 1}}{{ctx.Locale.Tr "repo.settings.collaboration.read"}}{{else if eq .Collaboration.Mode 2}}{{ctx.Locale.Tr "repo.settings.collaboration.write"}}{{else if eq .Collaboration.Mode 3}}{{ctx.Locale.Tr "repo.settings.collaboration.admin"}}{{else}}{{ctx.Locale.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
-									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-									<div class="menu">
-										<div class="item" data-value="3">{{ctx.Locale.Tr "repo.settings.collaboration.admin"}}</div>
-										<div class="item" data-value="2">{{ctx.Locale.Tr "repo.settings.collaboration.write"}}</div>
-										<div class="item" data-value="1">{{ctx.Locale.Tr "repo.settings.collaboration.read"}}</div>
+								<div class="dropdown-container access-mode" data-url="{{$.Link}}/access_mode" data-uid="{{.ID}}">
+									<button type="button" class="dropdown-trigger btn"><span class="dropdown-text">{{if eq .Collaboration.Mode 1}}{{ctx.Locale.Tr "repo.settings.collaboration.read"}}{{else if eq .Collaboration.Mode 2}}{{ctx.Locale.Tr "repo.settings.collaboration.write"}}{{else if eq .Collaboration.Mode 3}}{{ctx.Locale.Tr "repo.settings.collaboration.admin"}}{{else}}{{ctx.Locale.Tr "repo.settings.collaboration.undefined"}}{{end}}</span> {{svg "octicon-triangle-down" 14}}</button>
+									<div class="dropdown-popup">
+										<div class="dropdown-item{{if eq .Collaboration.Mode 3}} active{{end}}" data-value="3">{{ctx.Locale.Tr "repo.settings.collaboration.admin"}}</div>
+										<div class="dropdown-item{{if eq .Collaboration.Mode 2}} active{{end}}" data-value="2">{{ctx.Locale.Tr "repo.settings.collaboration.write"}}</div>
+										<div class="dropdown-item{{if eq .Collaboration.Mode 1}} active{{end}}" data-value="1">{{ctx.Locale.Tr "repo.settings.collaboration.read"}}</div>
 									</div>
 								</div>
 							</div>
@@ -40,8 +39,8 @@
 		{{end}}
 		<div class="ui bottom attached segment">
 			<form class="ui form flex-text-block" id="repo-collab-form" action="{{.Link}}" method="post">
-				<div id="search-user-box" class="ui search input">
-					<input class="prompt" name="collaborator" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" autofocus required>
+				<div data-global-init="initSearchUserBox" class="dropdown-container ui input">
+					{{template "shared/dropdown_autocomplete" dict "Name" "collaborator" "LabelTrKey" "search.user_kind" "Autofocus" true}}
 				</div>
 				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_collaborator"}}</button>
 			</form>
@@ -104,8 +103,8 @@
 			<div class="ui bottom attached segment">
 				{{if $allowedToChangeTeams}}
 					<form class="ui form flex-text-block" id="repo-collab-team-form" action="{{.Link}}/team" method="post">
-						<div id="search-team-box" class="ui search input" data-org-name="{{.OrgName}}">
-							<input class="prompt" name="team" placeholder="{{ctx.Locale.Tr "search.team_kind"}}" autocomplete="off" required>
+						<div data-global-init="initRepoSettingsSearchTeamBox" class="dropdown-container ui input" data-org-name="{{.OrgName}}">
+							{{template "shared/dropdown_autocomplete" dict "Name" "team" "LabelTrKey" "search.team_kind"}}
 						</div>
 						<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_team"}}</button>
 					</form>
