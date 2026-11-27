@@ -5,6 +5,7 @@ package organization
 
 import (
 	"context"
+	"slices"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -127,6 +128,25 @@ func ApplyTeamListFilter(ctx context.Context, orgID int64, viewer *user_model.Us
 	opts.UserID = viewer.ID
 	opts.IncludeVisibilities = VisibleTeamVisibilitiesFor(isOrgMember, isSignedIn)
 	return nil
+}
+
+// FilterVisibleTeams removes the teams of the organization that the signed-in viewer may not see, by the rules of ApplyTeamListFilter.
+func FilterVisibleTeams(ctx context.Context, orgID int64, viewer *user_model.User, teams TeamList) (TeamList, error) {
+	opts := &SearchTeamOptions{}
+	if err := ApplyTeamListFilter(ctx, orgID, viewer, true, opts); err != nil {
+		return nil, err
+	}
+	if opts.UserID == 0 {
+		return teams, nil
+	}
+	memberTeams, err := GetUserOrgTeams(ctx, orgID, viewer.ID)
+	if err != nil {
+		return nil, err
+	}
+	return slices.DeleteFunc(teams, func(t *Team) bool {
+		return !slices.Contains(opts.IncludeVisibilities, t.Visibility) &&
+			!slices.ContainsFunc(memberTeams, func(m *Team) bool { return m.ID == t.ID })
+	}), nil
 }
 
 // SearchTeam search for teams. Caller is responsible to check permissions.
