@@ -58,3 +58,27 @@ func TestRepository_GetCodeActivityStatsPathWithSpaces(t *testing.T) {
 	require.NoError(t, err)
 	assert.EqualValues(t, 2, code.ChangedFiles)
 }
+
+func TestRepository_GetCodeActivityStatsLogSepPrefix(t *testing.T) {
+	repoFacade, err := ForceFastImportWithInit(t.Context(), t.TempDir(), []FastImportCommit{{
+		Ref:       "refs/heads/master",
+		Author:    &Signature{Name: ":::---:::tester", Email: "test@example.com", When: time.Unix(1769202331, 0)},
+		Committer: &Signature{Name: "test", Email: "test@example.com", When: time.Unix(1769202331, 0)},
+		Files: []FastImportFile{
+			{Path: "notes.txt", Content: "a\n"},
+		},
+	}})
+	require.NoError(t, err)
+	repo, err := OpenRepository(t.Context(), repoFacade)
+	require.NoError(t, err)
+	defer repo.Close()
+
+	code, err := repo.GetCodeActivityStats(t.Context(), time.Unix(1769202000, 0), "")
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, code.CommitCount)
+	assert.EqualValues(t, 1, code.AuthorCount)
+	assert.EqualValues(t, 1, code.ChangedFiles)
+	assert.EqualValues(t, 1, code.Additions)
+	require.NotEmpty(t, code.Authors)
+	assert.Equal(t, ":::---:::tester", code.Authors[0].Name)
+}
