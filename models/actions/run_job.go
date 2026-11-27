@@ -21,6 +21,7 @@ import (
 	webhook_module "gitea.dev/modules/webhook"
 
 	"xorm.io/builder"
+	"xorm.io/xorm/schemas"
 )
 
 // MaxJobNumPerRun is the maximum number of jobs in a single run.
@@ -51,10 +52,10 @@ type ActionRunJob struct {
 	Needs  []string `xorm:"JSON TEXT"`
 	RunsOn []string `xorm:"JSON TEXT"`
 
-	TaskID       int64 `xorm:"index(pickup)"`      // the task created by this job in its own attempt
+	TaskID       int64 // the task created by this job in its own attempt
 	SourceTaskID int64 `xorm:"NOT NULL DEFAULT 0"` // SourceTaskID points to a historical task when this job reuses an earlier attempt's result.
 
-	Status Status `xorm:"index index(pickup) index(repo_status)"`
+	Status Status `xorm:"index index(repo_status)"`
 
 	RawConcurrency string `xorm:"TEXT"` // raw concurrency from job YAML's "concurrency" section
 
@@ -132,7 +133,14 @@ type ActionRunJob struct {
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
 	Created timeutil.TimeStamp `xorm:"created"`
-	Updated timeutil.TimeStamp `xorm:"updated index index(pickup)"`
+	Updated timeutil.TimeStamp `xorm:"updated index"`
+}
+
+// TableIndices declares pickup for CreateTaskForRunner, struct tags would order its columns by field and put id first.
+func (*ActionRunJob) TableIndices() []*schemas.Index {
+	pickupIndex := schemas.NewIndex("pickup", schemas.IndexType)
+	pickupIndex.AddColumn("task_id", "status", "id")
+	return []*schemas.Index{pickupIndex}
 }
 
 // ActionRunAttemptJobIDIndex backs the run-wide AttemptJobID counter, keyed by ActionRun.ID.

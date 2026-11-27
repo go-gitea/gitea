@@ -259,16 +259,11 @@ var errJobAlreadyClaimed = errors.New("job already claimed by another runner")
 // It is a var only so tests can shrink it to exercise pagination cheaply.
 var pickTaskBatchSize = 100
 
-// maxFailedClaimsPerPick bounds the failed claims of one CreateTaskForRunner call,
-// so a backlog of broken jobs is not walked in full on every runner poll.
-const maxFailedClaimsPerPick = 20
-
 // CreateTaskForRunner finds a waiting job that matches the runner's labels and
 // atomically claims it. It iterates through all matching jobs so that a
 // concurrent claim by another runner (which would lose the optimistic lock on
 // job #1) does not leave the remaining jobs permanently unassigned.
-// Jobs in skipJobIDs are left in the queue.
-func CreateTaskForRunner(ctx context.Context, runner *ActionRunner, skipJobIDs ...int64) (task *ActionTask, cancelledJobs []*ActionRunJob, err error) {
+func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (task *ActionTask, cancelledJobs []*ActionRunJob, err error) {
 	if db.InTransaction(ctx) {
 		return nil, nil, errors.New("CreateTaskForRunner must not be called within a database transaction")
 	}
@@ -276,39 +271,13 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner, skipJobIDs .
 	// TODO: a more efficient way to filter labels
 	log.Trace("runner labels: %v", runner.AgentLabels)
 
-	// Page through the waiting jobs oldest-first instead of loading the whole backlog into memory on every poll.
-	// Keyset pagination on (updated, id) is safe under concurrent claims:
-	// updated only moves forward, so the advancing cursor never skips a still-waiting job even as claimed jobs drop out.
-	// In creation order a job can become waiting behind the cursor, its tasks version bump makes the runner poll again.
-	byCreated := setting.Actions.JobQueueOrder.IsCreated()
-	var cursorUpdated timeutil.TimeStamp
+	// Page through the waiting jobs in creation order, a job that turns waiting behind the cursor bumps the tasks version so the next poll finds it.
 	var cursorID int64
-	var claimErr error
-	var failedClaims int
 	for {
-		sess := JobQueueOptions{RepoID: runner.RepoID, OwnerID: runner.OwnerID, Status: StatusWaiting}.session(ctx).
-			And(builder.NotIn("id", skipJobIDs))
-		switch {
-		case byCreated:
-			sess.And(builder.Gt{"id": cursorID}).Asc("id")
-		case cursorID > 0:
-			sess.And(builder.Or(
-				builder.Gt{"updated": cursorUpdated},
-				builder.And(builder.Eq{"updated": cursorUpdated}, builder.Gt{"id": cursorID}),
-			)).Asc("updated", "id")
-		default:
-			sess.Asc("updated", "id")
-		}
-
+		sess := JobQueueOptions{RepoID: runner.RepoID, OwnerID: runner.OwnerID, Status: StatusWaiting}.session(ctx)
 		var jobs []*ActionRunJob
-		if err := sess.Limit(pickTaskBatchSize).Find(&jobs); err != nil {
+		if err := sess.And(builder.Gt{"id": cursorID}).Asc("id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
 			return nil, cancelledJobs, err
-		}
-		// A short page means no waiting jobs remain beyond it.
-		isLastPage := len(jobs) < pickTaskBatchSize
-		if !isLastPage {
-			last := jobs[len(jobs)-1] // read before a lost claim bumps Updated
-			cursorUpdated, cursorID = last.Updated, last.ID
 		}
 
 		for _, v := range jobs {
@@ -319,27 +288,17 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner, skipJobIDs .
 			if cancelled {
 				cancelledJobs = append(cancelledJobs, v)
 			}
-			if task != nil {
-				return task, cancelledJobs, nil
+			if err != nil || task != nil {
+				return task, cancelledJobs, err
 			}
-			if err != nil {
-				if ctx.Err() != nil {
-					return nil, cancelledJobs, err
-				}
-				// A job that cannot be claimed must not block the jobs behind it.
-				log.Error("CreateTaskForRunner: claim job %d: %v", v.ID, err)
-				if failedClaims++; failedClaims == maxFailedClaimsPerPick {
-					return nil, cancelledJobs, err
-				}
-				claimErr = err
-			}
-			// Another runner claimed this job concurrently, it was cancelled or it failed. Try the next one.
+			// Another runner claimed this job concurrently, or it was cancelled. Try the next one.
 		}
 
-		if isLastPage {
-			// Report the failure when nothing was claimed, so the runner polls again instead of waiting for the next tasks version.
-			return nil, cancelledJobs, claimErr
+		// A short page means no waiting jobs remain beyond it.
+		if len(jobs) < pickTaskBatchSize {
+			return nil, cancelledJobs, nil
 		}
+		cursorID = jobs[len(jobs)-1].ID
 	}
 }
 

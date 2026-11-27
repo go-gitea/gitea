@@ -16,8 +16,6 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/actions/jobparser"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -312,6 +310,9 @@ func TestReleaseTaskForRunner(t *testing.T) {
 				WorkflowPayload: []byte("on: push\njobs:\n  " + tt.jobName + ":\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n"),
 			}
 			require.NoError(t, db.Insert(t.Context(), job))
+			readyEarlierCreatedLater := &ActionRunJob{RunID: run.ID, RepoID: run.RepoID, OwnerID: run.OwnerID, Status: StatusWaiting, RunsOn: job.RunsOn, Updated: 1}
+			_, err := db.GetEngine(t.Context()).NoAutoTime().Insert(readyEarlierCreatedLater)
+			require.NoError(t, err)
 
 			runner := &ActionRunner{
 				UUID:        tt.name + "-runner-uuid",
@@ -552,41 +553,4 @@ func newRunningTaskForCancelling(t *testing.T, name string, hasCancellingSupport
 	require.NoError(t, err)
 
 	return task, job
-}
-
-func TestCreateTaskForRunnerQueueOrder(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-	ctx := t.Context()
-
-	run := &ActionRun{RepoID: 1, OwnerID: 2, TriggerUserID: 2, Index: 9904}
-	require.NoError(t, db.Insert(ctx, run))
-	require.NoError(t, db.Insert(ctx, &repo_model.RepoUnit{RepoID: run.RepoID, Type: unit.TypeActions}))
-	runner := &ActionRunner{UUID: "queue-order-runner-uuid", Name: "queue-order-runner", AgentLabels: []string{"queue-order"}}
-	runner.GenerateAndFillToken()
-	require.NoError(t, db.Insert(ctx, runner))
-
-	insert := func(updated timeutil.TimeStamp) int64 {
-		job := &ActionRunJob{
-			RunID: run.ID, RepoID: run.RepoID, OwnerID: run.OwnerID, Name: "job", JobID: "job", Attempt: 1,
-			Status: StatusWaiting, RunsOn: runner.AgentLabels, Updated: updated,
-			WorkflowPayload: []byte("on: push\njobs:\n  job:\n    runs-on: queue-order\n    steps:\n      - run: echo hi\n"),
-		}
-		_, err := db.GetEngine(ctx).NoAutoTime().Insert(job)
-		require.NoError(t, err)
-		return job.ID
-	}
-	createdFirst := insert(300) // became ready last, like a job that waited on "needs"
-	readyFirst := insert(100)
-	insert(200)
-
-	pick := func() int64 {
-		task, _, err := CreateTaskForRunner(ctx, runner)
-		require.NoError(t, err)
-		require.NotNil(t, task)
-		return task.JobID
-	}
-	assert.Equal(t, readyFirst, pick())
-
-	defer test.MockVariableValue(&setting.Actions.JobQueueOrder, "created")()
-	assert.Equal(t, createdFirst, pick())
 }

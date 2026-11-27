@@ -8,8 +8,6 @@ import (
 	"fmt"
 
 	"gitea.dev/models/db"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -52,12 +50,9 @@ func (opts JobQueueOptions) statusCond() builder.Cond {
 }
 
 // active jobs first by start time, then queued jobs in pickup order
-func jobQueueOrderBy() string {
-	queuedOrder := util.Iif(setting.Actions.JobQueueOrder.IsCreated(), "0", "`action_run_job`.updated")
-	return fmt.Sprintf(
-		"CASE WHEN `action_run_job`.status IN (%d, %d) THEN 0 ELSE 1 END ASC, CASE WHEN `action_run_job`.status IN (%d, %d) THEN `action_run_job`.started ELSE %s END ASC, `action_run_job`.id ASC",
-		StatusRunning, StatusCancelling, StatusRunning, StatusCancelling, queuedOrder)
-}
+var jobQueueOrderBy = fmt.Sprintf(
+	"CASE WHEN `action_run_job`.status IN (%d, %d) THEN 0 ELSE 1 END ASC, CASE WHEN `action_run_job`.status IN (%d, %d) THEN `action_run_job`.started ELSE 0 END ASC, `action_run_job`.id ASC",
+	StatusRunning, StatusCancelling, StatusRunning, StatusCancelling)
 
 // FindJobQueueJobs returns one page of the job queue and its total count.
 func FindJobQueueJobs(ctx context.Context, opts JobQueueOptions, page, pageSize int) ([]*ActionRunJob, int64, error) {
@@ -73,7 +68,7 @@ func FindJobQueueJobs(ctx context.Context, opts JobQueueOptions, page, pageSize 
 	return jobs, total, opts.session(ctx).
 		Cols("`action_run_job`.id", "`action_run_job`.repo_id", "`action_run_job`.name", "`action_run_job`.status", // skip the payload columns
 			"`action_run_job`.run_id", "`action_run_job`.runs_on", "`action_run_job`.updated", "`action_run_job`.started", "`action_run_job`.task_id").
-		OrderBy(jobQueueOrderBy()).
+		OrderBy(jobQueueOrderBy).
 		Limit(pageSize, (page-1)*pageSize).
 		Find(&jobs)
 }
