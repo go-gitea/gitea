@@ -4,7 +4,9 @@ import {initRepoIssueContentHistory} from './repo-issue-content.ts';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
 import {initExpandAndCollapseFilesButton, initDiffFileViewedForm} from './pull-view-file.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
+import {
+  queryElemSiblings, hideElem, showElem, toggleElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems,
+} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
@@ -140,6 +142,7 @@ function initRepoDiffConversationNav() {
 function initDiffHeaderPopupMenu(btn: HTMLElement) {
   const popup = btn.nextElementSibling;
   if (!popup?.matches('.tippy-target')) throw new Error('Popup element not found');
+  const fileCode = btn.closest('.diff-file-box')!.querySelector('.file-code')!;
   createTippy(btn, {
     content: popup,
     theme: 'menu',
@@ -147,6 +150,12 @@ function initDiffHeaderPopupMenu(btn: HTMLElement) {
     trigger: 'click',
     interactive: true,
     hideOnClick: true,
+    onShow: () => {
+      const hasEscaped = Boolean(fileCode.querySelector('.has-escaped'));
+      const isEscaped = fileCode.classList.contains('unicode-escaped');
+      toggleElem(popup.querySelector('.unescape-button')!, hasEscaped && isEscaped);
+      toggleElem(popup.querySelector('.escape-button')!, hasEscaped && !isEscaped);
+    },
   });
 }
 
