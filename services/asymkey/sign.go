@@ -269,8 +269,7 @@ Loop:
 }
 
 // SignMerge determines if we should sign a PR merge commit to the base repository.
-// baseRef and headRef must resolve in gitRepo. Callers pass the temporary merge repo's own
-// refs for an update by merge, whose fake reverse PR has no head ref in the base repository.
+// baseRef and headRef must resolve in gitRepo, update-by-merge's fake PR has no head ref there.
 func SignMerge(ctx context.Context, pr *issues_model.PullRequest, u *user_model.User, gitRepo *git.Repository, baseRef, headRef string) (bool, *git.SigningKey, *git.Signature, error) {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("Unable to get Base Repo for pull request")

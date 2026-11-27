@@ -48,7 +48,6 @@ func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title st
 	assert.NotEmpty(t, test.ParseJSONRedirect(resp.Body.Bytes()))
 }
 
-// returns the first listed title, which is not necessarily the one just created because releases are ordered by commit date
 func checkLatestReleaseAndCount(t *testing.T, session *TestSession, repoURL, version, label string, count int) string {
 	req := NewRequest(t, "GET", repoURL+"/releases")
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -191,6 +190,9 @@ func TestViewReleaseListLogin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 1})
+	release.PublishedUnix = 1700000000
+	assert.NoError(t, repo_model.UpdateRelease(t.Context(), release))
 
 	link := repo.Link() + "/releases"
 
@@ -213,8 +215,8 @@ func TestViewReleaseListLogin(t *testing.T) {
 
 	assert.Equal(t, []string{
 		"/user2/repo1/releases/tag/draft-release",
-		"/user2/repo1/releases/tag/v1.0",
 		"/user2/repo1/releases/tag/v1.1",
+		"/user2/repo1/releases/tag/v1.0",
 	}, links)
 }
 

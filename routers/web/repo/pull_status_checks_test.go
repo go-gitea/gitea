@@ -25,7 +25,8 @@ func TestGroupStatusChecks(t *testing.T) {
 		{ID: 6, Context: "docs", State: commitstatus.CommitStatusSkipped},
 		{ID: 7, Context: "CI10", State: commitstatus.CommitStatusPending},
 		{ID: 8, Context: "ci2", State: commitstatus.CommitStatusPending},
-	}, []string{"[Cc][Ii]*", "missing", "missing*", "test"}, actions_module.CommitActionsStatusMap{3: actions_model.StatusRunning}, translation.MockLocale{})
+		{ID: 9, Context: "e2e", State: commitstatus.CommitStatusFailure},
+	}, []string{"[Cc][Ii]*", "missing", "missing*", "test"}, actions_module.CommitActionsStatusMap{3: actions_model.StatusRunning, 9: actions_model.StatusCancelled}, translation.MockLocale{})
 
 	require.Len(t, checkData.StatusCheckGroups, 5)
 	assert.Equal(t, statusCheckPending, checkData.StatusCheckGroups[1].CheckKind)
@@ -37,10 +38,11 @@ func TestGroupStatusChecks(t *testing.T) {
 		StatusContext: "missing", StatusDescription: "repo.pulls.status_checks_waiting",
 		StatusState: commitstatus.CommitStatusPending, IsRequired: true,
 	}, checkData.StatusCheckGroups[1].StatusChecks[2])
-	assert.False(t, checkData.StatusCheckGroups[0].StatusChecks[0].IsRequired)
+	assert.Equal(t, "cancelled", checkData.StatusCheckGroups[0].StatusChecks[0].ActionStatus)
+	assert.False(t, checkData.StatusCheckGroups[0].StatusChecks[1].IsRequired)
 	assert.Equal(t, "running", checkData.StatusCheckGroups[2].StatusChecks[0].ActionStatus)
 	assert.True(t, checkData.StatusCheckGroups[4].StatusChecks[0].IsRequired)
-	assert.EqualValues(t, "repo.pulls.status_checks_count_1:repo.pulls.status_checks_failing:1, repo.pulls.status_checks_pending:2, repo.pulls.status_checks_in_progress:1, repo.pulls.status_checks_skipped:1, repo.pulls.status_checks_expected:2, repo.pulls.status_checks_successful:1", checkData.StatusChecksSection(translation.MockLocale{}).SectionDetails[0])
+	assert.EqualValues(t, "repo.pulls.status_checks_count_1:repo.pulls.status_checks_failing:1, repo.pulls.status_checks_cancelled:1, repo.pulls.status_checks_pending:2, repo.pulls.status_checks_in_progress:1, repo.pulls.status_checks_skipped:1, repo.pulls.status_checks_expected:2, repo.pulls.status_checks_successful:1", checkData.StatusChecksSection(translation.MockLocale{}).SectionDetails[0])
 
 	externalData := &pullCommitStatusCheckData{}
 	externalData.groupStatuses([]*git_model.CommitStatus{
@@ -50,6 +52,13 @@ func TestGroupStatusChecks(t *testing.T) {
 	assert.False(t, externalData.AllPassed())
 	assert.Equal(t, 1, externalData.count(statusCheckInProgress))
 	assert.Equal(t, 1, externalData.count(statusCheckPending))
+
+	cancelledData := &pullCommitStatusCheckData{}
+	cancelledData.groupStatuses([]*git_model.CommitStatus{{ID: 1, Context: "lint", State: commitstatus.CommitStatusFailure}}, nil, actions_module.CommitActionsStatusMap{1: actions_model.StatusCancelled}, translation.MockLocale{})
+	assert.False(t, cancelledData.AllPassed())
+	cancelledSection := cancelledData.StatusChecksSection(translation.MockLocale{})
+	assert.EqualValues(t, "repo.pulls.status_checking", cancelledSection.SectionTitle)
+	assert.Equal(t, []statusCheckProgressSegment{{StrokeClass: "tw-stroke-red", DashLength: 100}}, cancelledSection.ProgressSegments)
 
 	approvalData := &pullCommitStatusCheckData{RequireApprovalRunCount: 1}
 	approvalData.groupStatuses([]*git_model.CommitStatus{{ID: 1, Context: "lint", State: commitstatus.CommitStatusSuccess}}, nil, nil, translation.MockLocale{})

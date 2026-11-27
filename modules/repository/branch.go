@@ -6,9 +6,12 @@ package repository
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
@@ -64,6 +67,17 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 		log.Trace("SyncRepoBranches[%s]: branches[%d]: %v", repo.FullName(), len(branches), branches)
 		for _, branch := range branches {
 			allBranches.Add(branch)
+		}
+		if slices.ContainsFunc(branches, func(branch string) bool {
+			return strings.HasPrefix(git.BranchPrefix+branch, pull_model.MergeQueueRefPrefix())
+		}) {
+			queueRefs, err := pull_model.GetMergeQueueGroupRefs(ctx, repo.ID)
+			if err != nil {
+				return 0, nil, err
+			}
+			for _, ref := range queueRefs {
+				allBranches.Remove(git.RefName(ref).BranchName())
+			}
 		}
 	}
 

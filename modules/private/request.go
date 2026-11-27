@@ -12,6 +12,8 @@ import (
 	"gitea.dev/modules/jsonlimit"
 )
 
+const InternalServerConnectionError = "Internal Server Connection Error"
+
 // ResponseText is used to get the response as text, instead of parsing it as JSON.
 type ResponseText struct {
 	Text string
@@ -55,7 +57,7 @@ func (re responseError) Error() string {
 func requestJSONResp[T any](req *httplib.ClientRequest, res *T) (ret *T, extra ResponseExtra) {
 	resp, err := req.Response()
 	if err != nil {
-		extra.UserMsg = "Internal Server Connection Error"
+		extra.UserMsg = InternalServerConnectionError
 		extra.Error = fmt.Errorf("unable to contact gitea %q: %w", req.GoString(), err)
 		return nil, extra
 	}

@@ -1,5 +1,6 @@
 import {createApp, type App, type Component} from 'vue';
 import {GET} from '../modules/fetch.ts';
+import {shouldTriggerAreYouSure} from '../modules/are-you-sure.ts';
 import {createTippy, getAttachedTippyInstance} from '../modules/tippy.ts';
 import {addDelegatedEventListener, createElementFromHTML, activePageTimerRefresh} from '../utils/dom.ts';
 
@@ -84,6 +85,10 @@ class PullMergeBox {
     const respText = (await resp.text()).trim();
     if (this.isBusy()) return;
     const newEl = createElementFromHTML(respText);
+    if (this.el.hasAttribute('data-pull-merge-queued') !== newEl.hasAttribute('data-pull-merge-queued')) {
+      if (!shouldTriggerAreYouSure()) window.location.reload(); // with unsaved edits, retry on the next poll
+      return;
+    }
     const newToggles = new Map([...newEl.querySelectorAll<HTMLElement>('[data-kind]')].map((toggle) => [toggle.getAttribute('data-kind'), toggle]));
     let focusedToggle: HTMLElement | undefined;
     for (const toggle of this.el.querySelectorAll('[data-kind]')) {

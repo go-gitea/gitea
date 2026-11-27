@@ -1627,6 +1627,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/{type:pulls}", repo.Issues)
+		m.Get("/queue/*", repo.MergeQueue)
+		m.Post("/queue/clear/*", reqSignIn, reqRepoAdmin, context.RepoMustNotBeArchived(), repo.ClearMergeQueue)
 		m.Group("/{type:pulls}/{index}", func() {
 			m.Get("", repo.SetEditorconfigIfExists, repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewIssue)
 			m.Get(".diff", repo.DownloadPullDiff)
@@ -1639,6 +1641,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			})
 			m.Post("/merge", context.RepoMustNotBeArchived(), web.Bind[*forms.MergePullRequestForm](), repo.MergePullRequest)
 			m.Post("/cancel_auto_merge", reqSignIn, context.RepoMustNotBeArchived(), repo.CancelAutoMergePullRequest)
+			m.Post("/merge_queue/remove", reqSignIn, context.RepoMustNotBeArchived(), repo.RemoveFromMergeQueue)
+			m.Post("/merge_queue/jump", reqSignIn, reqRepoAdmin, context.RepoMustNotBeArchived(), repo.JumpMergeQueue)
 			m.Post("/update", repo.UpdatePullRequest)
 			m.Post("/set_allow_maintainer_edit", web.Bind[*forms.UpdateAllowEditsForm](), repo.SetAllowEdits)
 			m.Post("/cleanup", context.RepoMustNotBeArchived(), repo.CleanUpPullRequest)
@@ -1708,6 +1712,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}, repo.MustBeNotEmpty)
 
 		m.Get("/blob_excerpt/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
+		m.Get("/rich_diff", repo.RichDiff)
 
 		m.Group("", func() {
 			m.Get("/graph", repo.Graph)

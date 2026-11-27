@@ -77,6 +77,68 @@ type ProtectedBranchConfig struct {
 	ProtectedFilePatterns         string   `json:"protected_file_patterns,omitzero"`
 	UnprotectedFilePatterns       string   `json:"unprotected_file_patterns,omitzero"`
 	BlockAdminMergeOverride       bool     `json:"block_admin_merge_override,omitzero"`
+
+	RequireMergeQueue bool             `json:"require_merge_queue,omitzero"`
+	MergeQueue        MergeQueueConfig `json:"merge_queue,omitzero"`
+}
+
+type MergeQueueGroupingStrategy string
+
+const (
+	MergeQueueGroupingAllGreen  MergeQueueGroupingStrategy = "ALLGREEN"
+	MergeQueueGroupingHeadGreen MergeQueueGroupingStrategy = "HEADGREEN"
+)
+
+type MergeQueueConfig struct {
+	MergeMethod                  repo_model.MergeStyle      `json:"merge_method,omitzero"`
+	MaxEntriesToBuild            int                        `json:"max_entries_to_build,omitzero"`
+	MinEntriesToMerge            int                        `json:"min_entries_to_merge,omitzero"`
+	MaxEntriesToMerge            int                        `json:"max_entries_to_merge,omitzero"`
+	MinEntriesToMergeWaitMinutes int                        `json:"min_entries_to_merge_wait_minutes,omitzero"`
+	GroupingStrategy             MergeQueueGroupingStrategy `json:"grouping_strategy,omitzero"`
+	CheckResponseTimeoutMinutes  int                        `json:"check_response_timeout_minutes,omitzero"`
+}
+
+func DefaultMergeQueueConfig() MergeQueueConfig {
+	return MergeQueueConfig{
+		MergeMethod:                  repo_model.MergeStyleMerge,
+		MaxEntriesToBuild:            5,
+		MinEntriesToMerge:            1,
+		MaxEntriesToMerge:            5,
+		MinEntriesToMergeWaitMinutes: 5,
+		GroupingStrategy:             MergeQueueGroupingAllGreen,
+		CheckResponseTimeoutMinutes:  60,
+	}
+}
+
+func (c MergeQueueConfig) WithDefaults() MergeQueueConfig {
+	return util.IfZero(c, DefaultMergeQueueConfig())
+}
+
+var ErrMergeQueueMethodNotAllowed = util.NewInvalidArgumentErrorf("the merge queue merge method is not allowed in the pull request settings")
+
+func (protectBranch *ProtectedBranch) SetMergeQueue(require bool, cfg MergeQueueConfig, prConfig *repo_model.PullRequestsConfig) error {
+	outOfRange := func(value, low, high int) bool { return value < low || value > high }
+	switch {
+	case require && !prConfig.IsMergeStyleAllowed(cfg.MergeMethod):
+		return ErrMergeQueueMethodNotAllowed
+	case !slices.Contains([]repo_model.MergeStyle{repo_model.MergeStyleMerge, repo_model.MergeStyleRebase, repo_model.MergeStyleRebaseMerge, repo_model.MergeStyleSquash}, cfg.MergeMethod):
+		return util.NewInvalidArgumentErrorf("merge queue merge method %q is not supported", cfg.MergeMethod)
+	case outOfRange(cfg.MaxEntriesToBuild, 0, 100):
+		return util.NewInvalidArgumentErrorf("merge queue build concurrency must be between 0 and 100")
+	case outOfRange(cfg.MinEntriesToMerge, 1, 100), outOfRange(cfg.MaxEntriesToMerge, 1, 100):
+		return util.NewInvalidArgumentErrorf("merge queue group sizes must be between 1 and 100")
+	case cfg.MinEntriesToMerge > cfg.MaxEntriesToMerge:
+		return util.NewInvalidArgumentErrorf("merge queue minimum group size must not exceed the maximum")
+	case outOfRange(cfg.MinEntriesToMergeWaitMinutes, 0, 360):
+		return util.NewInvalidArgumentErrorf("merge queue wait time must be between 0 and 360 minutes")
+	case outOfRange(cfg.CheckResponseTimeoutMinutes, 1, 360):
+		return util.NewInvalidArgumentErrorf("merge queue check timeout must be between 1 and 360 minutes")
+	case cfg.GroupingStrategy != MergeQueueGroupingAllGreen && cfg.GroupingStrategy != MergeQueueGroupingHeadGreen:
+		return util.NewInvalidArgumentErrorf("merge queue grouping strategy %q is not supported", cfg.GroupingStrategy)
+	}
+	protectBranch.RequireMergeQueue, protectBranch.MergeQueue = require, cfg
+	return nil
 }
 
 func init() {

@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"unicode"
 
 	"gitea.dev/modules/util"
 )
@@ -35,6 +36,14 @@ type globCompiler struct {
 	negativeFlip      bool
 }
 
+// writeLiteral escapes only ASCII punctuation, an escaped letter like \d is a regexp class
+func (g *globCompiler) writeLiteral(r rune) {
+	if r <= unicode.MaxASCII && !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+		g.builder.WriteByte('\\')
+	}
+	g.builder.WriteRune(r)
+}
+
 // compileChars compiles character class patterns like [abc] or [!abc]
 func (g *globCompiler) compileChars() error {
 	g.builder.WriteByte('[')
@@ -56,8 +65,7 @@ func (g *globCompiler) compileChars() error {
 			if g.pos >= len(g.globPattern) {
 				return errors.New("unterminated character class escape")
 			}
-			g.builder.WriteByte('\\')
-			g.builder.WriteRune(g.globPattern[g.pos])
+			g.writeLiteral(g.globPattern[g.pos])
 			g.pos++
 		} else {
 			g.builder.WriteRune(c)
@@ -135,8 +143,7 @@ func (g *globCompiler) compile(subPattern bool) error {
 			if g.pos >= len(g.globPattern) {
 				return errors.New("no character to escape")
 			}
-			g.builder.WriteByte('\\')
-			g.builder.WriteRune(g.globPattern[g.pos])
+			g.writeLiteral(g.globPattern[g.pos])
 			g.pos++
 		case '.', '^', '$', '(', ')', '|':
 			g.builder.WriteByte('\\')

@@ -107,12 +107,12 @@ func TestMilestones(t *testing.T) {
 
 func TestDashboardPagination(t *testing.T) {
 	ctx, _ := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
-	page := context.NewPagerBuilder(ctx).TotalCount(10).PerPageLimit(3).CurPage(1).NavPageNum(3).Build()
+	page := context.NewPagerBuilder(ctx).TotalCount(10).PerPageLimit(3).CurPage(1).Build()
 
 	for _, subURL := range []string{"/SubPath", ""} {
 		setting.AppSubURL = subURL
 		out, err := ctx.RenderToHTML("base/paginate", map[string]any{"Link": setting.AppSubURL, "Page": page})
 		assert.NoError(t, err)
-		assert.Contains(t, out, `<a class=" item navigation" href="`+subURL+`/?page=2">`)
+		assert.Contains(t, out, `href="`+subURL+`/?page=2" aria-label="repo.issues.next"`)
 	}
 }

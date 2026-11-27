@@ -142,11 +142,8 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	// Ensure ctx.Req.Form exists.
-	_ = ctx.Req.ParseForm()
-
 	var homepageURL string
-	projectURLs := ctx.Req.Form["project_urls"]
+	projectURLs := ctx.FormStrings("project_urls")
 	for _, purl := range projectURLs {
 		label, url, found := strings.Cut(purl, ",")
 		if !found {

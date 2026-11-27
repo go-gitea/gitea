@@ -46,7 +46,7 @@ This document explains how to contribute changes to the Gitea project. Topic-spe
 ## Introduction
 
 It assumes you have followed the [installation instructions](https://docs.gitea.com/category/installation). \
-Sensitive security-related issues should be reported to [security@gitea.io](mailto:security@gitea.io).
+Sensitive security-related issues should be reported through a [GitHub security advisory](https://github.com/go-gitea/gitea/security/advisories/new), see the [security policy](SECURITY.md).
 
 For configuring IDEs for Gitea development, see the [IDE setup notes](docs/development.md#ide-configuration) and the [contributed configurations](contrib/development/).
 
@@ -86,7 +86,7 @@ Please be kind—remember that Gitea comes at no cost to you, and you're getting
 Typically, issues fall in one of the following categories:
 
 - `bug`: Something in the frontend or backend behaves unexpectedly
-- `security issue`: bug that has serious implications such as leaking another users data. Please do not file such issues on the public tracker and send a mail to security@gitea.io instead
+- `security issue`: bug that has serious implications such as leaking another users data. Please do not file such issues on the public tracker and open a [GitHub security advisory](https://github.com/go-gitea/gitea/security/advisories/new) instead
 - `feature`: Completely new functionality. You should describe this feature in enough detail that anyone who reads the issue can understand how it is supposed to be implemented
 - `enhancement`: An existing feature should get an upgrade
 - `refactoring`: Parts of the code base don't conform with other parts and should be changed to improve Gitea's maintainability

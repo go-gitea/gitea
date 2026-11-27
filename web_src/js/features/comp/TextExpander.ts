@@ -6,7 +6,7 @@ import {createElementFromAttrs, createElementFromHTML} from '../../utils/dom.ts'
 import {getIssueColorClass, getIssueIcon} from '../issue.ts';
 import {debounce} from '../../utils/func.ts';
 import type TextExpanderElement from '@github/text-expander-element';
-import type {TextExpanderChangeEvent, TextExpanderResult} from '@github/text-expander-element';
+import type {TextExpanderResult} from '@github/text-expander-element';
 import {ExclusiveFetch} from '../../modules/fetch.ts';
 import type {Issue} from '../../types.ts';
 
@@ -69,7 +69,7 @@ export function initTextExpander(expander: TextExpanderElement) {
     }) || {matched: false};
   }, 300); // to match onInputDebounce delay
 
-  expander.addEventListener('text-expander-change', (e: TextExpanderChangeEvent) => {
+  expander.addEventListener('text-expander-change', (e) => {
     if (!e.detail) return;
     const {key, text, provide} = e.detail;
     if (key === ':') {
@@ -127,9 +127,8 @@ export function initTextExpander(expander: TextExpanderElement) {
     }
   });
 
-  expander.addEventListener('text-expander-value', (event) => {
-    const {detail} = event as CustomEvent<{item: HTMLElement, key: string, value: string}>;
-    if (detail?.item) {
+  expander.addEventListener('text-expander-value', ({detail}) => {
+    if (detail.item) {
       // add a space after @mentions and #issue as it's likely the user wants one
       const suffix = ['@', '#'].includes(detail.key) ? ' ' : '';
       detail.value = `${detail.item.getAttribute('data-value')}${suffix}`;

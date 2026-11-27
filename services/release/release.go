@@ -89,7 +89,7 @@ func assertReleaseMutable(old, rel *repo_model.Release, assetsChanged bool) erro
 	return util.ErrorWrap(ErrImmutableRelease, "%s cannot be changed when release is immutable", field)
 }
 
-func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Release, msg string) error {
+func createTag(ctx context.Context, gitRepo *git.Repository, doer *user_model.User, rel *repo_model.Release, msg string) error {
 	err := rel.LoadAttributes(ctx)
 	if err != nil {
 		return err
@@ -113,7 +113,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 				return fmt.Errorf("GetProtectedTags: %w", err)
 			}
 
-			isAllowed, err := git_model.IsUserAllowedToControlTag(ctx, protectedTags, rel.TagName, rel.PublisherID)
+			isAllowed, err := git_model.IsUserAllowedToControlTag(ctx, protectedTags, rel.TagName, doer.ID)
 			if err != nil {
 				return err
 			}
@@ -154,13 +154,13 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 
 			refFullName := git.RefNameFromTag(rel.TagName)
 			notify_service.PushCommits(
-				ctx, rel.Publisher, rel.Repo,
+				ctx, doer, rel.Repo,
 				&repository.PushUpdateOptions{
 					RefFullName: refFullName,
 					OldCommitID: objectFormat.EmptyObjectID().String(),
 					NewCommitID: commit.ID.String(),
 				}, commits)
-			notify_service.CreateRef(ctx, rel.Publisher, rel.Repo, refFullName, commit.ID.String())
+			notify_service.CreateRef(ctx, doer, rel.Repo, refFullName, commit.ID.String())
 		}
 		if rel.PublishedUnix.IsZero() {
 			rel.PublishedUnix = timeutil.TimeStampNow()
@@ -232,7 +232,7 @@ func CreateRelease(ctx context.Context, gitRepo *git.Repository, rel *repo_model
 		return err
 	}
 
-	if err = createTag(ctx, gitRepo, rel, msg); err != nil {
+	if err = createTag(ctx, gitRepo, rel.Publisher, rel, msg); err != nil {
 		return err
 	}
 
@@ -312,7 +312,7 @@ func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		IsTag:        true,
 	}
 
-	if err = createTag(ctx, gitRepo, rel, msg); err != nil {
+	if err = createTag(ctx, gitRepo, doer, rel, msg); err != nil {
 		return err
 	}
 
@@ -356,7 +356,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		return err
 	}
 
-	if err := createTag(ctx, gitRepo, rel, ""); err != nil {
+	if err := createTag(ctx, gitRepo, doer, rel, ""); err != nil {
 		return err
 	}
 

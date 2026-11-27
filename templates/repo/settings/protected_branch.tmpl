@@ -3,7 +3,7 @@
 		<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
 			<h4 class="ui top attached header">
 				{{if .Rule.RuleName}}
-					{{ctx.Locale.Tr "repo.settings.branch_protection" .Rule.RuleName}}
+					{{ctx.Locale.Tr "repo.settings.branch_protection_title" (HTMLFormat "<b>%s</b>" .Rule.RuleName)}}
 				{{else}}
 					{{ctx.Locale.Tr "repo.settings.branches.add_new_rule"}}
 				{{end}}
@@ -14,17 +14,18 @@
 					<label>{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern"}}</label>
 					<input name="rule_name" type="text" value="{{.Rule.RuleName}}" required>
 					<input name="rule_id" type="hidden" value="{{.Rule.ID}}">
-					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern_desc" "https://github.com/gobwas/glob"}}</p>
+					{{$globSyntax := ctx.Locale.Tr "repo.settings.glob_syntax_desc" (HTMLFormat `<a href="%s">%s</a>` "https://github.com/gobwas/glob#syntax" "github.com/gobwas/glob")}}
+					<p class="help tw-ml-0">{{$globSyntax}} {{ctx.Locale.Tr "repo.settings.glob_examples" (HTMLFormat "<code>%s</code>, <code>%s</code>" "main" "release/**")}}</p>
 				</div>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_protected_file_patterns"}}</label>
 					<input name="protected_file_patterns" type="text" value="{{.Rule.ProtectedFilePatterns}}">
-					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_protected_file_patterns_desc" "https://pkg.go.dev/github.com/gobwas/glob#Compile" "github.com/gobwas/glob"}}</p>
+					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_protected_files_desc"}} {{$globSyntax}} {{ctx.Locale.Tr "repo.settings.glob_examples" (HTMLFormat "<code>%s</code>, <code>%s</code>" ".gitea/workflows/**" "CODEOWNERS")}}</p>
 				</div>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns"}}</label>
 					<input name="unprotected_file_patterns" type="text" value="{{.Rule.UnprotectedFilePatterns}}">
-					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns_desc" "https://pkg.go.dev/github.com/gobwas/glob#Compile" "github.com/gobwas/glob"}}</p>
+					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_unprotected_files_desc"}} {{$globSyntax}} {{ctx.Locale.Tr "repo.settings.glob_examples" (HTMLFormat "<code>%s</code>, <code>%s</code>" "docs/**" "**.md")}}</p>
 				</div>
 
 				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.event_push"}}</h5>
@@ -302,6 +303,39 @@
 						<p class="help">{{ctx.Locale.Tr "repo.settings.block_admin_merge_override_desc"}}</p>
 					</div>
 				</div>
+				<div class="grouped fields">
+					<div class="field">
+						<div class="ui checkbox">
+							<input name="require_merge_queue" type="checkbox" class="toggle-target-enabled" data-target="#merge_queue_box" {{if .Rule.RequireMergeQueue}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.settings.merge_queue.require"}}</label>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.merge_queue.require_desc" (HTMLFormat "<code>%s</code>" "merge_group") (HTMLFormat "<code>%s**</code>" .MergeQueueBranchPrefix)}}</p>
+						</div>
+					</div>
+					{{$queue := .Rule.MergeQueue.WithDefaults}}
+					<fieldset id="merge_queue_box" class="checkbox-sub-item tw-m-0 tw-border-0 tw-py-0 tw-pr-0" {{if not .Rule.RequireMergeQueue}}disabled inert{{end}}>
+						<div class="field">
+							<label>{{ctx.Locale.Tr "repo.settings.merge_queue.merge_method"}}</label>
+							<select class="ui selection dropdown" name="merge_queue_merge_method">
+								{{range $method, $label := .MergeQueueMethods}}
+									<option value="{{$method}}" {{if eq $queue.MergeMethod $method}}selected{{end}}>{{ctx.Locale.Tr $label}}</option>
+								{{end}}
+							</select>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.merge_queue.merge_method_desc"}}</p>
+						</div>
+						{{template "repo/settings/merge_queue_number" dict "field" "max_entries_to_build" "min" 0 "max" 100 "value" $queue.MaxEntriesToBuild}}
+						{{template "repo/settings/merge_queue_number" dict "field" "min_entries_to_merge" "min" 1 "max" 100 "value" $queue.MinEntriesToMerge}}
+						{{template "repo/settings/merge_queue_number" dict "field" "max_entries_to_merge" "min" 1 "max" 100 "value" $queue.MaxEntriesToMerge}}
+						{{template "repo/settings/merge_queue_number" dict "field" "min_entries_to_merge_wait_minutes" "min" 0 "max" 360 "value" $queue.MinEntriesToMergeWaitMinutes}}
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="merge_queue_grouping_strategy" type="checkbox" value="ALLGREEN" {{if eq $queue.GroupingStrategy "ALLGREEN"}}checked{{end}}>
+								<label>{{ctx.Locale.Tr "repo.settings.merge_queue.all_green"}}</label>
+								<p class="help">{{ctx.Locale.Tr "repo.settings.merge_queue.all_green_desc"}}</p>
+							</div>
+						</div>
+						{{template "repo/settings/merge_queue_number" dict "field" "check_response_timeout_minutes" "min" 1 "max" 360 "value" $queue.CheckResponseTimeoutMinutes}}
+					</fieldset>
+				</div>
 				<div class="divider"></div>
 
 				<div class="field">
@@ -311,3 +345,12 @@
 		</form>
 	</div>
 {{template "repo/settings/layout_footer" .}}
+
+{{define "repo/settings/merge_queue_number"}}
+	{{$label := print "repo.settings.merge_queue." .field}}
+	<div class="field">
+		<label>{{ctx.Locale.Tr $label}}</label>
+		<input name="merge_queue_{{.field}}" type="number" min="{{.min}}" max="{{.max}}" required value="{{.value}}">
+		<p class="help">{{ctx.Locale.Tr (print $label "_desc")}}</p>
+	</div>
+{{end}}

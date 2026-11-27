@@ -21,7 +21,7 @@ import (
 // updateHeadByRebaseOnToBase handles updating a PR's head branch by rebasing it on the PR current base branch
 func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) error {
 	// "Clone" base repo and add the cache headers for the head repo and branch
-	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, "")
+	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, "", "")
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 		// It's questionable about where this should go - either after or before the push
 		// I think in the interests of data safety - failures to push to the lfs should prevent
 		// the push as you can always re-rebase.
-		if err := LFSPush(ctx, mergeCtx.tmpBasePath, mergeCtx.tmpRepo, tmpRepoBaseBranch, oldMergeBase, &issues_model.PullRequest{
+		if err := LFSPush(ctx, mergeCtx.tmpRepo, tmpRepoBaseBranch, oldMergeBase, &issues_model.PullRequest{
 			HeadRepoID: pr.BaseRepoID,
 			BaseRepoID: pr.HeadRepoID,
 		}); err != nil {
