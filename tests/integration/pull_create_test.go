@@ -158,10 +158,13 @@ func TestPullCreate(t *testing.T) {
 
 		// test create the pull request again and it should fail now
 		link := "/user2/repo1/compare/master...user1/repo1:master"
-		req := NewRequestWithValues(t, "POST", link, map[string]string{
+		req := NewRequestWithValues(t, "POST", link+"?lang=de-DE", map[string]string{
 			"title": "This is a pull title",
 		})
-		session.MakeRequest(t, req, http.StatusBadRequest)
+		resp = session.MakeRequest(t, req, http.StatusBadRequest)
+		errorMessage := test.ParseJSONError(resp.Body.Bytes()).ErrorMessage
+		assert.Contains(t, errorMessage, `<a href="`+url+`">user2/repo1#`+path.Base(url)+`</a>`)
+		assert.NotContains(t, errorMessage, "%!")
 
 		// check .diff can be accessed and matches performed change
 		req = NewRequest(t, "GET", url+".diff")
@@ -177,6 +180,14 @@ func TestPullCreate(t *testing.T) {
 		assert.Regexp(t, "diff", resp.Body)
 		assert.Regexp(t, `Subject: \[PATCH\] Update README.md`, resp.Body)
 		assert.NotRegexp(t, "diff.*diff", resp.Body) // not two diffs, just one
+
+		testIssueClose(t, session, "user2", "repo1", path.Base(url))
+		newURL := test.RedirectURL(session.MakeRequest(t, NewRequestWithValues(t, "POST", link, map[string]string{"title": "This is a pull title"}), http.StatusOK))
+		req = NewRequestWithValues(t, "POST", url+"/comments?lang=de-DE", map[string]string{"status": "reopen"})
+		session.MakeRequest(t, req, http.StatusOK)
+		errorMessage = session.GetCookieFlashMessage().ErrorMsg
+		assert.Contains(t, errorMessage, `<a href="`+newURL+`">#`+path.Base(newURL)+`</a>`)
+		assert.NotContains(t, errorMessage, "%!")
 	})
 }
 
