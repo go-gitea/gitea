@@ -12,7 +12,6 @@
   "separateMajorMinor": false, // include major updates in group PRs
   "minimumReleaseAge": "5 days",
   "postUpdateOptions": ["gomodUpdateImportPaths", "pnpmDedupe"],
-  "constraints": {"gomodMod": "v0.10.0"},
   "semanticCommits": "enabled",
   "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
@@ -41,7 +40,7 @@
       "customType": "regex",
       "managerFilePatterns": ["/(^|/)\\.(gitea|github)/(workflows|actions)/.+\\.ya?ml$/"],
       "matchStrings": [
-        "[A-Za-z0-9_]+_VERSION[ \\t]*:[ \\t]*[\"']?(?<currentValue>[^\\s\"']+)[\"']?[ \\t]*# renovate: datasource=(?<datasource>[a-zA-Z0-9-._]+) depName=(?<depName>\\S+)(?: (?:lookupName|packageName)=(?<packageName>\\S+))?(?: versioning=(?<versioning>\\S+))?(?: extractVersion=(?<extractVersion>\\S+))?(?: registryUrl=(?<registryUrl>\\S+))?",
+        "[A-Za-z0-9_-]+[ \\t]*:[ \\t]*[\"']?(?<currentValue>[^\\s\"']+)[\"']?[ \\t]*# renovate: datasource=(?<datasource>[a-zA-Z0-9-._]+) depName=(?<depName>\\S+)(?: (?:lookupName|packageName)=(?<packageName>\\S+))?(?: versioning=(?<versioning>\\S+))?(?: extractVersion=(?<extractVersion>\\S+))?(?: registryUrl=(?<registryUrl>\\S+))?",
       ],
     },
     {
@@ -67,14 +66,6 @@
       "semanticCommitType": "chore", // dep updates are rarely fixes for gitea
     },
     {
-      "matchPackageNames": ["@mcaptcha/vanilla-glue"],
-      "allowedVersions": "^0.1", // breaking changes in rc versions need to be handled
-    },
-    {
-      "matchPackageNames": ["cropperjs"],
-      "allowedVersions": "^1", // need to migrate to v2 but v2 is not compatible with v1
-    },
-    {
       "matchPackageNames": ["tailwindcss"],
       "allowedVersions": "^3", // need to migrate
     },
@@ -88,7 +79,7 @@
     },
     {
       "matchPackageNames": ["postgres"],
-      "allowedVersions": "/^14($|[.-])/", // pin to oldest supported major
+      "allowedVersions": "/^15($|[.-])/", // pin to oldest supported major
     },
     {
       "matchPackageNames": ["bitnamilegacy/mysql"],
@@ -106,6 +97,11 @@
       "matchDatasources": ["docker"],
       "matchPackageNames": ["mcr.microsoft.com/**"],
       "minimumReleaseAgeBehaviour": "timestamp-optional", // registry has no release timestamps, https://github.com/renovatebot/renovate/issues/38656
+    },
+    {
+      "matchDepTypes": ["engines"],
+      "matchDepNames": ["pnpm"],
+      "rangeStrategy": "bump", // keep in sync with packageManager
     },
     {
       "matchManagers": ["gomod"],

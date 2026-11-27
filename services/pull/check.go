@@ -15,7 +15,6 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
-	"gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -29,6 +28,7 @@ import (
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/automergequeue"
 )
@@ -42,9 +42,8 @@ var (
 	ErrNotReadyToMerge           = errors.New("not ready to merge")
 	ErrHasMerged                 = errors.New("has already been merged")
 	ErrIsWorkInProgress          = errors.New("work in progress PRs cannot be merged")
-	ErrIsChecking                = errors.New("cannot merge while conflict checking is in progress")
 	ErrNotMergeableState         = errors.New("not in mergeable state")
-	ErrDependenciesLeft          = errors.New("is blocked by an open dependency")
+	ErrDependenciesLeft          = util.ErrorWrap(util.ErrUnprocessableContent, "is blocked by an open dependency")
 	ErrHeadCommitsNotAllVerified = errors.New("the branch requires signed commits but not all head commits are verified")
 )
 
@@ -167,12 +166,8 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 			return ErrIsWorkInProgress
 		}
 
-		if !pr.IsStatusMergeable() && !pr.IsEmpty() {
+		if !pr.IsStatusMergeable() && (mergeCheckType != MergeCheckTypeAuto || !pr.IsFilesConflicted() && !pr.IsChecking()) { // auto merge waits out conflicts and checking
 			return ErrNotMergeableState
-		}
-
-		if pr.IsChecking() {
-			return ErrIsChecking
 		}
 
 		if errProtection := CheckPullBranchProtections(ctx, pr, false); errProtection != nil {
@@ -211,7 +206,7 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 			}
 		}
 
-		if err := checkSigningRequirements(ctx, pr, doer, mergeStyle); err != nil {
+		if err := checkSigningRequirements(ctx, pr, doer, mergeStyle, forceMerge); err != nil {
 			return err
 		}
 
@@ -233,13 +228,16 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 //   - fast-forward-only creates no Gitea commit, so Gitea's signing key is not used.
 //   - merge, rebase, rebase-merge and squash produce a Gitea-signed commit, so
 //     Gitea must be configured to sign it.
-func checkSigningRequirements(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle) error {
+func checkSigningRequirements(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, forceMerge bool) error {
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
 	if err != nil {
 		return err
 	}
 	if pb == nil || !pb.RequireSignedCommits {
 		return nil
+	}
+	if MergesThroughQueue(ctx, pb, pr.BaseRepo, doer, forceMerge) {
+		mergeStyle = pb.MergeQueue.MergeMethod
 	}
 
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
@@ -289,14 +287,7 @@ func markPullRequestAsMergeable(ctx context.Context, pr *issues_model.PullReques
 		return err
 	}
 
-	// if there is a scheduled merge for this pull request, start the auto merge check (again)
-	hasScheduledMerge, _, err := pull.GetScheduledMergeByPullID(ctx, pr.ID)
-	if err != nil {
-		return err
-	}
-	if hasScheduledMerge {
-		automergequeue.StartAutoMergeCheckByPullHead(ctx, pr)
-	}
+	automergequeue.StartAutoMergeCheckByPullHead(ctx, pr)
 	return nil
 }
 
@@ -313,8 +304,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	cmd := gitcmd.NewCommand("merge-base", "--is-ancestor").AddDynamicArguments(prHeadRef, pr.BaseBranch)
 	if err := cmd.WithRepo(pr.BaseRepo).RunWithStderr(ctx); err != nil {
 		if gitcmd.IsErrorExitCode(err, 1) {
-			// prHeadRef is not an ancestor of the base branch
-			return nil, nil //nolint:nilnil // return nil to indicate that the PR head is not merged
+			return nil, util.ErrNotExist // prHeadRef is not an ancestor of the base branch, no merge commit is found
 		}
 		// Errors are signaled by a non-zero status that is not 1
 		return nil, fmt.Errorf("%-v git merge-base --is-ancestor: %w", pr, err)
@@ -326,6 +316,9 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	prHeadCommitID, err := git.GetFullCommitID(ctx, pr.BaseRepo, prHeadRef)
 	if err != nil {
 		return nil, fmt.Errorf("GetFullCommitID(%s) in %s: %w", prHeadRef, pr.BaseRepo.FullName(), err)
+	}
+	if prHeadCommitID == pr.MergeBase {
+		return nil, util.ErrNotExist // empty PR, no merge commit is found
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
@@ -403,13 +396,10 @@ func manuallyMergedByPushedCommit(ctx context.Context, pr *issues_model.PullRequ
 	}
 
 	commit, err := getMergeCommit(ctx, pr)
-	if err != nil {
-		log.Error("%-v getMergeCommit: %v", pr, err)
+	if errors.Is(err, util.ErrNotExist) {
 		return false
-	}
-
-	if commit == nil {
-		// no merge commit found
+	} else if err != nil {
+		log.Error("%-v getMergeCommit: %v", pr, err)
 		return false
 	}
 

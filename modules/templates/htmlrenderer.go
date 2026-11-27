@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	texttemplate "text/template"
 
@@ -81,10 +82,31 @@ type templateErrorPrettier struct {
 	assets *assetfs.LayeredFS
 }
 
-var reGenericTemplateError = regexp.MustCompile(`^template: (.*):([0-9]+): (.*)`)
+var globalVars = sync.OnceValue(func() (ret struct {
+	reGenericTemplateError      *regexp.Regexp
+	reFuncNotDefinedError       *regexp.Regexp
+	reUnexpectedOperandError    *regexp.Regexp
+	reExpectedEndError          *regexp.Regexp
+	reTemplateExecutingError    *regexp.Regexp
+	reTemplateExecutingErrorMsg *regexp.Regexp
+	mailSubjectSplit            *regexp.Regexp
+	codeMatcher                 *regexp.Regexp
+},
+) {
+	ret.reGenericTemplateError = regexp.MustCompile(`^template: (.*):([0-9]+): (.*)`)
+	ret.reFuncNotDefinedError = regexp.MustCompile(`^template: (.*):([0-9]+): (function "(.*)" not defined)`)
+	ret.reUnexpectedOperandError = regexp.MustCompile(`^template: (.*):([0-9]+): (unexpected "(.*)" in operand)`)
+	ret.reExpectedEndError = regexp.MustCompile(`^template: (.*):([0-9]+): (expected end; found (.*))`)
+	ret.reTemplateExecutingError = regexp.MustCompile(`^template: (.*):([1-9][0-9]*):([1-9][0-9]*): (executing .*)`)
+	ret.reTemplateExecutingErrorMsg = regexp.MustCompile(`^executing "(.*)" at <(.*)>: `)
+	ret.mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}\s*$`)
+	// Match text that is between back ticks.
+	ret.codeMatcher = regexp.MustCompile("`([^`]+)`")
+	return ret
+})
 
 func (p *templateErrorPrettier) handleGenericTemplateError(err error) string {
-	groups := reGenericTemplateError.FindStringSubmatch(err.Error())
+	groups := globalVars().reGenericTemplateError.FindStringSubmatch(err.Error())
 	if len(groups) != 4 {
 		return ""
 	}
@@ -92,10 +114,8 @@ func (p *templateErrorPrettier) handleGenericTemplateError(err error) string {
 	return p.makeDetailedError(message, tmplName, lineStr, "", "")
 }
 
-var reFuncNotDefinedError = regexp.MustCompile(`^template: (.*):([0-9]+): (function "(.*)" not defined)`)
-
 func (p *templateErrorPrettier) handleFuncNotDefinedError(err error) string {
-	groups := reFuncNotDefinedError.FindStringSubmatch(err.Error())
+	groups := globalVars().reFuncNotDefinedError.FindStringSubmatch(err.Error())
 	if len(groups) != 5 {
 		return ""
 	}
@@ -104,10 +124,8 @@ func (p *templateErrorPrettier) handleFuncNotDefinedError(err error) string {
 	return p.makeDetailedError(message, tmplName, lineStr, "", funcName)
 }
 
-var reUnexpectedOperandError = regexp.MustCompile(`^template: (.*):([0-9]+): (unexpected "(.*)" in operand)`)
-
 func (p *templateErrorPrettier) handleUnexpectedOperandError(err error) string {
-	groups := reUnexpectedOperandError.FindStringSubmatch(err.Error())
+	groups := globalVars().reUnexpectedOperandError.FindStringSubmatch(err.Error())
 	if len(groups) != 5 {
 		return ""
 	}
@@ -116,10 +134,8 @@ func (p *templateErrorPrettier) handleUnexpectedOperandError(err error) string {
 	return p.makeDetailedError(message, tmplName, lineStr, "", unexpected)
 }
 
-var reExpectedEndError = regexp.MustCompile(`^template: (.*):([0-9]+): (expected end; found (.*))`)
-
 func (p *templateErrorPrettier) handleExpectedEndError(err error) string {
-	groups := reExpectedEndError.FindStringSubmatch(err.Error())
+	groups := globalVars().reExpectedEndError.FindStringSubmatch(err.Error())
 	if len(groups) != 5 {
 		return ""
 	}
@@ -127,16 +143,11 @@ func (p *templateErrorPrettier) handleExpectedEndError(err error) string {
 	return p.makeDetailedError(message, tmplName, lineStr, "", unexpected)
 }
 
-var (
-	reTemplateExecutingError    = regexp.MustCompile(`^template: (.*):([1-9][0-9]*):([1-9][0-9]*): (executing .*)`)
-	reTemplateExecutingErrorMsg = regexp.MustCompile(`^executing "(.*)" at <(.*)>: `)
-)
-
 func (p *templateErrorPrettier) handleTemplateRenderingError(err error) string {
-	if groups := reTemplateExecutingError.FindStringSubmatch(err.Error()); len(groups) > 0 {
+	if groups := globalVars().reTemplateExecutingError.FindStringSubmatch(err.Error()); len(groups) > 0 {
 		tmplName, lineStr, posStr, msgPart := groups[1], groups[2], groups[3], groups[4]
 		target := ""
-		if groups = reTemplateExecutingErrorMsg.FindStringSubmatch(msgPart); len(groups) > 0 {
+		if groups = globalVars().reTemplateExecutingErrorMsg.FindStringSubmatch(msgPart); len(groups) > 0 {
 			target = groups[2]
 		}
 		return p.makeDetailedError(msgPart, tmplName, lineStr, posStr, target)

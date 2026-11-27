@@ -21,6 +21,8 @@ import (
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/indexer/code"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
@@ -30,13 +32,13 @@ import (
 func List(ctx *context.Context) {
 	templateNames, err := templates.AssetFS().ListFiles("devtest", true)
 	if err != nil {
-		ctx.ServerError("AssetFS().ListFiles", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	var subNames []string
 	for _, tmplName := range templateNames {
-		subName := strings.TrimSuffix(tmplName, ".tmpl")
-		if !strings.HasPrefix(subName, "devtest-") {
+		subName, isTmpl := strings.CutSuffix(tmplName, ".tmpl")
+		if isTmpl && !strings.HasPrefix(subName, "devtest-") {
 			subNames = append(subNames, subName)
 		}
 	}
@@ -44,12 +46,12 @@ func List(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, "devtest/devtest-list")
 }
 
+func buildMockResponse(prefix string, ctx *context.Context) string {
+	return prefix + ctx.Req.Method + " " + ctx.Req.RequestURI + "\n" + "Request Form: " + ctx.FormValues().Encode()
+}
+
 func FetchActionTest(ctx *context.Context) {
-	_ = ctx.Req.ParseForm()
-	ctx.Flash.Info("fetch action: " + ctx.Req.Method + " " + ctx.Req.RequestURI + "\n" +
-		"Form: " + ctx.Req.Form.Encode() + "\n" +
-		"PostForm: " + ctx.Req.PostForm.Encode(),
-	)
+	ctx.Flash.Info(buildMockResponse("Fetch Action: ", ctx))
 	time.Sleep(2 * time.Second)
 	ctx.JSONRedirect("")
 }
@@ -148,7 +150,7 @@ func prepareMockDataBadgeActionsSvg(ctx *context.Context) {
 			err = fmt.Errorf("unknown badge style: %s", selectedStyle)
 		}
 		if err != nil {
-			ctx.ServerError("RenderToHTML", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		badgeSVGs = append(badgeSVGs, h)
@@ -213,6 +215,19 @@ func prepareMockDataAvatarStack(ctx *context.Context) {
 	*/
 }
 
+func prepareMockDataMarkdown(ctx *context.Context) {
+	content, err := templates.AssetFS().ReadFile("devtest/markdown.md")
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	rctx := markup.NewRenderContext(ctx).WithMetas(markup.ComposeSimpleDocumentMetas()).WithEnableHeadingIDGeneration(true)
+	ctx.Data["MarkdownHTML"], err = markdown.RenderString(rctx, string(content))
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+	}
+}
+
 func prepareMockDataRelativeTime(ctx *context.Context) {
 	now := time.Now()
 	ctx.Data["TimeNow"] = now
@@ -244,6 +259,8 @@ func prepareMockData(ctx *context.Context) {
 		prepareMockDataBadgeCommitSign(ctx)
 	case "/devtest/badge-actions-svg":
 		prepareMockDataBadgeActionsSvg(ctx)
+	case "/devtest/markdown":
+		prepareMockDataMarkdown(ctx)
 	case "/devtest/relative-time":
 		prepareMockDataRelativeTime(ctx)
 	case "/devtest/toast-and-message":
@@ -298,11 +315,7 @@ func prepareMockDataUnicodeEscape(ctx *context.Context) {
 func TmplCommon(ctx *context.Context) {
 	prepareMockData(ctx)
 	if ctx.Req.Method == http.MethodPost && ctx.FormBool("mock_response_delay") {
-		ctx.Flash.Info("form submit: "+ctx.Req.Method+" "+ctx.Req.RequestURI+"\n"+
-			"Form: "+ctx.Req.Form.Encode()+"\n"+
-			"PostForm: "+ctx.Req.PostForm.Encode(),
-			true,
-		)
+		ctx.Flash.Info(buildMockResponse("Form Submit: ", ctx), true)
 		time.Sleep(2 * time.Second)
 	}
 	ctx.HTML(http.StatusOK, templates.TplName("devtest"+path.Clean("/"+ctx.PathParam("sub"))))

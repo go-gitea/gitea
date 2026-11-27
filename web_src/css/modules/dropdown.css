@@ -5,6 +5,7 @@
   position: relative;
   display: inline-block;
   outline: none;
+  line-height: var(--line-height-default);
   text-align: left;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -39,9 +40,6 @@
 }
 
 .ui.dropdown > .dropdown.icon {
-  line-height: 1;
-  height: 1em;
-  width: auto;
   backface-visibility: hidden;
   text-align: center;
 }
@@ -50,7 +48,6 @@
   position: relative;
   width: auto;
   font-size: 0.85714286em;
-  margin: 0 0 0 1em;
 }
 
 .ui.dropdown > .text {
@@ -173,15 +170,13 @@ select.ui.dropdown {
 .ui.selection.dropdown {
   cursor: pointer;
   overflow-wrap: break-word;
-  line-height: 1em;
   white-space: normal;
   outline: 0;
   transform: rotateZ(0deg);
-  min-width: 14em;
   min-height: 2.71428571em;
   background: var(--color-input-background);
   display: inline-block;
-  padding: 0.78571429em 3.2em 0.78571429em 1em;
+  padding: 0.43em 3.2em 0.43em 1em;
   color: var(--color-input-text);
   box-shadow: none;
   border: 1px solid var(--color-input-border);
@@ -197,13 +192,8 @@ select.ui.dropdown {
   cursor: pointer;
   position: absolute;
   width: auto;
-  height: auto;
   line-height: 1.21428571em;
-  top: 0.78571429em;
-  right: 1em;
   z-index: 3;
-  margin: -0.78571429em;
-  padding: 0.91666667em;
   opacity: 0.8;
 }
 
@@ -409,10 +399,6 @@ select.ui.dropdown {
 .ui.dropdown > .remove.icon {
   cursor: pointer;
   font-size: 0.85714286em;
-  margin: -0.78571429em;
-  padding: 0.91666667em;
-  right: 3em;
-  top: 0.78571429em;
   position: absolute;
   opacity: 0.6;
   z-index: 3;
@@ -425,8 +411,7 @@ select.ui.dropdown {
 
 .ui.dropdown select.noselection ~ .remove.icon,
 .ui.dropdown input[value=""] ~ .remove.icon,
-.ui.dropdown input:not([value]) ~ .remove.icon,
-.ui.dropdown.loading > .remove.icon {
+.ui.dropdown input:not([value]) ~ .remove.icon {
   display: none;
 }
 
@@ -532,40 +517,6 @@ select.ui.dropdown {
 
 .ui.dropdown:not(.button) > input:focus ~ .default.text {
   color: var(--color-placeholder-text);
-}
-
-.ui.loading.dropdown > i.icon {
-  height: 1em !important;
-}
-
-.ui.loading.selection.dropdown > i.icon {
-  padding: 1.5em 1.28571429em !important;
-}
-
-.ui.loading.dropdown > i.icon::before {
-  position: absolute;
-  content: "";
-  top: 50%;
-  left: 50%;
-  margin: -0.64285714em 0 0 -0.64285714em;
-  width: 1.28571429em;
-  height: 1.28571429em;
-  border-radius: 500rem;
-  border: 0.2em solid var(--color-secondary);
-}
-
-.ui.loading.dropdown > i.icon::after {
-  position: absolute;
-  content: "";
-  top: 50%;
-  left: 50%;
-  box-shadow: 0 0 0 1px transparent;
-  margin: -0.64285714em 0 0 -0.64285714em;
-  width: 1.28571429em;
-  height: 1.28571429em;
-  animation: loader 0.6s infinite linear;
-  border: 0.2em solid var(--color-text-light-2);
-  border-radius: 500rem;
 }
 
 .ui.dropdown .loading.menu {
@@ -680,7 +631,6 @@ select.ui.dropdown {
   border-top: none;
 }
 
-.ui.dropdown > .animating.menu .scrolling.menu,
 .ui.dropdown > .visible.menu .scrolling.menu {
   display: block;
 }
@@ -797,13 +747,6 @@ select.ui.dropdown {
 .ui.small.dropdown,
 .ui.small.dropdown .menu > .item {
   font-size: 0.92857143rem;
-}
-
-/* This rule must come AFTER .ui.selection.dropdown because both have
-   specificity (0,3,0) and source order determines the winner.
-   In the original codebase this was in base.css which loaded after fomantic. */
-.ui.dropdown:not(.button) {
-  line-height: var(--line-height-default);
 }
 
 /* Icons / Flags / Labels / Image */

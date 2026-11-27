@@ -434,7 +434,25 @@ func prepareMigrationTasks() []*migration {
 
 		newMigration(356, "Add index on action_run commit_sha", v29.AddActionRunCommitSHAIndex),
 		newMigration(357, "Normalize legacy team authorize values", v29.NormalizeLegacyTeamAuthorize),
-		newMigration(358, "Add action environment schema", v29.AddActionEnvironmentSchema),
+		newMigration(358, "Track previous remember-me token hashes", v29.AddPreviousAuthTokenHash),
+		newMigration(359, "Add stage and number columns to action_task_step", v29.AddStageAndNumberToActionTaskStep),
+		newMigration(360, "Move branch protection settings to JSON", v29.MoveBranchProtectionConfigToJSON),
+		newMigration(361, "Drop legacy commit_id column from comment", v29.DropCommentCommitID),
+		newMigration(362, "Add reusable_workflow_ref column to action_run_job", v29.AddReusableWorkflowRefToActionRunJob),
+		newMigration(363, "Add release_id to reaction table", v29.AddReleaseIDToReaction),
+		newMigration(364, "Add new table project_workflow", v29.AddProjectWorkflow),
+		newMigration(365, "Normalize legacy repository unit and login source JSON", v29.NormalizeLegacyConfigJSON),
+		newMigration(366, "Drop user_open_id table", v29.DropUserOpenIDTable),
+		newMigration(367, "Add latest_release_id to repository table", v29.AddLatestReleaseIDToRepository),
+		newMigration(368, "Add unique index for team name", v29.AddUniqueTeamNameIndex),
+		newMigration(369, "Add runner_name to action_task", v29.AddRunnerNameToActionTask),
+		newMigration(370, "Change raw_concurrency of action_run and action_run_job to TEXT on MSSQL", v29.ChangeActionsRawConcurrencyToText),
+		newMigration(371, "Add hash_sha256 column to attachment", v29.AddHashSHA256ToAttachment),
+		newMigration(372, "Add workflow_ref to action_run", v29.AddWorkflowRefToActionRun),
+		newMigration(373, "Repair Debian and RPM signing keys rejected by Sequoia", v29.RepairPackageSigningKeys),
+		newMigration(374, "Add pull_merge_queue_entry table", v29.AddPullMergeQueueEntryTable),
+		newMigration(375, "Update OwnerID as zero for repository level runner tokens", v29.UpdateOwnerIDOfRepoLevelRunnerTokens),
+		newMigration(376, "Add action environment schema", v29.AddActionEnvironmentSchema),
 	}
 	return preparedMigrations
 }

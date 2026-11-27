@@ -40,55 +40,36 @@ func TestAPIListStopWatches(t *testing.T) {
 		assert.Equal(t, repo.OwnerName, apiWatches[0].RepoOwnerName)
 		assert.Positive(t, apiWatches[0].Seconds)
 	}
-}
 
-func TestAPIStopStopWatches(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	for _, testCase := range []struct {
+		name         string
+		issueID      int64
+		userID       int64
+		method       string
+		urlFormat    string
+		expectedCode int
+	}{
+		{"stop", 2, 2, "POST", "/api/v1/repos/%s/%s/issues/%d/stopwatch/stop", http.StatusCreated},
+		{"cancel", 1, 1, "DELETE", "/api/v1/repos/%s/%s/issues/%d/stopwatch/delete", http.StatusNoContent},
+		{"start", 3, 2, "POST", "/api/v1/repos/%s/%s/issues/%d/stopwatch/start", http.StatusCreated},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			if testCase.name == "start" {
+				defer tests.PrepareTestEnv(t)()
+			}
 
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
-	_ = issue.LoadRepo(t.Context())
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: testCase.issueID})
+			_ = issue.LoadRepo(t.Context())
+			owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID})
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: testCase.userID})
 
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+			session := loginUser(t, user.Name)
+			token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
-	req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/issues/%d/stopwatch/stop", owner.Name, issue.Repo.Name, issue.Index).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusCreated)
-	MakeRequest(t, req, http.StatusConflict)
-}
-
-func TestAPICancelStopWatches(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-	_ = issue.LoadRepo(t.Context())
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-
-	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/stopwatch/delete", owner.Name, issue.Repo.Name, issue.Index).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
-	MakeRequest(t, req, http.StatusConflict)
-}
-
-func TestAPIStartStopWatches(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
-	_ = issue.LoadRepo(t.Context())
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-
-	req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/issues/%d/stopwatch/start", owner.Name, issue.Repo.Name, issue.Index).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusCreated)
-	MakeRequest(t, req, http.StatusConflict)
+			req := NewRequestf(t, testCase.method, testCase.urlFormat, owner.Name, issue.Repo.Name, issue.Index).
+				AddTokenAuth(token)
+			MakeRequest(t, req, testCase.expectedCode)
+			MakeRequest(t, req, http.StatusConflict)
+		})
+	}
 }

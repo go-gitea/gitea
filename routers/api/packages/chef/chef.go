@@ -71,7 +71,7 @@ func PackagesUniverse(ctx *context.Context) {
 			LocationType: "opscode",
 			LocationPath: baseURL,
 			DownloadURL:  fmt.Sprintf("%s/cookbooks/%s/versions/%s/download", baseURL, url.PathEscape(pd.Package.Name), pd.Version.Version),
-			Dependencies: packages_model.DescriptorMetadata[*chef_module.Metadata](pd).Dependencies,
+			Dependencies: util.MapNilAsEmpty(packages_model.DescriptorMetadata[*chef_module.Metadata](pd).Dependencies),
 		}
 	}
 
@@ -250,7 +250,7 @@ func PackageVersionMetadata(ctx *context.Context) {
 		Cookbook:        baseURL,
 		File:            fmt.Sprintf("%s/versions/%s/download", baseURL, pd.Version.Version),
 		License:         metadata.License,
-		Dependencies:    metadata.Dependencies,
+		Dependencies:    util.MapNilAsEmpty(metadata.Dependencies),
 	})
 }
 

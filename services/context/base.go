@@ -4,7 +4,6 @@
 package context
 
 import (
-	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -42,22 +41,6 @@ type Base struct {
 
 	// Locale is mainly for Web context, although the API context also uses it in some cases: message response, form validation
 	Locale translation.Locale
-}
-
-var ParseMultipartFormMaxMemory = int64(32 << 20)
-
-func (b *Base) ParseMultipartForm() bool {
-	err := b.Req.ParseMultipartForm(ParseMultipartFormMaxMemory)
-	if err != nil {
-		// TODO: all errors caused by client side should be ignored (connection closed).
-		if !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
-			// Errors caused by server side (disk full) should be logged.
-			log.Error("Failed to parse request multipart form for %s: %v", b.Req.RequestURI, err)
-		}
-		b.HTTPError(http.StatusInternalServerError, "failed to parse request multipart form")
-		return false
-	}
-	return true
 }
 
 // AppendAccessControlExposeHeaders append headers by name to "Access-Control-Expose-Headers" header
@@ -114,7 +97,7 @@ func (b *Base) HTTPError(status int, contents ...string) {
 func (b *Base) JSON(status int, content any) {
 	b.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
 	b.Resp.WriteHeader(status)
-	if err := json.MarshalWrite(b.Resp, content); err != nil {
+	if err := json.MarshalWriteRelaxed(b.Resp, content); err != nil {
 		log.Error("Render JSON failed: %v", err)
 	}
 }
@@ -128,7 +111,7 @@ func (b *Base) RemoteAddr() string {
 func (b *Base) plainTextInternal(skip, status int, bs []byte) {
 	statusPrefix := status / 100
 	if statusPrefix == 4 || statusPrefix == 5 {
-		log.Log(skip, log.TRACE, "plainTextInternal (status=%d): %s", status, string(bs))
+		log.Log(skip+1, log.TRACE, "plainTextInternal (status=%d): %s", status, string(bs))
 	}
 	b.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	b.Resp.Header().Set("X-Content-Type-Options", "nosniff")
@@ -138,24 +121,34 @@ func (b *Base) plainTextInternal(skip, status int, bs []byte) {
 
 // PlainTextBytes renders bytes as plain text
 func (b *Base) PlainTextBytes(status int, bs []byte) {
-	b.plainTextInternal(2, status, bs)
+	b.plainTextInternal(1, status, bs)
 }
 
 // PlainText renders content as plain text
 func (b *Base) PlainText(status int, text string) {
-	b.plainTextInternal(2, status, []byte(text))
+	b.plainTextInternal(1, status, []byte(text))
 }
 
 // Redirect redirects the request
 func (b *Base) Redirect(location string, status ...int) {
-	code := util.OptionalArg(status, http.StatusSeeOther)
 	// In case the request is made by "fetch-action" module, make JS redirect to the new location
 	// Otherwise, the JS fetch will follow the redirection and read a "login" page, embed it to the current page, which is not expected.
 	if httplib.IsGiteaFetchActionRequest(b.Req) {
 		b.JSON(http.StatusOK, map[string]any{"redirect": location})
 		return
 	}
+	code := util.OptionalArg(status, http.StatusSeeOther)
 	http.Redirect(b.Resp, b.Req, location, code)
+}
+
+func (b *Base) RedirectForLogin(location string) {
+	if httplib.IsGiteaFetchActionRequest(b.Req) {
+		// let fetch-action handles the redirect automatically
+		b.JSON(http.StatusUnauthorized, map[string]any{"redirect": location})
+	} else {
+		// keep the old behaivor, use 303 to redirect to login page
+		http.Redirect(b.Resp, b.Req, location, http.StatusSeeOther)
+	}
 }
 
 type ServeHeaderOptions = httplib.ServeHeaderOptions

@@ -1,12 +1,9 @@
 interface JQuery {
   fomanticExt: {
     onDropdownAfterFiltered?: (this: HTMLElement) => void,
-    onModalBeforeHidden?: (this: HTMLElement) => void,
   }; // fomantic extension
   api: any, // fomantic
-  dimmer: any, // fomantic
   dropdown: any; // fomantic
-  modal: any; // fomantic
   transition: any, // fomantic
 }
 
@@ -16,6 +13,12 @@ interface JQueryStatic {
 
 interface Element {
   _tippy: import('tippy.js').Instance;
+}
+
+interface HTMLElementEventMap {
+  'image-crop-change': CustomEvent<{x: number, y: number, width: number, height: number}>,
+  'text-expander-change': import('@github/text-expander-element').TextExpanderChangeEvent,
+  'text-expander-value': CustomEvent<{item: HTMLElement, key: string, value: string}>,
 }
 
 interface Window {
@@ -47,6 +50,7 @@ interface Window {
         name: string,
       }>,
       dashboardRepoList?: Record<string, unknown>,
+      projectWorkflows?: import('./components/ProjectWorkflowStore.ts').ProjectWorkflowData,
     },
     notificationSettings: {
       MinTimeout: number,

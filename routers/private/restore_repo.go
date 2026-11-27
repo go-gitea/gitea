@@ -4,21 +4,16 @@
 package private
 
 import (
-	"io"
 	"net/http"
 
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
+	"gitea.dev/services/audit"
 	myCtx "gitea.dev/services/context"
 	"gitea.dev/services/migrations"
 )
 
 // RestoreRepo restore a repository from data
 func RestoreRepo(ctx *myCtx.PrivateContext) {
-	bs, err := io.ReadAll(ctx.Req.Body)
-	if err != nil {
-		ctx.PrivateInternalErrorf("%v", err)
-		return
-	}
 	params := struct {
 		RepoDir    string
 		OwnerName  string
@@ -26,13 +21,13 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 		Units      []string
 		Validation bool
 	}{}
-	if err = json.Unmarshal(bs, &params); err != nil {
-		ctx.PrivateInternalErrorf("%v", err)
+	if err := jsonlimit.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &params); err != nil {
+		ctx.PrivateUserErrorf(http.StatusBadRequest, "invalid request body: %v", err)
 		return
 	}
 
 	if err := migrations.RestoreRepository(
-		ctx,
+		audit.WithCLIDoer(ctx),
 		params.RepoDir,
 		params.OwnerName,
 		params.RepoName,

@@ -50,8 +50,8 @@ func ListEnvironments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/EnvironmentList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listOptions := utils.GetListOptions(ctx)
 	envs, count, err := db.FindAndCount[actions_model.ActionEnvironment](ctx, actions_model.FindEnvironmentsOptions{
@@ -98,8 +98,8 @@ func GetEnvironment(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Environment"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	env, ok := getEnvironmentOrError(ctx)
 	if !ok {
@@ -143,12 +143,8 @@ func CreateOrUpdateEnvironment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Environment"
 	//   "201":
 	//     "$ref": "#/responses/Environment"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	opt := web.GetForm[*api.CreateOrUpdateEnvironmentOption](ctx)
 	env, created, err := actions_service.GetOrCreateEnvironment(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"), opt.AllowedBranchPatterns)
@@ -195,10 +191,8 @@ func DeleteEnvironment(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: No Content
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	env, ok := getEnvironmentOrError(ctx)
 	if !ok {
@@ -246,8 +240,8 @@ func ListEnvSecrets(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/SecretList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	env, ok := getEnvironmentOrError(ctx)
 	if !ok {
@@ -315,12 +309,8 @@ func CreateOrUpdateEnvSecret(ctx *context.APIContext) {
 	//     description: secret created
 	//   "204":
 	//     description: secret updated
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	env, ok := getEnvironmentOrError(ctx)
 	if !ok {
@@ -373,10 +363,8 @@ func DeleteEnvSecret(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: No Content
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	env, ok := getEnvironmentOrError(ctx)
 	if !ok {
@@ -425,8 +413,8 @@ func ListEnvVariables(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/VariableList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	env, ok := getEnvironmentOrError(ctx)
 	if !ok {
@@ -493,14 +481,8 @@ func CreateEnvVariable(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     description: variable created
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     description: variable already exists
 
 	env, ok := getEnvironmentOrError(ctx)
 	if !ok {
@@ -563,12 +545,8 @@ func UpdateEnvVariable(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: variable updated
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	env, ok := getEnvironmentOrError(ctx)
 	if !ok {
@@ -621,10 +599,8 @@ func DeleteEnvVariable(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: No Content
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	env, ok := getEnvironmentOrError(ctx)
 	if !ok {

@@ -286,6 +286,8 @@
   margin: 0;
   display: inline-flex;
   vertical-align: middle;
+  max-width: calc(100% - 1rem);
+  min-height: 0;
 }
 .ui.pagination.menu .item:last-child {
   border-radius: 0 0.28571429rem 0.28571429rem 0;
@@ -293,34 +295,29 @@
 .ui.compact.menu .item:last-child {
   border-radius: 0 0.28571429rem 0.28571429rem 0;
 }
-.ui.pagination.menu .item:last-child::before {
-  display: none;
-}
 .ui.pagination.menu .item {
-  min-width: 3em;
-  text-align: center;
+  flex-shrink: 1;
+  justify-content: center;
+  width: 36px;
+  min-width: min-content;
+  height: 36px;
+  padding: 0 2px;
 }
 
-.ui.pagination.menu .active.item,
+.ui.pagination.menu a.item:hover,
+.ui.pagination.menu button.item:hover {
+  background: var(--color-hover);
+}
+
+.ui.pagination.menu a.item:active,
+.ui.pagination.menu button.item:active,
 .ui.pagination.menu .active.item:hover {
-  border-top: none;
-  padding-top: 0.92857143em;
-  color: var(--color-text);
   background: var(--color-active);
 }
 
-@media (max-width: 767.98px) {
-  .ui.pagination.menu .item:not(.active,.navigation),
-  .ui.pagination.menu .item.navigation span.navigation_label {
-    display: none;
-  }
-}
-
-.ui.pagination.menu.narrow .item {
-  padding-left: 8px;
-  padding-right: 8px;
-  min-width: 1em;
-  text-align: center;
+.ui.pagination.menu.pagination-prev-next .item {
+  width: auto;
+  padding: 0 12px;
 }
 
 .ui.secondary.menu {

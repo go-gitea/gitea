@@ -9,9 +9,12 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"sync"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitrepo"
@@ -22,14 +25,24 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/migrations"
 	repo_service "gitea.dev/services/repository"
 )
 
-var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
+var stripExitStatus = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`exit status \d+ - `)
+})
 
 // AddPushMirrorRemote registers the push mirror remote.
-func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
+func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) (retErr error) {
+	defer func() {
+		if retErr != nil {
+			if err := repo_model.DeleteRepoPushMirrorByID(ctx, m.RepoID, m.ID); err != nil {
+				log.Error("DeletePushMirrorByID %v", err)
+			}
+		}
+	}()
 	addRemoteAndConfig := func(storageRepo git.RepositoryFacade, addr string) error {
 		if err := git.ManagedRemoteAdd(ctx, storageRepo, m.RemoteName, addr, git.RemoteOptionMirrorPush); err != nil {
 			return err
@@ -59,7 +72,7 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 // RemovePushMirrorRemote removes the push mirror remote.
 func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error {
 	_ = m.GetRepository(ctx)
-	if err := git.ManagedRemoteRemove(ctx, m.Repo, m.RemoteName); err != nil {
+	if err := git.ManagedRemoteRemove(ctx, m.Repo, m.RemoteName); err != nil && !git.IsRemoteNotExistError(err) {
 		return err
 	}
 
@@ -70,6 +83,25 @@ func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error
 		}
 	}
 
+	return nil
+}
+
+// DeleteRepoPushMirrorByID removes the push mirror's git remotes, deletes the push mirror record
+// and records the audit event. The web UI and the API share it.
+func DeleteRepoPushMirrorByID(ctx context.Context, repoID, pushMirrorID int64) error {
+	pushMirror, err := repo_model.GetPushMirrorByRepoID(ctx, repoID, pushMirrorID)
+	if err != nil {
+		return err
+	}
+	if err := RemovePushMirrorRemote(ctx, pushMirror); err != nil {
+		return fmt.Errorf("RemovePushMirrorRemote: %w", err)
+	}
+
+	if err := repo_model.DeleteRepoPushMirrorByID(ctx, pushMirror.RepoID, pushMirror.ID); err != nil {
+		return fmt.Errorf("DeletePushMirrors: %w", err)
+	}
+
+	audit.Record(ctx, audit_model.RepositoryMirrorPushRemove, pushMirror.GetRepository(ctx), "mirror_id", pushMirror.ID, "remote_address", pushMirror.RemoteAddress)
 	return nil
 }
 
@@ -104,7 +136,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 	if err != nil {
 		err = util.SanitizeErrorCredentialURLs(err)
 		log.Error("SyncPushMirror [mirror: %d][repo: %-v]: %v", m.ID, m.Repo, err)
-		m.LastError = stripExitStatus.ReplaceAllLiteralString(err.Error(), "")
+		m.LastError = stripExitStatus().ReplaceAllLiteralString(err.Error(), "")
 	}
 
 	m.LastUpdateUnix = timeutil.TimeStampNow()
@@ -122,7 +154,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
-	performPush := func(storageRepo gitrepo.RepositoryFacade) error {
+	performPush := func(storageRepo gitrepo.RepositoryFacade, excludeRefs []string) error {
 		remoteURL, err := git.ParseRemoteAddressURL(ctx, storageRepo, m.RemoteName)
 		if err != nil {
 			return fmt.Errorf("ParseRemoteAddressURL failed: %w", err)
@@ -156,10 +188,11 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		log.Trace("Pushing mirror %d repo %s to remote %s", m.ID, storageRepo.LogString(), m.RemoteName)
 
 		if err := git.PushToExternal(ctx, storageRepo, git.PushOptions{
-			Remote:  m.RemoteName,
-			Force:   true,
-			Mirror:  true,
-			Timeout: timeout,
+			Remote:        m.RemoteName,
+			Force:         true,
+			Mirror:        true,
+			MirrorExclude: excludeRefs,
+			Timeout:       timeout,
 		}); err != nil {
 			return fmt.Errorf("PushToExternal failed: %w", err)
 		}
@@ -167,13 +200,16 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		return nil
 	}
 
-	err := performPush(m.Repo.CodeStorageRepo())
+	queueRefs, err := pull_model.GetMergeQueueGroupRefs(ctx, m.Repo.ID)
 	if err != nil {
+		return fmt.Errorf("GetMergeQueueGroupRefs failed: %w", err)
+	}
+	if err := performPush(m.Repo.CodeStorageRepo(), queueRefs); err != nil {
 		return fmt.Errorf("performPush(code) failed: %w", err)
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		err := performPush(m.Repo.WikiStorageRepo())
+		err := performPush(m.Repo.WikiStorageRepo(), nil)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			return fmt.Errorf("performPush(wiki) failed: %w", err)
 		}

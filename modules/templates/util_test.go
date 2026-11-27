@@ -18,18 +18,17 @@ func TestDict(t *testing.T) {
 		args []any
 		want map[string]any
 	}{
+		{nil, M{}},
+		{[]any{"a", nil}, M{"a": nil}},
 		{[]any{"a", 1, "b", 2}, M{"a": 1, "b": 2}},
-		{[]any{".", M{"base": 1}, "b", 2}, M{"base": 1, "b": 2}},
-		{[]any{"a", 1, ".", M{"extra": 2}}, M{"a": 1, "extra": 2}},
-		{[]any{"a", 1, ".", map[string]int{"int": 2}}, M{"a": 1, "int": 2}},
-		{[]any{".", nil, "b", 2}, M{"b": 2}},
+		{[]any{"a", 1, "a", 2}, M{"a": 2}},
+		{[]any{"nested", map[string]int{"int": 2}}, M{"nested": map[string]int{"int": 2}}},
 	}
 
 	for _, c := range cases {
 		got, err := dict(c.args...)
-		if assert.NoError(t, err) {
-			assert.Equal(t, c.want, got)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, c.want, got)
 	}
 
 	bads := []struct {
@@ -38,6 +37,7 @@ func TestDict(t *testing.T) {
 		{[]any{"a", 1, "b"}},
 		{[]any{1}},
 		{[]any{struct{}{}}},
+		{[]any{1, "value"}},
 	}
 	for _, c := range bads {
 		_, err := dict(c.args...)

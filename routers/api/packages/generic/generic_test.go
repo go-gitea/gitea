@@ -9,57 +9,32 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestValidatePackageName(t *testing.T) {
-	bad := []string{
-		"",
-		".",
-		"..",
-		"-",
-		"a?b",
-		"a b",
-		"a/b",
-	}
-	for _, name := range bad {
-		assert.False(t, isValidPackageName(name), "bad=%q", name)
-	}
-
-	good := []string{
-		"a",
-		"1",
-		"a-",
-		"a_b",
-		"c.d+",
-	}
-	for _, name := range good {
-		assert.True(t, isValidPackageName(name), "good=%q", name)
-	}
-}
-
-func TestValidateFileName(t *testing.T) {
-	bad := []string{
-		"",
-		".",
-		"..",
-		"a?b",
-		"a/b",
-		" a",
-		"a ",
-	}
-	for _, name := range bad {
-		assert.False(t, isValidFileName(name), "bad=%q", name)
-	}
-
-	good := []string{
-		"-",
-		"a",
-		"1",
-		"a-",
-		"a_b",
-		"a b",
-		"c.d+",
-		`-_+=:;.()[]{}~!@#$%^& aA1`,
-	}
-	for _, name := range good {
-		assert.True(t, isValidFileName(name), "good=%q", name)
+func TestValidateNames(t *testing.T) {
+	for _, test := range []struct {
+		name      string
+		validate  func(string) bool
+		bad, good []string
+	}{
+		{
+			name:     "package",
+			validate: isValidPackageName,
+			bad:      []string{"", ".", "..", "-", "a?b", "a b", "a/b"},
+			good:     []string{"a", "1", "a-", "a_b", "c.d+"},
+		},
+		{
+			name:     "file",
+			validate: isValidFileName,
+			bad:      []string{"", ".", "..", "a?b", "a/b", " a", "a "},
+			good:     []string{"-", "a", "1", "a-", "a_b", "a b", "c.d+", `-_+=:;.()[]{}~!@#$%^& aA1`},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			for _, name := range test.bad {
+				assert.False(t, test.validate(name), "bad=%q", name)
+			}
+			for _, name := range test.good {
+				assert.True(t, test.validate(name), "good=%q", name)
+			}
+		})
 	}
 }

@@ -15,17 +15,15 @@ func GetUsersMapByIDs(ctx context.Context, userIDs []int64) (map[int64]*User, er
 		return userMaps, nil
 	}
 
-	left := len(userIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		err := db.GetEngine(ctx).
-			In("id", userIDs[:limit]).
-			Find(&userMaps)
-		if err != nil {
-			return nil, err
-		}
-		left -= limit
-		userIDs = userIDs[limit:]
+	err := db.QueryAndProcessByChunk(userIDs, func(chunk []int64) (out []*User, err error) {
+		err = db.GetEngine(ctx).In("id", chunk).Find(&out)
+		return out, err
+	}, func(user *User) error {
+		userMaps[user.ID] = user
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	return userMaps, nil
 }

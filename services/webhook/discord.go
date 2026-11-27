@@ -241,8 +241,8 @@ func (d discordConvertor) Repository(p *api.RepositoryPayload) (DiscordPayload, 
 	case api.HookRepoDeleted:
 		title = fmt.Sprintf("[%s] Repository deleted", p.Repository.FullName)
 		color = redColor
-	case api.HookRepoRenamed:
-		title = fmt.Sprintf("[%s] Repository renamed from %s", p.Repository.FullName, getRepoRenamedFrom(p))
+	case api.HookRepoRenamed, api.HookRepoTransferred:
+		title = fmt.Sprintf("[%s] Repository %s from %s", p.Repository.FullName, p.Action, getRepoChangedFrom(p))
 		url = p.Repository.HTMLURL
 		color = greenColor
 	}
@@ -286,6 +286,11 @@ func (d discordConvertor) WorkflowRun(p *api.WorkflowRunPayload) (DiscordPayload
 	text, color := getWorkflowRunPayloadInfo(p, noneLinkFormatter, false)
 
 	return d.createPayload(p.Sender, text, "", p.WorkflowRun.HTMLURL, color), nil
+}
+
+func (d discordConvertor) MergeGroup(payload *api.MergeGroupPayload) (DiscordPayload, error) {
+	text, color, commitURL := getMergeGroupPayloadInfo(payload, noneLinkFormatter, false)
+	return d.createPayload(payload.Sender, text, "", commitURL, color), nil
 }
 
 func (d discordConvertor) WorkflowJob(p *api.WorkflowJobPayload) (DiscordPayload, error) {

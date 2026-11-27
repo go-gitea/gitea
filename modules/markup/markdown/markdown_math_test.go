@@ -18,6 +18,8 @@ const nl = "\n"
 
 func TestMathRender(t *testing.T) {
 	defer test.MockVariableValue(&setting.Markdown.MathCodeBlockOptions, setting.MarkdownMathCodeBlockOptions{ParseInlineDollar: true, ParseInlineParentheses: true})()
+	SharedMarkdownRenderPool.Reset()
+	defer SharedMarkdownRenderPool.Reset()
 	testcases := []struct {
 		testcase string
 		expected string
@@ -41,6 +43,10 @@ func TestMathRender(t *testing.T) {
 		{
 			`\(a\) \(b\)`,
 			`<p><code class="language-math">a</code> <code class="language-math">b</code></p>` + nl,
+		},
+		{
+			`\(x^2\)is \(x^2\)123 a\(b\)c`,
+			`<p><code class="language-math">x^2</code>is <code class="language-math">x^2</code>123 a<code class="language-math">b</code>c</p>` + nl,
 		},
 		{
 			`$a$.`,
@@ -123,6 +129,8 @@ func TestMathRender(t *testing.T) {
 
 func TestMathRenderBlockIndent(t *testing.T) {
 	defer test.MockVariableValue(&setting.Markdown.MathCodeBlockOptions, setting.MarkdownMathCodeBlockOptions{ParseBlockDollar: true, ParseBlockSquareBrackets: true})()
+	SharedMarkdownRenderPool.Reset()
+	defer SharedMarkdownRenderPool.Reset()
 	testcases := []struct {
 		name     string
 		testcase string
@@ -258,7 +266,9 @@ x
 
 func TestMathRenderOptions(t *testing.T) {
 	defer test.MockVariableValue(&setting.Markdown.MathCodeBlockOptions, setting.MarkdownMathCodeBlockOptions{})()
+	defer SharedMarkdownRenderPool.Reset()
 	test := func(t *testing.T, expected, input string) {
+		SharedMarkdownRenderPool.Reset()
 		res, err := RenderString(markup.NewTestRenderContext(), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(res)), "input: %s", input)

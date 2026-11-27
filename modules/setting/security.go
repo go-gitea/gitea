@@ -74,7 +74,6 @@ var (
 	PasswordComplexity                 []string
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
-	SuccessfulTokensCacheSize          int
 	DisableQueryAuthToken              bool
 	RecordUserSignupMetadata           = false
 	TwoFactorAuthEnforced              = false
@@ -178,12 +177,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	}
 
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
-	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
-	deprecatedSetting(rootCfg, "cors", "X_FRAME_OPTIONS", "security", "X_FRAME_OPTIONS", "v1.26.0")
-	if !sec.HasKey("X_FRAME_OPTIONS") {
-		Security.XFrameOptions = rootCfg.Section("cors").Key("X_FRAME_OPTIONS").MustString(Security.XFrameOptions)
-	}
 	if err := sec.MapTo(&Security); err != nil {
 		log.Fatal("Failed to map security settings: %v", err)
 	}

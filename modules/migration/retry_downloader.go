@@ -154,6 +154,21 @@ func (d *RetryDownloader) GetComments(ctx context.Context, commentable Commentab
 	return comments, isEnd, err
 }
 
+func (d *RetryDownloader) GetAllComments(ctx context.Context, page, perPage int) ([]*Comment, bool, error) {
+	var (
+		comments []*Comment
+		isEnd    bool
+		err      error
+	)
+
+	err = d.retry(ctx, func(ctx context.Context) error {
+		comments, isEnd, err = d.Downloader.GetAllComments(ctx, page, perPage)
+		return err
+	})
+
+	return comments, isEnd, err
+}
+
 // GetPullRequests returns a repository's pull requests with retry
 func (d *RetryDownloader) GetPullRequests(ctx context.Context, page, perPage int) ([]*PullRequest, bool, error) {
 	var (

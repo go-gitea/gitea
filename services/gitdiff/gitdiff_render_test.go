@@ -9,7 +9,10 @@ import (
 	"testing"
 
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
+
+	_ "gitea.dev/modules/markup/markdown"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -115,4 +118,45 @@ func TestGetDiffForRender(t *testing.T) {
 		}
 		assert.Equal(t, exp, actual, "idx=%d", idx)
 	}
+}
+
+func TestGetDiffForRenderRenamedFile(t *testing.T) {
+	markup.RefreshFileNamePatterns()
+	repoDir := filepath.Join(t.TempDir(), "temp-repo")
+	require.NoError(t, git.InitRepositoryLocal(t.Context(), repoDir, false, git.Sha1ObjectFormat.Name(), ""))
+
+	gitRepo, err := git.OpenRepositoryLocal(t.Context(), repoDir)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	content := "id,name\n1,Alice\n2,Bob\n"
+	require.NoError(t, git.ForceFastImport(t.Context(), gitRepo, []git.FastImportCommit{
+		{Ref: "refs/heads/b1", Files: []git.FastImportFile{{Path: "original/sample.csv", Content: content}, {Path: "guide.md", Content: "# Guide\n"}, {Path: "notes.md", Content: "# Notes\n"}}},
+		{Ref: "refs/heads/b2", Files: []git.FastImportFile{{Path: "moved/sample.csv", Content: content}, {Path: "docs/guide.md", Content: "# Guide\n"}, {Path: "notes.txt", Content: "# Notes\n"}}},
+	}))
+
+	beforeCommit, err := gitRepo.GetBranchCommit(t.Context(), "b1")
+	require.NoError(t, err)
+	afterCommit, err := gitRepo.GetBranchCommit(t.Context(), "b2")
+	require.NoError(t, err)
+
+	diff, err := GetDiffForRender(t.Context(), "/any/repo-link", gitRepo, &DiffOptions{
+		BeforeCommitID:    beforeCommit.ID.String(),
+		AfterCommitID:     afterCommit.ID.String(),
+		MaxLines:          setting.Git.MaxGitDiffLines,
+		MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
+		MaxFiles:          setting.Git.MaxGitDiffFiles,
+		EnableRichDiff:    true,
+	})
+	require.NoError(t, err)
+	require.Len(t, diff.Files, 3)
+	assert.Equal(t, "/any/repo-link/rich_diff?after="+afterCommit.ID.String()+"&before="+beforeCommit.ID.String()+"&old_path=guide.md&path=docs%2Fguide.md", diff.Files[0].RichDiffLink)
+	assert.Empty(t, diff.Files[2].RichDiffLink)
+
+	// the CSV diff of a renamed file needs both blobs, otherwise it panics
+	diffFile := diff.Files[1]
+	assert.Equal(t, DiffFileRename, diffFile.Type)
+	assert.True(t, diffFile.IsBlobTypeCsv)
+	assert.NotNil(t, diffFile.LeftBlob)
+	assert.NotNil(t, diffFile.RightBlob)
 }

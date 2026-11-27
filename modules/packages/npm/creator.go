@@ -12,12 +12,14 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"net/url"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
@@ -343,7 +345,9 @@ func parseUploadPackage(upload *packageUpload) (*Package, error) {
 			p.DistTags = append(p.DistTags, tag)
 		}
 
-		p.Filename = strings.ToLower(fmt.Sprintf("%s-%s.tgz", name, p.Version))
+		filename := fmt.Sprintf("%s-%s.tgz", name, p.Version)
+		p.Filename = strings.ToLower(filename)
+		p.Metadata.GiteaTarballPath = util.PathEscapeSegments(p.Name) + "/-/" + url.PathEscape(filename) // canonical URL clients derive from name and version, file lookups ignore case
 
 		attachment := upload.Attachments[meta.Name+"-"+meta.Version+".tgz"] // not the sigstore bundle of `npm publish --provenance`
 		if attachment == nil && len(upload.Attachments) == 1 {
@@ -427,7 +431,7 @@ func inspectTarball(data []byte) (hasShrinkwrap, hasInstallScript bool) {
 		case strings.HasSuffix(name, ".gyp"):
 			hasGypFile = true
 		case strings.HasSuffix(name, "/package.json"):
-			_ = json.NewDecoder(io.LimitReader(tr, maxNpmPackageJSONBytes)).Decode(&pkg)
+			_ = jsonlimit.DecodeWithLimit(tr, maxNpmPackageJSONBytes, &pkg)
 		}
 	}
 	// npm publish adds "install": "node-gyp rebuild" for a root *.gyp file to the manifest, but not to the tarball

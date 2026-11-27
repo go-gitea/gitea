@@ -1,12 +1,14 @@
-{{/* TODO: RemoveIssueRef: the Issue.Ref will be removed in 1.24 or 1.25 if no end user really needs it or there could be better alternative then.
-PR: https://github.com/go-gitea/gitea/pull/32744
+{{/* TODO: ISSUE-SIDEBAR-REF-SELECTOR: Although we proposed to remove the Issue.Ref,
+> The Issue.Ref was added by Add possibility to record branch or tag information in an issue (#780)
+> After 8 years, this "branch selector" does nothing more than saving the branch/tag name into database and displays it,
+> or sometimes auto-close a ref-matched issue by a commit message when CloseIssuesViaCommitInAnyBranch=false.
 
-The Issue.Ref was added by Add possibility to record branch or tag information in an issue (#780)
-After 8 years, this "branch selector" does nothing more than saving the branch/tag name into database and displays it,
-or sometimes auto-close a ref-matched issue by a commit message when CloseIssuesViaCommitInAnyBranch=false.
-
-There are still users using it:
-* @didim99: it is a really useful feature to specify a branch in which issue found.
+Actually, there are still enough real users who are interested in it:
+* @didim99: it is a really useful feature to specify a branch in which issue found (also: https://github.com/go-gitea/gitea/pull/32744)
+* @AliceLafox: https://github.com/go-gitea/gitea/issues/39746
+* @mscott-smartuq, @r10r, @@chklemenz, @Smithor, @@JanJurik: https://github.com/go-gitea/gitea/issues/35505
+* Forum: https://forum.gitea.com/t/alternative-to-github-for-reporting-bugs/11684
+So we still keep it and mainain it.
 
 Still needs to figure out:
 * Could the "recording branch/tag name" be replaced by other approaches?

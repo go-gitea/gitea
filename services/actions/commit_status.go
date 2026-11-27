@@ -71,7 +71,12 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 	}
 }
 
-func GetRunsFromCommitStatuses(ctx context.Context, repoID int64, statuses []*git_model.CommitStatus) (runs []*actions_model.ActionRun, _ error) {
+// GetRunsFromCommitStatuses reads all statuses of the commit, not just the latest, because a stale run's update can shadow a newer run's status
+func GetRunsFromCommitStatuses(ctx context.Context, repoID int64, sha string) (runs []*actions_model.ActionRun, _ error) {
+	statuses, err := db.Find[git_model.CommitStatus](ctx, &git_model.CommitStatusOptions{ListOptions: db.ListOptionsAll, RepoID: repoID, SHA: sha})
+	if err != nil {
+		return nil, err
+	}
 	runIDs := container.Set[int64]{}
 	for _, status := range statuses {
 		runID, _, ok := status.ParseGiteaActionsTargetURL(ctx)
@@ -116,22 +121,12 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 			return "", "", errors.New("head of pull request is missing in event payload")
 		}
 		commitID = payload.PullRequest.Head.Sha
-	case // pull_request_review events share the same PullRequestPayload as pull_request
-		webhook_module.HookEventPullRequestReviewApproved,
+	case webhook_module.HookEventPullRequestReviewApproved,
 		webhook_module.HookEventPullRequestReviewRejected,
 		webhook_module.HookEventPullRequestReviewComment:
 		event = run.TriggerEvent
-		payload, err := run.GetPullRequestEventPayload()
-		if err != nil {
-			return "", "", fmt.Errorf("GetPullRequestEventPayload: %w", err)
-		}
-		if payload.PullRequest == nil {
-			return "", "", errors.New("pull request is missing in event payload")
-		} else if payload.PullRequest.Head == nil {
-			return "", "", errors.New("head of pull request is missing in event payload")
-		}
-		commitID = payload.PullRequest.Head.Sha
-	case webhook_module.HookEventRelease:
+		commitID = run.CommitSHA
+	case webhook_module.HookEventRelease, webhook_module.HookEventWorkflowDispatch, webhook_module.HookEventMergeGroup:
 		event = string(run.Event)
 		commitID = run.CommitSHA
 	default: // do nothing, return empty
@@ -194,8 +189,10 @@ func requiredStatusContextGlobs(ctx context.Context, repo *repo_model.Repository
 	if err != nil {
 		return nil, fmt.Errorf("EffectiveRequiredContexts: %w", err)
 	}
-	globs := make([]glob.Glob, 0, len(required))
-	for _, c := range required {
+	contexts := container.SetOf(required...)
+	contexts.AddMultiple(pull_service.MergeQueueRequiredContexts(required)...)
+	globs := make([]glob.Glob, 0, len(contexts))
+	for c := range contexts {
 		if gp, err := glob.Compile(c); err != nil {
 			log.Error("glob.Compile %q: %v", c, err)
 		} else {
@@ -240,6 +237,9 @@ func CreateSkippedCommitStatusForFilteredWorkflow(ctx context.Context, repo *rep
 				statusEvent = "pull_request_target"
 			}
 		}
+	case webhook_module.HookEventMergeGroup:
+		group, _ := payload.(*api.MergeGroupPayload)
+		statusEvent, commitID = string(event), group.MergeGroup.HeadSHA
 	}
 	if statusEvent == "" || commitID == "" {
 		return nil // unsupported event or missing commit id, nothing to post

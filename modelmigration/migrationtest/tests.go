@@ -11,7 +11,6 @@ import (
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/models/db"       //nolint:depguard // allow to access db in migration tests
 	"gitea.dev/models/unittest" //nolint:depguard // allow to access db in migration tests
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/testlogger"
 
@@ -29,8 +28,6 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (base.EngineMigra
 	ourSkip := 2
 	ourSkip += skip
 	deferFn := testlogger.PrintCurrentTest(t, ourSkip)
-	giteaRoot := setting.GetGiteaTestSourceRoot()
-	require.NoError(t, unittest.SyncDirs(filepath.Join(giteaRoot, "tests/gitea-repositories-meta"), setting.RepoRootPath))
 
 	cleanup, err := unittest.ResetTestDatabase()
 	if err != nil {
@@ -69,7 +66,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (base.EngineMigra
 		}
 	}
 
-	fixturesDir := filepath.Join(giteaRoot, "modelmigration/fixtures", t.Name())
+	fixturesDir := filepath.Join(setting.GetGiteaTestSourceRoot(), "modelmigration/fixtures", t.Name())
 
 	if _, err := os.Stat(fixturesDir); err == nil {
 		t.Logf("initializing fixtures from: %s", fixturesDir)
@@ -105,19 +102,19 @@ func LoadTableSchemasMap(t *testing.T, x base.EngineMigration) map[string]*schem
 
 func mainTest(m *testing.M) int {
 	testlogger.Init()
-	err := setting.PrepareIntegrationTestConfig()
+	workPath, err := setting.PrepareIntegrationTestConfig()
 	if err != nil {
 		return testlogger.MainErrorf("Unable to prepare integration test config: %v", err)
 	}
 	setting.SetupGiteaTestEnv()
-
-	if err = git.InitFull(); err != nil {
-		return testlogger.MainErrorf("Unable to InitFull: %v", err)
-	}
 	setting.Database.SlowQueryThreshold = 0
 	setting.LoadDBSetting()
 	setting.InitLoggersForTest()
-	return m.Run()
+	exitCode := m.Run()
+	if exitCode == 0 {
+		_ = os.RemoveAll(workPath)
+	}
+	return exitCode
 }
 
 func MainTest(m *testing.M) {

@@ -12,9 +12,8 @@ import (
 
 // HashedSizeReader provide methods to read, sum hashes and a Size method
 type HashedSizeReader interface {
-	io.Reader
+	SizedReader
 	HashSummer
-	Size() int64
 }
 
 // HashedBuffer is buffer which calculates multiple checksums
@@ -65,6 +64,7 @@ func CreateHashedBufferFromReaderWithSize(r io.Reader, maxMemorySize int) (*Hash
 
 	_, err = io.Copy(b, r)
 	if err != nil {
+		_ = b.Close()
 		return nil, err
 	}
 

@@ -55,8 +55,13 @@ func ErrorAsStderr(err error) (string, bool) {
 	return "", false
 }
 
+type exitCoder interface {
+	error
+	ExitCode() int
+}
+
 func IsErrorExitCode(err error, code int) bool {
-	if exitError, ok := errors.AsType[*exec.ExitError](err); ok {
+	if exitError, ok := errors.AsType[exitCoder](err); ok {
 		return exitError.ExitCode() == code
 	}
 	return false
@@ -93,15 +98,13 @@ const (
 	StderrPathSpec           StderrPrefix = "fatal: pathspec"
 	StderrBadRevision        StderrPrefix = "fatal: bad revision"
 	StderrNoSuchPath         StderrPrefix = "fatal: no such path"
-
-	StderrNoSuchRemote StderrPrefix = "error: no such remote"
+	StderrBadObject          StderrPrefix = "fatal: bad object "
+	StderrUnrelatedHistories StderrPrefix = "fatal: refusing to merge unrelated histories"
 
 	StderrAuthenticationFailed StderrPrefix = "fatal: Authentication failed for"
 	StderrCouldNotReadUsername StderrPrefix = "fatal: could not read Username"
 
-	StderrUnknownRevisionOrPath StderrRegexp = "^fatal: .*: unknown revision or path not in the working tree"
-	StderrNoMergeBase           StderrRegexp = "^fatal: .*: no merge base"
-	StderrFileNoEnoughLines     StderrRegexp = `^fatal: file .* has only \d+ lines?`
+	StderrFileNoEnoughLines StderrRegexp = `^fatal: file .* has only \d+ lines?`
 )
 
 func matchStderrCheck(stderr string, checkIntf StderrCheck) (match bool) {

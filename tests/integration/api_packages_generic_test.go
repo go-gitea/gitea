@@ -144,12 +144,12 @@ func TestPackageGeneric(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			switch setting.Packages.Storage.Type {
-			case setting.MinioStorageType:
-				defer test.MockVariableValue(&setting.Packages.Storage.MinioConfig.ServeDirect, true)()
+			case setting.S3StorageType:
+				defer test.MockVariableValue(&setting.Packages.Storage.S3Config.ServeDirect, true)()
 			case setting.AzureBlobStorageType:
 				defer test.MockVariableValue(&setting.Packages.Storage.AzureBlobConfig.ServeDirect, true)()
 			default:
-				t.Skip("Test skipped for non-Minio-storage and non-AzureBlob-storage.")
+				t.Skip("Test skipped for non-S3-storage and non-AzureBlob-storage.")
 			}
 
 			req = NewRequest(t, "HEAD", url+"/"+filename)
@@ -281,10 +281,9 @@ func TestPackageGenericPublicOnlyTokenLimitedOwner(t *testing.T) {
 	// a public-only read:package token (even the owner's own) must be refused
 	publicOnlyToken := getUserToken(t, owner.Name, auth_model.AccessTokenScopeReadPackage, auth_model.AccessTokenScopePublicOnly)
 	req = NewRequest(t, "GET", base+"/file.bin").AddTokenAuth(publicOnlyToken)
-	MakeRequest(t, req, http.StatusForbidden)
-	// same via the v1 package API surface (checkTokenPublicOnly)
+	MakeRequest(t, req, http.StatusNotFound)
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/pkg/1.0.0", owner.Name)).AddTokenAuth(publicOnlyToken)
-	MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusNotFound)
 
 	// a normal read:package token still works, proving only public-only is restricted
 	token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeReadPackage)

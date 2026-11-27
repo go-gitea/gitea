@@ -1,5 +1,6 @@
 import {svg} from '../svg.ts';
-import {createElementFromAttrs, generateElemId, queryElems} from '../utils/dom.ts';
+import {createElementFromAttrs, queryElems} from '../utils/dom.ts';
+import {copyToClipboardWithFeedback} from '../modules/clipboard.ts';
 
 export function makeCodeCopyButton(attrs: Record<string, string> = {}): HTMLButtonElement {
   const btn = createElementFromAttrs<HTMLButtonElement>('button', {
@@ -14,9 +15,9 @@ export function makeCodeCopyButton(attrs: Record<string, string> = {}): HTMLButt
 export function initMarkupCodeCopy(elMarkup: HTMLElement): void {
   queryElems(elMarkup, '.code-block code', (el) => {
     // the code block's content can change (e.g.: debian package page: select different distributions),
-    // so use "data-clipboard-target" to copy the target's textContent, also always respect the content's end of block newline.
-    if (!el.getAttribute('id')) el.setAttribute('id', generateElemId('_code_block_'));
-    const btn = makeCodeCopyButton({'data-clipboard-target': `#${CSS.escape(el.getAttribute('id')!)}`});
+    // so read it on click, which also survives math and mermaid replacing the block
+    const btn = makeCodeCopyButton();
+    btn.addEventListener('click', () => copyToClipboardWithFeedback(btn, el.textContent.replace(/\r?\n$/, '')));
     // we only want to use `.code-block-container` if it exists, no matter `.code-block` exists or not.
     const btnContainer = el.closest('.code-block-container') ?? el.closest('.code-block')!;
     btnContainer.append(btn);

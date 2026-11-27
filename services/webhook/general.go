@@ -6,12 +6,14 @@ package webhook
 import (
 	"fmt"
 	"html"
+	"maps"
 	"net/url"
 	"strings"
 
 	user_model "gitea.dev/models/user"
 	webhook_model "gitea.dev/models/webhook"
 	"gitea.dev/modules/base"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -41,9 +43,15 @@ func getPullRequestInfo(p *api.PullRequestPayload) (title, link, by, operator, o
 	}
 	switch p.Action {
 	case api.HookIssueAssigned:
-		operateResult = fmt.Sprintf("%s assign this to %s", p.Sender.UserName, assignList[len(assignList)-1].UserName)
+		operateResult = p.Sender.UserName + " assigned this"
+		if names := getChangedAssigneeNames(p.Changes, p.Action, noneLinkFormatter); names != "" {
+			operateResult = fmt.Sprintf("%s assign this to %s", p.Sender.UserName, names)
+		}
 	case api.HookIssueUnassigned:
 		operateResult = p.Sender.UserName + " unassigned this for someone"
+		if names := getChangedAssigneeNames(p.Changes, p.Action, noneLinkFormatter); names != "" {
+			operateResult = fmt.Sprintf("%s unassigned this for %s", p.Sender.UserName, names)
+		}
 	case api.HookIssueMilestoned:
 		operateResult = fmt.Sprintf("%s/milestone/%d", p.Repository.HTMLURL, p.PullRequest.Milestone.ID)
 	}
@@ -67,9 +75,15 @@ func getIssuesInfo(p *api.IssuePayload) (issueTitle, link, by, operator, operate
 	}
 	switch p.Action {
 	case api.HookIssueAssigned:
-		operateResult = fmt.Sprintf("%s assign this to %s", p.Sender.UserName, assignList[len(assignList)-1].UserName)
+		operateResult = p.Sender.UserName + " assigned this"
+		if names := getChangedAssigneeNames(p.Changes, p.Action, noneLinkFormatter); names != "" {
+			operateResult = fmt.Sprintf("%s assign this to %s", p.Sender.UserName, names)
+		}
 	case api.HookIssueUnassigned:
 		operateResult = p.Sender.UserName + " unassigned this for someone"
+		if names := getChangedAssigneeNames(p.Changes, p.Action, noneLinkFormatter); names != "" {
+			operateResult = fmt.Sprintf("%s unassigned this for %s", p.Sender.UserName, names)
+		}
 	case api.HookIssueMilestoned:
 		operateResult = fmt.Sprintf("%s/milestone/%d", p.Repository.HTMLURL, p.Issue.Milestone.ID)
 	}
@@ -95,6 +109,21 @@ func getIssuesCommentInfo(p *api.IssueCommentPayload) (title, link, by, operator
 	return title, link, by, operator
 }
 
+func getChangedAssigneeNames(changes *api.ChangesPayload, action api.HookIssueAction, linkFormatter linkFormatter) string {
+	if changes == nil {
+		return ""
+	}
+	assignees := changes.AddedAssignees
+	if action == api.HookIssueUnassigned {
+		assignees = changes.RemovedAssignees
+	}
+	list := make([]string, len(assignees))
+	for i, user := range assignees {
+		list[i] = linkFormatter(setting.AppURL+url.PathEscape(user.UserName), user.UserName)
+	}
+	return strings.Join(list, ", ")
+}
+
 func getIssuesPayloadInfo(p *api.IssuePayload, linkFormatter linkFormatter, withSender bool) (text, issueTitle, extraMarkdown string, color int) {
 	color = yellowColor
 	issueTitle = fmt.Sprintf("#%d %s", p.Index, p.Issue.Title)
@@ -113,14 +142,16 @@ func getIssuesPayloadInfo(p *api.IssuePayload, linkFormatter linkFormatter, with
 	case api.HookIssueEdited:
 		text = fmt.Sprintf("[%s] Issue edited: %s", repoLink, titleLink)
 	case api.HookIssueAssigned:
-		list := make([]string, len(p.Issue.Assignees))
-		for i, user := range p.Issue.Assignees {
-			list[i] = linkFormatter(setting.AppURL+url.PathEscape(user.UserName), user.UserName)
+		text = fmt.Sprintf("[%s] Issue assigned: %s", repoLink, titleLink)
+		if names := getChangedAssigneeNames(p.Changes, p.Action, linkFormatter); names != "" {
+			text = fmt.Sprintf("[%s] Issue assigned to %s: %s", repoLink, names, titleLink)
 		}
-		text = fmt.Sprintf("[%s] Issue assigned to %s: %s", repoLink, strings.Join(list, ", "), titleLink)
 		color = greenColor
 	case api.HookIssueUnassigned:
 		text = fmt.Sprintf("[%s] Issue unassigned: %s", repoLink, titleLink)
+		if names := getChangedAssigneeNames(p.Changes, p.Action, linkFormatter); names != "" {
+			text = fmt.Sprintf("[%s] Issue unassigned from %s: %s", repoLink, names, titleLink)
+		}
 	case api.HookIssueLabelUpdated:
 		text = fmt.Sprintf("[%s] Issue labels updated: %s", repoLink, titleLink)
 	case api.HookIssueLabelCleared:
@@ -170,15 +201,16 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 		text = fmt.Sprintf("[%s] Pull request edited: %s", repoLink, titleLink)
 		extraMarkdown = p.PullRequest.Body
 	case api.HookIssueAssigned:
-		list := make([]string, len(p.PullRequest.Assignees))
-		for i, user := range p.PullRequest.Assignees {
-			list[i] = linkFormatter(setting.AppURL+user.UserName, user.UserName)
+		text = fmt.Sprintf("[%s] Pull request assigned: %s", repoLink, titleLink)
+		if names := getChangedAssigneeNames(p.Changes, p.Action, linkFormatter); names != "" {
+			text = fmt.Sprintf("[%s] Pull request assigned to %s: %s", repoLink, names, titleLink)
 		}
-		text = fmt.Sprintf("[%s] Pull request assigned to %s: %s", repoLink,
-			strings.Join(list, ", "), titleLink)
 		color = greenColor
 	case api.HookIssueUnassigned:
 		text = fmt.Sprintf("[%s] Pull request unassigned: %s", repoLink, titleLink)
+		if names := getChangedAssigneeNames(p.Changes, p.Action, linkFormatter); names != "" {
+			text = fmt.Sprintf("[%s] Pull request unassigned from %s: %s", repoLink, names, titleLink)
+		}
 	case api.HookIssueLabelUpdated:
 		text = fmt.Sprintf("[%s] Pull request labels updated: %s", repoLink, titleLink)
 	case api.HookIssueLabelCleared:
@@ -198,6 +230,10 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 		text = fmt.Sprintf("[%s] Pull request review requested: %s", repoLink, titleLink)
 	case api.HookIssueReviewRequestRemoved:
 		text = fmt.Sprintf("[%s] Pull request review request removed: %s", repoLink, titleLink)
+	case api.HookIssueEnqueued:
+		text = fmt.Sprintf("[%s] Pull request added to merge queue: %s", repoLink, titleLink)
+	case api.HookIssueDequeued:
+		text = fmt.Sprintf("[%s] Pull request removed from merge queue: %s", repoLink, titleLink)
 	}
 	if withSender {
 		text += " by " + linkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
@@ -223,6 +259,10 @@ func getReleasePayloadInfo(p *api.ReleasePayload, linkFormatter linkFormatter, w
 	}
 	if withSender {
 		text += " by " + linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
+	}
+
+	if p.Action != api.HookReleaseDeleted && len(p.Release.Attachments) > 0 {
+		text += fmt.Sprintf(" (assets: %d)", len(p.Release.Attachments))
 	}
 
 	return text, color
@@ -293,7 +333,13 @@ func getIssueCommentPayloadInfo(p *api.IssueCommentPayload, linkFormatter linkFo
 	return text, issueTitle, color
 }
 
-func getRepoRenamedFrom(p *api.RepositoryPayload) string {
+func getRepoChangedFrom(p *api.RepositoryPayload) string {
+	if p.Action == api.HookRepoTransferred {
+		if org := p.Changes.Owner.From.Organization; org != nil {
+			return org.UserName
+		}
+		return p.Changes.Owner.From.User.UserName
+	}
 	if p.Changes == nil || p.Changes.Name == nil {
 		return ""
 	}
@@ -332,6 +378,24 @@ func getStatusPayloadInfo(p *api.CommitStatusPayload, linkFormatter linkFormatte
 	}
 
 	return text, color
+}
+
+func getMergeGroupPayloadInfo(payload *api.MergeGroupPayload, linkFormatter linkFormatter, withSender bool) (text string, color int, commitURL string) {
+	commitURL = payload.Repo.HTMLURL + "/commit/" + payload.MergeGroup.HeadSHA
+	repoLink := linkFormatter(payload.Repo.HTMLURL, payload.Repo.FullName)
+	commitLink := linkFormatter(commitURL, base.ShortSha(payload.MergeGroup.HeadSHA))
+	baseRef := git.RefName(payload.MergeGroup.BaseRef)
+	branchLink := linkFormatter(payload.Repo.HTMLURL+"/src/"+baseRef.RefWebLinkPath(), baseRef.ShortName())
+	description := payload.Reason
+	color = util.Iif(description == "merged", greenColor, greyColor)
+	if payload.Action == api.HookMergeGroupChecksRequested {
+		description, color = "checks requested", orangeColor
+	}
+	text = fmt.Sprintf("[%s:%s] Merge group %s: %s", repoLink, branchLink, description, commitLink)
+	if withSender {
+		text += " by " + linkFormatter(setting.AppURL+url.PathEscape(payload.Sender.UserName), payload.Sender.UserName)
+	}
+	return text, color, commitURL
 }
 
 func getWorkflowRunPayloadInfo(p *api.WorkflowRunPayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {
@@ -426,4 +490,40 @@ func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
 		Created:             w.CreatedUnix.AsTime(),
 		BranchFilter:        w.BranchFilter,
 	}, nil
+}
+
+func ToHookDelivery(t *webhook_model.HookTask) *api.HookDelivery {
+	delivery := &api.HookDelivery{
+		UUID:        t.UUID,
+		EventType:   string(t.EventType),
+		IsDelivered: t.IsDelivered,
+		IsSucceeded: t.IsSucceed,
+	}
+	if t.IsDelivered {
+		delivery.Delivered = new(t.Delivered.AsTime())
+	}
+	if t.RequestInfo != nil {
+		delivery.Request = &api.HookDeliveryRequest{
+			URL:        t.RequestInfo.URL,
+			HTTPMethod: t.RequestInfo.HTTPMethod,
+			Headers:    maps.Clone(t.RequestInfo.Headers),
+			Body:       t.RequestInfo.Body,
+		}
+		for name := range delivery.Request.Headers {
+			if strings.EqualFold(name, "Authorization") {
+				delivery.Request.Headers[name] = "******"
+			}
+		}
+		if t.PayloadVersion == 1 && delivery.Request.Body == "" {
+			delivery.Request.Body = t.PayloadContent
+		}
+	}
+	if t.ResponseInfo != nil {
+		delivery.Response = &api.HookDeliveryResponse{
+			Status:  t.ResponseInfo.Status,
+			Headers: t.ResponseInfo.Headers,
+			Body:    t.ResponseInfo.Body,
+		}
+	}
+	return delivery
 }

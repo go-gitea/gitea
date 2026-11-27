@@ -4,7 +4,7 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {initTabSwitcher} from '../modules/fomantic/tab.ts';
 import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
-import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
+import {initAvatarUploader} from './comp/Cropper.ts';
 import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
 import {initRepoSwitcher} from './repo-switcher.ts';
 import {initScopedWorkflowRequired} from './comp/ScopedWorkflows.ts';
@@ -101,7 +101,7 @@ export function initGlobalDropdown() {
 
 export function initGlobalComponent() {
   registerGlobalInitFunc('initTabSwitcher', initTabSwitcher);
-  registerGlobalInitFunc('initAvatarUploader', initAvatarUploaderWithCropper);
+  registerGlobalInitFunc('initAvatarUploader', initAvatarUploader);
   registerGlobalInitFunc('initSearchRepoBox', initCompSearchRepoBox);
   registerGlobalInitFunc('initRepoSwitcher', initRepoSwitcher);
   registerGlobalInitFunc('initScopedWorkflowRequired', initScopedWorkflowRequired);
@@ -126,7 +126,7 @@ function autoFocusEnd(el: HTMLInputElement | HTMLTextAreaElement) {
 export function applyAutoFocus(container: Element) {
   // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/autofocus
   // "autofocus" behavior is defined by the standard: when a container (e.g.: dialog) becomes visible, focus the element with "autofocus" attribute
-  // Fomantic UI already supports it for its modal dialog, we need to cover more cases (e.g.: ".show-panel" button)
+  // The native modal dialog already supports it, we need to cover more cases (e.g.: ".show-panel" button)
   // Here is just a simple support, we don't expect more than one element that need "autofocus" appearing in the same container
   container.querySelector<HTMLElement>('[autofocus]')?.focus();
   // Also, apply our autoFocusEnd behavior

@@ -35,7 +35,7 @@ type AccessTokenList []*AccessToken
 type CreateAccessTokenOption struct {
 	// required: true
 	Name string `json:"name" binding:"Required"`
-	// example: ["all", "read:activitypub","read:issue", "write:misc", "read:notification", "read:organization", "read:package", "read:repository", "read:user"]
+	// example: ["all", "read:activitypub", "write:commitstatus", "read:issue", "write:misc", "read:notification", "read:organization", "read:package", "read:repository", "read:user"]
 	Scopes []string `json:"scopes"`
 }
 

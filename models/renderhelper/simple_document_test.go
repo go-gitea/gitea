@@ -6,14 +6,12 @@ package renderhelper
 import (
 	"testing"
 
-	"gitea.dev/models/unittest"
 	"gitea.dev/modules/markup/markdown"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSimpleDocument(t *testing.T) {
-	unittest.PrepareTestEnv(t)
 	rctx := NewRenderContextSimpleDocument(t.Context(), "/base").WithMarkupType(markdown.MarkupName)
 	rendered, err := testRenderString(rctx, `
 65f1bf27bc3bf70f64657658635e66094edbcb4d
@@ -29,7 +27,7 @@ func TestSimpleDocument(t *testing.T) {
 	assert.Equal(t,
 		`<p>65f1bf27bc3bf70f64657658635e66094edbcb4d
 #1
-<a href="/user2" rel="nofollow">@user2</a></p>
+<a href="/user2" class="user-mention" rel="nofollow">@user2</a></p>
 <p><a href="/base/test" rel="nofollow">/test</a>
 <a href="/base/test" rel="nofollow">./test</a>
 <a href="/base/image" target="_blank" rel="nofollow noopener"><img src="/base/image" alt="/image"/></a>

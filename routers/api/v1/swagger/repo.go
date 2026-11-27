@@ -105,6 +105,20 @@ type swaggerResponseHookList struct {
 	Body []api.Hook `json:"body"`
 }
 
+// HookDelivery
+// swagger:response HookDelivery
+type swaggerResponseHookDelivery struct {
+	// in:body
+	Body api.HookDelivery `json:"body"`
+}
+
+// HookDeliveryList
+// swagger:response HookDeliveryList
+type swaggerResponseHookDeliveryList struct {
+	// in:body
+	Body []api.HookDelivery `json:"body"`
+}
+
 // GitHook
 // swagger:response GitHook
 type swaggerResponseGitHook struct {
@@ -145,6 +159,20 @@ type swaggerResponsePullRequest struct {
 type swaggerResponsePullRequestList struct {
 	// in:body
 	Body []api.PullRequest `json:"body"`
+}
+
+// MergeQueueEntry
+// swagger:response MergeQueueEntry
+type swaggerResponseMergeQueueEntry struct {
+	// in:body
+	Body api.MergeQueueEntry `json:"body"`
+}
+
+// MergeQueueEntryList
+// swagger:response MergeQueueEntryList
+type swaggerResponseMergeQueueEntryList struct {
+	// in:body
+	Body []api.MergeQueueEntry `json:"body"`
 }
 
 // PullReview
@@ -287,13 +315,6 @@ type swaggerChangedFileList struct {
 type swaggerNote struct {
 	// in: body
 	Body api.Note `json:"body"`
-}
-
-// EmptyRepository
-// swagger:response EmptyRepository
-type swaggerEmptyRepository struct {
-	// in: body
-	Body api.APIError `json:"body"`
 }
 
 // FileResponse
@@ -508,4 +529,11 @@ type swaggerCompare struct {
 type swaggerMergeUpstreamResponse struct {
 	// in:body
 	Body api.MergeUpstreamResponse `json:"body"`
+}
+
+// CodeSearchResults
+// swagger:response CodeSearchResults
+type swaggerResponseCodeSearchResults struct {
+	// in:body
+	Body api.CodeSearchResults `json:"body"`
 }

@@ -313,7 +313,7 @@ func (r *Router) Combo(pattern string, h ...any) *Combo {
 // It is only designed to resolve some special cases which chi router can't handle.
 // For most cases, it shouldn't be used because it needs to iterate all rules to find the matched one (inefficient).
 func (r *Router) PathGroup(pattern string, fn func(g *RouterPathGroup), h ...any) {
-	g := &RouterPathGroup{r: r, pathParam: "*"}
+	g := &RouterPathGroup{r: r, pathParam: "*", middlewares: h} // run h only on a match, unmatched methods and paths also fall back here
 	fn(g)
-	r.Any(pattern, append(h, g.ServeHTTP)...)
+	r.Any(pattern, g.ServeHTTP)
 }

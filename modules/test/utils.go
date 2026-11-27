@@ -179,7 +179,7 @@ func ExternalServiceHTTP(t TestingT, envVarName, def string) string {
 	var lastCheckErr error
 	if !lastCheckExists {
 		{
-			// minio's endpoint is "host:port" pattern
+			// S3-compatible endpoints use "host:port"
 			testURL := util.Iif(strings.Contains(extSvc, "://"), extSvc, "http://"+extSvc)
 			// do a quick check with short timeout
 			client := &http.Client{Timeout: 2 * time.Second}

@@ -6,32 +6,6 @@ package paginator
 
 import "gitea.dev/modules/util"
 
-/*
-In template:
-
-```html
-{{if not .Page.IsFirst}}[First](1){{end}}
-{{if .Page.HasPrevious}}[Previous]({{.Page.Previous}}){{end}}
-
-{{range .Page.Pages}}
-	{{if eq .Num -1}}
-	...
-	{{else}}
-	{{.Num}}{{if .IsCurrent}}(current){{end}}
-	{{end}}
-{{end}}
-
-{{if .Page.HasNext}}[Next]({{.Page.Next}}){{end}}
-{{if not .Page.IsLast}}[Last]({{.Page.TotalPages}}){{end}}
-```
-
-Output:
-
-```
-[First](1) [Previous](2) ... 2 3(current) 4 ... [Next](4) [Last](5)
-```
-*/
-
 // Paginator represents a set of results of pagination calculations.
 type Paginator struct {
 	total      int // total rows count, -1 means unknown
@@ -39,13 +13,12 @@ type Paginator struct {
 	current    int // current page number
 
 	pagingNum int // how many rows in one page
-	numPages  int // how many pages to show on the UI
 
 	hasNext *bool // used for total=-1 ("unlimited paging")
 }
 
 // New initialize a new pagination calculation and returns a Paginator as result.
-func New(total, pagingNum, current, numPages int) *Paginator {
+func New(total, pagingNum, current int) *Paginator {
 	pagingNum = max(pagingNum, 1)
 	totalPages := util.Iif(total == -1, -1, (total+pagingNum-1)/pagingNum)
 	if total >= 0 {
@@ -57,7 +30,6 @@ func New(total, pagingNum, current, numPages int) *Paginator {
 		totalPages: totalPages,
 		current:    current,
 		pagingNum:  pagingNum,
-		numPages:   numPages,
 	}
 }
 
@@ -129,92 +101,19 @@ func (p *Paginator) PagingNum() int {
 	return p.pagingNum
 }
 
-// Page presents a page in the paginator.
-type Page struct {
-	num       int
-	isCurrent bool
-}
-
-func (p *Page) Num() int {
-	return p.num
-}
-
-func (p *Page) IsCurrent() bool {
-	return p.isCurrent
-}
-
-func getMiddleIdx(numPages int) int {
-	return (numPages + 1) / 2
-}
-
-// Pages returns a list of nearby page numbers relative to current page.
-// If value is -1 means "..." that more pages are not showing.
-func (p *Paginator) Pages() []*Page {
-	if p.numPages == 0 {
-		return nil
-	} else if p.total == -1 || (p.numPages == 1 && p.TotalPages() == 1) {
-		// Only show current page.
-		return []*Page{{p.current, true}}
+// Pages returns the page numbers to show with -1 for a gap, mirrored by getPaginationPages in web_src/js/utils.ts
+func (p *Paginator) Pages() []int {
+	total, current := p.TotalPages(), p.current
+	switch {
+	case total == -1:
+		return []int{current}
+	case total <= 7:
+		return []int{1, 2, 3, 4, 5, 6, 7}[:max(total, 0)]
+	case current <= 4:
+		return []int{1, 2, 3, 4, 5, -1, total}
+	case current >= total-3:
+		return []int{1, -1, total - 4, total - 3, total - 2, total - 1, total}
+	default:
+		return []int{1, -1, current - 1, current, current + 1, -1, total}
 	}
-
-	// Total page number is less or equal.
-	if p.TotalPages() <= p.numPages {
-		pages := make([]*Page, p.TotalPages())
-		for i := range pages {
-			pages[i] = &Page{i + 1, i+1 == p.current}
-		}
-		return pages
-	}
-
-	numPages := p.numPages
-	offsetIdx := 0
-	hasMoreNext := false
-
-	// Check more previous and next pages.
-	previousNum := getMiddleIdx(p.numPages) - 1
-	if previousNum > p.current-1 {
-		previousNum -= previousNum - (p.current - 1)
-	}
-	nextNum := p.numPages - previousNum - 1
-	if p.current+nextNum > p.TotalPages() {
-		delta := nextNum - (p.TotalPages() - p.current)
-		nextNum -= delta
-		previousNum += delta
-	}
-
-	offsetVal := p.current - previousNum
-	if offsetVal > 1 {
-		numPages++
-		offsetIdx = 1
-	}
-
-	if p.current+nextNum < p.TotalPages() {
-		numPages++
-		hasMoreNext = true
-	}
-
-	pages := make([]*Page, numPages)
-
-	// There are more previous pages.
-	if offsetIdx == 1 {
-		pages[0] = &Page{-1, false}
-	}
-	// There are more next pages.
-	if hasMoreNext {
-		pages[len(pages)-1] = &Page{-1, false}
-	}
-
-	// Check previous pages.
-	for i := 0; i < previousNum; i++ {
-		pages[offsetIdx+i] = &Page{i + offsetVal, false}
-	}
-
-	pages[offsetIdx+previousNum] = &Page{p.current, true}
-
-	// Check next pages.
-	for i := 1; i <= nextNum; i++ {
-		pages[offsetIdx+previousNum+i] = &Page{p.current + i, false}
-	}
-
-	return pages
 }

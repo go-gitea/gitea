@@ -45,7 +45,8 @@ var globalVars = sync.OnceValue(func() (ret struct {
 	imageNamePattern, referencePattern *regexp.Regexp
 },
 ) {
-	ret.imageNamePattern = regexp.MustCompile(`\A[a-z0-9]+([._-][a-z0-9]+)*(/[a-z0-9]+([._-][a-z0-9]+)*)*\z`)
+	// ref: https://github.com/opencontainers/distribution-spec/blob/v1.1.1/spec.md#pulling-manifests
+	ret.imageNamePattern = regexp.MustCompile(`\A[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*\z`)
 	ret.referencePattern = regexp.MustCompile(`\A[a-zA-Z0-9_][a-zA-Z0-9._-]{0,127}\z`)
 	return ret
 })
@@ -153,7 +154,7 @@ func DetermineSupport(ctx *context.Context) {
 // If the current user is anonymous, the ghost user is used unless RequireSignInView is enabled.
 func Authenticate(ctx *context.Context) {
 	u := ctx.Doer
-	packageScope := auth_service.GetAccessScope(ctx.Data)
+	packageScope := auth_service.GetAccessScope(ctx.Doer, ctx.Data)
 	if u == nil {
 		if setting.Service.RequireSignInViewStrict {
 			APIUnauthorizedError(ctx)
@@ -448,7 +449,7 @@ func PutBlobsUpload(ctx *context.Context) {
 		return
 	}
 
-	// Some SDK (e.g.: minio) will close the Reader if it is also a Closer after "uploading".
+	// Some SDKs (e.g.: minio-go) will close the Reader if it is also a Closer after "uploading".
 	// And we don't need to wrap the reader to anything else because the SDK will benefit from other interfaces like Seeker.
 	// It's safe to call Close twice, so ignore the error.
 	_ = uploader.Close()
@@ -588,6 +589,8 @@ func PutManifest(ctx *context.Context) {
 			apiErrorDefined(ctx, namedError)
 		} else if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errBlobUnknown)
+		} else if errors.Is(err, util.ErrInvalidArgument) {
+			apiErrorDefined(ctx, errManifestInvalid.WithMessage(err.Error()))
 		} else if errors.Is(err, packages_service.ErrQuotaTotalCount) || errors.Is(err, packages_service.ErrQuotaTypeSize) || errors.Is(err, packages_service.ErrQuotaTotalSize) {
 			apiError(ctx, http.StatusForbidden, err)
 		} else {

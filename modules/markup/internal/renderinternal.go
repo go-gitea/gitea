@@ -21,6 +21,10 @@ var reAttrClass = sync.OnceValue(func() *regexp.Regexp {
 	return regexp.MustCompile(`(<[^>]+)\s+class="([^"]+)"([^>]*>)`)
 })
 
+type RenderVarMutable[T any] struct {
+	Value *T
+}
+
 // RenderInternal also works without initialization
 // If no initialization (no secureID), it will not protect any attributes and return the original name&value
 type RenderInternal struct {
@@ -70,7 +74,7 @@ func (r *RenderInternal) ProtectSafeAttrs(content template.HTML) template.HTML {
 	return template.HTML(reAttrClass().ReplaceAllString(string(content), `$1 data-attr-class="`+r.secureIDPrefix+`$2"$3`))
 }
 
-func (r *RenderInternal) FormatWithSafeAttrs(w io.Writer, fmt template.HTML, a ...any) error {
+func (r *RenderInternal) FormatWithSafeAttrsf(w io.Writer, fmt template.HTML, a ...any) error {
 	htmlStr := r.ProtectSafeAttrs(htmlutil.HTMLFormat(fmt, a...))
 	_, err := io.WriteString(w, string(htmlStr))
 	return err

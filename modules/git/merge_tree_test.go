@@ -15,7 +15,7 @@ import (
 
 func prepareRepoDirRenameConflict(t *testing.T) string {
 	repoDir := filepath.Join(t.TempDir(), "repo-dir-rename-conflict.git")
-	require.NoError(t, gitcmd.NewCommand("init", "--bare").AddDynamicArguments(repoDir).Run(t.Context()))
+	require.NoError(t, gitcmd.NewCommand("init", "--bare").AddDynamicArguments(repoDir).RunWithStderr(t.Context()))
 	stdin := `blob
 mark :1
 data 2
@@ -62,11 +62,14 @@ B
 from :3
 M 100644 :5 z/d
 `
-	require.NoError(t, gitcmd.NewCommand("fast-import").WithDir(repoDir).WithStdinBytes([]byte(stdin)).Run(t.Context()))
+	require.NoError(t, gitcmd.NewCommand("fast-import").WithDir(repoDir).WithStdinBytes([]byte(stdin)).RunWithStderr(t.Context()))
 	return repoDir
 }
 
 func TestMergeTreeDirectoryRenameConflictWithoutFiles(t *testing.T) {
+	if !DefaultFeatures().SupportGitMergeTree {
+		t.Skip("git version 2.40 is required to support merge-tree")
+	}
 	repoDir := prepareRepoDirRenameConflict(t)
 	require.DirExists(t, repoDir)
 	repo := mockRepository(repoDir)

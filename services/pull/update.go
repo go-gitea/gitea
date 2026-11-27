@@ -27,6 +27,9 @@ func Update(pr *issues_model.PullRequest, doer *user_model.User, message string,
 		// TODO: update of agit flow pull request's head branch is unsupported
 		return errors.New("update of agit flow pull request's head branch is unsupported")
 	}
+	if err := issues_model.CheckBranchNotQueuedForMerge(ctx, pr.HeadRepoID, pr.HeadBranch); err != nil {
+		return err
+	}
 
 	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
 	if err != nil {
@@ -144,6 +147,9 @@ func CheckUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullReques
 	}
 	if err := pull.LoadHeadRepo(ctx); err != nil {
 		return ret, err
+	}
+	if !repo_model.DoerTokenAllowsRepo(ctx, user, pull.HeadRepo) { // whitelists and maintainer edits below skip the doer's repo permission
+		return ret, nil
 	}
 
 	// 1. check whether pull request enabled.

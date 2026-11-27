@@ -4,6 +4,8 @@
 package shared
 
 import (
+	"cmp"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -17,24 +19,13 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
 	"gitea.dev/modules/webhook"
 	"gitea.dev/routers/api/v1/utils"
+	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
-
-	"xorm.io/builder"
 )
-
-// actionsOwnerAccessibleRepoIDsSubQuery returns the sub-query restricting an owner-scoped actions
-// listing to the repos whose actions the caller can read, or nil when no restriction applies. A bare
-// org member must not be able to enumerate runs/jobs of repos they have no access to. A site admin may
-// skip the access filter, but a public-only token must stay confined to public repos even for an admin.
-func actionsOwnerAccessibleRepoIDsSubQuery(ctx *context.APIContext, ownerID int64) *builder.Builder {
-	if ownerID > 0 && (ctx.Doer == nil || !ctx.Doer.IsAdmin || ctx.PublicOnly) {
-		return repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(ownerID, ctx.Doer, ctx.PublicOnly)
-	}
-	return nil
-}
 
 // ListJobs lists jobs for api route validated ownerID and repoID
 // ownerID == 0 and repoID == 0 means all jobs
@@ -73,7 +64,7 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 		opts.Statuses = append(opts.Statuses, values...)
 	}
 
-	opts.AccessibleRepoIDsSubQuery = actionsOwnerAccessibleRepoIDsSubQuery(ctx, opts.OwnerID)
+	opts.AccessibleRepoIDsSubQuery = repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(opts.OwnerID, ctx.Doer)
 
 	jobs, total, err := db.FindAndCount[actions_model.ActionRunJob](ctx, opts)
 	if err != nil {
@@ -90,27 +81,16 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 		return
 	}
 
-	res.Entries = make([]*api.ActionWorkflowJob, len(jobs))
-
-	isRepoLevel := repoID != 0 && ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == repoID
-	for i := range jobs {
-		var repository *repo_model.Repository
-		if isRepoLevel {
-			repository = ctx.Repo.Repository
-		} else {
-			if jobs[i].Run == nil || jobs[i].Run.Repo == nil {
-				ctx.APIErrorInternal(fmt.Errorf("job %d is missing its run or repository", jobs[i].ID))
-				return
-			}
-			repository = jobs[i].Run.Repo
-		}
-
-		convertedWorkflowJob, err := convert.ToActionWorkflowJob(ctx, repository, nil, jobs[i])
-		if err != nil {
-			ctx.APIErrorInternal(err)
+	for _, job := range jobs {
+		if job.Run == nil || job.Run.Repo == nil {
+			ctx.APIErrorInternal(fmt.Errorf("job %d is missing its run or repository", job.ID))
 			return
 		}
-		res.Entries[i] = convertedWorkflowJob
+	}
+	res.Entries, err = convert.ToActionWorkflowJobs(ctx, jobs)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
 	}
 	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
@@ -196,7 +176,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 	}
 	excludePullRequests := ctx.FormBool("exclude_pull_requests")
 
-	opts.AccessibleRepoIDsSubQuery = actionsOwnerAccessibleRepoIDsSubQuery(ctx, opts.OwnerID)
+	opts.AccessibleRepoIDsSubQuery = repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(opts.OwnerID, ctx.Doer)
 
 	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
 	if err != nil {
@@ -224,6 +204,12 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 		return
 	}
 
+	latestAttempts, err := runList.GetLatestAttempts(ctx)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
 	res.Entries = make([]*api.ActionWorkflowRun, 0, len(runs))
 	for _, run := range runs {
 		if run.Repo == nil {
@@ -232,8 +218,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 			total--
 			continue
 		}
-		// TODO: load run attempts in batch
-		convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, excludePullRequests)
+		convertedRun, err := convert.ToActionWorkflowRun(ctx, run, latestAttempts[run.LatestAttemptID], excludePullRequests)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -244,4 +229,80 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &res)
+}
+
+func toAPIVariable(variable *actions_model.ActionVariable) *api.ActionVariable {
+	return &api.ActionVariable{OwnerID: variable.OwnerID, RepoID: variable.RepoID, Name: variable.Name, Data: variable.Data, Description: variable.Description}
+}
+
+func getVariable(ctx *context.APIContext, scope actions_model.BelongingScope) (*actions_model.ActionVariable, error) {
+	return actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{BelongingScope: scope, Name: ctx.PathParam("variablename")})
+}
+
+func ListVariables(ctx *context.APIContext, scope actions_model.BelongingScope) {
+	listOptions := utils.GetListOptions(ctx)
+	vars, count, err := db.FindAndCount[actions_model.ActionVariable](ctx, &actions_model.FindVariablesOpts{BelongingScope: scope, ListOptions: listOptions})
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	variables := make([]*api.ActionVariable, len(vars))
+	for i, variable := range vars {
+		variables[i] = toAPIVariable(variable)
+	}
+	ctx.SetLinkHeader(count, listOptions.PageSize)
+	ctx.SetTotalCountHeader(count)
+	ctx.JSON(http.StatusOK, variables)
+}
+
+func GetVariable(ctx *context.APIContext, scope actions_model.BelongingScope) {
+	variable, err := getVariable(ctx, scope)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, toAPIVariable(variable))
+}
+
+func CreateVariable(ctx *context.APIContext, scope actions_model.BelongingScope) {
+	_, err := getVariable(ctx, scope)
+	if err == nil {
+		ctx.APIError(http.StatusConflict, "variable name already exists")
+		return
+	}
+	if !errors.Is(err, util.ErrNotExist) {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	opt := web.GetForm[*api.CreateVariableOption](ctx)
+	if _, err := actions_service.CreateVariable(ctx, scope, ctx.PathParam("variablename"), opt.Value, opt.Description); err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+	ctx.Status(http.StatusCreated)
+}
+
+func UpdateVariable(ctx *context.APIContext, scope actions_model.BelongingScope) {
+	variable, err := getVariable(ctx, scope)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+	opt := web.GetForm[*api.UpdateVariableOption](ctx)
+	variable.Name = cmp.Or(opt.Name, variable.Name)
+	variable.Data = opt.Value
+	variable.Description = opt.Description
+	if _, err := actions_service.UpdateVariableNameData(ctx, variable); err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+	ctx.Status(http.StatusNoContent)
+}
+
+func DeleteVariable(ctx *context.APIContext, scope actions_model.BelongingScope) {
+	if err := actions_service.DeleteVariableByName(ctx, scope, ctx.PathParam("variablename")); err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+	ctx.Status(http.StatusNoContent)
 }

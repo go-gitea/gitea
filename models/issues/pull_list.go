@@ -14,6 +14,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
@@ -23,7 +24,7 @@ import (
 // PullRequestsOptions holds the options for PRs
 type PullRequestsOptions struct {
 	db.ListOptions
-	State       string
+	IsClosed    optional.Option[bool]
 	SortType    string
 	Labels      []int64
 	MilestoneID int64
@@ -39,9 +40,8 @@ func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullR
 	}
 
 	sess.Join("INNER", "issue", "pull_request.issue_id = issue.id")
-	switch opts.State {
-	case "closed", "open":
-		sess.And("issue.is_closed=?", opts.State == "closed")
+	if opts.IsClosed.Has() {
+		sess.And("issue.is_closed=?", opts.IsClosed.Value())
 	}
 
 	if len(opts.Labels) > 0 {
@@ -60,13 +60,16 @@ func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullR
 	return sess
 }
 
+func unmergedPullRequestsByHead(ctx context.Context, repoID int64, branch string) db.Session {
+	return db.GetEngine(ctx).Table(new(PullRequest)).
+		Join("INNER", "issue", "issue.id = pull_request.issue_id").
+		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND flow = ?", repoID, branch, false, false, PullRequestFlowGithub)
+}
+
 // GetUnmergedPullRequestsByHeadInfo returns all pull requests that are open and has not been merged
 func GetUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch string) (PullRequestList, error) {
 	prs := make([]*PullRequest, 0, 2)
-	sess := db.GetEngine(ctx).
-		Join("INNER", "issue", "issue.id = pull_request.issue_id").
-		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND flow = ?", repoID, branch, false, false, PullRequestFlowGithub)
-	return prs, sess.Find(&prs)
+	return prs, unmergedPullRequestsByHead(ctx, repoID, branch).Find(&prs)
 }
 
 // CanMaintainerWriteToBranch check whether user is a maintainer and could write to the branch
@@ -138,11 +141,16 @@ func canMaintainerWriteToBranch(ctx context.Context, headPerm access_model.Permi
 // HasUnmergedPullRequestsByHeadInfo checks if there are open and not merged pull request
 // by given head information (repo and branch)
 func HasUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch string) (bool, error) {
-	return db.GetEngine(ctx).
-		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND flow = ?",
-			repoID, branch, false, false, PullRequestFlowGithub).
-		Join("INNER", "issue", "issue.id = pull_request.issue_id").
-		Exist(&PullRequest{})
+	return unmergedPullRequestsByHead(ctx, repoID, branch).Exist()
+}
+
+var ErrQueuedPullHead = util.ErrorWrapTranslatable(util.ErrPermissionDenied, "repo.pulls.merge_queue.cannot_update_head")
+
+func CheckBranchNotQueuedForMerge(ctx context.Context, repoID int64, branch string) error {
+	queued, err := unmergedPullRequestsByHead(ctx, repoID, branch).
+		Join("INNER", "pull_merge_queue_entry", "pull_merge_queue_entry.pull_id = pull_request.id").
+		Exist()
+	return util.Iif(queued, ErrQueuedPullHead, err)
 }
 
 // GetUnmergedPullRequestsByBaseInfo returns all pull requests that are open and has not been merged
@@ -335,8 +343,8 @@ func (prs PullRequestList) LoadReviews(ctx context.Context) (ReviewList, error) 
 			"reviewer_team_id":   0,
 		}).
 		GroupBy("issue_id, reviewer_id")
-	// Get latest review of each reviewer, sorted in order they were made
-	if err := db.GetEngine(ctx).In("id", subQuery).OrderBy("review.updated_unix ASC").Find(&reviews); err != nil {
+	// Get latest review of each reviewer, sorted in order they were made. Joined because MySQL scans all reviews for "id IN (subquery)", xorm aliases the subquery "review".
+	if err := db.GetEngine(ctx).Table("review").Alias("latest").Join("INNER", subQuery, "latest.id = review.id").OrderBy("latest.updated_unix ASC").Find(&reviews); err != nil {
 		return nil, err
 	}
 
@@ -350,7 +358,7 @@ func (prs PullRequestList) LoadReviews(ctx context.Context) (ReviewList, error) 
 		"reviewer_team_id": 0,
 	}).
 		GroupBy("issue_id, reviewer_team_id")
-	if err := db.GetEngine(ctx).In("id", subQueryTeam).OrderBy("review.updated_unix ASC").Find(&teamReviewRequests); err != nil {
+	if err := db.GetEngine(ctx).Table("review").Alias("latest").Join("INNER", subQueryTeam, "latest.id = review.id").OrderBy("latest.updated_unix ASC").Find(&teamReviewRequests); err != nil {
 		return nil, err
 	}
 

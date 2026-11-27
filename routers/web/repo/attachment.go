@@ -7,15 +7,14 @@ import (
 	"net/http"
 
 	auth_model "gitea.dev/models/auth"
-	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/httpcache"
 	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
+	"gitea.dev/modules/web"
 	"gitea.dev/services/attachment"
 	"gitea.dev/services/context"
 	"gitea.dev/services/context/upload"
@@ -50,9 +49,9 @@ func uploadAttachment(ctx *context.Context, repoID int64, uploadFunc attachment.
 		return
 	}
 
-	file, header, err := ctx.Req.FormFile("file")
+	file, header, err := ctx.FormFile("file")
 	if err != nil {
-		ctx.ServerError("FormFile", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	defer file.Close()
@@ -68,62 +67,35 @@ func uploadAttachment(ctx *context.Context, repoID int64, uploadFunc attachment.
 			ctx.HTTPError(http.StatusBadRequest, err.Error())
 			return
 		}
-		ctx.ServerError("uploadAttachment(uploadFunc)", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
-	log.Trace("New attachment uploaded: %s", attach.UUID)
-	ctx.JSON(http.StatusOK, map[string]string{
-		"uuid": attach.UUID,
-	})
+	ctx.JSON(http.StatusOK, map[string]string{"uuid": attach.UUID})
+	web.RouterMockPointCall("mockpoint-attachment-uploaded", ctx.Resp, ctx.Req)
 }
 
-// DeleteAttachment response for deleting issue's attachment
-func DeleteAttachment(ctx *context.Context) {
+func DeletePendingAttachment(ctx *context.Context) {
 	file := ctx.FormString("file")
 	attach, err := repo_model.GetAttachmentByUUID(ctx, file)
 	if err != nil {
-		ctx.HTTPError(http.StatusBadRequest, err.Error())
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
-	if !ctx.IsSigned {
+	// only uploader can delete their own pending (unlinked) attachment,
+	// linked attachments are managed by the linked entity (issue, release, etc.) and cannot be deleted directly
+	canDelete := attach.RepoID == ctx.Repo.Repository.ID &&
+		attach.UploaderID == ctx.Doer.ID &&
+		!attach.IsLinked()
+	if !canDelete {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
-	if attach.RepoID != ctx.Repo.Repository.ID {
-		ctx.HTTPError(http.StatusBadRequest, "attachment does not belong to this repository")
-		return
-	}
-
-	if ctx.Doer.ID != attach.UploaderID {
-		if attach.IssueID > 0 {
-			issue, err := issues_model.GetIssueByID(ctx, attach.IssueID)
-			if err != nil {
-				ctx.ServerError("GetIssueByID", err)
-				return
-			}
-			if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
-				ctx.HTTPError(http.StatusForbidden)
-				return
-			}
-		} else if attach.ReleaseID > 0 {
-			if !ctx.Repo.Permission.CanWrite(unit.TypeReleases) {
-				ctx.HTTPError(http.StatusForbidden)
-				return
-			}
-		} else {
-			if !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.IsOwner() {
-				ctx.HTTPError(http.StatusForbidden)
-				return
-			}
-		}
-	}
-
 	err = repo_model.DeleteAttachment(ctx, attach, true)
 	if err != nil {
-		ctx.ServerError("DeleteAttachment", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, map[string]string{
@@ -138,14 +110,14 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		if repo_model.IsErrAttachmentNotExist(err) {
 			ctx.HTTPError(http.StatusNotFound)
 		} else {
-			ctx.ServerError("GetAttachmentByUUID", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
 
 	unitType, repoID, err := repo_service.GetAttachmentLinkedTypeAndRepoID(ctx, attach)
 	if err != nil {
-		ctx.ServerError("GetAttachmentLinkedTypeAndRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if repoID == 0 {
@@ -169,12 +141,12 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		if repo == nil {
 			repo, err = repo_model.GetRepositoryByID(ctx, repoID)
 			if err != nil {
-				ctx.ServerError("GetRepositoryByID", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			perm, err = access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 			if err != nil {
-				ctx.ServerError("GetDoerRepoPermission", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		} else {
@@ -193,7 +165,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		if unitType == unit.TypeReleases && attach.ReleaseID != 0 && !perm.CanWrite(unit.TypeReleases) {
 			rel, err := repo_model.GetReleaseByID(ctx, attach.ReleaseID)
 			if err != nil {
-				ctx.ServerError("GetReleaseByID", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			if rel.IsDraft {
@@ -203,7 +175,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		}
 
 		if requiredScope, ok := attachmentReadScope(unitType); ok {
-			context.CheckTokenScopes(ctx, repo, requiredScope)
+			context.CheckTokenScopes(ctx, requiredScope)
 			if ctx.Written() {
 				return
 			}
@@ -211,7 +183,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 	}
 
 	if err := attach.IncreaseDownloadCount(ctx); err != nil {
-		ctx.ServerError("IncreaseDownloadCount", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -232,7 +204,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 	// If we have matched and access to release or issue
 	fr, err := storage.Attachments.Open(attach.RelativePath())
 	if err != nil {
-		ctx.ServerError("Open", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	defer fr.Close()

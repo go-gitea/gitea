@@ -14,8 +14,11 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 
+	"gitea.dev/modules/charset"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
@@ -116,13 +119,14 @@ type Author struct {
 	Homepage string `json:"homepage,omitempty"`
 }
 
-var nameMatch = regexp.MustCompile(`\A[a-z0-9]([_\.-]?[a-z0-9]+)*/[a-z0-9](([_\.]?|-{0,2})[a-z0-9]+)*\z`)
+var nameMatch = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`\A[a-z0-9]([_\.-]?[a-z0-9]+)*/[a-z0-9](([_\.]?|-{0,2})[a-z0-9]+)*\z`)
+})
 
 type ReadSeekAt interface {
-	io.Reader
+	packages.SizedReader
 	io.ReaderAt
 	io.Seeker
-	Size() int64
 }
 
 func readPackageFileZip(r ReadSeekAt, filename string, limit int) ([]byte, error) {
@@ -146,8 +150,8 @@ func readPackageFileZip(r ReadSeekAt, filename string, limit int) ([]byte, error
 	return nil, fs.ErrNotExist
 }
 
-func readPackageFileTar(r io.Reader, filename string, limit int) ([]byte, error) {
-	tarReader := tar.NewReader(r)
+func readPackageFileTar(r io.Reader, archiveSize int64, filename string, limit int) ([]byte, error) {
+	tarReader := tar.NewReader(packages.NewArchiveLimitedReader(r, archiveSize))
 	for {
 		header, err := tarReader.Next()
 		if err == io.EOF {
@@ -201,14 +205,13 @@ func readPackageFile(pkgExt string, r ReadSeekAt, filename string, limit int) ([
 	case pkgExtZip:
 		return readPackageFileZip(r, filename, limit)
 	case pkgExtTarBz2:
-		bzip2Reader := bzip2.NewReader(r)
-		return readPackageFileTar(bzip2Reader, filename, limit)
+		return readPackageFileTar(bzip2.NewReader(r), r.Size(), filename, limit)
 	case pkgExtTarGz:
 		gzReader, err := gzip.NewReader(r)
 		if err != nil {
 			return nil, err
 		}
-		return readPackageFileTar(gzReader, filename, limit)
+		return readPackageFileTar(gzReader, r.Size(), filename, limit)
 	}
 	return nil, util.NewInvalidArgumentErrorf("not a valid package file")
 }
@@ -236,7 +239,7 @@ func ParsePackage(r ReadSeekAt, optVersion ...string) (*PackageInfo, error) {
 		return nil, err
 	}
 
-	if !nameMatch.MatchString(cj.Name) {
+	if !nameMatch().MatchString(cj.Name) {
 		return nil, ErrInvalidName
 	}
 
@@ -261,6 +264,7 @@ func ParsePackage(r ReadSeekAt, optVersion ...string) (*PackageInfo, error) {
 		cj.Readme = "README.md"
 	}
 	dataReadmeMd, _ := readPackageFile(pkgExt, r, cj.Readme, 10*1024)
+	dataReadmeMd = charset.ToUTF8DropErrors(dataReadmeMd)
 
 	// FIXME: legacy problem, the "Readme" field is abused, it should always be the path to the readme file
 	if len(dataReadmeMd) == 0 {

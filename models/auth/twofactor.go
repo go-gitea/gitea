@@ -12,8 +12,11 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/secret"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
@@ -48,6 +51,11 @@ func (err ErrTwoFactorNotEnrolled) Unwrap() error {
 	return util.ErrNotExist
 }
 
+const (
+	totpMaxAttempts = 5
+	totpAttemptsTTL = 15 * 60 // seconds, renewed by every failed attempt
+)
+
 // TwoFactor represents a two-factor authentication token.
 type TwoFactor struct {
 	ID               int64 `xorm:"pk autoincr"`
@@ -75,7 +83,7 @@ func (t *TwoFactor) GenerateScratchToken() (string, error) {
 	return token, nil
 }
 
-// HashToken return the hashable salt
+// HashToken returns the pbkdf2 hash of token with salt
 func HashToken(token, salt string) string {
 	tempHash := pbkdf2.Key([]byte(token), []byte(salt), 10000, 50, sha256.New)
 	return hex.EncodeToString(tempHash)
@@ -120,26 +128,59 @@ func (t *TwoFactor) validateTOTP(passcode string) (bool, error) {
 	return totp.Validate(passcode, secretStr), nil
 }
 
+type TwoFactorResult int
+
+const (
+	TwoFactorResultValid TwoFactorResult = iota + 1
+	TwoFactorResultInvalid
+	TwoFactorResultTooManyAttempts
+)
+
 // ValidateAndConsumeTOTP validates the passcode and atomically records it as used so that the
-// same passcode cannot be redeemed more than once (RFC 6238 §5.2). It returns false for an
-// invalid passcode as well as for a replay, including the case where a concurrent request with
-// the same passcode won the race first. All TOTP login surfaces must go through this helper.
-func (t *TwoFactor) ValidateAndConsumeTOTP(ctx context.Context, passcode string) (bool, error) {
-	ok, err := t.validateTOTP(passcode)
-	if err != nil || !ok {
-		return false, err
+// same passcode cannot be redeemed more than once (RFC 6238 §5.2). Invalid passcodes and replays
+// return TwoFactorResultInvalid; exhausted attempts return TwoFactorResultTooManyAttempts.
+// All TOTP login surfaces must go through this helper.
+func (t *TwoFactor) ValidateAndConsumeTOTP(ctx context.Context, passcode string) (result TwoFactorResult, err error) {
+	if passcode == "" {
+		// password-only Basic auth clients must not use up the attempts
+		return TwoFactorResultInvalid, nil
 	}
-	// Conditional update: only a row whose stored passcode differs from this one is updated, so a
-	// replay (or a concurrent duplicate) matches zero rows and is rejected. The row lock taken by
-	// the UPDATE serializes racing requests, closing the read-validate-write TOCTOU window.
-	t.LastUsedPasscode = passcode
-	n, err := db.GetEngine(ctx).ID(t.ID).
-		Where(builder.Or(builder.IsNull{"last_used_passcode"}, builder.Neq{"last_used_passcode": passcode})).
-		Cols("last_used_passcode").Update(t)
-	if err != nil {
-		return false, err
-	}
-	return n == 1, nil
+	// the lock spans check, validation and counting so that concurrent requests cannot exceed the limit
+	attemptsKey := fmt.Sprintf("twofa_attempts_%d", t.UID)
+	err = globallock.LockAndDo(ctx, attemptsKey, func(ctx context.Context) error {
+		value, _ := cache.GetCache().Get(attemptsKey)
+		attempts, _ := strconv.Atoi(value)
+		if attempts >= totpMaxAttempts {
+			result = TwoFactorResultTooManyAttempts
+			return nil
+		}
+
+		valid, err := t.validateTOTP(passcode)
+		if err != nil {
+			return err
+		}
+		if valid {
+			// Conditional update: only a row whose stored passcode differs from this one is updated, so a
+			// replay (or a concurrent duplicate) matches zero rows and is rejected. The row lock taken by
+			// the UPDATE serializes racing requests, closing the read-validate-write TOCTOU window.
+			t.LastUsedPasscode = passcode
+			n, err := db.GetEngine(ctx).ID(t.ID).
+				Where(builder.Or(builder.IsNull{"last_used_passcode"}, builder.Neq{"last_used_passcode": passcode})).
+				Cols("last_used_passcode").Update(t)
+			if err != nil {
+				return err
+			}
+			valid = n == 1
+		}
+		if !valid {
+			result = TwoFactorResultInvalid
+			return cache.GetCache().Put(attemptsKey, strconv.Itoa(attempts+1), totpAttemptsTTL)
+		}
+		cache.Remove(attemptsKey)
+		result = TwoFactorResultValid
+		return nil
+	})
+	return result, err
 }
 
 // NewTwoFactor creates a new two-factor authentication token.

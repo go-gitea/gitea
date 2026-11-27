@@ -87,6 +87,9 @@ type swaggerParameterBodies struct {
 	MergePullRequestOption forms.MergePullRequestForm
 
 	// in:body
+	AddToMergeQueueOption api.AddToMergeQueueOption
+
+	// in:body
 	CreateReleaseOption api.CreateReleaseOption
 	// in:body
 	EditReleaseOption api.EditReleaseOption
@@ -258,6 +261,12 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	MoveProjectIssueOption api.MoveProjectIssueOption
+
+	// in:body
+	CreateProjectWorkflowOption api.CreateProjectWorkflowOption
+
+	// in:body
+	EditProjectWorkflowOption api.EditProjectWorkflowOption
 
 	// in:body
 	MergeUpstreamRequest api.MergeUpstreamRequest

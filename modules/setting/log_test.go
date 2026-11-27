@@ -36,9 +36,6 @@ func toJSON(v any) string {
 }
 
 func TestLogConfigDefault(t *testing.T) {
-	manager, managerClose := initLoggersByConfig(t, ``)
-	defer managerClose()
-
 	writerDump := `
 {
 	"console": {
@@ -57,94 +54,36 @@ func TestLogConfigDefault(t *testing.T) {
 }
 `
 
-	dump := manager.GetLogger(log.DEFAULT).DumpWriters()
-	require.JSONEq(t, writerDump, toJSON(dump))
-
-	dump = manager.GetLogger("access").DumpWriters()
-	require.JSONEq(t, "{}", toJSON(dump))
-
-	dump = manager.GetLogger("router").DumpWriters()
-	require.JSONEq(t, writerDump, toJSON(dump))
-
-	dump = manager.GetLogger("xorm").DumpWriters()
-	require.JSONEq(t, writerDump, toJSON(dump))
-}
-
-func TestLogConfigDisable(t *testing.T) {
-	manager, managerClose := initLoggersByConfig(t, `
+	for _, tt := range []struct {
+		name, config, routerDump string
+	}{
+		{"Default", ``, writerDump},
+		{"Disable", `
 [log]
 logger.router.MODE =
 logger.xorm.MODE =
-`)
-	defer managerClose()
-
-	writerDump := `
-{
-	"console": {
-		"BufferLen": 10000,
-		"Colorize": false,
-		"Expression": "",
-		"Flags": "stdflags",
-		"Level": "info",
-		"Prefix": "",
-		"StacktraceLevel": "none",
-		"WriterOption": {
-			"Stderr": false
-		},
-		"WriterType": "console"
-	}
-}
-`
-
-	dump := manager.GetLogger(log.DEFAULT).DumpWriters()
-	require.JSONEq(t, writerDump, toJSON(dump))
-
-	dump = manager.GetLogger("access").DumpWriters()
-	require.JSONEq(t, "{}", toJSON(dump))
-
-	dump = manager.GetLogger("router").DumpWriters()
-	require.JSONEq(t, "{}", toJSON(dump))
-
-	dump = manager.GetLogger("xorm").DumpWriters()
-	require.JSONEq(t, "{}", toJSON(dump))
-}
-
-func TestLogConfigLegacyDefault(t *testing.T) {
-	manager, managerClose := initLoggersByConfig(t, `
+`, "{}"},
+		{"LegacyDefault", `
 [log]
 MODE = console
-`)
-	defer managerClose()
+`, writerDump},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			manager, managerClose := initLoggersByConfig(t, tt.config)
+			defer managerClose()
 
-	writerDump := `
-{
-	"console": {
-		"BufferLen": 10000,
-		"Colorize": false,
-		"Expression": "",
-		"Flags": "stdflags",
-		"Level": "info",
-		"Prefix": "",
-		"StacktraceLevel": "none",
-		"WriterOption": {
-			"Stderr": false
-		},
-		"WriterType": "console"
+			for _, logger := range []struct {
+				name, expected string
+			}{
+				{log.DEFAULT, writerDump},
+				{"access", "{}"},
+				{"router", tt.routerDump},
+				{"xorm", tt.routerDump},
+			} {
+				require.JSONEq(t, logger.expected, toJSON(manager.GetLogger(logger.name).DumpWriters()))
+			}
+		})
 	}
-}
-`
-
-	dump := manager.GetLogger(log.DEFAULT).DumpWriters()
-	require.JSONEq(t, writerDump, toJSON(dump))
-
-	dump = manager.GetLogger("access").DumpWriters()
-	require.JSONEq(t, "{}", toJSON(dump))
-
-	dump = manager.GetLogger("router").DumpWriters()
-	require.JSONEq(t, writerDump, toJSON(dump))
-
-	dump = manager.GetLogger("xorm").DumpWriters()
-	require.JSONEq(t, writerDump, toJSON(dump))
 }
 
 func TestLogConfigLegacyMode(t *testing.T) {

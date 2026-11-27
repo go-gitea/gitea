@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/git"
@@ -50,9 +52,9 @@ func Branches(ctx *context.Context) {
 
 	kw := ctx.FormString("q")
 
-	defaultBranchOptional, branches, branchesCount, err := repo_service.LoadBranches(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, optional.None[bool](), kw, page, pageSize)
+	defaultBranchOptional, branches, branchesCount, err := repo_service.LoadBranches(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Doer, ctx.Repo.Permission, optional.None[bool](), kw, page, pageSize)
 	if err != nil {
-		ctx.ServerError("LoadBranches", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -66,7 +68,7 @@ func Branches(ctx *context.Context) {
 
 	commitStatuses, err := git_model.GetLatestCommitStatusForRepoCommitIDs(ctx, ctx.Repo.Repository.ID, commitIDs)
 	if err != nil {
-		ctx.ServerError("LoadBranches", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -76,6 +78,12 @@ func Branches(ctx *context.Context) {
 		commitStatus[commitID] = git_model.CalcCommitStatus(cs)
 	}
 
+	if ctx.Repo.Repository.AllowsPulls(ctx) && ctx.Repo.Permission.CanRead(unit.TypePullRequests) {
+		if ctx.Data["MergeQueueSizes"], err = pull_model.CountMergeQueueEntries(ctx, ctx.Repo.Repository.ID); err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+	}
 	ctx.Data["Keyword"] = kw
 	ctx.Data["Branches"] = branches
 	ctx.Data["CommitStatus"] = commitStatus
@@ -97,6 +105,8 @@ func DeleteBranchPost(ctx *context.Context) {
 		ctx.JSONError(ctx.Tr("repo.branch.deletion_failed", branchName))
 	case errors.Is(err, repo_service.ErrBranchIsDefault):
 		ctx.JSONError(ctx.Tr("repo.branch.default_deletion_failed", branchName))
+	case errors.Is(err, issues_model.ErrQueuedPullHead):
+		ctx.JSONErrorAuto(err)
 	case errors.Is(err, git_model.ErrBranchIsProtected):
 		ctx.JSONError(ctx.Tr("repo.branch.protected_deletion_failed", branchName))
 	default:
@@ -152,7 +162,7 @@ func RestoreBranchPost(ctx *context.Context) {
 func CreateBranch(ctx *context.Context) {
 	form := web.GetForm[*forms.NewBranchForm](ctx)
 	if !ctx.Repo.CanCreateBranch() {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -207,7 +217,7 @@ func CreateBranch(ctx *context.Context) {
 					"Details": utils.EscapeFlashErrorString(e.Message),
 				})
 				if err != nil {
-					ctx.ServerError("UpdatePullRequest.HTMLString", err)
+					ctx.ServerErrorAuto(err)
 					return
 				}
 				ctx.Flash.Error(flashError)
@@ -216,7 +226,7 @@ func CreateBranch(ctx *context.Context) {
 			return
 		}
 
-		ctx.ServerError("CreateNewBranch", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -244,7 +254,7 @@ func MergeUpstream(ctx *context.Context) {
 			ctx.JSONError(ctx.Tr("repo.pulls.unrelated_histories"))
 			return
 		}
-		ctx.ServerError("MergeUpstream", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONRedirect("")

@@ -53,6 +53,16 @@ func TestRenameRepoAction(t *testing.T) {
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
 }
 
+func TestNewReleaseActionCreditsDoer(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	rel := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 1})
+	NewNotifier().NewRelease(t.Context(), doer, rel)
+
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{OpType: activities_model.ActionPublishRelease, ActUserID: doer.ID, RepoID: rel.RepoID})
+}
+
 func TestPullRequestReviewActionExcerpts(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

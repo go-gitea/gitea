@@ -11,6 +11,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
@@ -40,26 +41,57 @@ func init() {
 	db.RegisterModel(new(ActionSchedule))
 }
 
-// CreateScheduleTaskBySchedules creates new schedule task.
-func CreateScheduleTaskBySchedules(ctx context.Context, rows []*ActionSchedule) error {
-	// Return early if there are no rows to insert
-	if len(rows) == 0 {
-		return nil
-	}
+type scheduleSpecKey struct {
+	scheduleID int64
+	spec       string
+}
 
+// ReplaceScheduleTasksByRepo updates schedules in place and keeps the specs of unchanged crons, so re-registering cannot skip a due occurrence.
+func ReplaceScheduleTasksByRepo(ctx context.Context, repoID int64, rows []*ActionSchedule) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
+		var oldSchedules []*ActionSchedule
+		if err := db.GetEngine(ctx).Cols("id", "workflow_id").Where("repo_id = ?", repoID).Find(&oldSchedules); err != nil {
+			return err
+		}
+		var oldSpecs []*ActionScheduleSpec
+		if err := db.GetEngine(ctx).Cols("id", "schedule_id", "spec").Where("repo_id = ?", repoID).Find(&oldSpecs); err != nil {
+			return err
+		}
+		scheduleIDs := make(map[string]int64, len(oldSchedules))
+		for _, schedule := range oldSchedules {
+			scheduleIDs[schedule.WorkflowID] = schedule.ID
+		}
+		specIDs := make(map[scheduleSpecKey]int64, len(oldSpecs))
+		for _, spec := range oldSpecs {
+			specIDs[scheduleSpecKey{spec.ScheduleID, spec.Spec}] = spec.ID
+		}
+
+		var keptScheduleIDs, keptSpecIDs []int64
+
 		// Loop through each schedule row
 		for _, row := range rows {
 			row.Title = util.EllipsisDisplayString(row.Title, 255)
-			// Create new schedule row
-			if err := db.Insert(ctx, row); err != nil {
+			if id, ok := scheduleIDs[row.WorkflowID]; ok {
+				row.ID = id
+				if _, err := db.GetEngine(ctx).ID(id).AllCols().Update(row); err != nil {
+					return err
+				}
+			} else if err := db.Insert(ctx, row); err != nil {
 				return err
 			}
+			keptScheduleIDs = append(keptScheduleIDs, row.ID)
 
 			// Loop through each schedule spec and create a new spec row
 			now := time.Now()
 
 			for _, spec := range row.Specs {
+				key := scheduleSpecKey{row.ID, spec}
+				if id, ok := specIDs[key]; ok {
+					delete(specIDs, key)
+					keptSpecIDs = append(keptSpecIDs, id)
+					continue
+				}
+
 				specRow := &ActionScheduleSpec{
 					RepoID:     row.RepoID,
 					ScheduleID: row.ID,
@@ -80,9 +112,16 @@ func CreateScheduleTaskBySchedules(ctx context.Context, rows []*ActionSchedule) 
 				if err = db.Insert(ctx, specRow); err != nil {
 					return err
 				}
+				keptSpecIDs = append(keptSpecIDs, specRow.ID)
 			}
 		}
-		return nil
+
+		// an empty NotIn matches every row
+		if _, err := db.GetEngine(ctx).Where("repo_id = ?", repoID).NotIn("id", keptScheduleIDs).Delete(&ActionSchedule{}); err != nil {
+			return err
+		}
+		_, err := db.GetEngine(ctx).Where("repo_id = ?", repoID).NotIn("id", keptSpecIDs).Delete(&ActionScheduleSpec{})
+		return err
 	})
 }
 
@@ -110,7 +149,7 @@ func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) ([
 	jobs, err := CancelPreviousJobs(
 		ctx,
 		repo.ID,
-		repo.DefaultBranch,
+		git.RefNameFromBranch(repo.DefaultBranch).String(),
 		"",
 		webhook_module.HookEventSchedule,
 	)

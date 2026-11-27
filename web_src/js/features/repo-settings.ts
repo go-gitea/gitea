@@ -5,6 +5,7 @@ import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {attachSearchBox} from '../modules/search.ts';
 import {globMatch} from '../utils/glob.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 const {appSubUrl} = window.config;
 
@@ -64,9 +65,8 @@ function initRepoSettingsSearchTeamBox() {
   })));
 }
 
-function initRepoSettingsGitHook() {
-  if (!document.querySelector('.page-content.repository.settings.edit.githook')) return;
-  createCodeEditor(document.querySelector<HTMLTextAreaElement>('#content')!);
+function initRepoSettingsGitHook(form: HTMLFormElement) {
+  createCodeEditor(form.querySelector<HTMLTextAreaElement>('textarea[name=content]')!);
 }
 
 function initRepoSettingsBranches() {
@@ -75,7 +75,12 @@ function initRepoSettingsBranches() {
   for (const el of document.querySelectorAll<HTMLInputElement>('.toggle-target-enabled')) {
     el.addEventListener('change', function () {
       const target = document.querySelector(this.getAttribute('data-target')!);
-      target?.classList.toggle('disabled', !this.checked);
+      if (target instanceof HTMLFieldSetElement) {
+        target.disabled = !this.checked;
+        target.inert = !this.checked;
+      } else {
+        target?.classList.toggle('disabled', !this.checked);
+      }
     });
   }
 
@@ -137,11 +142,11 @@ function initRepoSettingsOptions() {
 }
 
 export function initRepoSettings() {
+  registerGlobalInitFunc('initRepoSettingsGitHook', initRepoSettingsGitHook);
   if (!document.querySelector('.page-content.repository.settings')) return;
   initRepoSettingsOptions();
   initRepoSettingsBranches();
   initRepoSettingsCollaboration();
   initRepoSettingsSearchTeamBox();
-  initRepoSettingsGitHook();
   initRepoSettingsBranchesDrag();
 }

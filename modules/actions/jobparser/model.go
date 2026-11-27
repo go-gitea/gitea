@@ -4,7 +4,6 @@
 package jobparser
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -27,6 +26,7 @@ type SingleWorkflow struct {
 	Defaults       Defaults  `yaml:"defaults,omitempty"`
 	RawPermissions yaml.Node `yaml:"permissions,omitempty"`
 	RunName        string    `yaml:"run-name,omitempty"`
+	CacheMode      string    `yaml:"cache-mode,omitempty"`
 }
 
 func (w *SingleWorkflow) Job() (string, *Job) {
@@ -65,44 +65,31 @@ func (w *SingleWorkflow) SetJob(id string, job *Job) error {
 	m := map[string]*Job{
 		id: job,
 	}
-	var buf bytes.Buffer
-	encoder := yaml.NewEncoder(&buf)
-	encoder.SetIndent(2)
-	if err := encoder.Encode(m); err != nil {
+	out, err := marshalYAML(m)
+	if err != nil {
 		return err
 	}
-	encoder.Close()
 
 	node := yaml.Node{}
-	if err := yaml.Unmarshal(buf.Bytes(), &node); err != nil {
+	if err := yaml.Unmarshal(out, &node); err != nil {
 		return err
 	}
 	if len(node.Content) != 1 || node.Content[0].Kind != yaml.MappingNode {
-		return fmt.Errorf("can not set job: %s", buf.String())
+		return fmt.Errorf("can not set job: %s", out)
 	}
 	w.RawJobs = *node.Content[0]
 	return nil
 }
 
 func (w *SingleWorkflow) Marshal() ([]byte, error) {
-	// Encode with the same indentation SetJob uses (2). yaml.Marshal's default
-	// indentation (4) makes the encoder emit multi-line block scalars (e.g. a
-	// `run:` step that begins with blank lines) with a wrong explicit indentation
-	// indicator (`run: |4`) that then fails to re-parse, which silently strands
-	// the job during concurrency evaluation. Keeping both encoders at indent 2
-	// makes the serialized single workflow round-trip.
-	var buf bytes.Buffer
-	enc := yaml.NewEncoder(&buf)
-	enc.SetIndent(2)
 	payload := *w
 	payload.RunName = "" // already interpolated into the run title, a runner would parse it as a template again
-	if err := enc.Encode(&payload); err != nil {
-		return nil, err
-	}
-	if err := enc.Close(); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+	return marshalYAML(&payload)
+}
+
+// marshalYAML never wraps lines, re-encoding must not reflow long values.
+func marshalYAML(v any) ([]byte, error) {
+	return yaml.Dump(v, yaml.WithV3Defaults(), yaml.WithIndent(2), yaml.WithLineWidth(-1))
 }
 
 type Job struct {
@@ -124,6 +111,7 @@ type Job struct {
 	RawSecrets         yaml.Node             `yaml:"secrets,omitempty"`
 	RawConcurrency     *model.RawConcurrency `yaml:"concurrency,omitempty"`
 	RawPermissions     yaml.Node             `yaml:"permissions,omitempty"`
+	CacheMode          string                `yaml:"cache-mode,omitempty"`
 	RawEnvironment     yaml.Node             `yaml:"environment,omitempty"`
 }
 
@@ -144,27 +132,7 @@ func (j *Job) Clone() *Job {
 	if j == nil {
 		return nil
 	}
-	return &Job{
-		Name:               j.Name,
-		RawNeeds:           j.RawNeeds,
-		RawRunsOn:          j.RawRunsOn,
-		Env:                j.Env,
-		If:                 j.If,
-		Steps:              j.Steps,
-		TimeoutMinutes:     j.TimeoutMinutes,
-		RawContinueOnError: j.RawContinueOnError,
-		Services:           j.Services,
-		Strategy:           j.Strategy,
-		RawContainer:       j.RawContainer,
-		Defaults:           j.Defaults,
-		Outputs:            j.Outputs,
-		Uses:               j.Uses,
-		With:               j.With,
-		RawSecrets:         j.RawSecrets,
-		RawConcurrency:     j.RawConcurrency,
-		RawPermissions:     j.RawPermissions,
-		RawEnvironment:     j.RawEnvironment,
-	}
+	return new(*j)
 }
 
 func (j *Job) Needs() []string {
@@ -181,7 +149,10 @@ func (j *Job) RunsOnProblem() string {
 	if j.RawRunsOn.Kind == 0 {
 		return ""
 	}
-	return runsOnProblem(&j.RawRunsOn)
+	if err := model.ValidateRunsOn(&j.RawRunsOn); err != nil {
+		return err.Error()
+	}
+	return ""
 }
 
 // RunsOn returns the labels Gitea matches runners against, unescaped like DisplayName.
@@ -196,17 +167,6 @@ func (j *Job) RunsOn() []string {
 // DisplayName is the name Gitea stores, without the escaping the payload keeps for runners.
 func (j *Job) DisplayName() string {
 	return util.EllipsisDisplayString(unescapeExpressions(j.Name), 255)
-}
-
-// BlockSafeString works around https://github.com/yaml/go-yaml/issues/399, quoting a value whose
-// leading newline would cost a literal block scalar its indentation indicator.
-type BlockSafeString string
-
-func (s BlockSafeString) MarshalYAML() (any, error) {
-	if !strings.HasPrefix(string(s), "\n") {
-		return string(s), nil
-	}
-	return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Style: yaml.DoubleQuotedStyle, Value: string(s)}, nil
 }
 
 // DeploymentEnvironmentName reads the scalar or object form of "environment:"; the url is evaluated by the runner.
@@ -233,17 +193,17 @@ func (j *Job) DeploymentEnvironmentName() string {
 }
 
 type Step struct {
-	ID                 string          `yaml:"id,omitempty"`
-	If                 yaml.Node       `yaml:"if,omitempty"`
-	Name               BlockSafeString `yaml:"name,omitempty"`
-	Uses               string          `yaml:"uses,omitempty"`
-	Run                BlockSafeString `yaml:"run,omitempty"`
-	WorkingDirectory   string          `yaml:"working-directory,omitempty"`
-	Shell              string          `yaml:"shell,omitempty"`
-	Env                yaml.Node       `yaml:"env,omitempty"`
-	With               yaml.Node       `yaml:"with,omitempty"`
-	RawContinueOnError yaml.Node       `yaml:"continue-on-error,omitempty"` // raw: the runner evaluates it with the steps context
-	TimeoutMinutes     string          `yaml:"timeout-minutes,omitempty"`
+	ID                 string    `yaml:"id,omitempty"`
+	If                 yaml.Node `yaml:"if,omitempty"`
+	Name               string    `yaml:"name,omitempty"`
+	Uses               string    `yaml:"uses,omitempty"`
+	Run                string    `yaml:"run,omitempty"`
+	WorkingDirectory   string    `yaml:"working-directory,omitempty"`
+	Shell              string    `yaml:"shell,omitempty"`
+	Env                yaml.Node `yaml:"env,omitempty"`
+	With               yaml.Node `yaml:"with,omitempty"`
+	RawContinueOnError yaml.Node `yaml:"continue-on-error,omitempty"` // raw: the runner evaluates it with the steps context
+	TimeoutMinutes     string    `yaml:"timeout-minutes,omitempty"`
 }
 
 // UnmarshalYAML canonicalizes booleans like continue-on-error
@@ -256,19 +216,6 @@ func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 		raw.Value = strings.ToLower(raw.Value)
 	}
 	return nil
-}
-
-// String gets the name of step
-func (s *Step) String() string {
-	if s == nil {
-		return ""
-	}
-	return (&model.Step{
-		ID:   s.ID,
-		Name: string(s.Name),
-		Uses: s.Uses,
-		Run:  string(s.Run),
-	}).String()
 }
 
 type Strategy struct {
@@ -538,8 +485,8 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 
 // EvaluateJobIfExpression evaluates a job's `if:`, which github.com decides before the matrix, so without the matrix and strategy contexts.
 func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (bool, error) {
-	if unavailable := unavailableContext(IfExpression(job.If.Value), jobConditionContexts); unavailable != "" { // only a job stored before its conditions were validated
-		return false, fmt.Errorf("job %s: Unrecognized named-value: '%s', update the workflow and trigger a new run", jobID, unavailable)
+	if err := model.ValidateJobCondition(job.If.Value); err != nil { // only a job stored before its conditions were validated
+		return false, fmt.Errorf("job %s: %w, update the workflow and trigger a new run", jobID, err)
 	}
 	evaluator := expreval.New(NewInterpeter(jobID, nil, nil, model.GithubContextFromMap(gitCtx), results, vars, inputs).Evaluate)
 	return evaluator.EvalBool(job.If.Value, exprparser.DefaultStatusCheckSuccess)

@@ -7,9 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
+	"slices"
 	"time"
 
+	"gitea.dev/actionslib/pkg/model"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -26,15 +27,16 @@ import (
 
 // ActionTask represents a distribution of job
 type ActionTask struct {
-	ID       int64
-	JobID    int64
-	Job      *ActionRunJob     `xorm:"-"`
-	Steps    []*ActionTaskStep `xorm:"-"`
-	Attempt  int64
-	RunnerID int64              `xorm:"index"`
-	Status   Status             `xorm:"index"`
-	Started  timeutil.TimeStamp `xorm:"index"`
-	Stopped  timeutil.TimeStamp `xorm:"index(stopped_log_expired)"`
+	ID         int64
+	JobID      int64
+	Job        *ActionRunJob     `xorm:"-"`
+	Steps      []*ActionTaskStep `xorm:"-"`
+	Attempt    int64
+	RunnerID   int64              `xorm:"index"`
+	RunnerName string             `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
+	Status     Status             `xorm:"index"`
+	Started    timeutil.TimeStamp `xorm:"index"`
+	Stopped    timeutil.TimeStamp `xorm:"index(stopped_log_expired)"`
 
 	RepoID            int64  `xorm:"index"`
 	OwnerID           int64  `xorm:"index"`
@@ -43,7 +45,7 @@ type ActionTask struct {
 
 	Token          string `xorm:"-"`
 	TokenHash      string `xorm:"UNIQUE"` // sha256 of token
-	TokenSalt      string
+	TokenSalt      string // only set for legacy pbkdf2 hashes
 	TokenLastEight string `xorm:"index token_last_eight"`
 
 	LogFilename  string     // file name of log
@@ -136,7 +138,7 @@ func (task *ActionTask) LoadAttributes(ctx context.Context) error {
 }
 
 func (task *ActionTask) GenerateAndFillToken() {
-	task.Token, task.TokenSalt, task.TokenHash, task.TokenLastEight = generateSaltedToken()
+	task.Token, task.TokenHash, task.TokenLastEight = auth_model.GenerateToken()
 }
 
 func GetTaskByID(ctx context.Context, id int64) (*ActionTask, error) {
@@ -184,11 +186,7 @@ func GetTaskRunnerNames(ctx context.Context, taskIDs []int64) (map[int64]string,
 }
 
 func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, error) {
-	errNotExist := fmt.Errorf("task with token %q: %w", token, util.ErrNotExist)
-	if token == "" {
-		return nil, errNotExist
-	}
-	// A token is defined as being SHA1 sum these are 40 hexadecimal bytes long
+	errNotExist := util.NewNotExistErrorf("task token not found")
 	if len(token) != 40 {
 		return nil, errNotExist
 	}
@@ -198,54 +196,27 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 		}
 	}
 
-	cacheKey := "actions:" + token
-	lastEight := token[len(token)-8:]
-	if cached, _ := auth_model.TokenCache().Get(cacheKey); cached != nil {
-		task := &ActionTask{
-			TokenLastEight: lastEight,
-		}
-		// Re-get the task from the db in case it has been deleted in the intervening period
-		has, err := db.GetEngine(ctx).ID(cached.TokenID).Get(task)
-		if err != nil {
-			return nil, err
-		}
-		if has && util.CryptoConstTimeEqual(task.TokenHash, cached.TokenHash) {
-			return task, nil
-		}
-		auth_model.TokenCache().Remove(cacheKey)
-	}
-
 	var tasks []*ActionTask
 	// Cancelling tasks are still authenticating — post-run cleanup steps need API access (artifact uploads, cache saves, etc.) before the runner finalizes the task.
-	err := db.GetEngine(ctx).Where("token_last_eight = ? AND status IN (?, ?)", lastEight, StatusRunning, StatusCancelling).Find(&tasks)
+	err := db.GetEngine(ctx).Where("token_last_eight = ? AND status IN (?, ?)", token[len(token)-8:], StatusRunning, StatusCancelling).Find(&tasks)
 	if err != nil {
 		return nil, err
-	} else if len(tasks) == 0 {
-		return nil, errNotExist
 	}
-
 	for _, t := range tasks {
-		tempHash := auth_model.HashToken(token, t.TokenSalt)
-		if util.CryptoConstTimeEqual(t.TokenHash, tempHash) {
-			auth_model.TokenCache().Add(cacheKey, &auth_model.TokenCacheItem{TokenID: t.ID, TokenHash: t.TokenHash})
+		if auth_model.VerifyToken(ctx, t, token, t.TokenSalt, t.TokenHash) {
 			return t, nil
 		}
 	}
 	return nil, errNotExist
 }
 
-func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
-	if step.Name != "" {
-		name = string(step.Name) // the step has an explicit name
-	} else {
-		// for unnamed step, its "String()" method tries to get a display name by its "name", "uses",
-		// "run" or "id" (last fallback), we add the "Run " prefix for unnamed steps for better display
-		// for multi-line "run" scripts, only use the first line to match GitHub's behavior
-		// https://github.com/actions/runner/blob/66800900843747f37591b077091dd2c8cf2c1796/src/Runner.Worker/Handlers/ScriptHandler.cs#L45-L58
-		runStr, _, _ := strings.Cut(strings.TrimSpace(string(step.Run)), "\n")
-		name = "Run " + util.IfZero(strings.TrimSpace(runStr), step.String())
-	}
-	return util.EllipsisDisplayString(name, limit) // database column has a length limit
+func makeTaskStepDisplayName(step *jobparser.Step, limit int) string {
+	return util.EllipsisDisplayString(model.StepDisplayName(&model.Step{
+		ID:   step.ID,
+		Name: step.Name,
+		Uses: step.Uses,
+		Run:  step.Run,
+	}, ""), limit)
 }
 
 // errJobAlreadyClaimed is a sentinel used inside claimJobForRunner to signal that
@@ -261,21 +232,10 @@ var pickTaskBatchSize = 100
 // atomically claims it. It iterates through all matching jobs so that a
 // concurrent claim by another runner (which would lose the optimistic lock on
 // job #1) does not leave the remaining jobs permanently unassigned.
-func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
+func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (task *ActionTask, cancelledJobs []*ActionRunJob, err error) {
 	if db.InTransaction(ctx) {
-		return nil, false, errors.New("CreateTaskForRunner must not be called within a database transaction")
+		return nil, nil, errors.New("CreateTaskForRunner must not be called within a database transaction")
 	}
-	e := db.GetEngine(ctx)
-
-	jobCond := builder.NewCond()
-	if runner.RepoID != 0 {
-		jobCond = builder.Eq{"repo_id": runner.RepoID}
-	} else if runner.OwnerID != 0 {
-		jobCond = builder.In("repo_id", builder.Select("`repository`.id").From("repository").
-			Join("INNER", "repo_unit", "`repository`.id = `repo_unit`.repo_id").
-			Where(builder.Eq{"`repository`.owner_id": runner.OwnerID, "`repo_unit`.type": unit.TypeActions}))
-	}
-	baseCond := builder.Eq{"task_id": 0, "status": StatusWaiting, "is_reusable_caller": false}.And(jobCond)
 
 	// TODO: a more efficient way to filter labels
 	log.Trace("runner labels: %v", runner.AgentLabels)
@@ -286,17 +246,17 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	var cursorUpdated timeutil.TimeStamp
 	var cursorID int64
 	for {
-		cond := baseCond
+		sess := JobQueueOptions{RepoID: runner.RepoID, OwnerID: runner.OwnerID, Status: StatusWaiting}.session(ctx)
 		if cursorID > 0 {
-			cond = cond.And(builder.Or(
+			sess.And(builder.Or(
 				builder.Gt{"updated": cursorUpdated},
 				builder.And(builder.Eq{"updated": cursorUpdated}, builder.Gt{"id": cursorID}),
 			))
 		}
 
 		var jobs []*ActionRunJob
-		if err := e.Where(cond).Asc("updated", "id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
-			return nil, false, err
+		if err := sess.Asc("updated", "id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
+			return nil, cancelledJobs, err
 		}
 		// A short page means no waiting jobs remain beyond it.
 		isLastPage := len(jobs) < pickTaskBatchSize
@@ -309,33 +269,43 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			if !runner.CanMatchLabels(v.RunsOn) {
 				continue
 			}
-			task, ok, err := claimJobForRunner(ctx, runner, v)
-			if err != nil {
-				return nil, false, err
+			task, cancelled, err := claimJobForRunner(ctx, runner, v)
+			if cancelled {
+				cancelledJobs = append(cancelledJobs, v)
 			}
-			if ok {
-				return task, true, nil
+			if err != nil || task != nil {
+				return task, cancelledJobs, err
 			}
-			// Another runner claimed this job concurrently; try the next one.
+			// Another runner claimed this job concurrently, or it was cancelled. Try the next one.
 		}
 
 		if isLastPage {
-			return nil, false, nil
+			return nil, cancelledJobs, nil
 		}
 	}
 }
 
 // claimJobForRunner attempts to atomically claim job for runner inside its own
-// transaction. Returns (task, true, nil) on success, or (nil, false, nil) when
-// another runner wins the optimistic-lock race (the caller should try the next
-// candidate job).
+// transaction. Returns the task on success, cancelled when the job's repository
+// has Actions disabled, or neither when another runner wins the optimistic-lock
+// race (the caller should try the next candidate job).
 func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRunJob) (*ActionTask, bool, error) {
 	var resultTask *ActionTask
+	var cancelled bool
 
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		e := db.GetEngine(ctx)
 
 		if err := job.LoadAttributes(ctx); err != nil {
+			return err
+		}
+		if err := job.Run.Repo.LoadUnits(ctx); err != nil {
+			return err
+		}
+		if !job.Run.Repo.UnitEnabled(ctx, unit.TypeActions) {
+			job.Status, job.Stopped = StatusCancelled, timeutil.TimeStampNow()
+			affected, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0, "status": StatusWaiting}, "status", "stopped")
+			cancelled = err == nil && affected == 1
 			return err
 		}
 
@@ -347,6 +317,7 @@ func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRun
 			JobID:             job.ID,
 			Attempt:           job.Attempt,
 			RunnerID:          runner.ID,
+			RunnerName:        runner.Name,
 			Started:           now,
 			Status:            StatusRunning,
 			RepoID:            job.RepoID,
@@ -403,13 +374,10 @@ func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRun
 		return nil
 	})
 
-	if errors.Is(err, errJobAlreadyClaimed) {
-		return nil, false, nil
-	}
-	if err != nil {
+	if err != nil && !errors.Is(err, errJobAlreadyClaimed) {
 		return nil, false, err
 	}
-	return resultTask, true, nil
+	return resultTask, cancelled, nil
 }
 
 // ReleaseTaskForRunner reverts a freshly-claimed but undelivered task: it deletes
@@ -482,6 +450,11 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 	for _, v := range state.Steps {
 		stepStates[v.Id] = v
 	}
+	reportedSteps := state.ReportedSteps
+	if err := validateReportedSteps(reportedSteps); err != nil {
+		log.Warn("Ignore the steps reported for task %d: %v", state.Id, err)
+		reportedSteps = nil
+	}
 
 	// Only one request can update the task because the final state needs to be calculated with all job states.
 	// Otherwise, concurrent requests with transaction will make the SQL read stale job state and result in wrong final state.
@@ -538,22 +511,14 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			return err
 		}
 
+		if len(reportedSteps) > 0 {
+			return updateReportedSteps(ctx, task, reportedSteps, now)
+		}
+		if slices.ContainsFunc(task.Steps, (*ActionTaskStep).IsReported) {
+			return nil // the indexes of the steps of the workflow file no longer match the stored steps
+		}
 		for _, step := range task.Steps {
-			var result runnerv1.Result
-			if v, ok := stepStates[step.Index]; ok {
-				result = v.Result
-				step.LogIndex = v.LogIndex
-				step.LogLength = v.LogLength
-				if step.Started == 0 && v.StartedAt != nil {
-					step.Started = now
-				}
-			}
-			if result != runnerv1.Result_RESULT_UNSPECIFIED {
-				step.Status = StatusFromResult(result)
-				step.Stopped = util.IfZero(step.Stopped, now)
-			} else if step.Started != 0 {
-				step.Status = StatusRunning
-			}
+			step.applyState(stepStates[step.Index], now)
 			if _, err := db.GetEngine(ctx).ID(step.ID).Update(step); err != nil {
 				return err
 			}
@@ -637,13 +602,7 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 	}
 
 	for _, step := range task.Steps {
-		if !step.Status.IsDone() {
-			step.Status = status
-			if step.Started == 0 {
-				step.Started = now
-			}
-			step.Stopped = now
-		}
+		step.stop(status, now)
 		if _, err := e.ID(step.ID).Update(step); err != nil {
 			return err
 		}

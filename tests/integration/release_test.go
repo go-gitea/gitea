@@ -6,8 +6,10 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
+	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -46,7 +48,6 @@ func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title st
 	assert.NotEmpty(t, test.ParseJSONRedirect(resp.Body.Bytes()))
 }
 
-// returns the first listed title, which is not necessarily the one just created because releases are ordered by commit date
 func checkLatestReleaseAndCount(t *testing.T, session *TestSession, repoURL, version, label string, count int) string {
 	req := NewRequest(t, "GET", repoURL+"/releases")
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -79,30 +80,16 @@ func TestViewReleasesNoLogin(t *testing.T) {
 }
 
 func TestCreateRelease(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	for _, releaseType := range []string{"stable", "prerelease", "draft"} {
+		t.Run(releaseType, func(t *testing.T) {
+			defer tests.PrepareTestEnv(t)()
 
-	session := loginUser(t, "user2")
-	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, false)
+			session := loginUser(t, "user2")
+			createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", releaseType == "prerelease", releaseType == "draft")
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").TrString("repo.release.stable"), 4)
-}
-
-func TestCreateReleasePreRelease(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	session := loginUser(t, "user2")
-	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", true, false)
-
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").TrString("repo.release.prerelease"), 4)
-}
-
-func TestCreateReleaseDraft(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	session := loginUser(t, "user2")
-	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, true)
-
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").TrString("repo.release.draft"), 4)
+			checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").TrString("repo.release."+releaseType), 4)
+		})
+	}
 }
 
 func TestCreateReleasePaging(t *testing.T) {
@@ -127,6 +114,14 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 57, OwnerName: "user2", LowerName: "repo-release"})
+	for tagName, note := range map[string]string{
+		"v1.0": "thanks @user5, @user2, @user31, @User5, @user9, @user37, @org3 and @no-such-user",
+		"v1.1": "thanks @user4",
+	} {
+		release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{RepoID: repo.ID, TagName: tagName})
+		release.Note = note
+		assert.NoError(t, repo_model.UpdateRelease(t.Context(), release))
+	}
 
 	link := repo.Link() + "/releases"
 
@@ -139,6 +134,7 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 
 	links := make([]string, 0, 5)
 	commitsToMain := make([]string, 0, 5)
+	contributors := make([]string, 0, 5)
 	releases.Each(func(i int, s *goquery.Selection) {
 		link, exist := s.Find(".release-list-title a").Attr("href")
 		if !exist {
@@ -147,6 +143,9 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 		links = append(links, link)
 
 		commitsToMain = append(commitsToMain, s.Find(".ahead > a").Text())
+		contributors = append(contributors, strings.Join(s.Find(".release-contributors a").Map(func(_idx int, anchor *goquery.Selection) string {
+			return anchor.AttrOr("href", "")
+		}), " "))
 	})
 
 	assert.Equal(t, []string{
@@ -163,6 +162,7 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 		"1 commits", // should be 3 commits ahead and 2 commits behind, but not implemented yet
 		"3 commits",
 	}, commitsToMain)
+	assert.Equal(t, []string{"", "", "", "/user4", "/user5 /user2"}, contributors)
 }
 
 func TestViewSingleRelease(t *testing.T) {
@@ -190,6 +190,9 @@ func TestViewReleaseListLogin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 1})
+	release.PublishedUnix = 1700000000
+	assert.NoError(t, repo_model.UpdateRelease(t.Context(), release))
 
 	link := repo.Link() + "/releases"
 
@@ -212,8 +215,8 @@ func TestViewReleaseListLogin(t *testing.T) {
 
 	assert.Equal(t, []string{
 		"/user2/repo1/releases/tag/draft-release",
-		"/user2/repo1/releases/tag/v1.0",
 		"/user2/repo1/releases/tag/v1.1",
+		"/user2/repo1/releases/tag/v1.0",
 	}, links)
 }
 
@@ -279,4 +282,32 @@ func TestEditReleaseAttachmentRejectsForbiddenRename(t *testing.T) {
 
 	attachment = unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: attachment.ID})
 	assert.NotEqual(t, "evil.exe", attachment.Name)
+}
+
+func TestReleaseReaction(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	reactReq := func(releaseID int64, action, content string) *RequestWrapper {
+		return NewRequestWithValues(t, "POST", fmt.Sprintf("/user2/repo1/releases/%d/reactions/%s", releaseID, action), map[string]string{"content": content})
+	}
+
+	session.MakeRequest(t, reactReq(1, "react", "-1"), http.StatusForbidden)
+
+	session.MakeRequest(t, reactReq(1, "react", "heart"), http.StatusOK)
+	session.MakeRequest(t, reactReq(1, "react", "heart"), http.StatusOK)
+	unittest.AssertCount(t, &issues_model.Reaction{ReleaseID: 1}, 1)
+
+	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/releases"), http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	AssertHTMLElement(t, htmlDoc, `.bottom-reactions .ui.label[data-reaction-content="heart"]`, 1)
+	AssertHTMLElement(t, htmlDoc, `.reaction-picker [data-reaction-content="-1"]`, 0)
+	htmlDoc = NewHTMLParser(t, MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/releases"), http.StatusOK).Body)
+	AssertHTMLElement(t, htmlDoc, `.bottom-reactions .ui.label[data-reaction-content="heart"][aria-disabled="true"]:not([disabled])`, 1)
+
+	session.MakeRequest(t, reactReq(1, "unreact", "heart"), http.StatusOK)
+	unittest.AssertCount(t, &issues_model.Reaction{ReleaseID: 1}, 0)
+
+	for _, releaseID := range []int64{2, 3, 4} {
+		session.MakeRequest(t, reactReq(releaseID, "react", "heart"), http.StatusNotFound)
+	}
 }

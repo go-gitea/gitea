@@ -4,7 +4,6 @@
 package setting
 
 import (
-	"errors"
 	"net/http"
 
 	actions_model "gitea.dev/models/actions"
@@ -35,11 +34,7 @@ func contextEnvironment(ctx *context.Context) *actions_model.ActionEnvironment {
 func EnvironmentAssignment(ctx *context.Context) {
 	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"))
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("GetEnvironmentByRepoAndName", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Environment"] = env
@@ -53,7 +48,7 @@ func Environments(ctx *context.Context) {
 		RepoID: ctx.Repo.Repository.ID,
 	})
 	if err != nil {
-		ctx.ServerError("FindEnvironments", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Environments"] = envs
@@ -85,7 +80,7 @@ func EnvironmentEdit(ctx *context.Context) {
 	scope := actions_model.BelongingScopeEnvironment(ctx.Repo.Repository.ID, env.ID)
 	variables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{BelongingScope: scope})
 	if err != nil {
-		ctx.ServerError("FindVariables", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Variables"] = variables
@@ -126,8 +121,8 @@ func formBranchPatterns(ctx *context.Context) []string {
 }
 
 func flashEnvironmentError(ctx *context.Context, err error) {
-	if translatable := util.ErrorAsTranslatable(err); translatable != nil {
-		ctx.Flash.Error(translatable.Translate(ctx.Locale))
+	if msg, ok := util.ErrorTranslateHTML(err, ctx.Locale); ok {
+		ctx.Flash.Error(msg)
 		return
 	}
 	log.Error("Environment settings failed: %v", err)

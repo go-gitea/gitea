@@ -10,8 +10,8 @@ import (
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	pull_model "gitea.dev/models/pull"
 	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/private"
@@ -29,7 +29,6 @@ type preReceiveContext struct {
 
 	// this context should only contain shared variables, mutable variables like "current branch name" shouldn't be put here
 	canWriteCodeUnitCached *bool
-	canCreatePullRequest   *bool
 	protectedTags          []*git_model.ProtectedTag
 }
 
@@ -64,21 +63,10 @@ func (ctx *preReceiveContext) assertCanWriteRef(refFullName git.RefName) bool {
 	return true
 }
 
-// CanCreatePullRequest returns true if pusher can create pull requests
-func (ctx *preReceiveContext) CanCreatePullRequest() bool {
-	if ctx.canCreatePullRequest == nil {
-		ctx.canCreatePullRequest = new(ctx.Repo.Permission.CanRead(unit.TypePullRequests))
-	}
-	return *ctx.canCreatePullRequest
-}
-
-// AssertCreatePullRequest returns true if can create pull requests
-func (ctx *preReceiveContext) AssertCreatePullRequest() bool {
-	if !ctx.CanCreatePullRequest() {
-		if ctx.Written() {
-			return false
-		}
-		ctx.PrivateUserErrorf(http.StatusForbidden, "User permission denied for creating pull-request.")
+func assertCanCreatePullRequest(ctx *gitea_context.PrivateContext, opts *private.HookOptions) bool {
+	canReadPullRequests := ctx.Repo.Permission.CanRead(unit.TypePullRequests)
+	if !canReadPullRequests || opts.IsWiki {
+		ctx.PrivateUserErrorf(http.StatusForbidden, "%s", util.Iif(canReadPullRequests, "Pull requests are not supported on the wiki.", "User permission denied for creating pull-request."))
 		return false
 	}
 	return true
@@ -130,14 +118,36 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 
 	repo := ctx.Repo.Repository
 	gitRepo := ctx.Repo.GitRepo
-	objectFormat := ctx.Repo.GetObjectFormat()
+	emptyID := ctx.Repo.GetObjectFormat().EmptyObjectID().String()
+	isDeletingBranch := newCommitID == emptyID
+	isUpdate := oldCommitID != emptyID
+	if !ctx.opts.IsWiki {
+		if owned, err := pull_model.IsMergeQueueRef(ctx, repo.ID, refFullName); err != nil {
+			ctx.PrivateInternalErrorf("Unable to check merge queue ref: %v", err)
+			return
+		} else if owned {
+			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is reserved for the merge queue", branchName)
+			return
+		}
+		if isUpdate && ctx.opts.PullRequestID == 0 {
+			if err := issues_model.CheckBranchNotQueuedForMerge(ctx, repo.ID, branchName); err != nil {
+				ctx.PrivateUserErrorAuto(err)
+				return
+			}
+		}
+	}
 
 	defaultBranch := repo.DefaultBranch
 	if ctx.opts.IsWiki && repo.DefaultWikiBranch != "" {
 		defaultBranch = repo.DefaultWikiBranch
 	}
-	if branchName == defaultBranch && newCommitID == objectFormat.EmptyObjectID().String() {
+
+	if isDeletingBranch && branchName == defaultBranch {
 		ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is the default branch and cannot be deleted", branchName)
+		return
+	}
+	if isDeletingBranch && branchName == repo.GetPullRequestTargetBranch(ctx) {
+		ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from deletion", branchName)
 		return
 	}
 
@@ -157,92 +167,55 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	//
 	// First of all we need to enforce absolutely:
 	//
-	// 1. Detect and prevent deletion of the branch
-	if newCommitID == objectFormat.EmptyObjectID().String() {
-		ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from deletion", branchName)
+	// 1. Enforce branch deletion permissions
+	if isDeletingBranch {
+		if !protectBranch.CanUserDelete(ctx, ctx.Doer, ctx.Repo.Permission) {
+			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from deletion", branchName)
+		}
 		return
 	}
 
-	isForcePush := false
+	requiresMergeQueue := isUpdate && !ctx.opts.IsWiki && protectBranch.RequireMergeQueue
+	if requiresMergeQueue && ctx.opts.PullRequestID == 0 && !git_model.CanBypassBranchProtection(ctx, protectBranch, ctx.Doer, ctx.Repo.Permission.IsAdmin()) {
+		ctx.PrivateUserErrorf(http.StatusForbidden, "Changes must be made through the merge queue for branch %s", branchName)
+		return
+	}
 
 	// 2. Disallow force pushes to protected branches
-	if oldCommitID != objectFormat.EmptyObjectID().String() {
-		output, _, err := gitcmd.NewCommand("rev-list", "--max-count=1").
-			AddDynamicArguments(oldCommitID, "^"+newCommitID).
-			WithEnv(ctx.env).WithRepo(repo).RunStdString(ctx)
-		if err != nil {
-			ctx.PrivateInternalErrorf("Unable to detect force push between %s and %s in %s: %v", oldCommitID, newCommitID, repo.FullName(), err)
-			return
-		} else if len(output) > 0 {
-			if protectBranch.CanForcePush {
-				isForcePush = true
-			} else {
-				ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from force push", branchName)
-				return
-			}
-		}
+	isForcePush, ok := checkForcePush(ctx, protectBranch, branchName, oldCommitID, newCommitID)
+	if !ok {
+		return
 	}
 
 	// 3. Enforce require signed commits
-	if protectBranch.RequireSignedCommits {
-		err := verifyCommits(ctx, oldCommitID, newCommitID, gitRepo, ctx.env)
-		if err != nil {
-			errUnverified, ok := err.(*errUnverifiedCommit)
-			if !ok {
-				ctx.PrivateInternalErrorf("Unable to check commits from %s to %s: %v", oldCommitID, newCommitID, err)
-				return
-			}
-			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from unverified commit %s", branchName, errUnverified.sha)
-			return
-		}
+	if !checkSignedCommits(ctx, protectBranch, branchName, oldCommitID, newCommitID) {
+		return
 	}
 
 	// Now there are several tests which can be overridden:
 	//
 	// 4. Check protected file patterns - this is overridable from the UI
-	changedProtectedfiles := false
-	protectedFilePath := ""
-
-	globs := protectBranch.GetProtectedFilePatterns()
-	if len(globs) > 0 {
-		_, err := pull_service.CheckFileProtection(ctx, gitRepo, branchName, oldCommitID, newCommitID, globs, 1, ctx.env)
-		if err != nil {
-			errFilePathProtected, ok := errors.AsType[pull_service.ErrFilePathProtected](err)
-			if !ok {
-				ctx.PrivateInternalErrorf("Unable to check file protection for commits from %s to %s: %v", oldCommitID, newCommitID, err)
-				return
-			}
-
-			changedProtectedfiles = true
-			protectedFilePath = errFilePathProtected.Path
-		}
+	changedProtectedFiles, protectedFilePath, ok := checkProtectedFiles(ctx, protectBranch, branchName, oldCommitID, newCommitID)
+	if !ok {
+		return
 	}
 
 	// 5. Check if the doer is allowed to push (and force-push if the incoming push is a force-push)
 	var canPush bool
-	if ctx.opts.UserID == user_model.DeployKeyUserID {
-		// This flag is only ever true if protectBranch.CanForcePush is true
-		if isForcePush {
-			canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableForcePushAllowlist || protectBranch.ForcePushAllowlistDeployKeys)
-		} else {
-			canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
-		}
+	if isForcePush {
+		canPush = !changedProtectedFiles && protectBranch.CanUserForcePush(ctx, ctx.Doer, ctx.Repo.Permission)
 	} else {
-		if isForcePush {
-			canPush = !changedProtectedfiles && protectBranch.CanUserForcePush(ctx, ctx.Doer, ctx.Repo.Permission)
-		} else {
-			canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx, ctx.Doer, ctx.Repo.Permission)
-		}
+		canPush = !changedProtectedFiles && protectBranch.CanUserPush(ctx, ctx.Doer, ctx.Repo.Permission)
 	}
 
 	// 6. If we're not allowed to push directly
-	if !canPush {
+	if !canPush || (requiresMergeQueue && ctx.opts.PullRequestID != 0) {
 		// Is this is a merge from the UI/API?
 		if ctx.opts.PullRequestID == 0 {
 			// 6a. If we're not merging from the UI/API then there are two ways we got here:
 			//
 			// We are changing a protected file, and we're not allowed to do that
-			if changedProtectedfiles {
+			if changedProtectedFiles {
 				ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from changing file %s", branchName, protectedFilePath)
 				return
 			}
@@ -297,8 +270,20 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		}
 
 		// Now if we're not an admin - we can't overwrite protected files so fail now
-		if changedProtectedfiles {
+		if changedProtectedFiles {
 			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from changing file %s", branchName, protectedFilePath)
+			return
+		}
+
+		if protectBranch.RequireMergeQueue {
+			entry, err := pull_model.GetMergeQueueEntryByPullID(ctx, pr.ID)
+			if err != nil {
+				ctx.PrivateInternalErrorf("Unable to get merge queue entry of pull request %d: %v", pr.ID, err)
+				return
+			}
+			if entry == nil || entry.BaseBranch != branchName || entry.GroupHeadSHA != newCommitID || entry.State != pull_model.MergeQueueStateMergeable {
+				ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s requires pull requests to be merged through the merge queue", branchName)
+			}
 			return
 		}
 
@@ -312,6 +297,73 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			return
 		}
 	}
+}
+
+// checkProtectedFiles reports whether the push changes a file that matches the
+// branch's protected file patterns, and the first such path. It does not reject
+// the push for that, since step 6 decides; ok is false only if the check failed.
+func checkProtectedFiles(ctx *preReceiveContext, protectBranch *git_model.ProtectedBranch, branchName, oldCommitID, newCommitID string) (changed bool, path string, ok bool) {
+	globs := protectBranch.GetProtectedFilePatterns()
+	if len(globs) == 0 {
+		return false, "", true
+	}
+
+	_, err := pull_service.CheckFileProtection(ctx, ctx.Repo.GitRepo, branchName, oldCommitID, newCommitID, globs, 1, ctx.env)
+	if err == nil {
+		return false, "", true
+	}
+	errFilePathProtected, isProtected := errors.AsType[pull_service.ErrFilePathProtected](err)
+	if !isProtected {
+		ctx.PrivateInternalErrorf("Unable to check file protection for commits from %s to %s: %v", oldCommitID, newCommitID, err)
+		return false, "", false
+	}
+	return true, errFilePathProtected.Path, true
+}
+
+// checkForcePush reports whether the push rewrites the branch history. It
+// rejects the push when the branch does not allow force pushes; ok is false
+// if the push was rejected.
+func checkForcePush(ctx *preReceiveContext, protectBranch *git_model.ProtectedBranch, branchName, oldCommitID, newCommitID string) (isForcePush, ok bool) {
+	// A new branch has no history to rewrite.
+	if oldCommitID == ctx.Repo.GetObjectFormat().EmptyObjectID().String() {
+		return false, true
+	}
+
+	repo := ctx.Repo.Repository
+	output, _, err := gitcmd.NewCommand("rev-list", "--max-count=1").
+		AddDynamicArguments(oldCommitID, "^"+newCommitID).
+		WithEnv(ctx.env).WithRepo(repo).RunStdString(ctx)
+	if err != nil {
+		ctx.PrivateInternalErrorf("Unable to detect force push between %s and %s in %s: %v", oldCommitID, newCommitID, repo.FullName(), err)
+		return false, false
+	}
+	if len(output) == 0 {
+		return false, true
+	}
+	if !protectBranch.CanForcePush {
+		ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from force push", branchName)
+		return false, false
+	}
+	return true, true
+}
+
+// checkSignedCommits rejects the push when the branch requires signed commits
+// and a new commit is not verified. It returns false if the push was rejected.
+func checkSignedCommits(ctx *preReceiveContext, protectBranch *git_model.ProtectedBranch, branchName, oldCommitID, newCommitID string) bool {
+	if !protectBranch.RequireSignedCommits {
+		return true
+	}
+	err := verifyCommits(ctx, oldCommitID, newCommitID, ctx.Repo.GitRepo, ctx.env)
+	if err != nil {
+		errUnverified, ok := err.(*errUnverifiedCommit)
+		if !ok {
+			ctx.PrivateInternalErrorf("Unable to check commits from %s to %s: %v", oldCommitID, newCommitID, err)
+			return false
+		}
+		ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from unverified commit %s", branchName, errUnverified.sha)
+		return false
+	}
+	return true
 }
 
 func preReceiveTag(ctx *preReceiveContext, refFullName git.RefName) {
@@ -343,23 +395,12 @@ func preReceiveTag(ctx *preReceiveContext, refFullName git.RefName) {
 }
 
 func preReceiveFor(ctx *preReceiveContext, refFullName git.RefName) {
-	if !ctx.AssertCreatePullRequest() {
+	if !assertCanCreatePullRequest(ctx.PrivateContext, ctx.opts) {
 		return
-	}
-
-	if ctx.Repo.Repository.IsEmpty {
+	} else if ctx.Repo.Repository.IsEmpty {
 		ctx.PrivateUserErrorf(http.StatusForbidden, "Can't create pull request for an empty repository.")
-		return
-	}
-
-	if ctx.opts.IsWiki {
-		ctx.PrivateUserErrorf(http.StatusForbidden, "Pull requests are not supported on the wiki.")
-		return
-	}
-
-	_, _, err := agit.GetAgitBranchInfo(ctx, ctx.Repo.Repository.ID, refFullName.ForBranchName())
-	if err != nil {
-		if !errors.Is(err, util.ErrNotExist) {
+	} else if _, _, err := agit.GetAgitBranchInfo(ctx, ctx.Repo.Repository.ID, refFullName.ForBranchName()); err != nil {
+		if errors.Is(err, util.ErrNotExist) {
 			ctx.PrivateUserErrorf(http.StatusForbidden, "Unexpected ref: %s", refFullName)
 		} else {
 			ctx.PrivateInternalErrorf("Unable to get branch info for ref %s: %v", refFullName, err)
@@ -370,16 +411,13 @@ func preReceiveFor(ctx *preReceiveContext, refFullName git.RefName) {
 func generateGitEnv(opts *private.HookOptions) (env []string) {
 	env = os.Environ()
 	if opts.GitAlternativeObjectDirectories != "" {
-		env = append(env,
-			private.GitAlternativeObjectDirectories+"="+opts.GitAlternativeObjectDirectories)
+		env = append(env, private.GitAlternativeObjectDirectories+"="+opts.GitAlternativeObjectDirectories)
 	}
 	if opts.GitObjectDirectory != "" {
-		env = append(env,
-			private.GitObjectDirectory+"="+opts.GitObjectDirectory)
+		env = append(env, private.GitObjectDirectory+"="+opts.GitObjectDirectory)
 	}
 	if opts.GitQuarantinePath != "" {
-		env = append(env,
-			private.GitQuarantinePath+"="+opts.GitQuarantinePath)
+		env = append(env, private.GitQuarantinePath+"="+opts.GitQuarantinePath)
 	}
 	return env
 }

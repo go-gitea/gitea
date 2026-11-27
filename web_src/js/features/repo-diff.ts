@@ -1,6 +1,6 @@
+import {createApp} from 'vue';
+import DiffFileTree from '../components/DiffFileTree.vue';
 import {initRepoIssueContentHistory} from './repo-issue-content.ts';
-import {initDiffFileTree} from './repo-diff-filetree.ts';
-import {initDiffCommitSelect} from './repo-diff-commitselect.ts';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
 import {initExpandAndCollapseFilesButton, initDiffFileViewedForm} from './pull-view-file.ts';
 import {showErrorToast} from '../modules/toast.ts';
@@ -11,12 +11,14 @@ import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
-import {performFetchActionTrigger} from '../modules/fetch-action.ts';
-import {applyFiltersToFileBoxes, diffTreeStore} from '../modules/diff-file.ts';
+import {performFetchAction, performFetchActionRequest, performFetchActionTrigger} from '../modules/fetch-action.ts';
+import {applyFiltersToFileBoxes, type DiffFileTreeLocale, diffTreeStore} from '../modules/diff-file.ts';
 import {initImageDiff} from './imagediff.ts';
+import DiffCommitSelector from '../components/DiffCommitSelector.vue';
+import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {
-  // switch between "rendered" and "source", for image and CSV files
+  // switch between "rendered" and "source", for image, CSV and markup files
   queryElems(el, '.file-view-toggle', (btn) => btn.addEventListener('click', () => {
     queryElemSiblings(btn, '.file-view-toggle', (el) => el.classList.remove('active'));
     btn.classList.add('active');
@@ -26,6 +28,8 @@ function initDiffFileViewToggle(el: HTMLElement) {
 
     hideElem(queryElemSiblings(target));
     showElem(target);
+    const elRichDiff = target.querySelector<HTMLElement>('[data-rich-diff-link]'); // replaced once loaded, kept to retry on failure
+    if (elRichDiff) performFetchAction(elRichDiff, {method: 'GET', url: elRichDiff.getAttribute('data-rich-diff-link')!, successSync: '$this'});
   }));
 }
 
@@ -52,7 +56,8 @@ function initRepoDiffConversationForm() {
       // on the diff page, the form is inside a "tr" and need to get the line-type ahead
       // but on the conversation page, there is no parent "tr"
       const trLineType = form.closest('tr')?.getAttribute('data-line-type');
-      const response = await POST(form.getAttribute('action')!, {data: formData});
+      const response = await performFetchActionRequest(form, {method: 'POST', url: form.getAttribute('action')!, data: formData});
+      if (!response) return;
       const newConversationHolder = createElementFromHTML(await response.text());
       const path = newConversationHolder.getAttribute('data-path');
       const side = newConversationHolder.getAttribute('data-side');
@@ -77,7 +82,7 @@ function initRepoDiffConversationForm() {
 
       // the default behavior is to add a pending review, so if no submitter, it also means "pending_review"
       if (!submitter || submitter?.matches('button[name="pending_review"]')) {
-        const reviewBox = document.querySelector('#review-box')!;
+        const reviewBox = document.querySelector('.review-box-button')!;
         const counter = reviewBox?.querySelector('.review-comments-counter');
         if (!counter) return;
         const num = parseInt(counter.getAttribute('data-pending-comment-number')!) + 1 || 1;
@@ -208,6 +213,8 @@ async function onLocationHashChange() {
   while (currentHash === window.location.hash) {
     const targetElement = document.querySelector<HTMLElement>(`#${CSS.escape(targetElementId)}`);
     if (targetElement) {
+      const elHiddenView = targetElement.closest('.file-body.tw-hidden'); // e.g. a comment in the source view while rendered is shown
+      if (elHiddenView) document.querySelector<HTMLElement>(`.file-view-toggle[data-toggle-selector="#${CSS.escape(elHiddenView.id)}"]`)!.click();
       // need to change hash to re-trigger ":target" CSS selector, let's manually scroll to it
       targetElement.scrollIntoView();
       document.body.setAttribute(attrAutoScrollRunning, 'true');
@@ -245,6 +252,15 @@ async function onLocationHashChange() {
   }
 }
 
+function initDiffFileTree(el: HTMLElement) {
+  const locale = JSON.parse(el.getAttribute('data-locale')!) as DiffFileTreeLocale;
+  createApp(DiffFileTree, {locale}).mount(el);
+}
+
+function initDiffCommitSelect(el: HTMLElement) {
+  createApp(DiffCommitSelector).mount(el);
+}
+
 export function initRepoDiffView() {
   initRepoDiffConversationForm(); // such form appears on the "conversation" page and "diff" page
   registerGlobalEventFunc('click', 'diffLoadMoreFiles', (el) => { diffLoadMoreFiles(el) });
@@ -254,13 +270,14 @@ export function initRepoDiffView() {
   registerGlobalInitFunc('initDiffFileViewedForm', initDiffFileViewedForm);
   registerGlobalInitFunc('initDiffFileImageDiff', initImageDiff);
   registerGlobalInitFunc('initDiffFileViewToggle', initDiffFileViewToggle);
+  registerGlobalInitFunc('initDiffFileTree', initDiffFileTree);
+  registerGlobalInitFunc('initDiffCommitSelect', initDiffCommitSelect);
 
   if (!document.querySelector('#diff-file-boxes')) return;
   initRepoDiffConversationNav(); // "previous" and "next" buttons only appear on "diff" page
-  initDiffFileTree();
-  initDiffCommitSelect();
   initExpandAndCollapseFilesButton();
 
-  window.addEventListener('hashchange', onLocationHashChange);
-  onLocationHashChange();
+  // onLocationHashChange does very complicated things (e.g.: load incomplete content and scroll), and it might change the URL hash
+  // so make it run after all other hash change listeners
+  registerAsyncHashChangeListener(onLocationHashChange, 999);
 }
