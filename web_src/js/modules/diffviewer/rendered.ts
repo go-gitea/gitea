@@ -10,11 +10,14 @@ import type {DiffViewerConfig, DiffViewerLocale} from './types.ts';
 
 type ImageSide = {path: string; mime: string; size: number} | null;
 
-// the kind of view shown besides the source
-export function renderedKind(entry: DiffFile): 'image' | 'csv' | null {
+export type RenderedKind = 'image' | 'csv' | 'markup' | null;
+
+// the kind of view shown besides the source, the source of markup files is shown first
+export function renderedKind(entry: DiffFile): RenderedKind {
   const {file} = entry;
   if (entry.missing || file.tooLarge || file.submodule) return null;
   if (file.oldImage || file.newImage) return 'image';
+  if (file.richDiffLink) return 'markup';
   const ext = extname(file.name).toLowerCase();
   if (!file.isBinary && !file.lfs && (ext === '.csv' || ext === '.tsv')) return 'csv';
   return null;

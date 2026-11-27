@@ -46,6 +46,9 @@ func TestPullRequestMergeable(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	t.Run("NoConflict-MergeTree", func(t *testing.T) {
+		if !git.DefaultFeatures().SupportGitMergeTree {
+			t.Skip("git version 2.40 is required to support merge-tree")
+		}
 		testPullRequestMergeCheck(t, checkPullRequestMergeableByMergeTree, pr, issues_model.PullRequestStatusMergeable, nil, nil)
 		mergeRef := git.MergeRefNameFromPullIndex(pr.Index).String()
 		mergeCommitID, err := git.GetFullCommitID(t.Context(), pr.BaseRepo, mergeRef)
@@ -70,6 +73,9 @@ func TestPullRequestMergeable(t *testing.T) {
 	pr.BaseBranch, pr.HeadBranch = "test-merge-tree-conflict-base", "test-merge-tree-conflict-head"
 	conflictFiles := createConflictBranches(t, pr.BaseRepo, pr.BaseBranch, pr.HeadBranch)
 	t.Run("Conflict-MergeTree", func(t *testing.T) {
+		if !git.DefaultFeatures().SupportGitMergeTree {
+			t.Skip("git version 2.40 is required to support merge-tree")
+		}
 		testPullRequestMergeCheck(t, checkPullRequestMergeableByMergeTree, pr, issues_model.PullRequestStatusConflict, conflictFiles, nil)
 	})
 	t.Run("Conflict-TmpRepo", func(t *testing.T) {
@@ -79,6 +85,9 @@ func TestPullRequestMergeable(t *testing.T) {
 	pr.BaseBranch, pr.HeadBranch = "test-merge-tree-empty-base", "test-merge-tree-empty-head"
 	createEmptyBranches(t, pr.BaseRepo, pr.BaseBranch, pr.HeadBranch)
 	t.Run("Empty-MergeTree", func(t *testing.T) {
+		if !git.DefaultFeatures().SupportGitMergeTree {
+			t.Skip("git version 2.40 is required to support merge-tree")
+		}
 		testPullRequestMergeCheck(t, checkPullRequestMergeableByMergeTree, pr, issues_model.PullRequestStatusEmpty, nil, nil)
 	})
 	t.Run("Empty-TmpRepo", func(t *testing.T) {

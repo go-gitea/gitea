@@ -9,6 +9,7 @@ import {fileUrl} from './content.ts';
 import type {DiffStreamFile} from './stream.ts';
 import type {DiffFile} from './entry.ts';
 import type {DiffViewerConfig, DiffViewerLocale} from './types.ts';
+import type {RenderedKind} from './rendered.ts';
 
 export function applyFolded(entry: DiffFile, folded: boolean) {
   entry.folded = folded;
@@ -50,7 +51,7 @@ function fileMenuHtml(entry: DiffFile, config: DiffViewerConfig, locale: DiffVie
   return html`<button type="button" class="btn tw-p-1" data-global-init="initDiffHeaderPopupMenu">${htmlRaw(svg('octicon-kebab-horizontal', 18))}</button><div class="tippy-target">${htmlRaw(items)}</div>`;
 }
 
-export function buildFileBox(entry: DiffFile, config: DiffViewerConfig, locale: DiffViewerLocale, hasRenderedView: boolean): HTMLElement {
+export function buildFileBox(entry: DiffFile, config: DiffViewerConfig, locale: DiffViewerLocale, kind: RenderedKind): HTMLElement {
   const {file} = entry;
   const treeItem = diffTreeStore().fullNameMap[file.name];
   const fileName = file.oldName !== file.name ? `${file.oldName} → ${file.name}` : file.name;
@@ -80,10 +81,11 @@ export function buildFileBox(entry: DiffFile, config: DiffViewerConfig, locale: 
   ].filter(Boolean).map((label) => html`<span class="ui label">${label}</span>`).join('');
   const protectedLabel = file.isProtected ? html`<span class="ui basic label">${locale.protected}</span>` : '';
   // the global init "initDiffFileViewToggle" switches between the source and the rendered view
-  const viewToggle = hasRenderedView ? html`
+  const sourceFirst = kind === 'markup';
+  const viewToggle = kind ? html`
     <div class="ui compact icon buttons" data-global-init="initDiffFileViewToggle">
-      <button type="button" class="ui tiny basic button file-view-toggle" data-toggle-selector="#diff-source-${file.nameHash}" data-tooltip-content="${locale.viewSource}">${htmlRaw(svg('octicon-code'))}</button>
-      <button type="button" class="ui tiny basic button file-view-toggle active" data-toggle-selector="#diff-rendered-${file.nameHash}" data-tooltip-content="${locale.viewRendered}">${htmlRaw(svg('octicon-file'))}</button>
+      <button type="button" class="ui tiny basic button file-view-toggle${sourceFirst ? ' active' : ''}" data-toggle-selector="#diff-source-${file.nameHash}" data-tooltip-content="${locale.viewSource}">${htmlRaw(svg('octicon-code'))}</button>
+      <button type="button" class="ui tiny basic button file-view-toggle${sourceFirst ? '' : ' active'}" data-toggle-selector="#diff-rendered-${file.nameHash}" data-tooltip-content="${locale.viewRendered}">${htmlRaw(svg('octicon-file'))}</button>
     </div>
   ` : '';
   return createElementFromHTML<HTMLElement>(html`
@@ -99,7 +101,7 @@ export function buildFileBox(entry: DiffFile, config: DiffViewerConfig, locale: 
         </div>
         <div class="diff-file-header-actions flex-text-block tw-justify-end tw-flex-wrap">${htmlRaw(stats)}${htmlRaw(viewToggle)}${htmlRaw(protectedLabel)}${htmlRaw(changedLabel)}${htmlRaw(viewedForm)}${htmlRaw(fileMenuHtml(entry, config, locale))}</div>
       </div>
-      <div class="diff-file-body ui attached unstackable table segment"></div>
+      <div class="diff-file-body unicode-escaped ui attached unstackable table segment"></div>
     </div>
   `);
 }

@@ -57,7 +57,7 @@ The diff pages (pull request files, commits, wiki commits, compare) share one vi
 | `render.ts`, `filebox.ts` | build the rows of a file's table and its header as HTML strings |
 | `virtuallist.ts` | generic window-scrolling virtual list, only files near the viewport are mounted |
 | `expand.ts`, `linediff.ts`, `worddiff.ts`, `escape.ts` | context expansion, line diff of LFS content, changed words, unicode escaping |
-| `rendered.ts`, `csvdiff.ts` | image and CSV views |
+| `rendered.ts`, `csvdiff.ts` | image and CSV views, markup files load their rendered diff from `/rich_diff` (`modules/htmldiff`) |
 | `comments.ts`, `comment-element.ts` | review threads and comment forms, they use the viewer only through `CommentsHost` |
 | `viewer.ts` | orchestration |
 

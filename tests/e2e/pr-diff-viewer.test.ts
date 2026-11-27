@@ -235,12 +235,14 @@ test('diff viewer file kinds', async ({page, request}) => {
     {operation: 'create', path: 'table.csv', content: 'name,value\na,1\nb,2\n'},
     {operation: 'create', path: 'doc.dat', content: 'alpha\nbeta\n'},
     {operation: 'create', path: 'logo.lfs.png', base64: redPixel},
+    {operation: 'create', path: 'notes.md', content: 'hello world\n'},
   ], 'main');
   await changeFiles([
     {operation: 'update', path: 'pixel.png', base64: bluePixel},
     {operation: 'update', path: 'table.csv', content: 'name,value\na,1\nb,3\n'},
     {operation: 'update', path: 'doc.dat', content: 'alpha\ngamma\n'},
     {operation: 'update', path: 'logo.lfs.png', base64: bluePixel},
+    {operation: 'update', path: 'notes.md', content: 'hello there\n'},
     {operation: 'create', path: 'vendor/lib.js', content: 'var lib = 1;\n'},
     {operation: 'create', path: 'package-lock.json', content: '{}\n'},
   ], 'main', 'feat');
@@ -255,6 +257,13 @@ test('diff viewer file kinds', async ({page, request}) => {
   await expect(image.locator('.image-diff .bounds-info-after .bounds-info-width')).toHaveText('1px');
   await image.locator('.file-view-toggle').first().click();
   await expect(image.getByText('Binary file not shown.')).toBeVisible();
+
+  // markup files show their source first, the rendered diff is loaded when it's opened
+  const notes = page.locator('.diff-file-box[data-new-filename="notes.md"]');
+  await expect(notes.locator('tr.add-code')).toBeVisible();
+  await notes.locator('.file-view-toggle').last().click();
+  await expect(notes.locator('.rich-diff ins.rich-diff-added')).toHaveText('there');
+  await expect(notes.locator('tr.add-code')).toBeHidden();
 
   // CSV files are compared by cells
   const table = page.locator('.diff-file-box[data-new-filename="table.csv"]');
@@ -303,5 +312,5 @@ test('diff viewer highlighting and escaping', async ({page, request}) => {
   const hidden = page.locator('.diff-file-box[data-new-filename="hidden.txt"]');
   await expect(hidden.locator('.unicode-escaped .escaped-code-point')).toHaveAttribute('data-escaped', '[U+200B]');
   await hidden.locator('.toggle-escape-button').click();
-  await expect(hidden.locator('.file-code')).not.toHaveClass(/unicode-escaped/);
+  await expect(hidden.locator('.diff-file-body')).not.toHaveClass(/unicode-escaped/);
 });

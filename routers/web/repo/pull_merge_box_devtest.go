@@ -26,8 +26,11 @@ func DevtestPullMergeBox(ctx *context.Context) {
 		actionsStatuses := actions_module.CommitActionsStatusMap{}
 		for i, cs := range statuses {
 			cs.ID, cs.TargetURL = int64(i+1), "#"
-			if cs.Description == "Running" {
+			switch cs.Description {
+			case "Running":
 				actionsStatuses[cs.ID] = actions_model.StatusRunning
+			case "Canceled after 1m":
+				actionsStatuses[cs.ID] = actions_model.StatusCancelled
 			}
 		}
 		data := &pullCommitStatusCheckData{}
@@ -91,6 +94,13 @@ func DevtestPullMergeBox(ctx *context.Context) {
 			status("ci/e2e", commitstatus.CommitStatusPending, "Running"),
 			status("ci/docs", commitstatus.CommitStatusSkipped, "Skipped"),
 			status("ci/lint", commitstatus.CommitStatusSuccess, "Successful in 5m"),
+		)
+		prInfo.MergeBoxData.hasOverridableBlockers = true
+	})
+	add("Checks canceled", func(prInfo *pullRequestViewInfo) {
+		prInfo.MergeBoxData.StatusCheckData = checks(
+			status("ci/test", commitstatus.CommitStatusFailure, "Canceled after 1m"),
+			status("ci/lint", commitstatus.CommitStatusSuccess, "Successful in 32s"),
 		)
 		prInfo.MergeBoxData.hasOverridableBlockers = true
 	})

@@ -6,6 +6,7 @@ package repo
 import (
 	"net/url"
 
+	"gitea.dev/models/unit"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/json"
@@ -130,6 +131,7 @@ func DiffStream(ctx *context.Context) {
 		DiffCommonOptions: gitdiff.DiffCommonOptions{BeforeCommitID: ctx.FormString("before"), AfterCommitID: ctx.FormString("after")},
 		RepoID:            ctx.Repo.Repository.ID,
 		RepoLink:          ctx.Repo.RepoLink,
+		EnableRichDiff:    true,
 	}, nil)
 }
 
@@ -165,6 +167,7 @@ func PullFilesStream(ctx *context.Context) {
 		DiffCommonOptions: gitdiff.DiffCommonOptions{BeforeCommitID: filesRange.beforeCommit.ID.String(), AfterCommitID: filesRange.afterCommit.ID.String()},
 		RepoID:            ctx.Repo.Repository.ID,
 		RepoLink:          ctx.Repo.RepoLink,
+		EnableRichDiff:    ctx.Repo.Permission.CanRead(unit.TypeCode),
 	}, func(file *gitdiff.DiffStreamFile) {
 		file.IsProtected = len(patterns) != 0 && rule.IsProtectedFile(patterns, file.Name)
 	})

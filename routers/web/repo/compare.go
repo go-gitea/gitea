@@ -383,6 +383,7 @@ func CompareDiffStream(ctx *context.Context) {
 		DiffCommonOptions: gitdiff.DiffCommonOptions{BeforeCommitID: ci.CompareBase, AfterCommitID: ci.HeadCommitID},
 		RepoID:            ci.HeadRepo.ID,
 		RepoLink:          ci.HeadRepo.Link(),
+		EnableRichDiff:    true,
 	}, nil)
 }
 

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"mime"
+	"net/url"
 	"path"
 	"strings"
 	"unicode/utf8"
@@ -23,6 +24,7 @@ import (
 	"gitea.dev/modules/highlight"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/typesniffer"
 	"gitea.dev/modules/util"
@@ -33,26 +35,27 @@ import (
 
 // DiffStreamFile is a file of a streamed diff, its hunks are decoded to UTF-8 and parsed by the client
 type DiffStreamFile struct {
-	Name        string               `json:"name"`
-	OldName     string               `json:"oldName"`
-	NameHash    string               `json:"nameHash"`
-	Type        string               `json:"type"` // like the statuses of the diff tree: added, modified, deleted, renamed, copied
-	OldMode     string               `json:"oldMode,omitempty"`
-	Mode        string               `json:"mode,omitempty"`
-	IsBinary    bool                 `json:"isBinary,omitempty"`
-	IsVendored  bool                 `json:"isVendored,omitempty"`
-	IsGenerated bool                 `json:"isGenerated,omitempty"`
-	IsProtected bool                 `json:"isProtected,omitempty"`
-	Language    string               `json:"language,omitempty"`
-	TabSize     int                  `json:"tabSize"`
-	Submodule   *DiffStreamSubmodule `json:"submodule,omitempty"`
-	LFS         *DiffStreamLFS       `json:"lfs,omitempty"`
-	OldSize     int64                `json:"oldSize,omitempty"` // only for binary and rendered (image, CSV) files
-	NewSize     int64                `json:"newSize,omitempty"`
-	OldImage    string               `json:"oldImage,omitempty"` // the mime type if it's an image
-	NewImage    string               `json:"newImage,omitempty"`
-	TooLarge    bool                 `json:"tooLarge,omitempty"`
-	Hunks       string               `json:"hunks,omitempty"`
+	Name         string               `json:"name"`
+	OldName      string               `json:"oldName"`
+	NameHash     string               `json:"nameHash"`
+	Type         string               `json:"type"` // like the statuses of the diff tree: added, modified, deleted, renamed, copied
+	OldMode      string               `json:"oldMode,omitempty"`
+	Mode         string               `json:"mode,omitempty"`
+	IsBinary     bool                 `json:"isBinary,omitempty"`
+	IsVendored   bool                 `json:"isVendored,omitempty"`
+	IsGenerated  bool                 `json:"isGenerated,omitempty"`
+	IsProtected  bool                 `json:"isProtected,omitempty"`
+	Language     string               `json:"language,omitempty"`
+	TabSize      int                  `json:"tabSize"`
+	Submodule    *DiffStreamSubmodule `json:"submodule,omitempty"`
+	LFS          *DiffStreamLFS       `json:"lfs,omitempty"`
+	OldSize      int64                `json:"oldSize,omitempty"` // only for binary and rendered (image, CSV) files
+	NewSize      int64                `json:"newSize,omitempty"`
+	OldImage     string               `json:"oldImage,omitempty"` // the mime type if it's an image
+	NewImage     string               `json:"newImage,omitempty"`
+	TooLarge     bool                 `json:"tooLarge,omitempty"`
+	RichDiffLink string               `json:"richDiffLink,omitempty"` // of markup files, it serves their rendered diff
+	Hunks        string               `json:"hunks,omitempty"`
 
 	hunksSize            int
 	oldBlobID, newBlobID string
@@ -85,6 +88,8 @@ type DiffStreamOptions struct {
 	MaxFileSize int64 // omits the hunks of larger files, -1 means no limit
 	RepoID      int64 // for LFS lookups, 0 to skip them
 	RepoLink    string
+
+	EnableRichDiff bool
 }
 
 // StreamDiff runs "git diff" and calls onFile for every file, it returns whether the diff was truncated by MaxSize
@@ -155,6 +160,9 @@ func StreamDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffStreamOp
 			sniff := imageMime != "" && !file.IsBinary
 			file.OldSize, file.OldImage = blobInfo(ctx, gitRepo, file.oldBlobID, imageMime, sniff)
 			file.NewSize, file.NewImage = blobInfo(ctx, gitRepo, file.newBlobID, imageMime, sniff)
+		}
+		if opts.EnableRichDiff {
+			file.RichDiffLink = richDiffLink(ctx, gitRepo, opts.RepoLink, file, beforeCommitID.String(), opts.AfterCommitID)
 		}
 		return onFile(file)
 	}
@@ -282,6 +290,32 @@ func isRenderedDiffFile(name string) bool {
 		return true
 	}
 	return false
+}
+
+// richDiffLink needs a markup name on both sides of a rename
+func richDiffLink(ctx context.Context, gitRepo *git.Repository, repoLink string, file *DiffStreamFile, beforeCommitID, afterCommitID string) string {
+	if file.IsBinary || file.Submodule != nil || file.LFS != nil {
+		return ""
+	}
+	query := url.Values{}
+	add := func(name, blobID, commitKey, commitID, pathKey string) bool {
+		if !markup.IsInlineRenderedFile(name) {
+			return false
+		}
+		if blob, err := gitRepo.GetBlob(blobID); err != nil || blob.Size(ctx) >= setting.UI.MaxDisplayFileSize {
+			return false
+		}
+		query.Set(commitKey, commitID)
+		query.Set(pathKey, name)
+		return true
+	}
+	if file.Type != "added" && !add(file.OldName, file.oldBlobID, "before", beforeCommitID, "old_path") {
+		return ""
+	}
+	if file.Type != "deleted" && !add(file.Name, file.newBlobID, "after", afterCommitID, "path") {
+		return ""
+	}
+	return repoLink + "/rich_diff?" + query.Encode()
 }
 
 const maxSniffBlobSize = 1024 * 1024 // reading the first bytes streams the whole blob, which isn't worth it for large files

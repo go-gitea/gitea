@@ -339,22 +339,23 @@ export class DiffViewer {
     const body = entry.element!.querySelector<HTMLElement>('.diff-file-body')!;
     const oldSource = body.querySelector('.code-diff');
     const source = this.buildSource(entry);
-    // a re-render keeps the escaping and the view the user switched to
-    if (oldSource) source.classList.toggle('unicode-escaped', oldSource.classList.contains('unicode-escaped'));
     const kind = renderedKind(entry);
     if (!kind) {
       body.replaceChildren(source);
     } else {
-      // the header buttons switch between the source and the rendered view, which is built once
+      // the header buttons switch between the source and the rendered view, which is built once, a re-render keeps the shown one
       const {nameHash} = entry.file;
       source.id = `diff-source-${nameHash}`;
       const oldRendered = body.querySelector<HTMLElement>(`#diff-rendered-${nameHash}`);
-      const rendered = oldRendered ?? createElementFromAttrs('div', {
+      const rendered = oldRendered ?? createElementFromAttrs('div', kind === 'markup' ? {id: `diff-rendered-${nameHash}`, class: 'file-body tw-hidden'} : {
         id: `diff-rendered-${nameHash}`, class: `file-body file-code ${this.config.isSplit ? 'code-diff-split' : 'code-diff-unified'} tw-overflow-x-scroll`,
       });
-      toggleElem(source, Boolean(oldRendered?.classList.contains('tw-hidden')));
+      toggleElem(source, rendered.classList.contains('tw-hidden'));
       body.replaceChildren(source, rendered);
-      if (!oldRendered && kind === 'image') {
+      if (!oldRendered && kind === 'markup') {
+        // the global init "initDiffFileViewToggle" loads it when it is shown
+        rendered.append(createElementFromAttrs('div', {class: 'is-loading tw-py-8', 'data-rich-diff-link': entry.file.richDiffLink!}));
+      } else if (!oldRendered && kind === 'image') {
         rendered.innerHTML = imageDiffHtml(entry, this.config, this.locale);
       } else if (!oldRendered) {
         renderCsvView(entry, rendered, async () => {
@@ -367,7 +368,7 @@ export class DiffViewer {
   }
 
   buildSource(entry: DiffFile): HTMLElement {
-    const source = createElementFromAttrs('div', {class: `file-body file-code unicode-escaped code-diff ${this.config.isSplit ? 'code-diff-split' : 'code-diff-unified'}`});
+    const source = createElementFromAttrs('div', {class: `file-body file-code code-diff ${this.config.isSplit ? 'code-diff-split' : 'code-diff-unified'}`});
     const notice = entry.file.lfs ? this.lfsNotice(entry) : this.bodyNotice(entry);
     if (notice === null) {
       const readOnly = entry.lfsState === 'diff';
@@ -469,7 +470,7 @@ export class DiffViewer {
   }
 
   buildFileElement(entry: DiffFile): HTMLElement {
-    const box = buildFileBox(entry, this.config, this.locale, renderedKind(entry) !== null);
+    const box = buildFileBox(entry, this.config, this.locale, renderedKind(entry));
     entry.element = box;
     applyFolded(entry, entry.folded);
     box.querySelector('.fold-file')!.addEventListener('click', () => this.setFolded(entry, !entry.folded));
@@ -515,6 +516,8 @@ export class DiffViewer {
     const index = entry ? this.visibleEntries.indexOf(entry) : -1;
     if (!entry || index < 0) return;
     if (entry.folded) applyFolded(entry, false);
+    // the comment is in the source view, the rendered one may be shown
+    entry.element?.querySelector<HTMLElement>('.file-view-toggle:not(.active)[data-toggle-selector^="#diff-source-"]')?.click();
     const gap = this.hiddenGap(entry, comment.side, comment.line);
     if (gap) {
       try {

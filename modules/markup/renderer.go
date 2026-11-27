@@ -63,6 +63,13 @@ func RefreshFileNamePatterns() {
 	}
 }
 
+// IsInlineRenderedFile reports whether the file renders to sanitized HTML shown inline
+func IsInlineRenderedFile(filename string) bool {
+	renderer := DetectRendererTypeByFilename(filename)
+	opts, _ := GetExternalRendererOptions(renderer)
+	return RendererNeedPostProcess(renderer) && !opts.SanitizerDisabled
+}
+
 func DetectRendererTypeByFilename(filename string) Renderer {
 	basename := path.Base(strings.ToLower(filename))
 	ext1 := path.Ext(basename)

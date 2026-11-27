@@ -24,6 +24,7 @@ export type DiffStreamFile = {
   oldImage?: string; // the mime type if it's an image
   newImage?: string;
   tooLarge?: boolean;
+  richDiffLink?: string; // of markup files, it serves their rendered diff
   hunks?: string;
 };
 

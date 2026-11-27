@@ -321,5 +321,10 @@ func TestCompareCodeExpand(t *testing.T) {
 		files, _ := requestDiffStream(t, session, config.StreamURL)
 		require.Len(t, files, 1)
 		assert.Contains(t, files[0].Hunks, "+CHANGED")
+
+		assert.True(t, strings.HasPrefix(files[0].RichDiffLink, "/user2/test_code_expand-fork/rich_diff?"), files[0].RichDiffLink)
+		resp = session.MakeRequest(t, NewRequest(t, "GET", files[0].RichDiffLink), http.StatusOK)
+		assert.Contains(t, resp.Body.String(), `<ins class="rich-diff-added">CHANGED`)
+		session.MakeRequest(t, NewRequest(t, "GET", "/user2/test_code_expand-fork/rich_diff?path=README.txt"), http.StatusNotFound)
 	})
 }

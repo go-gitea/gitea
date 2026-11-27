@@ -55,6 +55,9 @@ func TestReadingBlameOutput(t *testing.T) {
 		},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
+			if scenario.objectFormat == Sha256ObjectFormat && !DefaultFeatures().SupportHashSha256 {
+				t.Skip("git version 2.42 is required to support sha256")
+			}
 			setting.AppDataPath = t.TempDir()
 			ctx := t.Context()
 

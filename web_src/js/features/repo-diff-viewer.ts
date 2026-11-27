@@ -6,9 +6,10 @@ import type {DiffFileTreeLocale} from '../modules/diff-file.ts';
 import {initImageDiff} from './imagediff.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
+import {performFetchAction} from '../modules/fetch-action.ts';
 import {hideElem, queryElemSiblings, queryElems, showElem} from '../utils/dom.ts';
 
-// switches between "rendered" and "source", for image and CSV files
+// switches between "rendered" and "source", for image, CSV and markup files
 function initDiffFileViewToggle(el: HTMLElement) {
   queryElems(el, '.file-view-toggle', (btn) => btn.addEventListener('click', () => {
     queryElemSiblings(btn, '.file-view-toggle', (el) => el.classList.remove('active'));
@@ -19,6 +20,8 @@ function initDiffFileViewToggle(el: HTMLElement) {
 
     hideElem(queryElemSiblings(target));
     showElem(target);
+    const elRichDiff = target.querySelector<HTMLElement>('[data-rich-diff-link]'); // replaced once loaded, kept to retry on failure
+    if (elRichDiff) performFetchAction(elRichDiff, {method: 'GET', url: elRichDiff.getAttribute('data-rich-diff-link')!, successSync: '$this'});
   }));
 }
 

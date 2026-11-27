@@ -1715,6 +1715,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.RefBlame)
 		}, repo.MustBeNotEmpty)
 
+		m.Get("/rich_diff", repo.RichDiff)
+
 		m.Group("", func() {
 			m.Get("/graph", repo.Graph)
 			m.Get("/commit/{sha:([a-f0-9]{7,64})$}", repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
