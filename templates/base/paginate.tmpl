@@ -17,7 +17,7 @@
 				{{if eq $num -1}}
 					<span class="disabled item">…</span>
 				{{else if eq $num $paginator.Current}}
-					<span class="active item" aria-current="page">{{$num}}</span>
+					<span class="{{if not $unknownTotal}}active {{end}}item" aria-current="page">{{$num}}</span>
 				{{else}}
 					<a class="item" href="{{QueryBuild $pageLink "page" $num}}">{{$num}}</a>
 				{{end}}
