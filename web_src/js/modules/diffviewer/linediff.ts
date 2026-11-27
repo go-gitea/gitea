@@ -1,19 +1,20 @@
-import {diffSequences} from './myers.ts';
+import {diffArrays} from 'diff';
 import {hunkHeader, type DiffHunk, type DiffLine} from './parse.ts';
 
 const contextSize = 3; // like "git diff"
+const maxEditLength = 1000;
 
 function diffLines(oldLines: string[], newLines: string[]): DiffLine[] {
+  // very different content would take too long, it is replaced as a whole
+  const changes = diffArrays(oldLines, newLines, {maxEditLength}) ?? [{value: oldLines, removed: true, added: false}, {value: newLines, removed: false, added: true}];
   const lines: DiffLine[] = [];
-  for (const op of diffSequences(oldLines, newLines)) {
-    if (op.type === 'equal') {
-      for (let i = 0; i < op.aEnd - op.aStart; i++) {
-        lines.push({type: 'same', oldNum: op.aStart + i + 1, newNum: op.bStart + i + 1, content: newLines[op.bStart + i]});
-      }
-    } else if (op.type === 'delete') {
-      for (let i = op.aStart; i < op.aEnd; i++) lines.push({type: 'del', oldNum: i + 1, newNum: 0, content: oldLines[i]});
-    } else {
-      for (let i = op.bStart; i < op.bEnd; i++) lines.push({type: 'add', oldNum: 0, newNum: i + 1, content: newLines[i]});
+  let oldNum = 0;
+  let newNum = 0;
+  for (const change of changes) {
+    for (const content of change.value) {
+      if (change.removed) lines.push({type: 'del', oldNum: ++oldNum, newNum: 0, content});
+      else if (change.added) lines.push({type: 'add', oldNum: 0, newNum: ++newNum, content});
+      else lines.push({type: 'same', oldNum: ++oldNum, newNum: ++newNum, content});
     }
   }
   return lines;
