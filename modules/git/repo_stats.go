@@ -68,10 +68,13 @@ func GetCodeActivityAuthors(ctx context.Context, repo RepositoryFacade, fromTime
 	return stats.Authors, nil
 }
 
-const gitLogSep = ":::---:::" // should not conflict with any line of our git log output
+const (
+	gitLogSepFormat = "%x00---" // should not conflict with any line of our git log output
+	gitLogSepString = "\x00---"
+)
 
 func prepareCodeActivityLogCmd(fromTime time.Time, branchName string) *gitcmd.Command {
-	cmd := gitcmd.NewCommand("log", "--no-merges", "--pretty=format:"+gitLogSep+"%n%h%n%aN%n%aE%n", "--date=iso").
+	cmd := gitcmd.NewCommand("log", "--no-merges", "--pretty=format:"+gitLogSepFormat+"%n%h%n%aN%n%aE%n", "--date=iso").
 		AddOptionFormat("--since=%s", fromTime.Format(time.RFC3339))
 	if branchName == "" {
 		cmd.AddArguments("--branches=*")
@@ -103,7 +106,7 @@ func parseCodeActivityLog(ctx context.Context, gitCmd *gitcmd.Command) (stats Co
 	author := ""
 	subIdx := 0
 	err := gitcmd.RunWithScannerSplit(ctx, gitCmd, bufio.ScanLines, func(ctx gitcmd.Context, line []byte) error {
-		if bytes.Equal(line, []byte(gitLogSep)) {
+		if bytes.Equal(line, []byte(gitLogSepString)) {
 			subIdx = 1
 			return nil
 		} else if subIdx == 0 {
@@ -111,10 +114,6 @@ func parseCodeActivityLog(ctx context.Context, gitCmd *gitcmd.Command) (stats Co
 		}
 
 		subIdx++
-		if subIdx > 4 && len(line) == 0 {
-			return nil
-		}
-
 		switch subIdx {
 		case 1: // Separator
 		case 2: // Commit ID (short)
