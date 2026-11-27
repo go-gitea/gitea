@@ -235,6 +235,7 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		ContinueOnError:         job.GetContinueOnError(),
 		IsMatrixDeferred:        isMatrixDeferred,
 		MaxParallel:             parseMaxParallel(id, job.Strategy.MaxParallelString),
+		Priority:                parseJobPriority(id, workflowJob),
 	}
 	if isMatrixDeferred {
 		// Expansion overwrites WorkflowPayload; keep the raw payload so a rerun can re-derive the matrix.

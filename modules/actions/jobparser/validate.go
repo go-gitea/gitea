@@ -22,5 +22,8 @@ func ValidateWorkflowStatic(content []byte) ([]*Event, error) {
 	if err := model.ValidateWorkflow(doc); err != nil {
 		return nil, err
 	}
+	if err := validatePriority(doc); err != nil {
+		return nil, err
+	}
 	return events, nil
 }

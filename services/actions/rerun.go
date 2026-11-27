@@ -559,6 +559,7 @@ func cloneRunJobForAttempt(templateJob *actions_model.ActionRunJob, attempt *act
 		ConcurrencyCancel:      templateJob.ConcurrencyCancel,
 		TokenPermissions:       templateJob.TokenPermissions,
 		MaxParallel:            templateJob.MaxParallel,
+		Priority:               templateJob.Priority,
 
 		// reusable workflow fields
 		IsReusableCaller:        templateJob.IsReusableCaller,

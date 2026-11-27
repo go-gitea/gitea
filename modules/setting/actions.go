@@ -19,6 +19,9 @@ const (
 	defaultArtifactRetentionDays  = 90
 	defaultLogRetentionDays       = 365
 	defaultRunRetentionDays       = 400
+
+	defaultJobPriorityAging = 30 * time.Minute
+	maxJobPriorityAging     = 7 * 24 * time.Hour // keeps the queue key well inside every database's integer range
 )
 
 // Actions settings
@@ -43,6 +46,8 @@ var (
 		// transaction at once per Gitea instance, to avoid a thundering herd when many
 		// runners poll together. It is a per-process limit, not a cluster-wide one.
 		MaxConcurrentTaskPicks int `ini:"MAX_CONCURRENT_TASK_PICKS"`
+		// JobPriorityAging is the queue time one level of the workflow key `priority` is worth, 0 ignores priorities.
+		JobPriorityAging time.Duration `ini:"JOB_PRIORITY_AGING"`
 
 		ArtifactPreviewMaxSize int64 `ini:"ARTIFACT_PREVIEW_MAX_SIZE"`
 	}{
@@ -53,6 +58,7 @@ var (
 		ScopedWorkflowDirs:     []string{".gitea/scoped_workflows"},
 		MaxRerunAttempts:       defaultMaxRerunAttempts,
 		MaxConcurrentTaskPicks: defaultMaxConcurrentTaskPicks,
+		JobPriorityAging:       defaultJobPriorityAging,
 		ArtifactPreviewMaxSize: 10 * 1024 * 1024,
 		LogRetentionDays:       defaultLogRetentionDays,
 		ArtifactRetentionDays:  defaultArtifactRetentionDays,
@@ -133,6 +139,10 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	Actions.ZombieTaskTimeout = sec.Key("ZOMBIE_TASK_TIMEOUT").MustDuration(10 * time.Minute)
 	Actions.EndlessTaskTimeout = sec.Key("ENDLESS_TASK_TIMEOUT").MustDuration(3 * time.Hour)
 	Actions.AbandonedJobTimeout = sec.Key("ABANDONED_JOB_TIMEOUT").MustDuration(24 * time.Hour)
+	Actions.JobPriorityAging = sec.Key("JOB_PRIORITY_AGING").MustDuration(defaultJobPriorityAging)
+	if Actions.JobPriorityAging < 0 || Actions.JobPriorityAging > maxJobPriorityAging {
+		return fmt.Errorf("invalid [actions] JOB_PRIORITY_AGING: %v, it must be between 0 and %v", Actions.JobPriorityAging, maxJobPriorityAging)
+	}
 
 	if !Actions.LogCompression.IsValid() {
 		return fmt.Errorf("invalid [actions] LOG_COMPRESSION: %q", Actions.LogCompression)
