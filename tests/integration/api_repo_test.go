@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"testing"
 	"time"
 
@@ -59,6 +60,7 @@ func TestAPIRepoFixtureReads(t *testing.T) {
 
 				apiRepos := DecodeJSON(t, resp, []*api.Repository{})
 				assert.Len(t, apiRepos, tc.count)
+				assert.Equal(t, strconv.Itoa(tc.count), resp.Header().Get("X-Total-Count"))
 				privateCount := 0
 				for _, repo := range apiRepos {
 					assert.Equal(t, targetUser.ID, repo.Owner.ID)
@@ -299,6 +301,7 @@ func TestAPIRepoFixtureReads(t *testing.T) {
 	t.Run("OrgRepos", func(t *testing.T) {
 		userOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		userAdmin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		userTeamMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 		userOther := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 
 		// org3 is an Org. Try to log in as different doers to list its repos.
@@ -313,6 +316,7 @@ func TestAPIRepoFixtureReads(t *testing.T) {
 			{name: "Anonymous", doer: nil, count: 1},
 			{name: "UserNormal", doer: userOwner, count: 3, privateCount: 2},
 			{name: "UserAdmin", doer: userAdmin, count: 3, privateCount: 2},
+			{name: "UserTeamMember", doer: userTeamMember, count: 2, privateCount: 1},
 			{name: "UserOther", doer: userOther, count: 1},
 		}
 
@@ -329,6 +333,7 @@ func TestAPIRepoFixtureReads(t *testing.T) {
 
 				apiRepos := DecodeJSON(t, resp, []*api.Repository{})
 				assert.Len(t, apiRepos, tc.count)
+				assert.Equal(t, strconv.Itoa(tc.count), resp.Header().Get("X-Total-Count"))
 				privateCount := 0
 				for _, repo := range apiRepos {
 					assert.Equal(t, targetOrg.ID, repo.Owner.ID)
