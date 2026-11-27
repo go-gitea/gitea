@@ -5,7 +5,6 @@ package vagrant
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"io"
 	"strings"
 
@@ -27,14 +26,11 @@ type Metadata struct {
 }
 
 // ParseMetadataFromBox parses the metadata of a box file
-func ParseMetadataFromBox(r io.Reader) (*Metadata, error) {
-	gzr, err := gzip.NewReader(r)
+func ParseMetadataFromBox(r packages.SizedReader) (*Metadata, error) {
+	tr, err := packages.NewArchiveTarGzReader(r, r.Size())
 	if err != nil {
 		return nil, err
 	}
-	defer gzr.Close()
-
-	tr := tar.NewReader(gzr)
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {

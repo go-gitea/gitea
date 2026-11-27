@@ -12,9 +12,8 @@ import (
 
 // HashedSizeReader provide methods to read, sum hashes and a Size method
 type HashedSizeReader interface {
-	io.Reader
+	SizedReader
 	HashSummer
-	Size() int64
 }
 
 // HashedBuffer is buffer which calculates multiple checksums

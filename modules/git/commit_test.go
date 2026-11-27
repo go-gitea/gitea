@@ -182,6 +182,9 @@ signed commit`,
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
+			if testCase.sha.Type() == Sha256ObjectFormat && !DefaultFeatures().SupportHashSha256 {
+				t.Skip("git version 2.42 is required to support sha256")
+			}
 			gitRepo, err := OpenRepositoryLocal(t.Context(), filepath.Join(testReposDir, testCase.repo))
 			assert.NoError(t, err)
 			assert.NotNil(t, gitRepo)

@@ -1,4 +1,4 @@
-import {createElementFromAttrs, hideElem, queryElemChildren, showElem} from '../utils/dom.ts';
+import {createElementFromAttrs, queryElemChildren, toggleElem} from '../utils/dom.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast, type Toast} from '../modules/toast.ts';
 import {initDropdown} from '../modules/dropdown.ts';
@@ -25,17 +25,21 @@ export function initRepoTopicBar() {
   });
   let lastErrorToast: Toast | null = null;
 
+  const setEditing = (editing: boolean) => {
+    toggleElem(editDiv, editing);
+    toggleElem(mgrBtn, !editing);
+    toggleElem(viewDiv, !editing && viewDiv.children.length > 0);
+  };
+
   mgrBtn.addEventListener('click', () => {
-    hideElem([viewDiv, mgrBtn]);
-    showElem(editDiv);
+    setEditing(true);
     topicDropdown.show();
   });
 
   document.querySelector('#cancel_topic_edit')!.addEventListener('click', () => {
     lastErrorToast?.hideToast();
     topicDropdown.hide();
-    hideElem(editDiv);
-    showElem([viewDiv, mgrBtn]);
+    setEditing(false);
     mgrBtn.focus();
   });
 
@@ -57,8 +61,7 @@ export function initRepoTopicBar() {
           href: `${appSubUrl}/explore/repos?q=${encodeURIComponent(topic)}&topic=1`,
         }, topic)));
         topicDropdown.hide();
-        hideElem(editDiv);
-        showElem([viewDiv, mgrBtn]);
+        setEditing(false);
       }
     } else if (response.status === 422) {
       const {message, invalidTopics} = await response.json() as {message: string, invalidTopics: string[] | null};

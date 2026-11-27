@@ -25,34 +25,45 @@ type RenderCodePreviewOptions struct {
 	LineStart, LineStop int
 }
 
-func renderCodeBlock(ctx *RenderContext, node *html.Node) (urlPosStart, urlPosStop int, htm template.HTML, err error) {
-	m := globalVars().codePreviewPattern.FindStringSubmatchIndex(node.Data)
-	if m == nil {
-		return 0, 0, "", nil
-	}
+func renderCodeBlock(ctx *RenderContext, node *html.Node) (urlPosStart, urlPosStop int, htm template.HTML) {
+	start := 0
+	for {
+		data := node.Data[start:]
+		m := globalVars().codePreviewPattern.FindStringSubmatchIndex(data)
+		if m == nil {
+			return 0, 0, ""
+		}
+		urlPosStart, urlPosStop = start+m[0], start+m[1]
+		start = urlPosStop
 
-	opts := RenderCodePreviewOptions{
-		FullURL:   node.Data[m[0]:m[1]],
-		OwnerName: node.Data[m[2]:m[3]],
-		RepoName:  node.Data[m[4]:m[5]],
-		CommitID:  node.Data[m[6]:m[7]],
-		FilePath:  node.Data[m[8]:m[9]],
-	}
-	if !httplib.IsCurrentGiteaSiteURL(ctx, opts.FullURL) {
-		return 0, 0, "", nil
-	}
-	u, err := url.Parse(opts.FilePath)
-	if err != nil {
-		return 0, 0, "", err
-	}
-	opts.FilePath = strings.TrimPrefix(u.Path, "/")
+		opts := RenderCodePreviewOptions{
+			FullURL:   data[m[0]:m[1]],
+			OwnerName: data[m[2]:m[3]],
+			RepoName:  data[m[4]:m[5]],
+			CommitID:  data[m[6]:m[7]],
+			FilePath:  data[m[8]:m[9]],
+		}
+		if !httplib.IsCurrentGiteaSiteURL(ctx, opts.FullURL) {
+			continue
+		}
+		u, err := url.Parse(opts.FilePath)
+		if err != nil {
+			log.Error("Unable to render code preview: %v", err)
+			continue
+		}
+		opts.FilePath = strings.TrimPrefix(u.Path, "/")
 
-	lineStartStr, lineStopStr, _ := strings.Cut(node.Data[m[10]:m[11]], "-")
-	lineStart, _ := strconv.Atoi(strings.TrimPrefix(lineStartStr, "L"))
-	lineStop, _ := strconv.Atoi(strings.TrimPrefix(lineStopStr, "L"))
-	opts.LineStart, opts.LineStop = lineStart, lineStop
-	h, err := DefaultRenderHelperFuncs.RenderRepoFileCodePreview(ctx, opts)
-	return m[0], m[1], h, err
+		lineStartStr, lineStopStr, _ := strings.Cut(data[m[10]:m[11]], "-")
+		lineStart, _ := strconv.Atoi(strings.TrimPrefix(lineStartStr, "L"))
+		lineStop, _ := strconv.Atoi(strings.TrimPrefix(lineStopStr, "L"))
+		opts.LineStart, opts.LineStop = lineStart, lineStop
+		h, err := DefaultRenderHelperFuncs.RenderRepoFileCodePreview(ctx, opts)
+		if err != nil {
+			log.Error("Unable to render code preview: %v", err)
+		} else if h != "" {
+			return urlPosStart, urlPosStop, h
+		}
+	}
 }
 
 func codePreviewPatternProcessor(ctx *RenderContext, node *html.Node) {
@@ -65,11 +76,8 @@ func codePreviewPatternProcessor(ctx *RenderContext, node *html.Node) {
 			node = node.NextSibling
 			continue
 		}
-		urlPosStart, urlPosEnd, renderedCodeBlock, err := renderCodeBlock(ctx, node)
-		if err != nil || renderedCodeBlock == "" {
-			if err != nil {
-				log.Error("Unable to render code preview: %v", err)
-			}
+		urlPosStart, urlPosEnd, renderedCodeBlock := renderCodeBlock(ctx, node)
+		if renderedCodeBlock == "" {
 			node = node.NextSibling
 			continue
 		}

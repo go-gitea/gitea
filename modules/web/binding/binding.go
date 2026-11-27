@@ -45,7 +45,7 @@ const (
 	ErrInclude      = "IncludeError"
 )
 
-const multipartMaxMemory = 10 * 1024 * 1024
+var ParseMultipartFormMaxMemory int64 = 10 * 1024 * 1024
 
 type (
 	Errors []Error
@@ -218,7 +218,7 @@ func (b *Binder) bindForm(req *http.Request, formStruct any) (errs Errors) {
 }
 
 func (b *Binder) bindMultipartForm(req *http.Request, formStruct any) (errs Errors) {
-	if err := req.ParseMultipartForm(multipartMaxMemory); err != nil {
+	if err := req.ParseMultipartForm(ParseMultipartFormMaxMemory); err != nil {
 		errs.addDeserializationError(err)
 	}
 	if req.MultipartForm != nil {

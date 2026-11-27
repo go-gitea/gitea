@@ -93,12 +93,6 @@ func (s *Service) Register(
 		return nil, errors.New("can't create new runner")
 	}
 
-	// update token status
-	runnerToken.IsActive = true
-	if err := actions_model.UpdateRunnerToken(ctx, runnerToken, "is_active"); err != nil {
-		return nil, errors.New("can't update runner token status")
-	}
-
 	res := &runnerv1.RegisterResponse{
 		Runner: &runnerv1.Runner{
 			Id:        runner.ID,

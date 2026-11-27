@@ -180,7 +180,7 @@ func ApplyDiffPatch(ctx reqctx.RequestContext, repo *repo_model.Repository, doer
 
 	if err := gitcmd.NewCommand("apply", "--index", "--recount", "--cached", "--ignore-whitespace", "--whitespace=fix", "--binary", "-3").
 		WithRepo(t.gitRepo).
-		WithStdinBytes([]byte(opts.Content)).
+		WithStdinBytes(opts.Content).
 		RunWithStderr(ctx); err != nil {
 		return nil, fmt.Errorf("git apply error: %w", err)
 	}

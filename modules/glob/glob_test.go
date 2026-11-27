@@ -90,6 +90,9 @@ func TestGlob(t *testing.T) {
 		glob(true, "?at", "fat"),
 		glob(true, "*", "abc"),
 		glob(true, `\*`, "*"),
+		glob(true, `a\d`, "ad"),
+		glob(true, `[\d]`, "d"),
+		glob(false, `[a\-z]`, "m"),
 		glob(true, "**", "a.b.c", '.'),
 
 		glob(false, "?at", "at"),

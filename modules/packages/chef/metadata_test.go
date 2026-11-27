@@ -4,11 +4,13 @@
 package chef
 
 import (
-	"archive/tar"
 	"bytes"
 	"compress/gzip"
 	"strings"
 	"testing"
+
+	"gitea.dev/modules/packages"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -24,23 +26,12 @@ const (
 func TestParsePackage(t *testing.T) {
 	for _, name := range []string{"MissingMetadataFile", "Valid"} {
 		t.Run(name, func(t *testing.T) {
-			var buf bytes.Buffer
-			zw := gzip.NewWriter(&buf)
-			tw := tar.NewWriter(zw)
+			files := map[string]string{}
 			if name == "Valid" {
-				content := `{"name":"` + packageName + `","version":"` + packageVersion + `"}`
-				hdr := &tar.Header{
-					Name: packageName + "/metadata.json",
-					Mode: 0o600,
-					Size: int64(len(content)),
-				}
-				tw.WriteHeader(hdr)
-				tw.Write([]byte(content))
+				files[packageName+"/metadata.json"] = `{"name":"` + packageName + `","version":"` + packageVersion + `"}`
 			}
-			tw.Close()
-			zw.Close()
 
-			p, err := ParsePackage(&buf)
+			p, err := ParsePackage(bytes.NewReader(test.WriteTarCompression(gzip.NewWriter, files).Bytes()))
 			if name == "MissingMetadataFile" {
 				assert.Nil(t, p)
 				assert.ErrorIs(t, err, ErrMissingMetadataFile)
@@ -53,6 +44,12 @@ func TestParsePackage(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("DecompressionLimit", func(t *testing.T) {
+		defer test.MockVariableValue(&packages.ArchiveDecompressionFloor, 0)()
+		_, err := ParsePackage(bytes.NewReader(test.WriteTarCompression(gzip.NewWriter, map[string]string{"dummy.txt": strings.Repeat("\x00", 1024*1024)}).Bytes()))
+		assert.ErrorIs(t, err, packages.ErrContentTooLarge)
+	})
 }
 
 func TestParseChefMetadata(t *testing.T) {
