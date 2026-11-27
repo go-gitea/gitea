@@ -713,11 +713,7 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 // GetAncestorCallers returns the reusable workflow callers the job is nested in, nearest first.
 func GetAncestorCallers(ctx context.Context, job *ActionRunJob) ([]*ActionRunJob, error) {
 	var callers []*ActionRunJob
-	seen := make(container.Set[int64])
 	for parentID := job.ParentJobID; parentID != 0; {
-		if !seen.Add(parentID) {
-			return nil, fmt.Errorf("GetAncestorCallers: caller chain of job %d loops at %d", job.ID, parentID)
-		}
 		parent, err := GetRunJobByRunAndID(ctx, job.RunID, parentID)
 		if err != nil {
 			return nil, fmt.Errorf("GetAncestorCallers: load caller %d: %w", parentID, err)
