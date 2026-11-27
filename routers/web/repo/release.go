@@ -650,7 +650,7 @@ func EditReleasePost(ctx *context.Context) {
 	editAttachments := make(map[string]string) // uuid -> new name
 	if setting.Attachment.Enabled {
 		addAttachmentUUIDs = form.Files
-		for k, v := range ctx.Req.Form {
+		for k, v := range ctx.FormValues() {
 			if strings.HasPrefix(k, delPrefix) && v[0] == "true" {
 				delAttachmentUUIDs = append(delAttachmentUUIDs, k[len(delPrefix):])
 			} else if strings.HasPrefix(k, editPrefix) {

@@ -5,6 +5,7 @@ package context
 
 import (
 	"mime/multipart"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -29,6 +30,11 @@ func (b *Base) FormString(key string, def ...string) string {
 func (b *Base) FormStrings(key string) []string {
 	_ = b.Req.ParseMultipartForm(binding.ParseMultipartFormMaxMemory) // the same logic as http.Request.FormValue
 	return b.Req.Form[key]
+}
+
+func (b *Base) FormValues() url.Values {
+	_ = b.Req.ParseMultipartForm(binding.ParseMultipartFormMaxMemory)
+	return b.Req.Form
 }
 
 func (b *Base) FormStringInt64s(key string) []int64 {
