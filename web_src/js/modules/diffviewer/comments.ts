@@ -157,7 +157,7 @@ export class DiffComments {
     // a notice instead of the lines still gets the threads above it
     if (!body) {
       body = createElementFromAttrs('tbody', null);
-      source.prepend(createElementFromAttrs('table', {class: 'chroma'}, body));
+      source.prepend(createElementFromAttrs('table', null, body));
     }
     // comments being edited are kept, the editor of the edit handler belongs to their element
     const editing = new Map<number, HTMLElement>();

@@ -1,6 +1,6 @@
 import type {DiffHunk, DiffLine, DiffSide} from './parse.ts';
 import type {DiffStreamFile} from './stream.ts';
-import type {LineHighlighter, Segment} from './highlight.ts';
+import type {LineHighlighter, Segment} from '../highlight/highlight.ts';
 import {gapsOf, type Gap} from './expand.ts';
 import {hunksLineCount, pairChangedLines} from './render.ts';
 

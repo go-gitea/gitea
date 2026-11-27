@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/highlight"
 	"gitea.dev/modules/indexer"
 	code_indexer "gitea.dev/modules/indexer/code"
 	"gitea.dev/modules/setting"
@@ -39,14 +40,14 @@ func SearchCode(ctx *context.Context, opts *codesearch.Options) {
 	ctx.Data["KeywordWithoutLanguage"] = result.Query.WithoutLanguage()
 	results := make([]*codeSearchResult, len(result.Results))
 	for i, hit := range result.Results {
-		results[i] = &codeSearchResult{Result: hit}
+		results[i] = &codeSearchResult{Result: hit, HighlightLanguage: highlight.DetectLanguage(hit.Filename, hit.Language, []byte(hit.Content))}
 		for _, fragment := range code_indexer.BuildResultFragments(hit.Content, hit.ContentMatches) {
 			content := strings.TrimSuffix(fragment.Content, "\n")
 			lineNumbers := make([]int, 1+strings.Count(content, "\n"))
 			for i := range lineNumbers {
 				lineNumbers[i] = fragment.StartLine + i
 			}
-			results[i].Fragments = append(results[i].Fragments, code_indexer.HighlightSearchResultCode(hit.Filename, hit.Language, lineNumbers, content, fragment.Matches...))
+			results[i].Fragments = append(results[i].Fragments, code_indexer.RenderSearchResultCode(lineNumbers, content, fragment.Matches...))
 		}
 	}
 	ctx.Data["SearchResults"] = results
@@ -58,5 +59,6 @@ func SearchCode(ctx *context.Context, opts *codesearch.Options) {
 
 type codeSearchResult struct {
 	*code_indexer.Result
-	Fragments [][]*code_indexer.ResultLine
+	HighlightLanguage string
+	Fragments         [][]*code_indexer.ResultLine
 }

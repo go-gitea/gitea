@@ -20,6 +20,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/attribute"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/highlight"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -120,6 +121,7 @@ func StreamDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffStreamOp
 			file.Hunks = decodeHunksToUTF8(hunks.Bytes())
 			file.LFS = detectLFSPointers(ctx, opts.RepoID, file.Hunks)
 		}
+		var attrLanguage string
 		if attrs, err := checker.CheckPath(file.Name); err == nil {
 			// the attributes are preferred, detecting by name is slower
 			if vendored := attrs.GetVendored(); vendored.Has() {
@@ -132,12 +134,10 @@ func StreamDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffStreamOp
 			} else {
 				file.IsGenerated = analyze.IsGenerated(file.Name)
 			}
-			file.Language = attrs.GetLanguage().Value()
+			attrLanguage = attrs.GetLanguage().Value()
 		}
-		if setting.Git.DisableDiffHighlight {
-			file.Language = ""
-		} else if file.Language == "" && !file.IsBinary {
-			file.Language = analyze.GetCodeLanguage(file.Name, hunks.Bytes())
+		if !setting.Git.DisableDiffHighlight && !file.IsBinary {
+			file.Language = highlight.DetectLanguage(file.Name, attrLanguage, hunks.Bytes())
 		}
 		if file.Submodule != nil {
 			fillSubmoduleLinks(ctx, opts.RepoLink, gitRepo, file, beforeCommit, afterCommit)

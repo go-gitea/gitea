@@ -16,10 +16,10 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/renderhelper"
 	"gitea.dev/models/repo"
-	"gitea.dev/modules/analyze"
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/emoji"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/highlight"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -306,7 +306,7 @@ func (ut *RenderUtils) RenderDiffSnippet(patch, filename string) template.HTML {
 	locale := ut.locale()
 	config, err := json.Marshal(map[string]any{
 		"patch":              patch,
-		"language":           util.Iif(setting.Git.DisableDiffHighlight, "", analyze.GetCodeLanguage(filename, []byte(patch))),
+		"language":           util.Iif(setting.Git.DisableDiffHighlight, "", highlight.DetectLanguage(filename, "", []byte(patch))),
 		"detectAmbiguous":    setting.UI.AmbiguousUnicodeDetection,
 		"ambiguousRunesLine": locale.TrString("repo.ambiguous_runes_line"),
 		"invisibleRunesLine": locale.TrString("repo.invisible_runes_line"),

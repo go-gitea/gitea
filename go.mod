@@ -17,7 +17,6 @@ require (
 	github.com/ProtonMail/go-crypto v1.5.2
 	github.com/PuerkitoBio/goquery v1.14.0
 	github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.10.0
-	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/blevesearch/bleve/v2 v2.6.3
 	github.com/bohde/codel v0.2.0
 	github.com/bradfitz/gomemcache v0.0.0-20260422231931-4d751bb6e37c

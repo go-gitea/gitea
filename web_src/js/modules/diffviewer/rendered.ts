@@ -74,7 +74,7 @@ export function imageDiffHtml(entry: DiffFile, config: DiffViewerConfig, locale:
     </div>
   ` : '';
   return html`
-    <table class="chroma tw-w-full"><tr><td colspan="2">
+    <table class="tw-w-full"><tr><td colspan="2">
       <div class="image-diff" data-global-init="initDiffFileImageDiff"
         data-path-before="${before?.path ?? ''}" data-path-after="${after?.path ?? ''}"
         data-mime-before="${before?.mime ?? ''}" data-mime-after="${after?.mime ?? ''}">
@@ -108,7 +108,7 @@ export async function renderCsvView(entry: DiffFile, container: HTMLElement, loa
     const content = await loadContent();
     const rows = (text: string | null, name: string) => (text === null ? null : parseCsv(text, determineDelimiter(name, text)));
     const sections = createCsvDiff(rows(content.old, file.oldName), rows(content.new, file.name), entry.hunks);
-    container.innerHTML = html`<table class="chroma tw-w-full"><tr><td>${htmlRaw(renderCsvDiff(sections))}</td></tr></table>`;
+    container.innerHTML = html`<table class="tw-w-full"><tr><td>${htmlRaw(renderCsvDiff(sections))}</td></tr></table>`;
   } catch (error) {
     if (error instanceof CsvParseError) message(error.fieldCount ? trString(locale.csvFieldCount, error.line) : trString(locale.csvUnexpected, error.line, error.column));
     else message(errorMessage(error));

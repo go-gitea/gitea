@@ -56,10 +56,9 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 		}()
 
 		preAttrs, codeAttrs := highlight.CodeBlockAttributes(lang)
-		lexer := highlight.DetectChromaLexerByFileName("", lang) // don't use content to detect, it is too slow
 		sb := &strings.Builder{}
 		_ = ctx.RenderInternal.FormatWithSafeAttrsf(sb, `<pre %s><code %s>`, preAttrs, codeAttrs)
-		_, _ = sb.WriteString(string(highlight.RenderCodeByLexer(lexer, source)))
+		_, _ = sb.WriteString(string(htmlutil.EscapeString(source)))
 		_, _ = sb.WriteString("</code></pre>")
 		return sb.String()
 	}

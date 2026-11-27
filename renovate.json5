@@ -30,7 +30,7 @@
       "go.sum",
       "assets/go-licenses.json",
       "assets/codemirror-languages.json",
-      "web_src/js/modules/diffviewer/shiki-languages.ts",
+      "web_src/js/modules/highlight/shiki-languages.ts",
       "public/assets/img/svg/**",
       "options/fileicon/**",
     ],

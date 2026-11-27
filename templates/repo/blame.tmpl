@@ -35,7 +35,7 @@
 			{{else if not .FileSize}}
 				{{template "shared/fileisempty"}}
 			{{else}}
-			<table data-paste-markdown-skip>
+			<table data-paste-markdown-skip class="code-highlight" data-global-init="initCodeHighlight" data-highlight-language="{{.FileLanguage}}">
 				<tbody>
 					{{range $row := .BlameRows}}
 						<tr class="{{if $row.CommitURL}}top-line-blame{{end}}">
@@ -67,7 +67,7 @@
 
 							{{ctx.RenderUtils.RenderUnicodeEscapeToggleTd $.EscapeStatus $row.EscapeStatus}}
 
-							<td rel="L{{$row.RowNumber}}" class="lines-code blame-code chroma">
+							<td rel="L{{$row.RowNumber}}" class="lines-code blame-code">
 								<code class="code-inner tw-pl-2">{{$row.Code}}</code>
 							</td>
 						</tr>

@@ -129,7 +129,7 @@ int a = 1;
 `)
 			assert.NoError(t, err)
 			assert.Equal(t, `<div>
-<pre class="code-block"><code class="chroma language-c"><span class="kt">int</span> <span class="n">a</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span></code></pre>
+<pre class="code-block"><code class="code-highlight language-c">int a = 1;</code></pre>
 </div>
 `, rendered)
 		})

@@ -636,7 +636,7 @@ generate-codemirror-languages: | node_modules ## generate codemirror languages
 	node tools/generate-codemirror-languages.ts
 
 .PHONY: generate-shiki-languages
-generate-shiki-languages: | node_modules ## generate the shiki language table of the diff viewer
+generate-shiki-languages: | node_modules ## generate the shiki language table
 	node tools/generate-shiki-languages.ts
 
 .PHONY: generate-manpage

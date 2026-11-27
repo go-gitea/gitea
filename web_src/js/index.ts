@@ -31,6 +31,7 @@ import {initRepoMigrationStatusChecker} from './features/repo-migrate.ts';
 import {initRepoDiffConversationForm} from './features/repo-diff.ts';
 import {initRepoDiffViewer} from './features/repo-diff-viewer.ts';
 import {initDiffSnippet} from './modules/diffviewer/snippet.ts';
+import {initCodeHighlight} from './modules/highlight/dom.ts';
 import {initOrgTeam} from './features/org-team.ts';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.ts';
 import {initRepoReleaseNew} from './features/repo-release.ts';
@@ -165,6 +166,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepoDiffConversationForm,
   initRepoDiffViewer,
   initDiffSnippet,
+  initCodeHighlight,
   initColorPickers,
 
   initOAuth2SettingsDisableCheckbox,

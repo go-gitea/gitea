@@ -1,7 +1,7 @@
 import type {DiffHunk, DiffLine, DiffSide} from './parse.ts';
 import {html, htmlEscape, htmlRaw} from '../../utils/html.ts';
 import {svgRaw} from '../../svg.ts';
-import {highlightLines, type LineHighlighter, type Segment} from './highlight.ts';
+import {highlightLines, type LineHighlighter, type Segment} from '../highlight/highlight.ts';
 import {wordDiffRanges, type CharRange} from './worddiff.ts';
 import type {Escape, LineEscapes} from './escape.ts';
 
@@ -94,8 +94,8 @@ function addButton(opts: RowRenderOptions, side: DiffSide): string {
 // the row of a hunk header, with the expand buttons of the gap above it, the tail gap has an empty header
 function hunkRow(hunkIdx: number, header: string, isSplit: boolean, opts: RowRenderOptions): string {
   const cells = isSplit ?
-    html`<td class="lines-num lines-num-old">${htmlRaw(opts.expanders.get(hunkIdx) ?? '')}</td><td class="lines-escape lines-escape-old"></td><td colspan="6" class="chroma lines-code lines-code-old"><code class="code-inner">${header}</code></td>` :
-    html`<td colspan="2" class="lines-num">${htmlRaw(opts.expanders.get(hunkIdx) ?? '')}</td><td class="lines-escape"></td><td class="lines-type-marker"><span class="tw-font-mono" data-type-marker=""></span></td><td class="chroma lines-code blob-hunk"><code class="code-inner">${header}</code></td>`;
+    html`<td class="lines-num lines-num-old">${htmlRaw(opts.expanders.get(hunkIdx) ?? '')}</td><td class="lines-escape lines-escape-old"></td><td colspan="6" class="lines-code lines-code-old"><code class="code-inner">${header}</code></td>` :
+    html`<td colspan="2" class="lines-num">${htmlRaw(opts.expanders.get(hunkIdx) ?? '')}</td><td class="lines-escape"></td><td class="lines-type-marker"><span class="tw-font-mono" data-type-marker=""></span></td><td class="lines-code blob-hunk"><code class="code-inner">${header}</code></td>`;
   return html`<tr class="tag-code" data-line-type="tag" data-hunk="${hunkIdx}">${htmlRaw(cells)}</tr>`;
 }
 
@@ -112,7 +112,7 @@ export function renderUnifiedRows(hunks: DiffHunk[], lineHtml: string[], opts: R
     for (const line of hunk.lines) {
       const oldNum = line.oldNum || '';
       const newNum = line.newNum || '';
-      out += html`<tr class="${line.type}-code${line.expanded ? ' line-expanded' : ''}" data-line-type="${line.type}" data-old="${oldNum}" data-new="${newNum}"><td class="lines-num lines-num-old" data-line-num="${oldNum}"></td><td class="lines-num lines-num-new" data-line-num="${newNum}"></td><td class="lines-escape">${htmlRaw(opts.escapeButtons[idx])}</td><td class="lines-type-marker"><span class="tw-font-mono" data-type-marker="${typeMarkers[line.type]}"></span></td><td class="chroma lines-code${line.type === 'del' ? ' lines-code-old' : ''}">${htmlRaw(addButton(opts, line.newNum ? 'new' : 'old'))}<code class="code-inner" data-line="${idx}">${htmlRaw(lineHtml[idx++])}</code></td></tr>`;
+      out += html`<tr class="${line.type}-code${line.expanded ? ' line-expanded' : ''}" data-line-type="${line.type}" data-old="${oldNum}" data-new="${newNum}"><td class="lines-num lines-num-old" data-line-num="${oldNum}"></td><td class="lines-num lines-num-new" data-line-num="${newNum}"></td><td class="lines-escape">${htmlRaw(opts.escapeButtons[idx])}</td><td class="lines-type-marker"><span class="tw-font-mono" data-type-marker="${typeMarkers[line.type]}"></span></td><td class="lines-code${line.type === 'del' ? ' lines-code-old' : ''}">${htmlRaw(addButton(opts, line.newNum ? 'new' : 'old'))}<code class="code-inner" data-line="${idx}">${htmlRaw(lineHtml[idx++])}</code></td></tr>`;
     }
   }
   return out + tailRow(hunks, false, opts);
@@ -123,7 +123,7 @@ function splitHalf(side: DiffSide, line: DiffLine | null, lineIdx: number, conte
   const marker = line ? html`<span class="tw-font-mono" data-type-marker="${typeMarkers[line.type]}"></span>` : '';
   // like the legacy excerpts, expanded lines are only commented on the new side
   const button = line && !(side === 'old' && line.expanded) ? addButton(opts, side) : '';
-  return html`<td class="lines-num lines-num-${side}${cellClass}" data-line-num="${num}"></td><td class="lines-escape lines-escape-${side}${cellClass}">${htmlRaw(line ? opts.escapeButtons[lineIdx] : '')}</td><td class="lines-type-marker lines-type-marker-${side}${cellClass}">${htmlRaw(marker)}</td><td class="chroma lines-code lines-code-${side}${cellClass}">${htmlRaw(button)}<code class="code-inner"${htmlRaw(line ? html` data-line="${lineIdx}"` : '')}>${htmlRaw(content)}</code></td>`;
+  return html`<td class="lines-num lines-num-${side}${cellClass}" data-line-num="${num}"></td><td class="lines-escape lines-escape-${side}${cellClass}">${htmlRaw(line ? opts.escapeButtons[lineIdx] : '')}</td><td class="lines-type-marker lines-type-marker-${side}${cellClass}">${htmlRaw(marker)}</td><td class="lines-code lines-code-${side}${cellClass}">${htmlRaw(button)}<code class="code-inner"${htmlRaw(line ? html` data-line="${lineIdx}"` : '')}>${htmlRaw(content)}</code></td>`;
 }
 
 // a deleted line and its paired added line share a row

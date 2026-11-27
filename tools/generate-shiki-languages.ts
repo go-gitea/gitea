@@ -19,6 +19,6 @@ ${entries.join('\n')}
 };
 `;
 
-const outPath = new URL('../web_src/js/modules/diffviewer/shiki-languages.ts', import.meta.url);
+const outPath = new URL('../web_src/js/modules/highlight/shiki-languages.ts', import.meta.url);
 await writeFile(outPath, out);
 console.info(`wrote ${entries.length} languages to ${outPath.pathname}`);

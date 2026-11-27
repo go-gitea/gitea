@@ -8,13 +8,13 @@
 			{{ctx.Locale.Tr "repo.code_preview_line_from_to" .LineStart .LineStop $link}}
 		{{- end}}
 	</div>
-	<table class="file-view" data-paste-markdown-skip>
+	<table class="file-view code-highlight" data-paste-markdown-skip data-global-init="initCodeHighlight" data-highlight-language="{{.Language}}">
 		<tbody>
 			{{- range $idx, $line := .HighlightLines -}}
 			<tr>
 				<td class="lines-num"><span data-line-number="{{$line.Num}}"></span></td>
 				{{- ctx.RenderUtils.RenderUnicodeEscapeToggleTd $.EscapeStatus (index $.LineEscapeStatus $idx)}}
-				<td class="lines-code chroma"><div class="code-inner">{{$line.FormattedContent}}</div></td>{{/* only div works, span generates incorrect HTML structure */}}
+				<td class="lines-code"><div class="code-inner">{{$line.FormattedContent}}</div></td>{{/* only div works, span generates incorrect HTML structure */}}
 			</tr>
 			{{- end -}}
 		</tbody>

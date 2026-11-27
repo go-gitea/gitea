@@ -265,12 +265,11 @@ func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames 
 
 	bufContent := buf.Bytes()
 	bufContent = charset.ToUTF8(bufContent, charset.ConvertOpts{})
-	highlighted, _, lexerDisplayName := highlight.RenderCodeSlowGuess(path.Base(ctx.Repo.TreePath), language, util.UnsafeBytesToString(bufContent))
-	unsafeLines := highlight.UnsafeSplitHighlightedLines(highlighted)
+	lines := highlight.RenderPlainLines(util.UnsafeBytesToString(bufContent))
 	for i, br := range rows {
 		var line template.HTML
-		if i < len(unsafeLines) {
-			line = template.HTML(util.UnsafeBytesToString(unsafeLines[i]))
+		if i < len(lines) {
+			line = lines[i]
 		}
 		br.EscapeStatus, br.Code = charset.EscapeControlHTML(line, ctx.Locale)
 		escapeStatus.Combine(br.EscapeStatus)
@@ -278,5 +277,5 @@ func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames 
 
 	ctx.Data["EscapeStatus"] = escapeStatus
 	ctx.Data["BlameRows"] = rows
-	ctx.Data["LexerName"] = lexerDisplayName
+	ctx.Data["FileLanguage"] = highlight.DetectLanguage(path.Base(ctx.Repo.TreePath), language, bufContent)
 }

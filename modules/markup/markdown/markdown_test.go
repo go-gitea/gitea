@@ -610,12 +610,12 @@ func TestMarkdownCodeBlock(t *testing.T) {
 	const prefix = `<div class="code-block-container code-overflow-scroll"><pre class="code-block">`
 	const suffix = `</pre></div>`
 
-	testRender("```\ncode\n```", prefix+`<code class="chroma language-text">code`+nl+`</code>`+suffix)
+	testRender("```\ncode\n```", prefix+`<code class="code-highlight language-text">code`+nl+`</code>`+suffix)
 
-	const jsCommon = prefix + `<code class="chroma language-js"><span class="nx">code</span>` + nl + `</code>` + suffix
+	const jsCommon = prefix + `<code class="code-highlight language-js">code` + nl + `</code>` + suffix
 	testRender("```js\ncode\n```", jsCommon)
 	testRender("```js:app.ts\ncode\n```", jsCommon)
 	testRender("```js,ignore\ncode\n```", jsCommon)
 	testRender("```js ignore\ncode\n```", jsCommon)
-	testRender("    <any&content>\n", prefix+`<code class="chroma language-text">&lt;any&amp;content&gt;`+nl+`</code>`+suffix)
+	testRender("    <any&content>\n", prefix+`<code class="code-highlight language-text">&lt;any&amp;content&gt;`+nl+`</code>`+suffix)
 }

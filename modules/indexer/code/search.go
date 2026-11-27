@@ -10,7 +10,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"gitea.dev/modules/highlight"
 	"gitea.dev/modules/indexer/code/internal"
 	"gitea.dev/modules/util"
 )
@@ -39,67 +38,33 @@ type MatchRange = internal.MatchRange
 
 type SearchOptions = internal.SearchOptions
 
-func HighlightSearchResultCode(filename, language string, lineNums []int, code string, matches ...MatchRange) []*ResultLine {
-	// we should highlight the whole code block first, otherwise it doesn't work well with multiple line highlighting
-	lexer := highlight.DetectChromaLexerByFileName(filename, language)
-	hl := markMatches(code, string(highlight.RenderCodeByLexer(lexer, code)), matches)
-	highlightedLines := highlight.UnsafeSplitHighlightedLines(template.HTML(hl))
-
-	// The lineNums outputted by render might not match the original lineNums, because "highlight" removes the last `\n`
-	lines := make([]*ResultLine, min(len(highlightedLines), len(lineNums)))
-	for i := range lines {
-		lines[i] = &ResultLine{
-			Num:              lineNums[i],
-			FormattedContent: template.HTML(highlightedLines[i]),
+// RenderSearchResultCode returns the escaped lines of the code with the matches wrapped in <mark>, the frontend highlights them
+func RenderSearchResultCode(lineNums []int, code string, matches ...MatchRange) []*ResultLine {
+	lines := make([]*ResultLine, 0, len(lineNums))
+	offset := 0
+	for line := range strings.Lines(code) {
+		if len(lines) == len(lineNums) {
+			break
 		}
-	}
-	return lines
-}
-
-// markMatches wraps the code byte ranges in <mark>, split at tags, skipping code bytes the lexer dropped
-func markMatches(code, highlighted string, matches []MatchRange) string {
-	if len(matches) == 0 {
-		return highlighted
-	}
-	var marked strings.Builder
-	marked.Grow(len(highlighted))
-	offset, open := 0, false
-	for highlighted != "" {
-		var token string
-		switch highlighted[0] {
-		case '<':
-			token = highlighted[:strings.IndexByte(highlighted, '>')+1]
-			highlighted = highlighted[len(token):]
-			if open {
-				marked.WriteString("</mark>")
-				open = false
+		var sb strings.Builder
+		pos, lineEnd := 0, offset+len(line)
+		for len(matches) > 0 && matches[0].Start < lineEnd {
+			start, end := max(matches[0].Start-offset, pos), min(matches[0].End-offset, len(line))
+			if start < end {
+				sb.WriteString(html.EscapeString(line[pos:start]))
+				sb.WriteString("<mark>" + html.EscapeString(line[start:end]) + "</mark>")
+				pos = end
 			}
-			marked.WriteString(token)
-			continue
-		case '&':
-			token = highlighted[:strings.IndexByte(highlighted, ';')+1]
-		default:
-			token = highlighted[:1]
-		}
-		highlighted = highlighted[len(token):]
-		text := html.UnescapeString(token)
-		for offset < len(code) && !strings.HasPrefix(code[offset:], text) {
-			offset++
-		}
-		for len(matches) > 0 && matches[0].End <= offset {
+			if matches[0].End > lineEnd {
+				break // it continues on the next line
+			}
 			matches = matches[1:]
 		}
-		if inMatch := len(matches) > 0 && matches[0].Start <= offset; inMatch != open {
-			marked.WriteString(util.Iif(inMatch, "<mark>", "</mark>"))
-			open = inMatch
-		}
-		marked.WriteString(token)
-		offset += len(text)
+		sb.WriteString(html.EscapeString(line[pos:]))
+		lines = append(lines, &ResultLine{Num: lineNums[len(lines)], FormattedContent: template.HTML(sb.String())})
+		offset = lineEnd
 	}
-	if open {
-		marked.WriteString("</mark>")
-	}
-	return marked.String()
+	return lines
 }
 
 // PerformSearch perform a search on a repository

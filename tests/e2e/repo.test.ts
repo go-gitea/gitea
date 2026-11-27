@@ -29,13 +29,16 @@ test('delete a branch via its modal', async ({page, request}) => {
   await expect(page.locator('.flash-message')).toContainText('Branch "feature" has been deleted.');
 });
 
-test('search code', async ({page, request}) => {
+test('search and highlight code', async ({page, request}) => {
   const repoName = `e2e-search-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
   await Promise.all([
     (async () => {
       await apiCreateRepo(request, {name: repoName});
-      await apiCreateFiles(request, owner, repoName, [{path: 'src/main.go', content: 'package main\n\nfunc alphaTerm() {}\n\nvar betaTerm = 1\n'}]);
+      await apiCreateFiles(request, owner, repoName, [
+        {path: 'src/main.go', content: 'package main\n\nfunc alphaTerm() {}\n\nvar betaTerm = 1\n'},
+        {path: 'docs.md', content: '```js\nconst a = 1;\n```\n'},
+      ]);
     })(),
     login(page),
   ]);
@@ -45,6 +48,15 @@ test('search code', async ({page, request}) => {
   await input.press('Enter');
   await page.waitForURL(/[?&]q=alphaterm/);
   await expect(page.getByText('src/main.go', {exact: true})).toBeVisible();
+
+  // code is highlighted by the frontend, around the marked matches
+  await expect(page.locator('.repo-search-result mark .tok-function')).toHaveText('alphaTerm');
+  for (const view of ['src', 'blame']) {
+    await page.goto(`/${owner}/${repoName}/${view}/branch/main/src/main.go`);
+    await expect(page.locator('.code-view .tok-keyword').first()).toHaveText('package');
+  }
+  await page.goto(`/${owner}/${repoName}/src/branch/main/docs.md`);
+  await expect(page.locator('.markup .code-block .tok-keyword')).toHaveText('const');
 });
 
 test('file tree, go to file and tag selector navigate nested files', async ({page, request}) => {

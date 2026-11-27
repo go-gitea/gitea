@@ -122,9 +122,9 @@ func handleFileViewRenderSource(ctx *context.Context, attrs *attribute.Attribute
 		ctx.Data["NumLines"] = bytes.Count(buf, []byte{'\n'}) + 1
 	}
 
-	language := attrs.GetLanguage().Value()
-	fileContent, lexerName := highlight.RenderFullFile(filename, language, buf)
-	ctx.Data["LexerName"] = lexerName
+	language := highlight.DetectLanguage(filename, attrs.GetLanguage().Value(), buf)
+	fileContent := highlight.RenderPlainLines(util.UnsafeBytesToString(buf))
+	ctx.Data["FileLanguage"] = language
 	status := &charset.EscapeStatus{}
 	statuses := make([]*charset.EscapeStatus, len(fileContent))
 	for i, line := range fileContent {

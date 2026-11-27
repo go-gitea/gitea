@@ -10,7 +10,7 @@ import {showErrorToast} from '../toast.ts';
 import {registerAsyncHashChangeListener} from '../hashchange.ts';
 import {errorMessage} from '../errors.ts';
 import {fetchOk, streamDiff, type DiffStreamFile} from './stream.ts';
-import {highlightLines, loadHighlighter, type Segment} from './highlight.ts';
+import {highlightLines, loadHighlighter, type Segment} from '../highlight/highlight.ts';
 import {escapeButton, highlightHunkLines, linesToHtml, renderSplitRows, renderUnifiedRows, splitColgroup, unifiedColgroup} from './render.ts';
 import {detectEscapes, loadEscapeTables, type EscapeTables, type LineEscapes} from './escape.ts';
 import {imageDiffHtml, renderCsvView, renderedKind} from './rendered.ts';
@@ -382,7 +382,7 @@ export class DiffViewer {
         html`${htmlRaw(splitColgroup)}<tbody>${htmlRaw(renderSplitRows(hunks, lineHtml, entry.linePairs(), opts))}</tbody>` :
         html`${htmlRaw(unifiedColgroup)}<tbody>${htmlRaw(renderUnifiedRows(hunks, lineHtml, opts))}</tbody>`;
       source.classList.add('code-highlight');
-      source.innerHTML = html`<table class="chroma" data-paste-markdown-skip>${htmlRaw(rows)}</table>`;
+      source.innerHTML = html`<table data-paste-markdown-skip>${htmlRaw(rows)}</table>`;
       return source;
     }
     if (entry.file.submodule) {

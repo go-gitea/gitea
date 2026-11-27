@@ -3,7 +3,7 @@ import {html, htmlRaw} from '../../utils/html.ts';
 import {trString} from '../i18n.ts';
 import {getCurrentLocale} from '../../utils.ts';
 import {parseHunks} from './parse.ts';
-import {loadHighlighter} from './highlight.ts';
+import {loadHighlighter} from '../highlight/highlight.ts';
 import {detectEscapes, loadEscapeTables} from './escape.ts';
 import {escapeButton, highlightHunkLines, linesToHtml, pairChangedLines, renderUnifiedRows, unifiedColgroup} from './render.ts';
 
@@ -31,6 +31,6 @@ export function initDiffSnippet(): void {
     const lineHtml = linesToHtml(lines, highlightHunkLines(lines, highlighter), pairChangedLines(hunks), escapes);
     const rows = renderUnifiedRows(hunks, lineHtml, {addCommentLabel: null, expanders: new Map(), escapeButtons: escapes.map((escape) => escapeButton(escape, config))});
     el.classList.add('code-highlight');
-    el.innerHTML = html`<table class="chroma" data-paste-markdown-skip>${htmlRaw(unifiedColgroup)}<tbody>${htmlRaw(rows)}</tbody></table>`;
+    el.innerHTML = html`<table data-paste-markdown-skip>${htmlRaw(unifiedColgroup)}<tbody>${htmlRaw(rows)}</tbody></table>`;
   });
 }

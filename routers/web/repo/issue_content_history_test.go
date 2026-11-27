@@ -11,7 +11,7 @@ import (
 
 func TestDiffContentHistory(t *testing.T) {
 	out := diffContentHistory("<\r\n&\r\n>", "<\nXXX\n>")
-	assert.Equal(t, `<pre class="chroma">&lt;
-<span class="gd">&amp;</span><span class="gi">XXX</span>
+	assert.Equal(t, `<pre>&lt;
+<span class="removed-code">&amp;</span><span class="added-code">XXX</span>
 &gt;</pre>`, string(out))
 }

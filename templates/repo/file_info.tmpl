@@ -20,9 +20,9 @@
 			<a href="{{.LFSLockOwnerHomeLink}}">{{.LFSLockOwner}}</a>
 		</div>
 	{{end}}
-	{{if .LexerName}}
+	{{if .FileLanguage}}
 		<div class="file-info-entry">
-			{{.LexerName}}
+			{{.FileLanguage}}
 		</div>
 	{{end}}
 	{{if .IsExecutable}}
