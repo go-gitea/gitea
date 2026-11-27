@@ -42,6 +42,8 @@
 
 .file-view.code-view table {
   width: 100%;
+  display: block;
+  overflow-x: auto;
 }
 
 .file-view.code-view .lines-num span::after {

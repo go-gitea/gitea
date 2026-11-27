@@ -663,6 +663,13 @@ overflow-menu .ui.label:empty {
   line-height: inherit; /* needed for inline code preview in markup */
 }
 
+html.no-wrap-file-lines .lines-code {
+  padding-right: 5px;
+}
+html.no-wrap-file-lines .code-inner {
+  white-space: pre;
+}
+
 .code-inner:has(.diff-line-truncated) {
   text-decoration: underline dashed 1px;
   text-underline-offset: 4px;

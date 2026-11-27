@@ -23,6 +23,7 @@
 				{{end}}
 				<a class="ui tiny button" href="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.normal_view"}}</a>
 				<a class="ui tiny button" href="{{.RepoLink}}/commits/{{.RefTypeNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.file_history"}}</a>
+				<button type="button" class="ui mini basic button" data-global-init="initFileLinesWrapButton" data-global-click="onToggleFileLinesWrapButtonClick" data-wrap-text="{{ctx.Locale.Tr "repo.file_wrap_lines"}}" data-nowrap-text="{{ctx.Locale.Tr "repo.file_nowrap_lines"}}">{{ctx.Locale.Tr "repo.file_nowrap_lines"}}</button>
 				<button type="button" class="ui tiny button unescape-button">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
 				<button type="button" class="ui tiny button escape-button tw-hidden">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 			</div>
