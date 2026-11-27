@@ -103,7 +103,7 @@ func parseCodeActivityLog(ctx context.Context, gitCmd *gitcmd.Command) (stats Co
 	author := ""
 	subIdx := 0
 	err := gitcmd.RunWithScannerSplit(ctx, gitCmd, bufio.ScanLines, func(ctx gitcmd.Context, line []byte) error {
-		if bytes.HasPrefix(line, []byte(gitLogSep)) {
+		if bytes.Equal(line, []byte(gitLogSep)) {
 			subIdx = 1
 			return nil
 		} else if subIdx == 0 {
