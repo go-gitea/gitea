@@ -1,7 +1,5 @@
 import {parseDom, serializeXml} from './utils.ts';
 import {htmlRaw} from './utils/html.ts';
-import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-chevron-left.svg';
-import giteaDoubleChevronRight from '../../public/assets/img/svg/gitea-double-chevron-right.svg';
 import giteaEmptyCheckbox from '../../public/assets/img/svg/gitea-empty-checkbox.svg';
 import giteaExclamation from '../../public/assets/img/svg/gitea-exclamation.svg';
 import giteaGit from '../../public/assets/img/svg/gitea-git.svg';
@@ -105,8 +103,6 @@ import octiconZoomIn from '../../public/assets/img/svg/octicon-zoom-in.svg';
 import octiconZoomOut from '../../public/assets/img/svg/octicon-zoom-out.svg';
 
 const svgs = {
-  'gitea-double-chevron-left': giteaDoubleChevronLeft,
-  'gitea-double-chevron-right': giteaDoubleChevronRight,
   'gitea-empty-checkbox': giteaEmptyCheckbox,
   'gitea-exclamation': giteaExclamation,
   'gitea-favicon': giteaFavicon,

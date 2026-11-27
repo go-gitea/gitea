@@ -119,6 +119,13 @@ export async function apiCreateBranch(requestContext: APIRequestContext, owner: 
   }), 'apiCreateBranch');
 }
 
+export async function apiCreateBranchProtection(requestContext: APIRequestContext, owner: string, repo: string, ruleName: string, options: Record<string, unknown> = {}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/branch_protections`, {
+    headers: apiHeaders(),
+    data: {rule_name: ruleName, ...options},
+  }), 'apiCreateBranchProtection');
+}
+
 /** Create a PR via API. Returns the PR index for subsequent operations. */
 export async function apiCreatePR(requestContext: APIRequestContext, owner: string, repo: string, head: string, base: string, title: string, {headers}: {headers?: Record<string, string>} = {}): Promise<number> {
   const response = await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls`, {
@@ -144,10 +151,10 @@ export async function createProjectColumn(requestContext: APIRequestContext, own
   }), 'createProjectColumn');
 }
 
-export async function apiCreateProject(requestContext: APIRequestContext, owner: string, repo: string, title: string): Promise<number> {
+export async function apiCreateProject(requestContext: APIRequestContext, owner: string, repo: string, title: string, {templateType}: {templateType?: string} = {}): Promise<number> {
   const response = await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/projects`, {
     headers: apiHeaders(),
-    data: {title},
+    data: {title, template_type: templateType},
   }), 'apiCreateProject');
   return (await response.json()).id;
 }

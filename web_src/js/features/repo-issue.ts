@@ -295,18 +295,14 @@ export function initRepoIssueWipToggle() {
   // Toggle WIP for existing PR
   registerGlobalInitFunc('initPullRequestWipToggle', (toggleWip) => toggleWip.addEventListener('click', async (e) => {
     e.preventDefault();
-    const title = toggleWip.getAttribute('data-title');
+    const title = toggleWip.getAttribute('data-title')!;
     const wipPrefix = toggleWip.getAttribute('data-wip-prefix')!;
-    const updateUrl = toggleWip.getAttribute('data-update-url')!;
-
-    const params = new URLSearchParams();
-    params.append('title', title?.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`);
-    const response = await POST(updateUrl, {data: params});
-    if (!response.ok) {
-      showErrorToast(`Failed to toggle 'work in progress' status`);
-      return;
-    }
-    window.location.reload();
+    if (await performFetchActionRequest(toggleWip, {
+      method: 'POST',
+      url: toggleWip.getAttribute('data-update-url')!,
+      data: new URLSearchParams({title: title.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`}),
+      loadingIndicator: '$this',
+    })) window.location.reload();
   }));
 }
 
@@ -367,7 +363,8 @@ export function initRepoIssueTitleEdit() {
         if (newTargetBranch !== oldTargetBranch) {
           const resp = await POST(prTargetUpdateUrl, {data: new URLSearchParams({target_branch: String(newTargetBranch)})});
           if (!resp.ok) {
-            throw new Error(`Failed to update PR target branch: ${resp.statusText}`);
+            const message = resp.headers.get('content-type')?.includes('application/json') && (await resp.json()).errorMessage;
+            throw new Error(message || `Failed to update PR target branch: ${resp.statusText}`);
           }
         }
       }

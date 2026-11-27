@@ -12,7 +12,7 @@
 						{{svg "octicon-lock" 16 "tw-text-red"}}
 						<span>{{ctx.Locale.Tr "packages.terraform.locked_by" $data.TerraformLock.Who}}</span>
 					</div>
-					<div class="tw-text-xs tw-ml-6 tw-break-anywhere">
+					<div class="tw-text-xs tw-ml-6">
 						{{DateUtils.TimeSince $data.TerraformLock.Created}} ({{$data.TerraformLock.Operation}})
 					</div>
 					{{if .CanWritePackages}}

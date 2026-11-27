@@ -100,7 +100,7 @@ export class DiffComments {
   // comments keep the name a file had before it was renamed
   commentsAt(name: string, oldName: string): ViewerComment[] {
     const comments = this.byPath.get(name) ?? [];
-    return oldName && oldName !== name ? [...comments, ...this.byPath.get(oldName) ?? []] : comments;
+    return oldName && oldName !== name ? [...comments, ...(this.byPath.get(oldName) ?? [])] : comments;
   }
 
   commentsFor(entry: DiffFile): ViewerComment[] {

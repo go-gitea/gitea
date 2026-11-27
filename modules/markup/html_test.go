@@ -208,7 +208,7 @@ func TestRender_links(t *testing.T) {
 	t.Run("LinkEllipsis", func(t *testing.T) {
 		input := util.EllipsisDisplayString("http://10.1.2.3", 12)
 		assert.Equal(t, "http://10…", input)
-		test(input, "<p>http://10…</p>")
+		test("https://a.com... and "+input, `<p><a href="https://a.com" rel="nofollow">https://a.com</a>... and http://10…</p>`)
 
 		input = util.EllipsisDisplayString("http://10.1.2.3", 13)
 		assert.Equal(t, "http://10.…", input)
@@ -248,7 +248,7 @@ func TestRender_email(t *testing.T) {
 
 		// Test that should *not* be turned into email links
 		{"/home/gitea/mailstore/info@gitea/com", `<p>/home/gitea/mailstore/info@gitea/com</p>`},
-		{"git@try.gitea.io:go-gitea/gitea.git", `<p>git@try.gitea.io:go-gitea/gitea.git</p>`},
+		{"git@try.gitea.io:go-gitea/gitea.git info@gitea.com", `<p>git@try.gitea.io:go-gitea/gitea.git <a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a></p>`},
 		{"https://foo:bar@gitea.io", `<p><a href="https://foo:bar@gitea.io" rel="nofollow">https://foo:bar@gitea.io</a></p>`},
 		{"gitea@3", `<p>gitea@3</p>`},
 		{"gitea@gmail.c", `<p>gitea@gmail.c</p>`},

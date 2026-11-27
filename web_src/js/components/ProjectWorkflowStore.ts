@@ -102,12 +102,12 @@ function toWorkflowForm({filters, actions}: Pick<ProjectWorkflow, 'filters' | 'a
       issue_type: filters.issue_type ?? '',
       source_column_id: filters.source_column_id ?? 0,
       target_column_id: filters.target_column_id ?? 0,
-      label_ids: [...filters.label_ids ?? []],
+      label_ids: [...(filters.label_ids ?? [])],
     },
     actions: {
       column_id: actions.column_id ?? 0,
-      add_label_ids: [...actions.add_label_ids ?? []],
-      remove_label_ids: [...actions.remove_label_ids ?? []],
+      add_label_ids: [...(actions.add_label_ids ?? [])],
+      remove_label_ids: [...(actions.remove_label_ids ?? [])],
       issue_state: actions.issue_state ?? '',
     },
   };

@@ -43,9 +43,13 @@ func TestRenderHelperMention(t *testing.T) {
 
 	assert.True(t, FormalRenderHelperFuncs().IsUsernameMentionable(giteaCtx, userPublic))
 	assert.False(t, FormalRenderHelperFuncs().IsUsernameMentionable(giteaCtx, userPrivate))
+	assert.False(t, FormalRenderHelperFuncs().IsCurrentUsername(giteaCtx, userPublic))
 
 	giteaCtx.Doer, err = user.GetUserByName(t.Context(), userPrivate)
 	assert.NoError(t, err)
 	assert.True(t, FormalRenderHelperFuncs().IsUsernameMentionable(giteaCtx, userPublic))
 	assert.True(t, FormalRenderHelperFuncs().IsUsernameMentionable(giteaCtx, userPrivate))
+	assert.True(t, FormalRenderHelperFuncs().IsCurrentUsername(giteaCtx, "USER31"))
+	assert.False(t, FormalRenderHelperFuncs().IsCurrentUsername(giteaCtx, userPublic))
+	assert.False(t, FormalRenderHelperFuncs().IsCurrentUsername(t.Context(), userPrivate))
 }

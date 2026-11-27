@@ -141,7 +141,7 @@ func (repo *Repository) GetRefsFiltered(ctx context.Context, pattern string) ([]
 				refName = refName[:len(refName)-1]
 
 				// refName cannot be HEAD but can be remotes or stash
-				if strings.HasPrefix(refName, RemotePrefix) || refName == "/refs/stash" {
+				if strings.HasPrefix(refName, RemotePrefix) || strings.HasPrefix(refName, hiddenRefPrefix+"/") || refName == "/refs/stash" {
 					continue
 				}
 

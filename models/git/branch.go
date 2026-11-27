@@ -217,11 +217,6 @@ func GetDeletedBranchByID(ctx context.Context, repoID, branchID int64) (*Branch,
 	return &branch, nil
 }
 
-func DeleteRepoBranches(ctx context.Context, repoID int64) error {
-	_, err := db.GetEngine(ctx).Where("repo_id=?", repoID).Delete(new(Branch))
-	return err
-}
-
 func DeleteBranches(ctx context.Context, repoID, doerID int64, branchIDs []int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		branches := make([]*Branch, 0, len(branchIDs))
@@ -394,6 +389,11 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 			repo.ID, from, false).
 			Update(map[string]any{"base_branch": to})
 		if err != nil {
+			return err
+		}
+
+		if _, err = sess.Table("pull_merge_queue_entry").Where("repo_id=? AND base_branch=?", repo.ID, from).
+			Update(map[string]any{"base_branch": to}); err != nil {
 			return err
 		}
 

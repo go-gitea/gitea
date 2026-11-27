@@ -180,11 +180,11 @@ export function sleep(ms: number): Promise<void> {
 }
 
 export function isImageFile({name, type}: {name: string | null, type: string | null}): boolean {
-  return Boolean(/\.(avif|jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/'));
+  return Boolean(/\.(avif|jpeg|jpg|jxl|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/'));
 }
 
 export function isVideoFile({name, type}: {name: string | null, type: string | null}): boolean {
-  return Boolean(/\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/'));
+  return Boolean(/\.(mpg|mpeg|mp4|m4v|mkv|mov|webm)$/i.test(name || '') || type?.startsWith('video/'));
 }
 
 const byteUnits = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB'];
@@ -196,6 +196,14 @@ export function formatBytes(num: number, precision = 2): string {
   const value = num / (1024 ** exp);
   const digits = Math.max(0, precision - 1 - Math.floor(Math.log10(value)));
   return `${value.toFixed(digits)} ${byteUnits[exp]}`;
+}
+
+// mirrors Paginator.Pages in modules/paginator/paginator.go
+export function getPaginationPages(current: number, total: number): Array<number> {
+  if (total <= 7) return [1, 2, 3, 4, 5, 6, 7].slice(0, total);
+  if (current <= 4) return [1, 2, 3, 4, 5, -1, total];
+  if (current >= total - 3) return [1, -1, total - 4, total - 3, total - 2, total - 1, total];
+  return [1, -1, current - 1, current, current + 1, -1, total];
 }
 
 export function toggleFullScreen(fullScreenEl: HTMLElement, isFullScreen: boolean, sourceParentSelector?: string): void {

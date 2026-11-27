@@ -109,7 +109,7 @@ func PullFilesComments(ctx *context.Context) {
 
 	codeComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, ctx.FormBool("show-outdated"))
 	if err != nil {
-		ctx.ServerError("FetchCodeComments", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -128,7 +128,7 @@ func PullFilesComments(ctx *context.Context) {
 		data.MigrationIcon = templates.MigrationIcon(data.OriginalHostname)
 	}
 	if err := repo.LoadOwner(ctx); err != nil {
-		ctx.ServerError("LoadOwner", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if repo.Owner.IsOrganization() {
@@ -166,11 +166,11 @@ func PullFilesComments(ctx *context.Context) {
 	})
 
 	if data.CanResolve, err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
-		ctx.ServerError("CanMarkConversation", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if data.HasPendingReview, data.PendingCount, err = getPendingCodeCommentCount(ctx, issue); err != nil {
-		ctx.ServerError("getPendingCodeCommentCount", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, data)

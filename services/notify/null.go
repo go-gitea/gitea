@@ -11,10 +11,12 @@ import (
 	issues_model "gitea.dev/models/issues"
 	packages_model "gitea.dev/models/packages"
 	project_model "gitea.dev/models/project"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/repository"
+	api "gitea.dev/modules/structs"
 )
 
 // NullNotifier implements a blank notifier
@@ -63,12 +65,18 @@ func (*NullNotifier) MergePullRequest(ctx context.Context, doer *user_model.User
 func (*NullNotifier) AutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 }
 
+func (*NullNotifier) PullRequestMergeQueueChanged(_ctx context.Context, _doer *user_model.User, _pr *issues_model.PullRequest, _action api.HookIssueAction, _reason issues_model.MergeQueueRemovalReason) {
+}
+
+func (*NullNotifier) MergeGroupChanged(_ctx context.Context, _doer *user_model.User, _repo *repo_model.Repository, _entry *pull_model.MergeQueueEntry, _action api.HookMergeGroupAction, _reason string) {
+}
+
 // PullRequestSynchronized places a place holder function
 func (*NullNotifier) PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, before, after string) {
 }
 
 // PullRequestChangeTargetBranch places a place holder function
-func (*NullNotifier) PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch string) {
+func (*NullNotifier) PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch, oldSHA string) {
 }
 
 // PullRequestPushCommits notifies when push commits to pull request's head branch
@@ -100,11 +108,11 @@ func (*NullNotifier) DeleteWikiPage(ctx context.Context, doer *user_model.User, 
 }
 
 // NewRelease places a place holder function
-func (*NullNotifier) NewRelease(ctx context.Context, rel *repo_model.Release) {
+func (*NullNotifier) NewRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
 }
 
 // UpdateRelease places a place holder function
-func (*NullNotifier) UpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+func (*NullNotifier) UpdateRelease(ctx context.Context, doer *user_model.User, rel, oldRelease *repo_model.Release) {
 }
 
 // DeleteRelease places a place holder function
@@ -152,10 +160,6 @@ func (*NullNotifier) IssueChangeProjectColumn(ctx context.Context, doer *user_mo
 
 // CreateRepository places a place holder function
 func (*NullNotifier) CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
-}
-
-// AdoptRepository places a place holder function
-func (*NullNotifier) AdoptRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 }
 
 // DeleteRepository places a place holder function

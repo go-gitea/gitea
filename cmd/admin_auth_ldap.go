@@ -49,11 +49,11 @@ func commonLdapCLIFlags() []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:  "host",
-			Usage: "The address where the LDAP server can be reached.",
+			Usage: "Comma-separated LDAP hosts or ldap://, ldaps:// or ldap+starttls:// URLs, tried in order.",
 		},
 		&cli.IntFlag{
 			Name:  "port",
-			Usage: "The port to use when connecting to the LDAP server.",
+			Usage: "The port to use when connecting to hosts given without a URL.",
 		},
 		&cli.StringFlag{
 			Name:  "user-search-base",

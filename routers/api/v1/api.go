@@ -334,6 +334,21 @@ func reqUsersExploreEnabled() func(ctx *context.APIContext) {
 	}
 }
 
+func reqCodeSearchEnabled() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if !setting.Indexer.RepoIndexerEnabled || setting.Service.Explore.DisableCodePage || unit.TypeCode.UnitGlobalDisabled() {
+			ctx.APIErrorNotFound()
+			return
+		}
+		needTwoFactor, err := doerNeedTwoFactorAuth(ctx, ctx.Doer)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+		} else if needTwoFactor {
+			ctx.APIError(http.StatusForbidden, "two-factor authentication is required")
+		}
+	}
+}
+
 func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if ctx.IsSigned && setting.Service.EnableReverseProxyAuthAPI && ctx.Data["AuthedMethod"] == auth.ReverseProxyMethodName {
@@ -1313,6 +1328,7 @@ func Routes() *web.Router {
 						Delete(reqAdmin(), repo.DeleteTeam)
 				}, reqToken())
 				m.Get("/raw/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFile)
+				m.Get("/code/search", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.SearchRepoCode)
 				m.Get("/media/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFileOrLFS)
 				m.Methods("HEAD,GET", "/archive/*", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.GetArchive)
 				m.Combo("/forks").Get(repo.ListForks).
@@ -1460,6 +1476,10 @@ func Routes() *web.Router {
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
 							Post(reqToken(), mustNotBeArchived, bind(forms.MergePullRequestForm{}), repo.MergePullRequest).
 							Delete(reqToken(), mustNotBeArchived, repo.CancelScheduledAutoMerge)
+						m.Get("/merge-queue", repo.GetPullRequestMergeQueueEntry)
+						m.Combo("/merge-queue", reqToken(), mustNotBeArchived).
+							Post(bind(api.AddToMergeQueueOption{}), repo.AddPullRequestToMergeQueue).
+							Delete(repo.RemovePullRequestFromMergeQueue)
 						m.Group("/reviews", func() {
 							m.Combo("").
 								Get(repo.ListPullReviews).
@@ -1482,6 +1502,8 @@ func Routes() *web.Router {
 					})
 					m.Get("/{base}/*", repo.GetPullRequestByBaseHead)
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
+				m.Combo("/merge-queue/*", mustAllowPulls, reqRepoReader(unit.TypeCode)).Get(repo.ListMergeQueue).
+					Delete(reqToken(), reqRepoAdmin(), mustNotBeArchived, repo.ClearMergeQueue)
 				m.Group("/commits", func() {
 					m.Group("", func() {
 						m.Get("", repo.GetAllCommits)
@@ -1854,11 +1876,6 @@ func Routes() *web.Router {
 				m.Get("", admin.GetAllEmails)
 				m.Get("/search", admin.SearchEmail)
 			})
-			m.Group("/unadopted", func() {
-				m.Get("", admin.ListUnadoptedRepositories)
-				m.Post("/{username}/{reponame}", admin.AdoptRepository)
-				m.Delete("/{username}/{reponame}", admin.DeleteUnadoptedRepository)
-			})
 			m.Group("/hooks", func() {
 				m.Combo("").Get(admin.ListHooks).
 					Post(bind(api.CreateHookOption{}), admin.CreateHook)
@@ -1876,12 +1893,22 @@ func Routes() *web.Router {
 				})
 				m.Get("/runs", admin.ListWorkflowRuns)
 				m.Get("/jobs", admin.ListWorkflowJobs)
+				m.Group("/variables", func() {
+					m.Get("", admin.ListVariables)
+					m.Combo("/{variablename}").
+						Get(admin.GetVariable).
+						Delete(admin.DeleteVariable).
+						Post(bind(api.CreateVariableOption{}), admin.CreateVariable).
+						Put(bind(api.UpdateVariableOption{}), admin.UpdateVariable)
+				})
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryAdmin), reqToken(), reqSiteAdmin(), rejectPublicOnly())
 
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
+
+		m.Get("/search/code", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), reqToken(), reqCodeSearchEnabled(), repo.SearchCode)
 	}, sudo())
 
 	return m

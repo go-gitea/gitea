@@ -71,7 +71,7 @@ func prepareDiffViewer(ctx *context.Context, opts diffViewerOptions) *diffViewer
 // The options name the commits and the repo, the request selects the files and whether a file is loaded beyond the size limit.
 func serveDiffStream(ctx *context.Context, gitRepo *git.Repository, opts gitdiff.DiffStreamOptions, decorate func(*gitdiff.DiffStreamFile)) {
 	if opts.AfterCommitID == "" {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	opts.WhitespaceBehavior = gitdiff.GetWhitespaceFlag(ctx.FormString("whitespace")) // the page's option, see prepareDiffViewer
@@ -81,9 +81,9 @@ func serveDiffStream(ctx *context.Context, gitRepo *git.Repository, opts gitdiff
 	afterCommit, err := gitRepo.GetCommit(ctx, opts.AfterCommitID)
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound(err)
+			ctx.NotFound()
 		} else {
-			ctx.ServerError("GetCommit", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -112,9 +112,9 @@ func serveDiffStream(ctx *context.Context, gitRepo *git.Repository, opts gitdiff
 	})
 	if err != nil && !ctx.Written() { // a failure before the first file still gets a status
 		if git.IsErrNotExist(err) {
-			ctx.NotFound(err)
+			ctx.NotFound()
 		} else {
-			ctx.ServerError("StreamDiff", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -137,7 +137,7 @@ func DiffStream(ctx *context.Context) {
 func WikiDiffStream(ctx *context.Context) {
 	gitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
 	if err != nil {
-		ctx.ServerError("RepositoryFromRequestContextOrOpen", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	serveDiffStream(ctx, gitRepo, gitdiff.DiffStreamOptions{

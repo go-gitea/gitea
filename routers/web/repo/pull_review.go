@@ -13,7 +13,7 @@ import (
 	"gitea.dev/models/perm"
 	pull_model "gitea.dev/models/pull"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
@@ -97,23 +97,23 @@ func UpdateResolveConversation(ctx *context.Context) {
 
 	comment, err := issues_model.GetCommentByID(ctx, commentID)
 	if err != nil {
-		ctx.ServerError("GetIssueByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err = comment.LoadIssue(ctx); err != nil {
-		ctx.ServerError("comment.LoadIssue", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound(errors.New("comment's repoID is incorrect"))
+		ctx.NotFound()
 		return
 	}
 
 	var permResult bool
 	if permResult, err = issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer); err != nil {
-		ctx.ServerError("CanMarkConversation", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if !permResult {
@@ -129,7 +129,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 	if action == "Resolve" || action == "UnResolve" {
 		err = issues_model.MarkConversation(ctx, comment, ctx.Doer, action == "Resolve")
 		if err != nil {
-			ctx.ServerError("MarkConversation", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	} else {
@@ -152,7 +152,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 
 	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, true)
 	if err != nil {
-		ctx.ServerError("FetchCodeCommentsByLine", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if len(comments) == 0 {
@@ -162,7 +162,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 	}
 
 	if err := comments.LoadAttachments(ctx); err != nil {
-		ctx.ServerError("LoadAttachments", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -171,17 +171,17 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 
 	ctx.Data["comments"] = comments
 	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer); err != nil {
-		ctx.ServerError("CanMarkConversation", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Issue"] = comment.Issue
 	if err = comment.Issue.LoadPullRequest(ctx); err != nil {
-		ctx.ServerError("comment.Issue.LoadPullRequest", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(ctx, comment.Issue.PullRequest.GetGitHeadRefName())
 	if err != nil {
-		ctx.ServerError("GetRefCommitID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
@@ -216,7 +216,7 @@ func SubmitReview(ctx *context.Context) {
 	reviewType := form.ReviewType()
 	switch reviewType {
 	case issues_model.ReviewTypeUnknown:
-		ctx.ServerError("ReviewType", fmt.Errorf("unknown ReviewType: %s", form.Type))
+		ctx.ServerErrorAuto(fmt.Errorf("unknown ReviewType: %s", form.Type))
 		return
 
 	// can not approve/reject your own PR
@@ -264,7 +264,7 @@ func DismissReview(ctx *context.Context) {
 			ctx.Status(http.StatusForbidden)
 			return
 		}
-		ctx.ServerError("pull_service.DismissReview", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -287,10 +287,9 @@ func UpdateViewedFiles(ctx *context.Context) {
 	pull := issue.PullRequest
 
 	var data *viewedFilesUpdate
-	err := json.NewDecoder(ctx.Req.Body).Decode(&data)
+	err := jsonlimit.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &data)
 	if err != nil {
-		log.Warn("Attempted to update a review but could not parse request body: %v", err)
-		ctx.Resp.WriteHeader(http.StatusBadRequest)
+		ctx.JSONError("invalid request body")
 		return
 	}
 
@@ -310,7 +309,7 @@ func UpdateViewedFiles(ctx *context.Context) {
 	}
 
 	if _, err := pull_model.UpdateReviewState(ctx, ctx.Doer.ID, pull.ID, data.HeadCommitSHA, updatedFiles); err != nil {
-		ctx.ServerError("UpdateReview", err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 
@@ -332,7 +331,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 
 	for _, issue := range issues {
 		if err := issue.LoadRepo(ctx); err != nil {
-			ctx.ServerError("issue.LoadRepo", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -347,7 +346,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 		if reviewID < 0 {
 			// negative reviewIDs represent team requests
 			if err := issue.Repo.LoadOwner(ctx); err != nil {
-				ctx.ServerError("issue.Repo.LoadOwner", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 
@@ -362,7 +361,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 
 			team, err := organization.GetTeamByID(ctx, -reviewID)
 			if err != nil {
-				ctx.ServerError("GetTeamByID", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 
@@ -385,7 +384,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 					ctx.Status(http.StatusForbidden)
 					return
 				}
-				ctx.ServerError("TeamReviewRequest", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			continue
@@ -402,7 +401,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				ctx.Status(http.StatusForbidden)
 				return
 			}
-			ctx.ServerError("GetUserByID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -421,7 +420,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				ctx.Status(http.StatusForbidden)
 				return
 			}
-			ctx.ServerError("ReviewRequest", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -26,7 +27,19 @@ import (
 	"xorm.io/builder"
 )
 
-var ErrMustCollaborator = util.NewPermissionDeniedErrorf("user must be a collaborator")
+var Errors = sync.OnceValue(func() (ret struct {
+	MustRepoUnitReader       error
+	MustMemberOrCollaborator error
+	MustRepoUnitWriter       error
+	MustHeadRepoCodeWriter   error
+},
+) {
+	ret.MustRepoUnitReader = util.NewPermissionDeniedErrorf("user must have read access")
+	ret.MustMemberOrCollaborator = util.NewPermissionDeniedErrorf("user must be a member or collaborator")
+	ret.MustRepoUnitWriter = util.NewPermissionDeniedErrorf("user must have write access")
+	ret.MustHeadRepoCodeWriter = util.NewPermissionDeniedErrorf("user must have write access to the head repository's code")
+	return ret
+})
 
 const reviewedBy = "Reviewed-by: "
 
@@ -102,6 +115,7 @@ const (
 	PullRequestStatusError
 	PullRequestStatusEmpty
 	PullRequestStatusAncestor
+	PullRequestStatusUnrelated
 )
 
 // PullRequestFlow the flow of pull request
@@ -442,12 +456,16 @@ func (pr *PullRequest) IsChecking() bool {
 
 // IsStatusMergeable returns true if this pull request is mergeable to its base
 func (pr *PullRequest) IsStatusMergeable() bool {
-	return pr.Status == PullRequestStatusMergeable
+	return pr.Status == PullRequestStatusMergeable || pr.Status == PullRequestStatusEmpty
 }
 
 // IsEmpty returns true if this pull request is empty.
 func (pr *PullRequest) IsEmpty() bool {
 	return pr.Status == PullRequestStatusEmpty
+}
+
+func (pr *PullRequest) IsUnrelated() bool {
+	return pr.Status == PullRequestStatusUnrelated
 }
 
 // IsAncestor returns true if the Head Commit of this PR is an ancestor of the Base Commit
@@ -753,7 +771,7 @@ func (pr *PullRequest) Mergeable(ctx context.Context) bool {
 	// - Received a error while being conflict checked.
 	// - Is a work-in-progress pull request.
 	return pr.Status != PullRequestStatusChecking && pr.Status != PullRequestStatusConflict &&
-		pr.Status != PullRequestStatusError && !pr.IsWorkInProgress(ctx)
+		pr.Status != PullRequestStatusError && pr.Status != PullRequestStatusUnrelated && !pr.IsWorkInProgress(ctx)
 }
 
 // HasEnoughApprovals returns true if pr has enough granted approvals.
@@ -820,7 +838,7 @@ func MergeBlockedByOfficialReviewRequests(ctx context.Context, protectBranch *gi
 
 // MergeBlockedByOutdatedBranch returns true if merge is blocked by an outdated head branch
 func MergeBlockedByOutdatedBranch(protectBranch *git_model.ProtectedBranch, pr *PullRequest) bool {
-	return protectBranch.BlockOnOutdatedBranch && pr.CommitsBehind > 0
+	return protectBranch.BlockOnOutdatedBranch && !protectBranch.RequireMergeQueue && pr.CommitsBehind > 0 // the queue tests against the latest base
 }
 
 // InsertPullRequests inserted pull requests

@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -175,17 +174,16 @@ func ListReleases(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	opts := repo_model.FindReleasesOptions{
+	opts := repo_model.ReleaseListOptions{
 		ListOptions:   listOptions,
 		IncludeDrafts: canAccessReleaseDraft(ctx),
-		IncludeTags:   false,
 		IsDraft:       ctx.FormOptionalBool("draft"),
 		IsPreRelease:  ctx.FormOptionalBool("pre-release"),
 		RepoID:        ctx.Repo.Repository.ID,
 		TagFilter:     ctx.FormString("tag_filter"),
 	}
 
-	releases, err := db.Find[repo_model.Release](ctx, opts)
+	releases, err := repo_model.FindReleaseList(ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -199,7 +197,7 @@ func ListReleases(ctx *context.APIContext) {
 		rels[i] = convert.ToAPIRelease(ctx, ctx.Repo.Repository, release)
 	}
 
-	filteredCount, err := db.Count[repo_model.Release](ctx, opts)
+	filteredCount, err := repo_model.CountReleaseList(ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

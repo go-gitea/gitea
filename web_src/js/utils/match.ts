@@ -3,7 +3,7 @@ import {GET} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {parseIssuePageInfo} from '../utils.ts';
 import {errorMessage} from '../modules/errors.ts';
-import type {Issue, Mention} from '../types.ts';
+import type {Mention} from '../types.ts';
 
 const maxMatches = 6;
 
@@ -19,14 +19,13 @@ export function matchEmoji(queryText: string): string[] {
   // results is a map of weights, lower is better
   const results = new Map<string, number>();
   for (const {aliases} of emojis) {
-    const mainAlias = aliases[0];
+    let rank = Infinity;
     for (const [aliasIndex, alias] of aliases.entries()) {
-      const index = alias.replaceAll('_', ' ').indexOf(query);
-      if (index === -1) continue;
-      const existing = results.get(mainAlias);
-      const rankedIndex = index + aliasIndex;
-      results.set(mainAlias, existing ? existing - rankedIndex : rankedIndex);
+      const normalizedAlias = alias.replaceAll('_', ' ');
+      const index = normalizedAlias.indexOf(query);
+      if (index !== -1) rank = Math.min(rank, normalizedAlias === query ? -1 : index + aliasIndex);
     }
+    if (rank !== Infinity) results.set(aliases[0], rank);
   }
 
   return sortAndReduce(results);
@@ -69,14 +68,4 @@ export async function matchMention(mentionsUrl: string, queryText: string): Prom
   }
 
   return sortAndReduce(results);
-}
-
-export async function matchIssue(owner: string, repo: string, issueIndexStr: string | undefined, query: string, signal: AbortSignal): Promise<Issue[]> {
-  const res = await GET(`${window.config.appSubUrl}/${owner}/${repo}/issues/suggestions?q=${encodeURIComponent(query)}`, {signal});
-
-  const issues: Issue[] = await res.json();
-  const issueNumber = parseInt(issueIndexStr || '');
-
-  // filter out issue with same id
-  return issues.filter((i) => i.number !== issueNumber);
 }

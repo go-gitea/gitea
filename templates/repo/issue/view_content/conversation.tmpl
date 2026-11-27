@@ -62,7 +62,7 @@ making this template fragile, hard to read and maintain. */}}
 							<div class="comment-header">
 								<div class="comment-header-left">
 									{{if not $comment.OriginalAuthor}}
-										<a class="avatar">{{ctx.AvatarUtils.Avatar $comment.Poster 20}}</a>
+										<span class="avatar">{{ctx.AvatarUtils.Avatar $comment.Poster 20}}</span>
 									{{end}}
 									<span class="tw-text-text-light muted-links">
 										{{if $comment.OriginalAuthor}}

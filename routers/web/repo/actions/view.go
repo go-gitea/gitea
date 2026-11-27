@@ -5,6 +5,7 @@ package actions
 
 import (
 	"archive/zip"
+	"cmp"
 	"compress/gzip"
 	"context"
 	"errors"
@@ -66,10 +67,8 @@ func getCurrentRunByPathParam(ctx *context_module.Context) (run *actions_model.A
 	} else {
 		run, err = actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("run"))
 	}
-	if errors.Is(err, util.ErrNotExist) {
-		ctx.NotFound(nil)
-	} else if err != nil {
-		ctx.ServerError("GetRun:"+ctx.PathParam("run"), err)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
 	}
 	return run
 }
@@ -90,7 +89,7 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 
 	runNum := ctx.PathParamInt64("run")
 	if runNum <= 0 {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return nil
 	}
 
@@ -113,7 +112,7 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 				return runByID
 			}
 			if !errors.Is(err, util.ErrNotExist) {
-				ctx.ServerError("GetRun:"+ctx.PathParam("run"), err)
+				ctx.ServerErrorAuto(err)
 				return nil
 			}
 		}
@@ -124,16 +123,16 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 			return nil
 		}
 		if !errors.Is(err, util.ErrNotExist) {
-			ctx.ServerError("GetRunByRepoAndIndex", err)
+			ctx.ServerErrorAuto(err)
 			return nil
 		}
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return nil
 	}
 
 	jobNum := ctx.PathParamInt64("job")
 	if jobNum < 0 {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return nil
 	}
 
@@ -149,12 +148,12 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 		// Probe the repo-scoped job ID first and only accept it when the job exists and belongs to the same runNum.
 		job, err := actions_model.GetRunJobByRepoAndID(ctx, ctx.Repo.Repository.ID, jobNum)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
-			ctx.ServerError("GetRunJobByRepoAndID", err)
+			ctx.ServerErrorAuto(err)
 			return nil
 		}
 		if job != nil {
 			if err := job.LoadRun(ctx); err != nil {
-				ctx.ServerError("LoadRun", err)
+				ctx.ServerErrorAuto(err)
 				return nil
 			}
 			if job.Run.ID == runNum {
@@ -167,13 +166,13 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 	{
 		run, err := actions_model.GetRunByRepoAndIndex(ctx, ctx.Repo.Repository.ID, runNum)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
-			ctx.ServerError("GetRunByRepoAndIndex", err)
+			ctx.ServerErrorAuto(err)
 			return nil
 		}
 		if run != nil {
 			jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
 			if err != nil {
-				ctx.ServerError("GetRunJobsByRunID", err)
+				ctx.ServerErrorAuto(err)
 				return nil
 			}
 			if jobNum < int64(len(jobs)) {
@@ -184,7 +183,7 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 	}
 
 	if runByID == nil && runByIndex == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return nil
 	}
 
@@ -250,23 +249,24 @@ func ViewWorkflowFile(ctx *context_module.Context) {
 		return
 	}
 
-	commit, err := ctx.Repo.GitRepo.GetCommit(ctx, run.CommitSHA)
+	workflowCommitSHA := cmp.Or(run.WorkflowCommitSHA, run.CommitSHA)
+	commit, err := ctx.Repo.GitRepo.GetCommit(ctx, workflowCommitSHA)
 	if err != nil {
-		ctx.ServerError("GetCommit", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	rpath, entries, err := actions.ListWorkflows(ctx, ctx.Repo.GitRepo, commit)
 	if err != nil {
-		ctx.ServerError("ListWorkflows", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	for _, entry := range entries {
 		if entry.Name() == run.WorkflowID {
-			ctx.Redirect(fmt.Sprintf("%s/src/commit/%s/%s/%s", ctx.Repo.RepoLink, url.PathEscape(run.CommitSHA), util.PathEscapeSegments(rpath), util.PathEscapeSegments(run.WorkflowID)))
+			ctx.Redirect(fmt.Sprintf("%s/src/commit/%s/%s/%s", ctx.Repo.RepoLink, url.PathEscape(workflowCommitSHA), util.PathEscapeSegments(rpath), util.PathEscapeSegments(run.WorkflowID)))
 			return
 		}
 	}
-	ctx.NotFound(nil)
+	ctx.NotFound()
 }
 
 type LogCursor struct {
@@ -544,7 +544,7 @@ func ViewPost(ctx *context_module.Context) {
 		return
 	}
 	if err := run.LoadAttributes(ctx); err != nil {
-		ctx.ServerError("run.LoadAttributes", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -633,11 +633,11 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 
 	attempts, err := actions_model.ListRunAttemptsByRunID(ctx, run.ID)
 	if err != nil {
-		ctx.ServerError("ListRunAttemptsByRunID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if err := attempts.LoadTriggerUser(ctx); err != nil {
-		ctx.ServerError("LoadTriggerUser", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	for _, runAttempt := range attempts {
@@ -677,7 +677,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	// Scoping server-side avoids rendering every job's markdown on each 1s poll.
 	summaries, err := actions_model.ListActionRunJobSummaries(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID, ctx.PathParamInt64("job"))
 	if err != nil {
-		ctx.ServerError("ListActionRunJobSummaries", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if len(summaries) > 0 {
@@ -702,7 +702,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 
 	arts, err := actions_model.ListUploadedArtifactsMetaByRunAttempt(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID)
 	if err != nil {
-		ctx.ServerError("ListUploadedArtifactsMetaByRunAttempt", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	resp.Artifacts = make([]*ArtifactsViewItem, 0, len(arts))
@@ -724,7 +724,7 @@ func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewRespon
 	current, hasPathParam := findCurrentJobByPathParam(ctx, jobs)
 	if current == nil {
 		if hasPathParam {
-			ctx.NotFound(nil)
+			ctx.NotFound()
 		}
 		return
 	}
@@ -734,12 +734,12 @@ func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewRespon
 		var err error
 		task, err = actions_model.GetTaskByID(ctx, effectiveTaskID)
 		if err != nil {
-			ctx.ServerError("actions_model.GetTaskByID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		task.Job = current
 		if err := task.LoadAttributes(ctx); err != nil {
-			ctx.ServerError("task.LoadAttributes", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -756,7 +756,7 @@ func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewRespon
 	if task != nil {
 		steps, logs, err := convertToViewModel(ctx, ctx.Locale, req.LogCursors, task)
 		if err != nil {
-			ctx.ServerError("convertToViewModel", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, steps...)
@@ -929,7 +929,7 @@ func checkRunRerunAllowed(ctx *context_module.Context, run *actions_model.Action
 	if run.IsScopedRun {
 		optedOut, err := actions_model.IsScopedWorkflowOptedOut(ctx, cfg, ctx.Repo.Repository.OwnerID, run.WorkflowRepoID, run.WorkflowID)
 		if err != nil {
-			ctx.ServerError("IsScopedWorkflowOptedOut", err)
+			ctx.ServerErrorAuto(err)
 			return false
 		}
 		disabled = optedOut
@@ -943,7 +943,7 @@ func checkRunRerunAllowed(ctx *context_module.Context, run *actions_model.Action
 
 func checkLatestAttempt(ctx *context_module.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt) bool {
 	if attempt != nil && run.LatestAttemptID != attempt.ID {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return false
 	}
 	return true
@@ -969,7 +969,7 @@ func Rerun(ctx *context_module.Context) {
 
 	currentJob, hasPathParam := findCurrentJobByPathParam(ctx, jobs)
 	if hasPathParam && currentJob == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -1024,7 +1024,7 @@ func handleWorkflowRerunError(ctx *context_module.Context, err error) {
 		ctx.JSON(http.StatusBadRequest, map[string]any{"message": err.Error()})
 		return
 	}
-	ctx.ServerError("RerunWorkflowRunJobs", err)
+	ctx.ServerErrorAuto(err)
 }
 
 func Logs(ctx *context_module.Context) {
@@ -1035,7 +1035,7 @@ func Logs(ctx *context_module.Context) {
 	jobID := ctx.PathParamInt64("job")
 
 	if err := common.DownloadActionsRunJobLogsWithID(ctx.Base, ctx.Repo.Repository, run.ID, jobID); err != nil {
-		ctx.ServerError("DownloadActionsRunJobLogsWithID", err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 
@@ -1049,7 +1049,7 @@ func Cancel(ctx *context_module.Context) {
 	}
 
 	if _, err := actions_service.CancelRun(ctx, run, jobs); err != nil {
-		ctx.ServerError("CancelRun", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONOK()
@@ -1061,7 +1061,7 @@ func Approve(ctx *context_module.Context) {
 		return
 	}
 	if _, err := actions_service.ApproveRuns(ctx, ctx.Repo.Repository, ctx.Doer, []int64{run.ID}); err != nil {
-		ctx.ServerError("ApproveRuns", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -1080,7 +1080,7 @@ func Delete(ctx *context_module.Context) {
 	}
 
 	if err := actions_service.DeleteRun(ctx, run); err != nil {
-		ctx.ServerError("DeleteRun", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -1109,7 +1109,7 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 		jobID := ctx.PathParamInt64("job")
 		selectedJob, err = actions_model.GetRunJobByRunAndID(ctx, run.ID, jobID)
 		if err != nil {
-			ctx.ServerError("GetRunJobByRunAndID", err)
+			ctx.ServerErrorAuto(err)
 			return nil, nil, nil
 		}
 	}
@@ -1124,21 +1124,21 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 		// Explicit attempt number in the URL — user is viewing a historical attempt.
 		attempt, err = actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, run.ID, attemptNum)
 		if err != nil {
-			ctx.ServerError("GetRunAttemptByRunIDAndAttemptNum", err)
+			ctx.ServerErrorAuto(err)
 			return nil, nil, nil
 		}
 	case selectedJob != nil && selectedJob.RunAttemptID > 0:
 		// No explicit attempt in the URL, but the requested job belongs to a known attempt — resolve via the job.
 		attempt, err = actions_model.GetRunAttemptByRepoAndID(ctx, selectedJob.RepoID, selectedJob.RunAttemptID)
 		if err != nil {
-			ctx.ServerError("GetRunAttemptByRepoAndID", err)
+			ctx.ServerErrorAuto(err)
 			return nil, nil, nil
 		}
 	default:
 		// No attempt context at all — show the latest attempt (nil for legacy runs).
 		attempt, _, err = run.GetLatestAttempt(ctx)
 		if err != nil {
-			ctx.ServerError("GetLatestAttempt", err)
+			ctx.ServerErrorAuto(err)
 			return nil, nil, nil
 		}
 	}
@@ -1151,7 +1151,7 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 	}
 	jobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, resolvedAttemptID)
 	if err != nil {
-		ctx.ServerError("get current jobs", err)
+		ctx.ServerErrorAuto(err)
 		return nil, nil, nil
 	}
 	jobs.SortMatrixGroupsByName()
@@ -1187,12 +1187,12 @@ func ArtifactsDeleteView(ctx *context_module.Context) {
 	}
 	resolvedAttemptID, err := resolveArtifactAttemptIDFromQuery(ctx, run)
 	if err != nil {
-		ctx.ServerError("resolveArtifactAttemptIDFromQuery", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	artifactName := ctx.PathParam("artifact_name")
 	if err := actions_model.SetArtifactNeedDeleteByRunAttempt(ctx, run.ID, resolvedAttemptID, artifactName); err != nil {
-		ctx.ServerError("SetArtifactNeedDeleteByRunAttempt", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, struct{}{})
@@ -1205,13 +1205,13 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	}
 	resolvedAttemptID, err := resolveArtifactAttemptIDFromQuery(ctx, run)
 	if err != nil {
-		ctx.ServerError("resolveArtifactAttemptIDFromQuery", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	artifactName := ctx.PathParam("artifact_name")
 	artifacts, err := actions_model.GetArtifactsByRunAttemptAndName(ctx, run.ID, resolvedAttemptID, artifactName)
 	if err != nil {
-		ctx.ServerError("GetArtifactsByRunAttemptAndName", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if len(artifacts) == 0 {
@@ -1233,7 +1233,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	if len(artifacts) == 1 && actions_service.IsArtifactV4(artifacts[0]) {
 		err := actions_service.DownloadArtifactV4(ctx.Base, artifacts[0])
 		if err != nil {
-			ctx.ServerError("DownloadArtifactV4", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		return
@@ -1275,7 +1275,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	for _, art := range artifacts {
 		err := writeArtifactToZip(art)
 		if err != nil {
-			ctx.ServerError("writeArtifactToZip", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -1285,14 +1285,9 @@ func ApproveAllChecks(ctx *context_module.Context) {
 	repo := ctx.Repo.Repository
 	commitID := ctx.FormString("commit_id")
 
-	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commitID, db.ListOptionsAll)
+	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, repo.ID, commitID)
 	if err != nil {
-		ctx.ServerError("GetLatestCommitStatus", err)
-		return
-	}
-	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, repo.ID, commitStatuses)
-	if err != nil {
-		ctx.ServerError("GetRunsFromCommitStatuses", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -1309,7 +1304,7 @@ func ApproveAllChecks(ctx *context_module.Context) {
 	}
 
 	if _, err := actions_service.ApproveRuns(ctx, repo, ctx.Doer, runIDs); err != nil {
-		ctx.ServerError("ApproveRuns", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -1341,7 +1336,7 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 			// a required scoped workflow can never be opted out
 			required, err := actions_model.IsScopedWorkflowRequired(ctx, ctx.Repo.Repository.OwnerID, scopedRepoID, workflow)
 			if err != nil {
-				ctx.ServerError("IsScopedWorkflowRequired", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			if required {
@@ -1359,7 +1354,7 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 	}
 
 	if err := repo_model.UpdateRepoUnitConfig(ctx, cfgUnit); err != nil {
-		ctx.ServerError("UpdateRepoUnit", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	actions_service.RecordWorkflowToggle(ctx, ctx.Repo.Repository, workflow, isEnable)
@@ -1381,13 +1376,13 @@ func Run(ctx *context_module.Context) {
 
 	workflowID := ctx.FormString("workflow")
 	if len(workflowID) == 0 {
-		ctx.ServerError("workflow", nil)
+		ctx.ServerErrorAuto(errors.New("workflow"))
 		return
 	}
 
 	ref := ctx.FormString("ref")
 	if len(ref) == 0 {
-		ctx.ServerError("ref", nil)
+		ctx.ServerErrorAuto(errors.New("ref"))
 		return
 	}
 	sourceRepoID := ctx.FormInt64("scoped_workflow_source_repo_id")
@@ -1405,12 +1400,8 @@ func Run(ctx *context_module.Context) {
 		return nil
 	})
 	if err != nil {
-		if errTr := util.ErrorAsTranslatable(err); errTr != nil {
-			ctx.Flash.Error(errTr.Translate(ctx.Locale))
-			ctx.Redirect(redirectURL)
-		} else {
-			ctx.ServerError("DispatchActionWorkflow", err)
-		}
+		ctx.FlashErrorAuto(err)
+		ctx.Redirect(redirectURL)
 		return
 	}
 
@@ -1422,35 +1413,35 @@ func Run(ctx *context_module.Context) {
 func viewScopedWorkflowFile(ctx *context_module.Context, run *actions_model.ActionRun) {
 	sourceRepo, err := repo_model.GetRepositoryByID(ctx, run.WorkflowRepoID)
 	if err != nil {
-		ctx.ServerError("GetRepositoryByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	perm, err := access_model.GetDoerRepoPermission(ctx, sourceRepo, ctx.Doer)
 	if err != nil {
-		ctx.ServerError("GetUserRepoPermission", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if !perm.CanRead(unit.TypeCode) {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
 	sourceGitRepo, err := git.OpenRepository(ctx, sourceRepo)
 	if err != nil {
-		ctx.ServerError("OpenRepository", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	defer sourceGitRepo.Close()
 
 	commit, err := sourceGitRepo.GetCommit(ctx, run.WorkflowCommitSHA)
 	if err != nil {
-		ctx.ServerError("GetCommit", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	rpath, entries, err := actions.ListScopedWorkflows(ctx, sourceGitRepo, commit)
 	if err != nil {
-		ctx.ServerError("ListScopedWorkflows", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	for _, entry := range entries {
@@ -1459,7 +1450,7 @@ func viewScopedWorkflowFile(ctx *context_module.Context, run *actions_model.Acti
 			return
 		}
 	}
-	ctx.NotFound(nil)
+	ctx.NotFound()
 }
 
 // canViewScopedWorkflowFile reports whether the viewer may follow the "Workflow file" link of a scoped run.
