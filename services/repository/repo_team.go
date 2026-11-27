@@ -98,8 +98,9 @@ func AddAllRepositoriesToTeam(ctx context.Context, t *organization.Team) error {
 	return nil
 }
 
-// RemoveAllRepositoriesFromTeam removes all repositories from team and recalculates access, ignored if the team includes all repositories
-func RemoveAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) error {
+// RemoveSpecifiedRepositoriesFromTeam removes all repositories from team and recalculates access,
+// ignored if the team includes all repositories
+func RemoveSpecifiedRepositoriesFromTeam(ctx context.Context, t *organization.Team) error {
 	if t.IncludesAllRepositories {
 		return nil
 	}
