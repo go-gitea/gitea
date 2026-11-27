@@ -297,7 +297,7 @@ func testUserSettingsApplications(t *testing.T) {
 		assert.Equal(t, before.Name, after.Name)
 		assert.Equal(t, before.Scope, after.Scope)
 		assert.NotEqual(t, before.TokenHash, after.TokenHash)
-		assert.NotEqual(t, before.TokenSalt, after.TokenSalt)
+		assert.Empty(t, after.TokenSalt)
 	})
 
 	t.Run("OAuth2", func(t *testing.T) {

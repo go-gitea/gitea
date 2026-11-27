@@ -391,22 +391,10 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 			NewCommitID: newCommitID.String(),
 		}, theCommits)
 	}
-	log.Trace("SyncMirrors [repo: %-v]: done notifying updated branches/tags - now updating last commit time", m.Repo)
+	log.Trace("SyncMirrors [repo: %-v]: done notifying updated branches/tags", m.Repo)
 
-	isEmpty, err := gitRepo.IsEmpty(ctx)
-	if err != nil {
-		log.Error("SyncMirrors [repo: %-v]: unable to check empty git repo: %v", m.Repo, err)
-		return false
-	}
-	if !isEmpty {
-		// Get latest commit date and update to current repository updated time
-		commitDate, err := git.GetLatestCommitTime(ctx, m.Repo)
-		if err != nil {
-			log.Error("SyncMirrors [repo: %-v]: unable to GetLatestCommitDate: %v", m.Repo, err)
-			return false
-		}
-
-		if err = repo_model.UpdateRepositoryUpdatedTime(ctx, m.RepoID, commitDate); err != nil {
+	if len(results) > 0 {
+		if err = repo_model.UpdateRepositoryUpdatedTime(ctx, m.RepoID, m.LastSyncUnix.AsTime()); err != nil {
 			log.Error("SyncMirrors [repo: %-v]: unable to update repository 'updated_unix': %v", m.Repo, err)
 			return false
 		}

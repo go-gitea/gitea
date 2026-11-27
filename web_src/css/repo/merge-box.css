@@ -30,8 +30,7 @@
   line-height: 24px;
 }
 
-.merge-section:has(form) > .item:not(.merge-box-footer),
-.merge-section:has(form) .merge-box-command-link {
+.merge-section:has(form) > .item:not(.merge-box-footer) {
   display: none;
 }
 
@@ -99,8 +98,14 @@
   transform: rotate(90deg);
 }
 
-.merge-box-auto-merge-desc {
-  flex: 1 1 240px; /* wrap below the button on narrow screens */
+.merge-box-footer-text {
+  flex: 1 1 0; /* beside the buttons, wrapping within itself */
+}
+
+@media (max-width: 767.98px) {
+  .merge-box-footer-text {
+    flex-basis: 100%;
+  }
 }
 
 .merge-box-menu .item > .svg {

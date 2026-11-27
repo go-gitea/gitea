@@ -60,13 +60,16 @@ func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullR
 	return sess
 }
 
+func unmergedPullRequestsByHead(ctx context.Context, repoID int64, branch string) db.Session {
+	return db.GetEngine(ctx).Table(new(PullRequest)).
+		Join("INNER", "issue", "issue.id = pull_request.issue_id").
+		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND flow = ?", repoID, branch, false, false, PullRequestFlowGithub)
+}
+
 // GetUnmergedPullRequestsByHeadInfo returns all pull requests that are open and has not been merged
 func GetUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch string) (PullRequestList, error) {
 	prs := make([]*PullRequest, 0, 2)
-	sess := db.GetEngine(ctx).
-		Join("INNER", "issue", "issue.id = pull_request.issue_id").
-		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND flow = ?", repoID, branch, false, false, PullRequestFlowGithub)
-	return prs, sess.Find(&prs)
+	return prs, unmergedPullRequestsByHead(ctx, repoID, branch).Find(&prs)
 }
 
 // CanMaintainerWriteToBranch check whether user is a maintainer and could write to the branch
@@ -138,11 +141,16 @@ func canMaintainerWriteToBranch(ctx context.Context, headPerm access_model.Permi
 // HasUnmergedPullRequestsByHeadInfo checks if there are open and not merged pull request
 // by given head information (repo and branch)
 func HasUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch string) (bool, error) {
-	return db.GetEngine(ctx).
-		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND flow = ?",
-			repoID, branch, false, false, PullRequestFlowGithub).
-		Join("INNER", "issue", "issue.id = pull_request.issue_id").
-		Exist(&PullRequest{})
+	return unmergedPullRequestsByHead(ctx, repoID, branch).Exist()
+}
+
+var ErrQueuedPullHead = util.ErrorWrapTranslatable(util.ErrPermissionDenied, "repo.pulls.merge_queue.cannot_update_head")
+
+func CheckBranchNotQueuedForMerge(ctx context.Context, repoID int64, branch string) error {
+	queued, err := unmergedPullRequestsByHead(ctx, repoID, branch).
+		Join("INNER", "pull_merge_queue_entry", "pull_merge_queue_entry.pull_id = pull_request.id").
+		Exist()
+	return util.Iif(queued, ErrQueuedPullHead, err)
 }
 
 // GetUnmergedPullRequestsByBaseInfo returns all pull requests that are open and has not been merged
