@@ -12,6 +12,7 @@ import (
 	"time"
 
 	runnerv1 "gitea.dev/actionslib/runner/v1"
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/shared/types"
@@ -52,7 +53,7 @@ type ActionRunner struct {
 
 	Token     string `xorm:"-"`
 	TokenHash string `xorm:"UNIQUE"` // sha256 of token
-	TokenSalt string
+	TokenSalt string // only set for legacy pbkdf2 hashes
 	// TokenLastEight string `xorm:"token_last_eight"` // it's unnecessary because we don't find runners by token
 
 	LastOnline timeutil.TimeStamp `xorm:"index"`
@@ -194,7 +195,7 @@ func (r *ActionRunner) LoadAttributes(ctx context.Context) error {
 }
 
 func (r *ActionRunner) GenerateAndFillToken() {
-	r.Token, r.TokenSalt, r.TokenHash, _ = generateSaltedToken()
+	r.Token, r.TokenHash, _ = auth_model.GenerateToken()
 }
 
 // CanMatchLabels checks whether the runner's labels can match a job's "runs-on"

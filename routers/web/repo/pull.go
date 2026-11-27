@@ -46,6 +46,7 @@ import (
 	"gitea.dev/services/forms"
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
+	"gitea.dev/services/mergequeue"
 	"gitea.dev/services/notifications"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
@@ -270,6 +271,9 @@ type pullMergeBoxData struct {
 	CanCancelAutoMerge bool
 
 	MergeFormProps        map[string]any
+	MergeQueueLink        string
+	IsQueued              bool
+	CanDequeue            bool
 	ShowPullCommands      bool
 	ShowMergeInstructions bool
 	AutodetectManualMerge bool
@@ -311,6 +315,7 @@ type pullRequestViewInfo struct {
 	MergeBoxData        *pullMergeBoxData
 
 	workInProgressPrefix string
+	queueEntry           *pull_model.MergeQueueEntry
 }
 
 func newPullRequestViewInfo() *pullRequestViewInfo {
@@ -425,7 +430,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	data.StatusCheckData = statusCheckData
 	statusCheckData.ApproveLink = fmt.Sprintf("%s/actions/approve-all-checks?commit_id=%s", ctx.Repo.Repository.Link(), headCommitID)
 
-	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, ctx.Repo.Repository.ID, commitStatuses)
+	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, ctx.Repo.Repository.ID, headCommitID)
 	if err != nil {
 		log.Error("GetRunsFromCommitStatuses: %v", err)
 	}
@@ -480,6 +485,11 @@ func getViewPullHeadBranchCommitID(ctx *context.Context, pull *issues_model.Pull
 
 func (prInfo *pullRequestViewInfo) prepareViewOpenPullInfo(ctx *context.Context) {
 	pull := prInfo.issue.PullRequest
+	var err error
+	if prInfo.queueEntry, err = pull_model.GetMergeQueueEntryByPullID(ctx, pull.ID); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
 	if exist, _ := git_model.IsBranchExist(ctx, pull.BaseRepo.ID, pull.BaseBranch); !exist {
 		// if base branch doesn't exist, prepare from the merge base
 		ctx.Data["BaseBranchNotExist"] = true
@@ -504,6 +514,7 @@ func (prInfo *pullRequestViewInfo) prepareViewOpenPullInfo(ctx *context.Context)
 		ctx.Data["IsPullWorkInProgress"] = prInfo.workInProgressPrefix != ""
 		ctx.Data["WorkInProgressPrefix"] = prInfo.workInProgressPrefix
 	}
+	ctx.Data["IsPullQueued"] = prInfo.queueEntry != nil
 }
 
 func createRequiredContextMatcher(requiredContext string) func(string) bool {
@@ -990,6 +1001,9 @@ func UpdatePullRequest(ctx *context.Context) {
 			}
 			ctx.JSONError(flashError)
 			return
+		} else if errors.Is(err, issues_model.ErrQueuedPullHead) {
+			ctx.JSONErrorAuto(err)
+			return
 		}
 		log.Error("Update pull request failed: %v", err)
 		ctx.JSONError("Unable to update pull request")
@@ -1112,7 +1126,16 @@ func MergePullRequest(ctx *context.Context) {
 		}
 	}
 
-	if err := pull_service.Merge(ctx, pr.ID, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
+	queued, err := mergequeue.EnqueueIfRequired(ctx, ctx.Doer, pr, form.HeadCommitID, form.ForceMerge)
+	if queued {
+		ctx.Flash.Success(ctx.Tr("repo.pulls.merge_queue.added"))
+		ctx.JSONRedirect(issue.Link())
+		return
+	}
+	if err == nil {
+		err = pull_service.Merge(ctx, pr.ID, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false)
+	}
+	if err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
 		} else if conflictError, ok := err.(pull_service.ErrMergeConflicts); ok {
@@ -1422,6 +1445,8 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 	if err := pull_service.ChangeTargetBranch(ctx, pr, ctx.Doer, targetBranch); err != nil {
 		var prExistsErr issues_model.ErrPullRequestAlreadyExists
 		switch {
+		case errors.Is(err, pull_service.ErrRetargetQueuedPull):
+			ctx.JSONErrorAuto(err)
 		case git_model.IsErrBranchNotExist(err):
 			errorMessage := ctx.Tr("form.target_branch_not_exist")
 

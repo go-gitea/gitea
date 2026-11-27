@@ -1850,7 +1850,6 @@
   "repo.settings.event_issue_comment_desc": "Коментар задачі створено, видалено чи відредаговано.",
   "repo.settings.event_header_pull_request": "Події запиту злиття",
   "repo.settings.event_pull_request": "Запити на злиття",
-  "repo.settings.event_pull_request_desc": "Запит на злиття відкрито, закрито, повторно відкрито, відредаговано або видалено.",
   "repo.settings.event_pull_request_assign": "Запит на злиття призначено",
   "repo.settings.event_pull_request_assign_desc": "Запит на злиття призначено або скасовано.",
   "repo.settings.event_pull_request_label": "Запиту на злиття призначена мітка",

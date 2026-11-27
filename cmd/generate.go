@@ -6,7 +6,6 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 
@@ -144,18 +143,8 @@ func runGenerateSecretKey(_ context.Context, c *cli.Command) error {
 
 func runGenerateHostKey(_ context.Context, c *cli.Command) error {
 	file := c.String("dir")
-	info, err := os.Stat(file)
-	if errors.Is(err, os.ErrNotExist) {
-		if err = os.MkdirAll(file, 0o644); err != nil {
-			return err
-		}
-	} else if err != nil {
-		return err
-	} else if !info.IsDir() {
-		return errors.New("file already exists and is not a directory")
-	}
 	fmt.Fprintf(c.Writer, "Generating host keys in %s\n", file)
-	_, err = ssh.InitDefaultHostKeys(file)
+	_, err := ssh.InitDefaultHostKeys(file)
 	return err
 }
 

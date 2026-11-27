@@ -9,12 +9,18 @@ import (
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/git"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
@@ -136,4 +142,62 @@ func TestDetectAndHandleSchedulesDropsRemovedWorkflows(t *testing.T) {
 
 	require.NoError(t, DetectAndHandleSchedules(t.Context(), repo))
 	unittest.AssertNotExistsBean(t, &actions_model.ActionSchedule{RepoID: repo.ID})
+}
+
+func TestMergeQueueWorkflowEvents(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	doer := repo.MustOwner(ctx)
+	notifier := new(actionsNotifier)
+
+	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(_runID int64) error { return nil })()
+	require.NoError(t, db.Insert(ctx, &git_model.ProtectedBranch{
+		RepoID: repo.ID, RuleName: repo.DefaultBranch,
+		ProtectedBranchConfig: git_model.ProtectedBranchConfig{EnableStatusCheck: true, StatusCheckContexts: []string{"*"}},
+	}))
+
+	const groupRef = "refs/heads/gitea-merge-queue/master/pr-1"
+	require.NoError(t, git.ForceFastImport(ctx, repo, []git.FastImportCommit{{
+		Ref: groupRef,
+		Files: []git.FastImportFile{{Path: ".gitea/workflows/queue.yml", Content: `
+on: {push: {}, create: {}, merge_group: {types: [checks_requested, destroyed]}, pull_request: {types: [dequeued]}}
+concurrency: {group: '${{ github.ref }}', cancel-in-progress: true}
+jobs: {check: {runs-on: linux, steps: [{run: echo done}]}}
+`}},
+	}}))
+	headSHA, err := git.GetFullCommitID(ctx, repo, groupRef)
+	require.NoError(t, err)
+
+	entry := &pull_model.MergeQueueEntry{GroupRef: groupRef, GroupHeadSHA: headSHA, BaseBranch: repo.DefaultBranch}
+	notifier.MergeGroupChanged(ctx, doer, repo, entry, api.HookMergeGroupChecksRequested, "")
+	runs, err := db.Find[actions_model.ActionRun](ctx, actions_model.FindRunOptions{RepoID: repo.ID, Ref: groupRef})
+	require.NoError(t, err)
+	require.Len(t, runs, 3)
+	assert.Equal(t, webhook_module.HookEventMergeGroup, runs[0].Event)
+	assert.Equal(t, webhook_module.HookEventCreate, runs[1].Event)
+	assert.Equal(t, webhook_module.HookEventPush, runs[2].Event)
+	assert.Equal(t, actions_model.StatusWaiting, runs[0].Status)
+	push, err := runs[2].GetPushEventPayload()
+	require.NoError(t, err)
+	assert.Equal(t, 1, push.TotalCommits)
+	unittest.AssertExistsAndLoadBean(t, &git_model.CommitStatus{RepoID: repo.ID, SHA: headSHA, Context: "queue.yml / check (merge_group)"})
+	require.NoError(t, git.RemoveRef(ctx, repo, groupRef))
+	notifier.MergeGroupChanged(ctx, doer, repo, entry, api.HookMergeGroupDestroyed, "merged")
+	unittest.AssertCount(t, &actions_model.ActionRun{RepoID: repo.ID, Ref: groupRef}, 3)
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	require.NoError(t, pr.LoadIssue(ctx))
+	pr.BaseBranch = "deleted"
+	require.NoError(t, notify(ctx, newNotifyInput(repo, doer, webhook_module.HookEventPullRequest).
+		WithPayload(&api.PullRequestPayload{Action: api.HookIssueDequeued}).
+		WithPullRequest(pr)))
+
+	pr.BaseBranch = repo.DefaultBranch
+	pr.HasMerged, pr.Issue.IsClosed, pr.MergedCommitID = true, true, headSHA
+	notifier.PullRequestMergeQueueChanged(ctx, doer, pr, api.HookIssueDequeued, issues_model.MergeQueueRemovedMerged)
+	unittest.AssertCount(t, &actions_model.ActionRun{
+		RepoID: repo.ID, WorkflowID: "queue.yml", Event: webhook_module.HookEventPullRequest,
+		Ref: pr.GetGitHeadRefName(), CommitSHA: headSHA, WorkflowCommitSHA: headSHA,
+	}, 1)
 }

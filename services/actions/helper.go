@@ -11,10 +11,8 @@ import (
 	"strings"
 
 	actions_model "gitea.dev/models/actions"
-	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
@@ -102,22 +100,6 @@ func calledWorkflowInputs(ctx context.Context, run *actions_model.ActionRun, cal
 		inputs[name] = value
 	}
 	return inputs, nil
-}
-
-// pullRequestTargetBaseSHA returns the base branch commit of a pull_request_target run, and whether the run is one.
-func pullRequestTargetBaseSHA(run *actions_model.ActionRun) (string, bool) {
-	if run.TriggerEvent != actions_module.GithubEventPullRequestTarget {
-		return "", false
-	}
-	payload, err := run.GetPullRequestEventPayload()
-	if err != nil {
-		log.Error("run %d: get pull request event payload: %v", run.ID, err)
-		return "", false
-	}
-	if payload.PullRequest == nil || payload.PullRequest.Base == nil || payload.PullRequest.Base.Sha == "" {
-		return "", false
-	}
-	return payload.PullRequest.Base.Sha, true
 }
 
 // evaluateJobIf evaluates a job's `if:`. An invalid `if:` skips the job and is reported in its summary.

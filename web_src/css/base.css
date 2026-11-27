@@ -327,6 +327,18 @@ a.suppressed:hover {
   color: inherit;
 }
 
+a.user-mention {
+  color: inherit;
+  font-weight: var(--font-weight-semibold);
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+a.user-mention.current-user {
+  color: var(--color-warning-text);
+  background: var(--color-warning-bg);
+}
+
 /* keyboard focus ring for interactive elements */
 a:focus-visible,
 button:focus-visible,

@@ -14,6 +14,7 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -32,6 +33,7 @@ import (
 	"gitea.dev/modules/util"
 	actions_service "gitea.dev/services/actions"
 	notify_service "gitea.dev/services/notify"
+	pull_service "gitea.dev/services/pull"
 	release_service "gitea.dev/services/release"
 
 	"xorm.io/builder"
@@ -51,6 +53,7 @@ func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_mode
 type Branch struct {
 	DBBranch          *git_model.Branch
 	IsProtected       bool
+	HasMergeQueue     bool
 	CanDelete         bool
 	IsIncluded        bool
 	CommitsAhead      int
@@ -265,6 +268,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 	return &Branch{
 		DBBranch:          dbBranch,
 		IsProtected:       isProtected,
+		HasMergeQueue:     isProtected && p.RequireMergeQueue,
 		CanDelete:         canDelete,
 		IsIncluded:        isIncluded,
 		CommitsAhead:      divergence.Ahead,
@@ -480,6 +484,15 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	if from == to {
 		return "target_exist", nil
 	}
+	if err := issues_model.CheckBranchNotQueuedForMerge(ctx, repo.ID, from); err != nil {
+		return "", err
+	}
+
+	for _, branch := range []string{from, to} {
+		if owned, err := pull_model.IsMergeQueueRef(ctx, repo.ID, git.RefNameFromBranch(branch)); err != nil || owned {
+			return "", util.Iif(owned, git_model.ErrBranchIsProtected, err)
+		}
+	}
 
 	if exist, _ := git_model.IsBranchExist(ctx, repo.ID, to); exist {
 		return "target_exist", nil
@@ -524,6 +537,12 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	if rule != nil && !rule.CanUserPush(ctx, doer, perm) {
 		return "", git_model.ErrBranchIsProtected
 	}
+
+	release, err := globallock.Lock(ctx, pull_model.MergeQueueLockKey(repo.ID, from)) // a running queue pass of the old branch must not see it half renamed
+	if err != nil {
+		return "", err
+	}
+	defer release()
 
 	if err := git_model.RenameBranch(ctx, repo, from, to, func(ctx context.Context, isDefault bool) error {
 		err2 := git.RenameBranch(ctx, repo, from, to)
@@ -620,8 +639,14 @@ func CanDeleteBranchWithPermission(ctx context.Context, repo *repo_model.Reposit
 	if branchName == repo.DefaultBranch || branchName == repo.GetPullRequestTargetBranch(ctx) {
 		return ErrBranchIsDefault
 	}
+	if owned, err := pull_model.IsMergeQueueRef(ctx, repo.ID, git.RefNameFromBranch(branchName)); err != nil || owned {
+		return util.Iif(owned, git_model.ErrBranchIsProtected, err)
+	}
 	if !permissionInRepo.CanWrite(unit.TypeCode) {
 		return util.NewPermissionDeniedErrorf("permission denied to access repo %d unit %s", repo.ID, unit.TypeCode.LogString())
+	}
+	if err := issues_model.CheckBranchNotQueuedForMerge(ctx, repo.ID, branchName); err != nil {
+		return err
 	}
 
 	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, branchName)
@@ -861,6 +886,16 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo *repo_model.Repo
 	info.HeadCommitsBehind, info.HeadCommitsAhead = diff.Behind, diff.Ahead
 	info.BaseHasNewCommits = info.HeadCommitsBehind > 0
 	return info, nil
+}
+
+func DeleteBranchAfterMergeIfNeeded(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, pr *issues_model.PullRequest, userOption *bool) {
+	if shouldDelete, err := pull_service.ShouldDeleteBranchAfterMerge(ctx, userOption, repo, pr); err != nil {
+		log.Error("ShouldDeleteBranchAfterMerge: %v", err)
+	} else if shouldDelete {
+		if err := DeleteBranchAfterMerge(ctx, doer, pr.ID, nil); err != nil {
+			log.Error("DeleteBranchAfterMerge: %v", err)
+		}
+	}
 }
 
 func DeleteBranchAfterMerge(ctx context.Context, doer *user_model.User, prID int64, outFullBranchName *string) error {

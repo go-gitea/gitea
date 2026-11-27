@@ -19,14 +19,13 @@ export function matchEmoji(queryText: string): string[] {
   // results is a map of weights, lower is better
   const results = new Map<string, number>();
   for (const {aliases} of emojis) {
-    const mainAlias = aliases[0];
+    let rank = Infinity;
     for (const [aliasIndex, alias] of aliases.entries()) {
-      const index = alias.replaceAll('_', ' ').indexOf(query);
-      if (index === -1) continue;
-      const existing = results.get(mainAlias);
-      const rankedIndex = index + aliasIndex;
-      results.set(mainAlias, existing ? existing - rankedIndex : rankedIndex);
+      const normalizedAlias = alias.replaceAll('_', ' ');
+      const index = normalizedAlias.indexOf(query);
+      if (index !== -1) rank = Math.min(rank, normalizedAlias === query ? -1 : index + aliasIndex);
     }
+    if (rank !== Infinity) results.set(aliases[0], rank);
   }
 
   return sortAndReduce(results);

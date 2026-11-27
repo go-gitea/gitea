@@ -278,7 +278,7 @@ func TestPackageComposer(t *testing.T) {
 			AddBasicAuth(user.Name)
 		viewResp := MakeRequest(t, viewReq, http.StatusOK)
 		viewDoc := NewHTMLParser(t, bytes.NewReader(viewResp.Body.Bytes()))
-		assert.Equal(t, 0, viewDoc.Find(".issue-title-header .ui.basic.label").Length())
+		assert.Equal(t, 0, viewDoc.Find(".package-header .ui.basic.label").Length())
 
 		privatePackageName := privateUser.Name + "/private-composer-package"
 		privatePackageVersion := "1.0.0"
@@ -311,7 +311,7 @@ func TestPackageComposer(t *testing.T) {
 		privateViewReq := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/composer/%s/%s", privateUser.Name, neturl.PathEscape(privatePackageName), neturl.PathEscape(privatePackageVersion)))
 		privateViewResp := privateSession.MakeRequest(t, privateViewReq, http.StatusOK)
 		privateViewDoc := NewHTMLParser(t, bytes.NewReader(privateViewResp.Body.Bytes()))
-		assert.Equal(t, 1, privateViewDoc.Find(".issue-title-header .ui.basic.label").Length())
-		assert.Equal(t, "Private", privateViewDoc.Find(".issue-title-header .ui.basic.label").First().Text())
+		assert.Equal(t, 1, privateViewDoc.Find(".package-header .ui.basic.label").Length())
+		assert.Equal(t, "Private", privateViewDoc.Find(".package-header .ui.basic.label").First().Text())
 	})
 }
