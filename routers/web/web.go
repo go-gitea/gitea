@@ -486,9 +486,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	addSettingsSecretsRoutes := func() {
 		m.Group("/secrets", func() {
-			m.Get("", repo_setting.Secrets)
-			m.Post("", web.Bind[*forms.AddSecretForm](), repo_setting.SecretsPost)
-			m.Post("/delete", repo_setting.SecretsDelete)
+			m.Get("", shared_actions.Secrets)
+			m.Post("", web.Bind[*forms.AddSecretForm](), shared_actions.SecretsPost)
+			m.Post("/delete", shared_actions.SecretsDelete)
 		})
 	}
 
