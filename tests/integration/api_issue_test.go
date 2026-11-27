@@ -117,6 +117,14 @@ func testAPIListIssues(t *testing.T) {
 		assert.EqualValues(t, 1, apiIssues[1].Milestone.ID)
 	}
 
+	link.RawQuery = url.Values{"token": {token}, "state": {"all"}, "exclude_labels": {"label1,nonexistent"}}.Encode()
+	resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	var issueIDs []int64
+	for _, apiIssue := range DecodeJSON(t, resp, []*api.Issue{}) {
+		issueIDs = append(issueIDs, apiIssue.ID)
+	}
+	assert.ElementsMatch(t, []int64{3, 5, 11}, issueIDs)
+
 	link.RawQuery = url.Values{"token": {token}, "state": {"all"}, "created_by": {"user2"}}.Encode()
 	resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
@@ -502,6 +510,13 @@ func testAPISearchIssuesWithLabels(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
 	assert.Len(t, apiIssues, 2)
+
+	query.Set("exclude_labels", "label1")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
+	assert.Empty(t, apiIssues)
 }
 
 func testAPIIssueContentVersion(t *testing.T) {

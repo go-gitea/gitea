@@ -47,6 +47,13 @@ func TestAPIModifyLabels(t *testing.T) {
 		}
 		assert.ElementsMatch(t, apiLabelNames, []string{repoLabel.Name, orgLabel.Name})
 
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all&exclude_labels=%s", owner.Name, repo.Name, orgLabel.Name)).AddTokenAuth(token)
+		apiIssues := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []*api.Issue{})
+		assert.NotEmpty(t, apiIssues)
+		for _, apiIssue := range apiIssues {
+			assert.NotEqual(t, issue.ID, apiIssue.ID)
+		}
+
 		// delete labels
 		req = NewRequest(t, "DELETE", urlStr).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
