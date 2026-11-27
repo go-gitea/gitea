@@ -148,10 +148,8 @@
 								{{if not $file.IsSubmodule}}
 									<button type="button" class="btn tw-p-1" data-global-init="initDiffHeaderPopupMenu">{{svg "octicon-kebab-horizontal" 18}}</button>
 									<div class="tippy-target">
-										{{if not (or $file.IsIncomplete $file.IsBin)}}
-											<button type="button" class="unescape-button item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
-											<button type="button" class="escape-button tw-hidden item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
-										{{end}}
+										<button type="button" class="unescape-button tw-hidden item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
+										<button type="button" class="escape-button tw-hidden item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 										<button type="button" class="item" data-clipboard-text="{{$file.GetDiffFileBaseName}}">{{ctx.Locale.Tr "copy_filename"}}</button>
 										{{if not $.PageIsWiki}}
 											{{if $file.IsDeleted}}
