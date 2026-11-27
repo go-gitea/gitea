@@ -23,7 +23,7 @@
 .merge-section > .item,
 .merge-box-checks-header {
   flex-wrap: wrap;
-  padding: 15px 16px;
+  padding: 16px;
 }
 
 .merge-section .item-title {
@@ -72,7 +72,7 @@
 
 .merge-box-checks-body {
   max-height: 300px;
-  padding: 7px 8px; /* with the item paddings, aligns the content with the section items */
+  padding: 8px; /* with the item paddings, aligns the content with the section items */
 }
 
 .merge-box-checks-group > .btn {
@@ -80,7 +80,7 @@
 }
 
 .merge-box-checks .commit-status-item {
-  height: 36px;
+  height: 37px;
   padding-inline: 8px;
 }
 
