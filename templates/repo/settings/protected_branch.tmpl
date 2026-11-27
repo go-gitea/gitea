@@ -20,12 +20,12 @@
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_protected_file_patterns"}}</label>
 					<input name="protected_file_patterns" type="text" value="{{.Rule.ProtectedFilePatterns}}">
-					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_protected_files_desc"}} {{$globSyntax}} {{ctx.Locale.Tr "repo.settings.glob_examples" (HTMLFormat "<code>%s</code>, <code>%s</code>" ".drone.yml" "docs/**")}}</p>
+					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_protected_files_desc"}} {{$globSyntax}} {{ctx.Locale.Tr "repo.settings.glob_examples" (HTMLFormat "<code>%s</code>, <code>%s</code>" ".gitea/workflows/**" "CODEOWNERS")}}</p>
 				</div>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns"}}</label>
 					<input name="unprotected_file_patterns" type="text" value="{{.Rule.UnprotectedFilePatterns}}">
-					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_unprotected_files_desc"}} {{$globSyntax}} {{ctx.Locale.Tr "repo.settings.glob_examples" (HTMLFormat "<code>%s</code>, <code>%s</code>" ".drone.yml" "docs/**")}}</p>
+					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_unprotected_files_desc"}} {{$globSyntax}} {{ctx.Locale.Tr "repo.settings.glob_examples" (HTMLFormat "<code>%s</code>, <code>%s</code>" "docs/**" "**.md")}}</p>
 				</div>
 
 				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.event_push"}}</h5>
