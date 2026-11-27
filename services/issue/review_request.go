@@ -14,6 +14,7 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
 	"gitea.dev/services/automergequeue"
 	notify_service "gitea.dev/services/notify"
 )
@@ -146,7 +147,12 @@ func isReviewerCandidate(ctx context.Context, issue *issues_model.Issue, user *u
 	if isReviewer, err := issues_model.IsReviewer(ctx, issue.Repo, user); err != nil || isReviewer {
 		return isReviewer, err
 	}
-	reviews, err := issues_model.CountReviews(ctx, issues_model.FindReviewOptions{IssueID: issue.ID, ReviewerID: user.ID})
+	reviews, err := issues_model.CountReviews(ctx, issues_model.FindReviewOptions{
+		IssueID:    issue.ID,
+		ReviewerID: user.ID,
+		Types:      []issues_model.ReviewType{issues_model.ReviewTypeApprove, issues_model.ReviewTypeReject, issues_model.ReviewTypeComment, issues_model.ReviewTypeRequest},
+		Dismissed:  optional.Some(false),
+	})
 	return reviews > 0, err
 }
 

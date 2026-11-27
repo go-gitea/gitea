@@ -14,16 +14,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestReviewRequestRetractOwnApproval(t *testing.T) {
+func TestReviewRequestAfterReview(t *testing.T) {
 	for _, tc := range []struct {
 		name       string
 		reviewType issues_model.ReviewType
 		archived   bool
+		doerID     int64
 		allowed    bool
 	}{
-		{"approval", issues_model.ReviewTypeApprove, false, true},
-		{"comment", issues_model.ReviewTypeComment, false, false},
-		{"archived repository", issues_model.ReviewTypeApprove, true, false},
+		{"own approval", issues_model.ReviewTypeApprove, false, 5, true},
+		{"own comment", issues_model.ReviewTypeComment, false, 5, false},
+		{"own approval in archived repository", issues_model.ReviewTypeApprove, true, 5, false},
+		{"pending review of a non-candidate", issues_model.ReviewTypePending, false, 2, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			require.NoError(t, unittest.PrepareTestDatabase())
@@ -41,7 +43,7 @@ func TestReviewRequestRetractOwnApproval(t *testing.T) {
 			assert.False(t, review.Official)
 			issue.Repo.IsArchived = tc.archived
 
-			_, err = ReviewRequest(t.Context(), issue, reviewer, nil, reviewer, true)
+			_, err = ReviewRequest(t.Context(), issue, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: tc.doerID}), nil, reviewer, true)
 			if !tc.allowed {
 				assert.True(t, issues_model.IsErrNotValidReviewRequest(err))
 				return

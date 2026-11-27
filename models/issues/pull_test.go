@@ -351,8 +351,7 @@ func testParseCodeOwnersLine(t *testing.T) {
 		assert.Equal(t, g.Tokens, tokens, "Codeowners tokenizer failed: input=%s", g.Line)
 	}
 
-	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-	rules, warnings := issues_model.GetCodeOwnersFromContent(t.Context(), repo3, "*.md @ORG3/team1 @org17/review_team @org3/missing @user4 @user5")
+	rules, warnings := issues_model.GetCodeOwnersFromContent(t.Context(), unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}), "*.md @ORG3/team1 @org17/review_team @org3/missing @user4 @user5")
 	require.Len(t, rules, 1)
 	require.Len(t, rules[0].Teams, 1)
 	require.Len(t, rules[0].Users, 1)
