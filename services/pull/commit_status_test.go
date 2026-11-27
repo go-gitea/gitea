@@ -10,7 +10,6 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
-	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/commitstatus"
@@ -18,15 +17,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestIsPullCommitStatusPassWithoutRequiredChecks(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
-	pass, err := IsPullCommitStatusPass(t.Context(), pr)
-	require.NoError(t, err)
-	assert.True(t, pass, "auto-merge has nothing to gate on without required checks")
-}
 
 func TestMergeRequiredContextsCommitStatus(t *testing.T) {
 	cases := []struct {

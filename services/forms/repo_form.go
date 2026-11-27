@@ -425,8 +425,7 @@ type MergePullRequestForm struct {
 	MergeCommitID     string `json:"merge_commit_id,omitempty"` // only used for manually-merged
 	HeadCommitID      string `json:"head_commit_id,omitempty"`
 	ForceMerge        bool   `json:"force_merge,omitempty"`
-	// Wait for the required status checks configured by branch protection before merging.
-	// When no checks are required, the merge runs immediately.
+	// Merge once branch protection requirements like required status checks and approvals are met. Other checks are not awaited.
 	MergeWhenChecksSucceed bool  `json:"merge_when_checks_succeed,omitempty"`
 	DeleteBranchAfterMerge *bool `json:"delete_branch_after_merge,omitempty"`
 	HasMergeMessageField   bool  `form:"-" json:"-"`
