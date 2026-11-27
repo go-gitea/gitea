@@ -116,17 +116,16 @@ func diffContentHistory(oldContent, newContent string) template.HTML {
 	diff := dmp.DiffMain(util.NormalizeStringEOL(oldContent), util.NormalizeStringEOL(newContent), false)
 	diff = dmp.DiffCleanupEfficiency(diff)
 
-	// use chroma to render the diff html
 	buf := &htmlutil.HTMLBuilder{}
-	buf.WriteHTML(`<pre class="chroma">`)
+	buf.WriteHTML(`<pre>`)
 	for _, it := range diff {
 		switch it.Type {
 		case diffmatchpatch.DiffInsert:
-			buf.WriteHTML(`<span class="gi">`)
+			buf.WriteHTML(`<span class="added-code">`)
 			buf.WriteString(it.Text)
 			buf.WriteHTML("</span>")
 		case diffmatchpatch.DiffDelete:
-			buf.WriteHTML(`<span class="gd">`)
+			buf.WriteHTML(`<span class="removed-code">`)
 			buf.WriteString(it.Text)
 			buf.WriteHTML("</span>")
 		default:

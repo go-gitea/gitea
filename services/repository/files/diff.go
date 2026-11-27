@@ -8,35 +8,34 @@ import (
 	"strings"
 
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/services/gitdiff"
 )
 
-// GetDiffPreview produces and returns diff result of a file which is not yet committed.
-func GetDiffPreview(ctx context.Context, repo *repo_model.Repository, branch, treePath, oldContent, newContent string) (*gitdiff.Diff, error) {
+// GetDiffPreview returns the patch of a file change which is not yet committed
+func GetDiffPreview(ctx context.Context, repo *repo_model.Repository, branch, treePath, oldContent, newContent string) (string, error) {
 	if branch == "" {
 		branch = repo.DefaultBranch
 	}
 	t, err := NewTemporaryUploadRepository(repo)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	defer t.Close()
 	if err := t.Clone(ctx, branch, true); err != nil {
-		return nil, err
+		return "", err
 	}
 	if err := t.SetDefaultIndex(ctx); err != nil {
-		return nil, err
+		return "", err
 	}
 
 	// Add the object to the database
 	objectHash, err := t.HashObjectAndWrite(ctx, strings.NewReader(newContent))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	// Add the object to the index
 	if err := t.AddObjectToIndex(ctx, "100644", objectHash, treePath); err != nil {
-		return nil, err
+		return "", err
 	}
-	return t.DiffIndex(ctx, oldContent, newContent)
+	return t.DiffIndex(ctx)
 }

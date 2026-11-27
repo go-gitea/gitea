@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/languagestats"
+	"gitea.dev/modules/highlight"
 	"gitea.dev/modules/indexer/code"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
@@ -61,7 +62,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		return "", err
 	}
 
-	language, _ := languagestats.GetFileLanguage(ctx, gitRepo, opts.CommitID, opts.FilePath)
+	attrLanguage, _ := languagestats.GetFileLanguage(ctx, gitRepo, opts.CommitID, opts.FilePath)
 	blob, err := commit.GetBlobByPath(ctx, gitRepo, opts.FilePath)
 	if err != nil {
 		return "", err
@@ -96,7 +97,8 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		lineCodes = append(lineCodes, line)
 	}
 	realLineStop := max(opts.LineStart, opts.LineStart+len(lineNums)-1)
-	highlightLines := code.HighlightSearchResultCode(opts.FilePath, language, lineNums, strings.Join(lineCodes, ""))
+	content := strings.Join(lineCodes, "")
+	highlightLines := code.RenderSearchResultCode(lineNums, content)
 
 	escapeStatus := &charset.EscapeStatus{}
 	lineEscapeStatus := make([]*charset.EscapeStatus, len(highlightLines))
@@ -114,6 +116,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		"RepoLink":         dbRepo.Link(),
 		"CommitID":         opts.CommitID,
 		"HighlightLines":   highlightLines,
+		"Language":         highlight.DetectLanguage(opts.FilePath, attrLanguage, []byte(content)),
 		"EscapeStatus":     escapeStatus,
 		"LineEscapeStatus": lineEscapeStatus,
 	})

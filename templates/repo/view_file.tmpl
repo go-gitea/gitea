@@ -113,14 +113,14 @@
 			{{else if .IsPlainText}}
 				<pre>{{if .FileContent}}{{.FileContent}}{{end}}</pre>
 			{{else if .FileContent}}
-				<table data-paste-markdown-skip>
+				<table data-paste-markdown-skip class="code-highlight" data-global-init="initCodeHighlight" data-highlight-language="{{.FileLanguage}}">
 					<tbody>
 					{{range $idx, $code := .FileContent}}
 						{{$line := Eval $idx "+" 1}}
 						<tr>
 							<td class="lines-num"><span id="L{{$line}}" data-line-number="{{$line}}"></span></td>
 							{{ctx.RenderUtils.RenderUnicodeEscapeToggleTd $.EscapeStatus (index $.LineEscapeStatus $idx)}}
-							<td rel="L{{$line}}" class="lines-code chroma"><code class="code-inner">{{$code}}</code></td>
+							<td rel="L{{$line}}" class="lines-code"><code class="code-inner">{{$code}}</code></td>
 						</tr>
 					{{end}}
 					</tbody>

@@ -300,7 +300,7 @@ func prepareMockDataUnicodeEscape(ctx *context.Context) {
 
 	lineNums := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
 
-	highlightLines := code.HighlightSearchResultCode("demo.go", "", lineNums, content)
+	highlightLines := code.RenderSearchResultCode(lineNums, content)
 	escapeStatus := &charset.EscapeStatus{}
 	lineEscapeStatus := make([]*charset.EscapeStatus, len(highlightLines))
 	for i, hl := range highlightLines {

@@ -79,6 +79,10 @@ func ForceFastImport(ctx context.Context, repo RepositoryFacade, commits []FastI
 
 		for _, f := range c.Files {
 			mode := util.IfZero(f.Mode, EntryModeBlob)
+			if mode == EntryModeCommit { // a submodule, its content is the commit ID
+				_, _ = fmt.Fprintf(buf, "M %s %s %s\n", mode.String(), f.Content, f.Path)
+				continue
+			}
 			_, _ = fmt.Fprintf(buf, "M %s inline %s\ndata %d\n%s\n", mode.String(), f.Path, len(f.Content), f.Content)
 		}
 	}

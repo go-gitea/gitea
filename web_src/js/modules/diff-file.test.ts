@@ -1,14 +1,14 @@
-import {countMatchingFiles, diffTreeStoreSetViewed, extensionFilterFromUrl, extensionFilterToUrl, filterDiffTree, getDiffTreeExtensionStats, reactiveDiffTreeStore, type DiffTreeEntry} from './diff-file.ts';
+import {diffTreeStoreSetViewed, extensionFilterFromUrl, extensionFilterToUrl, filterDiffTree, getDiffTreeExtensionStats, getDiffTreeStatusStats, reactiveDiffTreeStore, type DiffStatus, type DiffTreeEntry} from './diff-file.ts';
 
-function file(name: string, oldName: string = ''): DiffTreeEntry {
+function file(name: string, oldName: string = '', status: DiffStatus = 'added'): DiffTreeEntry {
   return {
     FullName: name,
     OldFullName: oldName,
     DisplayName: name.split('/').pop()!,
-    DiffStatus: 'added',
+    DiffStatus: status,
     NameHash: name,
     EntryMode: '',
-    IsViewed: false,
+    IsViewed: false, HasChanged: false,
     FileIcon: '',
     Children: null,
   };
@@ -20,7 +20,7 @@ function dir(name: string, children: DiffTreeEntry[]): DiffTreeEntry {
     OldFullName: '',
     DisplayName: name.split('/').pop()!,
     EntryMode: 'tree',
-    IsViewed: false,
+    IsViewed: false, HasChanged: false,
     NameHash: name,
     DiffStatus: '',
     FileIcon: '',
@@ -31,7 +31,7 @@ function dir(name: string, children: DiffTreeEntry[]): DiffTreeEntry {
 function makeStore(children: DiffTreeEntry[]) {
   return reactiveDiffTreeStore({
     TreeRoot: {
-      FullName: '', OldFullName: '', DisplayName: '', EntryMode: 'tree', IsViewed: false,
+      FullName: '', OldFullName: '', DisplayName: '', EntryMode: 'tree', IsViewed: false, HasChanged: false,
       NameHash: 'root', DiffStatus: '', FileIcon: '', Children: children,
     },
   }, '', '');
@@ -95,29 +95,49 @@ test('getDiffTreeExtensionStats', () => {
   ]);
 });
 
-test('countMatchingFiles', () => {
+test('filterDiffTree renamed', () => {
   const store = makeStore([
     dir('dir1', [file('dir1/new-name.md', 'dir1/old-name.txt')]),
     file('other.ts'),
   ]);
 
-  expect(countMatchingFiles(store)).toBe(2);
-
   // search query also matches the pre-rename path
   store.filenameFilterQuery = 'old-name';
   expect(visibleNames(filterDiffTree(store))).toEqual(['dir1/new-name.md']);
-  expect(countMatchingFiles(store)).toBe(1);
 
   // extension filter only applies to new name
   store.filenameFilterQuery = '';
   store.activeExtensions = ['.txt'];
   expect(visibleNames(filterDiffTree(store))).toEqual([]);
-  expect(countMatchingFiles(store)).toBe(0);
   store.activeExtensions = ['.md'];
   expect(visibleNames(filterDiffTree(store))).toEqual(['dir1/new-name.md']);
+});
 
-  store.activeExtensions = ['.md', '.ts'];
-  expect(countMatchingFiles(store)).toBe(2);
+test('filterDiffTree status and comments', () => {
+  const store = makeStore([
+    file('a.go', '', 'added'),
+    file('b.go', '', 'modified'),
+    file('c.go', '', 'typechanged'),
+    file('d.go', 'old.go', 'copied'),
+    file('e.go', '', 'deleted'),
+  ]);
+  expect(getDiffTreeStatusStats(store)).toEqual([
+    {status: 'added', count: 1},
+    {status: 'modified', count: 2},
+    {status: 'deleted', count: 1},
+    {status: 'renamed', count: 1},
+  ]);
+
+  store.activeStatuses = ['modified', 'renamed'];
+  expect(visibleNames(filterDiffTree(store))).toEqual(['b.go', 'c.go', 'd.go']);
+
+  // without comment data, like on a commit page, the option has no effect
+  store.commentedOnly = true;
+  expect(visibleNames(filterDiffTree(store))).toEqual(['b.go', 'c.go', 'd.go']);
+  store.commentFiles = [{name: 'c.go', threads: []}, {name: 'e.go', threads: []}];
+  expect(visibleNames(filterDiffTree(store))).toEqual(['c.go']);
+  store.activeStatuses = 'all';
+  expect(visibleNames(filterDiffTree(store))).toEqual(['c.go', 'e.go']);
 });
 
 test('extensionFilter url round-trip', () => {

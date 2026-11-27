@@ -53,29 +53,19 @@ func TestRenderConversation(t *testing.T) {
 	})
 	require.NotNil(t, preparedComment)
 
-	for _, testCase := range []struct {
-		name, origin, expected string
-		showOutdated           bool
-	}{
-		{"diff with outdated", "diff", `<div class="content comment-container"`, true},
-		{"diff without outdated", "diff", `conversation-not-existing`, false},
-		{"timeline with outdated", "timeline", `<div id="code-comments-`, true},
-		{"timeline is not affected by ShowOutdatedComments=false", "timeline", `<div id="code-comments-`, false},
-	} {
-		run(testCase.name, func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
-			ctx.Data["ShowOutdatedComments"] = testCase.showOutdated
-			renderConversation(ctx, preparedComment, testCase.origin)
-			assert.Contains(t, resp.Body.String(), testCase.expected)
-		})
-	}
-	for _, origin := range []string{"diff", "timeline"} {
-		run(origin+" non-existing review", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
-			err := db.TruncateBeans(t.Context(), &issues_model.Review{})
-			assert.NoError(t, err)
-			ctx.Data["ShowOutdatedComments"] = true
-			renderConversation(ctx, preparedComment, origin)
-			assert.Equal(t, http.StatusOK, resp.Code)
-			assert.NotContains(t, resp.Body.String(), common.PageInternalServerErrorMark)
-		})
-	}
+	run("diff", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
+		renderConversation(ctx, preparedComment, "diff")
+		assert.JSONEq(t, `{"ok":true}`, resp.Body.String())
+	})
+	run("timeline", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
+		renderConversation(ctx, preparedComment, "timeline")
+		assert.Contains(t, resp.Body.String(), `<div id="code-comments-`)
+	})
+	run("timeline non-existing review", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
+		err := db.TruncateBeans(t.Context(), &issues_model.Review{})
+		assert.NoError(t, err)
+		renderConversation(ctx, preparedComment, "timeline")
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.NotContains(t, resp.Body.String(), common.PageInternalServerErrorMark)
+	})
 }

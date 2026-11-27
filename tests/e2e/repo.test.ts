@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, apiCreateBranch, apiCreateFiles, apiCreateRepo, apiHeaders, randomString} from './utils.ts';
+import {login, apiCreateBranch, apiCreateFiles, apiCreateIssue, apiCreateRepo, apiHeaders, baseUrl, randomString} from './utils.ts';
 
 test('create a repository', async ({page}) => {
   const repoName = `e2e-repo-${randomString(8)}`;
@@ -29,13 +29,16 @@ test('delete a branch via its modal', async ({page, request}) => {
   await expect(page.locator('.flash-message')).toContainText('Branch "feature" has been deleted.');
 });
 
-test('search code', async ({page, request}) => {
+test('search and highlight code', async ({page, request}) => {
   const repoName = `e2e-search-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
   await Promise.all([
     (async () => {
       await apiCreateRepo(request, {name: repoName});
-      await apiCreateFiles(request, owner, repoName, [{path: 'src/main.go', content: 'package main\n\nfunc alphaTerm() {}\n\nvar betaTerm = 1\n'}]);
+      await apiCreateFiles(request, owner, repoName, [
+        {path: 'src/main.go', content: 'package main\n\nfunc alphaTerm() {}\n\nvar betaTerm = 1\n'},
+        {path: 'docs.md', content: '```js\nconst a = 1;\n```\n'},
+      ]);
     })(),
     login(page),
   ]);
@@ -45,6 +48,23 @@ test('search code', async ({page, request}) => {
   await input.press('Enter');
   await page.waitForURL(/[?&]q=alphaterm/);
   await expect(page.getByText('src/main.go', {exact: true})).toBeVisible();
+
+  // code is highlighted by the frontend, around the marked matches
+  await expect(page.locator('.repo-search-result mark .tok-function')).toHaveText('alphaTerm');
+  for (const view of ['src', 'blame']) {
+    await page.goto(`/${owner}/${repoName}/${view}/branch/main/src/main.go`);
+    await expect(page.locator('.code-view .tok-keyword').first()).toHaveText('package');
+  }
+  await page.goto(`/${owner}/${repoName}/src/branch/main/docs.md`);
+  await expect(page.locator('.markup .code-block .tok-keyword')).toHaveText('const');
+
+  // a link to lines of a file is shown as a code preview, the lines can still be selected in the file view
+  const commitId = (await (await request.get(`/api/v1/repos/${owner}/${repoName}/branches/main`, {headers: apiHeaders()})).json()).commit.id;
+  const {index} = await apiCreateIssue(request, {owner, repo: repoName, title: 'preview', body: `${baseUrl()}/${owner}/${repoName}/src/commit/${commitId}/src/main.go#L3`});
+  await page.goto(`/${owner}/${repoName}/issues/${index}`);
+  await expect(page.locator('.code-preview-container .tok-keyword')).toHaveText('func');
+  await page.locator('.code-preview-header a').first().click();
+  await expect(page.locator('.code-view tr.active .tok-function')).toHaveText('alphaTerm');
 });
 
 test('file tree, go to file and tag selector navigate nested files', async ({page, request}) => {

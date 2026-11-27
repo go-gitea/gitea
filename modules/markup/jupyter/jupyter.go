@@ -210,11 +210,9 @@ func renderCellCode(output htmlutil.HTMLWriter, cell Cell, language string) erro
 			output.WriteHTML(`<div class="cell-left cell-prompt">In [ ]:</div>`)
 		}
 
-		// Highlight code
 		preAttrs, codeAttrs := highlight.CodeBlockAttributes(language)
-		lexer := highlight.DetectChromaLexerByFileName("", language)
 		output.WriteFormatf(`<div class="cell-right cell-input"><pre %s><code %s>`, preAttrs, codeAttrs)
-		output.WriteHTML(highlight.RenderCodeByLexer(lexer, source))
+		output.WriteHTML(htmlutil.EscapeString(source))
 		output.WriteHTML("</code></pre></div>")
 	}
 	output.WriteHTML(`</div>`)

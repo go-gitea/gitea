@@ -267,7 +267,7 @@ func TestIntegrationAndSanitization(t *testing.T) {
 		<div class="cell-line">
 			<div class="cell-left cell-prompt">In [1]:</div>
 			<div class="cell-right cell-input">
-				<pre class="code-block"><code class="chroma language-any_lang" data-code-language="any lang">
+				<pre class="code-block"><code class="code-highlight language-any_lang" data-code-language="any lang">
 					a=1
 				</code></pre>
 			</div>

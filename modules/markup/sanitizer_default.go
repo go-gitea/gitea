@@ -28,12 +28,9 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	policy.AllowAttrs("type").Matching(regexp.MustCompile(`^checkbox$`)).OnElements("input")
 	policy.AllowAttrs("checked", "disabled", "data-source-position").OnElements("input")
 
-	// Chroma always uses 1-2 letters for style names, we could tolerate it at the moment
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^\w{0,2}$`)).OnElements("span")
-
 	// Line numbers and paste behavior on codepreview
 	policy.AllowAttrs("data-line-number").OnElements("span")
-	policy.AllowAttrs("data-paste-markdown-skip").OnElements("table")
+	policy.AllowAttrs("data-paste-markdown-skip", "data-highlight-language").OnElements("table")
 
 	// emoji aliases for dark theme inversion
 	policy.AllowAttrs("data-alias").OnElements("span")

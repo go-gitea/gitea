@@ -8,6 +8,7 @@ import (
 
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/highlight"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/internal"
 	"gitea.dev/modules/markup/markdown/math"
@@ -162,10 +163,7 @@ func (r *HTMLRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.No
 			return ast.WalkStop, err
 		}
 
-		code := n.Lines().Value(source)
-		lexer := highlight.DetectChromaLexerByFileName("", language)
-		renderedHTML := highlight.RenderCodeByLexer(lexer, string(code))
-		if _, err = w.WriteString(string(renderedHTML)); err != nil {
+		if _, err = w.WriteString(string(htmlutil.EscapeString(string(n.Lines().Value(source))))); err != nil {
 			return ast.WalkStop, err
 		}
 	} else {

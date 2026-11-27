@@ -4,12 +4,14 @@
 package setting
 
 import (
+	"math"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 )
 
 // Git settings
@@ -20,9 +22,10 @@ var Git = struct {
 
 	MaxGitDiffLines               int
 	MaxGitDiffLineCharacters      int
-	MaxGitDiffFiles               int
-	CommitsRangeSize              int // CommitsRangeSize the default commits range size
-	BranchesRangeSize             int // BranchesRangeSize the default branches range size
+	MaxDiffViewSize               int64 `ini:"-"`
+	MaxDiffViewFileSize           int64 `ini:"-"`
+	CommitsRangeSize              int   // CommitsRangeSize the default commits range size
+	BranchesRangeSize             int   // BranchesRangeSize the default branches range size
 	VerbosePush                   bool
 	VerbosePushDelay              time.Duration
 	GCArgs                        []string `ini:"GC_ARGS" delim:" "`
@@ -40,7 +43,6 @@ var Git = struct {
 	DisableDiffHighlight:          false,
 	MaxGitDiffLines:               1000,
 	MaxGitDiffLineCharacters:      5000,
-	MaxGitDiffFiles:               100,
 	CommitsRangeSize:              50,
 	BranchesRangeSize:             20,
 	VerbosePush:                   true,
@@ -100,8 +102,30 @@ func loadGitFrom(rootCfg ConfigProvider) {
 		Git.HomePath = filepath.Clean(Git.HomePath)
 	}
 
+	if sec.HasKey("MAX_GIT_DIFF_FILES") {
+		LogStartupProblem(1, log.WARN, "config option `[git].MAX_GIT_DIFF_FILES` present but it is no longer used, the diff viewer and the API show all files")
+	}
+	Git.MaxDiffViewSize = mustBytesWithDefault(sec, "MAX_DIFF_VIEW_SIZE", 50*1024*1024)
+	Git.MaxDiffViewFileSize = mustBytesWithDefault(sec, "MAX_DIFF_VIEW_FILE_SIZE", 256*1024)
+
 	// validate for a integer percentage between 0% and 100%
 	if !regexp.MustCompile(`^([0-9]|[1-9][0-9]|100)%$`).MatchString(Git.DiffRenameSimilarityThreshold) {
 		log.Fatal("Invalid git.DIFF_RENAME_SIMILARITY_THRESHOLD: %s", Git.DiffRenameSimilarityThreshold)
 	}
+}
+
+// mustBytesWithDefault parses a byte size like "50 MiB", "-1" means no limit
+func mustBytesWithDefault(section ConfigSection, key string, defaultValue int64) int64 {
+	if !section.HasKey(key) {
+		return defaultValue
+	}
+	value := section.Key(key).String()
+	if value == "-1" {
+		return -1
+	}
+	bytes, err := util.ParseByteSize(value)
+	if err != nil || bytes > math.MaxInt64 {
+		log.Fatal("Invalid %s.%s: %q", section.Name(), key, value) // unlike mustBytes, a typo mustn't remove the limit
+	}
+	return int64(bytes)
 }

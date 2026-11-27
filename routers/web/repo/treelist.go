@@ -69,6 +69,7 @@ type WebDiffFileItem struct {
 	DiffStatus  string
 	EntryMode   string
 	IsViewed    bool
+	HasChanged  bool // since the last review
 	Children    []*WebDiffFileItem
 	FileIcon    template.HTML
 }
@@ -76,6 +77,15 @@ type WebDiffFileItem struct {
 // WebDiffFileTree is used by frontend, check the field names in frontend before changing
 type WebDiffFileTree struct {
 	TreeRoot WebDiffFileItem
+}
+
+// prepareDiffFileTree sets the page data of the file tree of a diff page
+func prepareDiffFileTree(ctx *context.Context, diffTree *gitdiff.DiffTree, filesViewedState map[string]pull_model.ViewedState) {
+	renderedIconPool := fileicon.NewRenderedIconPool()
+	ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(renderedIconPool, diffTree, filesViewedState)
+	ctx.PageData["FolderIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
+	ctx.PageData["FolderOpenIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolderOpen())
+	ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
 }
 
 // transformDiffTreeForWeb transforms a gitdiff.DiffTree into a WebDiffFileTree for Web UI rendering
@@ -113,6 +123,7 @@ func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTr
 			item.OldFullName = file.BasePath
 		}
 		item.IsViewed = filesViewedState[item.FullName] == pull_model.Viewed
+		item.HasChanged = filesViewedState[item.FullName] == pull_model.HasChanged
 		item.NameHash = git.HashFilePathForWebUI(item.FullName)
 		item.FileIcon = fileicon.RenderEntryIconHTML(renderedIconPool, &fileicon.EntryInfo{BaseName: path.Base(file.HeadPath), EntryMode: file.HeadMode})
 

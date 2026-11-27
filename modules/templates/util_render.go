@@ -19,7 +19,9 @@ import (
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/emoji"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/highlight"
 	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/markdown"
@@ -173,8 +175,8 @@ func (ut *RenderUtils) RenderEmoji(text string) template.HTML {
 	return markup.PostProcessEmoji(markup.NewRenderContext(ut.ctx), htmlutil.EscapeString(text))
 }
 
-// reactionToEmoji renders emoji for use in reactions
-func reactionToEmoji(reaction string) template.HTML {
+// ReactionToEmoji renders emoji for use in reactions
+func ReactionToEmoji(reaction string) template.HTML {
 	val := emoji.FromCode(reaction)
 	if val != nil {
 		return template.HTML(val.Emoji)
@@ -297,6 +299,24 @@ func (ut *RenderUtils) RenderUnicodeEscapeToggleButton(escapeStatus *charset.Esc
 		title += locale.Tr("repo.invisible_runes_line")
 	}
 	return htmlutil.HTMLFormat(`<button type="button" class="toggle-escape-button btn interact-bg" title="%s"></button>`, title)
+}
+
+// RenderDiffSnippet renders a read-only unified diff of one file on the client, like the PR conversation excerpts and the editor's preview
+func (ut *RenderUtils) RenderDiffSnippet(patch, filename string) template.HTML {
+	locale := ut.locale()
+	config, err := json.Marshal(map[string]any{
+		"patch":              patch,
+		"language":           util.Iif(setting.Git.DisableDiffHighlight, "", highlight.DetectLanguage(filename, "", []byte(patch))),
+		"detectAmbiguous":    setting.UI.AmbiguousUnicodeDetection,
+		"ambiguousRunesLine": locale.TrString("repo.ambiguous_runes_line"),
+		"invisibleRunesLine": locale.TrString("repo.invisible_runes_line"),
+		"ambiguousCharacter": locale.TrString("repo.ambiguous_character"),
+	})
+	if err != nil {
+		log.Error("RenderDiffSnippet: %v", err)
+		return ""
+	}
+	return htmlutil.HTMLFormat(`<div class="file-body file-code code-diff code-diff-unified unicode-escaped" data-global-init="initDiffSnippet" data-config="%s"></div>`, string(config))
 }
 
 func (ut *RenderUtils) RenderUnicodeEscapeToggleTd(combined, escapeStatus *charset.EscapeStatus) template.HTML {

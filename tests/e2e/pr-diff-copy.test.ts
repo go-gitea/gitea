@@ -14,6 +14,7 @@ test('a copied pull request diff pastes as text', async ({page, request}) => {
     login(page),
   ]);
   await page.goto(`/${owner}/${repoName}/pulls/${index}/files`);
+  await expect(page.locator('.diff-file-box[data-new-filename="copy.txt"] tr.add-code')).toHaveCount(1); // the diff streams in
 
   await page.getByRole('main').selectText();
   await page.keyboard.press('ControlOrMeta+KeyC');

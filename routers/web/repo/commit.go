@@ -7,6 +7,7 @@ package repo
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	asymkey_model "gitea.dev/models/asymkey"
@@ -19,7 +20,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/container"
-	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
@@ -279,14 +279,8 @@ func Diff(ctx *context.Context) {
 	userName := ctx.Repo.Owner.Name
 	repoName := ctx.Repo.Repository.Name
 	commitID := ctx.PathParam("sha")
-
-	diffBlobExcerptData := &gitdiff.DiffBlobExcerptData{
-		BaseLink:      ctx.Repo.RepoLink + "/blob_excerpt",
-		DiffStyle:     GetDiffViewStyle(ctx),
-		AfterCommitID: commitID,
-	}
 	gitRepo := ctx.Repo.GitRepo // don't access ctx.Repo.GitRepo anymore, because it might not be right for wiki repo
-
+	viewerOpts := diffViewerOptions{streamPath: ctx.Repo.RepoLink + "/diff/stream", gitRepoLink: ctx.Repo.RepoLink, rawLink: ctx.Repo.RepoLink}
 	if ctx.Data["PageIsWiki"] != nil {
 		var err error
 		gitRepo, err = git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
@@ -294,7 +288,7 @@ func Diff(ctx *context.Context) {
 			ctx.ServerErrorAuto(err)
 			return
 		}
-		diffBlobExcerptData.BaseLink = ctx.Repo.RepoLink + "/wiki/blob_excerpt"
+		viewerOpts = diffViewerOptions{streamPath: ctx.Repo.RepoLink + "/wiki/diff/stream", rawLink: ctx.Repo.RepoLink + "/wiki"} // the wiki has no file pages to link
 	}
 
 	commit, err := gitRepo.GetCommit(ctx, commitID)
@@ -306,28 +300,9 @@ func Diff(ctx *context.Context) {
 		commitID = commit.ID.String()
 	}
 
-	fileOnly := ctx.FormBool("file-only")
-	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
-	files := ctx.FormStrings("files")
-	if fileOnly && (len(files) == 2 || len(files) == 1) {
-		maxLines, maxFiles = -1, -1
-	}
-
 	diffCommonOptions := gitdiff.DiffCommonOptions{
 		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(GetWhitespaceBehavior(ctx)),
 		AfterCommitID:      commitID,
-	}
-	diff, err := gitdiff.GetDiffForRender(ctx, ctx.Repo.RepoLink, gitRepo, &gitdiff.DiffOptions{
-		DiffCommonOptions: diffCommonOptions,
-		SkipTo:            ctx.FormString("skip-to"),
-		MaxLines:          maxLines,
-		MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
-		MaxFiles:          maxFiles,
-		EnableRichDiff:    ctx.Data["PageIsWiki"] == nil,
-	}, files...)
-	if err != nil {
-		ctx.ServerErrorAuto(err)
-		return
 	}
 	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, gitRepo, &diffCommonOptions)
 	if err != nil {
@@ -359,25 +334,20 @@ func Diff(ctx *context.Context) {
 		}
 		parentCommitID = parentCommit.ID.String()
 	}
-	setCompareContext(ctx, parentCommit, commit, userName, repoName)
+	ctx.Data["SourcePath"] = SourceCommitURL(userName, repoName, commit)
 	ctx.Data["Title"] = commit.MessageTitle() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
-	ctx.Data["Diff"] = diff
-	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
 
-	if !fileOnly {
-		diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, parentCommitID, commitID)
-		if err != nil {
-			ctx.ServerErrorAuto(err)
-			return
-		}
-
-		renderedIconPool := fileicon.NewRenderedIconPool()
-		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(renderedIconPool, diffTree, nil)
-		ctx.PageData["FolderIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
-		ctx.PageData["FolderOpenIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolderOpen())
-		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
+	diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, parentCommitID, commitID)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
 	}
+	prepareDiffFileTree(ctx, diffTree, nil)
+
+	viewerOpts.streamQuery = url.Values{"after": {commitID}}
+	viewerOpts.beforeCommitID, viewerOpts.afterCommitID = parentCommitID, commitID
+	prepareDiffViewer(ctx, viewerOpts)
 
 	statuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptionsAll)
 	if err != nil {
