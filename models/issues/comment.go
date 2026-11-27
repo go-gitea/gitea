@@ -793,6 +793,9 @@ func (c *Comment) IsPendingReview(ctx context.Context) (bool, error) {
 		return false, nil
 	}
 	if err := c.LoadReview(ctx); err != nil {
+		if IsErrReviewNotExist(err) {
+			return false, nil
+		}
 		return false, err
 	}
 	return c.Review != nil && c.Review.Type == ReviewTypePending, nil

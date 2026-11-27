@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	auth_model "gitea.dev/models/auth"
-	access_model "gitea.dev/models/perm/access"
 	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/httpcache"
