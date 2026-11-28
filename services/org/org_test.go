@@ -7,10 +7,13 @@ import (
 	"testing"
 
 	"gitea.dev/models/organization"
+	packages_model "gitea.dev/models/packages"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -60,6 +63,45 @@ func TestOrg(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 5})
 		assert.Error(t, DeleteOrganization(t.Context(), user, false))
 		unittest.CheckConsistencyFor(t, &user_model.User{}, &organization.Team{})
+	})
+
+	t.Run("PurgeClearsPackagesThatWouldOtherwiseBlockIt", func(t *testing.T) {
+		// Packages block deletion exactly as repositories do, but a purge
+		// cleared only the repositories -- and the web UI gives no way to
+		// remove a container package's untagged manifest versions in bulk, so
+		// an organization that had pushed an image could not be deleted by
+		// any sequence of actions available to its owner.
+		defer test.MockVariableValue(&setting.Packages.Enabled, true)()
+
+		org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 7})
+		pkg, err := packages_model.TryInsertPackage(t.Context(), &packages_model.Package{
+			OwnerID:   org.ID,
+			Type:      packages_model.TypeContainer,
+			Name:      "retained",
+			LowerName: "retained",
+		})
+		require.NoError(t, err)
+		version, err := packages_model.GetOrInsertVersion(t.Context(), &packages_model.PackageVersion{
+			PackageID:    pkg.ID,
+			LowerVersion: "1.0",
+			Version:      "1.0",
+			MetadataJSON: "{}",
+		})
+		require.NoError(t, err)
+
+		owns, err := packages_model.HasOwnerPackages(t.Context(), org.ID)
+		require.NoError(t, err)
+		require.True(t, owns, "the fixture does not reproduce what blocked the purge")
+
+		require.NoError(t, DeleteOrganization(t.Context(), org, true))
+		unittest.AssertNotExistsBean(t, &organization.Organization{ID: 7})
+		// The versions are what the ownership check counts, and what the UI
+		// could not clear. The package row itself outlives them until the
+		// cleanup job runs, exactly as it does when a user is deleted.
+		unittest.AssertNotExistsBean(t, &packages_model.PackageVersion{ID: version.ID})
+		owns, err = packages_model.HasOwnerPackages(t.Context(), org.ID)
+		require.NoError(t, err)
+		assert.False(t, owns)
 	})
 
 	t.Run("ChangeVisibilityWithUserFork", func(t *testing.T) {
