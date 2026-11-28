@@ -8385,7 +8385,8 @@
               "codecommit",
               "bitbucketserver",
               "forgejo",
-              "bitbucket"
+              "bitbucket",
+              "gerrit"
             ],
             "type": "string",
             "x-go-name": "Service"
