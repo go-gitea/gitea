@@ -213,6 +213,7 @@ function handleDayClick(date: Date) {
               :width="squareSize"
               :height="squareSize"
               :style="{fill: colorRange[day.colorIndex]}"
+              role="img"
               :aria-label="day.ariaLabel"
               :data-tooltip="day.tooltip"
               @click="handleDayClick(day.date)"

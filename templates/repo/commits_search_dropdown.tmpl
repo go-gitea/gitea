@@ -1,4 +1,4 @@
-<div class="ui small dropdown selection">
+<div class="ui small dropdown selection" aria-label="{{ctx.Locale.Tr "repo.commits.search_scope"}}">
 	<input name="all" type="hidden" value="{{.All}}">{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	<div class="text">{{if .All}}{{ctx.Locale.Tr "repo.commits.search_all"}}{{else}}{{ctx.Locale.Tr "repo.commits.search_branch"}}{{end}}</div>
 	<div class="menu">

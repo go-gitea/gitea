@@ -63,6 +63,7 @@
     "vue": "3.5.45"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",
     "@eslint/json": "2.1.1",
     "@playwright/test": "1.65.1",

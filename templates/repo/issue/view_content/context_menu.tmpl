@@ -10,7 +10,7 @@
 {{$isCommentPoster := and ctx.RootData.IsSigned (eq ctx.RootData.SignedUserID $item.PosterID) -}}
 {{$canEditContent := or ctx.RootData.Permission.IsAdmin ctx.RootData.HasIssuesOrPullsWritePermission $isCommentPoster -}}
 
-<div class="item action ui dropdown jump pointing top right">
+<div class="item action ui dropdown jump pointing top right" aria-label="{{ctx.Locale.Tr "repo.issues.content_history.options"}}">
 	{{svg "octicon-kebab-horizontal"}}
 	<div class="menu">
 		<div class="item js-aria-clickable" data-clipboard-text="{{$referenceHTMLURL}}">{{ctx.Locale.Tr "copy_link"}}</div>
