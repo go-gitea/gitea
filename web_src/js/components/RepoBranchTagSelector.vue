@@ -48,6 +48,7 @@ const textCreateBranch = props.elRoot.getAttribute('data-text-create-branch')!;
 const textCreateRefFrom = props.elRoot.getAttribute('data-text-create-ref-from')!;
 const textNoResults = props.elRoot.getAttribute('data-text-no-results')!;
 const textViewAllBranches = props.elRoot.getAttribute('data-text-view-all-branches')!;
+const textViewCommitGraph = props.elRoot.getAttribute('data-text-view-commit-graph')!;
 const textViewAllTags = props.elRoot.getAttribute('data-text-view-all-tags')!;
 
 const currentRepoDefaultBranch = props.elRoot.getAttribute('data-current-repo-default-branch')!;
@@ -214,7 +215,7 @@ async function loadTabItems() {
 }
 </script>
 <template>
-  <div class="ui dropdown custom branch-selector-dropdown ellipsis-text-items" ref="elDropdown">
+  <div class="ui dropdown custom branch-selector-dropdown" ref="elDropdown">
     <div tabindex="0" class="ui compact button branch-dropdown-button" @click="menuVisible = !menuVisible">
       <span class="flex-text-block gt-ellipsis">
         <template v-if="dropdownFixedText">{{ dropdownFixedText }}</template>
@@ -241,14 +242,16 @@ async function loadTabItems() {
         </button>
       </div>
       <div class="branch-tag-divider"/>
-      <div class="scrolling menu" ref="elScrollContainer">
+      <div class="scrolling menu flex-items-menu" ref="elScrollContainer">
         <svg-icon name="octicon-rss" symbol-id="svg-symbol-octicon-rss"/>
         <div class="loading-indicator is-loading" v-if="tabLoadingStates[selectedTab] === 'loading'"/>
         <div v-for="(item, index) in filteredItems" :key="item.refShortName" class="item" :class="{selected: item.selected, active: activeItemIndex === index}" @click="selectItem(item)">
-          {{ item.refShortName }}
-          <div class="ui label" v-if="item.refType === 'branch' && item.refShortName === currentRepoDefaultBranch">
-            {{ textDefaultBranchLabel }}
-          </div>
+          <span class="tw-flex-1 gt-ellipsis">
+            {{ item.refShortName }}
+            <span class="ui label" v-if="item.refType === 'branch' && item.refShortName === currentRepoDefaultBranch">
+              {{ textDefaultBranchLabel }}
+            </span>
+          </span>
           <a v-if="enableFeed && selectedTab === 'branches'" role="button" class="rss-icon" target="_blank" @click.stop :href="item.rssFeedLink">
             <!-- creating a lot of Vue component is pretty slow, so we use a static SVG here -->
             <svg width="14" height="14" class="svg octicon-rss"><use href="#svg-symbol-octicon-rss"/></svg>
@@ -277,8 +280,9 @@ async function loadTabItems() {
         {{ textNoResults }}
       </div>
       <template v-if="showViewAllRefsEntry">
-        <div class="divider tw-m-0"/>
+        <div class="divider"/>
         <a v-if="selectedTab === 'branches'" class="item" :href="currentRepoLink + '/branches'">{{ textViewAllBranches }}</a>
+        <a v-if="selectedTab === 'branches'" class="item" :href="currentRepoLink + '/graph'">{{ textViewCommitGraph }}</a>
         <a v-if="selectedTab === 'tags'" class="item" :href="currentRepoLink + '/tags'">{{ textViewAllTags }}</a>
       </template>
     </div>
