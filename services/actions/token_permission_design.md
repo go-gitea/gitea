@@ -103,21 +103,29 @@ permissions:
 
 ## Packages Registry
 
-"Packages" belong to "owner" but not "repository". Although there is a function "linking a package to a repository",
-in most cases it doesn't really work. When accessing a package, usually there is no information about a repository.
-So the "packages" permission should be designed separately from other permissions.
+Packages belong to an owner, while an Actions automatic token belongs to a task
+in a repository. Package access uses the task's source repository to bridge
+these scopes:
 
-A possible approach is like this: let owner set packages permissions, and make the repositories follow.
+- The task must be running (including cancellation cleanup) and still be the
+  current task for its job. The source repository must not be archived, and must
+  have Actions and Packages enabled.
+- The package owner must be the source repository's current owner, regardless of
+  the workflow actor or the username supplied by the registry client.
+- Effective `packages: none|read|write` permissions use the existing token
+  permission computation, including owner/repository ceilings. Fork pull
+  requests receive at most read access.
+- Publishing links new packages to the source repository. An existing unlinked
+  package is associated with a conditional update on its next publish. A package
+  linked to another repository cannot be modified by the task.
+- Shared package-model checks protect package, version, file and property
+  mutations across package formats, including retagging, deletion and relinking.
+  Internal package repository indexes remain shared within the owner namespace.
+- OCI requests recheck the task and target image after routing. Upload locations
+  are signed for the task, owner, image and upload ID; cross-image blob mounting
+  is disabled for task identities.
 
-- On owner-level:
-   - Add a "Packages" permission section
-   - "Default permissions for all repositories" can be set to none/read/write
-   - Set different permissions for selected repositories (if needed), like the "Collaborators" permission setting
-
-- On repository-level:
-   - Now a repository can have "Packages" permission
-   - The repository-level "Packages" permission is clamped by the owner-level "Packages" permission
-   - If the owner-level "Packages" permission for this repository is read,
-     then the repository cannot set its "Packages" permission to write
-
-Maybe reusing the "org teams" permission system is a good choice: bind a repository's Actions token to a team.
+No administrator-maintained package allowlist or new configuration is required.
+Package permissions remain hidden from the settings UI; workflows can request
+them in their existing `permissions:` blocks. A future UI can expose package
+permissions and repository associations without changing this automatic flow.
