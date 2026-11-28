@@ -252,7 +252,7 @@ func TestAuditLogUserEvents(t *testing.T) {
 		loginUser(t, "user2").MakeRequest(t, NewRequestWithValues(t, "POST", "/user/settings/account/email", map[string]string{
 			"_method": "PRIMARY",
 			"id":      strconv.FormatInt(email.ID, 10),
-		}), http.StatusSeeOther)
+		}), http.StatusOK)
 
 		assert.Equal(t, email.Email, audit_model.DecodeMetadata(findEvent(t, audit_model.UserEmailPrimaryChange, 2).Metadata)["email"])
 

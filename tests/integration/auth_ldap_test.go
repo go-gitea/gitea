@@ -176,10 +176,10 @@ func (te *ldapTestEnv) setupAuthSource(t *testing.T, params map[string]string) {
 	existing := &auth_model.Source{Name: params["name"]}
 	if ok, _ := db.GetEngine(t.Context()).Get(existing); ok {
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/-/admin/auths/%d", existing.ID), params)
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 	} else {
 		req := NewRequestWithValues(t, "POST", "/-/admin/auths/new", params)
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 	}
 }
 
@@ -494,7 +494,7 @@ func testLDAPPreventInvalidGroupTeamMap(t *testing.T) {
 	session := loginUser(t, "user1")
 	payload := te.buildAuthSourcePayload(map[string]string{"group_team_map": `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`, "group_team_map_removal": ""})
 	req := NewRequestWithValues(t, "POST", "/-/admin/auths/new", payload)
-	session.MakeRequest(t, req, http.StatusOK) // StatusOK = failed, StatusSeeOther = ok
+	session.MakeRequest(t, req, http.StatusBadRequest)
 }
 
 func testLDAPEmailSignin(t *testing.T) {

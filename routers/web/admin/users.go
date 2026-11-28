@@ -148,25 +148,8 @@ func NewUser(ctx *context.Context) {
 
 // NewUserPost response for adding a new user
 func NewUserPost(ctx *context.Context) {
-	form := web.GetForm[*forms.AdminCreateUserForm](ctx)
-	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
-	ctx.Data["PageIsAdminUsers"] = true
-	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
-	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
-
-	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
-		IsActive: optional.Some(true),
-	})
-	if err != nil {
-		ctx.ServerErrorAuto(err)
-		return
-	}
-	ctx.Data["Sources"] = sources
-
-	ctx.Data["CanSendEmail"] = setting.MailService != nil
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplUserNew)
+	form := context.GetFetchActionForm[*forms.AdminCreateUserForm](ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -196,23 +179,20 @@ func NewUserPost(ctx *context.Context) {
 	}
 	if !u.IsTypeBot() && (u.LoginType == auth.NoType || u.LoginType == auth.Plain) {
 		if len(form.Password) < setting.MinPasswordLength {
-			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserNew, &form)
+			ctx.JSONErrorWithField(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), "Password")
 			return
 		}
 		if !password.IsComplexEnough(form.Password) {
-			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErrDeprecated(password.BuildComplexityError(ctx.Locale), tplUserNew, &form)
+			ctx.JSONErrorWithField(password.BuildComplexityError(ctx.Locale), "Password")
 			return
 		}
 		if err := password.IsPwned(ctx, form.Password); err != nil {
-			ctx.Data["Err_Password"] = true
 			errMsg := ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords")
 			if password.IsErrIsPwnedRequest(err) {
 				log.Error(err.Error())
 				errMsg = ctx.Tr("auth.password_pwned_err")
 			}
-			ctx.RenderWithErrDeprecated(errMsg, tplUserNew, &form)
+			ctx.JSONErrorWithField(errMsg, "Password")
 			return
 		}
 		u.MustChangePassword = form.MustChangePassword
@@ -225,23 +205,17 @@ func NewUserPost(ctx *context.Context) {
 		var errEmailInvalid user_model.ErrEmailInvalid
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
-			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.username_been_taken"), tplUserNew, &form)
+			ctx.JSONErrorWithField(ctx.Tr("form.username_been_taken"), "UserName")
 		case user_model.IsErrEmailAlreadyUsed(err):
-			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tplUserNew, &form)
+			ctx.JSONErrorWithField(ctx.Tr("form.email_been_used"), "Email")
 		case errors.As(err, &errEmailInvalid):
-			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplUserNew, &form)
+			ctx.JSONErrorWithField(ctx.Tr("form.email_invalid"), "Email")
 		case errors.As(err, &errNameReserved):
-			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_reserved", errNameReserved.Name), tplUserNew, &form)
+			ctx.JSONErrorWithField(ctx.Tr("user.form.name_reserved", errNameReserved.Name), "UserName")
 		case errors.As(err, &errNamePatternNotAllowed):
-			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tplUserNew, &form)
+			ctx.JSONErrorWithField(ctx.Tr("user.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), "UserName")
 		case errors.As(err, &errNameCharsNotAllowed):
-			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_chars_not_allowed", errNameCharsNotAllowed.Name), tplUserNew, &form)
+			ctx.JSONErrorWithField(ctx.Tr("user.form.name_chars_not_allowed", errNameCharsNotAllowed.Name), "UserName")
 		default:
 			ctx.ServerErrorAuto(err)
 		}
@@ -262,7 +236,7 @@ func NewUserPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.new_success", u.Name))
-	ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + strconv.FormatInt(u.ID, 10))
+	ctx.JSONRedirect(setting.AppSubURL + "/-/admin/users/" + strconv.FormatInt(u.ID, 10))
 }
 
 func prepareUserInfo(ctx *context.Context) *user_model.User {
@@ -417,15 +391,14 @@ func EditUser(ctx *context.Context) {
 
 // EditUserPost response for editing user
 func EditUserPost(ctx *context.Context) {
-	editUserCommon(ctx)
-	u := prepareUserInfo(ctx)
-	if ctx.Written() {
+	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64("userid"))
+	if err != nil {
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
-	form := web.GetForm[*forms.AdminEditUserForm](ctx)
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplUserEdit)
+	form := context.GetFetchActionForm[*forms.AdminEditUserForm](ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -435,20 +408,15 @@ func EditUserPost(ctx *context.Context) {
 		if err := user_service.RenameUser(ctx, u, form.UserName, ctx.Doer); err != nil {
 			switch {
 			case user_model.IsErrUserIsNotLocal(err):
-				ctx.Data["Err_UserName"] = true
-				ctx.RenderWithErrDeprecated(ctx.Tr("form.username_change_not_local_user"), tplUserEdit, &form)
+				ctx.JSONErrorWithField(ctx.Tr("form.username_change_not_local_user"), "UserName")
 			case user_model.IsErrUserAlreadyExist(err):
-				ctx.Data["Err_UserName"] = true
-				ctx.RenderWithErrDeprecated(ctx.Tr("form.username_been_taken"), tplUserEdit, &form)
+				ctx.JSONErrorWithField(ctx.Tr("form.username_been_taken"), "UserName")
 			case db.IsErrNameReserved(err):
-				ctx.Data["Err_UserName"] = true
-				ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_reserved", form.UserName), tplUserEdit, &form)
+				ctx.JSONErrorWithField(ctx.Tr("user.form.name_reserved", form.UserName), "UserName")
 			case db.IsErrNamePatternNotAllowed(err):
-				ctx.Data["Err_UserName"] = true
-				ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_pattern_not_allowed", form.UserName), tplUserEdit, &form)
+				ctx.JSONErrorWithField(ctx.Tr("user.form.name_pattern_not_allowed", form.UserName), "UserName")
 			case db.IsErrNameCharsNotAllowed(err):
-				ctx.Data["Err_UserName"] = true
-				ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_chars_not_allowed", form.UserName), tplUserEdit, &form)
+				ctx.JSONErrorWithField(ctx.Tr("user.form.name_chars_not_allowed", form.UserName), "UserName")
 			default:
 				ctx.ServerErrorAuto(err)
 			}
@@ -481,20 +449,16 @@ func EditUserPost(ctx *context.Context) {
 	if err := user_service.UpdateAuth(ctx, u, authOpts); err != nil {
 		switch {
 		case errors.Is(err, password.ErrMinLength):
-			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserEdit, &form)
+			ctx.JSONErrorWithField(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), "Password")
 		case errors.Is(err, password.ErrComplexity):
-			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErrDeprecated(password.BuildComplexityError(ctx.Locale), tplUserEdit, &form)
+			ctx.JSONErrorWithField(password.BuildComplexityError(ctx.Locale), "Password")
 		case errors.Is(err, password.ErrIsPwned):
-			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords"), tplUserEdit, &form)
+			ctx.JSONErrorWithField(ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords"), "Password")
 		case password.IsErrIsPwnedRequest(err):
-			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned_err"), tplUserEdit, &form)
+			ctx.JSONErrorWithField(ctx.Tr("auth.password_pwned_err"), "Password")
 		case errors.Is(err, util.ErrInvalidArgument):
 			ctx.Flash.Error(err.Error())
-			ctx.Redirect(userLink)
+			ctx.JSONRedirect(userLink)
 		default:
 			ctx.ServerErrorAuto(err)
 		}
@@ -505,11 +469,9 @@ func EditUserPost(ctx *context.Context) {
 		if err := user_service.ReplacePrimaryEmailAddress(ctx, u, form.Email); err != nil {
 			switch {
 			case user_model.IsErrEmailAlreadyUsed(err):
-				ctx.Data["Err_Email"] = true
-				ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tplUserEdit, &form)
+				ctx.JSONErrorWithField(ctx.Tr("form.email_been_used"), "Email")
 			case errors.Is(err, util.ErrInvalidArgument):
-				ctx.Data["Err_Email"] = true
-				ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplUserEdit, &form)
+				ctx.JSONErrorWithField(ctx.Tr("form.email_invalid"), "Email")
 			default:
 				ctx.ServerErrorAuto(err)
 			}
@@ -539,13 +501,13 @@ func EditUserPost(ctx *context.Context) {
 	if err := user_service.UpdateUser(ctx, u, opts); err != nil {
 		switch {
 		case user_model.IsErrDeleteLastAdminUser(err):
-			ctx.RenderWithErrDeprecated(ctx.Tr("auth.last_admin"), tplUserEdit, &form)
+			ctx.JSONError(ctx.Tr("auth.last_admin"))
 		case errors.Is(err, user_model.ErrBotCanNotBeAdmin):
 			ctx.Flash.Error(ctx.Tr("admin.users.convert_type.admin_not_allowed"))
-			ctx.Redirect(userLink)
+			ctx.JSONRedirect(userLink)
 		case errors.Is(err, util.ErrInvalidArgument):
 			ctx.Flash.Error(err.Error())
-			ctx.Redirect(userLink)
+			ctx.JSONRedirect(userLink)
 		default:
 			ctx.ServerErrorAuto(err)
 		}
@@ -566,7 +528,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
-	ctx.Redirect(userLink)
+	ctx.JSONRedirect(userLink)
 }
 
 func ImpersonateUser(ctx *context.Context) {

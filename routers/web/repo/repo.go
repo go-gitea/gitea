@@ -26,7 +26,6 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	"gitea.dev/services/forms"
@@ -164,26 +163,22 @@ func Create(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplCreate)
 }
 
-func handleCreateError(ctx *context.Context, owner *user_model.User, err error, tpl templates.TplName, form any) {
+func handleCreateError(ctx *context.Context, owner *user_model.User, err error) {
 	var errNameReserved db.ErrNameReserved
 	var errNamePatternNotAllowed db.ErrNamePatternNotAllowed
 	switch {
 	case repo_model.IsErrReachLimitOfRepo(err):
 		maxCreationLimit := owner.MaxCreationLimit()
 		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
-		ctx.RenderWithErrDeprecated(msg, tpl, form)
+		ctx.JSONError(msg)
 	case repo_model.IsErrRepoAlreadyExist(err):
-		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.repo_name_been_taken"), tpl, form)
+		ctx.JSONErrorWithField(ctx.Tr("form.repo_name_been_taken"), "RepoName")
 	case repo_model.IsErrRepoFilesAlreadyExist(err):
-		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist"), tpl, form)
+		ctx.JSONErrorWithField(ctx.Tr("form.repository_files_already_exist"), "RepoName")
 	case errors.As(err, &errNameReserved):
-		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_reserved", errNameReserved.Name), tpl, form)
+		ctx.JSONErrorWithField(ctx.Tr("repo.form.name_reserved", errNameReserved.Name), "RepoName")
 	case errors.As(err, &errNamePatternNotAllowed):
-		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tpl, form)
+		ctx.JSONErrorWithField(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), "RepoName")
 	default:
 		ctx.ServerErrorAuto(err)
 	}
@@ -191,25 +186,13 @@ func handleCreateError(ctx *context.Context, owner *user_model.User, err error, 
 
 // CreatePost response for creating repository
 func CreatePost(ctx *context.Context) {
-	createCommon(ctx)
-	form := web.GetForm[*forms.CreateRepoForm](ctx)
-
-	ctxUser := checkContextUser(ctx, form.UID)
+	form := context.GetFetchActionForm[*forms.CreateRepoForm](ctx)
 	if ctx.Written() {
 		return
 	}
-	ctx.Data["ContextUser"] = ctxUser
 
-	if form.RepoTemplate > 0 {
-		templateRepo, err := repo_model.GetRepositoryByID(ctx, form.RepoTemplate)
-		if err == nil && access_model.CheckRepoUnitUser(ctx, templateRepo, ctxUser, unit.TypeCode) {
-			ctx.Data["repo_template"] = form.RepoTemplate
-			ctx.Data["repo_template_name"] = templateRepo.Name
-		}
-	}
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplCreate)
+	ctxUser := checkContextUser(ctx, form.UID)
+	if ctx.Written() {
 		return
 	}
 
@@ -230,7 +213,7 @@ func CreatePost(ctx *context.Context) {
 		}
 
 		if !opts.IsValid() {
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.template.one_item"), tplCreate, form)
+			ctx.JSONError(ctx.Tr("repo.template.one_item"))
 			return
 		}
 
@@ -240,14 +223,14 @@ func CreatePost(ctx *context.Context) {
 		}
 
 		if !templateRepo.IsTemplate {
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.template.invalid"), tplCreate, form)
+			ctx.JSONError(ctx.Tr("repo.template.invalid"))
 			return
 		}
 
 		repo, err = repo_service.GenerateRepository(ctx, ctx.Doer, ctxUser, templateRepo, opts)
 		if err == nil {
 			log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
-			ctx.Redirect(repo.Link())
+			ctx.JSONRedirect(repo.Link())
 			return
 		}
 	} else {
@@ -267,12 +250,12 @@ func CreatePost(ctx *context.Context) {
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
-			ctx.Redirect(repo.Link())
+			ctx.JSONRedirect(repo.Link())
 			return
 		}
 	}
 
-	handleCreateError(ctx, ctxUser, err, tplCreate, &form)
+	handleCreateError(ctx, ctxUser, err)
 }
 
 func handleRepoActionError(ctx *context.Context, err error) {
