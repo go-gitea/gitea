@@ -338,6 +338,15 @@ func getIssueCommentSafe(ctx *context.APIContext) *issues_model.Comment {
 		ctx.APIErrorNotFound()
 		return nil
 	}
+	canRead, err := comment.CanDoerRead(ctx, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return nil
+	}
+	if !canRead {
+		ctx.APIErrorNotFound()
+		return nil
+	}
 
 	comment.Issue.Repo = ctx.Repo.Repository
 

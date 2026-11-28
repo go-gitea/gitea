@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	auth_model "gitea.dev/models/auth"
+	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -169,6 +170,27 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 				return
 			}
 			if rel.IsDraft {
+				ctx.HTTPError(http.StatusNotFound)
+				return
+			}
+		}
+
+		if attach.CommentID != 0 {
+			comment, err := issues_model.GetCommentByID(ctx, attach.CommentID)
+			if err != nil {
+				if issues_model.IsErrCommentNotExist(err) {
+					ctx.HTTPError(http.StatusNotFound)
+				} else {
+					ctx.ServerErrorAuto(err)
+				}
+				return
+			}
+			canRead, err := comment.CanDoerRead(ctx, ctx.Doer)
+			if err != nil {
+				ctx.ServerErrorAuto(err)
+				return
+			}
+			if !canRead {
 				ctx.HTTPError(http.StatusNotFound)
 				return
 			}

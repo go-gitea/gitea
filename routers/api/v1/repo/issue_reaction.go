@@ -71,6 +71,16 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 		return
 	}
 
+	canRead, err := comment.CanDoerRead(ctx, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if !canRead {
+		ctx.APIErrorNotFound()
+		return
+	}
+
 	reactions, _, err := issues_model.FindCommentReactions(ctx, comment.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -186,6 +196,16 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 	}
 	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, comment.Issue, comment.PosterID, perm.AccessModeRead) {
 		ctx.APIError(http.StatusForbidden, "no permission to change reaction")
+		return
+	}
+
+	canRead, err := comment.CanDoerRead(ctx, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if !canRead {
+		ctx.APIErrorNotFound()
 		return
 	}
 
