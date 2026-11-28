@@ -23,6 +23,7 @@ import (
 func TestUserSettings(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	t.Run("RevokeOAuth2GrantOfOtherUser", testRevokeOAuth2GrantOfOtherUser)
+	t.Run("HiddenFeedRepos", testUserSettingsHiddenFeedRepos)
 	t.Run("Account", testUserSettingsAccount)
 	t.Run("UpdatePassword", testUserSettingsUpdatePassword)
 	t.Run("UpdateEmail", testUserSettingsUpdateEmail)
@@ -540,4 +541,31 @@ func testUserLocationMapLink(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	AssertHTMLElement(t, htmlDoc, `a[href="https://example/foo/A%2Fb"]`, true)
+}
+
+func testUserSettingsHiddenFeedRepos(t *testing.T) {
+	// user2 has one action in its private repo2
+	const repoLinkSelector = "#activity-feed a[href^='/user2/repo2/']"
+	session := loginUser(t, "user2")
+	doc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/"), http.StatusOK).Body)
+	AssertHTMLElement(t, doc, repoLinkSelector, true)
+	hideURL, _ := doc.Find("#activity-feed button.link-action").Attr("data-url")
+	assert.Equal(t, "/user/settings/appearance/hidden_feed_repos?action=hide&repo_id=2", hideURL)
+
+	session.MakeRequest(t, NewRequest(t, "POST", hideURL), http.StatusOK)
+	doc = NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/"), http.StatusOK).Body)
+	AssertHTMLElement(t, doc, repoLinkSelector, false)
+	AssertHTMLElement(t, doc, "a[href='/user/settings/appearance#hidden-feed-repos']", true)
+
+	doc = NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/user/settings/appearance"), http.StatusOK).Body)
+	showURL, _ := doc.Find("#hidden-feed-repos + .segment button.link-action").Attr("data-url")
+	assert.Equal(t, "/user/settings/appearance/hidden_feed_repos?action=show&repo_id=2", showURL)
+
+	session.MakeRequest(t, NewRequest(t, "POST", showURL), http.StatusOK)
+	doc = NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/"), http.StatusOK).Body)
+	AssertHTMLElement(t, doc, repoLinkSelector, true)
+
+	// a repository the user cannot read must not be hidden, as it would leak its name on the settings page
+	session = loginUser(t, "user4")
+	session.MakeRequest(t, NewRequest(t, "POST", hideURL), http.StatusNotFound)
 }

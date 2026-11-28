@@ -24,4 +24,6 @@ const (
 	SettingEmailNotificationGiteaActionsDisabled    = "disabled"
 
 	SettingsKeyActionsConfig = "actions.config"
+
+	SettingsKeyDashboardHiddenFeedRepos = "dashboard.hidden_feed_repos"
 )
