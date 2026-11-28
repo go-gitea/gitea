@@ -76,12 +76,16 @@
 }
 
 .merge-box-checks-group > .btn {
-  margin: 3px 0;
   padding: 4px 8px;
 }
 
 .merge-box-checks .commit-status-item {
+  height: 37px;
   padding-inline: 8px;
+}
+
+.merge-box-checks .ui.label {
+  line-height: 14px;
 }
 
 .merge-box-checks .commit-status-item:hover {
