@@ -172,8 +172,7 @@ type SearchRepoOptions struct {
 	// True -> include just collaborative (the "OwnerID" is not really an owner, it just means a collaborator who doesn't own the repo)
 	// False -> include just non-collaborative (the repo must be in the owner's name space)
 	Collaborate optional.Option[bool]
-	// What type of unit the user can be collaborative in,
-	// it is ignored if Collaborate is False.
+	// What type of unit the actor must be able to read, also applied to the collaborator's team access.
 	// TypeInvalid means any unit type.
 	UnitType unit.Type
 	// None -> include forks AND non-forks
@@ -359,6 +358,17 @@ func UserOrgPublicUnitRepoCond(userID, orgID int64) builder.Cond {
 		And(builder.Eq{"`repository`.owner_id": orgID})
 }
 
+func IssuesOrPullsRepoCondition(opts SearchRepoOptions, isPull optional.Option[bool]) builder.Cond {
+	unitCond := func(unitType unit.Type) builder.Cond {
+		opts.UnitType = unitType
+		return SearchRepositoryCondition(opts)
+	}
+	if isPull.Has() {
+		return unitCond(util.Iif(isPull.Value(), unit.TypePullRequests, unit.TypeIssues))
+	}
+	return builder.Or(unitCond(unit.TypeIssues), unitCond(unit.TypePullRequests))
+}
+
 // SearchRepositoryCondition creates a query condition according search repository options
 func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 	if user_model.IsPublicOnlyDoer(opts.Actor) {
@@ -368,17 +378,12 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 
 	if opts.Private {
 		if opts.Actor != nil && !opts.Actor.IsAdmin {
-			cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
+			cond = cond.And(AccessibleRepositoryCondition(opts.Actor, opts.UnitType))
+		} else {
+			cond = cond.And(enabledRepoUnitCondition(opts.UnitType))
 		}
 	} else {
-		// Not looking at private organisations and users
-		// We should be able to see all non-private repositories that
-		// isn't in a private or limited organisation.
-		cond = cond.And(
-			builder.Eq{"is_private": false},
-			builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(
-				builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}),
-			)))
+		cond = cond.And(AccessibleRepositoryCondition(nil, opts.UnitType))
 	}
 
 	if opts.IsPrivate.Has() {
@@ -656,13 +661,17 @@ func userAllPublicRepoCond(cond builder.Cond, ownerVisibilityLimit []structs.Vis
 		))))
 }
 
+func enabledRepoUnitCondition(unitType unit.Type) builder.Cond {
+	if unitType == unit.TypeInvalid {
+		return builder.NewCond()
+	}
+	return builder.Exists(builder.Select("id").From("repo_unit").Where(builder.Expr("repo_unit.repo_id = `repository`.id").
+		And(builder.Eq{"repo_unit.type": unitType}, builder.NotIn("repo_unit.type", unit.DisabledRepoUnitsGet()))))
+}
+
 // AccessibleRepositoryCondition takes a user a returns a condition for checking if a repository is accessible
 func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) builder.Cond {
-	unitCond := builder.NewCond()
-	if unitType != unit.TypeInvalid {
-		unitCond = builder.Exists(builder.Select("id").From("repo_unit").Where(builder.Expr("repo_unit.repo_id = `repository`.id").
-			And(builder.Eq{"repo_unit.type": unitType}, builder.NotIn("repo_unit.type", unit.DisabledRepoUnitsGet()))))
-	}
+	unitCond := enabledRepoUnitCondition(unitType)
 	if user_model.IsPublicOnlyDoer(user) && !user.IsRestricted {
 		return PublicRepoUnderPublicOwnerCond().And(unitCond)
 	}
