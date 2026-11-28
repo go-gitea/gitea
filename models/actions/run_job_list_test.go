@@ -95,16 +95,16 @@ func TestFindJobQueueJobs(t *testing.T) {
 
 	ids, total := find(StatusUnknown, 1, 10)
 	assert.EqualValues(t, 5, total)
-	assert.Equal(t, []int64{running, cancelling, queuedC, queuedA, queuedB}, ids)
+	assert.Equal(t, []int64{running, cancelling, queuedA, queuedB, queuedC}, ids)
 
 	ids, _ = find(StatusWaiting, 1, 10)
-	assert.Equal(t, []int64{queuedC, queuedA, queuedB}, ids)
+	assert.Equal(t, []int64{queuedA, queuedB, queuedC}, ids)
 
 	ids, _ = find(StatusRunning, 1, 10)
 	assert.Equal(t, []int64{running, cancelling}, ids)
 
 	ids, _ = find(StatusUnknown, 99, 3)
-	assert.Equal(t, []int64{queuedA, queuedB}, ids)
+	assert.Equal(t, []int64{queuedB, queuedC}, ids)
 
 	repoIDs, err := JobQueueFilterRepoIDs(ctx, 1000)
 	require.NoError(t, err)

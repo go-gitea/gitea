@@ -331,6 +331,9 @@ func TestReleaseTaskForRunner(t *testing.T) {
 				WorkflowPayload: []byte("on: push\njobs:\n  " + tt.jobName + ":\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n"),
 			}
 			require.NoError(t, db.Insert(t.Context(), job))
+			readyEarlierCreatedLater := &ActionRunJob{RunID: run.ID, RepoID: run.RepoID, OwnerID: run.OwnerID, Status: StatusWaiting, RunsOn: job.RunsOn, Updated: 1}
+			_, err := db.GetEngine(t.Context()).NoAutoTime().Insert(readyEarlierCreatedLater)
+			require.NoError(t, err)
 
 			runner := &ActionRunner{
 				UUID:        tt.name + "-runner-uuid",
