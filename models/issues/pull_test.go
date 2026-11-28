@@ -356,6 +356,18 @@ func testParseCodeOwnersLine(t *testing.T) {
 		tokens := issues_model.TokenizeCodeOwnersLine(g.Line)
 		assert.Equal(t, g.Tokens, tokens, "Codeowners tokenizer failed: input=%s", g.Line)
 	}
+
+	rules, warnings := issues_model.GetCodeOwnersFromContent(t.Context(), unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}), "*.md @ORG3/team1 @org17/review_team @org3/missing @user4 @user5")
+	require.Len(t, rules, 1)
+	require.Len(t, rules[0].Teams, 1)
+	require.Len(t, rules[0].Users, 1)
+	assert.Equal(t, int64(2), rules[0].Teams[0].ID)
+	assert.Equal(t, int64(4), rules[0].Users[0].ID)
+	assert.Equal(t, []string{
+		"Line: 1: codeowner can't be requested to review: org17/review_team",
+		"Line: 1: codeowner can't be requested to review: org3/missing",
+		"Line: 1: codeowner can't be requested to review: user5",
+	}, warnings)
 }
 
 func testCodeOwnerAbsolutePathPatterns(t *testing.T) {
@@ -378,8 +390,9 @@ func testCodeOwnerAbsolutePathPatterns(t *testing.T) {
 		{content: "!/.* @user5\n", file: "README.md", expected: false},
 	}
 
+	repo4 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	for _, c := range cases {
-		rules, _ := issues_model.GetCodeOwnersFromContent(t.Context(), c.content)
+		rules, _ := issues_model.GetCodeOwnersFromContent(t.Context(), repo4, c.content)
 		require.NotEmpty(t, rules)
 		rule := rules[0]
 		regexpMatched, _ := rule.Rule.MatchString(c.file)
@@ -392,7 +405,7 @@ func testCodeOwnerAbsolutePathPatterns(t *testing.T) {
 // cannot stall pull request processing through catastrophic regex backtracking:
 // each compiled rule must enforce a bounded match time.
 func testCodeOwnerPatternMatchTimeout(t *testing.T) {
-	rules, _ := issues_model.GetCodeOwnersFromContent(t.Context(), "(a+)+ @user5\n")
+	rules, _ := issues_model.GetCodeOwnersFromContent(t.Context(), unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4}), "(a+)+ @user5\n")
 	require.Len(t, rules, 1)
 
 	maliciousInput := strings.Repeat("a", 30) + "X"
@@ -457,16 +470,17 @@ func testMigrateInsertPullRequests(t *testing.T) {
 }
 
 func testCodeOwnerSectionsAndAnnotations(t *testing.T) {
-	rules, warnings := issues_model.GetCodeOwnersFromContent(t.Context(), "*.js @user5\n[Docs] @user1\n*.md\n")
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	rules, warnings := issues_model.GetCodeOwnersFromContent(t.Context(), repo, "*.js @user5\n[Docs] @user4\n*.md\n")
 	require.Empty(t, warnings)
 	require.Len(t, rules, 2)
 	for _, rule := range rules {
 		assert.False(t, rule.ReviewRequest.Has())
 	}
 
-	rules, warnings = issues_model.GetCodeOwnersFromContent(t.Context(), `## review-request=false # global
+	rules, warnings = issues_model.GetCodeOwnersFromContent(t.Context(), repo, `## review-request=false # global
 *.js @user5 ## review-request=true # line
-[Documentation] @user1 ## review-request=true # section
+[Documentation] @user4 ## review-request=true # section
 *.md
 /docs/* @user5 ## review-request=false
 [Other Section] @user5
@@ -482,7 +496,7 @@ func testCodeOwnerSectionsAndAnnotations(t *testing.T) {
 	assert.True(t, match(rules[0], "src/app.js"))
 	assert.False(t, match(rules[0], "appXjs"))
 	assert.Equal(t, "Documentation", rules[1].Section)
-	assert.Equal(t, "user1", rules[1].Users[0].Name)
+	assert.Equal(t, "user4", rules[1].Users[0].Name)
 	assert.True(t, rules[1].ReviewRequest.Value())
 	assert.Equal(t, "user5", rules[2].Users[0].Name)
 	assert.False(t, rules[2].ReviewRequest.Value())
@@ -490,12 +504,12 @@ func testCodeOwnerSectionsAndAnnotations(t *testing.T) {
 	assert.False(t, match(rules[2], "other/docs/guide.md"))
 	assert.False(t, rules[3].ReviewRequest.Value())
 
-	rules, warnings = issues_model.GetCodeOwnersFromContent(t.Context(), "*.js @user5 ## review-request=invalid\n*[ @user5\n")
+	rules, warnings = issues_model.GetCodeOwnersFromContent(t.Context(), repo, "*.js @user5 ## review-request=invalid\n*[ @user5\n")
 	require.Len(t, rules, 1)
 	assert.False(t, rules[0].ReviewRequest.Has())
 	require.Len(t, warnings, 2)
 
-	rules, warnings = issues_model.GetCodeOwnersFromContent(t.Context(), `file\#name @user5 ## review-request=false`)
+	rules, warnings = issues_model.GetCodeOwnersFromContent(t.Context(), repo, `file\#name @user5 ## review-request=false`)
 	require.Empty(t, warnings)
 	require.Len(t, rules, 1)
 	assert.True(t, match(rules[0], "file#name"))

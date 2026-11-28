@@ -23,7 +23,6 @@ import (
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
 	issue_service "gitea.dev/services/issue"
-	pull_service "gitea.dev/services/pull"
 )
 
 type issueSidebarMilestoneData struct {
@@ -407,13 +406,13 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 
 	if data.CanChooseReviewer {
 		var err error
-		reviewers, err = pull_service.GetReviewers(ctx, repo, ctx.Doer.ID, posterID)
+		reviewers, err = issues_model.GetReviewers(ctx, repo, posterID)
 		if err != nil {
 			ctx.ServerErrorAuto(err)
 			return
 		}
 
-		teamReviewers, err = pull_service.GetReviewerTeams(ctx, repo)
+		teamReviewers, err = issues_model.GetReviewerTeams(ctx, repo)
 		if err != nil {
 			ctx.ServerErrorAuto(err)
 			return

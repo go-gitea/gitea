@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 
+	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
@@ -19,7 +20,6 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	issue_service "gitea.dev/services/issue"
-	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
 )
 
@@ -320,7 +320,7 @@ func GetReviewers(ctx *context.APIContext) {
 		return
 	}
 
-	reviewers, err := pull_service.GetReviewers(ctx, ctx.Repo.Repository, ctx.Doer.ID, 0)
+	reviewers, err := issues_model.GetReviewers(ctx, ctx.Repo.Repository, 0)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

@@ -14,6 +14,7 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
 	"gitea.dev/services/automergequeue"
 	notify_service "gitea.dev/services/notify"
 )
@@ -97,6 +98,17 @@ func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 		}
 
 		if canDoerChangeReviewRequests {
+			isCandidate, err := isReviewerCandidate(ctx, issue, reviewer)
+			if err != nil {
+				return err
+			}
+			if !isCandidate {
+				return issues_model.ErrNotValidReviewRequest{
+					Reason: "Reviewer can't be requested",
+					UserID: doer.ID,
+					RepoID: issue.Repo.ID,
+				}
+			}
 			return nil
 		}
 
@@ -130,6 +142,20 @@ func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 	}
 }
 
+// isReviewerCandidate reports whether the reviewer picker offers the user, it also lists everyone who reviewed the pull request
+func isReviewerCandidate(ctx context.Context, issue *issues_model.Issue, user *user_model.User) (bool, error) {
+	if isReviewer, err := issues_model.IsReviewer(ctx, issue.Repo, user); err != nil || isReviewer {
+		return isReviewer, err
+	}
+	reviews, err := issues_model.CountReviews(ctx, issues_model.FindReviewOptions{
+		IssueID:    issue.ID,
+		ReviewerID: user.ID,
+		Types:      []issues_model.ReviewType{issues_model.ReviewTypeApprove, issues_model.ReviewTypeReject, issues_model.ReviewTypeComment, issues_model.ReviewTypeRequest},
+		Dismissed:  optional.Some(false),
+	})
+	return reviews > 0, err
+}
+
 // isValidTeamReviewRequest Check permission for ReviewRequest Team
 func isValidTeamReviewRequest(ctx context.Context, reviewer *organization.Team, doer *user_model.User, isAdd bool, issue *issues_model.Issue) error {
 	if doer.IsOrganization() {
@@ -143,15 +169,15 @@ func isValidTeamReviewRequest(ctx context.Context, reviewer *organization.Team, 
 	canDoerChangeReviewRequests := CanDoerChangeReviewRequests(ctx, doer, issue.Repo, issue.PosterID)
 
 	if isAdd {
-		if issue.Repo.IsPrivate {
-			hasTeam := organization.HasTeamRepo(ctx, reviewer.OrgID, reviewer.ID, issue.RepoID)
-
-			if !hasTeam {
-				return issues_model.ErrNotValidReviewRequest{
-					Reason: "Reviewing team can't read repo",
-					UserID: doer.ID,
-					RepoID: issue.Repo.ID,
-				}
+		isReviewerTeam, err := issues_model.IsReviewerTeam(ctx, issue.Repo, reviewer)
+		if err != nil {
+			return err
+		}
+		if !isReviewerTeam {
+			return issues_model.ErrNotValidReviewRequest{
+				Reason: "Reviewing team can't be requested",
+				UserID: doer.ID,
+				RepoID: issue.Repo.ID,
 			}
 		}
 

@@ -456,12 +456,17 @@ func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 		Milestone: 5,
 		Assignees: []string{owner10.Name},
 		Labels:    []int64{5},
+		Reviewers: []string{"user8"},
 	}
 
-	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), opts).
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusCreated)
+	pullsURL := fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name)
+	MakeRequest(t, NewRequestWithJSON(t, http.MethodPost, pullsURL, opts).AddTokenAuth(token), http.StatusUnprocessableEntity)
+	opts.Reviewers = []string{owner10.Name}
+	resp := MakeRequest(t, NewRequestWithJSON(t, http.MethodPost, pullsURL, opts).AddTokenAuth(token), http.StatusCreated)
 	pull := DecodeJSON(t, resp, &api.PullRequest{})
+	if assert.Len(t, pull.RequestedReviewers, 1) {
+		assert.Equal(t, owner10.Name, pull.RequestedReviewers[0].UserName)
+	}
 
 	assert.NotNil(t, pull.Milestone)
 	assert.Equal(t, opts.Milestone, pull.Milestone.ID)

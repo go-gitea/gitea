@@ -18,6 +18,7 @@ import (
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -38,6 +39,15 @@ func TestPullReview(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	t.Run("ReviewerMissed", testPullReviewReviewerMissed)
 	t.Run("LockedOrBlocked", testPullReviewLockedOrBlocked)
+	t.Run("DetachTeamFromAnotherOrg", func(t *testing.T) {
+		review := &issues_model.Review{Type: issues_model.ReviewTypeRequest, IssueID: 2, ReviewerTeamID: 2}
+		require.NoError(t, db.Insert(t.Context(), review))
+		session := loginUser(t, "user2")
+		resp := session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/pulls/2"), http.StatusOK)
+		assert.Equal(t, "team1", strings.TrimSpace(NewHTMLParser(t, resp.Body).Find(".issue-sidebar-combo .list .octicon-people").Parent().Text()))
+		session.MakeRequest(t, NewRequestf(t, "POST", "/user2/repo1/issues/request_review?action=detach&issue_ids=%d&id=%d", review.IssueID, -review.ReviewerTeamID), http.StatusOK)
+		unittest.AssertNotExistsBean(t, &issues_model.Review{ID: review.ID})
+	})
 }
 
 func testPullReviewReviewerMissed(t *testing.T) {
@@ -111,6 +121,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 		assert.NoError(t, err)
 
 		for _, reviewer := range []*user_model.User{user5, user8} {
+			require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), repo, reviewer, perm.AccessModeRead))
 			require.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), reviewer, repo, repo_model.WatchOptions{
 				Mode: repo_model.WatchModeCustom, WatchPullRequests: true,
 			}))
@@ -152,14 +163,13 @@ func TestPullView_CodeOwner(t *testing.T) {
 				Files: []*files_service.ChangeRepoFile{{
 					Operation:     "update",
 					TreePath:      "CODEOWNERS",
-					ContentReader: strings.NewReader("## review-request=false\n[Docs] @user8 @org3/team1\n*.md\n"),
+					ContentReader: strings.NewReader("## review-request=false\n[Docs] @user8\n*.md\n"),
 				}},
 			})
 			require.NoError(t, err)
 			resp = session.MakeRequest(t, NewRequest(t, "GET", "/user2/test_codeowner/src/branch/file-owners/README.md"), http.StatusOK)
 			doc = NewHTMLParser(t, resp.Body)
 			assert.Equal(t, "@user8", doc.Find(".file-codeowners a.user-mention[href='/user8']").Text())
-			assert.Equal(t, "@org3/team1", doc.Find(".file-codeowners a[href='/org3/teams/team1']").Text())
 			resp = session.MakeRequest(t, NewRequest(t, "GET", "/user2/test_codeowner/src/branch/file-owners/CODEOWNERS"), http.StatusOK)
 			doc = NewHTMLParser(t, resp.Body)
 			assert.Zero(t, doc.Find(".file-codeowners").Length())
@@ -337,6 +347,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 			assert.NoError(t, err)
 
 			session := loginUser(t, "user5")
+			assert.Zero(t, NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/user5/test_codeowner/src/branch/master/README.md"), http.StatusOK).Body).Find(".flash-warning, .file-codeowners").Length())
 
 			// create a pull request on the forked repository, code reviewers should not be mentioned
 			testPullCreateDirectly(t, session, createPullRequestOptions{

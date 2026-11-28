@@ -533,6 +533,28 @@ func CreatePullRequest(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
+	for _, reviewer := range prOpts.Reviewers {
+		isReviewer, err := issues_model.IsReviewer(ctx, repo, reviewer)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if !isReviewer || reviewer.ID == ctx.Doer.ID {
+			ctx.APIError(http.StatusUnprocessableEntity, "reviewer can't be requested: "+reviewer.Name)
+			return
+		}
+	}
+	for _, team := range prOpts.TeamReviewers {
+		isReviewerTeam, err := issues_model.IsReviewerTeam(ctx, repo, team)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if !isReviewerTeam {
+			ctx.APIError(http.StatusUnprocessableEntity, "team can't be requested: "+team.Name)
+			return
+		}
+	}
 
 	if err := pull_service.NewPullRequest(ctx, ctx.Repo.Permission, prOpts); err != nil {
 		ctx.APIErrorAuto(err)

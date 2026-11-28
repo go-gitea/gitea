@@ -106,17 +106,17 @@ func TestPullRequestCodeOwnersReview(t *testing.T) {
 
 func TestMatchCodeOwnerRules(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	rules, warnings := issues_model.GetCodeOwnersFromContent(t.Context(), strings.TrimSpace(`
-*.md @user1
+	rules, warnings := issues_model.GetCodeOwnersFromContent(t.Context(), unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4}), strings.TrimSpace(`
+*.md @user4
 [Docs] @user5
 *.md
-README.md @user4
-[Docs] @user2
+README.md @user1
+[Docs] @user5
 other.md
-[Independent] @user1
+[Independent] @user4
 *.md
 `))
-	require.Empty(t, warnings)
+	assert.Equal(t, []string{"Line: 4: codeowner can't be requested to review: user1", "Line: 4: no users/groups matched"}, warnings)
 	for _, tc := range []struct {
 		paths    []string
 		lineNums []int
@@ -168,7 +168,7 @@ func TestPullRequestCodeOwnersReviewWatch(t *testing.T) {
 			require.NoError(t, repo_model.WatchRepoWithOptions(ctx, reviewer, pr.BaseRepo, repo_model.WatchOptions{
 				Mode: tc.mode, WatchPullRequests: tc.includePullRequests, WatchIssues: true,
 			}))
-			rules, warnings := issues_model.GetCodeOwnersFromContent(ctx, tc.content)
+			rules, warnings := issues_model.GetCodeOwnersFromContent(ctx, pr.BaseRepo, tc.content)
 			require.Empty(t, warnings)
 			notifiers, err := pullRequestCodeOwnersReview(ctx, pr, rules)
 			require.NoError(t, err)
