@@ -269,6 +269,10 @@ select.ui.dropdown {
   border-bottom-right-radius: 0 !important;
 }
 
+.ui.buttons .ui.selection.active.dropdown + .ui.button {
+  border-left-color: var(--color-primary);
+}
+
 .ui.selection.active.dropdown .menu {
   border-color: var(--color-primary);
   box-shadow: 0 6px 18px var(--color-shadow);

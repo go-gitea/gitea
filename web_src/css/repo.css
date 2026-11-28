@@ -907,13 +907,6 @@
   color: inherit;
 }
 
-.repository .activity-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
 /* if the element is for a checkbox, then it should have a padding-left to align to the checkbox's text */
 .repository.settings.branches .branch-protection .ui.checkbox .help,
 .repository.settings.branches .branch-protection .checkbox-sub-item {
@@ -1678,8 +1671,18 @@ tbody.commit-list {
   margin-top: 4px;
 }
 
-.ui.dropdown.branch-selector-dropdown .scrolling.menu {
+.ui.dropdown.branch-selector-dropdown > .menu > .scrolling.menu {
   max-width: min(400px, 90vw);
+  border-top: none;
+  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+}
+
+.ui.dropdown.branch-selector-dropdown .menu .item {
+  min-height: 30px;
+  padding: 0 10px !important;
 }
 
 .branch-selector-dropdown .ui.button.branch-dropdown-button {
@@ -1727,13 +1730,7 @@ tbody.commit-list {
   border-top: 1px solid var(--color-secondary);
 }
 
-.branch-selector-dropdown .scrolling.menu {
-  border-top: none !important;
-}
-
 .branch-selector-dropdown .menu .item .rss-icon {
-  position: absolute;
-  right: 4px;
   visibility: hidden; /* only show RSS icon on hover */
 }
 
