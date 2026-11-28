@@ -23,6 +23,7 @@ import (
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
+	"gitea.dev/routers/web/shared/issue"
 	"gitea.dev/services/context"
 	issue_service "gitea.dev/services/issue"
 	"gitea.dev/services/notifications"
@@ -303,25 +304,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
-		counts, ok := approvalCounts[issueID]
-		if !ok || len(counts) == 0 {
-			return 0
-		}
-		reviewTyp := issues_model.ReviewTypeApprove
-		switch typ {
-		case "reject":
-			reviewTyp = issues_model.ReviewTypeReject
-		case "waiting":
-			reviewTyp = issues_model.ReviewTypeRequest
-		}
-		for _, count := range counts {
-			if count.Type == reviewTyp {
-				return count.Count
-			}
-		}
-		return 0
-	}
+	ctx.Data["ApprovalCounts"] = issue.ApprovalCountsFunc(approvalCounts)
 
 	ctx.Data["Status"] = 1
 	ctx.Data["Title"] = ctx.Tr("notification.subscriptions")

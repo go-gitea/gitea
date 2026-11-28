@@ -1,0 +1,80 @@
+{{$page := ""}}
+{{$listQuery := ""}}
+{{if .PageIsIssues}}{{$page = "issues"}}{{else if .PageIsPulls}}{{$page = "pulls"}}{{else if .PageIsMilestonesDashboard}}{{$page = "milestones"}}{{end}}
+{{with .ViewType}}{{$listQuery = QueryBuild "?" "type" .}}{{end}}
+<div class="ui floating dropdown jump interact-bg">
+	<span class="text">
+		{{ctx.AvatarUtils.Avatar .ContextUser 20 "tw-mr-1"}}
+		<span class="gt-ellipsis">{{.ContextUser.ShortName 40}}</span>
+		<span class="org-visibility">
+			{{if .ContextUser.Visibility.IsLimited}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
+			{{if .ContextUser.Visibility.IsPrivate}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
+		</span>
+	</span>
+	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+	<div class="menu context-user-switch dashboard-context-menu">
+		<div class="header">
+			{{ctx.Locale.Tr "home.switch_dashboard_context"}}
+		</div>
+		<div class="scrolling menu">
+			<a class="{{if eq .ContextUser.ID .SignedUser.ID}}active selected{{end}} item" href="{{AppSubUrl}}/{{$page}}{{$listQuery}}">
+				{{ctx.AvatarUtils.Avatar .SignedUser}}
+				<span class="gt-ellipsis">{{.SignedUser.ShortName 40}}</span>
+				<span class="org-visibility">
+					{{if .SignedUser.Visibility.IsLimited}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
+					{{if .SignedUser.Visibility.IsPrivate}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
+				</span>
+			</a>
+			{{range .Orgs}}
+				<a class="{{if eq $.ContextUser.ID .ID}}active selected{{end}} item" title="{{.Name}}" href="{{.OrganisationLink}}/{{or $page "dashboard"}}{{$listQuery}}">
+					{{ctx.AvatarUtils.Avatar .}}
+					<span class="gt-ellipsis">{{.ShortName 40}}</span>
+					<span class="org-visibility">
+						{{if .Visibility.IsLimited}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
+						{{if .Visibility.IsPrivate}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
+					</span>
+				</a>
+			{{end}}
+		</div>
+		{{if .ContextUser.IsOrganization}}
+		<a class="item" href="{{.ContextUser.HomeLink}}">
+			{{svg "octicon-organization" 16 "tw-ml-1 tw-mr-5"}}{{ctx.Locale.Tr "home.view_home" (.ContextUser.ShortName 20)}}
+		</a>
+		{{end}}
+		{{if .SignedUser.CanCreateOrganization}}
+		<a class="item" href="{{AppSubUrl}}/org/create">
+			{{svg "octicon-plus" 16 "tw-ml-1 tw-mr-5"}}{{ctx.Locale.Tr "new_org"}}
+		</a>
+		{{end}}
+	</div>
+</div>
+{{if .ContextUser.IsOrganization}}
+<div class="ui floating dropdown jump interact-bg">
+	<span class="text">
+		{{svg "octicon-people" 18}}
+		{{if .Team}}
+			<span class="gt-ellipsis">{{.Team.Name}}</span>
+		{{else}}
+			{{ctx.Locale.Tr "home.all_teams"}}
+		{{end}}
+	</span>
+	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+	<div class="context user overflow menu dashboard-context-menu">
+		<div class="header">
+			{{ctx.Locale.Tr "home.filter_by_team_repositories"}}
+		</div>
+		<div class="scrolling menu items">
+			<a class="{{if not $.Team}}active selected{{end}} item" title="{{ctx.Locale.Tr "all"}}" href="{{$.Org.OrganisationLink}}/{{or $page "dashboard"}}{{$listQuery}}">
+				{{ctx.Locale.Tr "all"}}
+			</a>
+			{{range .Teams}}
+				{{if not .IncludesAllRepositories}}
+					<a class="{{if $.Team}}{{if eq $.Team.ID .ID}}active selected{{end}}{{end}} item" title="{{.Name}}" href="{{$.Org.OrganisationLink}}/{{or $page "dashboard"}}/{{PathEscape .Name}}{{$listQuery}}">
+						{{.Name}}
+					</a>
+				{{end}}
+			{{end}}
+		</div>
+	</div>
+</div>
+{{end}}

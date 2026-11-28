@@ -4,11 +4,15 @@
 	<div class="ui container flex-container">
 		<div class="flex-container-main">
 			{{template "base/alert" .}}
-			{{template "user/heatmap" .}}
-			{{if .Page.Paginator.TotalPages}}
-				{{template "user/dashboard/feeds" .}}
+			{{if eq .DashboardTab "overview"}}
+				{{template "user/dashboard/overview" .}}
 			{{else}}
-				{{template "user/dashboard/guide" .}}
+				{{template "user/heatmap" .}}
+				{{if .Page.Paginator.TotalPages}}
+					{{template "user/dashboard/feeds" .}}
+				{{else}}
+					{{template "user/dashboard/guide" .}}
+				{{end}}
 			{{end}}
 		</div>
 		{{template "user/dashboard/repolist" .}}

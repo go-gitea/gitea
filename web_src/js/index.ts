@@ -1,7 +1,7 @@
 import '../fomantic/build/fomantic.js';
 import '../css/index.css';
 
-import {initDashboardRepoList} from './features/dashboard.ts';
+import {initDashboardNavbar, initDashboardRepoList} from './features/dashboard.ts';
 import {initGlobalCopyToClipboardListener} from './modules/clipboard.ts';
 import {initCopyContent} from './features/copycontent.ts';
 import {initRepoGraphGit} from './features/repo-graph.ts';
@@ -116,6 +116,7 @@ const initPerformanceTracer = callInitFunctions([
   initAdminConfigs,
   initAdminSelfCheck,
 
+  initDashboardNavbar,
   initDashboardRepoList,
 
   initNotificationCount,

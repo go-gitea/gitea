@@ -1,0 +1,41 @@
+<div class="dashboard-overview">
+	{{range $list := .OverviewLists}}
+		<section>
+			<div class="dashboard-overview-header">
+				<h2>{{ctx.Locale.Tr $list.Title}}{{if $list.Total}}<span class="ui small label">{{$list.Total}}</span>{{end}}</h2>
+				<a href="{{$list.Link}}" aria-label="{{ctx.Locale.Tr "home.overview.view_all"}}: {{ctx.Locale.Tr $list.Title}}">{{ctx.Locale.Tr "home.overview.view_all"}}</a>
+			</div>
+			<div class="ui fitted segment dashboard-overview-box">
+				{{if $list.Issues}}
+				<div class="flex-divided-list items-with-main items-px-default dashboard-overview-list">
+					{{range $issue := $list.Issues}}
+						<div class="item">
+							<div class="item-leading">{{template "shared/issueicon" $issue}}</div>
+							<div class="item-main">
+								<div class="flex-text-inline dashboard-overview-title">
+									<a class="silenced gt-ellipsis" href="{{$issue.Link}}">{{$issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
+									{{if $issue.IsPull}}
+										{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus $issue.PullRequest.ID) "Statuses" (index $.CommitStatuses $issue.PullRequest.ID) "AdditionalClasses" "dashboard-overview-status"}}
+									{{end}}
+								</div>
+								<div class="item-body tw-gap-2">
+									<span>{{$issue.Repo.FullName}}#{{$issue.Index}}</span>
+									<span>{{template "shared/issue_last_event" $issue}}</span>
+									{{if $issue.IsPull}}{{template "shared/issue_approvals" $issue}}{{end}}
+								</div>
+							</div>
+							{{if $issue.NumComments}}
+								<div class="item-trailing">
+									<span class="flex-text-inline">{{svg "octicon-comment" 16}}{{$issue.NumComments}}</span>
+								</div>
+							{{end}}
+						</div>
+					{{end}}
+				</div>
+				{{else}}
+				<div class="dashboard-overview-empty">{{ctx.Locale.Tr "home.overview.empty"}}</div>
+				{{end}}
+			</div>
+		</section>
+	{{end}}
+</div>

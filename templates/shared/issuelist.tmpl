@@ -1,7 +1,6 @@
 {{$root := ctx.RootData -}}
 {{$listType := .listType -}}
 <div id="issue-list" class="flex-divided-list items-with-main">
-	{{$approvalCounts := $root.ApprovalCounts}}
 	{{range $issue := $root.Issues}}
 		{{$queued := and $issue.IsPull $root.QueuedPulls ($root.QueuedPulls.Contains $issue.PullRequest.ID)}}
 		<div class="item">
@@ -47,16 +46,7 @@
 						{{end}}
 					</a>
 
-					<div class="flex-text-inline">
-					{{$timeStr := DateUtils.TimeSince $issue.GetLastEventTimestamp}}
-					{{if $issue.OriginalAuthor}}
-						{{ctx.Locale.Tr $issue.GetLastEventLabelFake $timeStr $issue.OriginalAuthor}}
-					{{else if gt $issue.Poster.ID 0}}
-						{{ctx.Locale.Tr $issue.GetLastEventLabel $timeStr $issue.Poster.HomeLink $issue.Poster.GetDisplayName}}
-					{{else}}
-						{{ctx.Locale.Tr $issue.GetLastEventLabelFake $timeStr $issue.Poster.GetDisplayName}}
-					{{end}}
-					</div>
+					<div class="flex-text-inline">{{template "shared/issue_last_event" $issue}}</div>
 					{{if $queued}}
 						<a class="flex-text-inline muted" href="{{$issue.PullRequest.BaseRepo.Link}}/queue/{{PathEscapeSegments $issue.PullRequest.BaseBranch}}" aria-label="{{ctx.Locale.Tr "repo.pulls.merge_queue.view_queued"}}">{{svg "octicon-git-merge-queue" 14}}{{ctx.Locale.Tr "repo.pulls.merge_queue.state.queued"}}</a>
 					{{end}}
@@ -113,27 +103,7 @@
 						</span>
 					{{end}}
 					{{if $issue.IsPull}}
-						{{$approveOfficial := call $approvalCounts $issue.ID "approve"}}
-						{{$rejectOfficial := call $approvalCounts $issue.ID "reject"}}
-						{{$waitingOfficial := call $approvalCounts $issue.ID "waiting"}}
-						{{if gt $approveOfficial 0}}
-							<span class="approvals green flex-text-inline">
-								{{svg "octicon-check" 14}}
-								{{ctx.Locale.TrN $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n" $approveOfficial}}
-							</span>
-						{{end}}
-						{{if gt $rejectOfficial 0}}
-							<span class="rejects red flex-text-inline">
-								{{svg "octicon-diff" 14}}
-								{{ctx.Locale.TrN $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n" $rejectOfficial}}
-							</span>
-						{{end}}
-						{{if gt $waitingOfficial 0}}
-							<span class="waiting flex-text-inline">
-								{{svg "octicon-eye" 14}}
-								{{ctx.Locale.TrN $waitingOfficial "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n" $waitingOfficial}}
-							</span>
-						{{end}}
+						{{template "shared/issue_approvals" $issue}}
 						{{if and (not $issue.PullRequest.HasMerged) $issue.PullRequest.ConflictedFiles}}
 							<span class="conflicting flex-text-inline">
 								{{svg "octicon-x" 14}}

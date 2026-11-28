@@ -92,9 +92,15 @@ func Dashboard(ctx *context.Context) {
 		page = 1
 	}
 
+	tab, err := dashboardTab(ctx)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+
 	ctx.Data["Title"] = ctxUser.DisplayName() + " - " + ctx.Locale.TrString("dashboard")
 	ctx.Data["PageIsDashboard"] = true
-	ctx.Data["PageIsNews"] = true
+	ctx.Data["DashboardTab"] = tab
 	cnt, _ := organization.GetOrganizationCount(ctx, ctxUser)
 	ctx.Data["UserOrgsCount"] = cnt
 	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
@@ -108,6 +114,15 @@ func Dashboard(ctx *context.Context) {
 	ctx.PageData["dashboardRepoList"] = map[string]any{
 		"searchLimit": setting.UI.User.RepoPagingNum,
 		"uid":         uid,
+	}
+
+	if tab == user_model.DashboardTabOverview {
+		prepareDashboardOverview(ctx, ctxUser)
+		if ctx.Written() {
+			return
+		}
+		ctx.HTML(http.StatusOK, tplDashboard)
+		return
 	}
 
 	prepareHeatmapURL(ctx)
@@ -385,25 +400,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// TODO: distinguish during routing
 
-	viewType := ctx.FormString("type")
-	var filterMode int
-	switch viewType {
-	case "assigned":
-		filterMode = issues_model.FilterModeAssign
-	case "created_by":
-		filterMode = issues_model.FilterModeCreate
-	case "mentioned":
-		filterMode = issues_model.FilterModeMention
-	case "review_requested":
-		filterMode = issues_model.FilterModeReviewRequested
-	case "reviewed_by":
-		filterMode = issues_model.FilterModeReviewed
-	case "your_repositories":
-		fallthrough
-	default:
-		filterMode = issues_model.FilterModeYourRepositories
-		viewType = "your_repositories"
-	}
+	viewType, filterMode := issueFilterMode(ctx.FormString("type"))
 
 	isPullList := unitType == unit.TypePullRequests
 	opts := &issues_model.IssuesOptions{
@@ -488,21 +485,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		// So we need search issues in all public repos.
 		opts.AllPublic = true
 	}
-
-	switch filterMode {
-	case issues_model.FilterModeAll:
-	case issues_model.FilterModeYourRepositories:
-	case issues_model.FilterModeAssign:
-		opts.AssigneeID = strconv.FormatInt(ctx.Doer.ID, 10)
-	case issues_model.FilterModeCreate:
-		opts.PosterID = strconv.FormatInt(ctx.Doer.ID, 10)
-	case issues_model.FilterModeMention:
-		opts.MentionedID = ctx.Doer.ID
-	case issues_model.FilterModeReviewRequested:
-		opts.ReviewRequestedID = ctx.Doer.ID
-	case issues_model.FilterModeReviewed:
-		opts.ReviewedID = ctx.Doer.ID
-	}
+	applyIssueFilterMode(opts, filterMode, ctx.Doer.ID)
 
 	// keyword holds the search term entered into the search field.
 	keyword := strings.Trim(ctx.FormString("q"), " ")
@@ -596,25 +579,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
-		counts, ok := approvalCounts[issueID]
-		if !ok || len(counts) == 0 {
-			return 0
-		}
-		reviewTyp := issues_model.ReviewTypeApprove
-		switch typ {
-		case "reject":
-			reviewTyp = issues_model.ReviewTypeReject
-		case "waiting":
-			reviewTyp = issues_model.ReviewTypeRequest
-		}
-		for _, count := range counts {
-			if count.Type == reviewTyp {
-				return count.Count
-			}
-		}
-		return 0
-	}
+	ctx.Data["ApprovalCounts"] = issue.ApprovalCountsFunc(approvalCounts)
 	ctx.Data["CommitLastStatus"] = lastStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["IssueStats"] = issueStats

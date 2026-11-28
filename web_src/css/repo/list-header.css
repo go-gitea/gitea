@@ -24,11 +24,19 @@
 
 .list-header-filters {
   display: flex;
-  align-items: center;
+  align-items: stretch;
 }
 
-.list-header-filters > .item {
-  padding: 5px 0 5px 10px;
+.list-header-filters.ui.secondary.menu {
+  min-height: 0; /* the menu's default height would stretch the whole header row */
+}
+
+.list-header-filters > .item,
+.list-header-filters.ui.secondary.menu > .item {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  padding: 5px 8px;
 }
 
 @media (max-width: 767.98px) {

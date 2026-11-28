@@ -21,13 +21,25 @@ func SettingsCtxData(ctx *context.Context) {
 
 func UpdatePreferences(ctx *context.Context) {
 	type preferencesForm struct {
-		CodeViewShowFileTree bool `json:"codeViewShowFileTree"`
+		CodeViewShowFileTree *bool   `json:"codeViewShowFileTree"`
+		DashboardTab         *string `json:"dashboardTab"`
 	}
 	form := &preferencesForm{}
-	if err := jsonlimit.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, &form); err != nil {
+	if err := jsonlimit.DecodeFromRequest(ctx.Resp, ctx.Req, 10*1024*1024, form); err != nil {
 		ctx.JSONError("invalid request body")
 		return
 	}
-	_ = user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyCodeViewShowFileTree, strconv.FormatBool(form.CodeViewShowFileTree))
+	if form.CodeViewShowFileTree != nil {
+		if err := user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyCodeViewShowFileTree, strconv.FormatBool(*form.CodeViewShowFileTree)); err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+	}
+	if tab := form.DashboardTab; tab != nil && (*tab == user_model.DashboardTabOverview || *tab == user_model.DashboardTabActivity) {
+		if err := user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyDashboardTab, *tab); err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+	}
 	ctx.JSONOK()
 }

@@ -98,6 +98,7 @@ func testPrivateActivityHelperHasVisibleProfileHeatmapFromSession(t *testing.T, 
 }
 
 func testPrivateActivityHelperHasVisibleDashboardHeatmapFromSession(t *testing.T, session *TestSession) bool {
+	session.MakeRequest(t, NewRequestWithJSON(t, "POST", "/user/settings/update_preferences", map[string]string{"dashboardTab": "activity"}), http.StatusOK)
 	req := NewRequest(t, "GET", "/")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 

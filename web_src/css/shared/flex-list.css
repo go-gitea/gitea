@@ -55,7 +55,7 @@
   flex-wrap: wrap;
 }
 
-.items-with-main > .item a:not(.label, .button):hover {
+.items-with-main > .item a:not(.label, .button, .silenced):hover {
   color: var(--color-primary) !important;
 }
 
