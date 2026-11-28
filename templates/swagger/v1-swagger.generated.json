@@ -7679,7 +7679,7 @@
     "/repos/{owner}/{repo}/archive/{archive}": {
       "get": {
         "produces": [
-          "application/json"
+          "application/octet-stream"
         ],
         "tags": [
           "repository"
@@ -7721,7 +7721,10 @@
         ],
         "responses": {
           "200": {
-            "description": "success"
+            "description": "success",
+            "schema": {
+              "type": "file"
+            }
           },
           "default": {
             "$ref": "#/responses/error"
@@ -24594,6 +24597,23 @@
     }
   },
   "definitions": {
+    "APIError": {
+      "description": "APIError is an api error with a message",
+      "type": "object",
+      "properties": {
+        "message": {
+          "description": "Message contains the error description",
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "url": {
+          "description": "URL contains the documentation URL for this error",
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "AccessToken": {
       "type": "object",
       "title": "AccessToken represents an API access token.",
@@ -35662,13 +35682,8 @@
     },
     "error": {
       "description": "APIError is error format response",
-      "headers": {
-        "message": {
-          "type": "string"
-        },
-        "url": {
-          "type": "string"
-        }
+      "schema": {
+        "$ref": "#/definitions/APIError"
       }
     },
     "string": {

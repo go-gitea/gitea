@@ -60,7 +60,6 @@ func init() {
 // * url:     the swagger document URL
 
 // APIError is error format response
-// swagger:response error
 type APIError struct {
 	Message string `json:"message"`
 	URL     string `json:"url"`
