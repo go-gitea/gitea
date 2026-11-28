@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	auth_model "gitea.dev/models/auth"
+	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -169,6 +170,23 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 				return
 			}
 			if rel.IsDraft {
+				ctx.HTTPError(http.StatusNotFound)
+				return
+			}
+		}
+
+		// A code comment of a review that has not been submitted yet is only visible to its
+		// reviewer, so its attachments must not be served to anyone else either.
+		if attach.CommentID != 0 {
+			comment, err := issues_model.GetCommentByID(ctx, attach.CommentID)
+			if err != nil {
+				ctx.ServerErrorAuto(err)
+				return
+			}
+			if hidden, err := comment.IsHiddenPendingReview(ctx, ctx.Doer); err != nil {
+				ctx.ServerErrorAuto(err)
+				return
+			} else if hidden {
 				ctx.HTTPError(http.StatusNotFound)
 				return
 			}

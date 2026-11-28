@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"errors"
 	"html/template"
 	"net/http"
 	"strings"
@@ -27,6 +28,11 @@ func GetContentHistoryOverview(ctx *context.Context) {
 	}
 
 	editedHistoryCountMap, _ := issues_model.QueryIssueContentHistoryEditedCountMap(ctx, issue.ID)
+	for commentID := range editedHistoryCountMap {
+		if commentID != 0 && visibleContentHistoryComment(ctx, issue, commentID) == nil {
+			delete(editedHistoryCountMap, commentID)
+		}
+	}
 	ctx.JSON(http.StatusOK, map[string]any{
 		"i18n": map[string]any{
 			"textEdited":                   ctx.Tr("repo.issues.content_history.edited"),
@@ -46,6 +52,10 @@ func GetContentHistoryList(ctx *context.Context) {
 	}
 
 	commentID := ctx.FormInt64("comment_id")
+	if commentID != 0 && visibleContentHistoryComment(ctx, issue, commentID) == nil {
+		ctx.NotFound()
+		return
+	}
 	items, _ := issues_model.FetchIssueContentHistoryList(ctx, issue.ID, commentID)
 
 	// render history list to HTML for frontend dropdown items: (name, value)
@@ -79,6 +89,37 @@ func GetContentHistoryList(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, map[string]any{
 		"results": results,
 	})
+}
+
+func contentHistoryNotFound(ctx *context.Context) {
+	ctx.JSON(http.StatusNotFound, map[string]any{
+		"message": "Can not find the content history",
+	})
+}
+
+// visibleContentHistoryComment returns the issue's comment whose history was asked for, or nil when
+// the doer must not see it: a code comment of a review that has not been submitted yet is only
+// visible to its reviewer, and so are its revisions.
+func visibleContentHistoryComment(ctx *context.Context, issue *issues_model.Issue, commentID int64) *issues_model.Comment {
+	comment, err := issues_model.GetCommentByID(ctx, commentID)
+	if err != nil {
+		if !errors.Is(err, util.ErrNotExist) {
+			log.Error("visibleContentHistoryComment: %v", err)
+		}
+		return nil
+	}
+	if comment.IssueID != issue.ID {
+		return nil
+	}
+	hidden, err := comment.IsHiddenPendingReview(ctx, ctx.Doer)
+	if err != nil {
+		log.Error("visibleContentHistoryComment: %v", err)
+		return nil
+	}
+	if hidden {
+		return nil
+	}
+	return comment
 }
 
 // canSoftDeleteContentHistory checks whether current user can soft-delete a history revision
@@ -147,18 +188,15 @@ func GetContentHistoryDetail(ctx *context.Context) {
 	historyID := ctx.FormInt64("history_id")
 	history, prevHistory, err := issues_model.GetIssueContentHistoryAndPrev(ctx, issue.ID, historyID)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, map[string]any{
-			"message": "Can not find the content history",
-		})
+		contentHistoryNotFound(ctx)
 		return
 	}
 
 	// get the related comment if this history revision is for a comment, otherwise the history revision is for an issue.
 	var comment *issues_model.Comment
 	if history.CommentID != 0 {
-		var err error
-		if comment, err = issues_model.GetCommentByID(ctx, history.CommentID); err != nil {
-			log.Error("can not get comment for issue content history %v. err=%v", historyID, err)
+		if comment = visibleContentHistoryComment(ctx, issue, history.CommentID); comment == nil {
+			contentHistoryNotFound(ctx)
 			return
 		}
 	}

@@ -59,7 +59,7 @@ func GetIssueCommentAttachment(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 
-	comment := getIssueCommentSafe(ctx)
+	comment := getReadableIssueCommentSafe(ctx)
 	if comment == nil {
 		return
 	}
@@ -105,7 +105,7 @@ func ListIssueCommentAttachments(ctx *context.APIContext) {
 	//     "$ref": "#/responses/AttachmentList"
 	//   default:
 	//     "$ref": "#/responses/error"
-	comment := getIssueCommentSafe(ctx)
+	comment := getReadableIssueCommentSafe(ctx)
 	if comment == nil {
 		return
 	}
@@ -341,6 +341,23 @@ func getIssueCommentSafe(ctx *context.APIContext) *issues_model.Comment {
 
 	comment.Issue.Repo = ctx.Repo.Repository
 
+	return comment
+}
+
+// getReadableIssueCommentSafe is getIssueCommentSafe for the read endpoints: a code comment of a
+// review that has not been submitted yet is only visible to its reviewer, and so are its attachments.
+func getReadableIssueCommentSafe(ctx *context.APIContext) *issues_model.Comment {
+	comment := getIssueCommentSafe(ctx)
+	if comment == nil {
+		return nil
+	}
+	if hidden, err := comment.IsHiddenPendingReview(ctx, ctx.Doer); err != nil {
+		ctx.APIErrorInternal(err)
+		return nil
+	} else if hidden {
+		ctx.APIErrorNotFound()
+		return nil
+	}
 	return comment
 }
 

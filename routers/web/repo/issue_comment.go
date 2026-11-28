@@ -307,6 +307,14 @@ func GetCommentAttachments(ctx *context.Context) {
 		return
 	}
 
+	if hidden, err := comment.IsHiddenPendingReview(ctx, ctx.Doer); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	} else if hidden {
+		ctx.NotFound()
+		return
+	}
+
 	attachments := make([]*api.Attachment, 0)
 	if err := comment.LoadAttachments(ctx); err != nil {
 		ctx.ServerErrorAuto(err)
