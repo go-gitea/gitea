@@ -62,7 +62,7 @@ func TryPickTask(ctx context.Context, runner *actions_model.ActionRunner) (task 
 func releaseTaskForRunnerCleanup(t *actions_model.ActionTask) {
 	ctx, cancel := context.WithTimeout(graceful.GetManager().ShutdownContext(), 10*time.Second)
 	defer cancel()
-	if relErr := actions_model.ReleaseTaskForRunner(ctx, t); relErr != nil {
+	if relErr := actions_model.ReleaseTaskForRunner(ctx, t, actions_model.StatusWaiting); relErr != nil {
 		log.Error("ReleaseTaskForRunner [task_id: %d]: %v", t.ID, relErr)
 	}
 }
@@ -107,7 +107,20 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		return nil, false, nil
 	}
 
-	task, job, err = buildRunnerTask(ctx, t)
+	env, denied, err := resolveJobEnvironment(ctx, t.Job)
+	if err != nil {
+		releaseTaskForRunnerCleanup(t)
+		return nil, false, fmt.Errorf("resolve environment of job %d: %w", t.Job.ID, err)
+	}
+	if denied != nil {
+		if err := failJobByEnvironment(ctx, t, denied); err != nil {
+			releaseTaskForRunnerCleanup(t)
+			return nil, false, err
+		}
+		return nil, false, nil
+	}
+
+	task, job, err = buildRunnerTask(ctx, t, env)
 	if err != nil {
 		// The job was already claimed but assembling its payload failed; release the
 		// claim so the job returns to the waiting queue instead of being stranded in
@@ -135,22 +148,39 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 	return task, true, nil
 }
 
+func failJobByEnvironment(ctx context.Context, t *actions_model.ActionTask, denied error) error {
+	ctx = context.WithoutCancel(ctx) // the failure must be committed and announced even if the runner went away
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		// not StopTask, which would delete an ephemeral runner that never ran anything
+		if err := actions_model.ReleaseTaskForRunner(ctx, t, actions_model.StatusFailure); err != nil {
+			return err
+		}
+		return upsertJobErrorSummary(ctx, t.Job, "environment", denied)
+	}); err != nil {
+		return fmt.Errorf("fail job %d on environment policy: %w", t.JobID, err)
+	}
+
+	log.Info("Job %d denied: %v", t.JobID, denied)
+	notifyAndEmitFinishedJobs(ctx, []*actions_model.ActionRunJob{t.Job})
+	return nil
+}
+
 // buildRunnerTask assembles the runner-facing task payload for an already-claimed
 // task. All operations are read-only; on error the caller releases the claim.
-func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask) (*runnerv1.Task, *actions_model.ActionRunJob, error) {
+func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask, env *actions_model.ActionEnvironment) (*runnerv1.Task, *actions_model.ActionRunJob, error) {
 	if err := t.LoadAttributes(ctx); err != nil {
 		return nil, nil, fmt.Errorf("task LoadAttributes: %w", err)
 	}
 	job := t.Job
 
-	secrets, err := secret_model.GetSecretsOfTask(ctx, t)
+	secrets, err := secret_model.GetSecretsOfTask(ctx, t, env)
 	if err != nil {
 		return nil, nil, fmt.Errorf("GetSecretsOfTask: %w", err)
 	}
 
-	vars, err := actions_model.GetVariablesOfRun(ctx, t.Job.Run)
+	vars, err := actions_model.GetVariablesOfRunInEnvironment(ctx, t.Job.Run, env)
 	if err != nil {
-		return nil, nil, fmt.Errorf("GetVariablesOfRun: %w", err)
+		return nil, nil, fmt.Errorf("load variables of job %d: %w", job.ID, err)
 	}
 
 	needs, err := findTaskNeeds(ctx, job)

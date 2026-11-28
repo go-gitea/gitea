@@ -192,6 +192,9 @@ var (
 	RepositoryVariableAdd            = define("repository:variable:add", "Added variable {variable} to repository {scope}.")
 	RepositoryVariableUpdate         = define("repository:variable:update", "Updated variable {variable} of repository {scope}.")
 	RepositoryVariableRemove         = define("repository:variable:remove", "Removed variable {variable} from repository {scope}.")
+	RepositoryEnvironmentAdd         = define("repository:environment:add", "Added environment {environment} to repository {scope}.")
+	RepositoryEnvironmentUpdate      = define("repository:environment:update", "Updated environment {environment} of repository {scope}.")
+	RepositoryEnvironmentRemove      = define("repository:environment:remove", "Removed environment {environment} from repository {scope}.")
 	RepositoryReleaseRemove          = define("repository:release:remove", "Removed release {release} from repository {scope}.")
 	RepositoryTagRemove              = define("repository:tag:remove", "Removed tag {tag} from repository {scope}.")
 

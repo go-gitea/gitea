@@ -239,6 +239,11 @@ func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, err
 	return nil, fmt.Errorf("event %s is not a pull request event", run.Event)
 }
 
+// IsUntrustedFork: a fork workflow must not read repo secrets; pull_request_target is the base repo's own
+func (run *ActionRun) IsUntrustedFork() bool {
+	return run.IsForkPullRequest && run.TriggerEvent != "pull_request_target" // modules/actions has the constant but imports this package
+}
+
 func (run *ActionRun) GetWorkflowRunEventPayload() (*api.WorkflowRunPayload, error) {
 	if run.Event == webhook_module.HookEventWorkflowRun {
 		var payload api.WorkflowRunPayload

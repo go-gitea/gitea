@@ -29,13 +29,26 @@ type settingsScope struct {
 	BelongingScope  actions_model.BelongingScope
 	LinkPrefix      string
 	Template        templates.TplName // TODO: Separate secrets from runners when layout is ready
+	isEnvironment   bool
 }
 
 func (s *settingsScope) IsAdmin() bool { return s.Kind == settingsScopeAdmin }
 
+// listLink is the page a secrets or variables form returns to, an environment shows both lists on its own page
+func (s *settingsScope) listLink(list string) string {
+	if s.isEnvironment {
+		return s.LinkPrefix
+	}
+	return s.LinkPrefix + "/" + list
+}
+
 func getSettingsScope(ctx *context.Context) (*settingsScope, error) {
 	scope := &settingsScope{}
+	env := EnvironmentFromContext(ctx)
 	switch {
+	case env != nil: // before the repository case, as its routes are repository settings pages too
+		scope.Kind, scope.BelongingScope, scope.isEnvironment = settingsScopeRepo, env.Scope(), true
+		scope.LinkPrefix = env.SettingsLink(ctx.Repo.RepoLink)
 	case ctx.Data["PageIsRepoSettings"] == true:
 		scope.Kind, scope.BelongingScope = settingsScopeRepo, actions_model.BelongingScopeRepo(ctx.Repo.Repository.ID)
 		scope.LinkPrefix, scope.Template = ctx.Repo.RepoLink+"/settings/actions", "repo/settings/actions"

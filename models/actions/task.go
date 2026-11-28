@@ -381,24 +381,29 @@ func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRun
 }
 
 // ReleaseTaskForRunner reverts a freshly-claimed but undelivered task: it deletes
-// the task together with its steps and returns the job to the waiting queue. It is
-// used when assembling the runner response fails after the job was already claimed,
-// so the job is not stranded in running state with no runner ever executing it.
-func ReleaseTaskForRunner(ctx context.Context, task *ActionTask) error {
+// the task together with its steps and moves the job to status. Waiting returns
+// the job to the queue when assembling the runner response failed, so it is not
+// stranded in running state; a done status ends a job that must not reach a runner.
+func ReleaseTaskForRunner(ctx context.Context, task *ActionTask, status Status) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		e := db.GetEngine(ctx)
 
-		job, err := GetRunJobByRepoAndID(ctx, task.RepoID, task.JobID)
-		if err != nil {
+		if err := task.LoadJob(ctx); err != nil {
 			return err
 		}
+		job := task.Job
 
-		job.Status = StatusWaiting
+		job.Status = status
 		job.Started = 0
 		job.TaskID = 0
+		cols := []string{"status", "started", "task_id"}
+		if status.IsDone() {
+			job.Stopped = timeutil.TimeStampNow()
+			cols = append(cols, "stopped")
+		}
 		// Guard on task_id and status so we only release while the job still
 		// references this task and has not progressed past running.
-		n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": task.ID, "status": StatusRunning}, "status", "started", "task_id")
+		n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": task.ID, "status": StatusRunning}, cols...)
 		if err != nil {
 			return err
 		}

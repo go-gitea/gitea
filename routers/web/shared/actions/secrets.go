@@ -65,7 +65,7 @@ func SecretsPost(ctx *context.Context) {
 	}
 
 	owner, repo := secretAuditTarget(ctx, scope)
-	shared_secrets.PerformSecretsPost(ctx, scope.BelongingScope, owner, repo, scope.LinkPrefix+"/secrets")
+	shared_secrets.PerformSecretsPost(ctx, scope.BelongingScope, owner, repo, scope.listLink("secrets"))
 }
 
 func SecretsDelete(ctx *context.Context) {
@@ -75,5 +75,5 @@ func SecretsDelete(ctx *context.Context) {
 		return
 	}
 	owner, repo := secretAuditTarget(ctx, scope)
-	shared_secrets.PerformSecretsDelete(ctx, scope.BelongingScope, owner, repo, scope.LinkPrefix+"/secrets")
+	shared_secrets.PerformSecretsDelete(ctx, scope.BelongingScope, owner, repo, scope.listLink("secrets"))
 }

@@ -112,6 +112,7 @@ type Job struct {
 	RawConcurrency     *model.RawConcurrency `yaml:"concurrency,omitempty"`
 	RawPermissions     yaml.Node             `yaml:"permissions,omitempty"`
 	CacheMode          string                `yaml:"cache-mode,omitempty"`
+	RawEnvironment     yaml.Node             `yaml:"environment,omitempty"`
 }
 
 // GetContinueOnError decodes the continue-on-error field to a bool.
@@ -166,6 +167,29 @@ func (j *Job) RunsOn() []string {
 // DisplayName is the name Gitea stores, without the escaping the payload keeps for runners.
 func (j *Job) DisplayName() string {
 	return util.EllipsisDisplayString(unescapeExpressions(j.Name), 255)
+}
+
+// environmentNameNode returns the name in the scalar or object form of "environment:", an empty node if there is none.
+func (j *Job) environmentNameNode() *yaml.Node {
+	switch env := &j.RawEnvironment; env.Kind {
+	case yaml.ScalarNode:
+		return env
+	case yaml.MappingNode:
+		for i := 0; i+1 < len(env.Content); i += 2 {
+			if env.Content[i].Value == "name" {
+				return env.Content[i+1]
+			}
+		}
+	}
+	return &yaml.Node{}
+}
+
+func (j *Job) DeploymentEnvironmentName() string {
+	name := j.environmentNameNode()
+	if name.Kind != yaml.ScalarNode || name.Tag == "!!null" {
+		return ""
+	}
+	return unescapeExpressions(name.Value)
 }
 
 type Step struct {

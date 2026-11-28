@@ -57,7 +57,7 @@ func VariableCreate(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("actions.variables.creation.success", variable.Name))
-	ctx.JSONRedirect(scope.LinkPrefix + "/variables")
+	ctx.JSONRedirect(scope.listLink("variables"))
 }
 
 func VariableUpdate(ctx *context.Context) {
@@ -87,7 +87,7 @@ func VariableUpdate(ctx *context.Context) {
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("actions.variables.update.success"))
-	ctx.JSONRedirect(scope.LinkPrefix + "/variables")
+	ctx.JSONRedirect(scope.listLink("variables"))
 }
 
 func findActionsVariable(ctx *context.Context, id int64, scope actions_model.BelongingScope) *actions_model.ActionVariable {
@@ -125,5 +125,5 @@ func VariableDelete(ctx *context.Context) {
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("actions.variables.deletion.success"))
-	ctx.JSONRedirect(scope.LinkPrefix + "/variables")
+	ctx.JSONRedirect(scope.listLink("variables"))
 }

@@ -43,7 +43,7 @@ func PerformSecretsPost(ctx *context.Context, scope actions_model.BelongingScope
 	if created {
 		actions = audit.SecretAdd
 	}
-	audit.RecordScoped(ctx, owner, repo, actions, "secret", s.Name)
+	audit.RecordScoped(ctx, owner, repo, actions, audit.EnvironmentMeta(ctx, s.EnvironmentID, "secret", s.Name)...)
 
 	ctx.Flash.Success(ctx.Tr("secrets.save_success", s.Name))
 	ctx.JSONRedirect(redirectURL)
@@ -59,7 +59,7 @@ func PerformSecretsDelete(ctx *context.Context, scope actions_model.BelongingSco
 		return
 	}
 
-	audit.RecordScoped(ctx, owner, repo, audit.SecretRemove, "secret", s.Name)
+	audit.RecordScoped(ctx, owner, repo, audit.SecretRemove, audit.EnvironmentMeta(ctx, s.EnvironmentID, "secret", s.Name)...)
 
 	ctx.Flash.Success(ctx.Tr("secrets.deletion.success"))
 	ctx.JSONRedirect(redirectURL)

@@ -356,7 +356,7 @@ func TestReleaseTaskForRunner(t *testing.T) {
 				require.Equal(t, task.ID, claimed.TaskID)
 				assert.Equal(t, runner.Name, unittest.AssertExistsAndLoadBean(t, &ActionTask{ID: task.ID}).RunnerName)
 
-				require.NoError(t, ReleaseTaskForRunner(t.Context(), task))
+				require.NoError(t, ReleaseTaskForRunner(t.Context(), task, StatusWaiting))
 
 				// Job is back in the waiting queue with no task assigned.
 				released := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})

@@ -6,7 +6,9 @@ package audit
 import (
 	"context"
 
+	actions_model "gitea.dev/models/actions"
 	audit_model "gitea.dev/models/audit"
+	"gitea.dev/models/db"
 	repository_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
@@ -156,6 +158,22 @@ func RecordScoped(ctx context.Context, owner *user_model.User, repo *repository_
 		return
 	}
 	Record(ctx, action, scope, metadata...)
+}
+
+// EnvironmentMeta appends the environment an environment-scoped secret or variable
+// belongs to, as its name may also exist at the repository level.
+func EnvironmentMeta(ctx context.Context, environmentID int64, metadata ...any) []any {
+	if environmentID == 0 || !setting.AuditRecordEnabled() {
+		return metadata
+	}
+	env, has, err := db.GetByID[actions_model.ActionEnvironment](ctx, environmentID)
+	if err != nil {
+		log.Error("audit: load environment %d: %v", environmentID, err)
+	}
+	if !has {
+		return metadata
+	}
+	return append(metadata, "environment", env.Name)
 }
 
 func RecordScopedByID(ctx context.Context, ownerID, repoID int64, actions ScopedActions, metadata ...any) {
