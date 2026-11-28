@@ -15,6 +15,7 @@ import (
 	webhook_model "gitea.dev/models/webhook"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -36,6 +37,7 @@ func TestWebhookService(t *testing.T) {
 	t.Run("WebhookUserMail", testWebhookUserMail)
 	t.Run("CheckBranchFilter", testWebhookCheckBranchFilter)
 	t.Run("PrepareTestWebhookIgnoresGates", testPrepareTestWebhookIgnoresGates)
+	t.Run("PushCommits", testWebhookPushCommits)
 }
 
 func testWebhookAssigneeChanges(t *testing.T) {
@@ -249,4 +251,61 @@ func testPrepareTestWebhookIgnoresGates(t *testing.T) {
 	// Manual test delivery always queues so the endpoint can be verified.
 	require.NoError(t, PrepareTestWebhook(t.Context(), hook, webhook_module.HookEventPush, payload))
 	unittest.AssertExistsAndLoadBean(t, hookTask)
+}
+
+func testWebhookPushCommits(t *testing.T) {
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16})
+	pusher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	hook := &webhook_model.Webhook{
+		RepoID:      repo.ID,
+		URL:         "http://localhost/gitea-webhook-test-push-commits",
+		ContentType: webhook_model.ContentTypeJSON,
+		Events:      `{"push_only":true}`,
+		IsActive:    true,
+	}
+	require.NoError(t, db.Insert(t.Context(), hook))
+
+	pushCommits := repository.NewPushCommits()
+	pushCommits.Len = 3
+	pushCommits.Commits = []*repository.PushCommit{
+		{
+			Sha1:           "69554a6",
+			CommitterEmail: "user2@example.com",
+			CommitterName:  "User2",
+			AuthorEmail:    "user2@example.com",
+			AuthorName:     "User2",
+			Message:        "not signed commit",
+		},
+		{
+			Sha1:           "27566bd",
+			CommitterEmail: "user2@example.com",
+			CommitterName:  "User2",
+			AuthorEmail:    "user2@example.com",
+			AuthorName:     "User2",
+			Message:        "good signed commit (with not yet validated email)",
+		},
+		{
+			Sha1:           "5099b81",
+			CommitterEmail: "user2@example.com",
+			CommitterName:  "User2",
+			AuthorEmail:    "user2@example.com",
+			AuthorName:     "User2",
+			Message:        "good signed commit",
+		},
+	}
+	pushCommits.HeadCommit = pushCommits.Commits[0]
+
+	opts := &repository.PushUpdateOptions{
+		RefFullName: git.RefName("refs/heads/master"),
+		OldCommitID: "5099b81",
+		NewCommitID: "69554a6",
+	}
+
+	(&webhookNotifier{}).PushCommits(t.Context(), pusher, repo, opts, pushCommits)
+
+	hookTask := unittest.AssertExistsAndLoadBean(t, &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventPush})
+	var payload api.PushPayload
+	require.NoError(t, json.Unmarshal([]byte(hookTask.PayloadContent), &payload))
+	assert.Equal(t, 3, payload.TotalCommits)
+	assert.Len(t, payload.Commits, 3)
 }
