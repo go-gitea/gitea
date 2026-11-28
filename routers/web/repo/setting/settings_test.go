@@ -21,7 +21,6 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
-	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/contexttest"
 	"gitea.dev/services/forms"
@@ -196,13 +195,17 @@ func TestHandleSettingsPostMirrorReusesCredentialsOnlyForSameAddress(t *testing.
 	require.NoError(t, mirror_service.UpdateAddress(t.Context(), mirror, "https://existing-user:existing-password@example.com/user2/repo1.git"))
 
 	postMirrorSettings := func(form *forms.RepoSettingForm) string {
-		ctx, _ := contexttest.MockContext(t, mirrorRepo.Link()+"/settings")
+		ctx, resp := contexttest.MockContext(t, mirrorRepo.Link()+"/settings")
 		contexttest.LoadUser(t, ctx, 2)
 		contexttest.LoadRepo(t, ctx, mirrorRepo.ID)
-		form.Interval = "8h"
-		web.SetForm(ctx, form)
+		ctx.Req.Form = url.Values{
+			"interval":        {"8h"},
+			"mirror_address":  {form.MirrorAddress},
+			"mirror_username": {form.MirrorUsername},
+			"mirror_password": {form.MirrorPassword},
+		}
 		handleSettingsPostMirror(ctx)
-		require.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+		require.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus(), resp.Body.String())
 		remoteURL, err := git.ParseRemoteAddressURL(t.Context(), mirrorRepo, mirror.GetRemoteName())
 		require.NoError(t, err)
 		return remoteURL.User.String()

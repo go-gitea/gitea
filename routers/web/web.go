@@ -583,9 +583,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Post("/link_account_signup", web.Bind[*forms.RegisterForm](), auth.LinkAccountPostRegister)
 		m.Group("/two_factor", func() {
 			m.Get("", auth.TwoFactor)
-			m.Post("", web.Bind[*forms.TwoFactorAuthForm](), auth.TwoFactorPost)
+			m.Post("", auth.TwoFactorPost)
 			m.Get("/scratch", auth.TwoFactorScratch)
-			m.Post("/scratch", web.Bind[*forms.TwoFactorScratchAuthForm](), auth.TwoFactorScratchPost)
+			m.Post("/scratch", auth.TwoFactorScratchPost)
 		})
 		m.Group("/webauthn", func() {
 			m.Get("", auth.WebAuthn)
@@ -619,7 +619,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Post("", user_setting.ProfilePost)
 		m.Post("/update_preferences", user_setting.UpdatePreferences)
 		m.Get("/change_password", auth.MustChangePassword)
-		m.Post("/change_password", web.Bind[*forms.MustChangePasswordForm](), auth.MustChangePasswordPost)
+		m.Post("/change_password", auth.MustChangePasswordPost)
 		m.Post("/avatar", web.Bind[*forms.AvatarForm](), user_setting.AvatarPost)
 		m.Post("/avatar/delete", user_setting.DeleteAvatar)
 		m.Group("/account", func() {
@@ -1148,10 +1148,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// end "/{username}/{reponame}/-": mentions
 
 	m.Group("/{username}/{reponame}/settings", func() {
-		m.Group("", func() {
-			m.Combo("").Get(repo_setting.Settings).
-				Post(web.Bind[*forms.RepoSettingForm](), repo_setting.SettingsPost)
-		}, repo_setting.SettingsCtxData)
+		m.Get("", repo_setting.Settings)
+		m.Post("", repo_setting.SettingsPost)
 		m.Post("/avatar", web.Bind[*forms.AvatarForm](), repo_setting.SettingsAvatar)
 		m.Post("/avatar/delete", repo_setting.SettingsDeleteAvatar)
 

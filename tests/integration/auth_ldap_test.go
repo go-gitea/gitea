@@ -229,7 +229,7 @@ func testLDAPAuthChange(t *testing.T) {
 	assert.Equal(t, "uid=gitea,ou=service,dc=planetexpress,dc=com", bindDN)
 
 	req = NewRequestWithValues(t, "POST", hrefAuthSource, te.buildAuthSourcePayload(map[string]string{"group_team_map_removal": ""}))
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusOK)
 
 	req = NewRequest(t, "GET", hrefAuthSource)
 	resp = session.MakeRequest(t, req, http.StatusOK)

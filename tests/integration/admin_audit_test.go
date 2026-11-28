@@ -307,7 +307,7 @@ func TestAuditLogUserEvents(t *testing.T) {
 				"email":      "user24@example.com",
 				"active":     "on",
 				"reset_2fa":  "on",
-			}), http.StatusSeeOther)
+			}), http.StatusOK)
 		}
 		assert.Equal(t, int64(1), findEvent(t, audit_model.UserTwoFactorDisable, 24).ActorID)
 	})

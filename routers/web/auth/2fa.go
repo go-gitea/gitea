@@ -15,7 +15,6 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -45,8 +44,10 @@ func TwoFactor(ctx *context.Context) {
 
 // TwoFactorPost validates a user's two-factor authentication token.
 func TwoFactorPost(ctx *context.Context) {
-	form := web.GetForm[*forms.TwoFactorAuthForm](ctx)
-	ctx.Data["Title"] = ctx.Tr("twofa")
+	form := context.GetFetchActionForm[*forms.TwoFactorAuthForm](ctx)
+	if ctx.Written() {
+		return
+	}
 
 	// Ensure user is in a 2FA session.
 	id, hasSession := ctx.Session.Get("twofaUid").(int64)
@@ -113,8 +114,10 @@ func TwoFactorScratch(ctx *context.Context) {
 
 // TwoFactorScratchPost validates and invalidates a user's two-factor scratch token.
 func TwoFactorScratchPost(ctx *context.Context) {
-	form := web.GetForm[*forms.TwoFactorScratchAuthForm](ctx)
-	ctx.Data["Title"] = ctx.Tr("twofa_scratch")
+	form := context.GetFetchActionForm[*forms.TwoFactorScratchAuthForm](ctx)
+	if ctx.Written() {
+		return
+	}
 
 	// Ensure user is in a 2FA session.
 	id, hasSession := ctx.Session.Get("twofaUid").(int64)
