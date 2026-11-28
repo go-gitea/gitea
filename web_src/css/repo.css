@@ -385,6 +385,10 @@
   z-index: -1;
 }
 
+.repository.view.issue .comment-list.comments-only > .timeline-item.event {
+  display: none;
+}
+
 .repository.view.issue .comment-list .timeline-item,
 .repository.view.issue .comment-list .timeline-item-group {
   padding: 8px 0;

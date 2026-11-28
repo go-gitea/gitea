@@ -17,6 +17,7 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {showModal} from '../modules/modal.ts';
 import {ignoreAreYouSure} from '../modules/are-you-sure.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
+import {localUserSettings} from '../modules/user-settings.ts';
 import type {FomanticApiResponse} from '../types.ts';
 import {performFetchActionRequest} from '../modules/fetch-action.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
@@ -92,6 +93,23 @@ function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
 export function initRepoIssueFilterItemLabel() {
   // the "label-filter" is used in 2 templates: projects/view, issue/filter_list (issue list page including the milestone page)
   queryElems(document, '.ui.dropdown.label-filter', initRepoIssueLabelFilter);
+}
+
+export function initRepoIssueTimelineOptions() {
+  const elCommentsOnly = document.querySelector('#issue-timeline-comments-only');
+  if (!elCommentsOnly) return;
+  const elCommentList = document.querySelector('.repository.view.issue .comment-list')!;
+  const elCheck = elCommentsOnly.querySelector('svg')!;
+  const apply = (commentsOnly: boolean) => {
+    elCommentList.classList.toggle('comments-only', commentsOnly);
+    elCheck.classList.toggle('tw-invisible', !commentsOnly);
+  };
+  apply(elCommentList.classList.contains('comments-only')); // initially set by an inline script to avoid layout shift
+  elCommentsOnly.addEventListener('click', () => {
+    const commentsOnly = !elCommentList.classList.contains('comments-only');
+    localUserSettings.setBoolean('issue-timeline-comments-only', commentsOnly);
+    apply(commentsOnly);
+  });
 }
 
 export function initRepoIssueCommentDelete() {

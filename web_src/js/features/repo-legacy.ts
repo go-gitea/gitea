@@ -3,7 +3,7 @@ import {
   initRepoCommentForm,
   initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
   initRepoIssueCommentTargetHashReset, initRepoIssueReferenceIssue,
-  initRepoIssueTitleEdit, initRepoIssueWipNewTitle, initRepoIssueWipToggle,
+  initRepoIssueTimelineOptions, initRepoIssueTitleEdit, initRepoIssueWipNewTitle, initRepoIssueWipToggle,
 } from './repo-issue.ts';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.ts';
 import {initRepoCloneButtons} from './repo-common.ts';
@@ -64,6 +64,7 @@ export function initRepository() {
 
   if (pageContent.matches('.page-content.repository.view.issue')) {
     initRepoIssueTitleEdit();
+    initRepoIssueTimelineOptions();
     initRepoIssueWipToggle();
     initRepoIssueCommentTargetHashReset();
 
