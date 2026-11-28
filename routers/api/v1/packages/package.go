@@ -107,7 +107,7 @@ func GetPackage(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 
-	apiPackage, err := convert.ToPackage(ctx, ctx.Package.Descriptor, ctx.Doer)
+	apiPackage, err := convert.ToPackageVersion(ctx, ctx.Package.Descriptor, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
