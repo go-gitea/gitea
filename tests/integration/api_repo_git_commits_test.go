@@ -156,13 +156,13 @@ func TestAPIReposGitCommitListWithoutSelectFields(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	apiData := DecodeJSON(t, resp, []api.Commit{})
+	apiData := DecodeJSON(t, resp, []map[string]any{})
 
 	assert.Len(t, apiData, 1)
-	assert.Equal(t, "f27c2b2b03dcab38beaf89b0ab4ff61f6de63441", apiData[0].CommitMeta.SHA)
-	assert.Equal(t, (*api.CommitStats)(nil), apiData[0].Stats)
-	assert.Equal(t, (*api.PayloadCommitVerification)(nil), apiData[0].RepoCommit.Verification)
-	assert.Equal(t, ([]*api.CommitAffectedFiles)(nil), apiData[0].Files)
+	assert.Equal(t, "f27c2b2b03dcab38beaf89b0ab4ff61f6de63441", apiData[0]["sha"])
+	assert.NotContains(t, apiData[0], "stats")
+	assert.NotContains(t, apiData[0], "files")
+	assert.NotContains(t, apiData[0]["commit"], "verification")
 }
 
 func TestDownloadCommitDiffOrPatch(t *testing.T) {
