@@ -15,7 +15,6 @@ import (
 	"path"
 	"slices"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -1497,42 +1496,14 @@ func highlightCodeLines(name, lang string, sections []*DiffSection, isLeft bool,
 	return lines
 }
 
-type DiffShortStat struct {
-	NumFiles, TotalAddition, TotalDeletion int // these fields are used in templates directly
-}
+type DiffShortStat = git.DiffShortStat
 
 func GetDiffShortStat(ctx context.Context, gitRepo *git.Repository, opts *DiffCommonOptions) (*DiffShortStat, error) {
 	_, actualBeforeCommitID, afterCommit, err := prepareDiffCommits(ctx, gitRepo, opts)
 	if err != nil {
 		return nil, err
 	}
-
-	stat := &DiffShortStat{}
-	cmd := gitcmd.NewCommand("diff", "--shortstat").
-		AddArguments(opts.WhitespaceBehavior...).
-		AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold).
-		AddDynamicArguments(actualBeforeCommitID.String(), afterCommit.ID.String())
-	// output: "  9902 files changed, 2034198 insertions(+), 298800 deletions(-)\n"
-	stdout, _, err := cmd.WithRepo(gitRepo).RunStdString(ctx)
-	if err != nil {
-		return nil, err
-	}
-	stdout = strings.TrimSpace(stdout)
-	for field := range strings.SplitSeq(stdout, ",") {
-		field = strings.TrimSpace(field)
-		num, suffix, ok := strings.Cut(field, " ")
-		switch {
-		case strings.Contains(suffix, "file") && strings.Contains(suffix, "change"):
-			stat.NumFiles, _ = strconv.Atoi(num)
-		case strings.Contains(suffix, "insertion"):
-			stat.TotalAddition, _ = strconv.Atoi(num)
-		case strings.Contains(suffix, "deletion"):
-			stat.TotalDeletion, _ = strconv.Atoi(num)
-		case ok:
-			setting.PanicInDevOrTesting("unexpected diff shortstat output: %s", stdout)
-		}
-	}
-	return stat, nil
+	return git.GetDiffShortStat(ctx, gitRepo, actualBeforeCommitID.String(), afterCommit.ID.String(), opts.WhitespaceBehavior)
 }
 
 // SyncUserSpecificDiff inserts user-specific data such as which files the user has already viewed on the given diff

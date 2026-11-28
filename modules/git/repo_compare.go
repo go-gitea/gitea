@@ -10,9 +10,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
+	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/git/gitrepo"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
 
@@ -39,6 +42,35 @@ func (repo *Repository) GetDiffNumChangedFiles(ctx context.Context, base, head s
 		return nil
 	})
 	return count, err
+}
+
+type DiffShortStat struct {
+	NumFiles, TotalAddition, TotalDeletion int // these fields are used in templates directly
+}
+
+func GetDiffShortStat(ctx context.Context, repo RepositoryFacade, base, head string, whitespaceBehavior gitcmd.TrustedCmdArgs) (*DiffShortStat, error) {
+	stat := &DiffShortStat{}
+	// output: "  9902 files changed, 2034198 insertions(+), 298800 deletions(-)\n"
+	stdout, _, err := gitcmd.NewCommand("diff", "--shortstat").
+		AddArguments(whitespaceBehavior...).
+		AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold).
+		AddDynamicArguments(base, head).WithRepo(repo).RunStdString(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for field := range strings.SplitSeq(stdout, ",") {
+		switch num, suffix, ok := strings.Cut(strings.TrimSpace(field), " "); {
+		case strings.Contains(suffix, "file") && strings.Contains(suffix, "change"):
+			stat.NumFiles, _ = strconv.Atoi(num)
+		case strings.Contains(suffix, "insertion"):
+			stat.TotalAddition, _ = strconv.Atoi(num)
+		case strings.Contains(suffix, "deletion"):
+			stat.TotalDeletion, _ = strconv.Atoi(num)
+		case ok:
+			setting.PanicInDevOrTesting("unexpected diff shortstat output: %s", stdout)
+		}
+	}
+	return stat, nil
 }
 
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
