@@ -912,8 +912,6 @@
   "admin.config": "Stilling",
   "admin.config_summary": "Yfirlit",
   "admin.config_settings": "Stillingar",
-  "admin.first_page": "Byrjun",
-  "admin.last_page": "Síðasta",
   "admin.total": "Samtals: %d",
   "admin.dashboard.statistic": "Yfirlit",
   "admin.dashboard.operation_switch": "Skipta",

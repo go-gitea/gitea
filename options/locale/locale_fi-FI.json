@@ -1105,8 +1105,6 @@
   "admin.config_settings": "Asetukset",
   "admin.notices": "Järjestelmän ilmoitukset",
   "admin.monitor": "Valvonta",
-  "admin.first_page": "Ensimmäinen",
-  "admin.last_page": "Viimeisin",
   "admin.total": "Yhteensä: %d",
   "admin.dashboard.statistic": "Yhteenveto",
   "admin.dashboard.system_status": "Järjestelmän tila",

@@ -1306,8 +1306,6 @@
   "admin.config_settings": "Inställningar",
   "admin.notices": "Systemaviseringar",
   "admin.monitor": "Övervakning",
-  "admin.first_page": "Första",
-  "admin.last_page": "Sista",
   "admin.total": "Totalt: %d",
   "admin.dashboard.statistic": "Översikt",
   "admin.dashboard.system_status": "Status",
