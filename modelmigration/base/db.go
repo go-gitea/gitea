@@ -412,7 +412,7 @@ func DropTableColumns(sess Session, tableName string, columnNames ...string) (er
 		}
 	case setting.Database.Type.IsMySQL():
 		// Drop indexes on columns first
-		sql := fmt.Sprintf("SHOW INDEX FROM %s WHERE column_name IN ('%s')", tableName, strings.Join(columnNames, "','"))
+		sql := fmt.Sprintf("SHOW INDEX FROM `%s` WHERE column_name IN ('%s')", tableName, strings.Join(columnNames, "','"))
 		res, err := sess.Query(sql)
 		if err != nil {
 			return err

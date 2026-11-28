@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"strings"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -25,6 +26,16 @@ func TestMigrate_InsertReleases(t *testing.T) {
 
 	err := InsertReleases(t.Context(), r)
 	assert.NoError(t, err)
+}
+
+func TestReleaseTagNameIsCaseSensitive(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	exist, err := IsReleaseExist(t.Context(), 1, "V1.1")
+	assert.NoError(t, err)
+	assert.False(t, exist)
+	_, err = GetRelease(t.Context(), 1, "V1.1")
+	assert.True(t, IsErrReleaseNotExist(err))
 }
 
 func Test_FindTagsByCommitIDs(t *testing.T) {
@@ -95,4 +106,23 @@ func Test_FindTagsByCommitIDs(t *testing.T) {
 		assert.EqualValues(t, 1, attach.RepoID)
 		assert.EqualValues(t, 1, attach.ReleaseID)
 	})
+}
+
+func TestImmutableTag(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1})
+	assert.NoError(t, db.Insert(t.Context(), &ImmutableTag{
+		RepoID: repo.ID, LowerOwnerName: strings.ToLower(repo.OwnerName), LowerRepoName: repo.LowerName, TagName: "V1.1",
+	}))
+	assert.ErrorIs(t, CheckTagMutable(t.Context(), repo, "V1.1"), ErrImmutableTag)
+	assert.NoError(t, CheckTagMutable(t.Context(), repo, "v1.1"))
+
+	successor := &Repository{ID: unittest.NonexistentID, OwnerName: repo.OwnerName, LowerName: repo.LowerName}
+	assert.ErrorIs(t, CheckTagMutable(t.Context(), successor, "V1.1"), ErrImmutableTag)
+	assert.ErrorIs(t, CheckTagMutable(t.Context(), &Repository{ID: repo.ID, OwnerName: "new-owner", LowerName: "renamed"}, "V1.1"), ErrImmutableTag)
+
+	assert.NoError(t, db.Insert(t.Context(), &Release{RepoID: repo.ID, TagName: "V1.1", IsTag: true}, &Release{RepoID: successor.ID, TagName: "V1.1", IsTag: true}))
+	assert.NoError(t, CheckImmutableTagConflicts(t.Context(), repo.ID, repo.OwnerName, repo.LowerName))
+	assert.ErrorIs(t, CheckImmutableTagConflicts(t.Context(), successor.ID, repo.OwnerName, repo.LowerName), ErrImmutableTag)
 }

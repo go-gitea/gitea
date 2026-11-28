@@ -12,6 +12,7 @@ import (
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -446,4 +447,67 @@ func TestRelease_LatestByCommitDateUnlessSet(t *testing.T) {
 	assertLatest(newer)
 	updateRelease(newer, api.MakeLatestFalse)
 	assertLatest(newer)
+}
+
+func TestRelease_Immutable(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	gitRepo, err := git.OpenRepository(t.Context(), repo)
+	assert.NoError(t, err)
+	defer gitRepo.Close()
+
+	newRelease := func(tagName string, isDraft bool) *repo_model.Release {
+		rel := &repo_model.Release{
+			RepoID: repo.ID, Repo: repo, PublisherID: user.ID, Publisher: user,
+			TagName: tagName, Target: "master", Title: tagName, IsDraft: isDraft,
+		}
+		assert.NoError(t, CreateRelease(t.Context(), gitRepo, rel, nil, "", ""))
+		return rel
+	}
+	updateRelease := func(rel *repo_model.Release, addUUIDs []string) error {
+		return UpdateRelease(t.Context(), user, gitRepo, rel, addUUIDs, nil, nil, "")
+	}
+
+	existing := newRelease("v9.6", false)
+	repo.MustGetUnit(t.Context(), unit.TypeReleases).ReleasesConfig().ImmutableReleases = true
+	assert.False(t, existing.IsImmutable)
+	assert.NoError(t, updateRelease(existing, nil))
+	assert.True(t, existing.IsImmutable)
+	assert.ErrorIs(t, repo_model.CheckTagMutable(t.Context(), repo, existing.TagName), repo_model.ErrImmutableTag)
+
+	draft := newRelease("v9.5", true)
+	assert.False(t, draft.IsImmutable)
+	draft.IsDraft = false
+	assert.NoError(t, updateRelease(draft, nil))
+	assert.True(t, draft.IsImmutable)
+
+	rel := newRelease("v9.0", false)
+	assert.True(t, rel.IsImmutable)
+	rel.Note = "changed note"
+	assert.NoError(t, updateRelease(rel, nil))
+
+	assertLocked := func(field string, addUUIDs []string, mutate func(rel *repo_model.Release)) {
+		edited := *rel
+		mutate(&edited)
+		err := updateRelease(&edited, addUUIDs)
+		assert.ErrorIs(t, err, ErrImmutableRelease)
+		assert.ErrorContains(t, err, field)
+	}
+	assertLocked("tag_name", nil, func(rel *repo_model.Release) { rel.TagName = "v9.1" })
+	assertLocked("target_commitish", nil, func(rel *repo_model.Release) { rel.Target = "develop" })
+	assertLocked("state", nil, func(rel *repo_model.Release) { rel.IsDraft = true })
+	assertLocked("assets", []string{"uuid"}, func(*repo_model.Release) {})
+
+	assert.NoError(t, DeleteReleaseByID(t.Context(), repo, rel, user, false))
+	tag := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: rel.ID, IsTag: true, IsImmutable: true})
+	tag.IsTag, tag.IsDraft = false, true
+	assert.ErrorIs(t, updateRelease(tag, nil), repo_model.ErrImmutableTag)
+
+	tag.IsTag, tag.IsDraft = true, false
+	assert.NoError(t, DeleteReleaseByID(t.Context(), repo, tag, user, true))
+	assert.ErrorIs(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
+		RepoID: repo.ID, Repo: repo, PublisherID: user.ID, Publisher: user, TagName: rel.TagName, Target: "master",
+	}, nil, "", ""), repo_model.ErrImmutableTag)
 }

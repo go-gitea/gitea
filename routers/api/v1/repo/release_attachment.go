@@ -20,7 +20,7 @@ import (
 	"gitea.dev/services/convert"
 )
 
-func checkReleaseMatchRepo(ctx *context.APIContext, releaseID int64) bool {
+func checkReleaseMatchRepo(ctx *context.APIContext, releaseID int64, immutableMsg string) bool {
 	release, err := repo_model.GetReleaseByID(ctx, releaseID)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
@@ -36,6 +36,10 @@ func checkReleaseMatchRepo(ctx *context.APIContext, releaseID int64) bool {
 	}
 	if release.IsDraft && !canAccessReleaseDraft(ctx) {
 		ctx.APIErrorNotFound()
+		return false
+	}
+	if immutableMsg != "" && release.IsImmutable {
+		ctx.APIError(http.StatusUnprocessableEntity, immutableMsg)
 		return false
 	}
 	return true
@@ -78,7 +82,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	releaseID := ctx.PathParamInt64("id")
-	if !checkReleaseMatchRepo(ctx, releaseID) {
+	if !checkReleaseMatchRepo(ctx, releaseID, "") {
 		return
 	}
 
@@ -207,7 +211,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.PathParamInt64("id")
-	if !checkReleaseMatchRepo(ctx, releaseID) {
+	if !checkReleaseMatchRepo(ctx, releaseID, "Cannot upload assets to an immutable release.") {
 		return
 	}
 
@@ -308,7 +312,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.PathParamInt64("id")
-	if !checkReleaseMatchRepo(ctx, releaseID) {
+	if !checkReleaseMatchRepo(ctx, releaseID, "name cannot be changed when release is immutable") {
 		return
 	}
 
@@ -381,7 +385,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.PathParamInt64("id")
-	if !checkReleaseMatchRepo(ctx, releaseID) {
+	if !checkReleaseMatchRepo(ctx, releaseID, "Cannot delete asset from an immutable release") {
 		return
 	}
 

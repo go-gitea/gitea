@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"gitea.dev/models/db"
@@ -331,18 +330,13 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	}
 	relMap := make(map[string]*repo_model.Release)
 	for _, rel := range releases {
-		relMap[rel.LowerTagName] = rel
+		relMap[rel.TagName] = rel
 	}
 
-	lowerTags := make([]string, 0, len(tags))
-	for _, tag := range tags {
-		lowerTags = append(lowerTags, strings.ToLower(tag))
-	}
+	newReleases := make([]*repo_model.Release, 0, len(tags)-len(relMap))
 
-	newReleases := make([]*repo_model.Release, 0, len(lowerTags)-len(relMap))
-
-	for i, lowerTag := range lowerTags {
-		tag, err := gitRepo.GetTag(ctx, tags[i])
+	for _, tagName := range tags {
+		tag, err := gitRepo.GetTag(ctx, tagName)
 		if err != nil {
 			return fmt.Errorf("GetTag: %w", err)
 		}
@@ -357,14 +351,13 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			publishedUnix = timeutil.TimeStamp(tag.Tagger.When.Unix())
 		}
 
-		rel, has := relMap[lowerTag]
+		rel, has := relMap[tagName]
 		title, note := git.SplitCommitTitleBody(tag.MessageUTF8(), 255)
 		if !has {
 			rel = &repo_model.Release{
 				RepoID:        repo.ID,
 				Title:         title,
-				TagName:       tags[i],
-				LowerTagName:  lowerTag,
+				TagName:       tagName,
 				Target:        "",
 				Sha1:          commit.ID.String(),
 				NumCommits:    -1, // the commits count will be updated when the UI needs it
@@ -386,7 +379,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 				rel.Title = title
 				rel.Note = note
 				rel.PublishedUnix = publishedUnix
-			} else {
+			} else if !rel.IsDraft || !repo.IsImmutableReleasesEnabled(ctx) { // with immutability a tag push does not publish a draft, like on GitHub
 				rel.IsDraft = false
 				if rel.PublishedUnix.IsZero() {
 					rel.PublishedUnix = timeutil.TimeStampNow()

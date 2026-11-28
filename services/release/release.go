@@ -70,6 +70,25 @@ func (err ErrProtectedTagName) Unwrap() error {
 	return util.ErrPermissionDenied
 }
 
+var ErrImmutableRelease = util.ErrorWrap(util.ErrUnprocessableContent, "release is immutable")
+
+func assertReleaseMutable(old, rel *repo_model.Release, assetsChanged bool) error {
+	var field string
+	switch {
+	case rel.TagName != old.TagName:
+		field = "tag_name"
+	case rel.Target != old.Target:
+		field = "target_commitish"
+	case rel.IsDraft || rel.IsTag: // demoting to a tag would free the tag for deletion
+		field = "state"
+	case assetsChanged:
+		field = "assets"
+	default:
+		return nil
+	}
+	return util.ErrorWrap(ErrImmutableRelease, "%s cannot be changed when release is immutable", field)
+}
+
 func createTag(ctx context.Context, gitRepo *git.Repository, doer *user_model.User, rel *repo_model.Release, msg string) error {
 	err := rel.LoadAttributes(ctx)
 	if err != nil {
@@ -127,7 +146,6 @@ func createTag(ctx context.Context, gitRepo *git.Repository, doer *user_model.Us
 				}
 				return err
 			}
-			rel.LowerTagName = strings.ToLower(rel.TagName)
 
 			objectFormat := git.ObjectFormatFromName(rel.Repo.ObjectFormatName)
 			commits := repository.NewPushCommits()
@@ -207,17 +225,27 @@ func CreateRelease(ctx context.Context, gitRepo *git.Repository, rel *repo_model
 		}
 	}
 
+	if err = rel.LoadRepo(ctx); err != nil {
+		return err
+	}
+	if err = repo_model.CheckTagMutable(ctx, rel.Repo, rel.TagName); err != nil {
+		return err
+	}
+
 	if err = createTag(ctx, gitRepo, rel.Publisher, rel, msg); err != nil {
 		return err
 	}
 
 	rel.Title = util.EllipsisDisplayString(rel.Title, 255)
-	rel.LowerTagName = strings.ToLower(rel.TagName)
-	if err = db.Insert(ctx, rel); err != nil {
-		return err
-	}
-
-	if err = repo_model.AddReleaseAttachments(ctx, rel.ID, attachmentUUIDs); err != nil {
+	if err = db.WithTx(ctx, func(ctx context.Context) error {
+		if err := repo_model.LockRelease(ctx, rel.Repo, rel); err != nil {
+			return err
+		}
+		if err := db.Insert(ctx, rel); err != nil {
+			return err
+		}
+		return repo_model.AddReleaseAttachments(ctx, rel.ID, attachmentUUIDs)
+	}); err != nil {
 		return err
 	}
 
@@ -262,6 +290,10 @@ func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		}
 	}
 
+	if err = repo_model.CheckTagMutable(ctx, repo, tagName); err != nil {
+		return err
+	}
+
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		return err
@@ -297,10 +329,10 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	if rel.ID == 0 {
 		return errors.New("UpdateRelease only accepts an exist release")
 	}
-	if err := createTag(ctx, gitRepo, doer, rel, ""); err != nil {
+
+	if err := rel.LoadRepo(ctx); err != nil {
 		return err
 	}
-	rel.LowerTagName = strings.ToLower(rel.TagName)
 
 	oldRelease, err := repo_model.GetReleaseByID(ctx, rel.ID)
 	if err != nil {
@@ -314,7 +346,25 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		rel.PublishedUnix = timeutil.TimeStampNow()
 	}
 
+	rel.IsImmutable = oldRelease.IsImmutable
+	if oldRelease.IsImmutable && !oldRelease.IsTag {
+		assetsChanged := len(addAttachmentUUIDs) > 0 || len(delAttachmentUUIDs) > 0 || len(editAttachments) > 0
+		if err := assertReleaseMutable(oldRelease, rel, assetsChanged); err != nil {
+			return err
+		}
+	} else if err := repo_model.CheckTagMutable(ctx, rel.Repo, rel.TagName); err != nil {
+		return err
+	}
+
+	if err := createTag(ctx, gitRepo, doer, rel, ""); err != nil {
+		return err
+	}
+
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if err = repo_model.LockRelease(ctx, rel.Repo, rel); err != nil {
+			return err
+		}
+
 		if err = repo_model.UpdateRelease(ctx, rel); err != nil {
 			return err
 		}
