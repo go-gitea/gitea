@@ -5,25 +5,10 @@ package repo
 
 import (
 	"context"
-	"fmt"
-	"strconv"
 	"strings"
-	"time"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
-
-	"xorm.io/builder"
-)
-
-// ArchiverStatus represents repo archive status
-type ArchiverStatus int
-
-// enumerate all repo archive statuses
-const (
-	ArchiverGenerating = iota // the archiver is generating
-	ArchiverReady             // it's ready
 )
 
 // ArchiveType archive types
@@ -59,97 +44,6 @@ func SplitArchiveNameType(s string) (string, ArchiveType) {
 		return strings.TrimSuffix(s, ".bundle"), ArchiveBundle
 	}
 	return s, ArchiveUnknown
-}
-
-// RepoArchiver represents all archivers
-type RepoArchiver struct { //revive:disable-line:exported
-	ID          int64       `xorm:"pk autoincr"`
-	RepoID      int64       `xorm:"index unique(s)"`
-	Type        ArchiveType `xorm:"unique(s)"`
-	Status      ArchiverStatus
-	CommitID    string             `xorm:"VARCHAR(64) unique(s)"`
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
-}
-
-func init() {
-	db.RegisterModel(new(RepoArchiver))
-}
-
-// RelativePath returns the archive path relative to the archive storage root.
-func (archiver *RepoArchiver) RelativePath() string {
-	return fmt.Sprintf("%d/%s/%s.%s", archiver.RepoID, archiver.CommitID[:2], archiver.CommitID, archiver.Type.String())
-}
-
-// repoArchiverForRelativePath takes a relativePath created from RepoArchiver.RelativePath() and creates a shell repoArchiver struct representing it
-func repoArchiverForRelativePath(relativePath string) (*RepoArchiver, error) {
-	parts := strings.SplitN(relativePath, "/", 3)
-	if len(parts) != 3 {
-		return nil, util.NewInvalidArgumentErrorf("invalid storage path: must have 3 parts")
-	}
-	repoID, err := strconv.ParseInt(parts[0], 10, 64)
-	if err != nil {
-		return nil, util.NewInvalidArgumentErrorf("invalid storage path: invalid repo id")
-	}
-	commitID, archiveType := SplitArchiveNameType(parts[2])
-	if archiveType == ArchiveUnknown {
-		return nil, util.NewInvalidArgumentErrorf("invalid storage path: invalid archive type")
-	}
-	return &RepoArchiver{RepoID: repoID, CommitID: commitID, Type: archiveType}, nil
-}
-
-// GetRepoArchiver get an archiver
-func GetRepoArchiver(ctx context.Context, repoID int64, tp ArchiveType, commitID string) (*RepoArchiver, error) {
-	var archiver RepoArchiver
-	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).And("`type`=?", tp).And("commit_id=?", commitID).Get(&archiver)
-	if err != nil {
-		return nil, err
-	}
-	if has {
-		return &archiver, nil
-	}
-	return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
-}
-
-// ExistsRepoArchiverWithStoragePath checks if there is a RepoArchiver for a given storage path
-func ExistsRepoArchiverWithStoragePath(ctx context.Context, storagePath string) (bool, error) {
-	// We need to invert the path provided func (archiver *RepoArchiver) RelativePath() above
-	archiver, err := repoArchiverForRelativePath(storagePath)
-	if err != nil {
-		return false, err
-	}
-
-	return db.GetEngine(ctx).Exist(archiver)
-}
-
-// UpdateRepoArchiverStatus updates archiver's status
-func UpdateRepoArchiverStatus(ctx context.Context, archiver *RepoArchiver) error {
-	_, err := db.GetEngine(ctx).ID(archiver.ID).Cols("status").Update(archiver)
-	return err
-}
-
-// DeleteAllRepoArchives deletes all repo archives records
-func DeleteAllRepoArchives(ctx context.Context) error {
-	// 1=1 to enforce delete all data, otherwise it will delete nothing
-	_, err := db.GetEngine(ctx).Where("1=1").Delete(new(RepoArchiver))
-	return err
-}
-
-// FindRepoArchiversOption represents an archiver options
-type FindRepoArchiversOption struct {
-	db.ListOptions
-	OlderThan time.Duration
-}
-
-func (opts FindRepoArchiversOption) ToConds() builder.Cond {
-	cond := builder.NewCond()
-	if opts.OlderThan > 0 {
-		cond = cond.And(builder.Lt{"created_unix": time.Now().Add(-opts.OlderThan).Unix()})
-	}
-	return cond
-}
-
-func (opts FindRepoArchiversOption) ToOrders() string {
-	return "created_unix ASC"
 }
 
 // SetArchiveRepoState sets if a repo is archived

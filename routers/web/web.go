@@ -1654,7 +1654,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 		m.Group("/archive", func() {
 			m.Get("/*", repo.Download)
-			m.Post("/*", repo.InitiateDownload)
 		}, webAuth.AllowBasic, webAuth.AllowOAuth2, repo.MustBeNotEmpty, dlSourceEnabled)
 
 		m.Group("/branches", func() {

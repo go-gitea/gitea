@@ -184,9 +184,6 @@ var (
 	// RepoAvatars represents repository avatars storage
 	RepoAvatars ObjectStorage = uninitializedStorage
 
-	// RepoArchives represents repository archives storage
-	RepoArchives ObjectStorage = uninitializedStorage
-
 	// Packages represents packages storage
 	Packages ObjectStorage = uninitializedStorage
 
@@ -203,7 +200,6 @@ func Init() error {
 		initAvatars,
 		initRepoAvatars,
 		initLFS,
-		initRepoArchives,
 		initPackages,
 		initActions,
 	} {
@@ -256,12 +252,6 @@ func initLFS() (err error) {
 func initRepoAvatars() (err error) {
 	log.Info("Initialising Repository Avatar storage with type: %s", setting.RepoAvatar.Storage.Type)
 	RepoAvatars, err = NewStorage(setting.RepoAvatar.Storage.Type, setting.RepoAvatar.Storage)
-	return err
-}
-
-func initRepoArchives() (err error) {
-	log.Info("Initialising Repository Archive storage with type: %s", setting.RepoArchive.Storage.Type)
-	RepoArchives, err = NewStorage(setting.RepoArchive.Storage.Type, setting.RepoArchive.Storage)
 	return err
 }
 

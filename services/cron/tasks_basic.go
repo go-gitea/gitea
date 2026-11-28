@@ -19,7 +19,6 @@ import (
 	mirror_service "gitea.dev/services/mirror"
 	packages_cleanup_service "gitea.dev/services/packages/cleanup"
 	repo_service "gitea.dev/services/repository"
-	archiver_service "gitea.dev/services/repository/archiver"
 )
 
 func registerUpdateMirrorTask() {
@@ -69,19 +68,6 @@ func registerCheckRepoStats() {
 		Schedule:   "@midnight",
 	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return repostats.CheckRepoStats(ctx)
-	})
-}
-
-func registerArchiveCleanup() {
-	RegisterTaskFatal("archive_cleanup", &OlderThanConfig{
-		BaseConfig: BaseConfig{
-			Enabled:    true,
-			RunAtStart: true,
-			Schedule:   "@midnight",
-		},
-		OlderThan: 24 * time.Hour,
-	}, func(ctx context.Context, _ *user_model.User, config *OlderThanConfig) error {
-		return archiver_service.DeleteOldRepositoryArchives(ctx, config.OlderThan)
 	})
 }
 
@@ -166,7 +152,6 @@ func initBasicTasks() {
 	}
 	registerRepoHealthCheck()
 	registerCheckRepoStats()
-	registerArchiveCleanup()
 	registerSyncExternalUsers()
 	registerDeletedBranchesCleanup()
 	if !setting.Repository.DisableMigrations {

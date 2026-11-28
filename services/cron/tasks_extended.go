@@ -18,7 +18,6 @@ import (
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/audit"
 	repo_service "gitea.dev/services/repository"
-	archiver_service "gitea.dev/services/repository/archiver"
 	user_service "gitea.dev/services/user"
 )
 
@@ -32,16 +31,6 @@ func registerDeleteInactiveUsers() {
 		OlderThan: time.Minute * time.Duration(setting.Service.ActiveCodeLives),
 	}, func(ctx context.Context, doer *user_model.User, config *OlderThanConfig) error {
 		return user_service.DeleteInactiveUsers(audit.WithDoer(ctx, doer), config.OlderThan)
-	})
-}
-
-func registerDeleteRepositoryArchives() {
-	RegisterTaskFatal("delete_repo_archives", &BaseConfig{
-		Enabled:    false,
-		RunAtStart: false,
-		Schedule:   "@annually",
-	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
-		return archiver_service.DeleteRepositoryArchives(ctx)
 	})
 }
 
@@ -239,7 +228,6 @@ func registerRebuildIssueIndexer() {
 
 func initExtendedTasks() {
 	registerDeleteInactiveUsers()
-	registerDeleteRepositoryArchives()
 	registerGarbageCollectRepositories()
 	registerRewriteAllPublicKeys()
 	registerRewriteAllPrincipalKeys()
