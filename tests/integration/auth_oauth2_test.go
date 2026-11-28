@@ -220,6 +220,12 @@ func TestAuthOAuth2Flows(t *testing.T) {
 			require.False(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID}).IsActive)
 		}
 
+		t.Run("admin-disabled user with a never signed-in link is not reactivated", func(t *testing.T) {
+			prepareUserExternalLink(t, "", "", time.Time{})
+			doOIDCSignIn(t, authSource.Name)
+			assert.False(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID}).IsActive)
+		})
+
 		t.Run("admin-disabled user is not reactivated", func(t *testing.T) {
 			prepareUserExternalLink(t, "an-access-token", "non-empty-refresh-token", time.Now().Add(time.Hour))
 			doOIDCSignIn(t, authSource.Name)
