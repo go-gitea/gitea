@@ -13,6 +13,7 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm/access"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -209,6 +210,18 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				URL:               fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
 				ShouldShowMessage: setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
 				HeadBranch:        headBranch,
+			})
+			continue
+		}
+
+		if entry, err := pull_model.GetMergeQueueEntryByPullID(ctx, pr.ID); err != nil {
+			return nil, err
+		} else if entry != nil {
+			results = append(results, private.HookProcReceiveRefResult{
+				OriginalRef: opts.RefFullNames[i],
+				OldOID:      opts.OldCommitIDs[i],
+				NewOID:      opts.NewCommitIDs[i],
+				Err:         "the pull request is in a merge queue, remove it from the queue to update it",
 			})
 			continue
 		}

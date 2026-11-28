@@ -14,9 +14,7 @@ import (
 	"gitea.dev/models/unittest"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	webhook_module "gitea.dev/modules/webhook"
 
@@ -24,82 +22,51 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCheckCallerChain_Cycle(t *testing.T) {
+func TestCheckCallerChain(t *testing.T) {
+	levels := func(count int) []*actions_model.ActionRunJob {
+		ancestors := make([]*actions_model.ActionRunJob, count)
+		for i := range ancestors {
+			ancestors[i] = &actions_model.ActionRunJob{IsReusableCaller: true, CallUses: fmt.Sprintf("./.gitea/workflows/level%d.yml", i+1)}
+		}
+		return ancestors
+	}
+	const called = "./.gitea/workflows/called.yml"
+	cycleWithinLimit := levels(9)
+	cycleWithinLimit[7].CallUses = called
+	libCall := &actions_model.ActionRunJob{IsReusableCaller: true, CallUses: "owner/lib/.gitea/workflows/b.yml@v1"}
+
 	for _, testCase := range []struct {
-		name         string
-		uses         []string
-		sourceRepoID int64
-		error        string
+		name      string
+		caller    *actions_model.ActionRunJob
+		ancestors []*actions_model.ActionRunJob
+		err       string
 	}{
-		// A -> A: leaf's CallUses matches its direct parent's.
-		{"DirectCycle", []string{"./.gitea/workflows/a.yml", "./.gitea/workflows/a.yml"}, 0, "cycle detected"},
-		// A -> B -> A: leaf's CallUses matches its grandparent's.
-		{"IndirectCycle", []string{"./.gitea/workflows/a.yml", "./.gitea/workflows/b.yml", "./.gitea/workflows/a.yml"}, 0, "cycle detected"},
-		// A -> A written with both same-repo prefixes: they name the same file.
-		{"MixedPrefixCycle", []string{"./.gitea/workflows/a.yml", "$/.gitea/workflows/a.yml"}, 0, "cycle detected"},
-		// Sanity: linear chain with distinct CallUses must not trip cycle detection.
-		{"NoCycle", []string{"./.gitea/workflows/a.yml", "./.gitea/workflows/b.yml", "./.gitea/workflows/c.yml"}, 0, ""},
-		{"SameLocalPathInOtherRepo", []string{"./.gitea/workflows/a.yml", "owner/lib/.gitea/workflows/lib.yml@v1", "./.gitea/workflows/a.yml"}, 2, ""},
+		{"LocalAliasInOtherSourceRepo", &actions_model.ActionRunJob{CallUses: "$/.gitea/workflows/a.yml", WorkflowSourceRepoID: 1}, []*actions_model.ActionRunJob{libCall, {IsReusableCaller: true, CallUses: "./.gitea/workflows/a.yml", WorkflowSourceRepoID: 2}}, ""},
+		{"LocalAliasInSameSourceRepo", &actions_model.ActionRunJob{CallUses: "$/.gitea/workflows/a.yml", WorkflowSourceRepoID: 1}, []*actions_model.ActionRunJob{libCall, {IsReusableCaller: true, CallUses: "./.gitea/workflows/a.yml", WorkflowSourceRepoID: 1}}, "cycle detected"},
+		{"SelfAlias", &actions_model.ActionRunJob{CallUses: "self:" + libCall.CallUses}, []*actions_model.ActionRunJob{libCall}, "cycle detected"},
+		{"TenWorkflowLevels", &actions_model.ActionRunJob{CallUses: called}, levels(8), ""},
+		{"ElevenWorkflowLevels", &actions_model.ActionRunJob{CallUses: called}, levels(9), `reusable workflow call at "./.gitea/workflows/called.yml" exceeds the maximum of 10 workflow levels, including the top-level caller`},
+		{"CycleWithinLimitBeforeDepth", &actions_model.ActionRunJob{CallUses: called}, cycleWithinLimit, "cycle detected"},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			require.NoError(t, unittest.PrepareTestDatabase())
-			chain := buildCallerChain(t, testCase.uses...)
-			leaf := chain[len(chain)-1]
-			leaf.WorkflowSourceRepoID = testCase.sourceRepoID
-			err := checkCallerChain(t.Context(), leaf)
-			if testCase.error == "" {
+			err := checkCallerChain(testCase.caller, testCase.ancestors)
+			if testCase.err == "" {
 				require.NoError(t, err)
 			} else {
-				assert.ErrorContains(t, err, testCase.error)
-			}
-			if testCase.name == "MixedPrefixCycle" {
-				assert.Equal(t, canonicalCallUses(&actions_model.ActionRunJob{CallUses: "owner/repo/.gitea/workflows/a.yml@v1"}), canonicalCallUses(&actions_model.ActionRunJob{CallUses: "self:owner/repo/.gitea/workflows/a.yml@v1"}))
+				assert.ErrorContains(t, err, testCase.err)
 			}
 		})
 	}
-
-	t.Run("ResolvedIdentityCycle", func(t *testing.T) {
-		require.NoError(t, unittest.PrepareTestDatabase())
-		chain := buildCallerChain(t,
-			"./.gitea/workflows/a.yml",
-			"owner/repo/.gitea/workflows/b.yml@v1",
-			"owner/repo/.gitea/workflows/a.yml@v1",
-		)
-		chain[1].WorkflowSourceRepoID = 4
-		chain[1].WorkflowSourceCommitSHA = "first-commit"
-		_, err := actions_model.UpdateRunJob(t.Context(), chain[1], nil, "workflow_source_repo_id", "workflow_source_commit_sha")
-		require.NoError(t, err)
-		chain[2].WorkflowSourceRepoID = 5
-		chain[2].WorkflowSourceCommitSHA = "second-commit"
-
-		require.NoError(t, checkCallerChain(t.Context(), chain[2]))
-		require.ErrorContains(t, checkResolvedCallerCycle(t.Context(), chain[2], 4, "first-commit", ".gitea/workflows/a.yml"), "cycle detected")
-		require.NoError(t, checkResolvedCallerCycle(t.Context(), chain[2], 4, "other-commit", ".gitea/workflows/a.yml"))
-	})
 }
 
-func TestCheckCallerChain_DepthLimit(t *testing.T) {
-	// top + MaxReusableCallLevels nested callers is the longest accepted; one more exceeds the limit.
-	makeDistinctUses := func(n int) []string {
-		out := make([]string, n)
-		for i := range out {
-			out[i] = fmt.Sprintf("./.gitea/workflows/level%d.yml", i)
-		}
-		return out
+func TestCheckResolvedCallerCycle(t *testing.T) {
+	caller := &actions_model.ActionRunJob{CallUses: "owner/repo/.gitea/workflows/a.yml@v1", WorkflowSourceRepoID: 5, WorkflowSourceCommitSHA: "second-commit"}
+	ancestors := []*actions_model.ActionRunJob{
+		{IsReusableCaller: true, CallUses: "owner/repo/.gitea/workflows/b.yml@v1", WorkflowSourceRepoID: 4, WorkflowSourceCommitSHA: "first-commit"},
+		{IsReusableCaller: true, CallUses: "./.gitea/workflows/a.yml"},
 	}
-
-	t.Run("ExactlyAtLimit", func(t *testing.T) {
-		require.NoError(t, unittest.PrepareTestDatabase())
-		chain := buildCallerChain(t, makeDistinctUses(MaxReusableCallLevels+1)...)
-		require.NoError(t, checkCallerChain(t.Context(), chain[len(chain)-1]))
-	})
-
-	t.Run("OneOverLimit", func(t *testing.T) {
-		require.NoError(t, unittest.PrepareTestDatabase())
-		chain := buildCallerChain(t, makeDistinctUses(MaxReusableCallLevels+2)...)
-		err := checkCallerChain(t.Context(), chain[len(chain)-1])
-		assert.ErrorContains(t, err, "exceeds the maximum nesting level")
-	})
+	assert.ErrorContains(t, checkResolvedCallerCycle(t.Context(), caller, ancestors, 4, "first-commit", ".gitea/workflows/a.yml"), "cycle detected")
+	assert.NoError(t, checkResolvedCallerCycle(t.Context(), caller, ancestors, 4, "other-commit", ".gitea/workflows/a.yml"))
 }
 
 // buildCallerChain inserts a linear chain of reusable caller jobs in a single run+attempt.
@@ -330,74 +297,35 @@ func TestUndoExpansion(t *testing.T) {
 }
 
 func TestResolveSameRepoWorkflowSourceCommit(t *testing.T) {
-	prtRun := func(baseSHA string) *actions_model.ActionRun {
-		payload, err := json.Marshal(api.PullRequestPayload{
-			PullRequest: &api.PullRequest{
-				Base: &api.PRBranchInfo{Sha: baseSHA},
-			},
-		})
-		require.NoError(t, err)
-		// a run recorded before the fix points at the PR head commit
+	prtRun := func(workflowSHA string) *actions_model.ActionRun {
 		return &actions_model.ActionRun{
-			ID:                42,
 			RepoID:            1,
 			Event:             webhook_module.HookEventPullRequest,
 			TriggerEvent:      actions_module.GithubEventPullRequestTarget,
-			EventPayload:      string(payload),
-			WorkflowCommitSHA: "head-sha",
+			EventPayload:      `{"pull_request":{"base":{"sha":"base-sha"},"head":{"sha":"head-sha"}}}`,
+			CommitSHA:         "head-sha",
+			WorkflowCommitSHA: workflowSHA,
 		}
 	}
-	pushRun := &actions_model.ActionRun{
-		RepoID:            1,
-		TriggerEvent:      "push",
-		WorkflowCommitSHA: "head-sha",
+	scopedRun, payloadlessRun, defaultRun := prtRun("head-sha"), prtRun("default-sha"), prtRun("default-sha")
+	scopedRun.IsScopedRun, payloadlessRun.EventPayload, defaultRun.WorkflowRef = true, "{}", "refs/heads/main"
+	for _, tc := range []struct {
+		name               string
+		run                *actions_model.ActionRun
+		sourceRepoID       int64
+		sourceCommit, want string
+	}{
+		{"legacy pull_request_target recording the head resolves at the base", prtRun("head-sha"), 1, "head-sha", "base-sha"},
+		{"pull_request_target resolves at its default branch commit", defaultRun, 1, "default-sha", "default-sha"},
+		{"pull_request_target without a pull request payload resolves nowhere", payloadlessRun, 1, "default-sha", ""},
+		{"non pull_request_target keeps stored SHA", &actions_model.ActionRun{RepoID: 1, TriggerEvent: "push", WorkflowCommitSHA: "head-sha"}, 1, "head-sha", "head-sha"},
+		{"scoped run keeps stored SHA", scopedRun, 1, "head-sha", "head-sha"},
+		{"cross-repo caller keeps stored SHA", prtRun("head-sha"), 2, "head-sha", "head-sha"},
+		{"caller resolved from a uses: ref keeps its own SHA", prtRun("head-sha"), 1, "tag-v1-sha", "tag-v1-sha"},
+	} {
+		caller := &actions_model.ActionRunJob{WorkflowSourceRepoID: tc.sourceRepoID, WorkflowSourceCommitSHA: tc.sourceCommit}
+		assert.Equal(t, tc.want, resolveSameRepoWorkflowSourceCommit(tc.run, caller), tc.name)
 	}
-	caller := func(sourceRepoID int64, sourceCommitSHA string) *actions_model.ActionRunJob {
-		return &actions_model.ActionRunJob{WorkflowSourceRepoID: sourceRepoID, WorkflowSourceCommitSHA: sourceCommitSHA}
-	}
-
-	t.Run("pull_request_target pins to base commit", func(t *testing.T) {
-		got := resolveSameRepoWorkflowSourceCommit(prtRun("base-sha"), caller(1, "head-sha"))
-		assert.Equal(t, "base-sha", got)
-	})
-
-	t.Run("legacy nested caller (with head-sha) pins to base commit", func(t *testing.T) {
-		nested := caller(1, "head-sha")
-		nested.ParentJobID = 99
-		got := resolveSameRepoWorkflowSourceCommit(prtRun("base-sha"), nested)
-		assert.Equal(t, "base-sha", got)
-	})
-
-	t.Run("pull_request_target keeps stored SHA when already base", func(t *testing.T) {
-		run := prtRun("base-sha")
-		run.WorkflowCommitSHA = "base-sha"
-		got := resolveSameRepoWorkflowSourceCommit(run, caller(1, "base-sha"))
-		assert.Equal(t, "base-sha", got)
-	})
-
-	t.Run("non pull_request_target keeps stored SHA", func(t *testing.T) {
-		got := resolveSameRepoWorkflowSourceCommit(pushRun, caller(1, "head-sha"))
-		assert.Equal(t, "head-sha", got)
-	})
-
-	t.Run("scoped run keeps stored SHA", func(t *testing.T) {
-		run := prtRun("base-sha")
-		run.IsScopedRun = true
-		got := resolveSameRepoWorkflowSourceCommit(run, caller(1, "head-sha"))
-		assert.Equal(t, "head-sha", got)
-	})
-
-	t.Run("cross-repo caller keeps stored SHA", func(t *testing.T) {
-		got := resolveSameRepoWorkflowSourceCommit(prtRun("base-sha"), caller(2, "head-sha"))
-		assert.Equal(t, "head-sha", got)
-	})
-
-	t.Run("caller resolved from a uses: ref keeps its own SHA", func(t *testing.T) {
-		nested := caller(1, "tag-v1-sha")
-		nested.ParentJobID = 99
-		got := resolveSameRepoWorkflowSourceCommit(prtRun("base-sha"), nested)
-		assert.Equal(t, "tag-v1-sha", got)
-	})
 }
 
 func TestQualifyRef(t *testing.T) {

@@ -10,6 +10,7 @@ import (
 	"slices"
 	"uuid"
 
+	"gitea.dev/actionslib/pkg/protocol"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	"gitea.dev/actionslib/runner/v1/runnerv1connect"
 	actions_model "gitea.dev/models/actions"
@@ -90,12 +91,6 @@ func (s *Service) Register(
 	// create new runner
 	if err := actions_model.CreateRunner(ctx, runner); err != nil {
 		return nil, errors.New("can't create new runner")
-	}
-
-	// update token status
-	runnerToken.IsActive = true
-	if err := actions_model.UpdateRunnerToken(ctx, runnerToken, "is_active"); err != nil {
-		return nil, errors.New("can't update runner token status")
 	}
 
 	res := &runnerv1.RegisterResponse{
@@ -229,12 +224,12 @@ func (s *Service) UpdateTask(
 	}
 
 	for k, v := range req.Outputs {
-		if len(k) > 255 {
+		if len(k) > protocol.MaxOutputKeyLength {
 			log.Warn("Ignore the output of task %d because the key is too long: %q", task.ID, k)
 			continue
 		}
 		// The value can be a maximum of 1 MB
-		if l := len(v); l > 1024*1024 {
+		if l := len(v); l > protocol.MaxOutputValueLength {
 			log.Warn("Ignore the output %q of task %d because the value is too long: %v", k, task.ID, l)
 			continue
 		}

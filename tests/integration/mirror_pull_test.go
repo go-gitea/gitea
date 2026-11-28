@@ -102,6 +102,7 @@ func TestMirrorPull(t *testing.T) {
 
 	mirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
 	assert.Equal(t, mirror.UpdatedUnix, mirror.LastSyncUnix)
+	assert.Equal(t, mirror.LastSyncUnix, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID}).UpdatedUnix)
 
 	// actually there is a tag in the source repo, so after "sync", that tag will also come into the mirror
 	initCount++

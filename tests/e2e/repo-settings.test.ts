@@ -2,7 +2,7 @@ import {env} from 'node:process';
 import {expect, test} from '@playwright/test';
 import {apiCreateBranchProtection, apiCreateRepo, login, randomString} from './utils.ts';
 
-test('branch protection rule keeps its push allowlist and dragged priority', async ({page, request}) => {
+test('branch protection toggles queue controls and keeps the push allowlist and priority', async ({page, request}) => {
   const owner = env.GITEA_TEST_E2E_USER;
   const repo = `e2e-protection-${randomString(8)}`;
   await Promise.all([
@@ -15,6 +15,12 @@ test('branch protection rule keeps its push allowlist and dragged priority', asy
   await page.goto(`/${owner}/${repo}/settings/branches/edit`);
   const ruleNameInput = page.getByRole('textbox', {name: /^Protected Branch Name Pattern/});
   const allowlistRadio = page.getByRole('radio', {name: 'Allowlist Restricted Push', exact: true});
+  const requireQueue = page.getByRole('checkbox', {name: 'Require merge queue', exact: true});
+  const minimum = page.getByLabel('Minimum group size', {exact: true});
+  await requireQueue.check();
+  await expect(minimum).toBeEnabled();
+  await requireQueue.uncheck();
+  await expect(minimum).toBeDisabled();
   await ruleNameInput.fill('release/**');
   await allowlistRadio.check();
   await page.locator('#whitelist_box').getByRole('combobox').click();

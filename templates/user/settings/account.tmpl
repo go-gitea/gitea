@@ -60,7 +60,7 @@
 									{{ctx.Locale.Tr "settings.delete_email"}}
 								</button>
 								{{if .CanBePrimary}}
-									<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
+									<form class="form-fetch-action" action="{{AppSubUrl}}/user/settings/account/email" method="post">
 										<input name="_method" type="hidden" value="PRIMARY">
 										<input name="id" type="hidden" value="{{.ID}}">
 										<button type="submit" class="ui primary tiny button">{{ctx.Locale.Tr "settings.primary_email"}}</button>
@@ -68,7 +68,7 @@
 								{{end}}
 							{{end}}
 							{{if not .IsActivated}}
-								<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
+								<form class="form-fetch-action" action="{{AppSubUrl}}/user/settings/account/email" method="post">
 									<input name="_method" type="hidden" value="SENDACTIVATION">
 									<input name="id" type="hidden" value="{{.ID}}">
 									{{if $.ActivationsPending}}
@@ -88,7 +88,7 @@
 
 		{{if not ($.UserDisabledFeatures.Contains "manage_credentials")}}
 		<div class="ui bottom attached segment">
-			<form class="ui form" action="{{AppSubUrl}}/user/settings/account/email" method="post">
+			<form class="ui form form-fetch-action" action="{{AppSubUrl}}/user/settings/account/email" method="post">
 				<div class="required field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{ctx.Locale.Tr "settings.add_new_email"}}</label>
 					<input id="email" name="email" type="email" required {{if not .CanAddEmails}}disabled{{end}}>

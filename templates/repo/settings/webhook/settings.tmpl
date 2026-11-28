@@ -51,9 +51,8 @@
 	<label>{{ctx.Locale.Tr "repo.settings.branch_filter"}}</label>
 	<input name="branch_filter" type="text" value="{{or .Webhook.BranchFilter "*"}}">
 	<span class="help">
-		{{ctx.Locale.Tr "repo.settings.branch_filter_desc_1"}}
-		{{ctx.Locale.Tr "repo.settings.branch_filter_desc_2"}}
-		{{ctx.Locale.Tr "repo.settings.branch_filter_desc_doc" "https://pkg.go.dev/github.com/gobwas/glob#Compile" "github.com/gobwas/glob"}}
+		{{ctx.Locale.Tr "repo.settings.branch_filter_desc" (HTMLFormat "<code>%s</code>" "*") (HTMLFormat "<code>%s</code>" "refs/heads/") (HTMLFormat "<code>%s</code>" "refs/tags/")}}
+		{{ctx.Locale.Tr "repo.settings.glob_syntax_desc" (HTMLFormat `<a href="%s">%s</a>` "https://github.com/gobwas/glob#syntax" "github.com/gobwas/glob")}}
 		<ul>
 			<li><code>main</code></li>
 			<li><code>{main,feature/*}</code></li>
@@ -323,6 +322,15 @@
 					<input name="pull_request_review_request" type="checkbox" {{if .Webhook.HookEvents.Get "pull_request_review_request"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_pull_request_review_request"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_pull_request_review_request_desc"}}</span>
+				</div>
+			</div>
+		</div>
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input name="merge_group" type="checkbox" {{if .Webhook.HookEvents.Get "merge_group"}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_merge_group"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_merge_group_desc"}}</span>
 				</div>
 			</div>
 		</div>

@@ -107,17 +107,13 @@ func EmailPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm[*forms.AddEmailForm](ctx)
-	ctx.Data["PageIsSettingsAccount"] = true
-	ctx.Data["Email"] = ctx.Doer.Email
-
 	// Make email address primary.
 	if ctx.FormString("_method") == "PRIMARY" {
 		emailID := ctx.FormInt64("id")
 		if err := user_model.MakeActiveEmailPrimary(ctx, ctx.Doer.ID, emailID); err != nil {
 			if user_model.IsErrEmailAddressNotExist(err) {
 				ctx.Flash.Error(ctx.Tr("settings.email_primary_not_found"))
-				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+				ctx.JSONRedirect(setting.AppSubURL + "/user/settings/account")
 				return
 			}
 			ctx.ServerErrorAuto(err)
@@ -130,7 +126,7 @@ func EmailPost(ctx *context.Context) {
 			audit.Record(ctx, audit_model.UserEmailPrimaryChange, ctx.Doer, "email", email.Email)
 		}
 		log.Trace("Email made primary: %s", ctx.Doer.Name)
-		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		ctx.JSONRedirect(setting.AppSubURL + "/user/settings/account")
 		return
 	}
 	// Send activation Email
@@ -138,7 +134,7 @@ func EmailPost(ctx *context.Context) {
 		var address string
 		if ctx.Cache.IsExist("MailResendLimit_" + ctx.Doer.LowerName) {
 			log.Error("Send activation: activation still pending")
-			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+			ctx.JSONRedirect(setting.AppSubURL + "/user/settings/account")
 			return
 		}
 
@@ -146,23 +142,23 @@ func EmailPost(ctx *context.Context) {
 		email, err := user_model.GetEmailAddressByID(ctx, ctx.Doer.ID, id)
 		if err != nil {
 			log.Error("GetEmailAddressByID(%d,%d) error: %v", ctx.Doer.ID, id, err)
-			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+			ctx.JSONRedirect(setting.AppSubURL + "/user/settings/account")
 			return
 		}
 		if email == nil {
 			log.Warn("Send activation failed: EmailAddress[%d] not found for user: %-v", id, ctx.Doer)
-			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+			ctx.JSONRedirect(setting.AppSubURL + "/user/settings/account")
 			return
 		}
 		if email.IsActivated {
 			log.Debug("Send activation failed: email %s is already activated for user: %-v", email.Email, ctx.Doer)
-			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+			ctx.JSONRedirect(setting.AppSubURL + "/user/settings/account")
 			return
 		}
 		if email.IsPrimary {
 			if ctx.Doer.IsActive && !setting.Service.RegisterEmailConfirm {
 				log.Debug("Send activation failed: email %s is already activated for user: %-v", email.Email, ctx.Doer)
-				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+				ctx.JSONRedirect(setting.AppSubURL + "/user/settings/account")
 				return
 			}
 			// Only fired when the primary email is inactive (Wrong state)
@@ -177,26 +173,20 @@ func EmailPost(ctx *context.Context) {
 		}
 
 		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", address, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)))
-		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		ctx.JSONRedirect(setting.AppSubURL + "/user/settings/account")
 		return
 	}
 
-	if ctx.HasError() {
-		loadAccountData(ctx)
-
-		ctx.HTML(http.StatusOK, tplSettingsAccount)
+	form := context.GetFetchActionForm[*forms.AddEmailForm](ctx)
+	if ctx.Written() {
 		return
 	}
 
 	if err := user.AddEmailAddresses(ctx, ctx.Doer, []string{form.Email}); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) {
-			loadAccountData(ctx)
-
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tplSettingsAccount, &form)
+			ctx.JSONErrorWithField(ctx.Tr("form.email_been_used"), "Email")
 		} else if errors.Is(err, util.ErrInvalidArgument) {
-			loadAccountData(ctx)
-
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplSettingsAccount, &form)
+			ctx.JSONErrorWithField(ctx.Tr("form.email_invalid"), "Email")
 		} else {
 			ctx.ServerErrorAuto(err)
 		}
@@ -216,7 +206,7 @@ func EmailPost(ctx *context.Context) {
 	}
 
 	log.Trace("Email address added: %s", form.Email)
-	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/account")
 }
 
 // DeleteEmail response for delete user's email

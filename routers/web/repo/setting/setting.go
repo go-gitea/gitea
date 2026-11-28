@@ -30,7 +30,6 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
-	"gitea.dev/modules/web"
 	repo_router "gitea.dev/routers/web/repo"
 	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/audit"
@@ -67,9 +66,8 @@ func canManageRepoDangerZone(ctx *context.Context) bool {
 	return true
 }
 
-// SettingsCtxData is a middleware that sets all the general context data for the
-// settings template.
-func SettingsCtxData(ctx *context.Context) {
+// Settings shows a repository's settings page.
+func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.options")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
@@ -114,6 +112,7 @@ func SettingsCtxData(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 
 func preparePullRequestSettings(ctx *context.Context) {
@@ -145,25 +144,8 @@ func preparePullRequestSettings(ctx *context.Context) {
 	}
 }
 
-// Settings show a repository's settings page
-func Settings(ctx *context.Context) {
-	ctx.HTML(http.StatusOK, tplSettingsOptions)
-}
-
 // SettingsPost response for changes of a repository
 func SettingsPost(ctx *context.Context) {
-	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
-	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
-	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
-	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
-	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
-	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
-
-	signing, _ := git.GetSigningKey(ctx)
-	ctx.Data["SigningKeyAvailable"] = signing != nil
-	ctx.Data["SigningSettings"] = setting.Repository.Signing
-	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-
 	switch ctx.FormString("action") {
 	case "update":
 		handleSettingsPostUpdate(ctx)
@@ -211,10 +193,14 @@ func SettingsPost(ctx *context.Context) {
 }
 
 func handleSettingsPostUpdate(ctx *context.Context) {
-	form := web.GetForm[*forms.RepoSettingForm](ctx)
+	form := context.GetFetchActionForm[*forms.RepoSettingForm](ctx)
+	if ctx.Written() {
+		return
+	}
 	repo := ctx.Repo.Repository
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplSettingsOptions)
+
+	if form.RepoName == "" {
+		ctx.JSONErrorWithField(ctx.Tr("form.require_error", ctx.Tr("form.RepoName")), "RepoName")
 		return
 	}
 
@@ -227,19 +213,17 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 			ctx.Repo.GitRepo = nil
 		}
 		if err := repo_service.ChangeRepositoryName(ctx, ctx.Doer, repo, newRepoName); err != nil {
-			ctx.Data["Err_RepoName"] = true
 			var errNameReserved db.ErrNameReserved
 			var errNamePatternNotAllowed db.ErrNamePatternNotAllowed
 			switch {
 			case repo_model.IsErrRepoAlreadyExist(err):
-				ctx.RenderWithErrDeprecated(ctx.Tr("form.repo_name_been_taken"), tplSettingsOptions, &form)
+				ctx.JSONErrorWithField(ctx.Tr("form.repo_name_been_taken"), "RepoName")
 			case errors.As(err, &errNameReserved):
-				ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_reserved", errNameReserved.Name), tplSettingsOptions, &form)
+				ctx.JSONErrorWithField(ctx.Tr("repo.form.name_reserved", errNameReserved.Name), "RepoName")
 			case repo_model.IsErrRepoFilesAlreadyExist(err):
-				ctx.Data["Err_RepoName"] = true
-				ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist"), tplSettingsOptions, form)
+				ctx.JSONErrorWithField(ctx.Tr("form.repository_files_already_exist"), "RepoName")
 			case errors.As(err, &errNamePatternNotAllowed):
-				ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tplSettingsOptions, &form)
+				ctx.JSONErrorWithField(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), "RepoName")
 			default:
 				ctx.ServerErrorAuto(err)
 			}
@@ -262,11 +246,14 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 	log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
-	ctx.Redirect(repo.Link() + "/settings")
+	ctx.JSONRedirect(repo.Link() + "/settings")
 }
 
 func handleSettingsPostMirror(ctx *context.Context) {
-	form := web.GetForm[*forms.RepoSettingForm](ctx)
+	form := context.GetFetchActionForm[*forms.RepoSettingForm](ctx)
+	if ctx.Written() {
+		return
+	}
 	repo := ctx.Repo.Repository
 	if !setting.Mirror.Enabled || !repo.IsMirror || repo.IsArchived {
 		ctx.NotFound()
@@ -278,14 +265,10 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	// This section doesn't require repo_name/RepoName to be set in the form, don't show it
-	// as an error on the UI for this action
-	ctx.Data["Err_RepoName"] = nil
 
 	interval, err := time.ParseDuration(form.Interval)
 	if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
-		ctx.Data["Err_Interval"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
+		ctx.JSONErrorWithField(ctx.Tr("repo.mirror_interval_invalid"), "Interval")
 		return
 	}
 
@@ -299,8 +282,7 @@ func handleSettingsPostMirror(ctx *context.Context) {
 
 	u, err := git.ParseRemoteAddressURL(ctx, ctx.Repo.Repository, pullMirror.GetRemoteName())
 	if err != nil {
-		ctx.Data["Err_MirrorAddress"] = true
-		handleSettingRemoteAddrError(ctx, err, form)
+		handleSettingRemoteAddrError(ctx, err, "MirrorAddress")
 		return
 	}
 	storedAddr := *u.URL
@@ -320,8 +302,7 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		err = migrations.IsMigrateURLAllowed(address, ctx.Doer)
 	}
 	if err != nil {
-		ctx.Data["Err_MirrorAddress"] = true
-		handleSettingRemoteAddrError(ctx, err, form)
+		handleSettingRemoteAddrError(ctx, err, "MirrorAddress")
 		return
 	}
 
@@ -332,8 +313,7 @@ func handleSettingsPostMirror(ctx *context.Context) {
 
 	remoteAddress, err := util.SanitizeURL(form.MirrorAddress)
 	if err != nil {
-		ctx.Data["Err_MirrorAddress"] = true
-		handleSettingRemoteAddrError(ctx, err, form)
+		handleSettingRemoteAddrError(ctx, err, "MirrorAddress")
 		return
 	}
 	pullMirror.RemoteAddress = remoteAddress
@@ -343,14 +323,12 @@ func handleSettingsPostMirror(ctx *context.Context) {
 	if len(form.LFSEndpoint) > 0 {
 		ep := lfs.DetermineEndpoint("", form.LFSEndpoint)
 		if ep == nil {
-			ctx.Data["Err_LFSEndpoint"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.invalid_lfs_endpoint"), tplSettingsOptions, &form)
+			ctx.JSONErrorWithField(ctx.Tr("repo.migrate.invalid_lfs_endpoint"), "mirror_lfs_endpoint")
 			return
 		}
 		err = migrations.IsMigrateURLAllowed(ep.String(), ctx.Doer)
 		if err != nil {
-			ctx.Data["Err_LFSEndpoint"] = true
-			handleSettingRemoteAddrError(ctx, err, form)
+			handleSettingRemoteAddrError(ctx, err, "mirror_lfs_endpoint")
 			return
 		}
 	}
@@ -363,7 +341,7 @@ func handleSettingsPostMirror(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
-	ctx.Redirect(repo.Link() + "/settings")
+	ctx.JSONRedirect(repo.Link() + "/settings")
 }
 
 func handleSettingsPostMirrorSync(ctx *context.Context) {
@@ -376,11 +354,14 @@ func handleSettingsPostMirrorSync(ctx *context.Context) {
 	mirror_service.AddPullMirrorToQueue(repo.ID)
 
 	ctx.Flash.Info(ctx.Tr("repo.settings.pull_mirror_sync_in_progress", repo.OriginalURL))
-	ctx.Redirect(repo.Link() + "/settings")
+	ctx.JSONRedirect(repo.Link() + "/settings")
 }
 
 func handleSettingsPostPushMirrorSync(ctx *context.Context) {
-	form := web.GetForm[*forms.RepoSettingForm](ctx)
+	form := context.GetFetchActionForm[*forms.RepoSettingForm](ctx)
+	if ctx.Written() {
+		return
+	}
 	repo := ctx.Repo.Repository
 
 	if !setting.Mirror.Enabled {
@@ -397,11 +378,14 @@ func handleSettingsPostPushMirrorSync(ctx *context.Context) {
 	mirror_service.AddPushMirrorToQueue(m.ID)
 
 	ctx.Flash.Info(ctx.Tr("repo.settings.push_mirror_sync_in_progress", m.RemoteAddress))
-	ctx.Redirect(repo.Link() + "/settings")
+	ctx.JSONRedirect(repo.Link() + "/settings")
 }
 
 func handleSettingsPostPushMirrorUpdate(ctx *context.Context) {
-	form := web.GetForm[*forms.RepoSettingForm](ctx)
+	form := context.GetFetchActionForm[*forms.RepoSettingForm](ctx)
+	if ctx.Written() {
+		return
+	}
 	repo := ctx.Repo.Repository
 
 	if !setting.Mirror.Enabled || repo.IsArchived {
@@ -409,13 +393,9 @@ func handleSettingsPostPushMirrorUpdate(ctx *context.Context) {
 		return
 	}
 
-	// This section doesn't require repo_name/RepoName to be set in the form, don't show it
-	// as an error on the UI for this action
-	ctx.Data["Err_RepoName"] = nil
-
 	interval, err := time.ParseDuration(form.PushMirrorInterval)
 	if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
-		ctx.RenderWithErrDeprecated(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &forms.RepoSettingForm{})
+		ctx.JSONErrorWithField(ctx.Tr("repo.mirror_interval_invalid"), "PushMirrorInterval")
 		return
 	}
 
@@ -439,11 +419,14 @@ func handleSettingsPostPushMirrorUpdate(ctx *context.Context) {
 		mirror_service.AddPushMirrorToQueue(m.ID)
 	}
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
-	ctx.Redirect(repo.Link() + "/settings")
+	ctx.JSONRedirect(repo.Link() + "/settings")
 }
 
 func handleSettingsPostPushMirrorRemove(ctx *context.Context) {
-	form := web.GetForm[*forms.RepoSettingForm](ctx)
+	form := context.GetFetchActionForm[*forms.RepoSettingForm](ctx)
+	if ctx.Written() {
+		return
+	}
 	repo := ctx.Repo.Repository
 
 	if !setting.Mirror.Enabled || repo.IsArchived {
@@ -463,11 +446,14 @@ func handleSettingsPostPushMirrorRemove(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
-	ctx.Redirect(repo.Link() + "/settings")
+	ctx.JSONRedirect(repo.Link() + "/settings")
 }
 
 func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
-	form := web.GetForm[*forms.RepoSettingForm](ctx)
+	form := context.GetFetchActionForm[*forms.RepoSettingForm](ctx)
+	if ctx.Written() {
+		return
+	}
 	repo := ctx.Repo.Repository
 
 	if setting.Mirror.DisableNewPush || repo.IsArchived {
@@ -475,14 +461,9 @@ func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
 		return
 	}
 
-	// This section doesn't require repo_name/RepoName to be set in the form, don't show it
-	// as an error on the UI for this action
-	ctx.Data["Err_RepoName"] = nil
-
 	interval, err := time.ParseDuration(form.PushMirrorInterval)
 	if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
-		ctx.Data["Err_PushMirrorInterval"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
+		ctx.JSONErrorWithField(ctx.Tr("repo.mirror_interval_invalid"), "PushMirrorInterval")
 		return
 	}
 
@@ -491,8 +472,7 @@ func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
 		err = migrations.IsMigrateURLAllowed(address, ctx.Doer)
 	}
 	if err != nil {
-		ctx.Data["Err_PushMirrorAddress"] = true
-		handleSettingRemoteAddrError(ctx, err, form)
+		handleSettingRemoteAddrError(ctx, err, "PushMirrorAddress")
 		return
 	}
 
@@ -500,8 +480,7 @@ func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
 
 	remoteAddress, err := util.SanitizeURL(form.PushMirrorAddress)
 	if err != nil {
-		ctx.Data["Err_PushMirrorAddress"] = true
-		handleSettingRemoteAddrError(ctx, err, form)
+		handleSettingRemoteAddrError(ctx, err, "PushMirrorAddress")
 		return
 	}
 
@@ -526,7 +505,7 @@ func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
 	audit.Record(ctx, audit_model.RepositoryMirrorPushAdd, repo, "mirror_id", m.ID, "remote_address", m.RemoteAddress)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
-	ctx.Redirect(repo.Link() + "/settings")
+	ctx.JSONRedirect(repo.Link() + "/settings")
 }
 
 func newRepoUnit(repo *repo_model.Repository, unitType unit_model.Type, config convert.Conversion) repo_model.RepoUnit {
@@ -541,7 +520,10 @@ func newRepoUnit(repo *repo_model.Repository, unitType unit_model.Type, config c
 }
 
 func handleSettingsPostAdvanced(ctx *context.Context) {
-	form := web.GetForm[*forms.RepoSettingForm](ctx)
+	form := context.GetFetchActionForm[*forms.RepoSettingForm](ctx)
+	if ctx.Written() {
+		return
+	}
 	repo := ctx.Repo.Repository
 	var repoChanged bool
 	var units []repo_model.RepoUnit
@@ -696,7 +678,10 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 }
 
 func handleSettingsPostSigning(ctx *context.Context) {
-	form := web.GetForm[*forms.RepoSettingForm](ctx)
+	form := context.GetFetchActionForm[*forms.RepoSettingForm](ctx)
+	if ctx.Written() {
+		return
+	}
 	repo := ctx.Repo.Repository
 	trustModel := repo_model.ToTrustModel(form.TrustModel)
 	if trustModel != repo.TrustModel {
@@ -712,7 +697,7 @@ func handleSettingsPostSigning(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings")
 }
 
 func handleSettingsPostAdmin(ctx *context.Context) {
@@ -722,7 +707,10 @@ func handleSettingsPostAdmin(ctx *context.Context) {
 	}
 
 	repo := ctx.Repo.Repository
-	form := web.GetForm[*forms.RepoSettingForm](ctx)
+	form := context.GetFetchActionForm[*forms.RepoSettingForm](ctx)
+	if ctx.Written() {
+		return
+	}
 	if repo.IsFsckEnabled != form.EnableHealthCheck {
 		repo.IsFsckEnabled = form.EnableHealthCheck
 		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_fsck_enabled"); err != nil {
@@ -733,11 +721,14 @@ func handleSettingsPostAdmin(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings")
 }
 
 func handleSettingsPostAdminIndex(ctx *context.Context) {
-	form := web.GetForm[*forms.RepoSettingForm](ctx)
+	form := context.GetFetchActionForm[*forms.RepoSettingForm](ctx)
+	if ctx.Written() {
+		return
+	}
 	repo := ctx.Repo.Repository
 	if !ctx.Doer.IsAdmin {
 		ctx.HTTPError(http.StatusForbidden)
@@ -764,7 +755,7 @@ func handleSettingsPostAdminIndex(ctx *context.Context) {
 	log.Trace("Repository reindex for %s requested: %s/%s", form.RequestReindexType, ctx.Repo.Owner.Name, repo.Name)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.reindex_requested"))
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings")
 }
 
 func handleSettingsPostConvert(ctx *context.Context) {
@@ -772,9 +763,8 @@ func handleSettingsPostConvert(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
-	if repo.FullName() != form.RepoName {
+	if repo.FullName() != strings.TrimSpace(ctx.FormString("repo_name")) {
 		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
 	}
@@ -805,13 +795,12 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
 	if err := repo.LoadOwner(ctx); err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	if repo.FullName() != form.RepoName {
+	if repo.FullName() != strings.TrimSpace(ctx.FormString("repo_name")) {
 		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
 	}
@@ -845,9 +834,8 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
-	if repo.FullName() != form.RepoName {
+	if repo.FullName() != strings.TrimSpace(ctx.FormString("repo_name")) {
 		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
 	}
@@ -914,7 +902,7 @@ func handleSettingsPostCancelTransfer(ctx *context.Context) {
 	if err != nil {
 		if repo_model.IsErrNoPendingTransfer(err) {
 			ctx.Flash.Error("repo.settings.transfer_abort_invalid")
-			ctx.Redirect(repo.Link() + "/settings")
+			ctx.JSONRedirect(repo.Link() + "/settings")
 		} else {
 			ctx.ServerErrorAuto(err)
 		}
@@ -928,7 +916,7 @@ func handleSettingsPostCancelTransfer(ctx *context.Context) {
 
 	log.Trace("Repository transfer process was cancelled: %s/%s ", ctx.Repo.Owner.Name, repo.Name)
 	ctx.Flash.Success(ctx.Tr("repo.settings.transfer_abort_success", repoTransfer.Recipient.Name))
-	ctx.Redirect(repo.Link() + "/settings")
+	ctx.JSONRedirect(repo.Link() + "/settings")
 }
 
 func handleSettingsPostDelete(ctx *context.Context) {
@@ -936,9 +924,8 @@ func handleSettingsPostDelete(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
-	if repo.FullName() != form.RepoName {
+	if repo.FullName() != strings.TrimSpace(ctx.FormString("repo_name")) {
 		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
 	}
@@ -962,9 +949,8 @@ func handleSettingsPostDeleteWiki(ctx *context.Context) {
 	if !canManageRepoDangerZone(ctx) {
 		return
 	}
-	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
-	if repo.FullName() != form.RepoName {
+	if repo.FullName() != strings.TrimSpace(ctx.FormString("repo_name")) {
 		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
 	}
@@ -987,14 +973,14 @@ func handleSettingsPostArchive(ctx *context.Context) {
 	repo := ctx.Repo.Repository
 	if repo.IsMirror {
 		ctx.Flash.Error(ctx.Tr("repo.settings.archive.error_ismirror"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings")
 		return
 	}
 
 	if err := repo_model.SetArchiveRepoState(ctx, repo, true); err != nil {
 		log.Error("Tried to archive a repo: %s", err)
 		ctx.Flash.Error(ctx.Tr("repo.settings.archive.error"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings")
 		return
 	}
 
@@ -1010,7 +996,7 @@ func handleSettingsPostArchive(ctx *context.Context) {
 	ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
 
 	log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings")
 }
 
 func handleSettingsPostUnarchive(ctx *context.Context) {
@@ -1022,7 +1008,7 @@ func handleSettingsPostUnarchive(ctx *context.Context) {
 	if err := repo_model.SetArchiveRepoState(ctx, repo, false); err != nil {
 		log.Error("Tried to unarchive a repo: %s", err)
 		ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings")
 		return
 	}
 
@@ -1040,7 +1026,7 @@ func handleSettingsPostUnarchive(ctx *context.Context) {
 	ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
 
 	log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings")
 }
 
 func handleSettingsPostVisibility(ctx *context.Context) {
@@ -1077,25 +1063,25 @@ func handleSettingsPostVisibility(ctx *context.Context) {
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings")
 }
 
-func handleSettingRemoteAddrError(ctx *context.Context, err error, form *forms.RepoSettingForm) {
+func handleSettingRemoteAddrError(ctx *context.Context, err error, field string) {
 	if addrErr, ok := err.(*git.ErrInvalidCloneAddr); ok {
 		switch {
 		case addrErr.IsProtocolInvalid:
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, form)
+			ctx.JSONErrorWithField(ctx.Tr("repo.mirror_address_protocol_invalid"), field)
 		case addrErr.IsURLError:
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.url_error", addrErr.Host), tplSettingsOptions, form)
+			ctx.JSONErrorWithField(ctx.Tr("form.url_error", addrErr.Host), field)
 		case addrErr.IsPermissionDenied:
 			if addrErr.LocalPath {
-				ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.permission_denied"), tplSettingsOptions, form)
+				ctx.JSONErrorWithField(ctx.Tr("repo.migrate.permission_denied"), field)
 			} else {
-				ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.permission_denied_blocked"), tplSettingsOptions, form)
+				ctx.JSONErrorWithField(ctx.Tr("repo.migrate.permission_denied_blocked"), field)
 			}
 		case addrErr.IsInvalidPath:
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.invalid_local_path"), tplSettingsOptions, form)
+			ctx.JSONErrorWithField(ctx.Tr("repo.migrate.invalid_local_path"), field)
 		default:
 			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
-	ctx.RenderWithErrDeprecated(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, form)
+	ctx.JSONErrorWithField(ctx.Tr("repo.mirror_address_url_invalid"), field)
 }

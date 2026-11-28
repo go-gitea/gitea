@@ -19,6 +19,5 @@ func TestShortLinkProcessor(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, test.NormalizeHTMLSpaces(expected), test.NormalizeHTMLSpaces(sb.String()))
 	}
-	test("[[name=foo|link=./link]]", `<a href="/base/link">foo</a>`)
-	test("[[name=foo|link=javascript:bar]]", `[[name=foo|link=javascript:bar]]`)
+	test("[[name=foo|link=javascript:bar]] and [[name=ok|link=./link]]", `[[name=foo|link=javascript:bar]] and <a href="/base/link">ok</a>`)
 }

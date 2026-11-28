@@ -135,16 +135,22 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	return gitContext
 }
 
-// runRefs returns the run's `github.base_ref`, `github.head_ref`, `github.ref` and `github.sha`.
+// runRefs returns the run's `github.base_ref`, `github.head_ref`, `github.ref` and `github.sha`, never the PR head for pull_request_target.
 func runRefs(run *actions_model.ActionRun) (baseRef, headRef, ref, sha string) {
-	ref, sha = run.Ref, run.CommitSHA
+	if run.TriggerEvent != actions_module.GithubEventPullRequestTarget {
+		ref, sha = run.Ref, run.CommitSHA
+	}
 	if pullPayload, err := run.GetPullRequestEventPayload(); err == nil && pullPayload.PullRequest != nil && pullPayload.PullRequest.Base != nil && pullPayload.PullRequest.Head != nil {
-		baseRef = pullPayload.PullRequest.Base.Ref
-		headRef = pullPayload.PullRequest.Head.Ref
+		pr := pullPayload.PullRequest
+		baseRef, headRef = pr.Base.Ref, pr.Head.Ref
 		if run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
-			ref, sha = git.BranchPrefix+pullPayload.PullRequest.Base.Ref, pullPayload.PullRequest.Base.Sha
-		} else if run.TriggerEvent == actions_module.GithubEventPullRequest && !pullPayload.PullRequest.HasMerged && pullPayload.PullRequest.MergedCommitID != nil {
-			ref, sha = git.MergeRefNameFromPullIndex(pullPayload.PullRequest.Index).String(), *pullPayload.PullRequest.MergedCommitID
+			if run.WorkflowRef == "" { // scoped and older runs keep the base
+				ref, sha = git.BranchPrefix+baseRef, pr.Base.Sha
+			} else {
+				ref, sha = run.WorkflowRef, run.WorkflowCommitSHA
+			}
+		} else if run.TriggerEvent == actions_module.GithubEventPullRequest && !pr.HasMerged && pr.MergedCommitID != nil {
+			ref, sha = git.MergeRefNameFromPullIndex(pr.Index).String(), *pr.MergedCommitID
 		}
 	}
 	return baseRef, headRef, ref, sha
@@ -276,7 +282,7 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 		return nil, err
 	}
 
-	inputs, err := calledWorkflowInputs(ctx, caller.Run, caller, workflowCallInputs)
+	inputs, err := calledWorkflowInputs(ctx, caller.Run, caller, nil, workflowCallInputs)
 	if err != nil {
 		return nil, err
 	}

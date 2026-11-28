@@ -34,11 +34,11 @@ func TestOrgProjectAccess(t *testing.T) {
 
 	// change the org's visibility to private
 	session := loginUser(t, "user2")
-	req = NewRequestWithValues(t, "POST", "/org/org3/settings", map[string]string{
-		"name":       "org3",
-		"visibility": "2",
+	req = NewRequestWithValues(t, "POST", "/org/org3/settings/visibility", map[string]string{
+		"visibility": "private",
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, NewRequest(t, "GET", "/org3/-/projects"), http.StatusNotFound)
 
 	// user4 can still access the org's project because its team(team1) has the permission
 	session = loginUser(t, "user4")
@@ -53,7 +53,7 @@ func TestOrgProjectAccess(t *testing.T) {
 		"permission":  "read",
 		"unit_" + strconv.Itoa(unit_model.TypeProjects.Value()): "0",
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusOK)
 
 	// user4 can no longer access the org's project
 	session = loginUser(t, "user4")

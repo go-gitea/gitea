@@ -4,21 +4,23 @@ import {initRepoIssueContentHistory} from './repo-issue-content.ts';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
 import {initExpandAndCollapseFilesButton, initDiffFileViewedForm} from './pull-view-file.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
+import {
+  queryElemSiblings, hideElem, showElem, toggleElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems,
+} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
-import {performFetchActionRequest, performFetchActionTrigger} from '../modules/fetch-action.ts';
+import {performFetchAction, performFetchActionRequest, performFetchActionTrigger} from '../modules/fetch-action.ts';
 import {applyFiltersToFileBoxes, type DiffFileTreeLocale, diffTreeStore} from '../modules/diff-file.ts';
 import {initImageDiff} from './imagediff.ts';
 import DiffCommitSelector from '../components/DiffCommitSelector.vue';
 import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {
-  // switch between "rendered" and "source", for image and CSV files
+  // switch between "rendered" and "source", for image, CSV and markup files
   queryElems(el, '.file-view-toggle', (btn) => btn.addEventListener('click', () => {
     queryElemSiblings(btn, '.file-view-toggle', (el) => el.classList.remove('active'));
     btn.classList.add('active');
@@ -28,6 +30,8 @@ function initDiffFileViewToggle(el: HTMLElement) {
 
     hideElem(queryElemSiblings(target));
     showElem(target);
+    const elRichDiff = target.querySelector<HTMLElement>('[data-rich-diff-link]'); // replaced once loaded, kept to retry on failure
+    if (elRichDiff) performFetchAction(elRichDiff, {method: 'GET', url: elRichDiff.getAttribute('data-rich-diff-link')!, successSync: '$this'});
   }));
 }
 
@@ -140,6 +144,7 @@ function initRepoDiffConversationNav() {
 function initDiffHeaderPopupMenu(btn: HTMLElement) {
   const popup = btn.nextElementSibling;
   if (!popup?.matches('.tippy-target')) throw new Error('Popup element not found');
+  const fileCode = btn.closest('.diff-file-box')!.querySelector('.file-code')!;
   createTippy(btn, {
     content: popup,
     theme: 'menu',
@@ -147,6 +152,12 @@ function initDiffHeaderPopupMenu(btn: HTMLElement) {
     trigger: 'click',
     interactive: true,
     hideOnClick: true,
+    onShow: () => {
+      const hasEscaped = Boolean(fileCode.querySelector('.has-escaped'));
+      const isEscaped = fileCode.classList.contains('unicode-escaped');
+      toggleElem(popup.querySelector('.unescape-button')!, hasEscaped && isEscaped);
+      toggleElem(popup.querySelector('.escape-button')!, hasEscaped && !isEscaped);
+    },
   });
 }
 
@@ -211,6 +222,8 @@ async function onLocationHashChange() {
   while (currentHash === window.location.hash) {
     const targetElement = document.querySelector<HTMLElement>(`#${CSS.escape(targetElementId)}`);
     if (targetElement) {
+      const elHiddenView = targetElement.closest('.file-body.tw-hidden'); // e.g. a comment in the source view while rendered is shown
+      if (elHiddenView) document.querySelector<HTMLElement>(`.file-view-toggle[data-toggle-selector="#${CSS.escape(elHiddenView.id)}"]`)!.click();
       // need to change hash to re-trigger ":target" CSS selector, let's manually scroll to it
       targetElement.scrollIntoView();
       document.body.setAttribute(attrAutoScrollRunning, 'true');

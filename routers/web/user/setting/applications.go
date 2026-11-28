@@ -70,10 +70,9 @@ func CreateAccessToken(ctx *context.Context, owner *user_model.User) {
 		return
 	}
 
-	_ = ctx.Req.ParseForm()
 	var scopeNames []string
 	const accessTokenScopePrefix = "scope-"
-	for k, v := range ctx.Req.Form {
+	for k, v := range ctx.FormValues() {
 		if strings.HasPrefix(k, accessTokenScopePrefix) {
 			scopeNames = append(scopeNames, v...)
 		}

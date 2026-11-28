@@ -27,6 +27,7 @@ const (
 
 // VerifyCaptcha returns whether the captcha is solved or disabled, otherwise it renders tpl with an error
 func VerifyCaptcha(ctx *Context, tpl templates.TplName, form any) bool {
+	// TODO: REFACTOR-RENDER-WITH-ERR: form-fetch-action needs CAPTCHA refresh support before callers can stop re-rendering on verification failure.
 	if !setting.Service.EnableCaptcha {
 		return true
 	}

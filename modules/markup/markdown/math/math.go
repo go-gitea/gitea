@@ -23,16 +23,16 @@ type Options struct {
 
 // Extension is a math extension
 type Extension struct {
-	renderInternal *internal.RenderInternal
-	options        Options
+	internalVar *internal.RenderVarMutable[internal.RenderInternal]
+	options     Options
 }
 
 // NewExtension creates a new math extension with the provided options
-func NewExtension(renderInternal *internal.RenderInternal, opts ...Options) *Extension {
+func NewExtension(internalVar *internal.RenderVarMutable[internal.RenderInternal], opts ...Options) *Extension {
 	opt := giteaUtil.OptionalArg(opts)
 	r := &Extension{
-		renderInternal: renderInternal,
-		options:        opt,
+		internalVar: internalVar,
+		options:     opt,
 	}
 	return r
 }
@@ -54,7 +54,7 @@ func (e *Extension) Extend(m goldmark.Markdown) {
 		util.Prioritized(NewBlockParser(e.options.ParseBlockDollar, e.options.ParseBlockSquareBrackets), 701),
 	))
 	m.Renderer().AddOptions(renderer.WithNodeRenderers(
-		util.Prioritized(NewBlockRenderer(e.renderInternal), 501),
-		util.Prioritized(NewInlineRenderer(e.renderInternal), 502),
+		util.Prioritized(NewBlockRenderer(e.internalVar), 501),
+		util.Prioritized(NewInlineRenderer(e.internalVar), 502),
 	))
 }

@@ -58,9 +58,8 @@ test('totp sign-in and attempt limit', async ({page, request}) => {
   await page.waitForURL('**/user/two_factor');
   for (let attempt = 0; attempt < 5; attempt++) {
     await submitPasscode(page, '0000000');
-    await expect(page.getByLabel('Passcode')).toHaveValue('');
   }
-  await expect(page.getByText('Your passcode is incorrect')).toBeVisible();
+  await expect(page.getByText('Your passcode is incorrect').last()).toBeVisible();
   await submitPasscode(page, '0000000');
-  await expect(page.getByText('Too many incorrect passcodes')).toBeVisible();
+  await expect(page.getByText('Too many incorrect passcodes').last()).toBeVisible();
 });

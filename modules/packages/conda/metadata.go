@@ -10,7 +10,7 @@ import (
 	"io"
 	"strings"
 
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/jsonlimit"
 	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
@@ -91,10 +91,8 @@ type ReaderAndReaderAt interface {
 }
 
 // ParsePackageBZ2 parses the Conda package file compressed with bzip2
-func ParsePackageBZ2(r io.Reader) (*Package, error) {
-	gzr := bzip2.NewReader(r)
-
-	return parsePackageTar(gzr)
+func ParsePackageBZ2(r packages.SizedReader) (*Package, error) {
+	return parsePackageTar(packages.NewArchiveLimitedReader(bzip2.NewReader(r), r.Size()))
 }
 
 // ParsePackageConda parses the Conda package file compressed with zip and zstd
@@ -118,7 +116,7 @@ func ParsePackageConda(r io.ReaderAt, size int64) (*Package, error) {
 			}
 			defer dec.Close()
 
-			p, err := parsePackageTar(dec)
+			p, err := parsePackageTar(packages.NewArchiveLimitedReader(dec, size))
 			if p != nil {
 				p.FileMetadata.IsCondaPackage = true
 			}
@@ -148,7 +146,7 @@ func parsePackageTar(r io.Reader) (*Package, error) {
 		}
 
 		if hdr.Name == "info/index.json" {
-			if err := json.NewDecoder(packages.NewLimitedReader(tr, packages.MaxMetadataSize)).Decode(&i); err != nil {
+			if err := jsonlimit.DecodeWithLimit(tr, packages.MaxMetadataSize, &i); err != nil {
 				return nil, err
 			}
 
@@ -164,7 +162,7 @@ func parsePackageTar(r io.Reader) (*Package, error) {
 				break // stop loop if both files were found
 			}
 		} else if hdr.Name == "info/about.json" {
-			if err := json.NewDecoder(packages.NewLimitedReader(tr, packages.MaxMetadataSize)).Decode(&a); err != nil {
+			if err := jsonlimit.DecodeWithLimit(tr, packages.MaxMetadataSize, &a); err != nil {
 				return nil, err
 			}
 

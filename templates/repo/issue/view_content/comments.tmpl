@@ -13,7 +13,7 @@
 		29 = PULL_PUSH_EVENT, 30 = PROJECT_CHANGED, 31 = PROJECT_BOARD_CHANGED
 		32 = DISMISSED_REVIEW, 33 = COMMENT_TYPE_CHANGE_ISSUE_REF, 34 = PR_SCHEDULE_TO_AUTO_MERGE,
 		35 = CANCEL_SCHEDULED_AUTO_MERGE_PR, 36 = PIN_ISSUE, 37 = UNPIN_ISSUE,
-		38 = COMMENT_TYPE_CHANGE_TIME_ESTIMATE -->
+		38 = COMMENT_TYPE_CHANGE_TIME_ESTIMATE, 39 = PR_ADDED_TO_MERGE_QUEUE, 40 = PR_REMOVED_FROM_MERGE_QUEUE -->
 		{{if eq .Type 0}}
 			<div class="timeline-item comment" id="{{.HashTag}}">
 			{{if .OriginalAuthor}}
@@ -681,6 +681,18 @@
 						{{ctx.Locale.Tr "repo.pulls.auto_merge_disabled_comment" $createdStr}}
 					</span>
 				{{end}}
+			</div>
+		{{else if eq .Type 39 40}}
+			{{$byUser := or (eq .Type 39) (eq .Content "dequeued" "queue_cleared")}}
+			{{$queueLink := HTMLFormat `<a href="%s/queue/%s">%s</a>` $.RepoLink (PathEscapeSegments $.Issue.PullRequest.BaseBranch) (ctx.Locale.Tr "repo.pulls.merge_queue.link_text")}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-git-merge-queue" 16}}</span>
+				{{if $byUser}}{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}{{end}}
+				<span class="comment-text-line">
+					{{if $byUser}}{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}{{end}}
+					{{if eq .Type 39}}{{ctx.Locale.Tr "repo.pulls.merge_queue.added_comment" $queueLink $createdStr}}
+					{{else}}{{ctx.Locale.Tr (printf "repo.pulls.merge_queue.removed_comment.%s" .Content) $queueLink $createdStr}}{{end}}
+				</span>
 			</div>
 		{{else if or (eq .Type 36) (eq .Type 37)}}
 			<div class="timeline-item event" id="{{.HashTag}}">

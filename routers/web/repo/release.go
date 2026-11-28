@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -19,9 +20,11 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/references"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
@@ -76,21 +79,17 @@ type ReleaseInfo struct {
 	CommitStatus   *git_model.CommitStatus
 	CommitStatuses []*git_model.CommitStatus
 	Reactions      issues_model.ReactionList
+	Contributors   []*user_model.User
 }
 
-func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions) ([]*ReleaseInfo, error) {
-	releases, err := db.Find[repo_model.Release](ctx, opts)
-	if err != nil {
-		return nil, err
-	}
-
+func getReleaseInfos(ctx *context.Context, releases []*repo_model.Release) ([]*ReleaseInfo, error) {
 	releaseIDs := make([]int64, 0, len(releases))
 	for _, release := range releases {
 		release.Repo = ctx.Repo.Repository
 		releaseIDs = append(releaseIDs, release.ID)
 	}
 
-	if err = repo_model.GetReleaseAttachments(ctx, releases...); err != nil {
+	if err := repo_model.GetReleaseAttachments(ctx, releases...); err != nil {
 		return nil, err
 	}
 
@@ -130,8 +129,29 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 		}
 	}
 
+	mentionsByRelease := make([][]string, len(releases))
+	mentionedNames := container.Set[string]{}
+	for i, release := range releases {
+		for _, name := range references.FindAllMentionsMarkdown(release.Note) {
+			mentionsByRelease[i] = append(mentionsByRelease[i], strings.ToLower(name))
+		}
+		mentionedNames.AddMultiple(mentionsByRelease[i]...)
+	}
+	mentionedUsers := make(map[string]*user_model.User, len(mentionedNames))
+	for names := range slices.Chunk(mentionedNames.Values(), db.DefaultMaxInSize) {
+		users, err := user_model.GetRealDoerUsersByNames(ctx, names)
+		if err != nil && !user_model.IsErrUserNotExist(err) {
+			return nil, err
+		}
+		for _, user := range users {
+			if user.IsActive && !user.ProhibitLogin && user_model.IsUserVisibleToViewer(ctx, user, ctx.Doer) {
+				mentionedUsers[user.LowerName] = user
+			}
+		}
+	}
+
 	releaseInfos := make([]*ReleaseInfo, 0, len(releases))
-	for _, r := range releases {
+	for i, r := range releases {
 		if r.Publisher, ok = cacheUsers[r.PublisherID]; !ok {
 			r.PublisherID, r.Publisher, err = user_model.GetPossibleUserByID(ctx, r.PublisherID)
 			if err != nil {
@@ -157,6 +177,10 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 		info := &ReleaseInfo{
 			Release:   r,
 			Reactions: reactionsByRelease[r.ID],
+			Contributors: container.FilterSlice(mentionsByRelease[i], func(name string) (*user_model.User, bool) {
+				user := mentionedUsers[name]
+				return user, user != nil
+			}),
 		}
 
 		if canReadCode {
@@ -200,7 +224,7 @@ func Releases(ctx *context.Context) {
 		listOptions.PageSize = setting.API.MaxResponseItems
 	}
 
-	releases, err := getReleaseInfos(ctx, &repo_model.FindReleasesOptions{
+	rels, err := repo_model.FindReleaseList(ctx, repo_model.ReleaseListOptions{
 		ListOptions: listOptions,
 		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
 		IncludeDrafts: preparedData.writeAccess,
@@ -210,10 +234,10 @@ func Releases(ctx *context.Context) {
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	for _, rel := range releases {
-		if rel.Release.IsTag && rel.Release.Title == "" {
-			rel.Release.Title = rel.Release.TagName
-		}
+	releases, err := getReleaseInfos(ctx, rels)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
 	}
 
 	ctx.Data["Releases"] = releases
@@ -304,7 +328,7 @@ func releasesOrTagsFeed(ctx *context.Context, isReleasesOnly bool, formatType st
 func SingleRelease(ctx *context.Context) {
 	preparedData := prepareReleasePageCommon(ctx)
 
-	releases, err := getReleaseInfos(ctx, &repo_model.FindReleasesOptions{
+	rels, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
 		ListOptions: db.ListOptions{Page: 1, PageSize: 1},
 		RepoID:      ctx.Repo.Repository.ID,
 		TagNames:    []string{ctx.PathParam("*")},
@@ -312,6 +336,11 @@ func SingleRelease(ctx *context.Context) {
 		IncludeDrafts: preparedData.writeAccess,
 		IncludeTags:   true,
 	})
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	releases, err := getReleaseInfos(ctx, rels)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
@@ -621,7 +650,7 @@ func EditReleasePost(ctx *context.Context) {
 	editAttachments := make(map[string]string) // uuid -> new name
 	if setting.Attachment.Enabled {
 		addAttachmentUUIDs = form.Files
-		for k, v := range ctx.Req.Form {
+		for k, v := range ctx.FormValues() {
 			if strings.HasPrefix(k, delPrefix) && v[0] == "true" {
 				delAttachmentUUIDs = append(delAttachmentUUIDs, k[len(delPrefix):])
 			} else if strings.HasPrefix(k, editPrefix) {

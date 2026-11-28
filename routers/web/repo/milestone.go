@@ -14,7 +14,6 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/web"
 	"gitea.dev/routers/common"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -104,20 +103,14 @@ func NewMilestone(ctx *context.Context) {
 
 // NewMilestonePost response for creating milestone
 func NewMilestonePost(ctx *context.Context) {
-	form := web.GetForm[*forms.CreateMilestoneForm](ctx)
-	ctx.Data["Title"] = ctx.Tr("repo.milestones.new")
-	ctx.Data["PageIsIssueList"] = true
-	ctx.Data["PageIsMilestones"] = true
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplMilestoneNew)
+	form := context.GetFetchActionForm[*forms.CreateMilestoneForm](ctx)
+	if ctx.Written() {
 		return
 	}
 
 	deadlineUnix, err := common.ParseDeadlineDateToEndOfDay(form.Deadline)
 	if err != nil {
-		ctx.Data["Err_Deadline"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("repo.milestones.invalid_due_date_format"), tplMilestoneNew, &form)
+		ctx.JSONErrorWithField(ctx.Tr("repo.milestones.invalid_due_date_format"), "Deadline")
 		return
 	}
 
@@ -132,7 +125,7 @@ func NewMilestonePost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.milestones.create_success", form.Title))
-	ctx.Redirect(ctx.Repo.RepoLink + "/milestones")
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones")
 }
 
 // EditMilestone render editing milestone page
@@ -156,20 +149,14 @@ func EditMilestone(ctx *context.Context) {
 
 // EditMilestonePost response for editing milestone
 func EditMilestonePost(ctx *context.Context) {
-	form := web.GetForm[*forms.CreateMilestoneForm](ctx)
-	ctx.Data["Title"] = ctx.Tr("repo.milestones.edit")
-	ctx.Data["PageIsMilestones"] = true
-	ctx.Data["PageIsEditMilestone"] = true
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplMilestoneNew)
+	form := context.GetFetchActionForm[*forms.CreateMilestoneForm](ctx)
+	if ctx.Written() {
 		return
 	}
 
 	deadlineUnix, err := common.ParseDeadlineDateToEndOfDay(form.Deadline)
 	if err != nil {
-		ctx.Data["Err_Deadline"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("repo.milestones.invalid_due_date_format"), tplMilestoneNew, &form)
+		ctx.JSONErrorWithField(ctx.Tr("repo.milestones.invalid_due_date_format"), "Deadline")
 		return
 	}
 
@@ -187,7 +174,7 @@ func EditMilestonePost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.milestones.edit_success", m.Name))
-	ctx.Redirect(ctx.Repo.RepoLink + "/milestones")
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones")
 }
 
 // ChangeMilestoneStatus response for changing a milestone's status

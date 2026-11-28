@@ -74,7 +74,6 @@ var (
 	PasswordComplexity                 []string
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
-	SuccessfulTokensCacheSize          int
 	DisableQueryAuthToken              bool
 	RecordUserSignupMetadata           = false
 	TwoFactorAuthEnforced              = false
@@ -178,7 +177,6 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	}
 
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
-	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
 	if err := sec.MapTo(&Security); err != nil {
 		log.Fatal("Failed to map security settings: %v", err)
@@ -218,15 +216,10 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 		}
 	}
 
-	sectionHasDisableQueryAuthToken := sec.HasKey("DISABLE_QUERY_AUTH_TOKEN")
-
-	// TODO: default value should be true in future releases
-	DisableQueryAuthToken = sec.Key("DISABLE_QUERY_AUTH_TOKEN").MustBool(false)
+	DisableQueryAuthToken = sec.Key("DISABLE_QUERY_AUTH_TOKEN").MustBool(true)
+	if !DisableQueryAuthToken {
+		LogStartupProblem(1, log.WARN, "Deprecation: config option `[security].DISABLE_QUERY_AUTH_TOKEN = false` enables URL query tokens, clients should send tokens in the Authorization header instead")
+	}
 
 	RecordUserSignupMetadata = sec.Key("RECORD_USER_SIGNUP_METADATA").MustBool(false)
-
-	// warn if the setting is set to false explicitly
-	if sectionHasDisableQueryAuthToken && !DisableQueryAuthToken {
-		log.Warn("Enabling Query API Auth tokens is not recommended. DISABLE_QUERY_AUTH_TOKEN will default to true in gitea 1.23 and will be removed in gitea 1.24.")
-	}
 }

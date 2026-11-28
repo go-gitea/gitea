@@ -1,5 +1,5 @@
 import {stripTags} from '../utils.ts';
-import {hideElem, queryElemChildren, showElem} from '../utils/dom.ts';
+import {queryElemChildren, toggleElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast, type Toast} from '../modules/toast.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
@@ -19,16 +19,20 @@ export function initRepoTopicBar() {
   const topicDropdown = editDiv.querySelector('.ui.dropdown')!;
   let lastErrorToast: Toast | null = null;
 
+  const setEditing = (editing: boolean) => {
+    toggleElem(editDiv, editing);
+    toggleElem(mgrBtn, !editing);
+    toggleElem(viewDiv, !editing && viewDiv.children.length > 0);
+  };
+
   mgrBtn.addEventListener('click', () => {
-    hideElem([viewDiv, mgrBtn]);
-    showElem(editDiv);
+    setEditing(true);
     topicDropdown.querySelector<HTMLInputElement>('input.search')!.focus();
   });
 
   document.querySelector('#cancel_topic_edit')!.addEventListener('click', () => {
     lastErrorToast?.hideToast();
-    hideElem(editDiv);
-    showElem([viewDiv, mgrBtn]);
+    setEditing(false);
     mgrBtn.focus();
   });
 
@@ -58,8 +62,7 @@ export function initRepoTopicBar() {
             viewDiv.append(link);
           }
         }
-        hideElem(editDiv);
-        showElem([viewDiv, mgrBtn]);
+        setEditing(false);
       }
     } else if (response.status === 422) {
       // how to test: input topic like " invalid topic " (with spaces), and select it from the list, then "Save"

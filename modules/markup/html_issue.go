@@ -43,17 +43,17 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 				m[idx] += start
 			}
 		}
+		start = m[1]
 
 		// leave links to sub-pages like https://domain/org/repo/pulls/27/files or .../pulls/27/commits/{sha} to the other processors
 		if m[1] < len(node.Data) && node.Data[m[1]] == '/' {
-			start = m[1]
 			continue
 		}
 
 		link := node.Data[m[0]:m[1]]
 		siteURL := httplib.ParseGiteaSiteURL(ctx, link)
 		if siteURL == nil {
-			return
+			continue
 		}
 		isSameRepo := siteURL.OwnerName == ctx.RenderOptions.Metas["user"] && siteURL.RepoName == ctx.RenderOptions.Metas["repo"]
 

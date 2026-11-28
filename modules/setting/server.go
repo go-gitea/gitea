@@ -265,12 +265,16 @@ func loadServerFrom(rootCfg ConfigProvider) {
 
 	appTempPathInternal = sec.Key("APP_TEMP_PATH").String()
 	if appTempPathInternal != "" {
+		if !filepath.IsAbs(appTempPathInternal) {
+			appTempPathInternal = filepath.Join(AppDataPath, appTempPathInternal)
+		}
 		if _, err := os.Stat(appTempPathInternal); err != nil {
 			log.Fatal("APP_TEMP_PATH %q is not accessible: %v", appTempPathInternal, err)
 		}
+		appTempPathInternal, _ = filepath.Abs(appTempPathInternal)
 	}
 
-	// TODO: GOLANG-HTTP-TMPDIR: Some Golang packages (like "http") use os.TempDir() to create temporary files when uploading files.
+	// HINT: GOLANG-HTTP-TMPDIR: Some Golang packages (like "http") use os.TempDir() to create temporary files when uploading files.
 	// So ideally we should set the TMPDIR environment variable to make them use our managed temp directory.
 	// But there is no clear place to set it currently, for example: when running "install" page, the AppDataPath is not ready yet, then AppDataTempDir won't work
 

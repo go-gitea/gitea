@@ -19,8 +19,7 @@ import (
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/web"
-	route_web "gitea.dev/routers/web"
-	"gitea.dev/services/context"
+	"gitea.dev/modules/web/binding"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -171,14 +170,14 @@ func TestAttachments(t *testing.T) {
 func testUploadAttachmentDeleteTemp(t *testing.T) {
 	session := loginUser(t, "user2")
 	countTmpFile := func() int {
-		// TODO: GOLANG-HTTP-TMPDIR: Golang saves the uploaded file to os.TempDir() when it exceeds the max memory limit.
+		// HINT: GOLANG-HTTP-TMPDIR: Golang saves the uploaded file to os.TempDir() when it exceeds the max memory limit.
 		files, err := fs.Glob(os.DirFS(os.TempDir()), "multipart-*") //nolint:usetesting // Golang's "http" package's behavior
 		require.NoError(t, err)
 		return len(files)
 	}
 	var tmpFileCountDuringUpload int
-	defer test.MockVariableValue(&context.ParseMultipartFormMaxMemory, 1)()
-	defer web.RouteMock(route_web.RouterMockPointBeforeWebRoutes, func(resp http.ResponseWriter, req *http.Request) {
+	defer test.MockVariableValue(&binding.ParseMultipartFormMaxMemory, 1)()
+	defer web.RouteMock("mockpoint-attachment-uploaded", func(http.ResponseWriter, *http.Request) {
 		tmpFileCountDuringUpload = countTmpFile()
 	})()
 	_ = testCreateIssueAttachment(t, session, "/user2/repo1", "image.png", testGeneratePngBytes(), http.StatusOK)

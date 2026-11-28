@@ -3,6 +3,7 @@
 <div id="issue-list" class="flex-divided-list items-with-main">
 	{{$approvalCounts := $root.ApprovalCounts}}
 	{{range $issue := $root.Issues}}
+		{{$queued := and $issue.IsPull $root.QueuedPulls ($root.QueuedPulls.Contains $issue.PullRequest.ID)}}
 		<div class="item">
 
 			<div class="item-leading">
@@ -11,7 +12,7 @@
 					{{if $root.CanWriteIssuesOrPulls}}
 						<input type="checkbox" autocomplete="off" class="issue-checkbox tw-mr-[14px]" data-issue-id="{{$issue.ID}}" aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}}: {{$issue.Title}}">
 					{{end}}
-					{{template "shared/issueicon" $issue}}
+					{{if $queued}}<span data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.merge_queue.state.queued"}}">{{svg "octicon-git-merge-queue" 16 "tw-text-yellow"}}</span>{{else}}{{template "shared/issueicon" $issue}}{{end}}
 				</div>
 			</div>
 
@@ -56,6 +57,9 @@
 						{{ctx.Locale.Tr $issue.GetLastEventLabelFake $timeStr $issue.Poster.GetDisplayName}}
 					{{end}}
 					</div>
+					{{if $queued}}
+						<a class="flex-text-inline muted" href="{{$issue.PullRequest.BaseRepo.Link}}/queue/{{PathEscapeSegments $issue.PullRequest.BaseBranch}}" aria-label="{{ctx.Locale.Tr "repo.pulls.merge_queue.view_queued"}}">{{svg "octicon-git-merge-queue" 14}}{{ctx.Locale.Tr "repo.pulls.merge_queue.state.queued"}}</a>
+					{{end}}
 
 					{{if $issue.IsPull}}
 						<div class="branches flex-text-inline">
@@ -65,7 +69,7 @@
 									{{if ne $issue.RepoID $issue.PullRequest.BaseRepoID}}<span class="truncated-name">{{$issue.PullRequest.BaseRepo.OwnerName}}</span>:{{end}}<span class="truncated-name">{{$issue.PullRequest.BaseBranch}}</span>
 								</a>
 							</div>
-							{{svg "gitea-double-chevron-left" 12}}
+							{{svg "octicon-arrow-left" 12}}
 							{{if $issue.PullRequest.HeadRepo}}
 							<div class="branch">
 								<a href="{{$issue.PullRequest.HeadRepo.Link}}/src/branch/{{PathEscapeSegments $issue.PullRequest.HeadBranch}}">
