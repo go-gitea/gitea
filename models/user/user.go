@@ -1486,16 +1486,16 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 		// viewer's org user
 		builder.In("`user`.id",
 			builder.
-				Select("`team_user`.uid").
-				From("team_user").
-				Join("INNER", "`team_user` AS t2", "`team_user`.org_id = `t2`.org_id").
+				Select("`org_user`.uid").
+				From("org_user").
+				Join("INNER", "`org_user` AS t2", "`org_user`.org_id = `t2`.org_id").
 				Where(builder.Eq{"`t2`.uid": viewer.ID})),
 		// viewer's org
 		builder.In("`user`.id",
 			builder.
-				Select("`team_user`.org_id").
-				From("team_user").
-				Where(builder.Eq{"`team_user`.uid": viewer.ID})))
+				Select("`org_user`.org_id").
+				From("org_user").
+				Where(builder.Eq{"`org_user`.uid": viewer.ID})))
 }
 
 // IsUserVisibleToViewer check if viewer is able to see user profile

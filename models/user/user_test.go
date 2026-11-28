@@ -504,6 +504,21 @@ func TestIsUserVisibleToViewer(t *testing.T) {
 	test(user31, user29, false)
 	test(user31, user33, true)
 	test(user31, nil, false)
+
+	t.Run("FollowersInDifferentTeamsOfSameOrganization", func(t *testing.T) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		user8 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 8})
+		user2.Visibility = structs.VisibleTypePrivate
+		require.NoError(t, user_model.UpdateUserCols(t.Context(), user2, "visibility"))
+
+		followers, _, err := user_model.GetUserFollowers(t.Context(), user8, user31, db.ListOptions{})
+		require.NoError(t, err)
+		assert.Empty(t, followers)
+
+		followers, _, err = user_model.GetUserFollowers(t.Context(), user8, user20, db.ListOptions{})
+		require.NoError(t, err)
+		assert.Equal(t, []int64{user2.ID}, user_model.UserList(followers).GetUserIDs())
+	})
 }
 
 func Test_ValidateUser(t *testing.T) {
