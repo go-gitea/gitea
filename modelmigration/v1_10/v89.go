@@ -10,7 +10,6 @@ import (
 )
 
 func AddOriginalMigrationInfo(_ context.Context, x base.EngineMigration) error {
-	// Issue see models/issue.go
 	type Issue struct {
 		OriginalAuthor   string
 		OriginalAuthorID int64
@@ -20,7 +19,6 @@ func AddOriginalMigrationInfo(_ context.Context, x base.EngineMigration) error {
 		return err
 	}
 
-	// Issue see models/issue_comment.go
 	type Comment struct {
 		OriginalAuthor   string
 		OriginalAuthorID int64
@@ -30,7 +28,6 @@ func AddOriginalMigrationInfo(_ context.Context, x base.EngineMigration) error {
 		return err
 	}
 
-	// Issue see models/repo.go
 	type Repository struct {
 		OriginalURL string
 	}

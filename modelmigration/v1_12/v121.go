@@ -10,7 +10,6 @@ import (
 )
 
 func AddIsRestricted(_ context.Context, x base.EngineMigration) error {
-	// User see models/user.go
 	type User struct {
 		ID           int64 `xorm:"pk autoincr"`
 		IsRestricted bool  `xorm:"NOT NULL DEFAULT false"`

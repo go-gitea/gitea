@@ -13,7 +13,6 @@ import (
 )
 
 func AddScratchHash(_ context.Context, x base.EngineMigration) error {
-	// TwoFactor see models/twofactor.go
 	type TwoFactor struct {
 		ID               int64 `xorm:"pk autoincr"`
 		UID              int64 `xorm:"UNIQUE"`

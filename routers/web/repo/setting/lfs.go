@@ -329,7 +329,7 @@ func LFSDelete(ctx *context.Context) {
 		return
 	}
 	// FIXME: Warning: the LFS store is not locked - and can't be locked - there could be a race condition here
-	// Please note a similar condition happens in models/repo.go DeleteRepository
+	// Please note a similar condition happens in DeleteRepositoryDirectly
 	if count == 0 {
 		oidPath := path.Join(oid[0:2], oid[2:4], oid[4:])
 		err = storage.LFS.Delete(oidPath)
