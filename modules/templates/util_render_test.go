@@ -334,16 +334,22 @@ func TestAvatarStack(t *testing.T) {
 		return gituser.BuildAvatarStackData(t.Context(), all, &user_model.EmailUserMap{})
 	}
 
-	t.Run("lone author renders bare name, no label", func(t *testing.T) {
-		got := string(ut.AvatarStackWithNames(mkData()))
+	t.Run("unlinked author keeps the search link and gets an account indicator", func(t *testing.T) {
+		data := mkData()
+		data.SearchByEmailLink = "/repo/commits/search?q=author%3A{email}"
+		got := string(ut.AvatarStackWithNames(data))
 		assert.Contains(t, got, `<span class="avatar-stack-names">`)
-		assert.Contains(t, got, "Alice")
+		assert.Contains(t, got, `href="/repo/commits/search?q=author%3Aalice%40example.com">Alice</a>`)
+		assert.Contains(t, got, `aria-label="repo.commits.avatar_stack_unlinked"`)
 		assert.NotContains(t, got, "avatar_stack_and")
 		assert.NotContains(t, got, "avatar_stack_people")
 	})
 
-	t.Run("two participants use and label", func(t *testing.T) {
-		got := string(ut.AvatarStackWithNames(mkData(mkCo("Bob", "bob@example.com"))))
+	t.Run("only the unlinked participant gets an account indicator", func(t *testing.T) {
+		data := mkData(mkCo("Bob", "bob@example.com"))
+		data.Participants[0].GiteaUser = &user_model.User{ID: 1, Name: "Alice"}
+		got := string(ut.AvatarStackWithNames(data))
+		assert.Equal(t, 1, strings.Count(got, `aria-label="repo.commits.avatar_stack_unlinked"`))
 		assert.Contains(t, got, "repo.commits.avatar_stack_and")
 		assert.Contains(t, got, "Bob")
 		assert.NotContains(t, got, "avatar_stack_people")
@@ -357,6 +363,7 @@ func TestAvatarStack(t *testing.T) {
 		assert.Contains(t, got, `data-global-init="initAvatarStackPopup"`)
 		assert.Contains(t, got, `<div class="tippy-target">`)
 		assert.Contains(t, got, `class="avatar-stack-popup"`)
+		assert.Equal(t, 3, strings.Count(got, `aria-label="repo.commits.avatar_stack_unlinked"`))
 	})
 
 	t.Run("overflow chip renders beyond 10 participants", func(t *testing.T) {

@@ -45,6 +45,7 @@ func TestRepoCommits(t *testing.T) {
 			userHrefs = append(userHrefs, s.AttrOr("href", ""))
 		})
 		assert.Equal(t, []string{"69554a64c1e6030f051e5c3f94bfbd773cd6a324", "27566bd5738fc8b4e3fef3c5e72cce608537bd95", "5099b81332712fe655e34e8dd63574f503f61811"}, commits)
+		assert.Zero(t, doc.doc.Find(`#commits-table .avatar-stack-names [role="img"][aria-label="No linked Gitea account"]`).Length())
 		assert.Equal(t, []string{
 			"/user2/repo16/commits/branch/master/search?q=author%3Auser2%40example.com",
 			"/user2/repo16/commits/branch/master/search?q=author%3Auser21%40example.com",
@@ -74,6 +75,7 @@ func TestRepoCommits(t *testing.T) {
 		assert.Equal(t, "/user2/repo1/commit/985f0301dba5e7b34be866819cd15ad3d8f508ee", commitHref)
 		authorElem := doc.doc.Find("#commits-table tr:first-child .avatar-stack-names")
 		assert.Equal(t, "6543", strings.TrimSpace(authorElem.Text()))
+		assert.Equal(t, 1, authorElem.Find(`[role="img"][aria-label="No linked Gitea account"]`).Length())
 	})
 
 	t.Run("CommitPageUsesCommitterDate", func(t *testing.T) {
@@ -105,6 +107,7 @@ func TestRepoCommits(t *testing.T) {
 		assert.Equal(t, "/user2/repo1/commit/985f0301dba5e7b34be866819cd15ad3d8f508ee", commitHref)
 		authorElem := doc.doc.Find(".latest-commit .avatar-stack-names")
 		assert.Equal(t, "6543", strings.TrimSpace(authorElem.Text()))
+		assert.Equal(t, 1, authorElem.Find(`[role="img"][aria-label="No linked Gitea account"]`).Length())
 	})
 
 	t.Run("CommitterIsNotAuthor", func(t *testing.T) {
