@@ -149,18 +149,17 @@ func (r *BlameReader) cleanup() {
 	}
 }
 
-// CreateBlameReader creates reader for given git.RepositoryFacade, commit and file
-func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repo RepositoryFacade, gitRepo *Repository, commit *Commit, file string, bypassBlameIgnore bool) (rd *BlameReader, retErr error) {
+// CreateBlameReader creates reader for given git.Repository, commit and file
+func CreateBlameReader(ctx context.Context, gitRepo *Repository, commit *Commit, file string, bypassBlameIgnore bool) (_ *BlameReader, retErr error) {
+	rd := &BlameReader{
+		done:         make(chan error, 1),
+		objectFormat: commit.ID.Type(),
+	}
 	defer func() {
 		if retErr != nil {
 			rd.cleanup()
 		}
 	}()
-
-	rd = &BlameReader{
-		done:         make(chan error, 1),
-		objectFormat: objectFormat,
-	}
 
 	cmd := gitcmd.NewCommand("blame", "--porcelain")
 
@@ -185,10 +184,68 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repo Repo
 
 	go func() {
 		// TODO: it doesn't work for directories (the directories shouldn't be "blamed"), and the "err" should be returned by "Read" but not by "Close"
-		rd.done <- cmd.WithRepo(repo).RunWithStderr(ctx)
+		rd.done <- cmd.WithRepo(gitRepo).RunWithStderr(ctx)
 	}()
 
 	return rd, nil
+}
+
+type BlameResult struct {
+	Parts                []*BlamePart
+	UsesIgnoreRevs       bool
+	FaultyIgnoreRevsFile bool
+}
+
+// GetBlame blames the file at the commit, falling back to a plain blame if git rejects .git-blame-ignore-revs
+func GetBlame(ctx context.Context, gitRepo *Repository, commit *Commit, file string, bypassBlameIgnore bool) (*BlameResult, error) {
+	result := &BlameResult{}
+	for {
+		blameReader, err := CreateBlameReader(ctx, gitRepo, commit, file, bypassBlameIgnore)
+		if err != nil {
+			return nil, err
+		}
+		if err = fillBlameResult(blameReader, result); err != nil {
+			_ = blameReader.Close()
+			return nil, err
+		}
+		if err = blameReader.Close(); err == nil {
+			return result, nil
+		}
+		if len(result.Parts) != 0 || !result.UsesIgnoreRevs {
+			return nil, err
+		}
+		result.FaultyIgnoreRevsFile, bypassBlameIgnore = true, true
+	}
+}
+
+func fillBlameResult(br *BlameReader, result *BlameResult) error {
+	result.UsesIgnoreRevs = br.UsesIgnoreRevs()
+
+	previousHelper := make(map[string]*BlamePart)
+
+	result.Parts = make([]*BlamePart, 0, 5)
+	for {
+		blamePart, err := br.NextPart()
+		if err != nil {
+			return fmt.Errorf("fillBlameResult: %w", err)
+		}
+		if blamePart == nil {
+			break
+		}
+
+		if prev, ok := previousHelper[blamePart.Sha]; ok {
+			if blamePart.PreviousSha == "" {
+				blamePart.PreviousSha = prev.PreviousSha
+				blamePart.PreviousPath = prev.PreviousPath
+			}
+		} else {
+			previousHelper[blamePart.Sha] = blamePart
+		}
+
+		result.Parts = append(result.Parts, blamePart)
+	}
+
+	return nil
 }
 
 func tryCreateBlameIgnoreRevsFile(ctx context.Context, gitRepo *Repository, commit *Commit) (string, func(), error) {

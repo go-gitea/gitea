@@ -27,7 +27,6 @@ func TestReadingBlameOutput(t *testing.T) {
 	for _, scenario := range []struct {
 		name             string
 		repositorySuffix string
-		objectFormat     ObjectFormat
 		readmeCommit     string
 		readmePrevious   string
 		blameCommit      string
@@ -36,7 +35,6 @@ func TestReadingBlameOutput(t *testing.T) {
 	}{
 		{
 			name:           "sha1",
-			objectFormat:   Sha1ObjectFormat,
 			readmeCommit:   "f32b0a9dfd09a60f616f29158f772cedd89942d2",
 			readmePrevious: "72866af952e98d02a73003501836074b286a78f6",
 			blameCommit:    "544d8f7a3b15927cddf2299b4b562d6ebd71b6a7",
@@ -46,7 +44,6 @@ func TestReadingBlameOutput(t *testing.T) {
 		{
 			name:             "sha256",
 			repositorySuffix: "_sha256",
-			objectFormat:     Sha256ObjectFormat,
 			readmeCommit:     "0b69b7bb649b5d46e14cabb6468685e5dd721290acc7ffe604d37cde57927345",
 			readmePrevious:   "1e35a51dc00fd7de730344c07061acfe80e8117e075ac979b6a29a3a045190ca",
 			blameCommit:      "e2f5660e15159082902960af0ed74fc144921d2b0c80e069361853b3ece29ba3",
@@ -86,7 +83,7 @@ func TestReadingBlameOutput(t *testing.T) {
 				}
 
 				for _, bypass := range []bool{false, true} {
-					blameReader, err := CreateBlameReader(ctx, scenario.objectFormat, storage, repo, commit, "README.md", bypass)
+					blameReader, err := CreateBlameReader(ctx, repo, commit, "README.md", bypass)
 					assert.NoError(t, err)
 					assert.NotNil(t, blameReader)
 					defer blameReader.Close()
@@ -166,13 +163,11 @@ func TestReadingBlameOutput(t *testing.T) {
 					},
 				}
 
-				objectFormat, err := repo.GetObjectFormat(t.Context())
-				assert.NoError(t, err)
 				for _, c := range cases {
 					commit, err := repo.GetCommit(t.Context(), c.CommitID)
 					assert.NoError(t, err)
 
-					blameReader, err := CreateBlameReader(ctx, objectFormat, storage, repo, commit, "blame.txt", c.Bypass)
+					blameReader, err := CreateBlameReader(ctx, repo, commit, "blame.txt", c.Bypass)
 					assert.NoError(t, err)
 					assert.NotNil(t, blameReader)
 					defer blameReader.Close()
