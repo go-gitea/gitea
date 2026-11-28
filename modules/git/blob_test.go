@@ -29,6 +29,7 @@ func TestBlob_Data(t *testing.T) {
 	require.NotNil(t, r)
 
 	data, err := io.ReadAll(r)
+	assert.False(t, repo.catFileBatchInUse)
 	assert.NoError(t, r.Close())
 
 	assert.NoError(t, err)

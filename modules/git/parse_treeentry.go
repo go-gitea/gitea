@@ -4,8 +4,10 @@
 package git
 
 import (
+	"bufio"
 	"bytes"
 	"io"
+	"sync"
 )
 
 // ParseTreeEntries parses the output of a `git ls-tree -l` command.
@@ -43,16 +45,20 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 	return entries, nil
 }
 
-func catBatchParseTreeEntries(objectFormat ObjectFormat, ptree *Tree, rd BufferedReader, sz int64) ([]*TreeEntry, error) {
-	entries := make([]*TreeEntry, 0, 10)
+var catBatchTreeReaderPool = sync.Pool{New: func() any { return bufio.NewReader(nil) }}
 
-loop:
+func catBatchParseTreeEntries(objectFormat ObjectFormat, ptree *Tree, rd io.Reader, sz int64) ([]*TreeEntry, error) {
+	entries := make([]*TreeEntry, 0, 10)
+	bufRd, _ := catBatchTreeReaderPool.Get().(*bufio.Reader)
+	bufRd.Reset(rd)
+	defer func() {
+		bufRd.Reset(nil)
+		catBatchTreeReaderPool.Put(bufRd)
+	}()
+
 	for sz > 0 {
-		mode, fname, objID, count, err := ParseCatFileTreeLine(objectFormat, rd)
+		mode, fname, objID, count, err := ParseCatFileTreeLine(objectFormat, bufRd)
 		if err != nil {
-			if err == io.EOF {
-				break loop
-			}
 			return nil, err
 		}
 		sz -= int64(count)
@@ -63,9 +69,5 @@ loop:
 		entry.name = fname
 		entries = append(entries, entry)
 	}
-	if _, err := rd.Discard(1); err != nil {
-		return entries, err
-	}
-
 	return entries, nil
 }
