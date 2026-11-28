@@ -156,6 +156,10 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	assert.EqualValues(t, "PENDING", review.State)
 	assert.Equal(t, 3, review.CodeCommentsCount)
 
+	updateReviewURL := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d", repo.OwnerName, repo.Name, pullIssue.Index, review.ID)
+	req = NewRequestWithJSON(t, http.MethodPut, updateReviewURL, &api.UpdatePullReviewOptions{Body: "just one nit"}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+
 	// test SubmitPullReview
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d", repo.OwnerName, repo.Name, pullIssue.Index, review.ID), &api.SubmitPullReviewOptions{
 		Event: "APPROVED",
@@ -171,8 +175,12 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	reviewComment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ReviewID: review.ID, Type: issues_model.CommentTypeReview})
 	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d", repo.OwnerName, repo.Name, reviewComment.ID), &api.EditIssueCommentOption{Body: "just one nit"}).AddTokenAuth(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue))
 	MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, http.MethodGet, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d", repo.OwnerName, repo.Name, pullIssue.Index, review.ID)).AddTokenAuth(token)
+	req = NewRequest(t, http.MethodGet, updateReviewURL).AddTokenAuth(token)
 	assert.Equal(t, "just one nit", DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{}).Body)
+
+	req = NewRequestWithJSON(t, http.MethodPut, updateReviewURL, &api.UpdatePullReviewOptions{Body: "no nits"}).AddTokenAuth(token)
+	review = DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{})
+	assert.Equal(t, "no nits", review.Body)
 
 	// test dismiss review
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d/dismissals", repo.OwnerName, repo.Name, pullIssue.Index, review.ID), &api.DismissPullReviewOptions{
