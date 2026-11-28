@@ -22,7 +22,12 @@ import (
 const (
 	PropertyType     = "cran.type"
 	PropertyPlatform = "cran.platform"
+	// PropertyRVersion is the name the R version is stored under. It is
+	// misspelled, but renaming it would orphan the rows of existing packages.
 	PropertyRVersion = "cran.rvserion"
+	// PropertyRVersionPublic is the correctly spelled name the API exposes
+	// next to the stored one, see Specialization.PublicPropertyAliases.
+	PropertyRVersionPublic = "cran.rversion"
 
 	TypeSource = "source"
 	TypeBinary = "binary"
