@@ -565,6 +565,10 @@ func handleChangeRepoFilesError(ctx *context.APIContext, err error) {
 		ctx.APIError(http.StatusForbidden, err.Error())
 		return
 	}
+	if files_service.IsErrCherryPickConflict(err) || errors.Is(err, files_service.ErrCherryPickNoChanges) {
+		ctx.APIError(http.StatusConflict, err.Error())
+		return
+	}
 	if git_model.IsErrBranchAlreadyExists(err) || files_service.IsErrFilenameInvalid(err) || pull_service.IsErrSHADoesNotMatch(err) ||
 		files_service.IsErrFilePathInvalid(err) || files_service.IsErrRepoFileAlreadyExists(err) ||
 		files_service.IsErrCommitIDDoesNotMatch(err) || files_service.IsErrSHAOrCommitIDNotProvided(err) {

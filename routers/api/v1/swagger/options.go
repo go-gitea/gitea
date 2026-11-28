@@ -134,6 +134,9 @@ type swaggerParameterBodies struct {
 	ApplyDiffPatchFileOptions api.ApplyDiffPatchFileOptions
 
 	// in:body
+	CherryPickOptions api.CherryPickOptions
+
+	// in:body
 	ChangeFilesOptions api.ChangeFilesOptions
 
 	// in:body

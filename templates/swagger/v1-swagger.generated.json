@@ -8943,6 +8943,64 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/commits/{sha}/cherry-pick": {
+      "post": {
+        "description": "The commit is applied with a three-way merge. If it conflicts or the result would not change the branch, nothing is committed and status 409 is returned. With dry_run the merge is checked but nothing is pushed, so branch protection rules and hooks are not evaluated.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Cherry-pick a commit onto a branch",
+        "operationId": "repoCherryPick",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "SHA of the commit to cherry-pick",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CherryPickOptions"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/FileResponse"
+          },
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/commits/{sha}/pull": {
       "get": {
         "produces": [
@@ -8979,6 +9037,64 @@
         "responses": {
           "200": {
             "$ref": "#/responses/PullRequest"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/commits/{sha}/revert": {
+      "post": {
+        "description": "The revert is applied with a three-way merge. If it conflicts or the result would not change the branch, nothing is committed and status 409 is returned. With dry_run the merge is checked but nothing is pushed, so branch protection rules and hooks are not evaluated.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Revert a commit on a branch",
+        "operationId": "repoRevertCommit",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "SHA of the commit to revert",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CherryPickOptions"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/FileResponse"
+          },
+          "204": {
+            "$ref": "#/responses/empty"
           },
           "default": {
             "$ref": "#/responses/error"
@@ -26171,6 +26287,52 @@
           "description": "The status of the file change (added, modified, deleted, etc.)",
           "type": "string",
           "x-go-name": "Status"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CherryPickOptions": {
+      "description": "CherryPickOptions options for cherry-picking or reverting a commit\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
+      "type": "object",
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/Identity"
+        },
+        "branch": {
+          "description": "branch (optional) is the base branch for the changes. If not supplied, the default branch is used",
+          "type": "string",
+          "x-go-name": "BranchName"
+        },
+        "committer": {
+          "$ref": "#/definitions/Identity"
+        },
+        "dates": {
+          "$ref": "#/definitions/CommitDateOptions"
+        },
+        "dry_run": {
+          "description": "dry_run (optional) only checks whether the commit can be applied cleanly, nothing is committed or pushed",
+          "type": "boolean",
+          "x-go-name": "DryRun"
+        },
+        "force_push": {
+          "description": "force_push (optional) will do a force-push if the new branch already exists",
+          "type": "boolean",
+          "x-go-name": "ForcePush"
+        },
+        "message": {
+          "description": "message (optional) is the commit message of the changes. If not supplied, a default message will be used",
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "new_branch": {
+          "description": "new_branch (optional) will make a new branch from base branch for the changes. If not supplied, the changes will be committed to the base branch",
+          "type": "string",
+          "x-go-name": "NewBranchName"
+        },
+        "signoff": {
+          "description": "Add a Signed-off-by trailer by the committer at the end of the commit log message.",
+          "type": "boolean",
+          "x-go-name": "Signoff"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
