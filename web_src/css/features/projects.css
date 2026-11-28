@@ -120,3 +120,66 @@
   max-height: unset;
   padding-bottom: 0.5em;
 }
+
+#project-board.project-board-swimlanes {
+  display: block;
+}
+
+.project-swimlane-columns {
+  display: flex;
+  width: max-content;
+  min-width: 100%;
+}
+
+.project-swimlane-headers {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-bottom: 0.5rem;
+  background: var(--color-body);
+}
+
+.project-swimlane {
+  width: max-content;
+  min-width: 100%;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.project-swimlane-title {
+  position: sticky;
+  left: 0;
+  width: fit-content;
+  margin: 0;
+  padding: 0.75rem 0.5rem;
+  font-size: 1rem;
+}
+
+.project-swimlane-cell {
+  flex: 0 0 320px;
+  display: flex;
+  flex-direction: column;
+  margin: 0 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  background: var(--color-project-column-bg);
+}
+
+.project-board-swimlanes .project-column:first-child {
+  margin-left: 0.5rem !important; /* Align headers with the swimlane cells. */
+}
+
+.project-board-swimlanes .project-column:last-child {
+  margin-right: 0.5rem !important;
+}
+
+.project-swimlane-cell > .ui.cards {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 0.25rem;
+  margin: 0;
+  min-height: 5rem;
+}
