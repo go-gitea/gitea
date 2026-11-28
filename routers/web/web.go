@@ -563,11 +563,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/topics/search", explore.TopicSearch)
 	}, optExploreSignIn)
 
-	m.Group("/issues", func() {
-		m.Get("", user.Issues)
-		m.Get("/search", repo.SearchGlobalIssues)
-	}, reqSignIn)
-
+	m.Get("/issues", reqSignIn, user.Issues)
 	m.Get("/pulls", reqSignIn, user.Pulls)
 	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
 
@@ -1320,7 +1316,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					Post(web.Bind[*forms.CreateIssueForm](), repo.NewIssuePost)
 				m.Get("/choose", repo.NewIssueChooseTemplate)
 			})
-			m.Get("/search", repo.SearchRepoIssuesJSON)
 		}, reqUnitIssuesReader)
 
 		addIssuesPullsUpdateRoutes := func() {
@@ -1334,6 +1329,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/pin", reqRepoAdmin, repo.IssuePinOrUnpin)
 				m.Post("/viewed-files", repo.UpdateViewedFiles)
 				m.Group("/dependency", func() {
+					m.Get("/candidates", repo.IssueDependencyCandidates)
 					m.Post("/add", repo.AddDependency)
 					m.Post("/delete", repo.RemoveDependency)
 				})

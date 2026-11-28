@@ -4,11 +4,114 @@
 package repo
 
 import (
+	"net/http"
+	"slices"
+
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
+	"gitea.dev/models/unit"
+	issue_indexer "gitea.dev/modules/indexer/issues"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
+	"gitea.dev/routers/common"
 	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
+
+// IssueDependencyCandidates searches the open issues and pull requests that can be added as a dependency of the issue.
+// It is used by the "add dependency" dropdown, so it leaves out the issue itself and the issues already linked to it.
+func IssueDependencyCandidates(ctx *context.Context) {
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound()
+		return
+	}
+	if !ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, issue.IsPull) {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+
+	excludedIDs, err := issues_model.GetLinkedDependencyIssueIDs(ctx, issue.ID)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	excludedIDs = append(excludedIDs, issue.ID)
+
+	limit := convert.ToCorrectPageSize(ctx.FormInt("limit"))
+	searchOpt := &issue_indexer.SearchOptions{
+		Paginator: &db.ListOptions{PageSize: min(limit+len(excludedIDs), setting.API.MaxResponseItems)},
+		Keyword:   ctx.FormTrim("q"),
+		RepoIDs:   []int64{ctx.Repo.Repository.ID},
+		IsClosed:  optional.Some(false),
+		SortBy:    issue_indexer.SortByCreatedDesc,
+	}
+	if !ctx.Repo.Permission.CanRead(unit.TypeIssues) {
+		searchOpt.IsPull = optional.Some(true)
+	} else if !ctx.Repo.Permission.CanRead(unit.TypePullRequests) {
+		searchOpt.IsPull = optional.Some(false)
+	}
+	if setting.Service.AllowCrossRepositoryDependencies {
+		// only the repositories of the same owner, so the search doesn't scale with the number of repositories of the instance
+		searchOpt.RepoIDs, searchOpt.AllPublic, err = common.SearchIssuesRepoIDs(ctx, common.SearchIssuesRepoIDsOptions{
+			Doer:      ctx.Doer,
+			OwnerName: ctx.Repo.Repository.OwnerName,
+		})
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+	}
+
+	perms := map[int64]access_model.Permission{ctx.Repo.Repository.ID: ctx.Repo.Permission}
+	candidates := make(issues_model.IssueList, 0, limit)
+	// the indexers can't leave out the linked issues or the ones the doer can't read, so search on until the page is full
+	for page := 1; page <= 10 && len(candidates) < limit; page++ {
+		searchOpt.Paginator.Page = page
+		ids, _, err := issue_indexer.SearchIssues(ctx, searchOpt)
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+		hasMore := len(ids) == searchOpt.Paginator.PageSize
+		ids = slices.DeleteFunc(ids, func(id int64) bool { return slices.Contains(excludedIDs, id) })
+		issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+		if _, err = issues.LoadRepositories(ctx); err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+		for _, candidate := range issues {
+			if len(candidates) == limit {
+				break
+			}
+			perm, ok := perms[candidate.RepoID]
+			if !ok {
+				if perm, err = access_model.GetDoerRepoPermission(ctx, candidate.Repo, ctx.Doer); err != nil {
+					ctx.ServerErrorAuto(err)
+					return
+				}
+				perms[candidate.RepoID] = perm
+			}
+			if perm.CanReadIssuesOrPulls(candidate.IsPull) {
+				candidates = append(candidates, candidate)
+			}
+		}
+		if !hasMore {
+			break
+		}
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToIssueList(ctx, ctx.Doer, candidates))
+}
 
 // AddDependency adds new dependencies
 func AddDependency(ctx *context.Context) {

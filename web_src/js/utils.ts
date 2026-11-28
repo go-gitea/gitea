@@ -77,7 +77,6 @@ export function parseIssuePageInfo(): IssuePageInfo {
   const el = document.querySelector('#issue-page-info');
   return {
     issueNumber: parseInt(el?.getAttribute('data-issue-index') || ''),
-    issueDependencySearchType: el?.getAttribute('data-issue-dependency-search-type') || '',
     repoId: parseInt(el?.getAttribute('data-issue-repo-id') || ''),
     repoLink: el?.getAttribute('data-issue-repo-link') || '',
   };
