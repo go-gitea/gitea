@@ -50,17 +50,13 @@ func NewAccessTokensPanel(ctx *context.Context, owner *user_model.User, link str
 		ctx.ServerErrorAuto(err)
 		return nil
 	}
-	panel := &AccessTokensPanel{
+	return &AccessTokensPanel{
 		Tokens:          tokens,
-		ScopeCategories: auth_model.GetAccessTokenCategories(),
+		ScopeCategories: util.Iif(owner.IsAdmin, auth_model.GetAccessTokenAdminCategories(), auth_model.GetAccessTokenCategories()),
 		ScopePublicOnly: auth_model.AccessTokenScopePublicOnly,
 		Link:            link,
 		IsBot:           owner.IsTypeBot(),
 	}
-	if !owner.IsAdmin {
-		panel.ScopeCategories = util.SliceRemoveAll(panel.ScopeCategories, "admin")
-	}
-	return panel
 }
 
 // CreateAccessToken handles the panel's create form, which posts to the panel link

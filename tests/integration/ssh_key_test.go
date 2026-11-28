@@ -51,7 +51,7 @@ func doAddChangesToCheckout(dstPath, filename string) func(*testing.T) {
 // TestSSHShellWelcome covers the "shell" request, which carries no command payload unlike "exec"
 func TestSSHShellWelcome(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
-		ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteUser)
+		ctx := NewAPITestContext(t, "user2", "repo1", auth_model.GetAccessTokenScopes(auth_model.Write)...)
 		withKeyFile(t, "welcome-key", func(keyFile string) {
 			t.Run("CreateUserKey", doAPICreateUserKey(ctx, "welcome-key", keyFile))
 
@@ -130,7 +130,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 	keyname := reponame + "-push"
 
 	// OK login
-	ctx := NewAPITestContext(t, username, reponame, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	ctx := NewAPITestContext(t, username, reponame, auth_model.AccessTokenScopeAll)
 	ctxWithDeleteRepo := NewAPITestContext(t, username, reponame, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 	otherCtx := ctx

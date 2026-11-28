@@ -114,8 +114,9 @@ func TestCreateUserKey(t *testing.T) {
 		Title: "test-key",
 		Key:   keyType + " " + keyContent,
 	}
+	MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/user/keys", rawKeyBody).AddTokenAuth(token), http.StatusForbidden)
 	req := NewRequestWithJSON(t, "POST", "/api/v1/user/keys", rawKeyBody).
-		AddTokenAuth(token)
+		AddTokenAuth(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll))
 	resp := MakeRequest(t, req, http.StatusCreated)
 
 	newPublicKey := DecodeJSON(t, resp, &api.PublicKey{})

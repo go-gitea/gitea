@@ -88,7 +88,7 @@ EOF
 
 func testRepoWikiCloneSSH(t *testing.T, u *url.URL) {
 	dstLocalPath := t.TempDir()
-	baseAPITestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	baseAPITestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeAll)
 	sshURL := createSSHUrl("/user2/repo1.wiki.git", u)
 
 	withKeyFile(t, "my-testing-key", func(keyFile string) {

@@ -10,6 +10,7 @@ import (
 
 	asymkey_model "gitea.dev/models/asymkey"
 	audit_model "gitea.dev/models/audit"
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	user_model "gitea.dev/models/user"
@@ -247,6 +248,22 @@ func CreatePublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/PublicKey"
 	//   default:
 	//     "$ref": "#/responses/error"
+
+	if tokenScope, isToken := user_model.GetDoerTokenScope(ctx.Doer); isToken {
+		requiredScopes := auth_model.GetAccessTokenScopes(auth_model.Write)
+		if ctx.Doer.IsAdmin {
+			requiredScopes = append(requiredScopes, auth_model.AccessTokenScopeWriteAdmin)
+		}
+		hasScopes, err := tokenScope.HasScope(requiredScopes...)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if !hasScopes {
+			ctx.APIError(http.StatusForbidden, "adding an SSH key requires a token with write access to all permissions")
+			return
+		}
+	}
 
 	form := web.GetForm[*api.CreateKeyOption](ctx)
 	CreateUserPublicKey(ctx, *form, ctx.Doer.ID)
