@@ -17,6 +17,9 @@ func TestPaginateSlice(t *testing.T) {
 	result = PaginateSlice(stringSlice, 100, 2)
 	assert.Equal(t, []string{}, result)
 
+	result = PaginateSlice(stringSlice, int(^uint(0)>>1), 2)
+	assert.Equal(t, []string{}, result)
+
 	result = PaginateSlice(stringSlice, 3, 2)
 	assert.Equal(t, []string{"e"}, result)
 
