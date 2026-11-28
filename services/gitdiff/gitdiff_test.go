@@ -1019,6 +1019,10 @@ func TestHighlightCodeLines(t *testing.T) {
 		ret := highlightLines("a.c", []*DiffLine{{LeftIdx: 1, IsTruncated: true}}, "// anything")
 		assert.Empty(t, ret)
 	})
+	t.Run("MultilineContext", func(t *testing.T) {
+		ret := highlightLines("a.c", []*DiffLine{{LeftIdx: 2}}, "/*\ninside\n*/\n")
+		assert.Equal(t, map[int]template.HTML{1: `<span class="cm">inside` + "\n</span>"}, ret)
+	})
 }
 
 func TestSyncUserSpecificDiff_UpdatedFiles(t *testing.T) {

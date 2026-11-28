@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/alecthomas/chroma/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -178,6 +179,17 @@ func TestUnsafeSplitHighlightedLines(t *testing.T) {
 	assert.Len(t, ret, 2)
 	assert.Equal(t, "<span>a</span>\n", string(ret[0]))
 	assert.Equal(t, "<span>b\n</span>", string(ret[1]))
+}
+
+func TestCodeTokensForLinesStopsAfterLastLine(t *testing.T) {
+	tokens := chroma.Literator(chroma.Token{Type: chroma.Comment, Value: "a\nb\nc\n"}, chroma.Token{Type: chroma.Comment, Value: "d\n"})
+	calls := 0
+	iterator := func() chroma.Token {
+		calls++
+		return tokens()
+	}
+	assert.Equal(t, []chroma.Token{{Type: chroma.Comment, Value: "b\n"}}, codeTokensForLines(iterator, []int{1}).Tokens())
+	assert.Equal(t, 1, calls)
 }
 
 func TestCodeBlockAttributes(t *testing.T) {
