@@ -107,6 +107,30 @@ func CancelScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *
 	return pull_service.RemoveScheduledAutoMerge(ctx, doer, pull, "")
 }
 
+func disableAutoMergeIfHookRejected(ctx context.Context, gitRepo *git.Repository, pr *issues_model.PullRequest, autoMerge *pull_model.AutoMerge, headCommitID string, mergeErr error) error {
+	message, declined := pull_service.HookDeclinedMessage(mergeErr)
+	if !declined {
+		return nil
+	}
+	if currentHeadCommitID, err := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName()); err != nil || currentHeadCommitID != headCommitID {
+		return err
+	}
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if deleted, err := db.DeleteByID[pull_model.AutoMerge](ctx, autoMerge.ID); err != nil || deleted == 0 {
+			return err
+		}
+		_, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
+			Type:                issues_model.CommentTypePRUnScheduledToAutoMerge,
+			Doer:                autoMerge.Doer,
+			Repo:                pr.BaseRepo,
+			Issue:               pr.Issue,
+			Content:             "push_rejected",
+			PushRejectedMessage: message,
+		})
+		return err
+	})
+}
+
 var errSkipAutoMerge = errors.New("skip auto merge")
 
 func handleAutoMergeItem(item automergequeue.AutoMergeItem) {
@@ -244,9 +268,9 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 		if pull_service.IsErrSHADoesNotMatch(err) {
 			return errors.Join(errSkipAutoMerge, err)
 		}
-		// FIXME: if merge failed, we should display some error message to the pull request page, or retry later.
-		// The resolution is add a new column on automerge table named `error_message` to store the error message and displayed
-		// on the pull request page. But this should not be finished in a bug fix PR which will be backport to release branch.
+		if disableErr := disableAutoMergeIfHookRejected(ctx, baseGitRepo, pr, scheduledPRM, expectedHeadCommitID, err); disableErr != nil {
+			log.Error("disableAutoMergeIfHookRejected[%d]: %v", pr.ID, disableErr)
+		}
 		return fmt.Errorf("failed to merge PR:%d: %w", pr.ID, err)
 	}
 

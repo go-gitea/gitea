@@ -6,6 +6,7 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -199,6 +200,15 @@ func (err ErrInvalidMergeStyle) Error() string {
 
 func (err ErrInvalidMergeStyle) Unwrap() error {
 	return util.ErrInvalidArgument
+}
+
+// HookDeclinedMessage excludes Gitea's own hook failures, which pass on retry
+func HookDeclinedMessage(err error) (string, bool) {
+	rejected, ok := errors.AsType[*git.ErrPushRejected](err)
+	if !ok || !strings.Contains(rejected.StdErr, "hook declined") || strings.Contains(rejected.Message, "Internal Server") {
+		return "", false
+	}
+	return util.TruncateRunes(rejected.Message, 4096), true
 }
 
 func addTestPullRequestTaskAfterWebOperation(pr *issues_model.PullRequest, doer *user_model.User) {

@@ -48,7 +48,7 @@ func DevtestPullMergeBox(ctx *context.Context) {
 		pull := &issues_model.PullRequest{Status: issues_model.PullRequestStatusMergeable, HeadRepo: repo, BaseRepo: repo, HeadBranch: "feature", BaseBranch: "main"}
 		issue := &issues_model.Issue{IsPull: true, Title: "Add feature", Repo: repo, PullRequest: pull}
 		pull.Issue = issue
-		data := &pullMergeBoxData{hasPermToMerge: true, canBypassProtection: true}
+		data := &pullMergeBoxData{HasPermToMerge: true, canBypassProtection: true}
 		prInfo := &pullRequestViewInfo{issue: issue, MergeBoxData: data, headTarget: "user2:feature"}
 		setup(prInfo)
 		if issue.IsClosed {

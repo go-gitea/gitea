@@ -37,6 +37,7 @@ var autoMergeDisabledReasonTrKeys = map[string]string{
 	"pushed_by_non_writer": "repo.pulls.auto_merge_disabled_reason.pushed_by_non_writer",
 	"base_changed":         "repo.pulls.auto_merge_disabled_reason.base_changed",
 	"work_in_progress":     "repo.pulls.auto_merge_disabled_reason.work_in_progress",
+	"push_rejected":        "repo.pulls.auto_merge_disabled_reason.push_rejected",
 }
 
 func trAutoMergeDisabledReason(locale translation.Locale, reason string) template.HTML {
@@ -101,7 +102,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	addRegularMergeStyle(repo_model.MergeStyleFastForwardOnly, prConfig.AllowFastForwardOnly, "repo.pulls.fast_forward_only_merge_pull_request")
 
 	mergeable := pull.IsStatusMergeable()
-	canAttemptMerge := data.hasPermToMerge && len(mergeStyles) > 0 && !prInfo.IsPullRequestBroken && prInfo.workInProgressPrefix == "" && !data.hasOpenDependencies
+	canAttemptMerge := data.HasPermToMerge && len(mergeStyles) > 0 && !prInfo.IsPullRequestBroken && prInfo.workInProgressPrefix == "" && !data.hasOpenDependencies
 	canMergeNow := canAttemptMerge && mergeable && (!data.hasOverridableBlockers || data.canBypassProtection)
 	canAutoMerge := canAttemptMerge && (mergeable || pull.IsFilesConflicted() || pull.IsChecking())
 	data.IsMergeStateClean = canMergeNow && !data.hasOverridableBlockers && !pull.IsEmpty() && (data.StatusCheckData == nil || data.StatusCheckData.AllPassed())
@@ -128,7 +129,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		})
 	}
 
-	if !data.hasPermToMerge || data.AutoMerge != nil {
+	if !data.HasPermToMerge || data.AutoMerge != nil {
 		return
 	}
 	if len(mergeStyles) == 0 {

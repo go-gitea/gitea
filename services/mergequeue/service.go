@@ -94,7 +94,7 @@ func Clear(ctx context.Context, doer *user_model.User, repo *repo_model.Reposito
 			return err
 		}
 		for _, entry := range entries {
-			if err := removeEntry(ctx, repo, entry.MergeQueueEntry, entry.PullRequest, doer, issues_model.MergeQueueRemovedCleared); err != nil {
+			if err := removeEntry(ctx, repo, entry.MergeQueueEntry, entry.PullRequest, doer, issues_model.MergeQueueRemovedCleared, ""); err != nil {
 				return err
 			}
 		}
@@ -142,7 +142,7 @@ func Dequeue(ctx context.Context, doer *user_model.User, perm access_model.Permi
 				return util.NewPermissionDeniedErrorf("user is not allowed to remove the pull request from the merge queue")
 			}
 		}
-		return removeEntry(ctx, pr.BaseRepo, entry, pr, doer, issues_model.MergeQueueRemovedByUser)
+		return removeEntry(ctx, pr.BaseRepo, entry, pr, doer, issues_model.MergeQueueRemovedByUser, "")
 	})
 }
 

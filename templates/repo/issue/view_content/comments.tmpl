@@ -674,6 +674,7 @@
 					<div class="detail flex-text-block">
 						<span class="comment-text-line">{{.RenderedContent}}</span>
 					</div>
+					{{with $message := and $.PullMergeBoxData $.PullMergeBoxData.HasPermToMerge $comment.CommentMetaData $comment.CommentMetaData.PushRejectedMessage}}<pre class="detail commit-body">{{$message}}</pre>{{end}}
 				{{else}}
 					{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
 					<span class="comment-text-line">
@@ -693,6 +694,7 @@
 					{{if eq .Type 39}}{{ctx.Locale.Tr "repo.pulls.merge_queue.added_comment" $queueLink $createdStr}}
 					{{else}}{{ctx.Locale.Tr (printf "repo.pulls.merge_queue.removed_comment.%s" .Content) $queueLink $createdStr}}{{end}}
 				</span>
+				{{with $message := and $.PullMergeBoxData $.PullMergeBoxData.HasPermToMerge $comment.CommentMetaData $comment.CommentMetaData.PushRejectedMessage}}<pre class="detail commit-body">{{$message}}</pre>{{end}}
 			</div>
 		{{else if or (eq .Type 36) (eq .Type 37)}}
 			<div class="timeline-item event" id="{{.HashTag}}">

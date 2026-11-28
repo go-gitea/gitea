@@ -86,10 +86,10 @@ func checkQueueStatus(t *testing.T, state *queueState, entry *QueueEntry, status
 	unittest.AssertExistsAndLoadBean(t, &pull_model.MergeQueueEntry{ID: entry.ID, State: want})
 }
 
-func assertRemoved(t *testing.T, pr *issues_model.PullRequest, reason issues_model.MergeQueueRemovalReason) {
+func assertRemoved(t *testing.T, pr *issues_model.PullRequest, reason issues_model.MergeQueueRemovalReason) *issues_model.Comment {
 	t.Helper()
 	unittest.AssertNotExistsBean(t, &pull_model.MergeQueueEntry{PullID: pr.ID})
-	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.IssueID, Type: issues_model.CommentTypePRRemovedFromMergeQueue, Content: string(reason)})
+	return unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.IssueID, Type: issues_model.CommentTypePRRemovedFromMergeQueue, Content: string(reason)})
 }
 
 func TestMergeQueueCheckRerunsAndHeadGreen(t *testing.T) {
@@ -206,11 +206,13 @@ func (events *mergeQueueEvents) MergeGroupChanged(_ctx context.Context, _doer *u
 	}
 }
 
-func failPushesWithConnectionError(t *testing.T, repo *repo_model.Repository) func() {
+const connectionErrorHook = "echo 'Gitea: " + private.InternalServerConnectionError + "' >&2\nexit 1"
+
+func setPreReceiveHook(t *testing.T, repo *repo_model.Repository, script string) func() {
 	t.Helper()
 	hooks := t.TempDir()
 	require.NoError(t, git.ManagedConfigSet(t.Context(), repo, "core.hooksPath", hooks))
-	require.NoError(t, os.WriteFile(filepath.Join(hooks, "pre-receive"), []byte("#!/bin/sh\necho 'Gitea: "+private.InternalServerConnectionError+"' >&2\nexit 1\n"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(hooks, "pre-receive"), []byte("#!/bin/sh\n"+script+"\n"), 0o755))
 	return func() {
 		require.NoError(t, gitcmd.NewCommand("config", "--unset", "core.hooksPath").WithRepo(repo).RunWithStderr(t.Context()))
 	}
@@ -247,7 +249,7 @@ func TestProcessQueueRestoresInterruptedMerge(t *testing.T) {
 	events := &mergeQueueEvents{branch: branch}
 	notify_service.RegisterNotifier(events)
 	defer func() { events.branch = "" }()
-	defer failPushesWithConnectionError(t, repo)()
+	defer setPreReceiveHook(t, repo, connectionErrorHook)()
 	require.NoError(t, processQueue(ctx, repo.ID, branch))
 	_, err = db.GetEngine(ctx).ID(entries[1].ID).Cols("created_unix").Update(&pull_model.MergeQueueEntry{CreatedUnix: timeutil.TimeStampNow().AddDuration(-time.Hour)})
 	require.NoError(t, err)
@@ -277,12 +279,29 @@ func TestProcessQueueDropsEntryChangingProtectedFiles(t *testing.T) {
 	enqueuePull(t, pr, false)
 	require.NoError(t, processQueue(ctx, repo.ID, branch))
 
-	defer failPushesWithConnectionError(t, repo)()
+	defer setPreReceiveHook(t, repo, connectionErrorHook)()
 	rule.ProtectedFilePatterns = "file-wow"
 	_, err := db.GetEngine(ctx).ID(rule.ID).Cols("config").Update(rule)
 	require.NoError(t, err)
 	require.NoError(t, processQueue(ctx, repo.ID, branch))
 	assertRemoved(t, pr, issues_model.MergeQueueRemovedNotMergeable)
+}
+
+func TestProcessQueueDropsFirstHookDeclinedEntryOfGroup(t *testing.T) {
+	ctx := t.Context()
+	const branch = "queue-hook-declined"
+	rule, declinedPR, queuedPR := prepareQueuePulls(t, branch, 1)
+	repo := rule.Repo
+	require.NoError(t, git.CreateBranch(ctx, repo, branch, repo.DefaultBranch))
+	defer func() { require.NoError(t, git.RemoveRef(ctx, repo, git.BranchPrefix+branch)) }()
+	enqueuePull(t, declinedPR, false)
+	enqueuePull(t, queuedPR, false)
+	require.NoError(t, processQueue(ctx, repo.ID, branch))
+
+	defer setPreReceiveHook(t, repo, "echo 'invalid commit message' >&2\nexit 1")()
+	require.NoError(t, processQueue(ctx, repo.ID, branch))
+	assert.Equal(t, "invalid commit message", assertRemoved(t, declinedPR, issues_model.MergeQueueRemovedPushRejected).CommentMetaData.PushRejectedMessage)
+	unittest.AssertExistsAndLoadBean(t, &pull_model.MergeQueueEntry{PullID: queuedPR.ID})
 }
 
 func TestProcessQueueMissingHeads(t *testing.T) {

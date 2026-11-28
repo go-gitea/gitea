@@ -85,7 +85,7 @@ class PullMergeBox {
     const respText = (await resp.text()).trim();
     if (this.isBusy()) return;
     const newEl = createElementFromHTML(respText);
-    if (this.el.hasAttribute('data-pull-merge-queued') !== newEl.hasAttribute('data-pull-merge-queued')) {
+    if (this.el.getAttribute('data-pull-merge-schedule') !== newEl.getAttribute('data-pull-merge-schedule')) {
       if (!shouldTriggerAreYouSure()) window.location.reload(); // with unsaved edits, retry on the next poll
       return;
     }
