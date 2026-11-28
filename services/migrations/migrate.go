@@ -40,6 +40,9 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 // unless it is a plain git migration, because other services are accessed by their remote API.
 func IsMigrateURLAllowedForService(remoteURL string, serviceType structs.GitServiceType, doer *user_model.User) error {
 	if serviceType != structs.PlainGitService {
+		if filepath.IsAbs(remoteURL) {
+			return &git.ErrInvalidCloneAddr{Host: remoteURL, IsProtocolInvalid: true}
+		}
 		if u, err := url.Parse(remoteURL); err == nil && (u.Scheme == "file" || u.Scheme == "") {
 			return &git.ErrInvalidCloneAddr{Host: remoteURL, IsProtocolInvalid: true}
 		}
@@ -50,22 +53,27 @@ func IsMigrateURLAllowedForService(remoteURL string, serviceType structs.GitServ
 // IsMigrateURLAllowed checks if an URL is allowed to be migrated from
 func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 	// Remote address can be HTTP/HTTPS/Git URL or local path.
+	isLocalPath := filepath.IsAbs(remoteURL)
 	u, err := url.Parse(remoteURL)
 	if err != nil {
 		return &git.ErrInvalidCloneAddr{IsURLError: true, Host: remoteURL}
 	}
 
-	if u.Scheme == "file" || u.Scheme == "" {
+	if isLocalPath || u.Scheme == "file" || u.Scheme == "" {
 		if !doer.CanImportLocal() {
 			return &git.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsPermissionDenied: true, LocalPath: true}
 		}
-		isAbs := filepath.IsAbs(u.Host + u.Path)
+		localPath := remoteURL
+		if !isLocalPath {
+			localPath = u.Host + u.Path
+		}
+		isAbs := filepath.IsAbs(localPath)
 		if !isAbs {
 			return &git.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsInvalidPath: true, LocalPath: true}
 		}
-		isDir, err := util.IsDir(u.Host + u.Path)
+		isDir, err := util.IsDir(localPath)
 		if err != nil {
-			log.Error("Unable to check if %s is a directory: %v", u.Host+u.Path, err)
+			log.Error("Unable to check if %s is a directory: %v", localPath, err)
 			return err
 		}
 		if !isDir {
