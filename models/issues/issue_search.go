@@ -100,11 +100,12 @@ func applySorts(sess db.Session, sortType string, priorityRepoID int64) {
 		sess.Desc("issue.priority").Desc("issue.created_unix").Desc("issue.id")
 	case "nearduedate":
 		// 253370764800 is 01/01/9999 @ 12:00am (UTC)
+		// -62135596800 is time.Time{}.Unix(), a legacy "unset" sentinel
 		sess.Join("LEFT", "milestone", "issue.milestone_id = milestone.id").
 			OrderBy("CASE " +
-				"WHEN issue.deadline_unix = 0 AND (milestone.deadline_unix = 0 OR milestone.deadline_unix IS NULL) THEN 253370764800 " +
-				"WHEN milestone.deadline_unix = 0 OR milestone.deadline_unix IS NULL THEN issue.deadline_unix " +
-				"WHEN milestone.deadline_unix < issue.deadline_unix OR issue.deadline_unix = 0 THEN milestone.deadline_unix " +
+				"WHEN issue.deadline_unix IN (0, -62135596800) AND (milestone.deadline_unix IN (0, -62135596800) OR milestone.deadline_unix IS NULL) THEN 253370764800 " +
+				"WHEN milestone.deadline_unix IN (0, -62135596800) OR milestone.deadline_unix IS NULL THEN issue.deadline_unix " +
+				"WHEN milestone.deadline_unix < issue.deadline_unix OR issue.deadline_unix IN (0, -62135596800) THEN milestone.deadline_unix " +
 				"ELSE issue.deadline_unix END ASC").
 			Asc("issue.created_unix").
 			Asc("issue.id")
@@ -112,7 +113,7 @@ func applySorts(sess db.Session, sortType string, priorityRepoID int64) {
 		sess.Join("LEFT", "milestone", "issue.milestone_id = milestone.id").
 			OrderBy("CASE " +
 				"WHEN milestone.deadline_unix IS NULL THEN issue.deadline_unix " +
-				"WHEN milestone.deadline_unix < issue.deadline_unix OR issue.deadline_unix = 0 THEN milestone.deadline_unix " +
+				"WHEN milestone.deadline_unix < issue.deadline_unix OR issue.deadline_unix IN (0, -62135596800) THEN milestone.deadline_unix " +
 				"ELSE issue.deadline_unix END DESC").
 			Desc("issue.created_unix").
 			Desc("issue.id")

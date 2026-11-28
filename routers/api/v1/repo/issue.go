@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -926,8 +927,12 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 			return
 		}
 	}
+	var deadline *time.Time
+	if !issue.DeadlineUnix.IsZero() {
+		deadline = issue.DeadlineUnix.AsTimePtr()
+	}
 	// StatusCreated is the copied & pasted garbage
-	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: issue.DeadlineUnix.AsTimePtr()})
+	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: deadline})
 }
 
 func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, state api.StateType) {

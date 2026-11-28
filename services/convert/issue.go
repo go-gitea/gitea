@@ -127,7 +127,7 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 			apiIssue.PullRequest.HTMLURL = issue.HTMLURL(ctx)
 		}
 	}
-	if issue.DeadlineUnix != 0 {
+	if !issue.DeadlineUnix.IsZero() {
 		apiIssue.Deadline = issue.DeadlineUnix.AsTimePtr()
 	}
 
@@ -310,7 +310,7 @@ func ToAPIMilestone(m *issues_model.Milestone) *api.Milestone {
 	if m.IsClosed {
 		apiMilestone.Closed = m.ClosedDateUnix.AsTimePtr()
 	}
-	if m.DeadlineUnix > 0 {
+	if !m.DeadlineUnix.IsZero() {
 		apiMilestone.Deadline = m.DeadlineUnix.AsTimePtr()
 	}
 	return apiMilestone

@@ -164,6 +164,9 @@ func (issue *Issue) LoadTotalTimes(ctx context.Context) (err error) {
 
 // IsOverdue checks if the issue is overdue
 func (issue *Issue) IsOverdue() bool {
+	if issue.DeadlineUnix.IsZero() {
+		return false
+	}
 	if issue.IsClosed {
 		return issue.ClosedUnix >= issue.DeadlineUnix
 	}

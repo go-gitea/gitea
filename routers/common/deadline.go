@@ -44,9 +44,14 @@ func ApplyAPIDeadlineTimestamp(field *timeutil.TimeStamp, input optional.Option[
 	for _, format := range formats {
 		t, err := time.ParseInLocation(format, inputValue, setting.DefaultUILocation)
 		if err == nil {
-			ts := time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 0, setting.DefaultUILocation).Unix()
-			if ts < 86400*2 {
-				ts = 0 // tolerate timezone difference between server and client
+			var ts int64
+			if t.Year() == 1 && t.Month() == time.January && t.Day() == 1 ||
+				t.Year() == 1970 && t.Month() == time.January && t.Day() <= 2 {
+				// year-1 (zero time) and epoch-boundary dates mean unset,
+				// tolerating timezone difference between server and client
+				ts = 0
+			} else {
+				ts = time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 0, setting.DefaultUILocation).Unix()
 			}
 			*field = timeutil.TimeStamp(ts)
 			return old != *field, nil

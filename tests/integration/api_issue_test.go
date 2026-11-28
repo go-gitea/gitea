@@ -85,6 +85,7 @@ func TestAPIIssue(t *testing.T) {
 	t.Run("SearchIssues", testAPISearchIssues)
 	t.Run("SearchIssuesWithLabels", testAPISearchIssuesWithLabels)
 	t.Run("EditIssue", testAPIEditIssue)
+	t.Run("EditIssueDeadline", testAPIEditIssueDeadline)
 	t.Run("IssueContentVersion", testAPIIssueContentVersion)
 	t.Run("CreateIssue", testAPICreateIssue)
 	t.Run("CreateIssueParallel", testAPICreateIssueParallel)
@@ -319,6 +320,46 @@ func testAPIEditIssue(t *testing.T) {
 	req = NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user30/repo51/issues/1", api.EditIssueOption{Title: title}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusLocked)
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 14, Title: "issue in archived repo"})
+}
+
+func testAPIEditIssueDeadline(t *testing.T) {
+	issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
+	assert.NoError(t, issueBefore.LoadAttributes(t.Context()))
+
+	session := loginUser(t, owner.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/deadline", owner.Name, repoBefore.Name, issueBefore.Index)
+
+	// clearing a legacy unset deadline stores numeric zero, reports null and records no comment
+	assert.NoError(t, issues_model.UpdateIssueCols(t.Context(), &issues_model.Issue{ID: issueBefore.ID, DeadlineUnix: -62135596800}, "deadline_unix"))
+	req := NewRequestWithJSON(t, "POST", urlStr, map[string]any{"due_date": nil}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusCreated)
+	apiDeadline := DecodeJSON(t, resp, &api.IssueDeadline{})
+	assert.Nil(t, apiDeadline.Deadline)
+	issueAfter := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issueBefore.ID})
+	assert.Equal(t, int64(0), int64(issueAfter.DeadlineUnix))
+	unittest.AssertNotExistsBean(t, &issues_model.Comment{IssueID: issueBefore.ID, Type: issues_model.CommentTypeRemovedDeadline})
+
+	// a real pre-1970 deadline round-trips
+	preEpoch := time.Date(1969, 12, 31, 23, 59, 59, 0, setting.DefaultUILocation).Unix()
+	req = NewRequestWithJSON(t, "POST", urlStr, map[string]any{"due_date": "1969-12-31"}).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusCreated)
+	apiDeadline = DecodeJSON(t, resp, &api.IssueDeadline{})
+	issueAfter = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issueBefore.ID})
+	assert.Equal(t, preEpoch, int64(issueAfter.DeadlineUnix))
+	if assert.NotNil(t, apiDeadline.Deadline) {
+		assert.Equal(t, preEpoch, apiDeadline.Deadline.Unix())
+	}
+
+	// and clears to numeric zero again
+	req = NewRequestWithJSON(t, "POST", urlStr, map[string]any{"due_date": nil}).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusCreated)
+	apiDeadline = DecodeJSON(t, resp, &api.IssueDeadline{})
+	assert.Nil(t, apiDeadline.Deadline)
+	issueAfter = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issueBefore.ID})
+	assert.Equal(t, int64(0), int64(issueAfter.DeadlineUnix))
 }
 
 func testAPISearchIssues(t *testing.T) {

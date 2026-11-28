@@ -533,6 +533,18 @@ func UpdateIssueDeadline(ctx context.Context, issue *Issue, deadlineUnix timeuti
 	if issue.DeadlineUnix == deadlineUnix {
 		return nil
 	}
+	// clearing a legacy sentinel is not a change: normalize it to numeric
+	// zero without recording a removal comment
+	if issue.DeadlineUnix.IsZero() && deadlineUnix.IsZero() {
+		if issue.DeadlineUnix == 0 {
+			return nil
+		}
+		if err := UpdateIssueCols(ctx, &Issue{ID: issue.ID, DeadlineUnix: 0}, "deadline_unix"); err != nil {
+			return err
+		}
+		issue.DeadlineUnix = 0
+		return nil
+	}
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		// Update the deadline
