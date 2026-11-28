@@ -282,7 +282,7 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 		return nil, err
 	}
 
-	inputs, err := calledWorkflowInputs(ctx, caller.Run, caller, workflowCallInputs)
+	inputs, err := calledWorkflowInputs(ctx, caller.Run, caller, nil, workflowCallInputs)
 	if err != nil {
 		return nil, err
 	}

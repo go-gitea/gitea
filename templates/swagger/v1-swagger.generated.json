@@ -31060,6 +31060,7 @@
           "x-go-name": "MergeTitleField"
         },
         "merge_when_checks_succeed": {
+          "description": "Merge once branch protection requirements like required status checks and approvals are met. Other checks are not awaited.",
           "type": "boolean",
           "x-go-name": "MergeWhenChecksSucceed"
         }
@@ -35679,7 +35680,7 @@
   },
   "securityDefinitions": {
     "AccessToken": {
-      "description": "This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.",
+      "description": "This authentication option is deprecated and disabled by default. Set DISABLE_QUERY_AUTH_TOKEN=false temporarily to restore it. Please use AuthorizationHeaderToken instead.",
       "type": "apiKey",
       "name": "access_token",
       "in": "query"
@@ -35712,7 +35713,7 @@
       "in": "header"
     },
     "Token": {
-      "description": "This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.",
+      "description": "This authentication option is deprecated and disabled by default. Set DISABLE_QUERY_AUTH_TOKEN=false temporarily to restore it. Please use AuthorizationHeaderToken instead.",
       "type": "apiKey",
       "name": "token",
       "in": "query"

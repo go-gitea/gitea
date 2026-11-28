@@ -5,6 +5,7 @@ package repository
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -20,7 +21,6 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
 )
 
@@ -114,70 +114,42 @@ func getExtendedCommitStats(ctx context.Context, repo *git.Repository, revision 
 		return nil, err
 	}
 
-	gitCmd := gitcmd.NewCommand("log", "--shortstat", "--no-merges", "--pretty=format:---%n%aN%n%aE%n%as", "--reverse")
+	// each commit is a "\x00name\x00email\x00date" line, followed by a shortstat line unless the commit is empty
+	gitCmd := gitcmd.NewCommand("log", "--shortstat", "--no-merges", "--pretty=format:%x00%aN%x00%aE%x00%as", "--reverse")
 	// AddOptionFormat("--max-count=%d", limit)
-	gitCmd.AddDynamicArguments(baseCommit.ID.String())
-
-	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
-	defer stdoutReaderClose()
+	gitCmd.AddDynamicArguments(baseCommit.ID.String()).WithRepo(repo)
 
 	var extendedCommitStats []*ExtendedCommitStats
-	err = gitCmd.WithRepo(repo).
-		WithPipelineFunc(func(ctx gitcmd.Context) error {
-			scanner := bufio.NewScanner(stdoutReader)
-
-			for scanner.Scan() {
-				line := strings.TrimSpace(scanner.Text())
-				if line != "---" {
-					continue
-				}
-				scanner.Scan()
-				authorName := strings.TrimSpace(scanner.Text())
-				scanner.Scan()
-				authorEmail := strings.TrimSpace(scanner.Text())
-				scanner.Scan()
-				date := strings.TrimSpace(scanner.Text())
-				scanner.Scan()
-				stats := strings.TrimSpace(scanner.Text())
-				if authorName == "" || authorEmail == "" || date == "" || stats == "" {
-					// FIXME: find a better way to parse the output so that we will handle this properly
-					log.Warn("Something is wrong with git log output, skipping...")
-					log.Warn("authorName: %s,  authorEmail: %s,  date: %s,  stats: %s", authorName, authorEmail, date, stats)
-					continue
-				}
-				//  1 file changed, 1 insertion(+), 1 deletion(-)
-				fields := strings.Split(stats, ",")
-
-				commitStats := api.CommitStats{}
-				for _, field := range fields[1:] {
-					parts := strings.Split(strings.TrimSpace(field), " ")
-					value, contributionType := parts[0], parts[1]
-					amount, _ := strconv.Atoi(value)
-
-					if strings.HasPrefix(contributionType, "insertion") {
-						commitStats.Additions = amount
-					} else {
-						commitStats.Deletions = amount
-					}
-				}
-				commitStats.Total = commitStats.Additions + commitStats.Deletions
-				scanner.Text() // empty line at the end
-
-				res := &ExtendedCommitStats{
-					Author: &api.CommitUser{
-						Identity: api.Identity{
-							Name:  authorName,
-							Email: authorEmail,
-						},
-						Date: date,
-					},
-					Stats: &commitStats,
-				}
-				extendedCommitStats = append(extendedCommitStats, res)
-			}
+	err = gitcmd.RunWithScannerSplit(ctx, gitCmd, bufio.ScanLines, func(_ gitcmd.Context, line []byte) error {
+		if header, ok := bytes.CutPrefix(line, []byte{0}); ok {
+			authorName, rest, _ := strings.Cut(string(header), "\x00")
+			authorEmail, date, _ := strings.Cut(rest, "\x00")
+			extendedCommitStats = append(extendedCommitStats, &ExtendedCommitStats{
+				Author: &api.CommitUser{
+					Identity: api.Identity{Name: strings.TrimSpace(authorName), Email: strings.TrimSpace(authorEmail)},
+					Date:     date,
+				},
+				Stats: &api.CommitStats{},
+			})
 			return nil
-		}).
-		RunWithStderr(ctx)
+		}
+		if len(extendedCommitStats) == 0 {
+			return nil
+		}
+		//  1 file changed, 1 insertion(+), 1 deletion(-)
+		commitStats := extendedCommitStats[len(extendedCommitStats)-1].Stats
+		for _, field := range strings.Split(string(line), ",")[1:] {
+			value, contributionType, _ := strings.Cut(strings.TrimSpace(field), " ")
+			amount, _ := strconv.Atoi(value)
+			if strings.HasPrefix(contributionType, "insertion") {
+				commitStats.Additions = amount
+			} else {
+				commitStats.Deletions = amount
+			}
+		}
+		commitStats.Total = commitStats.Additions + commitStats.Deletions
+		return nil
+	})
 	if err != nil {
 		return nil, fmt.Errorf("ContributorsCommitStats: %w", err)
 	}

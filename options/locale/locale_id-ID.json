@@ -861,8 +861,6 @@
   "admin.config_settings": "Pengaturan",
   "admin.notices": "Pemberitahuan Sistem",
   "admin.monitor": "Memantau",
-  "admin.first_page": "Pertama",
-  "admin.last_page": "Terakhir",
   "admin.dashboard.operation_name": "Nama operasi",
   "admin.dashboard.operation_switch": "Beralih",
   "admin.dashboard.operation_run": "Lari",

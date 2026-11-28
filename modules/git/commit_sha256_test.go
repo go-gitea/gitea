@@ -25,6 +25,9 @@ func TestGetFullCommitIDErrorSha256(t *testing.T) {
 }
 
 func TestHasPreviousCommitSha256(t *testing.T) {
+	if !DefaultFeatures().SupportHashSha256 {
+		t.Skip("git version 2.42 is required to support sha256")
+	}
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
 
 	repo, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)

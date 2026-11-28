@@ -17,9 +17,13 @@ import (
 )
 
 func TestCatFileBatch(t *testing.T) {
+	supportBatchCommand := DefaultFeatures().SupportCatFileBatchCommand
 	defer test.MockVariableValue(&DefaultFeatures().SupportCatFileBatchCommand)()
 	DefaultFeatures().SupportCatFileBatchCommand = false
 	t.Run("LegacyCheck", testCatFileBatch)
+	if !supportBatchCommand {
+		t.Skip("git version 2.36 is required to support cat-file --batch-command")
+	}
 	DefaultFeatures().SupportCatFileBatchCommand = true
 	t.Run("BatchCommand", testCatFileBatch)
 }
