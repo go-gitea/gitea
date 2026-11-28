@@ -817,6 +817,34 @@
 		</div>
 		{{end}}
 
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "repo.settings.maintenance"}}
+		</h4>
+		<div class="ui attached segment">
+			<div class="flex-divided-list items-with-main">
+				<div class="item tw-items-center">
+					<div class="item-main">
+						<div class="item-title">{{ctx.Locale.Tr "repo.settings.maintenance.sync_branches"}}</div>
+						<div class="item-body">{{ctx.Locale.Tr "repo.settings.maintenance.sync_branches_desc"}}</div>
+					</div>
+					<form method="post">
+						<input type="hidden" name="action" value="maintenance-sync-branches">
+						<button type="submit" class="ui basic button">{{ctx.Locale.Tr "repo.settings.maintenance.sync_branches"}}</button>
+					</form>
+				</div>
+				<div class="item tw-items-center">
+					<div class="item-main">
+						<div class="item-title">{{ctx.Locale.Tr "repo.settings.maintenance.sync_tags"}}</div>
+						<div class="item-body">{{ctx.Locale.Tr "repo.settings.maintenance.sync_tags_desc"}}</div>
+					</div>
+					<form method="post">
+						<input type="hidden" name="action" value="maintenance-sync-tags">
+						<button type="submit" class="ui basic button">{{ctx.Locale.Tr "repo.settings.maintenance.sync_tags"}}</button>
+					</form>
+				</div>
+			</div>
+		</div>
+
 		{{if $.CanManagerDangerZone}}
 		<h4 class="ui top attached error header">
 			{{ctx.Locale.Tr "repo.settings.danger_zone"}}
