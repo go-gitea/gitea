@@ -22,6 +22,7 @@ import (
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
+	issue_service "gitea.dev/services/issue"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
 )
@@ -293,6 +294,16 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			// Mark reviews for the new commit as not stale
 			if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, opts.NewCommitIDs[i]); err != nil {
 				log.Error("MarkReviewsAsNotStale: %v", err)
+			}
+
+			// Keep AGit updates in sync with regular pushes: a dismissed approval
+			// must not leave the PR without code owner reviewers.
+			reviewNotifiers, err := issue_service.PullRequestCodeOwnersReview(ctx, pr)
+			if err != nil {
+				log.Error("PullRequestCodeOwnersReview: %v", err)
+			}
+			if len(reviewNotifiers) > 0 {
+				issue_service.ReviewRequestNotify(ctx, pr.Issue, pusher, reviewNotifiers)
 			}
 		}
 
