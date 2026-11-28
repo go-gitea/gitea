@@ -374,6 +374,133 @@ func TestFindAllMentions(t *testing.T) {
 	}, res)
 }
 
+func TestFindRenderizableReferenceNumeric(t *testing.T) {
+	cases := []struct {
+		name          string
+		input         string
+		prOnly        bool
+		crossLinkOnly bool
+		expected      *RenderizableReference
+	}{
+		{
+			name:     "NoReference",
+			input:    "plain text without refs",
+			expected: nil,
+		},
+		{
+			name:  "LocalBeforeCrossRepo",
+			input: "See #1 and org/repo#2",
+			expected: &RenderizableReference{
+				Issue:       "1",
+				RefLocation: &RefSpan{Start: 4, End: 6},
+			},
+		},
+		{
+			name:  "CrossRepoBeforeLocal",
+			input: "See org/repo#1 and #2",
+			expected: &RenderizableReference{
+				Issue:       "1",
+				Owner:       "org",
+				Name:        "repo",
+				RefLocation: &RefSpan{Start: 4, End: 14},
+			},
+		},
+		{
+			name:  "CrossRepoWithKeywordBeforeLocal",
+			input: "Closes org/repo#1 and fixes #2",
+			expected: &RenderizableReference{
+				Issue:          "1",
+				Owner:          "org",
+				Name:           "repo",
+				RefLocation:    &RefSpan{Start: 7, End: 17},
+				Action:         XRefActionCloses,
+				ActionLocation: &RefSpan{Start: 0, End: 6},
+			},
+		},
+		{
+			name:   "PROnlySkipsIssueBeforeLocalPR",
+			input:  "See #1 and !2",
+			prOnly: true,
+			expected: &RenderizableReference{
+				Issue:       "2",
+				IsPull:      true,
+				RefLocation: &RefSpan{Start: 11, End: 13},
+			},
+		},
+		{
+			name:   "PROnlySkipsIssueBeforeCrossRepoPR",
+			input:  "See #1 and org/repo!2",
+			prOnly: true,
+			expected: &RenderizableReference{
+				Issue:       "2",
+				Owner:       "org",
+				Name:        "repo",
+				IsPull:      true,
+				RefLocation: &RefSpan{Start: 11, End: 21},
+			},
+		},
+		{
+			name:   "PROnlySkipsCrossRepoIssueBeforeCrossRepoPR",
+			input:  "See org/repo#1 and org/repo!2",
+			prOnly: true,
+			expected: &RenderizableReference{
+				Issue:       "2",
+				Owner:       "org",
+				Name:        "repo",
+				IsPull:      true,
+				RefLocation: &RefSpan{Start: 19, End: 29},
+			},
+		},
+		{
+			name:   "PROnlyCrossRepoPRBeforeLocalPR",
+			input:  "See org/repo!1 and !2",
+			prOnly: true,
+			expected: &RenderizableReference{
+				Issue:       "1",
+				Owner:       "org",
+				Name:        "repo",
+				IsPull:      true,
+				RefLocation: &RefSpan{Start: 4, End: 14},
+			},
+		},
+		{
+			name:          "CrossLinkOnlyIgnoresLocal",
+			input:         "See #1 and org/repo#2",
+			crossLinkOnly: true,
+			expected: &RenderizableReference{
+				Issue:       "2",
+				Owner:       "org",
+				Name:        "repo",
+				RefLocation: &RefSpan{Start: 11, End: 21},
+			},
+		},
+		{
+			name:  "SkipsOverflowingLocalBeforeValid",
+			input: "See #99999999999999999999999 and #42",
+			expected: &RenderizableReference{
+				Issue:       "42",
+				RefLocation: &RefSpan{Start: 33, End: 36},
+			},
+		},
+		{
+			name:  "SkipsOverflowingCrossRepoBeforeValid",
+			input: "See org/repo#99999999999999999999999 and org/repo#2",
+			expected: &RenderizableReference{
+				Issue:       "2",
+				Owner:       "org",
+				Name:        "repo",
+				RefLocation: &RefSpan{Start: 41, End: 51},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			assert.Equal(t, c.expected, FindRenderizableReferenceNumeric(c.input, c.prOnly, c.crossLinkOnly))
+		})
+	}
+}
+
 func TestFindRenderizableCommitCrossReference(t *testing.T) {
 	cases := []struct {
 		Input    string

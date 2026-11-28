@@ -375,19 +375,39 @@ func findValidReferenceIndex(pattern *regexp.Regexp, content []byte, pos int) []
 	return nil
 }
 
+func findFirstValidReference(pattern *regexp.Regexp, content []byte, prOnly bool) *rawReference {
+	for match := findValidReferenceIndex(pattern, content, 0); match != nil; match = findValidReferenceIndex(pattern, content, match[3]) {
+		if r := getCrossReference(content, match[2], match[3], false, prOnly); r != nil {
+			return r
+		}
+	}
+	return nil
+}
+
 // FindRenderizableReferenceNumeric returns the first unvalidated reference found in a string.
 func FindRenderizableReferenceNumeric(content string, prOnly, crossLinkOnly bool) *RenderizableReference {
 	contentBytes := util.UnsafeStringToBytes(content)
-	var match []int
-	if !crossLinkOnly {
-		match = findValidReferenceIndex(globalVars().issueNumericPattern, contentBytes, 0)
-	}
-	if match == nil {
-		if match = findValidReferenceIndex(globalVars().crossReferenceIssueNumericPattern, contentBytes, 0); match == nil {
+	if prOnly {
+		if bytes.IndexByte(contentBytes, '!') == -1 {
 			return nil
 		}
+	} else if bytes.IndexByte(contentBytes, '#') == -1 && bytes.IndexByte(contentBytes, '!') == -1 {
+		return nil
 	}
-	r := getCrossReference(contentBytes, match[2], match[3], false, prOnly)
+
+	var r *rawReference
+	if !crossLinkOnly {
+		r = findFirstValidReference(globalVars().issueNumericPattern, contentBytes, prOnly)
+	}
+	limit := len(contentBytes)
+	if r != nil {
+		limit = r.refLocation.Start
+	}
+	if bytes.IndexByte(contentBytes[:limit], '/') != -1 {
+		if crossRef := findFirstValidReference(globalVars().crossReferenceIssueNumericPattern, contentBytes, prOnly); crossRef != nil && (r == nil || crossRef.refLocation.Start < r.refLocation.Start) {
+			r = crossRef
+		}
+	}
 	if r == nil {
 		return nil
 	}
