@@ -4,10 +4,10 @@
 			{{ctx.Locale.Tr "admin.auths.new"}}
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form" action="{{.Link}}" method="post">
+			<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
 				{{template "base/disable_form_autofill"}}
 				<!-- Types and name -->
-				<div class="inline required field {{if .Err_Type}}error{{end}}">
+				<div class="inline required field">
 					<label>{{ctx.Locale.Tr "admin.auths.auth_type"}}</label>
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="auth_type" name="type" value="{{.type}}">
@@ -20,7 +20,7 @@
 						</div>
 					</div>
 				</div>
-				<div class="required inline field {{if .Err_Name}}error{{end}}">
+				<div class="required inline field">
 					<label for="auth_name">{{ctx.Locale.Tr "admin.auths.auth_name"}}</label>
 					<input id="auth_name" name="name" value="{{.name}}" autofocus required>
 				</div>

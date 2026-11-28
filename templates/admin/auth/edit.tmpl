@@ -4,7 +4,7 @@
 			{{ctx.Locale.Tr "admin.auths.edit"}}
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form" action="{{.Link}}" method="post">
+			<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
 				{{template "base/disable_form_autofill"}}
 				<input type="hidden" name="id" value="{{.Source.ID}}">
 				<div class="inline field">
@@ -12,7 +12,7 @@
 					<input type="hidden" id="auth_type" name="type" value="{{.Source.Type.Int}}">
 					<span>{{.Source.TypeName}}</span>
 				</div>
-				<div class="required inline field {{if .Err_Name}}error{{end}}">
+				<div class="required inline field">
 					<label for="auth_name">{{ctx.Locale.Tr "admin.auths.auth_name"}}</label>
 					<input id="auth_name" name="name" value="{{.Source.Name}}" required>
 				</div>
@@ -27,7 +27,7 @@
 				<!-- LDAP and DLDAP -->
 				{{if or .Source.IsLDAP .Source.IsDLDAP}}
 					{{$cfg:=.Source.Cfg}}
-					<div class="inline required field {{if .Err_SecurityProtocol}}error{{end}}">
+					<div class="inline required field">
 						<label>{{ctx.Locale.Tr "admin.auths.security_protocol"}}</label>
 						<div class="ui selection security-protocol dropdown">
 							<input type="hidden" id="security_protocol" name="security_protocol" value="{{$cfg.SecurityProtocol.Int}}">

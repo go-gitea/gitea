@@ -4,10 +4,10 @@
 			{{ctx.Locale.Tr "repo.settings.basic_settings"}}
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form" action="{{.Link}}" method="post">
+			<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
 				{{template "base/disable_form_autofill"}}
 				<input type="hidden" name="action" value="update">
-				<div class="required field {{if .Err_RepoName}}error{{end}}">
+				<div class="required field">
 					<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
 					<input name="repo_name" value="{{.Repository.Name}}" data-repo-name="{{.Repository.Name}}" required>
 				</div>
@@ -22,11 +22,11 @@
 						<label>{{ctx.Locale.Tr "repo.template_helper"}}</label>
 					</div>
 				</div>
-				<div class="field {{if .Err_Description}}error{{end}}">
+				<div class="field">
 					<label for="description">{{ctx.Locale.Tr "repo.repo_desc"}}</label>
 					<textarea id="description" name="description" rows="2" maxlength="2048">{{.Repository.Description}}</textarea>
 				</div>
-				<div class="field {{if .Err_Website}}error{{end}}">
+				<div class="field">
 					<label for="website">{{ctx.Locale.Tr "repo.settings.site"}}</label>
 					<input id="website" name="website" type="url" maxlength="1024" value="{{.Repository.Website}}">
 				</div>
@@ -126,7 +126,7 @@
 								<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
 								<td>{{DateUtils.FullTime .PullMirror.UpdatedUnix}}</td>
 								<td class="tw-text-right">
-									<form method="post" class="tw-inline-block">
+									<form method="post" class="form-fetch-action tw-inline-block">
 										<input type="hidden" name="action" value="mirror-sync">
 										<button type="submit" class="ui primary tiny button inline">{{ctx.Locale.Tr "repo.settings.sync_mirror"}}</button>
 									</form>
@@ -134,22 +134,22 @@
 							</tr>
 							<tr>
 								<td colspan="4">
-									<form class="ui form" method="post">
+									<form class="ui form form-fetch-action" method="post">
 										{{template "base/disable_form_autofill"}}
 										<input type="hidden" name="action" value="mirror">
-										<div class="inline field {{if .Err_EnablePrune}}error{{end}}">
+										<div class="inline field">
 											<label>{{ctx.Locale.Tr "repo.mirror_prune"}}</label>
 											<div class="ui checkbox">
 										<input id="enable_prune" name="enable_prune" type="checkbox" {{if .PullMirror.EnablePrune}}checked{{end}}>
 										<label>{{ctx.Locale.Tr "repo.mirror_prune_desc"}}</label>
 											</div>
 										</div>
-										<div class="inline field {{if .Err_Interval}}error{{end}}">
+										<div class="inline field">
 											<label for="interval">{{ctx.Locale.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
 											<input id="interval" name="interval" value="{{.PullMirror.Interval}}">
 										</div>
 										{{$address := MirrorRemoteAddress ctx .Repository .PullMirror.GetRemoteName}}
-										<div class="field {{if .Err_MirrorAddress}}error{{end}}">
+										<div class="field">
 											<label for="mirror_address">{{ctx.Locale.Tr "repo.mirror_address"}}</label>
 											<input id="mirror_address" name="mirror_address" value="{{$address.Address}}" required>
 											<p class="help">{{ctx.Locale.Tr "repo.mirror_address_desc"}}</p>
@@ -179,7 +179,7 @@
 												<label>{{ctx.Locale.Tr "repo.mirror_lfs_desc"}}</label>
 											</div>
 										</div>
-										<div class="field {{if .Err_LFSEndpoint}}error{{end}}">
+										<div class="field">
 											<label for="mirror_lfs_endpoint">{{ctx.Locale.Tr "repo.mirror_lfs_endpoint"}}</label>
 											<input id="mirror_lfs_endpoint" name="mirror_lfs_endpoint" value="{{.PullMirror.LFSEndpoint}}" placeholder="{{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.placeholder"}}">
 											<p class="help">{{ctx.Locale.Tr "repo.mirror_lfs_endpoint_desc" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery"}}</p>
@@ -232,12 +232,12 @@
 									>
 										{{svg "octicon-pencil" 14}}
 									</button>
-									<form method="post" class="tw-inline-block">
+									<form method="post" class="form-fetch-action tw-inline-block">
 										<input type="hidden" name="action" value="push-mirror-sync">
 										<input type="hidden" name="push_mirror_id" value="{{.ID}}">
 										<button type="submit" class="ui primary tiny button" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.sync_mirror"}}">{{svg "octicon-sync" 14}}</button>
 									</form>
-									<form method="post" class="tw-inline-block">
+									<form method="post" class="form-fetch-action tw-inline-block">
 										<input type="hidden" name="action" value="push-mirror-remove">
 										<input type="hidden" name="push_mirror_id" value="{{.ID}}">
 										<button type="submit" class="ui basic red tiny button" data-tooltip-content="{{ctx.Locale.Tr "remove"}}">{{svg "octicon-trash" 14}}</button>
@@ -252,38 +252,38 @@
 							{{if (not .DisableNewPushMirrors)}}
 								<tr>
 									<td colspan="4">
-										<form class="ui form" method="post">
+										<form class="ui form form-fetch-action" method="post">
 											{{template "base/disable_form_autofill"}}
 											<input type="hidden" name="action" value="push-mirror-add">
-											<div class="field {{if .Err_PushMirrorAddress}}error{{end}}">
+											<div class="field">
 												<label for="push_mirror_address">{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.remote_url"}}</label>
-												<input id="push_mirror_address" name="push_mirror_address" value="{{.push_mirror_address}}" required>
+												<input id="push_mirror_address" name="push_mirror_address" required>
 												<p class="help">{{ctx.Locale.Tr "repo.mirror_address_desc"}}</p>
 											</div>
-											<details class="ui optional field" {{if or .Err_PushMirrorAuth .push_mirror_username}}open{{end}}>
+											<details class="ui optional field">
 												<summary class="tw-p-1">
 													{{ctx.Locale.Tr "repo.need_auth"}}
 												</summary>
 												<div class="tw-p-1">
-													<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
+													<div class="inline field">
 														<label for="push_mirror_username">{{ctx.Locale.Tr "username"}}</label>
-														<input id="push_mirror_username" name="push_mirror_username" value="{{.push_mirror_username}}">
+														<input id="push_mirror_username" name="push_mirror_username">
 													</div>
-													<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
+													<div class="inline field">
 														<label for="push_mirror_password">{{ctx.Locale.Tr "password"}}</label>
-														<input id="push_mirror_password" name="push_mirror_password" type="password" value="{{.push_mirror_password}}" autocomplete="off">
+														<input id="push_mirror_password" name="push_mirror_password" type="password" autocomplete="off">
 													</div>
 												</div>
 											</details>
 											<div class="field">
 												<div class="ui checkbox">
-													<input id="push_mirror_sync_on_commit" name="push_mirror_sync_on_commit" type="checkbox" {{if .push_mirror_sync_on_commit}}checked{{end}}>
+													<input id="push_mirror_sync_on_commit" name="push_mirror_sync_on_commit" type="checkbox">
 													<label for="push_mirror_sync_on_commit">{{ctx.Locale.Tr "repo.mirror_sync_on_commit"}}</label>
 												</div>
 											</div>
-											<div class="inline field {{if .Err_PushMirrorInterval}}error{{end}}">
+											<div class="inline field">
 												<label for="push_mirror_interval">{{ctx.Locale.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
-												<input id="push_mirror_interval" name="push_mirror_interval" value="{{if .push_mirror_interval}}{{.push_mirror_interval}}{{else}}{{.DefaultMirrorInterval}}{{end}}">
+												<input id="push_mirror_interval" name="push_mirror_interval" value="{{.DefaultMirrorInterval}}">
 											</div>
 											<div class="field">
 												<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.add"}}</button>
@@ -714,7 +714,7 @@
 			{{ctx.Locale.Tr "repo.settings.signing_settings"}}
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form" method="post">
+			<form class="ui form form-fetch-action" method="post">
 				<input type="hidden" name="action" value="signing">
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.trust_model"}}</label><br>
@@ -760,7 +760,7 @@
 			{{ctx.Locale.Tr "repo.settings.admin_settings"}}
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form" method="post">
+			<form class="ui form form-fetch-action" method="post">
 				<input type="hidden" name="action" value="admin">
 				<div class="field">
 					<div class="ui checkbox">
@@ -775,7 +775,7 @@
 			</form>
 
 			<div class="divider"></div>
-			<form class="ui form" method="post">
+			<form class="ui form form-fetch-action" method="post">
 				<input type="hidden" name="action" value="admin_index">
 				{{if .IsRepoIndexerEnabled}}
 					<h4 class="ui header">{{ctx.Locale.Tr "repo.settings.admin_code_indexer"}}</h4>
@@ -879,7 +879,7 @@
 					</div>
 					<div class="item-trailing">
 						{{if .RepoTransfer}}
-							<form class="ui form" action="{{.Link}}" method="post">
+							<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
 								<input type="hidden" name="action" value="cancel_transfer">
 								<button type="submit" class="ui red button">{{ctx.Locale.Tr "repo.settings.transfer_abort"}}</button>
 							</form>
@@ -1099,7 +1099,7 @@
 					{{end}}
 				</p>
 			</div>
-			<form action="{{.Link}}" method="post">
+			<form class="form-fetch-action" action="{{.Link}}" method="post">
 				<input type="hidden" name="action" value="{{if .Repository.IsArchived}}unarchive{{else}}archive{{end}}">
 				<input type="hidden" name="repo_id" value="{{.Repository.ID}}">
 				{{template "base/modal_actions_confirm" .}}

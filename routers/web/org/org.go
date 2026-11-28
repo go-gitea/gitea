@@ -15,7 +15,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/web"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -42,16 +41,13 @@ func Create(ctx *context.Context) {
 
 // CreatePost response for create organization
 func CreatePost(ctx *context.Context) {
-	form := *web.GetForm[*forms.CreateOrgForm](ctx)
-	ctx.Data["Title"] = ctx.Tr("new_org")
-
-	if !ctx.Doer.CanCreateOrganization() {
-		ctx.ServerErrorAuto(errors.New(ctx.Locale.TrString("org.form.create_org_not_allowed")))
+	form := context.GetFetchActionForm[*forms.CreateOrgForm](ctx)
+	if ctx.Written() {
 		return
 	}
 
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplCreateOrg)
+	if !ctx.Doer.CanCreateOrganization() {
+		ctx.ServerErrorAuto(errors.New(ctx.Locale.TrString("org.form.create_org_not_allowed")))
 		return
 	}
 
@@ -64,18 +60,17 @@ func CreatePost(ctx *context.Context) {
 	}
 
 	if err := organization.CreateOrganization(ctx, org, ctx.Doer); err != nil {
-		ctx.Data["Err_OrgName"] = true
 		var errNameReserved db.ErrNameReserved
 		var errNamePatternNotAllowed db.ErrNamePatternNotAllowed
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.org_name_been_taken"), tplCreateOrg, &form)
+			ctx.JSONErrorWithField(ctx.Tr("form.org_name_been_taken"), "OrgName")
 		case errors.As(err, &errNameReserved):
-			ctx.RenderWithErrDeprecated(ctx.Tr("org.form.name_reserved", errNameReserved.Name), tplCreateOrg, &form)
+			ctx.JSONErrorWithField(ctx.Tr("org.form.name_reserved", errNameReserved.Name), "OrgName")
 		case errors.As(err, &errNamePatternNotAllowed):
-			ctx.RenderWithErrDeprecated(ctx.Tr("org.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tplCreateOrg, &form)
+			ctx.JSONErrorWithField(ctx.Tr("org.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), "OrgName")
 		case organization.IsErrUserNotAllowedCreateOrg(err):
-			ctx.RenderWithErrDeprecated(ctx.Tr("org.form.create_org_not_allowed"), tplCreateOrg, &form)
+			ctx.JSONError(ctx.Tr("org.form.create_org_not_allowed"))
 		default:
 			ctx.ServerErrorAuto(err)
 		}
@@ -85,5 +80,5 @@ func CreatePost(ctx *context.Context) {
 
 	log.Trace("Organization created: %s", org.Name)
 
-	ctx.Redirect(org.AsUser().DashboardLink())
+	ctx.JSONRedirect(org.AsUser().DashboardLink())
 }

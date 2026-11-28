@@ -17,7 +17,6 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
 	"gitea.dev/routers/common"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
@@ -52,6 +51,7 @@ func ForgotPasswd(ctx *context.Context) {
 
 // ForgotPasswdPost response for forget password request
 func ForgotPasswdPost(ctx *context.Context) {
+	// TODO: REFACTOR-RENDER-WITH-ERR: form-fetch-action needs navigation for the sent-email and resend-limit views currently rendered by this POST.
 	ctx.Data["Title"] = ctx.Tr("auth.forgot_password_title")
 
 	if setting.MailService == nil {
@@ -164,6 +164,7 @@ func ResetPasswd(ctx *context.Context) {
 
 // ResetPasswdPost response from account recovery request
 func ResetPasswdPost(ctx *context.Context) {
+	// TODO: REFACTOR-RENDER-WITH-ERR: form-fetch-action needs JSON errors from commonResetPassword, which currently sets template flash errors.
 	u, twofa := commonResetPassword(ctx)
 	if ctx.Written() {
 		return
@@ -280,11 +281,8 @@ func MustChangePassword(ctx *context.Context) {
 // MustChangePasswordPost response for updating a user's password after their
 // account was created by an admin
 func MustChangePasswordPost(ctx *context.Context) {
-	form := web.GetForm[*forms.MustChangePasswordForm](ctx)
-	ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
-	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/settings/change_password"
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplMustChangePassword)
+	form := context.GetFetchActionForm[*forms.MustChangePasswordForm](ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -295,8 +293,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 	}
 
 	if form.Password != form.Retype {
-		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.password_not_match"), tplMustChangePassword, &form)
+		ctx.JSONErrorWithField(ctx.Tr("form.password_not_match"), "Password")
 		return
 	}
 
@@ -307,17 +304,13 @@ func MustChangePasswordPost(ctx *context.Context) {
 	if err := user_service.UpdateAuth(ctx, ctx.Doer, opts); err != nil {
 		switch {
 		case errors.Is(err, password.ErrMinLength):
-			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplMustChangePassword, &form)
+			ctx.JSONErrorWithField(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), "Password")
 		case errors.Is(err, password.ErrComplexity):
-			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErrDeprecated(password.BuildComplexityError(ctx.Locale), tplMustChangePassword, &form)
+			ctx.JSONErrorWithField(password.BuildComplexityError(ctx.Locale), "Password")
 		case errors.Is(err, password.ErrIsPwned):
-			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords"), tplMustChangePassword, &form)
+			ctx.JSONErrorWithField(ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords"), "Password")
 		case password.IsErrIsPwnedRequest(err):
-			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned_err"), tplMustChangePassword, &form)
+			ctx.JSONErrorWithField(ctx.Tr("auth.password_pwned_err"), "Password")
 		default:
 			ctx.ServerErrorAuto(err)
 		}

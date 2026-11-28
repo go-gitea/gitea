@@ -5,12 +5,12 @@
 			{{ctx.Locale.Tr "settings.change_password"}}
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form tw-max-w-2xl tw-m-auto" action="{{.ChangePasscodeLink}}" method="post">
-			<div class="required field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
+			<form class="ui form tw-max-w-2xl tw-m-auto form-fetch-action" action="{{.ChangePasscodeLink}}" method="post">
+			<div class="required field">
 				<label for="password">{{ctx.Locale.Tr "password"}}</label>
-				<input id="password" name="password" type="password" value="{{.password}}" autocomplete="new-password" required>
+				<input id="password" name="password" type="password" autocomplete="new-password" required>
 			</div>
-			<div class="required field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+			<div class="required field">
 				<label for="retype">{{ctx.Locale.Tr "re_type"}}</label>
 				<input id="retype" name="retype" type="password" autocomplete="new-password" required>
 			</div>

@@ -286,6 +286,7 @@ func SignIn(ctx *context.Context) {
 
 // SignInPost response for sign in request
 func SignInPost(ctx *context.Context) {
+	// TODO: REFACTOR-RENDER-WITH-ERR: form-fetch-action needs CAPTCHA refresh support and navigation for the prohibited-login page.
 	if !setting.Service.EnablePasswordSignInForm {
 		ctx.HTTPError(http.StatusForbidden)
 		return
@@ -550,6 +551,7 @@ func SignUp(ctx *context.Context) {
 
 // SignUpPost response for sign up information submission
 func SignUpPost(ctx *context.Context) {
+	// TODO: REFACTOR-RENDER-WITH-ERR: form-fetch-action needs the shared CAPTCHA and account-activation helpers to stop rendering HTML first.
 	if !prepareSignUpPageData(ctx) {
 		return
 	}

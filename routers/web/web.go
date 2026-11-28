@@ -583,9 +583,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Post("/link_account_signup", web.Bind[*forms.RegisterForm](), auth.LinkAccountPostRegister)
 		m.Group("/two_factor", func() {
 			m.Get("", auth.TwoFactor)
-			m.Post("", web.Bind[*forms.TwoFactorAuthForm](), auth.TwoFactorPost)
+			m.Post("", auth.TwoFactorPost)
 			m.Get("/scratch", auth.TwoFactorScratch)
-			m.Post("/scratch", web.Bind[*forms.TwoFactorScratchAuthForm](), auth.TwoFactorScratchPost)
+			m.Post("/scratch", auth.TwoFactorScratchPost)
 		})
 		m.Group("/webauthn", func() {
 			m.Get("", auth.WebAuthn)
@@ -619,12 +619,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Post("", user_setting.ProfilePost)
 		m.Post("/update_preferences", user_setting.UpdatePreferences)
 		m.Get("/change_password", auth.MustChangePassword)
-		m.Post("/change_password", web.Bind[*forms.MustChangePasswordForm](), auth.MustChangePasswordPost)
+		m.Post("/change_password", auth.MustChangePasswordPost)
 		m.Post("/avatar", web.Bind[*forms.AvatarForm](), user_setting.AvatarPost)
 		m.Post("/avatar/delete", user_setting.DeleteAvatar)
 		m.Group("/account", func() {
 			m.Combo("").Get(user_setting.Account).Post(web.Bind[*forms.ChangePasswordForm](), user_setting.AccountPost)
-			m.Post("/email", web.Bind[*forms.AddEmailForm](), user_setting.EmailPost)
+			m.Post("/email", user_setting.EmailPost)
 			m.Post("/email/delete", user_setting.DeleteEmail)
 			m.Post("/delete", user_setting.DeleteAccount)
 		})
@@ -781,9 +781,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 		m.Group("/users", func() {
 			m.Get("", admin.Users)
-			m.Combo("/new").Get(admin.NewUser).Post(web.Bind[*forms.AdminCreateUserForm](), admin.NewUserPost)
+			m.Combo("/new").Get(admin.NewUser).Post(admin.NewUserPost)
 			m.Get("/{userid}", admin.ViewUser)
-			m.Combo("/{userid}/edit").Get(admin.EditUser).Post(web.Bind[*forms.AdminEditUserForm](), admin.EditUserPost)
+			m.Combo("/{userid}/edit").Get(admin.EditUser).Post(admin.EditUserPost)
 			m.Post("/{userid}/impersonate", admin.ImpersonateUser)
 			m.Post("/{userid}/delete", admin.DeleteUser)
 			m.Post("/{userid}/avatar", web.Bind[*forms.AvatarForm](), admin.AvatarPost)
@@ -843,9 +843,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 		m.Group("/auths", func() {
 			m.Get("", admin.Authentications)
-			m.Combo("/new").Get(admin.NewAuthSource).Post(web.Bind[*forms.AuthenticationForm](), admin.NewAuthSourcePost)
+			m.Combo("/new").Get(admin.NewAuthSource).Post(admin.NewAuthSourcePost)
 			m.Combo("/{authid}").Get(admin.EditAuthSource).
-				Post(web.Bind[*forms.AuthenticationForm](), admin.EditAuthSourcePost)
+				Post(admin.EditAuthSourcePost)
 			m.Post("/{authid}/delete", admin.DeleteAuthSource)
 		})
 
@@ -945,7 +945,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Group("/org", func() {
 		m.Group("", func() {
 			m.Get("/create", org.Create)
-			m.Post("/create", web.Bind[*forms.CreateOrgForm](), org.CreatePost)
+			m.Post("/create", org.CreatePost)
 		})
 
 		m.Group("/invite/{token}", func() {
@@ -982,16 +982,16 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		// require owner permission
 		m.Group("/{org}", func() {
 			m.Get("/teams/new", org.NewTeam)
-			m.Post("/teams/new", web.Bind[*forms.CreateTeamForm](), org.NewTeamPost)
+			m.Post("/teams/new", org.NewTeamPost)
 			m.Get("/teams/{team}/edit", org.EditTeam)
-			m.Post("/teams/{team}/edit", web.Bind[*forms.CreateTeamForm](), org.EditTeamPost)
+			m.Post("/teams/{team}/edit", org.EditTeamPost)
 			m.Post("/teams/{team}/delete", org.DeleteTeam)
 
 			m.Get("/worktime", context.OrgAssignment(context.OrgAssignmentOptions{RequireOwner: true}), org.Worktime)
 
 			m.Group("/settings", func() {
 				m.Combo("").Get(org.Settings).
-					Post(web.Bind[*forms.UpdateOrgSettingForm](), org.SettingsPost)
+					Post(org.SettingsPost)
 				m.Post("/avatar", web.Bind[*forms.AvatarForm](), org.SettingsAvatar)
 				m.Post("/avatar/delete", org.SettingsDeleteAvatar)
 				m.Group("/applications", func() {
@@ -1062,7 +1062,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/repo", func() {
 		m.Get("/create", repo.Create)
-		m.Post("/create", web.Bind[*forms.CreateRepoForm](), repo.CreatePost)
+		m.Post("/create", repo.CreatePost)
 		m.Get("/migrate", repo.Migrate)
 		m.Post("/migrate", repo.MigratePost)
 		m.Get("/search", repo.SearchRepo)
@@ -1148,10 +1148,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// end "/{username}/{reponame}/-": mentions
 
 	m.Group("/{username}/{reponame}/settings", func() {
-		m.Group("", func() {
-			m.Combo("").Get(repo_setting.Settings).
-				Post(web.Bind[*forms.RepoSettingForm](), repo_setting.SettingsPost)
-		}, repo_setting.SettingsCtxData)
+		m.Get("", repo_setting.Settings)
+		m.Post("", repo_setting.SettingsPost)
 		m.Post("/avatar", web.Bind[*forms.AvatarForm](), repo_setting.SettingsAvatar)
 		m.Post("/avatar/delete", repo_setting.SettingsDeleteAvatar)
 
@@ -1387,9 +1385,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 		m.Group("/milestones", func() {
 			m.Combo("/new").Get(repo.NewMilestone).
-				Post(web.Bind[*forms.CreateMilestoneForm](), repo.NewMilestonePost)
+				Post(repo.NewMilestonePost)
 			m.Get("/{id}/edit", repo.EditMilestone)
-			m.Post("/{id}/edit", web.Bind[*forms.CreateMilestoneForm](), repo.EditMilestonePost)
+			m.Post("/{id}/edit", repo.EditMilestonePost)
 			m.Post("/{id}/{action}", repo.ChangeMilestoneStatus)
 			m.Post("/delete", repo.DeleteMilestone)
 		}, context.RequireUnitWriter(unit.TypeIssues, unit.TypePullRequests))

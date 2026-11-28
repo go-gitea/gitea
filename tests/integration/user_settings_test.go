@@ -189,8 +189,8 @@ func testUserSettingsUpdateEmail(t *testing.T) {
 				"_method": "PRIMARY",
 				"id":      testCase.id,
 			})
-			resp := session.MakeRequest(t, req, http.StatusSeeOther)
-			assert.Equal(t, "/user/settings/account", resp.Header().Get("Location"))
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, "/user/settings/account", DecodeJSON(t, resp, map[string]string{})["redirect"])
 			flashMsg := session.GetCookieFlashMessage()
 			assert.Equal(t, "The selected email address could not be found.", flashMsg.ErrorMsg)
 		})

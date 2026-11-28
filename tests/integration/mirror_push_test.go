@@ -202,7 +202,7 @@ func testCreatePushMirror(t *testing.T, session *TestSession, owner, repo, addre
 		"push_mirror_password": password,
 		"push_mirror_interval": interval,
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusOK)
 
 	flashMsg := session.GetCookieFlashMessage()
 	assert.NotEmpty(t, flashMsg.SuccessMsg)
@@ -215,7 +215,7 @@ func doRemovePushMirror(t *testing.T, session *TestSession, owner, repo string, 
 	})
 	resp := session.MakeRequest(t, req, NoExpectedStatus)
 	flashMsg := session.GetCookieFlashMessage()
-	return resp.Code == http.StatusSeeOther && assert.NotEmpty(t, flashMsg.SuccessMsg)
+	return resp.Code == http.StatusOK && assert.NotEmpty(t, flashMsg.SuccessMsg)
 }
 
 func doUpdatePushMirror(t *testing.T, session *TestSession, owner, repo string, pushMirrorID int64, interval string) bool {
@@ -226,5 +226,5 @@ func doUpdatePushMirror(t *testing.T, session *TestSession, owner, repo string, 
 		"push_mirror_defer_sync": "true",
 	})
 	resp := session.MakeRequest(t, req, NoExpectedStatus)
-	return resp.Code == http.StatusSeeOther
+	return resp.Code == http.StatusOK
 }
