@@ -94,11 +94,12 @@ func CreateLabel(ctx *context.APIContext) {
 	form.Color = color
 
 	label := &issues_model.Label{
-		Name:        form.Name,
-		Exclusive:   form.Exclusive,
-		Color:       form.Color,
-		OrgID:       ctx.Org.Organization.ID,
-		Description: form.Description,
+		Name:           form.Name,
+		Exclusive:      form.Exclusive,
+		ExclusiveOrder: form.ExclusiveOrder,
+		Color:          form.Color,
+		OrgID:          ctx.Org.Organization.ID,
+		Description:    form.Description,
 	}
 	label.SetArchived(form.IsArchived)
 	if err := issues_model.NewLabel(ctx, label); err != nil {
@@ -191,6 +192,9 @@ func EditLabel(ctx *context.APIContext) {
 	}
 	if form.Exclusive != nil {
 		l.Exclusive = *form.Exclusive
+	}
+	if form.ExclusiveOrder != nil {
+		l.ExclusiveOrder = *form.ExclusiveOrder
 	}
 	if form.Color != nil {
 		color, err := label.NormalizeColor(*form.Color)
