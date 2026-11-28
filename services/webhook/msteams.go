@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	webhook_model "gitea.dev/models/webhook"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -134,7 +135,7 @@ func (m msteamsConvertor) Push(p *api.PushPayload) (MSTeamsPayload, error) {
 	var text strings.Builder
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
-		fmt.Fprintf(&text, "[%s](%s) %s - %s", commit.ID[:7], commit.URL,
+		fmt.Fprintf(&text, "[%s](%s) %s - %s", base.ShortSha(commit.ID), commit.URL,
 			strings.TrimRight(commit.Message, "\r\n"), commit.Author.Name)
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
