@@ -107,7 +107,8 @@ func GetIssueWatchers(ctx context.Context, issueID int64, listOptions db.ListOpt
 		And("`issue_watch`.is_watching = ?", true).
 		And("`user`.is_active = ?", true).
 		And("`user`.prohibit_login = ?", false).
-		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id")
+		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id").
+		Asc("`issue_watch`.id")
 
 	if listOptions.Page > 0 {
 		db.SetSessionPagination(sess, &listOptions)

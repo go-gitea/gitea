@@ -83,7 +83,7 @@ func Notices(ctx context.Context, page, pageSize int) ([]*Notice, error) {
 	notices := make([]*Notice, 0, pageSize)
 	return notices, db.GetEngine(ctx).
 		Limit(pageSize, (page-1)*pageSize).
-		Desc("created_unix").
+		Desc("created_unix", "id").
 		Find(&notices)
 }
 
