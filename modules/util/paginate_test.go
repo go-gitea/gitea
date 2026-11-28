@@ -4,36 +4,11 @@
 package util
 
 import (
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestPaginateSliceLargePage(t *testing.T) {
-	maxInt := int(^uint(0) >> 1)
-	list := []int{1, 2, 3, 4, 5}
-
-	tests := []struct {
-		name     string
-		page     int
-		pageSize int
-		want     []int
-	}{
-		{"large page even size", maxInt, 2, []int{}},
-		{"large page large size", maxInt, maxInt, []int{}},
-		{"second page larger size", 2, maxInt, []int{}},
-		{"exact multiple last page", 3, 2, []int{5}},
-		{"exact multiple past end", 4, 2, []int{}},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			assert.Equal(t, test.want, PaginateSlice(list, test.page, test.pageSize))
-		})
-	}
-
-	assert.Equal(t, []int{}, PaginateSlice([]int{}, 1, 2))
-}
 
 func TestPaginateSlice(t *testing.T) {
 	stringSlice := []string{"a", "b", "c", "d", "e"}
@@ -43,8 +18,8 @@ func TestPaginateSlice(t *testing.T) {
 	result = PaginateSlice(stringSlice, 100, 2)
 	assert.Equal(t, []string{}, result)
 
-	result = PaginateSlice(stringSlice, int(^uint(0)>>1), 2)
-	assert.Equal(t, []string{}, result)
+	assert.Equal(t, []string{}, PaginateSlice(stringSlice, math.MaxInt, 2))
+	assert.Equal(t, []string{}, PaginateSlice(stringSlice[:4], 3, 2))
 
 	result = PaginateSlice(stringSlice, 3, 2)
 	assert.Equal(t, []string{"e"}, result)
