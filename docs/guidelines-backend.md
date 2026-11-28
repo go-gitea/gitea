@@ -43,6 +43,9 @@ cmd → routers → services → models → modules
 
 A package on the left may import a package on its right, but never the reverse.
 
+Handlers in `routers` parse the request, call `services` and render the result.
+Keep all other logic in `services`, so web and API handlers behave the same.
+
 ### Naming conventions
 
 - Top-level packages use the plural form: `services`, `models`, `routers`.
