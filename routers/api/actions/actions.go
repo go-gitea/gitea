@@ -6,7 +6,9 @@ package actions
 import (
 	"net/http"
 
+	"gitea.dev/actionslib/runner/v1/runnerv1connect"
 	"gitea.dev/modules/web"
+	"gitea.dev/modules/web/routing"
 	"gitea.dev/routers/api/actions/ping"
 	"gitea.dev/routers/api/actions/runner"
 )
@@ -23,7 +25,9 @@ func Routes(prefix string) *web.Router {
 	m.Post(path+"*", http.StripPrefix(prefix, handler).ServeHTTP)
 
 	path, handler = runner.NewRunnerServiceHandler()
-	m.Post(path+"*", http.StripPrefix(prefix, handler).ServeHTTP)
+	runnerHandler := http.StripPrefix(prefix, handler).ServeHTTP
+	m.Post(runnerv1connect.RunnerServiceFetchTaskProcedure, routing.MarkLongPolling(), runnerHandler)
+	m.Post(path+"*", runnerHandler)
 
 	return m
 }
