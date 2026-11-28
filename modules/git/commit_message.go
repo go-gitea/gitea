@@ -167,14 +167,20 @@ func CommitMessageAddTrailer(message, key, value string) string {
 
 func CommitMessageParseTrailer(s string) CommitMessageTrailerValues {
 	ret := CommitMessageTrailerValues{}
+	var lastKey string
 	for line := range strings.SplitSeq(util.NormalizeStringEOL(s), "\n") {
+		if values := ret[lastKey]; len(values) > 0 && strings.IndexAny(line, " \t") == 0 && strings.TrimSpace(line) != "" {
+			values[len(values)-1] += " " + strings.TrimSpace(line) // continuation line of the previous trailer
+			continue
+		}
 		k, v, ok := strings.Cut(line, ":")
 		if !ok {
+			lastKey = ""
 			continue
 		}
 		k, v = strings.TrimSpace(k), strings.TrimSpace(v)
-		kLower := strings.ToLower(k)
-		ret[kLower] = append(ret[kLower], v)
+		lastKey = strings.ToLower(k)
+		ret[lastKey] = append(ret[lastKey], v)
 	}
 	return ret
 }
