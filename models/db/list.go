@@ -5,6 +5,7 @@ package db
 
 import (
 	"context"
+	"math"
 	"slices"
 
 	"gitea.dev/modules/setting"
@@ -68,9 +69,7 @@ func (opts *ListOptions) SetDefaultValues() {
 	if opts.PageSize > setting.API.MaxResponseItems {
 		opts.PageSize = setting.API.MaxResponseItems
 	}
-	if opts.Page <= 0 {
-		opts.Page = 1
-	}
+	opts.Page = min(max(opts.Page, 1), math.MaxInt/max(opts.PageSize, 1))
 }
 
 func (opts ListOptions) ToConds() builder.Cond {

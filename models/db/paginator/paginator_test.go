@@ -4,6 +4,7 @@
 package paginator
 
 import (
+	"math"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -33,6 +34,11 @@ func TestPaginator(t *testing.T) {
 			Take:      10,
 			Start:     10,
 			End:       20,
+		},
+		{
+			Paginator: &db.ListOptions{Page: math.MaxInt, PageSize: 10},
+			Skip:      (math.MaxInt/10 - 1) * 10,
+			Take:      10,
 		},
 		{
 			Paginator: db.NewAbsoluteListOptions(-1, -1),

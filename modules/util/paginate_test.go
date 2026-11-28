@@ -4,6 +4,7 @@
 package util
 
 import (
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,6 +17,9 @@ func TestPaginateSlice(t *testing.T) {
 
 	result = PaginateSlice(stringSlice, 100, 2)
 	assert.Equal(t, []string{}, result)
+
+	assert.Equal(t, []string{}, PaginateSlice(stringSlice, math.MaxInt, 2))
+	assert.Equal(t, []string{}, PaginateSlice(stringSlice[:4], 3, 2))
 
 	result = PaginateSlice(stringSlice, 3, 2)
 	assert.Equal(t, []string{"e"}, result)
