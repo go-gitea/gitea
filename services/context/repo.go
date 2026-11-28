@@ -53,6 +53,14 @@ func (prc *PullRequestContext) SameRepo() bool {
 	return prc.baseRepo != nil && prc.headRepo != nil && prc.baseRepo.ID == prc.headRepo.ID
 }
 
+func (ctx *Context) DoerRepoPermission(repo *repo_model.Repository) (access_model.Permission, error) {
+	return cache.GetWithContextCache(ctx, cachegroup.RepoUserPermission, access_model.RepoUserPermissionCacheKey(repo.ID, ctx.Doer),
+		func(stdCtx context.Context, _key string) (access_model.Permission, error) {
+			return access_model.GetDoerRepoPermission(stdCtx, repo, ctx.Doer)
+		},
+	)
+}
+
 func (prc *PullRequestContext) CanCreateNewPull() bool {
 	if prc.canCreateNewPull != nil {
 		return *prc.canCreateNewPull
@@ -60,21 +68,15 @@ func (prc *PullRequestContext) CanCreateNewPull() bool {
 	ctx := prc.ctx
 	can := ctx.IsSigned && prc.baseRepo.CanContentChange()
 	if can {
-		basePerm, headPerm := ctx.Repo.Permission, ctx.Repo.Permission
-		var err error
-		if prc.baseRepo.ID != ctx.Repo.Repository.ID {
-			basePerm, err = access_model.GetDoerRepoPermission(ctx, prc.baseRepo, ctx.Doer)
-			if err != nil {
-				log.Error("CanCreateNewPull: %v", err)
-				return false
-			}
+		basePerm, err := ctx.DoerRepoPermission(prc.baseRepo)
+		if err != nil {
+			log.Error("CanCreateNewPull: %v", err)
+			return false
 		}
-		if prc.headRepo.ID != ctx.Repo.Repository.ID {
-			headPerm, err = access_model.GetDoerRepoPermission(ctx, prc.headRepo, ctx.Doer)
-			if err != nil {
-				log.Error("CanCreateNewPull: %v", err)
-				return false
-			}
+		headPerm, err := ctx.DoerRepoPermission(prc.headRepo)
+		if err != nil {
+			log.Error("CanCreateNewPull: %v", err)
+			return false
 		}
 		restriction := prc.baseRepo.MustGetUnit(ctx, unit_model.TypePullRequests).PullRequestsConfig().CreationRestriction
 		can = issue.CheckCreationRestriction(basePerm, unit_model.TypePullRequests, restriction) == nil &&

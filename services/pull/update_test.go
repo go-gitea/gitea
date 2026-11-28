@@ -4,7 +4,6 @@
 package pull
 
 import (
-	"context"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -35,9 +34,14 @@ func TestIsUserAllowedToUpdate(t *testing.T) {
 	setRepoAllowMergeUpdate := func(t *testing.T, repoID int64, allow bool) {
 		updatePRConfig(t, repoID, func(c *repo_model.PullRequestsConfig) { c.AllowMergeUpdate = allow })
 	}
-	checkUserAllowedToUpdate := func(ctx context.Context, pull *issues_model.PullRequest, user *user_model.User) (bool, bool, repo_model.UpdateStyle, error) {
-		ret, err := CheckUserAllowedToUpdate(ctx, pull, user)
-		return ret.MergeAllowed, ret.RebaseAllowed, ret.DefaultUpdateStyle, err
+	checkUserAllowedToUpdate := func(t *testing.T, pull *issues_model.PullRequest, user *user_model.User) (bool, bool, repo_model.UpdateStyle) {
+		t.Helper()
+		require.NoError(t, pull.LoadBaseRepo(t.Context()))
+		baseRepoPerm, err := access_model.GetDoerRepoPermission(t.Context(), pull.BaseRepo, user)
+		require.NoError(t, err)
+		ret, err := CheckUserAllowedToUpdate(t.Context(), pull, user, baseRepoPerm)
+		require.NoError(t, err)
+		return ret.MergeAllowed, ret.RebaseAllowed, ret.DefaultUpdateStyle
 	}
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -54,8 +58,7 @@ func TestIsUserAllowedToUpdate(t *testing.T) {
 		require.NoError(t, err)
 		defer db.DeleteByBean(t.Context(), protectedBranch)
 
-		pushAllowed, rebaseAllowed, defaultMergeStyle, err := checkUserAllowedToUpdate(t.Context(), pr2, user2)
-		assert.NoError(t, err)
+		pushAllowed, rebaseAllowed, defaultMergeStyle := checkUserAllowedToUpdate(t, pr2, user2)
 		assert.False(t, pushAllowed)
 		assert.False(t, rebaseAllowed)
 		assert.Equal(t, repo_model.UpdateStyleMerge, defaultMergeStyle)
@@ -64,8 +67,7 @@ func TestIsUserAllowedToUpdate(t *testing.T) {
 	t.Run("DisallowRebaseWhenConfigDisabled", func(t *testing.T) {
 		pr2 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 		setRepoAllowRebaseUpdate(t, pr2.BaseRepoID, false)
-		pushAllowed, rebaseAllowed, _, err := checkUserAllowedToUpdate(t.Context(), pr2, user2)
-		assert.NoError(t, err)
+		pushAllowed, rebaseAllowed, _ := checkUserAllowedToUpdate(t, pr2, user2)
 		assert.True(t, pushAllowed)
 		assert.False(t, rebaseAllowed)
 	})
@@ -74,8 +76,7 @@ func TestIsUserAllowedToUpdate(t *testing.T) {
 		pr2 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 		setRepoAllowRebaseUpdate(t, pr2.BaseRepoID, true)
 		setRepoAllowMergeUpdate(t, pr2.BaseRepoID, false)
-		pushAllowed, rebaseAllowed, _, err := checkUserAllowedToUpdate(t.Context(), pr2, user2)
-		assert.NoError(t, err)
+		pushAllowed, rebaseAllowed, _ := checkUserAllowedToUpdate(t, pr2, user2)
 		assert.False(t, pushAllowed)
 		assert.True(t, rebaseAllowed)
 		setRepoAllowMergeUpdate(t, pr2.BaseRepoID, true)
@@ -96,8 +97,7 @@ func TestIsUserAllowedToUpdate(t *testing.T) {
 		require.NoError(t, pr2.LoadHeadRepo(t.Context()))
 		assert.NoError(t, access_model.RecalculateUserAccess(t.Context(), pr2.HeadRepo, user4))
 
-		pushAllowed, rebaseAllowed, _, err := checkUserAllowedToUpdate(t.Context(), pr2, user4)
-		assert.NoError(t, err)
+		pushAllowed, rebaseAllowed, _ := checkUserAllowedToUpdate(t, pr2, user4)
 		assert.False(t, pushAllowed)
 		assert.False(t, rebaseAllowed)
 	})
@@ -114,8 +114,7 @@ func TestIsUserAllowedToUpdate(t *testing.T) {
 		require.NoError(t, err)
 		defer db.DeleteByBean(t.Context(), protectedBranch)
 
-		pushAllowed, rebaseAllowed, _, err := checkUserAllowedToUpdate(t.Context(), pr2, user2)
-		assert.NoError(t, err)
+		pushAllowed, rebaseAllowed, _ := checkUserAllowedToUpdate(t, pr2, user2)
 		assert.True(t, pushAllowed)
 		assert.False(t, rebaseAllowed)
 	})
@@ -137,22 +136,19 @@ func TestIsUserAllowedToUpdate(t *testing.T) {
 		require.NoError(t, pr3.LoadHeadRepo(t.Context()))
 		pr3.HeadRepo.IsPrivate = true
 
-		pushAllowed, _, _, err := checkUserAllowedToUpdate(t.Context(), pr3, pr3Poster)
-		assert.NoError(t, err)
+		pushAllowed, _, _ := checkUserAllowedToUpdate(t, pr3, pr3Poster)
 		assert.True(t, pushAllowed)
 
 		publicOnlyPoster := *pr3Poster
 		publicOnlyPoster.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,write:repository")
-		pushAllowed, _, _, err = checkUserAllowedToUpdate(t.Context(), pr3, &publicOnlyPoster)
-		assert.NoError(t, err)
+		pushAllowed, _, _ = checkUserAllowedToUpdate(t, pr3, &publicOnlyPoster)
 		assert.False(t, pushAllowed)
 	})
 
 	t.Run("MaintainerEditRespectsPosterPermissions", func(t *testing.T) {
 		pr3 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})
 		pr3.AllowMaintainerEdit = true
-		pushAllowed, rebaseAllowed, _, err := checkUserAllowedToUpdate(t.Context(), pr3, pr3Poster)
-		assert.NoError(t, err)
+		pushAllowed, rebaseAllowed, _ := checkUserAllowedToUpdate(t, pr3, pr3Poster)
 		assert.False(t, pushAllowed)
 		assert.False(t, rebaseAllowed)
 	})
@@ -192,8 +188,7 @@ func TestIsUserAllowedToUpdate(t *testing.T) {
 				setRepoAllowRebaseUpdate(t, pr3.BaseRepoID, false)
 			}
 
-			pushAllowed, rebaseAllowed, _, err := checkUserAllowedToUpdate(t.Context(), pr3, pr3Poster)
-			assert.NoError(t, err)
+			pushAllowed, rebaseAllowed, _ := checkUserAllowedToUpdate(t, pr3, pr3Poster)
 			assert.True(t, pushAllowed)
 			if testCase.disableRebase {
 				assert.False(t, rebaseAllowed)

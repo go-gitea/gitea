@@ -913,36 +913,21 @@ func MarkConversation(ctx context.Context, comment *Comment, doer *user_model.Us
 
 // CanMarkConversation  Add or remove Conversation mark for a code comment permission check
 // the PR writer , official reviewer and poster can do it
-func CanMarkConversation(ctx context.Context, issue *Issue, doer *user_model.User) (permResult bool, err error) {
+func CanMarkConversation(ctx context.Context, issue *Issue, doer *user_model.User, doerPerm access_model.Permission) (bool, error) {
 	if doer == nil {
 		return false, nil
 	}
 
-	if err = issue.LoadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return false, err
 	}
 	if issue.Repo.IsArchived {
 		return false, nil
 	}
-	if doer.ID != issue.PosterID {
-		p, err := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
-		if err != nil {
-			return false, err
-		}
-
-		permResult = p.CanAccess(perm.AccessModeWrite, unit.TypePullRequests)
-		if !permResult {
-			if permResult, err = IsOfficialReviewer(ctx, issue, doer); err != nil {
-				return false, err
-			}
-		}
-
-		if !permResult {
-			return false, nil
-		}
+	if doer.ID == issue.PosterID || doerPerm.CanWrite(unit.TypePullRequests) {
+		return true, nil
 	}
-
-	return true, nil
+	return IsOfficialReviewer(ctx, issue, doer)
 }
 
 // DeleteReview delete a review and it's code comments

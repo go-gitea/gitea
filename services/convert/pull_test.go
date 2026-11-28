@@ -47,7 +47,7 @@ func TestPullRequest_APIFormat(t *testing.T) {
 	assert.Nil(t, apiPullRequest.Head.Repository)
 	assert.EqualValues(t, -1, apiPullRequest.Head.RepoID)
 
-	apiPullRequests, err := ToAPIPullRequests(t.Context(), pr.BaseRepo, []*issues_model.PullRequest{pr}, nil)
+	apiPullRequests, err := ToAPIPullRequests(t.Context(), pr.BaseRepo, access_model.PermissionNoAccess(), []*issues_model.PullRequest{pr}, nil)
 	assert.NoError(t, err)
 	assert.Len(t, apiPullRequests, 1)
 	assert.NotNil(t, apiPullRequests[0])
@@ -64,7 +64,7 @@ func TestPullRequest_APIFormat(t *testing.T) {
 		CommitMessage: "the body",
 	}
 	assert.Equal(t, expected, ToAPIPullRequest(t.Context(), pr, nil).AutoMerge)
-	apiPullRequests, err = ToAPIPullRequests(t.Context(), pr.BaseRepo, []*issues_model.PullRequest{pr}, nil)
+	apiPullRequests, err = ToAPIPullRequests(t.Context(), pr.BaseRepo, access_model.PermissionNoAccess(), []*issues_model.PullRequest{pr}, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, apiPullRequests[0].AutoMerge)
 }

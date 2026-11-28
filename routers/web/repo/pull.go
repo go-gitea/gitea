@@ -844,7 +844,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
 	ctx.Data["ShowDiffSummaryInToolbar"] = diffShortStat.NumFiles != 0
 
-	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
+	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}
@@ -896,28 +896,18 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
-	if isShowAllCommits && pull.Flow == issues_model.PullRequestFlowGithub {
-		if err := pull.LoadHeadRepo(ctx); err != nil {
+	if isShowAllCommits && pull.Flow == issues_model.PullRequestFlowGithub && pull.HeadRepo != nil && !pull.HasMerged && ctx.Doer != nil {
+		headPerm, err := ctx.DoerRepoPermission(pull.HeadRepo)
+		if err != nil {
 			ctx.ServerErrorAuto(err)
 			return
 		}
-
-		if pull.HeadRepo != nil {
-			if !pull.HasMerged && ctx.Doer != nil {
-				headPerm, err := access_model.GetDoerRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
-				if err != nil {
-					ctx.ServerErrorAuto(err)
-					return
-				}
-
-				if issues_model.CanMaintainerWriteToBranch(ctx, headPerm, pull.HeadBranch, ctx.Doer) {
-					ctx.Data["CanEditFile"] = true
-					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
-					ctx.Data["HeadRepoLink"] = pull.HeadRepo.Link()
-					ctx.Data["HeadBranchName"] = pull.HeadBranch
-					ctx.Data["BackToLink"] = setting.AppSubURL + ctx.Req.URL.RequestURI()
-				}
-			}
+		if issues_model.CanMaintainerWriteToBranch(ctx, headPerm, pull.HeadBranch, ctx.Doer) {
+			ctx.Data["CanEditFile"] = true
+			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
+			ctx.Data["HeadRepoLink"] = pull.HeadRepo.Link()
+			ctx.Data["HeadBranchName"] = pull.HeadBranch
+			ctx.Data["BackToLink"] = setting.AppSubURL + ctx.Req.URL.RequestURI()
 		}
 	}
 
@@ -953,16 +943,7 @@ func UpdatePullRequest(ctx *context.Context) {
 		return
 	}
 
-	if err := issue.PullRequest.LoadBaseRepo(ctx); err != nil {
-		ctx.ServerErrorAuto(err)
-		return
-	}
-	if err := issue.PullRequest.LoadHeadRepo(ctx); err != nil {
-		ctx.ServerErrorAuto(err)
-		return
-	}
-
-	userUpdateStyles, err := pull_service.CheckUserAllowedToUpdate(ctx, issue.PullRequest, ctx.Doer)
+	userUpdateStyles, err := pull_service.CheckUserAllowedToUpdate(ctx, issue.PullRequest, ctx.Doer, ctx.Repo.Permission)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return

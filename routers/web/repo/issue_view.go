@@ -119,24 +119,11 @@ func roleDescriptor(ctx *context.Context, repo *repo_model.Repository, poster *u
 
 // checkBlockedByIssues return canRead and notPermitted
 func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.DependencyInfo) (canRead, notPermitted []*issues_model.DependencyInfo) {
-	repoPerms := make(map[int64]access_model.Permission)
-	repoPerms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
 	for _, blocker := range blockers {
-		// Get the permissions for this repository
-		// If the repo ID exists in the map, return the exist permissions
-		// else get the permission and add it to the map
-		var perm access_model.Permission
-		existPerm, ok := repoPerms[blocker.RepoID]
-		if ok {
-			perm = existPerm
-		} else {
-			var err error
-			perm, err = access_model.GetDoerRepoPermission(ctx, &blocker.Repository, ctx.Doer)
-			if err != nil {
-				ctx.ServerErrorAuto(err)
-				return nil, nil
-			}
-			repoPerms[blocker.RepoID] = perm
+		perm, err := ctx.DoerRepoPermission(&blocker.Repository)
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return nil, nil
 		}
 		if perm.CanReadIssuesOrPulls(blocker.Issue.IsPull) {
 			canRead = append(canRead, blocker)
@@ -835,10 +822,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	pull_service.StartPullRequestCheckOnView(ctx, pull)
 
 	if ctx.IsSigned {
-		if err := pull.LoadHeadRepo(ctx); err != nil {
-			log.Error("LoadHeadRepo: %v", err)
-		} else if pull.HeadRepo != nil && issue.IsClosed {
-			perm, err := access_model.GetDoerRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
+		if pull.HeadRepo != nil && issue.IsClosed {
+			perm, err := ctx.DoerRepoPermission(pull.HeadRepo)
 			if err != nil {
 				ctx.ServerErrorAuto(err)
 				return
@@ -865,24 +850,17 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 			}
 		}
 
-		if err := pull.LoadBaseRepo(ctx); err != nil {
-			log.Error("LoadBaseRepo: %v", err)
-		}
-		perm, err := access_model.GetDoerRepoPermission(ctx, pull.BaseRepo, ctx.Doer)
+		var err error
+		data.hasPermToMerge, err = pull_service.IsUserAllowedToMerge(ctx, pull, ctx.Repo.Permission, ctx.Doer)
 		if err != nil {
 			ctx.ServerErrorAuto(err)
 			return
 		}
-		data.hasPermToMerge, err = pull_service.IsUserAllowedToMerge(ctx, pull, perm, ctx.Doer)
-		if err != nil {
-			ctx.ServerErrorAuto(err)
-			return
-		}
-		if !data.hasPermToMerge && perm.CanWrite(unit.TypeCode) {
+		if !data.hasPermToMerge && ctx.Repo.Permission.CanWrite(unit.TypeCode) {
 			data.mergeBlockers = append(data.mergeBlockers, ctx.Locale.Tr("repo.pulls.no_merge_access"))
 		}
 
-		if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
+		if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
 			ctx.ServerErrorAuto(err)
 			return
 		}
@@ -971,7 +949,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 func (prInfo *pullRequestViewInfo) preparePullUpdateActions(ctx *context.Context) {
 	pull := prInfo.issue.PullRequest
 	data := prInfo.MergeBoxData
-	userUpdateStyles, err := pull_service.CheckUserAllowedToUpdate(ctx, pull, ctx.Doer)
+	userUpdateStyles, err := pull_service.CheckUserAllowedToUpdate(ctx, pull, ctx.Doer, ctx.Repo.Permission)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
