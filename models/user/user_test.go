@@ -686,3 +686,17 @@ func TestCanCreateRepo(t *testing.T) {
 		assert.True(t, doerNormal.CanCreateRepoIn(orgOwner(10, 100)))
 	})
 }
+
+func TestUserPasswordVerifiedLocally(t *testing.T) {
+	for loginType, expected := range map[auth.Type]bool{
+		auth.NoType: true,
+		auth.Plain:  true,
+		auth.OAuth2: true,
+		auth.LDAP:   false,
+		auth.DLDAP:  false,
+		auth.SMTP:   false,
+		auth.PAM:    false,
+	} {
+		assert.Equal(t, expected, (&user_model.User{LoginType: loginType}).PasswordVerifiedLocally(), loginType.String())
+	}
+}

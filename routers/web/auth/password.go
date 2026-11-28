@@ -79,7 +79,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 		return
 	}
 
-	if !u.IsLocal() && !u.IsOAuth2() {
+	if !u.PasswordVerifiedLocally() {
 		ctx.Data["Err_Email"] = true
 		ctx.RenderWithErrDeprecated(ctx.Tr("auth.non_local_account"), tplForgotPassword, nil)
 		return

@@ -80,7 +80,7 @@
 					<input id="email" name="email" type="email" value="{{.User.Email}}" required>
 				</div>
 				{{if not .User.IsTypeBot}}
-					<div class="js-local js-non-bot field {{if .Err_Password}}error{{end}} {{if not (or .User.IsLocal .User.IsOAuth2)}}tw-hidden{{end}}">
+					<div class="js-local js-non-bot field {{if .Err_Password}}error{{end}} {{if not .User.PasswordVerifiedLocally}}tw-hidden{{end}}">
 						<label for="password">{{ctx.Locale.Tr "password"}}</label>
 						<input id="password" name="password" type="password" autocomplete="new-password">
 						<p class="help">{{ctx.Locale.Tr "admin.users.password_helper"}}</p>
