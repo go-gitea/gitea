@@ -26,6 +26,7 @@ import (
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	go_oauth2 "golang.org/x/oauth2"
 	"xorm.io/builder"
 )
 
@@ -335,16 +336,7 @@ func TestAuthOAuth2Flows(t *testing.T) {
 				addOAuth2Source(t, tc.SourceName, newOIDCSource(srv, tc.IsAdmin, tc.IsRestricted))
 				unittest.AssertNotExistsBean(t, &user_model.User{Name: tc.SourceName})
 				session := emptyTestSession(t)
-				resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+tc.SourceName), http.StatusTemporaryRedirect)
-
-				location := resp.Header().Get("Location")
-				u, err := url.Parse(location)
-				require.NoError(t, err)
-				state := u.Query().Get("state")
-				require.NotEmpty(t, state, "redirect to OIDC provider must include state")
-
-				callbackURL := fmt.Sprintf("/user/oauth2/%s/callback?code=test-code&state=%s", tc.SourceName, url.QueryEscape(state))
-				session.MakeRequest(t, NewRequest(t, "GET", callbackURL), http.StatusSeeOther)
+				session.MakeRequest(t, NewRequest(t, "GET", oidcCallbackURL(t, session, tc.SourceName)), http.StatusSeeOther)
 
 				// Submit the form to create a new account
 				linkAccountResp := session.MakeRequest(t, NewRequest(t, "GET", "/user/link_account"), http.StatusOK)
@@ -410,16 +402,7 @@ func TestAuthOAuth2Flows(t *testing.T) {
 		unittest.AssertNotExistsBean(t, &user_model.ExternalLoginUser{ExternalID: sub, LoginSourceID: authSource.ID}, unittest.OrderBy("external_id ASC"))
 
 		session := emptyTestSession(t)
-		resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+sourceName), http.StatusTemporaryRedirect)
-
-		location := resp.Header().Get("Location")
-		u, err := url.Parse(location)
-		require.NoError(t, err)
-		state := u.Query().Get("state")
-		require.NotEmpty(t, state)
-
-		callbackURL := fmt.Sprintf("/user/oauth2/%s/callback?code=test-code&state=%s", sourceName, url.QueryEscape(state))
-		resp = session.MakeRequest(t, NewRequest(t, "GET", callbackURL), http.StatusSeeOther)
+		resp := session.MakeRequest(t, NewRequest(t, "GET", oidcCallbackURL(t, session, sourceName)), http.StatusSeeOther)
 		assert.Contains(t, resp.Header().Get("Location"), "/user/two_factor")
 
 		session.MakeRequest(t, NewRequest(t, "GET", "/user/two_factor"), http.StatusOK)
@@ -450,14 +433,7 @@ func TestAuthOAuth2Flows(t *testing.T) {
 
 		assertOAuth2Challenged := func(t *testing.T, sourceName string) {
 			session := emptyTestSession(t)
-			resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+sourceName), http.StatusTemporaryRedirect)
-			u, err := url.Parse(resp.Header().Get("Location"))
-			require.NoError(t, err)
-			state := u.Query().Get("state")
-			require.NotEmpty(t, state)
-
-			callbackURL := fmt.Sprintf("/user/oauth2/%s/callback?code=test-code&state=%s", sourceName, url.QueryEscape(state))
-			resp = session.MakeRequest(t, NewRequest(t, "GET", callbackURL), http.StatusSeeOther)
+			resp := session.MakeRequest(t, NewRequest(t, "GET", oidcCallbackURL(t, session, sourceName)), http.StatusSeeOther)
 			assert.Contains(t, resp.Header().Get("Location"), "/user/webauthn")
 			session.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusSeeOther) // the redirect alone does not prove no session was issued
 		}
@@ -532,6 +508,10 @@ func newFakeOIDCServer(t *testing.T, cfg FakeOIDCConfig) *httptest.Server {
 				"userinfo_endpoint":      srv.URL + "/userinfo",
 			})
 		case "/token": // returns an ID token with both "sub" and "oid" claims so tests can verify which one ends up as ExternalID
+			if go_oauth2.S256ChallengeFromVerifier(r.FormValue("code_verifier")) != r.FormValue("code") {
+				http.Error(w, `{"error":"invalid_grant"}`, http.StatusBadRequest)
+				return
+			}
 			claims := map[string]any{
 				"iss":   srv.URL,
 				"aud":   "test-client-id",
@@ -584,20 +564,20 @@ func newFakeOIDCServer(t *testing.T, cfg FakeOIDCConfig) *httptest.Server {
 func doOIDCSignIn(t *testing.T, sourceName string) {
 	t.Helper()
 	session := emptyTestSession(t)
+	req := NewRequest(t, "GET", oidcCallbackURL(t, session, sourceName))
+	session.MakeRequest(t, req, http.StatusSeeOther)
+	assert.NotContains(t, req.URL.RawQuery, "code_verifier")
+}
 
-	// Step 1: initiate login
+func oidcCallbackURL(t *testing.T, session *TestSession, sourceName string) string {
+	t.Helper()
 	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+sourceName), http.StatusTemporaryRedirect)
-
-	// Step 2: extract the UUID state that Gitea embedded in the redirect URL.
-	location := resp.Header().Get("Location")
-	u, err := url.Parse(location)
+	authURL, err := url.Parse(resp.Header().Get("Location"))
 	require.NoError(t, err)
-	state := u.Query().Get("state")
-	require.NotEmpty(t, state, "redirect to OIDC provider must include state")
-
-	// Step 3: simulate the provider redirecting back.
-	callbackURL := fmt.Sprintf("/user/oauth2/%s/callback?code=test-code&state=%s", sourceName, url.QueryEscape(state))
-	session.MakeRequest(t, NewRequest(t, "GET", callbackURL), http.StatusSeeOther)
+	query := authURL.Query()
+	require.NotEmpty(t, query.Get("state"))
+	require.Equal(t, "S256", query.Get("code_challenge_method"))
+	return fmt.Sprintf("/user/oauth2/%s/callback?code=%s&state=%s", sourceName, query.Get("code_challenge"), url.QueryEscape(query.Get("state")))
 }
 
 // newOIDCSource is a helper function to create a configured OAuth2 source for testing
