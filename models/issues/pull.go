@@ -419,6 +419,10 @@ func (pr *PullRequest) GetGitHeadRefName() string { // TODO: make it return RefN
 	return git.RefNameFromPullIndex(pr.Index).String()
 }
 
+func (pr *PullRequest) GetCompareBaseRef() git.RefName {
+	return util.Iif(pr.HasMerged, git.RefName(pr.MergeBase), git.RefNameFromBranch(pr.BaseBranch))
+}
+
 func (pr *PullRequest) GetInstructionsCliArgs() (ret struct {
 	BaseBranchArg  string
 	HeadBranchArg  string
@@ -769,6 +773,7 @@ func (pr *PullRequest) Mergeable(ctx context.Context) bool {
 	// - Being conflict checked.
 	// - Has a conflict.
 	// - Received a error while being conflict checked.
+	// - Shares no history with its base.
 	// - Is a work-in-progress pull request.
 	return pr.Status != PullRequestStatusChecking && pr.Status != PullRequestStatusConflict &&
 		pr.Status != PullRequestStatusError && pr.Status != PullRequestStatusUnrelated && !pr.IsWorkInProgress(ctx)

@@ -13,9 +13,11 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPullRequest_APIFormat(t *testing.T) {
@@ -67,4 +69,20 @@ func TestPullRequest_APIFormat(t *testing.T) {
 	apiPullRequests, err = ToAPIPullRequests(t.Context(), pr.BaseRepo, []*issues_model.PullRequest{pr}, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, apiPullRequests[0].AutoMerge)
+
+	t.Run("UnrelatedHistories", func(t *testing.T) {
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+		require.NoError(t, pr.LoadAttributes(t.Context()))
+		pr.MergeBase = ""
+		pr.Status = issues_model.PullRequestStatusUnrelated
+		require.NoError(t, git.ForceFastImport(t.Context(), headRepo, []git.FastImportCommit{
+			{Ref: git.BranchPrefix + pr.HeadBranch, Files: []git.FastImportFile{{Path: "first.txt", Content: "first\n"}}},
+			{Ref: git.BranchPrefix + pr.HeadBranch, Parent: ":1", Files: []git.FastImportFile{{Path: "second.txt", Content: "second\n"}}},
+		}))
+		apiPullRequest := ToAPIPullRequest(t.Context(), pr, nil)
+		require.NotNil(t, apiPullRequest)
+		assert.Equal(t, 2, *apiPullRequest.ChangedFiles)
+		assert.Equal(t, 2, *apiPullRequest.Additions)
+		assert.Zero(t, *apiPullRequest.Deletions)
+	})
 }

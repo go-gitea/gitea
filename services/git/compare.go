@@ -49,23 +49,22 @@ func (ci *CompareInfo) IsSameRef() bool {
 	return ci.IsSameRepository() && ci.BaseRef == ci.HeadRef
 }
 
-func (ci *CompareInfo) DirectComparison() bool {
-	// FIXME: the design of "DirectComparison" is wrong, it loses the information of `^`
-	// To correctly handle the comparison, developers should use `ci.CompareSeparator` directly, all "DirectComparison" related code should be rewritten.
-	return ci.CompareSeparator == ".."
+type CompareOptions struct {
+	CompareSeparator string // "..." (default) or ".."
+	FileOnly         bool
 }
 
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
 // It does its best to fill the fields as many as it can.
 // MergeBase can be empty if the base and head are unrelated.
-func GetCompareInfo(ctx context.Context, bh CompareBaseHead, directComparison, fileOnly bool) (ci CompareInfo, err error) {
+func GetCompareInfo(ctx context.Context, bh CompareBaseHead, opts CompareOptions) (ci CompareInfo, err error) {
 	baseCommitID, err1 := bh.BaseGitRepo.GetRefCommitID(ctx, bh.BaseRef.String())
 	headCommitID, err2 := bh.HeadGitRepo.GetRefCommitID(ctx, bh.HeadRef.String())
 	ci = CompareInfo{
 		CompareBaseHead:  bh,
 		BaseCommitID:     baseCommitID,
 		HeadCommitID:     headCommitID,
-		CompareSeparator: util.Iif(directComparison, "..", "..."),
+		CompareSeparator: util.IfZero(opts.CompareSeparator, "..."),
 	}
 	if err1 != nil || err2 != nil {
 		return ci, errors.Join(err1, err2)
@@ -82,7 +81,7 @@ func GetCompareInfo(ctx context.Context, bh CompareBaseHead, directComparison, f
 		}
 	}
 
-	if !directComparison {
+	if ci.CompareSeparator != ".." {
 		ci.CompareBase, err = git.MergeBase(ctx, bh.HeadRepo, ci.BaseCommitID, ci.HeadCommitID)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			return ci, fmt.Errorf("MergeBase: %w", err)
@@ -96,7 +95,7 @@ func GetCompareInfo(ctx context.Context, bh CompareBaseHead, directComparison, f
 	}
 
 	// We have a common base - therefore we know that ... should work
-	if !fileOnly {
+	if !opts.FileOnly {
 		// In git log/rev-list, the "..." syntax represents the symmetric difference between two references,
 		// which is different from the meaning of "..." in git diff (where it implies diffing from the merge base).
 		// For listing PR commits, we must use merge-base..head to include only the commits introduced by the head branch.
@@ -110,6 +109,6 @@ func GetCompareInfo(ctx context.Context, bh CompareBaseHead, directComparison, f
 	// Count number of changed files.
 	// TODO: This probably should be removed as we need to use shortstat elsewhere
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
-	ci.NumFiles, err = bh.HeadGitRepo.GetDiffNumChangedFiles(ctx, ci.BaseCommitID, ci.HeadCommitID, directComparison)
+	ci.NumFiles, err = bh.HeadGitRepo.GetDiffNumChangedFiles(ctx, ci.CompareBase, ci.HeadCommitID)
 	return ci, err
 }

@@ -1116,7 +1116,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		HeadRepo:    headRepo,
 		HeadGitRepo: headGitRepo,
 		HeadRef:     headRef,
-	}, compareReq.DirectComparison(), false)
+	}, git_service.CompareOptions{CompareSeparator: compareReq.CompareSeparator})
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil
@@ -1215,7 +1215,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 			ctx.APIError(http.StatusConflict, "rebase failed because of conflict")
 			return
 		}
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -1338,18 +1338,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	}
 	defer closer.Close()
 
-	baseRef := git.RefNameFromBranch(pr.BaseBranch)
-	if pr.HasMerged {
-		baseRef = git.RefName(pr.MergeBase)
-	}
-	compareInfo, err := git_service.GetCompareInfo(ctx, git_service.CompareBaseHead{
-		BaseRepo:    pr.BaseRepo,
-		BaseGitRepo: baseGitRepo,
-		BaseRef:     baseRef,
-		HeadRepo:    pr.BaseRepo,
-		HeadGitRepo: baseGitRepo,
-		HeadRef:     git.RefName(pr.GetGitHeadRefName()),
-	}, false, false)
+	compareInfo, err := pull_service.GetCompareInfo(ctx, pr, baseGitRepo, pr.GetCompareBaseRef())
 	if gitcmd.IsStderr(err, gitcmd.StderrBadRevision) {
 		ctx.APIError(http.StatusNotFound, "invalid base branch or revision")
 		return
@@ -1469,18 +1458,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	baseGitRepo := ctx.Repo.GitRepo
 
-	baseRef := git.RefNameFromBranch(pr.BaseBranch)
-	if pr.HasMerged {
-		baseRef = git.RefName(pr.MergeBase)
-	}
-	compareInfo, err := git_service.GetCompareInfo(ctx, git_service.CompareBaseHead{
-		BaseRepo:    pr.BaseRepo,
-		BaseGitRepo: baseGitRepo,
-		BaseRef:     baseRef,
-		HeadRepo:    pr.BaseRepo,
-		HeadGitRepo: baseGitRepo,
-		HeadRef:     git.RefName(pr.GetGitHeadRefName()),
-	}, false, false)
+	compareInfo, err := pull_service.GetCompareInfo(ctx, pr, baseGitRepo, pr.GetCompareBaseRef())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

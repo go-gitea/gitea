@@ -110,18 +110,14 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 		return fmt.Errorf("GetBranchCommitID: can't find commit ID for base: %w", err)
 	}
 
-	pr.MergeBase, err = git.MergeBase(ctx, pr.BaseRepo, baseCommitID, pr.HeadCommitID)
+	mergeBase, err := git.MergeBase(ctx, pr.BaseRepo, baseCommitID, pr.HeadCommitID)
 	if errors.Is(err, util.ErrNotExist) {
-		pr.Status = issues_model.PullRequestStatusUnrelated
-		pr.ConflictedFiles, pr.ChangedProtectedFiles = nil, nil
+		markUnrelated(ctx, pr.BaseRepo, pr)
 		return nil
 	} else if err != nil {
-		// if the merge base can't be determined, then it's empty, still need to allow the pull request to be created
-		// not quite right (e.g.: why not reset the fields like below), but no interest to do more investigation at the moment
-		log.Error("MergeBase: unable to find merge base between %s and %s: %v", baseCommitID, pr.HeadCommitID, err)
-		pr.Status = issues_model.PullRequestStatusEmpty
-		return nil
+		return fmt.Errorf("MergeBase: %w", err)
 	}
+	pr.MergeBase = mergeBase
 
 	// reset conflicted files and changed protected files
 	pr.ConflictedFiles = nil

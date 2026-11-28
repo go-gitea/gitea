@@ -250,11 +250,8 @@ func MergeUpstream(ctx *context.Context) {
 		} else if pull_service.IsErrMergeConflicts(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.merge_conflict"))
 			return
-		} else if pull_service.IsErrMergeUnrelatedHistories(err) {
-			ctx.JSONError(ctx.Tr("repo.pulls.unrelated_histories"))
-			return
 		}
-		ctx.ServerErrorAuto(err)
+		ctx.JSONErrorAuto(err)
 		return
 	}
 	ctx.JSONRedirect("")
