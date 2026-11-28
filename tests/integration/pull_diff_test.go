@@ -5,6 +5,7 @@ package integration
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -22,8 +23,14 @@ import (
 
 func TestPullDiff(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	t.Run("CompletePRDiff", func(t *testing.T) {
-		testPullDiffAssertPage(t, "/user2/commitsonpr/pulls/1/files", false, []string{"test1.txt", "test10.txt", "test2.txt", "test3.txt", "test4.txt", "test5.txt", "test6.txt", "test7.txt", "test8.txt", "test9.txt"})
+	t.Run("CompletePRDiffAndFileOnlyFragments", func(t *testing.T) {
+		session, doc := testPullDiffAssertPage(t, "/user2/commitsonpr/pulls/1/files", false, []string{"test1.txt", "test10.txt", "test2.txt", "test3.txt", "test4.txt", "test5.txt", "test6.txt", "test7.txt", "test8.txt", "test9.txt"})
+		testDiffFileOnly(t, session, "/user2/commitsonpr/pulls/1/files", doc, "test1.txt")
+
+		defer test.MockVariableValue(&setting.Git.MaxGitDiffFiles, 5)()
+		doc = NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/user2/commitsonpr/pulls/1/files?skip-to=test2.txt&file-only=true"), http.StatusOK).Body)
+		AssertHTMLElement(t, doc, "#diff-show-more-files", 1)
+		assert.Contains(t, doc.Find(`a[href*="/_edit/"]`).AttrOr("href", ""), "return_uri="+url.QueryEscape("/user2/commitsonpr/pulls/1/files#diff-"))
 	})
 	t.Run("CommitRangePRDiff", func(t *testing.T) {
 		testPullDiffAssertPage(t, "/user2/commitsonpr/pulls/1/files/4ca8bcaf27e28504df7bf996819665986b01c847..23576dd018294e476c06e569b6b0f170d0558705", true, []string{"test2.txt", "test3.txt", "test4.txt"})
@@ -72,7 +79,7 @@ func testPullDiffSingleCommit(t *testing.T) {
 	assert.Equal(t, "/user2/commitsonpr/commit/cbff181af4c9c7fee3cf6c106699e07d9a3f54e6", test.RedirectURL(resp))
 }
 
-func testPullDiffAssertPage(t *testing.T, prDiffURL string, reviewBtnDisabled bool, expectedFilenames []string) {
+func testPullDiffAssertPage(t *testing.T, prDiffURL string, reviewBtnDisabled bool, expectedFilenames []string) (*TestSession, *HTMLDoc) {
 	session := loginUser(t, "user2")
 
 	req := NewRequest(t, "GET", "/user2/commitsonpr/pulls")
@@ -98,6 +105,20 @@ func testPullDiffAssertPage(t *testing.T, prDiffURL string, reviewBtnDisabled bo
 	btn := doc.Find(".review-box-button")
 	require.Equal(t, 1, btn.Length())
 	assert.Equal(t, reviewBtnDisabled, btn.Is("[disabled]"))
+	return session, doc
+}
+
+func testDiffFileOnly(t *testing.T, session *TestSession, diffURL string, doc *HTMLDoc, filename string) {
+	t.Helper()
+	expectedBody, err := doc.Find(`.diff-file-box[data-new-filename="` + filename + `"] .file-body`).Html()
+	require.NoError(t, err)
+	require.NotEmpty(t, expectedBody)
+	resp := session.MakeRequest(t, NewRequest(t, "GET", diffURL+"?file-only=true&files="+filename), http.StatusOK)
+	fragment := NewHTMLParser(t, resp.Body)
+	body, err := fragment.Find(".file-body").Html()
+	require.NoError(t, err)
+	assert.Equal(t, expectedBody, body)
+	AssertHTMLElement(t, fragment, ".page-content, .diff-detail-box", false)
 }
 
 func TestLongLineDiffRendering(t *testing.T) {
