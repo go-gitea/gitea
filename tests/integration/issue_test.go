@@ -437,6 +437,16 @@ func TestIssueIDsSortByLabelScope(t *testing.T) {
 	}
 }
 
+func TestIssueIDsReviewRequestedDirectTeamAndSuperseded(t *testing.T) {
+	assert.NoError(t, unittest.LoadFixtures())
+	for userID, expectedIDs := range map[int64][]int64{15: {12, 20}, 18: {20}, 20: nil} {
+		issueIDs, total, err := issues_model.IssueIDs(t.Context(), &issues_model.IssuesOptions{ReviewRequestedID: userID})
+		assert.NoError(t, err)
+		assert.ElementsMatch(t, expectedIDs, issueIDs, "user %d", userID)
+		assert.EqualValues(t, len(expectedIDs), total, "user %d", userID)
+	}
+}
+
 func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content string) string {
 	req := NewRequest(t, "GET", "/"+path.Join(user, repo, "issues", "new"))
 	resp := session.MakeRequest(t, req, http.StatusOK)
