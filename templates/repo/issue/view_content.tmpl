@@ -38,11 +38,11 @@
 						</div>
 						<div class="comment-header-right">
 							{{template "repo/issue/view_content/show_role" dict "ShowRole" .Issue.ShowRole "IgnorePoster" true}}
-							{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_main" "ConvContentItem" .Issue}}
+							{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_main" "ConvContentItem" .Issue "ConvContentCanEdit" $.CanEditIssue}}
 						</div>
 					</div>
 					<div class="ui attached segment comment-body" role="article">
-						<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission $.IsIssuePoster}}data-can-edit="true"{{end}}>
+						<div class="render-content markup" {{if $.CanEditIssue}}data-can-edit="true"{{end}}>
 							{{if .Issue.RenderedContent}}
 								{{.Issue.RenderedContent}}
 							{{else}}
@@ -71,8 +71,6 @@
 					"PullMergeBoxData" $.PullMergeBoxData
 					"Issue" $.Issue
 					"DeleteBranchLink" $.DeleteBranchLink
-					"HasIssuesOrPullsWritePermission" $.HasIssuesOrPullsWritePermission
-					"IsIssuePoster" $.IsIssuePoster
 					"WorkInProgressPrefix" $.WorkInProgressPrefix
 				)}}
 				{{if $.PullMergeBoxData.ShowPullCommands}}

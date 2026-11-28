@@ -2,10 +2,9 @@
 {{$repo := $root.Repository -}}
 {{$repoLink := $root.RepoLink -}}
 {{$issue := $root.Issue -}}
-{{$canWrite := or $root.Permission.IsAdmin $root.HasIssuesOrPullsWritePermission -}}
-{{$signedUserID := or $root.SignedUserID NIL -}}
 {{range $comment := $.comments}}
 {{$createdStr:= DateUtils.TimeSince $comment.CreatedUnix}}
+{{$canEditContent := call $root.CanEditComment $comment}}
 <div class="comment" id="{{$comment.HashTag}}">
 	<div class="tw-mt-2 tw-mr-4">
 		{{if $comment.OriginalAuthor}}
@@ -55,12 +54,11 @@
 						</div>
 					{{end}}
 				{{end}}
-				{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_comment" "ConvContentPage" "pr-files" "ConvContentItem" $comment}}
+				{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_comment" "ConvContentPage" "pr-files" "ConvContentItem" $comment "ConvContentCanEdit" $canEditContent}}
 			</div>
 		</div>
 		<div class="ui attached segment comment-body">
-			{{$doerIsPoster := eq $signedUserID $comment.PosterID}}
-			<div class="render-content markup" {{if or $canWrite $doerIsPoster}}data-can-edit="true"{{end}}>
+			<div class="render-content markup" {{if $canEditContent}}data-can-edit="true"{{end}}>
 			{{if $comment.RenderedContent}}
 				{{$comment.RenderedContent}}
 			{{else}}

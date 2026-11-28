@@ -23,7 +23,6 @@ import (
 	"gitea.dev/services/forms"
 	issue_service "gitea.dev/services/issue"
 	pull_service "gitea.dev/services/pull"
-	user_service "gitea.dev/services/user"
 )
 
 const (
@@ -211,9 +210,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
 	ctx.Data["ReviewCommitID"] = pullHeadCommitID // it's questionable why it only needs the head commit ID but not correct "AfterCommitID" (single commit review)
-	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
-		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
-	}
+	prepareConvContentPermissions(ctx, comment.Issue)
 
 	switch origin {
 	case "diff":

@@ -46,12 +46,12 @@ import (
 	"gitea.dev/services/forms"
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
+	issue_service "gitea.dev/services/issue"
 	"gitea.dev/services/mergequeue"
 	"gitea.dev/services/notifications"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
-	user_service "gitea.dev/services/user"
 )
 
 const (
@@ -278,6 +278,7 @@ type pullMergeBoxData struct {
 	ShowMergeInstructions bool
 	AutodetectManualMerge bool
 	IsPullBranchDeletable bool
+	CanRemoveWipPrefix    bool
 
 	ReviewSection         *pullMergeBoxSection
 	MergeSection          *pullMergeBoxSection
@@ -593,8 +594,7 @@ func ViewPullCommits(ctx *context.Context) {
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = len(commits)
 
-	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
-	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)
+	ctx.Data["CanEditIssue"] = issue_service.CanEditIssue(ctx.Doer, ctx.Repo.Permission, issue)
 
 	// For PR commits page
 	PrepareBranchList(ctx)
@@ -881,8 +881,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	ctx.Data["CurrentReview"] = currentPendingReview
 	ctx.Data["PendingCodeCommentNumber"] = numPendingCodeComments
 
-	ctx.Data["IsIssuePoster"] = ctx.Doer != nil && issue.IsPoster(ctx.Doer.ID)
-	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
+	ctx.Data["CanEditIssue"] = issue_service.CanEditIssue(ctx.Doer, ctx.Repo.Permission, issue)
 
 	// For files changed page
 	PrepareBranchList(ctx)
@@ -893,9 +892,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
 	upload.AddUploadContext(ctx, "comment")
 
-	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
-		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
-	}
+	prepareConvContentPermissions(ctx, issue)
 	if isShowAllCommits && pull.Flow == issues_model.PullRequestFlowGithub {
 		if err := pull.LoadHeadRepo(ctx); err != nil {
 			ctx.ServerErrorAuto(err)
@@ -1432,7 +1429,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)) {
+	if !issue_service.CanEditIssue(ctx.Doer, ctx.Repo.Permission, issue) {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}

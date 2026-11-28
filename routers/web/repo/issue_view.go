@@ -17,6 +17,7 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
 	pull_model "gitea.dev/models/pull"
@@ -410,6 +411,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["SignInLink"] = middleware.RedirectLinkUserLogin(ctx.Req)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
+	ctx.Data["CanEditIssue"] = issue_service.CanEditIssue(ctx.Doer, ctx.Repo.Permission, issue)
 	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["IsRepoAdmin"] = ctx.Repo.Permission.IsAdmin()
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
@@ -422,9 +424,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 	ctx.Data["Tags"] = tags
 
-	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
-		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
-	}
+	prepareConvContentPermissions(ctx, issue)
 
 	if !setting.IsProd && issue.PullRequest != nil && prViewInfo.MergeBoxData != nil && prViewInfo.MergeBoxData.ReloadingInterval == 0 {
 		prViewInfo.MergeBoxData.ReloadingInterval = 1 // in dev env, force using the reloading logic to make sure it won't break
@@ -453,9 +453,16 @@ func ViewPullMergeBox(ctx *context.Context) {
 	}
 
 	// TODO: it should use a dedicated struct to render the pull merge box, to make sure all data is prepared correctly
-	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)
-	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.HTML(http.StatusOK, tplPullMergeBox)
+}
+
+func prepareConvContentPermissions(ctx *context.Context, issue *issues_model.Issue) {
+	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
+	}
+	ctx.Data["CanEditComment"] = func(comment *issues_model.Comment) bool {
+		return issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, issue, comment.PosterID, perm.AccessModeWrite)
+	}
 }
 
 func prepareIssueViewSidebarDependency(ctx *context.Context, issue *issues_model.Issue) {
@@ -958,6 +965,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		data.AutoMergeStyleName = trMergeStyleShortName(ctx.Locale, data.AutoMerge.MergeStyle)
 		data.CanCancelAutoMerge = ctx.IsSigned && (data.hasPermToMerge || ctx.Doer.ID == data.AutoMerge.DoerID || issue.IsPoster(ctx.Doer.ID))
 	}
+	data.CanRemoveWipPrefix = issue_service.CanEditIssue(ctx.Doer, ctx.Repo.Permission, issue)
 	prInfo.prepareMergeBoxFormProps(ctx, prConfig, ctx.Repo.GitRepo)
 
 	autoMergeImminent := data.AutoMerge != nil && pull.IsStatusMergeable() && !data.hasOverridableBlockers && !data.hasOpenDependencies

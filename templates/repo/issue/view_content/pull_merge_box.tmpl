@@ -37,7 +37,7 @@
 			{{if $mergeBoxData.WorkInProgressSection}}
 				<div class="item">
 					{{template "repo/issue/view_content/pull_merge_section" (dict "MergeBoxSection" $mergeBoxData.WorkInProgressSection)}}
-					{{if or $.HasIssuesOrPullsWritePermission $.IsIssuePoster}}
+					{{if $mergeBoxData.CanRemoveWipPrefix}}
 					<button type="button" class="ui button tw-shrink-0" data-global-init="initPullRequestWipToggle" data-title="{{$issue.Title}}" data-wip-prefix="{{$.WorkInProgressPrefix}}" data-update-url="{{$issue.Link}}/title">
 						{{ctx.Locale.Tr "repo.pulls.remove_prefix" $.WorkInProgressPrefix}}
 					</button>
