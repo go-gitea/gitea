@@ -4,9 +4,15 @@
 package cron
 
 import (
+	"context"
+	"runtime"
 	"sort"
 	"strconv"
+	"sync"
+	"sync/atomic"
 	"testing"
+
+	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -60,4 +66,29 @@ func TestScheduleHasSeconds(t *testing.T) {
 			assert.Equal(t, test.hasSecond, scheduleHasSeconds(test.schedule))
 		})
 	}
+}
+
+func TestTaskGroupRunsSerially(t *testing.T) {
+	var running, maxRunning atomic.Int32
+	newTask := func(name string, opts ...TaskOption) *Task {
+		task := &Task{Name: name, config: &BaseConfig{}, fun: func(context.Context, *user_model.User, Config) error {
+			n := running.Add(1)
+			defer running.Add(-1)
+			maxRunning.Store(max(maxRunning.Load(), n))
+			runtime.Gosched()
+			return nil
+		}}
+		for _, opt := range opts {
+			opt(task)
+		}
+		return task
+	}
+
+	var wg sync.WaitGroup
+	for i := range 20 {
+		task := newTask("grouped-"+strconv.Itoa(i), WithGroup("test-group"))
+		wg.Go(task.Run)
+	}
+	wg.Wait()
+	assert.Equal(t, int32(1), maxRunning.Load())
 }

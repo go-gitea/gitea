@@ -135,7 +135,7 @@ func registerDeleteOldActions() {
 		OlderThan: 365 * 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config *OlderThanConfig) error {
 		return activities_model.DeleteOldActions(ctx, config.OlderThan)
-	})
+	}, WithGroup(cronGroupCleanup))
 }
 
 func registerDeleteOldAuditEvents() {
@@ -152,7 +152,7 @@ func registerDeleteOldAuditEvents() {
 		OlderThan: setting.AuditRetentionPeriod(),
 	}, func(ctx context.Context, _ *user_model.User, config *OlderThanConfig) error {
 		return audit_model.DeleteOldEvents(ctx, config.OlderThan)
-	})
+	}, WithGroup(cronGroupCleanup))
 }
 
 func registerUpdateGiteaChecker() {
@@ -182,7 +182,7 @@ func registerDeleteOldSystemNotices() {
 		OlderThan: 365 * 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config *OlderThanConfig) error {
 		return system.DeleteOldSystemNotices(ctx, config.OlderThan)
-	})
+	}, WithGroup(cronGroupCleanup))
 }
 
 type GCLFSConfig struct {

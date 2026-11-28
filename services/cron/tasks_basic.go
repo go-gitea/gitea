@@ -82,7 +82,7 @@ func registerArchiveCleanup() {
 		OlderThan: 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config *OlderThanConfig) error {
 		return archiver_service.DeleteOldRepositoryArchives(ctx, config.OlderThan)
-	})
+	}, WithGroup(cronGroupCleanup))
 }
 
 func registerSyncExternalUsers() {
@@ -109,7 +109,7 @@ func registerDeletedBranchesCleanup() {
 	}, func(ctx context.Context, _ *user_model.User, config *OlderThanConfig) error {
 		git_model.RemoveOldDeletedBranches(ctx, config.OlderThan)
 		return nil
-	})
+	}, WithGroup(cronGroupCleanup))
 }
 
 func registerUpdateMigrationPosterID() {
@@ -134,7 +134,7 @@ func registerCleanupHookTaskTable() {
 		NumberToKeep: 10,
 	}, func(ctx context.Context, _ *user_model.User, config *CleanupHookTaskConfig) error {
 		return webhook.CleanupHookTaskTable(ctx, webhook.ToHookTaskCleanupType(config.CleanupType), config.OlderThan, config.NumberToKeep)
-	})
+	}, WithGroup(cronGroupCleanup))
 }
 
 func registerCleanupPackages() {
@@ -147,7 +147,7 @@ func registerCleanupPackages() {
 		OlderThan: 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config *OlderThanConfig) error {
 		return packages_cleanup_service.CleanupTask(ctx, config.OlderThan)
-	})
+	}, WithGroup(cronGroupCleanup))
 }
 
 func registerSyncRepoLicenses() {

@@ -41,6 +41,7 @@ type Task struct {
 	LastMessage string
 	LastDoer    string
 	ExecTimes   int64
+	group       string // tasks in the same group never run concurrently, even across instances
 	// This stores the time of the last manual run of this task.
 	LastRun time.Time
 }
@@ -76,6 +77,18 @@ func getCronTaskLockKey(name string) string {
 	return "cron_task:" + name
 }
 
+func getCronGroupLockKey(group string) string {
+	return "cron_group:" + group
+}
+
+// TaskOption customizes a task at registration
+type TaskOption func(*Task)
+
+// WithGroup makes the task run serially with all other tasks of the same group
+func WithGroup(group string) TaskOption {
+	return func(t *Task) { t.group = group }
+}
+
 // RunWithUser will run the task incrementing the cron counter at the time with User
 func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 	locked, releaser, err := globallock.TryLock(graceful.GetManager().ShutdownContext(), getCronTaskLockKey(t.Name))
@@ -104,56 +117,70 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 				log.Error("PANIC whilst running task: %s Value: %v", t.Name, combinedErr)
 			}
 		}()
-		// Store the time of this run, before the function is executed, so it
-		// matches the behavior of what the cron library does.
-		t.lock.Lock()
-		t.LastRun = time.Now()
-		t.lock.Unlock()
-
-		pm := process.GetManager()
-		doerName := ""
-		if doer != nil && doer.ID != -1 {
-			doerName = doer.Name
-		}
-
-		ctx, _, finished := pm.AddContext(baseCtx, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "process", doerName))
-		defer finished()
-
-		if err := t.fun(ctx, doer, config); err != nil {
-			var message string
-			var status string
-			if errCancelled, ok := err.(db.ErrCancelled); ok {
-				status = "cancelled"
-				message = errCancelled.Message
-			} else {
-				status = "error"
-				message = err.Error()
-			}
-
-			t.lock.Lock()
-			t.LastMessage = message
-			t.Status = status
-			t.LastDoer = doerName
-			t.lock.Unlock()
-
-			if err := system_model.CreateNotice(ctx, system_model.NoticeTask, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "cancelled", doerName, message)); err != nil {
-				log.Error("CreateNotice: %v", err)
-			}
+		if t.group == "" {
+			t.execute(baseCtx, doer, config)
 			return
 		}
+		err := globallock.LockAndDo(baseCtx, getCronGroupLockKey(t.group), func(ctx context.Context) error {
+			t.execute(ctx, doer, config)
+			return nil
+		})
+		if err != nil {
+			log.Error("Failed to acquire lock for cron group %q of task %q: %v", t.group, t.Name, err)
+		}
+	})
+}
+
+func (t *Task) execute(baseCtx context.Context, doer *user_model.User, config Config) {
+	// Store the time of this run, before the function is executed, so it
+	// matches the behavior of what the cron library does.
+	t.lock.Lock()
+	t.LastRun = time.Now()
+	t.lock.Unlock()
+
+	pm := process.GetManager()
+	doerName := ""
+	if doer != nil && doer.ID != -1 {
+		doerName = doer.Name
+	}
+
+	ctx, _, finished := pm.AddContext(baseCtx, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "process", doerName))
+	defer finished()
+
+	if err := t.fun(ctx, doer, config); err != nil {
+		var message string
+		var status string
+		if errCancelled, ok := err.(db.ErrCancelled); ok {
+			status = "cancelled"
+			message = errCancelled.Message
+		} else {
+			status = "error"
+			message = err.Error()
+		}
 
 		t.lock.Lock()
-		t.Status = "finished"
-		t.LastMessage = ""
+		t.LastMessage = message
+		t.Status = status
 		t.LastDoer = doerName
 		t.lock.Unlock()
 
-		if config.DoNoticeOnSuccess() {
-			if err := system_model.CreateNotice(ctx, system_model.NoticeTask, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "finished", doerName)); err != nil {
-				log.Error("CreateNotice: %v", err)
-			}
+		if err := system_model.CreateNotice(ctx, system_model.NoticeTask, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "cancelled", doerName, message)); err != nil {
+			log.Error("CreateNotice: %v", err)
 		}
-	})
+		return
+	}
+
+	t.lock.Lock()
+	t.Status = "finished"
+	t.LastMessage = ""
+	t.LastDoer = doerName
+	t.lock.Unlock()
+
+	if config.DoNoticeOnSuccess() {
+		if err := system_model.CreateNotice(ctx, system_model.NoticeTask, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "finished", doerName)); err != nil {
+			log.Error("CreateNotice: %v", err)
+		}
+	}
 }
 
 // GetTask gets the named task
@@ -166,7 +193,7 @@ func GetTask(name string) *Task {
 }
 
 // RegisterTask allows a task to be registered with the cron service
-func RegisterTask[T Config](name string, config T, fun func(context.Context, *user_model.User, T) error) error {
+func RegisterTask[T Config](name string, config T, fun func(context.Context, *user_model.User, T) error, opts ...TaskOption) error {
 	log.Debug("Registering task: %s", name)
 
 	i18nKey := "admin.dashboard." + name
@@ -186,6 +213,9 @@ func RegisterTask[T Config](name string, config T, fun func(context.Context, *us
 		fun: func(ctx context.Context, doer *user_model.User, runConfig Config) error {
 			return fun(ctx, doer, runConfig.(T)) //nolint:forcetypeassert // must be valid
 		},
+	}
+	for _, opt := range opts {
+		opt(task)
 	}
 	lock.Lock()
 	locked := true
@@ -218,8 +248,8 @@ func RegisterTask[T Config](name string, config T, fun func(context.Context, *us
 }
 
 // RegisterTaskFatal will register a task but if there is an error log.Fatal
-func RegisterTaskFatal[T Config](name string, config T, fun func(context.Context, *user_model.User, T) error) {
-	if err := RegisterTask(name, config, fun); err != nil {
+func RegisterTaskFatal[T Config](name string, config T, fun func(context.Context, *user_model.User, T) error, opts ...TaskOption) {
+	if err := RegisterTask(name, config, fun, opts...); err != nil {
 		log.Fatal("Unable to register cron task %s Error: %v", name, err)
 	}
 }
@@ -242,3 +272,6 @@ func addTaskToScheduler(task *Task) error {
 func scheduleHasSeconds(schedule string) bool {
 	return len(strings.Fields(schedule)) >= 6
 }
+
+// cronGroupCleanup serializes the tasks which delete old data, to avoid a burst of heavy database load.
+const cronGroupCleanup = "cleanup"
