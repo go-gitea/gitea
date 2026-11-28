@@ -10,10 +10,15 @@ import (
 
 	deploykey_model "gitea.dev/models/deploykey"
 	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
 	"gitea.dev/models/user"
 	"gitea.dev/modules/private"
+	repo_service "gitea.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIPrivateNoServ(t *testing.T) {
@@ -56,7 +61,7 @@ func TestAPIPrivateServ(t *testing.T) {
 			// Cannot pull from a private repo we're not associated with
 			{"user15", "big_test_private_1", perm.AccessModeRead, 0},
 			// Can pull from a public repo we're not associated with
-			{"user15", "big_test_public_1", perm.AccessModeRead, 17},
+			{"user5", "repo4", perm.AccessModeRead, 4},
 			// Cannot push to a public repo we're not associated with
 			{"user15", "big_test_public_1", perm.AccessModeWrite, 0},
 		} {
@@ -137,5 +142,12 @@ func TestAPIPrivateServ(t *testing.T) {
 			assert.Equal(t, "big_test_private_2", results.RepoName)
 			assert.Equal(t, int64(20), results.RepoID)
 		}
+
+		// Cannot pull from a public repo whose code unit is disabled
+		publicRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+		require.NoError(t, repo_service.UpdateRepositoryUnits(ctx, publicRepo, nil, []unit.Type{unit.TypeCode}))
+		results, extra = private.ServCommand(ctx, 1, "user5", "repo4", perm.AccessModeRead, "git-upload-pack", "")
+		assert.Error(t, extra.Error)
+		assert.Empty(t, results)
 	})
 }
