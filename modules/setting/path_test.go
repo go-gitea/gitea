@@ -115,6 +115,15 @@ func TestInitWorkPathAndCommonConfig(t *testing.T) {
 		assert.True(t, AppWorkPathMismatch)
 	})
 
+	t.Run("AppTempPathRelativeToAppDataPath", func(t *testing.T) {
+		iniTempPath := fp(tmpDir, "app-temppath.ini")
+		_ = os.WriteFile(iniTempPath, []byte("[server]\nAPP_TEMP_PATH=temp"), 0o644)
+		_ = os.MkdirAll(fp(dirFoo, "data/temp"), 0o755)
+		testInit(dirFoo, "", "")
+		InitWorkPathAndCommonConfig(envVars{}.Getenv, ArgWorkPathAndCustomConf{CustomConf: iniTempPath})
+		assert.Equal(t, fp(dirFoo, "data/temp/gitea-tmp"), AppDataTempDir("").JoinPath())
+	})
+
 	t.Run("Builtin", func(t *testing.T) {
 		testInit(dirFoo, dirBar, dirXxx)
 		InitWorkPathAndCommonConfig(envVars{}.Getenv, ArgWorkPathAndCustomConf{})

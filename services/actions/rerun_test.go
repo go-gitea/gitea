@@ -106,6 +106,42 @@ func TestCloneRunJobForAttempt(t *testing.T) {
 	})
 }
 
+func TestResetJobForRerun(t *testing.T) {
+	newRanJob := func() *actions_model.ActionRunJob {
+		return &actions_model.ActionRunJob{
+			Status: actions_model.StatusSuccess, TaskID: 5, SourceTaskID: 4, Started: 10, Stopped: 20,
+			ConcurrencyGroup: "g", ConcurrencyCancel: true, IsConcurrencyEvaluated: true,
+			IsReusableCaller: true, IsExpanded: true, CallPayload: "{}",
+		}
+	}
+
+	job := newRanJob()
+	resetJobForRerun(job, false)
+	assert.Equal(t, &actions_model.ActionRunJob{Status: actions_model.StatusWaiting, IsReusableCaller: true}, job)
+
+	job = newRanJob()
+	job.Needs = []string{"build"}
+	resetJobForRerun(job, false)
+	assert.Equal(t, actions_model.StatusPending, job.Status)
+
+	job = newRanJob()
+	job.Needs = []string{"build"}
+	resetJobForRerun(job, true)
+	assert.Equal(t, actions_model.StatusBlocked, job.Status)
+}
+
+func TestMarkJobPassThrough(t *testing.T) {
+	template := &actions_model.ActionRunJob{TaskID: 7, Started: 10, Stopped: 20}
+
+	job := &actions_model.ActionRunJob{TaskID: 7}
+	markJobPassThrough(job, template, false)
+	assert.Equal(t, &actions_model.ActionRunJob{SourceTaskID: 7, Started: 10, Stopped: 20}, job)
+
+	job = &actions_model.ActionRunJob{TaskID: 7}
+	markJobPassThrough(job, template, true)
+	assert.Equal(t, &actions_model.ActionRunJob{SourceTaskID: 7}, job)
+}
+
 func TestRerunValidation(t *testing.T) {
 	runningRun := &actions_model.ActionRun{Status: actions_model.StatusRunning}
 
@@ -457,7 +493,7 @@ func TestCollectMatrixCollapse(t *testing.T) {
 	})
 }
 
-func TestRerunDecidesJobIf(t *testing.T) {
+func TestRerunDecidesJobIfAndValidatesRunsOn(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(int64) error { return nil })()
 	ctx := t.Context()
@@ -474,19 +510,23 @@ jobs:
       - run: echo
   deploy:
     if: vars.DEPLOY == 'yes'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER }}
+    concurrency:
+      group: deploy
+      cancel-in-progress: true
     steps:
       - run: echo
 `, false)
 	jobs := map[string]*actions_model.ActionRunJob{}
 	for _, job := range runJobs(t, run.ID, run.LatestAttemptID) {
-		require.Equal(t, actions_model.StatusWaiting, job.Status)
-		job.Status = actions_model.StatusSuccess
-		_, err = actions_model.UpdateRunJob(ctx, job, nil, "status")
-		require.NoError(t, err)
 		jobs[job.JobID] = job
 	}
+	require.Equal(t, actions_model.StatusFailure, jobs["deploy"].Status)
+	jobs["build"].Status = actions_model.StatusSuccess
+	_, err = actions_model.UpdateRunJob(ctx, jobs["build"], nil, "status")
+	require.NoError(t, err)
 	run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
+	holder := insertConcurrencyHolder(t, 9705, "deploy")
 
 	variable.Data = "no"
 	_, err = actions_model.UpdateVariableCols(ctx, variable, "data")
@@ -503,5 +543,19 @@ jobs:
 	attempt = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunAttempt{ID: attempt.ID})
 	assert.Equal(t, actions_model.StatusSuccess, attempt.Status)
 	assert.NotZero(t, attempt.Stopped)
-	assert.Equal(t, actions_model.StatusSuccess, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID}).Status)
+	run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
+	assert.Equal(t, actions_model.StatusSuccess, run.Status)
+
+	variable.Data = "yes"
+	_, err = actions_model.UpdateVariableCols(ctx, variable, "data")
+	require.NoError(t, err)
+	attempt, err = RerunWorkflowRunJobs(ctx, repo, run, &user_model.User{ID: 1}, []*actions_model.ActionRunJob{rerunJobs["deploy"]})
+	require.NoError(t, err)
+	deploy := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunAttemptID: attempt.ID, JobID: "deploy"})
+	assert.Equal(t, actions_model.StatusFailure, deploy.Status)
+	assert.NotZero(t, deploy.Stopped)
+	assert.Equal(t, actions_model.StatusRunning, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: holder.ID}).Status)
+	summary, err := actions_model.GetActionRunJobSummary(ctx, repo.ID, run.ID, attempt.ID, deploy.ID, 0)
+	require.NoError(t, err)
+	assert.Contains(t, summary.Content, "Error when evaluating `runs-on` for job `deploy`.")
 }

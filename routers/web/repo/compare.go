@@ -447,6 +447,7 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 			MaxLines:          maxLines,
 			MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
 			MaxFiles:          maxFiles,
+			EnableRichDiff:    true,
 		}, ctx.FormStrings("files")...)
 	if err != nil {
 		ctx.ServerErrorAuto(err)

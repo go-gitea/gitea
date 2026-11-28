@@ -4,9 +4,9 @@
 			{{ctx.Locale.Tr "admin.users.edit_account"}}
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form" action="./edit" method="post">
+			<form class="ui form form-fetch-action" action="./edit" method="post">
 				{{template "base/disable_form_autofill"}}
-				<div class="field {{if .Err_UserName}}error{{end}}">
+				<div class="field">
 					<label for="user_name">{{ctx.Locale.Tr "username"}}</label>
 					<input id="user_name" name="user_name" value="{{.User.Name}}" maxlength="40">
 				</div>
@@ -25,7 +25,7 @@
 					</div>
 				{{end}}
 				{{if not .User.IsTypeBot}}
-					<div class="required js-non-bot field {{if .Err_LoginType}}error{{end}}">
+					<div class="required js-non-bot field">
 						<label for="login_type">{{ctx.Locale.Tr "admin.users.auth_source"}}</label>
 						<div class="ui selection type dropdown">
 							<input type="hidden" id="login_type" name="login_type" value="{{.LoginSource.Type.Int}}-{{.LoginSource.ID}}" required>
@@ -43,7 +43,7 @@
 					<input type="hidden" name="login_type" value="0-0">
 				{{end}}
 
-				<div class="required field {{if .Err_Visibility}}error{{end}}">
+				<div class="required field">
 					<label for="visibility">{{ctx.Locale.Tr "settings.visibility"}}</label>
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="visibility" name="visibility" value="{{if .User.Visibility.IsPublic}}0{{else if .User.Visibility.IsLimited}}1{{else}}2{{end}}">
@@ -67,27 +67,27 @@
 					</div>
 				</div>
 
-				<div class="required js-non-local js-non-bot field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}tw-hidden{{end}}">
+				<div class="required js-non-local js-non-bot field {{if eq .User.LoginSource 0}}tw-hidden{{end}}">
 					<label for="login_name">{{ctx.Locale.Tr "admin.users.auth_login_name"}}</label>
 					<input id="login_name" name="login_name" value="{{.User.LoginName}}">
 				</div>
-				<div class="field {{if .Err_FullName}}error{{end}}">
+				<div class="field">
 					<label for="full_name">{{ctx.Locale.Tr "settings.full_name"}}</label>
 					<input id="full_name" name="full_name" value="{{.User.FullName}}" maxlength="100">
 				</div>
-				<div class="required field {{if .Err_Email}}error{{end}}">
+				<div class="required field">
 					<label for="email">{{ctx.Locale.Tr "email"}}</label>
 					<input id="email" name="email" type="email" value="{{.User.Email}}" required>
 				</div>
 				{{if not .User.IsTypeBot}}
-					<div class="js-local js-non-bot field {{if .Err_Password}}error{{end}} {{if not (or .User.IsLocal .User.IsOAuth2)}}tw-hidden{{end}}">
+					<div class="js-local js-non-bot field {{if not (or .User.IsLocal .User.IsOAuth2)}}tw-hidden{{end}}">
 						<label for="password">{{ctx.Locale.Tr "password"}}</label>
 						<input id="password" name="password" type="password" autocomplete="new-password">
 						<p class="help">{{ctx.Locale.Tr "admin.users.password_helper"}}</p>
 					</div>
 				{{end}}
 
-				<div class="field {{if .Err_Language}}error{{end}}">
+				<div class="field">
 					<label for="language">{{ctx.Locale.Tr "settings.language"}}</label>
 					<div class="ui selection dropdown">
 						<input name="language" type="hidden" value="{{.User.Language}}">
@@ -101,18 +101,18 @@
 					</div>
 				</div>
 
-				<div class="field {{if .Err_Website}}error{{end}}">
+				<div class="field">
 					<label for="website">{{ctx.Locale.Tr "settings.website"}}</label>
 					<input id="website" name="website" type="url" value="{{.User.Website}}" placeholder="http://mydomain.com or https://mydomain.com" maxlength="255">
 				</div>
-				<div class="field {{if .Err_Location}}error{{end}}">
+				<div class="field">
 					<label for="location">{{ctx.Locale.Tr "settings.location"}}</label>
 					<input id="location" name="location" value="{{.User.Location}}" maxlength="50">
 				</div>
 
 				<div class="divider"></div>
 
-				<div class="inline field {{if .Err_MaxRepoCreation}}error{{end}}">
+				<div class="inline field">
 					<label for="max_repo_creation">{{ctx.Locale.Tr "admin.users.max_repo_creation"}}</label>
 					<input id="max_repo_creation" name="max_repo_creation" type="number" min="-1" value="{{.User.MaxRepoCreation}}">
 					<p class="help">{{ctx.Locale.Tr "admin.users.max_repo_creation_desc"}}</p>

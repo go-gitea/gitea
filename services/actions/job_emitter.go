@@ -195,16 +195,6 @@ func checkRunConcurrency(ctx context.Context, run *actions_model.ActionRun) (*jo
 		if concurrentRunID == 0 {
 			return nil
 		}
-
-		concurrentRun, err := actions_model.GetRunByRepoAndID(ctx, run.RepoID, concurrentRunID)
-		if err != nil {
-			return fmt.Errorf("get concurrent run %d: %w", concurrentRunID, err)
-		}
-		// A run awaiting approval is not advanced by concurrency; ApproveRuns emits it once approved.
-		if concurrentRun.NeedApproval {
-			return nil
-		}
-
 		result.RunIDsToReEmit = append(result.RunIDsToReEmit, concurrentRunID)
 		return nil
 	}
@@ -399,7 +389,7 @@ func reloadCallersFinishedByChildren(ctx context.Context, runID int64, jobMap ma
 func cancelFailedMatrixSiblings(ctx context.Context, jobs actions_model.ActionJobList) ([]*actions_model.ActionRunJob, error) {
 	var toCancel []*actions_model.ActionRunJob
 	for _, failed := range jobs {
-		if failed.Status != actions_model.StatusFailure || failed.ContinueOnError {
+		if failed.Status != actions_model.StatusFailure || failed.ContinueOnError || failed.SourceTaskID != 0 { // fail-fast only reacts to failures of this attempt
 			continue
 		}
 		siblings := slices.DeleteFunc(slices.Clone(jobs), func(sibling *actions_model.ActionRunJob) bool {
@@ -529,7 +519,12 @@ func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed boo
 
 func updateBlockedJobStatus(ctx context.Context, job *actions_model.ActionRunJob, status actions_model.Status) error {
 	job.Status = status
-	if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status"); err != nil {
+	columns := []string{"status"}
+	if status.IsFailure() {
+		job.Stopped = timeutil.TimeStampNow()
+		columns = append(columns, "stopped")
+	}
+	if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, columns...); err != nil {
 		return err
 	} else if n != 1 {
 		return fmt.Errorf("no affected for updating blocked job %v", job.ID)

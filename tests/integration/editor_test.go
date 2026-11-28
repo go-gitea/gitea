@@ -413,7 +413,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 				"action":    "archive",
 			},
 		)
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 
 		// Check editing archived repository is disabled
 		req = NewRequest(t, "GET", "/"+path.Join(owner, repo, "_edit", branch, filePath)).SetHeader("Accept", "text/html")

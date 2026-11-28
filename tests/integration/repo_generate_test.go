@@ -49,7 +49,8 @@ func testRepoGenerate(t *testing.T, session *TestSession, templateID, templateOw
 		"repo_template": templateID,
 		"git_content":   "true",
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, "/"+generateOwnerName+"/"+generateRepoName, DecodeJSON(t, resp, map[string]string{})["redirect"])
 
 	// Step4: check the existence of the generated repo
 	req = NewRequestf(t, "GET", "/%s/%s", generateOwnerName, generateRepoName)

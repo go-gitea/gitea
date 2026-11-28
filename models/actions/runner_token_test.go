@@ -27,13 +27,3 @@ func TestNewRunnerToken(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, expectedToken, token)
 }
-
-func TestUpdateRunnerToken(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	token := unittest.AssertExistsAndLoadBean(t, &ActionRunnerToken{ID: 3})
-	token.IsActive = true
-	assert.NoError(t, UpdateRunnerToken(t.Context(), token))
-	expectedToken, err := GetLatestRunnerToken(t.Context(), 1, 0)
-	assert.NoError(t, err)
-	assert.Equal(t, expectedToken, token)
-}

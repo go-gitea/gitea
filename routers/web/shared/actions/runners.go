@@ -5,96 +5,37 @@ package actions
 
 import (
 	stdctx "context"
-	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
-	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 )
 
-const (
-	// TODO: Separate secrets from runners when layout is ready
-	tplRepoRunners     templates.TplName = "repo/settings/actions"
-	tplOrgRunners      templates.TplName = "org/settings/actions"
-	tplAdminRunners    templates.TplName = "admin/actions"
-	tplUserRunners     templates.TplName = "user/settings/actions"
-	tplRepoRunnerEdit  templates.TplName = "repo/settings/runner_edit"
-	tplOrgRunnerEdit   templates.TplName = "org/settings/runners_edit"
-	tplAdminRunnerEdit templates.TplName = "admin/runners/edit"
-	tplUserRunnerEdit  templates.TplName = "user/settings/runner_edit"
-)
+var runnerEditTemplates = map[settingsScopeKind]templates.TplName{
+	settingsScopeRepo:  "repo/settings/runner_edit",
+	settingsScopeOrg:   "org/settings/runners_edit",
+	settingsScopeUser:  "user/settings/runner_edit",
+	settingsScopeAdmin: "admin/runners/edit",
+}
 
 type runnersCtx struct {
-	OwnerID            int64
-	RepoID             int64
-	IsRepo             bool
-	IsOrg              bool
-	IsAdmin            bool
-	IsUser             bool
-	RunnersTemplate    templates.TplName
-	RunnerEditTemplate templates.TplName
-	RedirectLink       string
+	*settingsScope
+	RedirectLink string
 }
 
 func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
-	if ctx.Data["PageIsRepoSettings"] == true {
-		return &runnersCtx{
-			RepoID:             ctx.Repo.Repository.ID,
-			OwnerID:            0,
-			IsRepo:             true,
-			RunnersTemplate:    tplRepoRunners,
-			RunnerEditTemplate: tplRepoRunnerEdit,
-			RedirectLink:       ctx.Repo.RepoLink + "/settings/actions/runners/",
-		}, nil
+	scope, err := getSettingsScope(ctx)
+	if err != nil {
+		return nil, err
 	}
-
-	if ctx.Data["PageIsOrgSettings"] == true {
-		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-			return nil, fmt.Errorf("RenderUserOrgHeader: %w", err)
-		}
-		return &runnersCtx{
-			RepoID:             0,
-			OwnerID:            ctx.Org.Organization.ID,
-			IsOrg:              true,
-			RunnersTemplate:    tplOrgRunners,
-			RunnerEditTemplate: tplOrgRunnerEdit,
-			RedirectLink:       ctx.Org.OrgLink + "/settings/actions/runners/",
-		}, nil
-	}
-
-	if ctx.Data["PageIsAdmin"] == true {
-		return &runnersCtx{
-			RepoID:             0,
-			OwnerID:            0,
-			IsAdmin:            true,
-			RunnersTemplate:    tplAdminRunners,
-			RunnerEditTemplate: tplAdminRunnerEdit,
-			RedirectLink:       setting.AppSubURL + "/-/admin/actions/runners/",
-		}, nil
-	}
-
-	if ctx.Data["PageIsUserSettings"] == true {
-		return &runnersCtx{
-			OwnerID:            ctx.Doer.ID,
-			RepoID:             0,
-			IsUser:             true,
-			RunnersTemplate:    tplUserRunners,
-			RunnerEditTemplate: tplUserRunnerEdit,
-			RedirectLink:       setting.AppSubURL + "/user/settings/actions/runners/",
-		}, nil
-	}
-
-	return nil, errors.New("unable to set Runners context")
+	return &runnersCtx{settingsScope: scope, RedirectLink: scope.LinkPrefix + "/runners/"}, nil
 }
 
 // Runners render settings/actions/runners page for repo level
@@ -109,22 +50,16 @@ func Runners(ctx *context.Context) {
 		return
 	}
 
-	page := max(ctx.FormInt("page"), 1)
-
 	opts := actions_model.FindRunnerOptions{
 		ListOptions: db.ListOptions{
-			Page:     page,
+			Page:     max(ctx.FormInt("page"), 1),
 			PageSize: 100,
 		},
-		Sort:   ctx.Req.URL.Query().Get("sort"),
-		Filter: ctx.Req.URL.Query().Get("q"),
-	}
-	if rCtx.IsRepo {
-		opts.RepoID = rCtx.RepoID
-		opts.WithAvailable = true
-	} else if rCtx.IsOrg || rCtx.IsUser {
-		opts.OwnerID = rCtx.OwnerID
-		opts.WithAvailable = true
+		Sort:          ctx.Req.URL.Query().Get("sort"),
+		Filter:        ctx.Req.URL.Query().Get("q"),
+		OwnerID:       rCtx.OwnerID,
+		RepoID:        rCtx.RepoID,
+		WithAvailable: !rCtx.IsAdmin(),
 	}
 
 	runners, count, err := db.FindAndCount[actions_model.ActionRunner](ctx, opts)
@@ -152,13 +87,13 @@ func Runners(ctx *context.Context) {
 	ctx.Data["RunnerOwnerID"] = opts.OwnerID
 	ctx.Data["RunnerRepoID"] = opts.RepoID
 	ctx.Data["SortType"] = opts.Sort
-	ctx.Data["AllowBulkActions"] = rCtx.IsAdmin
+	ctx.Data["AllowBulkActions"] = rCtx.IsAdmin()
 
 	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(http.StatusOK, rCtx.RunnersTemplate)
+	ctx.HTML(http.StatusOK, rCtx.Template)
 }
 
 // RunnersEdit renders runner edit page for repository level
@@ -217,7 +152,7 @@ func RunnersEdit(ctx *context.Context) {
 	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(http.StatusOK, rCtx.RunnerEditTemplate)
+	ctx.HTML(http.StatusOK, runnerEditTemplates[rCtx.Kind])
 }
 
 func RunnersEditPost(ctx *context.Context) {
@@ -293,19 +228,11 @@ func RunnerDeletePost(ctx *context.Context) {
 		return
 	}
 
-	if !runner.EditableInContext(rCtx.OwnerID, rCtx.RepoID) {
-		ctx.NotFound()
-		return
-	}
-
-	successRedirectTo := rCtx.RedirectLink
-	failedRedirectTo := rCtx.RedirectLink + url.PathEscape(ctx.PathParam("runnerid"))
-
 	if err := actions_model.DeleteRunner(ctx, runner.ID); err != nil {
 		log.Warn("DeleteRunnerPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
 		ctx.Flash.Warning(ctx.Tr("actions.runners.delete_runner_failed"))
 
-		ctx.JSONRedirect(failedRedirectTo)
+		ctx.JSONRedirect(rCtx.RedirectLink + url.PathEscape(ctx.PathParam("runnerid")))
 		return
 	}
 
@@ -314,7 +241,7 @@ func RunnerDeletePost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("actions.runners.delete_runner_success"))
 
-	ctx.JSONRedirect(successRedirectTo)
+	ctx.JSONRedirect(rCtx.RedirectLink)
 }
 
 func RunnerUpdatePost(ctx *context.Context) {
@@ -326,11 +253,6 @@ func RunnerUpdatePost(ctx *context.Context) {
 
 	runner := findActionsRunner(ctx, rCtx)
 	if ctx.Written() {
-		return
-	}
-
-	if !runner.EditableInContext(rCtx.OwnerID, rCtx.RepoID) {
-		ctx.NotFound()
 		return
 	}
 
@@ -368,7 +290,7 @@ func RunnerBulkActionPost(ctx *context.Context) {
 		return
 	}
 
-	if !rCtx.IsAdmin {
+	if !rCtx.IsAdmin() {
 		ctx.HTTPError(http.StatusForbidden, "bulk actions are admin-only")
 		return
 	}
@@ -401,29 +323,33 @@ func RunnerBulkActionPost(ctx *context.Context) {
 		return
 	}
 
-	err = db.WithTx(ctx, func(txCtx stdctx.Context) error {
-		for _, r := range runners {
-			switch action {
-			case "delete":
-				if err := actions_model.DeleteRunner(txCtx, r.ID); err != nil {
-					return err
-				}
-				audit.RecordScopedByID(txCtx, r.OwnerID, r.RepoID, audit.RunnerRemove, "runner", r.Name)
-			case "disable", "enable":
-				disabled := action == "disable"
-				if err := actions_model.SetRunnerDisabled(txCtx, r, disabled); err != nil {
-					return err
-				}
-				audit.RecordScopedByID(txCtx, r.OwnerID, r.RepoID, audit.RunnerUpdate, "runner", r.Name, "disabled", disabled)
+	deleting, disabled := action == "delete", action == "disable"
+	if err := db.WithTx(ctx, func(txCtx stdctx.Context) error {
+		for _, runner := range runners {
+			var err error
+			if deleting {
+				err = actions_model.DeleteRunner(txCtx, runner.ID)
+			} else {
+				err = actions_model.SetRunnerDisabled(txCtx, runner, disabled)
+			}
+			if err != nil {
+				return err
 			}
 		}
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		log.Warn("RunnerBulkActionPost.%s failed: %v, url: %s", action, err, ctx.Req.URL)
 		ctx.Flash.Error(ctx.Tr(failedKey))
 		ctx.JSONRedirect(rCtx.RedirectLink)
 		return
+	}
+
+	for _, runner := range runners {
+		if deleting {
+			audit.RecordScopedByID(ctx, runner.OwnerID, runner.RepoID, audit.RunnerRemove, "runner", runner.Name)
+		} else {
+			audit.RecordScopedByID(ctx, runner.OwnerID, runner.RepoID, audit.RunnerUpdate, "runner", runner.Name, "disabled", disabled)
+		}
 	}
 
 	ctx.Flash.Success(ctx.Tr(successKey))
@@ -431,32 +357,15 @@ func RunnerBulkActionPost(ctx *context.Context) {
 }
 
 func findActionsRunner(ctx *context.Context, rCtx *runnersCtx) *actions_model.ActionRunner {
-	runnerID := ctx.PathParamInt64("runnerid")
-	opts := &actions_model.FindRunnerOptions{
-		IDs: []int64{runnerID},
-	}
-	switch {
-	case rCtx.IsRepo:
-		opts.RepoID = rCtx.RepoID
-		if opts.RepoID == 0 {
-			panic("repoID is 0")
-		}
-	case rCtx.IsOrg, rCtx.IsUser:
-		opts.OwnerID = rCtx.OwnerID
-		if opts.OwnerID == 0 {
-			panic("ownerID is 0")
-		}
-	case rCtx.IsAdmin:
-		// do nothing
-	default:
-		panic("invalid actions runner context")
-	}
-
-	got, err := db.Find[actions_model.ActionRunner](ctx, opts)
+	got, err := db.Find[actions_model.ActionRunner](ctx, &actions_model.FindRunnerOptions{
+		IDs:     []int64{ctx.PathParamInt64("runnerid")},
+		OwnerID: rCtx.OwnerID,
+		RepoID:  rCtx.RepoID,
+	})
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return nil
-	} else if len(got) == 0 {
+	} else if len(got) == 0 || !got[0].EditableInContext(rCtx.OwnerID, rCtx.RepoID) {
 		ctx.NotFound()
 		return nil
 	}

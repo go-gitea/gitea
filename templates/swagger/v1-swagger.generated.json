@@ -7679,7 +7679,7 @@
     "/repos/{owner}/{repo}/archive/{archive}": {
       "get": {
         "produces": [
-          "application/json"
+          "application/octet-stream"
         ],
         "tags": [
           "repository"
@@ -7721,7 +7721,10 @@
         ],
         "responses": {
           "200": {
-            "description": "success"
+            "description": "success",
+            "schema": {
+              "type": "file"
+            }
           },
           "default": {
             "$ref": "#/responses/error"
@@ -24594,6 +24597,23 @@
     }
   },
   "definitions": {
+    "APIError": {
+      "description": "APIError is an api error with a message",
+      "type": "object",
+      "properties": {
+        "message": {
+          "description": "Message contains the error description",
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "url": {
+          "description": "URL contains the documentation URL for this error",
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "AccessToken": {
       "type": "object",
       "title": "AccessToken represents an API access token.",
@@ -31060,6 +31080,7 @@
           "x-go-name": "MergeTitleField"
         },
         "merge_when_checks_succeed": {
+          "description": "Merge once branch protection requirements like required status checks and approvals are met. Other checks are not awaited.",
           "type": "boolean",
           "x-go-name": "MergeWhenChecksSucceed"
         }
@@ -35661,13 +35682,8 @@
     },
     "error": {
       "description": "APIError is error format response",
-      "headers": {
-        "message": {
-          "type": "string"
-        },
-        "url": {
-          "type": "string"
-        }
+      "schema": {
+        "$ref": "#/definitions/APIError"
       }
     },
     "string": {
@@ -35679,7 +35695,7 @@
   },
   "securityDefinitions": {
     "AccessToken": {
-      "description": "This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.",
+      "description": "This authentication option is deprecated and disabled by default. Set DISABLE_QUERY_AUTH_TOKEN=false temporarily to restore it. Please use AuthorizationHeaderToken instead.",
       "type": "apiKey",
       "name": "access_token",
       "in": "query"
@@ -35712,7 +35728,7 @@
       "in": "header"
     },
     "Token": {
-      "description": "This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.",
+      "description": "This authentication option is deprecated and disabled by default. Set DISABLE_QUERY_AUTH_TOKEN=false temporarily to restore it. Please use AuthorizationHeaderToken instead.",
       "type": "apiKey",
       "name": "token",
       "in": "query"

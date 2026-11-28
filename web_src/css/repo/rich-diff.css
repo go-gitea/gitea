@@ -1,0 +1,51 @@
+.rich-diff-block {
+  margin-inline-start: -16px;
+  padding-inline-start: 12px;
+  border-inline-start-width: 4px;
+  border-inline-start-style: solid;
+}
+
+.rich-diff-block-added {
+  border-inline-start-color: var(--color-success-border);
+}
+
+.rich-diff-block-removed {
+  border-inline-start-color: var(--color-error-border);
+}
+
+.rich-diff-block-changed {
+  border-inline-start-color: var(--color-warning-border);
+}
+
+.markup.rich-diff > .rich-diff-block:first-child > :first-child {
+  margin-top: 0;
+}
+
+.markup.rich-diff > .rich-diff-block:last-child > :last-child {
+  margin-bottom: 0;
+}
+
+.markup.rich-diff .rich-diff-added {
+  color: var(--color-text);
+  background: var(--color-diff-added-word-bg);
+  text-decoration: none;
+}
+
+.markup.rich-diff .rich-diff-removed {
+  color: var(--color-text);
+  background: var(--color-diff-removed-word-bg);
+  text-decoration: line-through;
+}
+
+.markup.rich-diff .rich-diff-changed {
+  text-decoration: underline dotted;
+}
+
+.markup.rich-diff ol > .rich-diff-removed {
+  list-style-type: none;
+  counter-increment: list-item 0;
+}
+
+.markup.rich-diff .code-copy {
+  display: none;
+}

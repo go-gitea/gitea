@@ -747,6 +747,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		MaxLines:          maxLines,
 		MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:          maxFiles,
+		EnableRichDiff:    ctx.Repo.Permission.CanRead(unit.TypeCode),
 	}
 
 	diff, err := gitdiff.GetDiffForRender(ctx, ctx.Repo.RepoLink, gitRepo, diffOptions, files...)

@@ -96,7 +96,7 @@ func TestAdminEditUser(t *testing.T) {
 }
 
 func testSuccessfulEdit(t *testing.T, formData user_model.User) {
-	makeRequest(t, formData, http.StatusSeeOther)
+	makeRequest(t, formData, http.StatusOK)
 }
 
 func makeRequest(t *testing.T, formData user_model.User, headerCode int) {
@@ -207,7 +207,7 @@ func TestAdminBotUser(t *testing.T) {
 			"email":      "bot-user@example.com",
 			"visibility": "0",
 		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 
 		bot := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "bot-user"})
 		assert.True(t, bot.IsTypeBot())
@@ -231,7 +231,7 @@ func TestAdminBotUser(t *testing.T) {
 			"email":      "bot-user@example.com",
 			"full_name":  "Bot User",
 		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, "Bot User", unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: bot.ID}).FullName)
 	})
@@ -314,7 +314,7 @@ func TestAdminBotUser(t *testing.T) {
 				"email":      user.Email,
 				"user_type":  userType,
 				"visibility": "0",
-			}), http.StatusSeeOther)
+			}), http.StatusOK)
 		}
 
 		MakeRequest(t, NewRequestWithJSON(t, "PATCH", "/api/v1/admin/users/org3", map[string]string{"type": "Organization"}).AddBasicAuth("user1"), http.StatusOK)

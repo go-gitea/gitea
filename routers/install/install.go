@@ -188,6 +188,7 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 
 // SubmitInstall response for submit install items
 func SubmitInstall(ctx *context.Context) {
+	// TODO: REFACTOR-RENDER-WITH-ERR: form-fetch-action must load the post-install page before restartServer shuts down the install server.
 	if setting.InstallLock {
 		InstallDone(ctx)
 		return

@@ -5,7 +5,6 @@ package chef
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"io"
 	"regexp"
 	"strings"
@@ -76,14 +75,11 @@ type chefMetadata struct {
 }
 
 // ParsePackage parses the Chef package file
-func ParsePackage(r io.Reader) (*Package, error) {
-	gzr, err := gzip.NewReader(r)
+func ParsePackage(r packages.SizedReader) (*Package, error) {
+	tr, err := packages.NewArchiveTarGzReader(r, r.Size())
 	if err != nil {
 		return nil, err
 	}
-	defer gzr.Close()
-
-	tr := tar.NewReader(gzr)
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {

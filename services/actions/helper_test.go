@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"errors"
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
@@ -13,6 +14,59 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestAdmitJob(t *testing.T) {
+	checked, evaluated := 0, 0
+	badRunsOn, badConcurrency := errors.New("bad runs-on"), errors.New("bad concurrency")
+	checkRunsOn := func() error { checked++; return badRunsOn }
+	evaluate := func(job *actions_model.ActionRunJob) func() error {
+		return func() error { evaluated++; job.IsConcurrencyEvaluated = true; return nil }
+	}
+	newJob := func() *actions_model.ActionRunJob {
+		return &actions_model.ActionRunJob{JobID: "build", Status: actions_model.StatusWaiting, MaxParallel: 1, RawConcurrency: "group: g"}
+	}
+
+	t.Run("a full slot blocks the next job before runs-on and concurrency checks", func(t *testing.T) {
+		slots := maxParallelSlots{}
+		first := newJob()
+		cancelled, runsOnErr, err := admitJob(t.Context(), first, slots, nil, evaluate(first))
+		require.NoError(t, err)
+		require.NoError(t, runsOnErr)
+		assert.Empty(t, cancelled)
+		assert.Equal(t, actions_model.StatusWaiting, first.Status)
+
+		starved := newJob()
+		_, runsOnErr, err = admitJob(t.Context(), starved, slots, checkRunsOn, evaluate(starved))
+		require.NoError(t, err)
+		require.NoError(t, runsOnErr)
+		assert.Equal(t, actions_model.StatusBlocked, starved.Status)
+		assert.Equal(t, 0, checked)
+		assert.Equal(t, 1, evaluated)
+	})
+
+	t.Run("an invalid runs-on fails the job before concurrency", func(t *testing.T) {
+		failed := newJob()
+		_, runsOnErr, err := admitJob(t.Context(), failed, maxParallelSlots{}, checkRunsOn, evaluate(failed))
+		require.NoError(t, err)
+		assert.ErrorIs(t, runsOnErr, badRunsOn)
+		assert.Equal(t, actions_model.StatusFailure, failed.Status)
+		assert.NotZero(t, failed.Stopped)
+		assert.False(t, failed.IsConcurrencyEvaluated)
+	})
+
+	t.Run("a job without concurrency skips evaluation", func(t *testing.T) {
+		plain := newJob()
+		plain.RawConcurrency = ""
+		_, _, err := admitJob(t.Context(), plain, maxParallelSlots{}, nil, evaluate(plain))
+		require.NoError(t, err)
+		assert.False(t, plain.IsConcurrencyEvaluated)
+	})
+
+	t.Run("a concurrency evaluation error is returned", func(t *testing.T) {
+		_, _, err := admitJob(t.Context(), newJob(), maxParallelSlots{}, nil, func() error { return badConcurrency })
+		assert.ErrorIs(t, err, badConcurrency)
+	})
+}
 
 func TestDispatchInputsForRunJobs(t *testing.T) {
 	// a child carries the callee's `on: workflow_call`, so only a top-level job answers for the run
@@ -44,16 +98,17 @@ func TestReusableChildInputs(t *testing.T) {
 	caller := insertJob("caller", 0,
 		"on: {workflow_dispatch: {inputs: {flag: {type: boolean}, Shared: {type: string}}}}\njobs:\n  caller:\n    uses: ./.gitea/workflows/mid.yml\n",
 		`{"inputs":{"shared":"from-call","mid_only":"mid"}}`)
-	mid := insertJob("mid", caller.ID, "", `{"inputs":{"env":"leaf"}}`)
+	mid := insertJob("mid", caller.ID, "", `{"inputs":{"shared":"from-mid","env":"leaf"}}`)
 	leaf := insertJob("leaf", mid.ID, "", "")
 
 	dispatchRun := &actions_model.ActionRun{ID: runID, Event: "workflow_dispatch", EventPayload: `{"inputs":{"flag":"true","Shared":"from-dispatch"}}`}
 	pushRun := &actions_model.ActionRun{ID: runID, Event: "push", EventPayload: `{}`}
+	dispatchInputs := map[string]any{"flag": true, "shared": "from-mid", "env": "leaf"}
 
-	t.Run("dispatch inputs overlaid case-insensitively with the caller's with", func(t *testing.T) {
-		inputs, err := getInputsForJob(ctx, dispatchRun, mid)
+	t.Run("preloaded ancestors supply top-level dispatch inputs and overlay direct caller inputs case-insensitively", func(t *testing.T) {
+		inputs, err := getInputsForJobWithAncestors(ctx, dispatchRun, leaf, []*actions_model.ActionRunJob{mid, caller})
 		require.NoError(t, err)
-		assert.Equal(t, map[string]any{"flag": true, "shared": "from-call", "mid_only": "mid"}, inputs)
+		assert.Equal(t, dispatchInputs, inputs)
 	})
 
 	t.Run("task context of a nested child keeps the older runners' form and carries the original event", func(t *testing.T) {
@@ -63,13 +118,12 @@ func TestReusableChildInputs(t *testing.T) {
 			"event":      map[string]any{"inputs": map[string]any{"flag": "true", "Shared": "from-dispatch"}},
 		}
 		require.NoError(t, setCalledWorkflowContext(ctx, leaf, gitCtx))
-		inputs := map[string]any{"flag": true, "Shared": "from-dispatch", "env": "leaf"}
 		assert.Equal(t, "workflow_call", gitCtx["event_name"])
-		assert.Equal(t, map[string]any{"inputs": inputs}, gitCtx["event"])
+		assert.Equal(t, map[string]any{"inputs": dispatchInputs}, gitCtx["event"])
 		assert.Equal(t, map[string]any{
 			"original_event_name":   "workflow_dispatch",
 			"original_event_inputs": map[string]any{"flag": "true", "Shared": "from-dispatch"},
-			"inputs":                inputs,
+			"inputs":                dispatchInputs,
 		}, gitCtx["gitea_workflow_call"])
 	})
 

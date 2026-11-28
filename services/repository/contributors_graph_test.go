@@ -11,9 +11,11 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/cache"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRepository_ContributorsGraph(t *testing.T) {
@@ -81,4 +83,24 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 			},
 		},
 	}, data["total"])
+}
+
+func TestGetExtendedCommitStatsEmptyCommits(t *testing.T) {
+	repoFacade, err := git.ForceFastImportWithInit(t.Context(), t.TempDir(), []git.FastImportCommit{
+		{Ref: "refs/heads/master"},
+		{Ref: "refs/heads/master", Parent: ":1", Files: []git.FastImportFile{{Path: "a.txt", Content: "a\n"}}},
+		{Ref: "refs/heads/master", Parent: ":2"},
+	})
+	require.NoError(t, err)
+	gitRepo, err := git.OpenRepository(t.Context(), repoFacade)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	stats, err := getExtendedCommitStats(t.Context(), gitRepo, "master")
+	require.NoError(t, err)
+	var additions []int
+	for _, commit := range stats {
+		additions = append(additions, commit.Stats.Additions)
+	}
+	assert.Equal(t, []int{0, 1, 0}, additions)
 }

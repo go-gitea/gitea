@@ -124,6 +124,7 @@ type rerunPlan struct {
 	templateAttempt *actions_model.ActionRunAttempt
 	templateJobs    actions_model.ActionJobList
 	triggerUser     *user_model.User
+	rerunAll        bool
 
 	// rerunAttemptJobIDs holds the AttemptJobIDs of jobs that will actually be re-run in the new attempt.
 	// If a job here is a reusable caller, the whole subtree under it will be re-run.
@@ -174,6 +175,7 @@ func buildRerunPlan(ctx context.Context, run *actions_model.ActionRun, triggerUs
 		templateAttempt: templateAttempt,
 		templateJobs:    templateJobs,
 		triggerUser:     triggerUser,
+		rerunAll:        len(jobsToRerun) == 0,
 	}
 
 	if err := plan.expandRerunJobIDs(jobsToRerun); err != nil {
@@ -183,6 +185,34 @@ func buildRerunPlan(ctx context.Context, run *actions_model.ActionRun, triggerUs
 	plan.collectMatrixCollapse()
 
 	return plan, nil
+}
+
+// The emitter decides `if:` once all needs have results, and is the only place expanding a deferred matrix.
+func resetJobForRerun(job *actions_model.ActionRunJob, shouldBlock bool) {
+	job.Status = util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting)
+	if job.Status.IsWaiting() && len(job.Needs) > 0 {
+		job.Status = actions_model.StatusPending
+	}
+	job.TaskID = 0
+	job.SourceTaskID = 0
+	job.Started = 0
+	job.Stopped = 0
+	job.ConcurrencyGroup = ""
+	job.ConcurrencyCancel = false
+	job.IsConcurrencyEvaluated = false
+
+	if job.IsReusableCaller {
+		job.IsExpanded = false
+		job.CallPayload = ""
+	}
+}
+
+// An ancestor caller of a rerun job runs again through its children, so its timing is cleared.
+func markJobPassThrough(job, templateJob *actions_model.ActionRunJob, isAncestor bool) {
+	job.TaskID = 0
+	job.SourceTaskID = templateJob.EffectiveTaskID()
+	job.Started = util.Iif(isAncestor, 0, templateJob.Started)
+	job.Stopped = util.Iif(isAncestor, 0, templateJob.Stopped)
 }
 
 // execRerunPlan executes the rerun plan built by buildRerunPlan.
@@ -283,60 +313,42 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				newJob.ParentJobID = newParentID
 			}
 
-			var invalidIf error
+			var invalidErr error
+			invalidKey := "if"
 			if plan.rerunAttemptJobIDs.Contains(templateJob.AttemptJobID) {
-				// the emitter decides `if:` once all needs have results, and is the only place expanding a deferred matrix
-				newJob.Status = util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting)
-				if newJob.Status.IsWaiting() && len(newJob.Needs) > 0 {
-					newJob.Status = actions_model.StatusPending
-				}
-				newJob.TaskID = 0
-				newJob.SourceTaskID = 0
-				newJob.Started = 0
-				newJob.Stopped = 0
-				newJob.ConcurrencyGroup = ""
-				newJob.ConcurrencyCancel = false
-				newJob.IsConcurrencyEvaluated = false
-
-				if templateJob.IsReusableCaller {
-					newJob.IsExpanded = false
-					newJob.CallPayload = ""
+				resetJobForRerun(newJob, shouldBlock)
+				if plan.rerunAll {
+					newJob.ReusableWorkflowRef = ""
 				}
 
-				invalidIf, err = decideJobIf(ctx, plan.run, newAttempt, newJob, vars)
+				invalidErr, err = decideJobIf(ctx, plan.run, newAttempt, newJob, vars)
 				if err != nil {
 					return fmt.Errorf("evaluate job if: %w", err)
 				}
 
-				// A slot-starved job must not cancel its group peers.
-				if newJob.RawConcurrency != "" && newJob.Status == actions_model.StatusWaiting && slots.available(newJob) {
-					if err := EvaluateJobConcurrencyFillModel(ctx, plan.run, newAttempt, newJob, vars, nil); err != nil {
-						return fmt.Errorf("evaluate job concurrency: %w", err)
-					}
-					newJob.Status, jobsToCancel, err = PrepareToStartJobWithConcurrency(ctx, newJob)
+				if newJob.Status == actions_model.StatusWaiting {
+					jobsToCancel, runsOnErr, err := admitJob(ctx, newJob, slots, func() error { return invalidRunsOn(newJob) }, func() error {
+						return EvaluateJobConcurrencyFillModel(ctx, plan.run, newAttempt, newJob, vars, nil)
+					})
 					if err != nil {
-						return fmt.Errorf("prepare to start job with concurrency: %w", err)
+						return err
+					}
+					if runsOnErr != nil {
+						invalidKey, invalidErr = "runs-on", runsOnErr
 					}
 					cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
 				}
-
-				applyMaxParallel(newJob, slots)
 				newJobsToRerun = append(newJobsToRerun, newJob)
 			} else {
-				newJob.TaskID = 0
-				newJob.SourceTaskID = templateJob.EffectiveTaskID()
-
-				isAncestor := plan.ancestorAttemptJobIDs.Contains(templateJob.AttemptJobID)
-				newJob.Started = util.Iif(isAncestor, 0, templateJob.Started)
-				newJob.Stopped = util.Iif(isAncestor, 0, templateJob.Stopped)
+				markJobPassThrough(newJob, templateJob, plan.ancestorAttemptJobIDs.Contains(templateJob.AttemptJobID))
 			}
 
 			if err := db.Insert(ctx, newJob); err != nil {
 				return err
 			}
 			templateIDToNewID[templateJob.ID] = newJob.ID
-			if invalidIf != nil {
-				if err := upsertJobErrorSummary(ctx, newJob, "if", invalidIf); err != nil {
+			if invalidErr != nil {
+				if err := upsertJobErrorSummary(ctx, newJob, invalidKey, invalidErr); err != nil {
 					return err
 				}
 			}
