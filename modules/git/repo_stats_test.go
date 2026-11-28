@@ -21,36 +21,34 @@ func TestRepository_GetCodeActivityStats(t *testing.T) {
 	timeFrom, err := time.Parse(time.RFC3339, "2016-01-01T00:00:00+00:00")
 	assert.NoError(t, err)
 
-	code, err := bareRepo1.GetCodeActivityStats(t.Context(), timeFrom, "")
+	code, err := bareRepo1.GetCodeActivityStats(t.Context(), timeFrom, "master")
 	assert.NoError(t, err)
 	assert.NotNil(t, code)
 
-	assert.EqualValues(t, 10, code.CommitCount)
+	assert.EqualValues(t, 7, code.CommitCount)
 	assert.EqualValues(t, 3, code.AuthorCount)
 	assert.EqualValues(t, 10, code.CommitCountInAllBranches)
-	assert.EqualValues(t, 10, code.Additions)
-	assert.EqualValues(t, 1, code.Deletions)
+	assert.EqualValues(t, 7, code.ChangedFiles)
 	assert.Len(t, code.Authors, 3)
-	assert.Equal(t, "tris.git@shoddynet.org", code.Authors[1].Email)
-	assert.EqualValues(t, 3, code.Authors[1].Commits)
-	assert.EqualValues(t, 5, code.Authors[0].Commits)
 
 	authors, err := GetCodeActivityAuthors(t.Context(), bareRepo1, timeFrom)
 	assert.NoError(t, err)
-	assert.Equal(t, code.Authors, authors)
-}
+	assert.Len(t, authors, 3)
+	assert.Equal(t, "tris.git@shoddynet.org", authors[1].Email)
+	assert.EqualValues(t, 3, authors[1].Commits)
+	assert.EqualValues(t, 5, authors[0].Commits)
 
-func TestRepository_GetCodeActivityStatsPathWithSpaces(t *testing.T) {
-	repoFacade, err := ForceFastImportWithInit(t.Context(), t.TempDir(), []FastImportCommit{{
-		Ref:   "refs/heads/master",
-		Files: []FastImportFile{{Path: "docs/release notes.md"}, {Path: "docs/release plan.md"}},
-	}})
+	renameRepo, err := OpenRepositoryLocal(t.Context(), "../../tests/gitea-repositories-meta/user2/repo1.git")
 	require.NoError(t, err)
-	repo, err := OpenRepository(t.Context(), repoFacade)
+	defer renameRepo.Close()
+	code, err = renameRepo.GetCodeActivityStats(t.Context(), timeFrom, "sub-home-md-img-check")
 	require.NoError(t, err)
-	defer repo.Close()
+	assert.EqualValues(t, 1, code.ChangedFiles)
 
-	code, err := repo.GetCodeActivityStats(t.Context(), time.Unix(0, 0), "")
+	mergeRepo, err := OpenRepositoryLocal(t.Context(), filepath.Join(testReposDir, "repo6_merge"))
 	require.NoError(t, err)
-	assert.EqualValues(t, 2, code.ChangedFiles)
+	defer mergeRepo.Close()
+	code, err = mergeRepo.GetCodeActivityStats(t.Context(), time.Unix(1684066320, 0), "main")
+	require.NoError(t, err)
+	assert.Equal(t, &CodeActivityStats{CommitCountInAllBranches: 3, ChangedFiles: 3, Additions: 2, Deletions: 2, Authors: []*CodeActivityAuthor{}}, code)
 }
