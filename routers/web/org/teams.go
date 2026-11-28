@@ -24,7 +24,6 @@ import (
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
@@ -296,7 +295,7 @@ func TeamsRepoAction(ctx *context.Context) {
 	case "addall":
 		err = repo_service.AddAllRepositoriesToTeam(ctx, ctx.Org.Team)
 	case "removeall":
-		err = repo_service.RemoveAllRepositoriesFromTeam(ctx, ctx.Org.Team)
+		err = repo_service.RemoveSpecifiedRepositoriesFromTeam(ctx, ctx.Org.Team)
 	}
 
 	if err != nil {
@@ -342,7 +341,10 @@ func paresFormTeamUnits(orgID int64, forms url.Values) (units []*org_model.TeamU
 
 // NewTeamPost response for create new team
 func NewTeamPost(ctx *context.Context) {
-	form := web.GetForm[*forms.CreateTeamForm](ctx)
+	form := context.GetFetchActionForm[*forms.CreateTeamForm](ctx)
+	if ctx.Written() {
+		return
+	}
 	includesAllRepositories := form.RepoAccess == "all"
 	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeWrite, perm.AccessModeAdmin)
 
@@ -356,37 +358,25 @@ func NewTeamPost(ctx *context.Context) {
 		Visibility:              org_model.NormalizeTeamVisibility(form.Visibility),
 	}
 
-	ctx.Data["Title"] = ctx.Org.Organization.FullName
-	ctx.Data["PageIsOrgTeams"] = true
-	ctx.Data["PageIsOrgTeamsNew"] = true
-	ctx.Data["Units"] = unit_model.Units
-	ctx.Data["Team"] = t
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplTeamNew)
-		return
-	}
-
 	if t.AccessMode == perm.AccessModeNone {
 		t.Units = paresFormTeamUnits(ctx.Org.Organization.ID, ctx.Req.Form)
 		if len(t.Units) == 0 {
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
+			ctx.JSONError(ctx.Tr("form.team_no_units_error"))
 			return
 		}
 	}
 
 	if err := org_service.NewTeam(ctx, t); err != nil {
-		ctx.Data["Err_TeamName"] = true
 		switch {
 		case org_model.IsErrTeamAlreadyExist(err):
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.team_name_been_taken"), tplTeamNew, &form)
+			ctx.JSONErrorWithField(ctx.Tr("form.team_name_been_taken"), "TeamName")
 		default:
 			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
 	log.Trace("Team created: %s/%s", ctx.Org.Organization.Name, t.Name)
-	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
 }
 
 // TeamMembers render team members page
@@ -510,17 +500,15 @@ func EditTeam(ctx *context.Context) {
 
 // EditTeamPost response for modify team information
 func EditTeamPost(ctx *context.Context) {
-	form := web.GetForm[*forms.CreateTeamForm](ctx)
+	form := context.GetFetchActionForm[*forms.CreateTeamForm](ctx)
+	if ctx.Written() {
+		return
+	}
 
 	t := ctx.Org.Team
 	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeWrite, perm.AccessModeAdmin)
 	isIncludeAllChanged := false
 	includesAllRepositories := form.RepoAccess == "all"
-
-	ctx.Data["Title"] = ctx.Org.Organization.FullName
-	ctx.Data["PageIsOrgTeams"] = true
-	ctx.Data["Team"] = t
-	ctx.Data["Units"] = unit_model.Units
 
 	oldTeamAccessMode := t.AccessMode
 	if !t.IsOwnerTeam() {
@@ -542,29 +530,23 @@ func EditTeamPost(ctx *context.Context) {
 	if t.AccessMode == perm.AccessModeNone {
 		t.Units = paresFormTeamUnits(ctx.Org.Organization.ID, ctx.Req.Form)
 		if len(t.Units) == 0 {
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
+			ctx.JSONError(ctx.Tr("form.team_no_units_error"))
 			return
 		}
-	}
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplTeamNew)
-		return
 	}
 
 	isAuthChanged := oldTeamAccessMode != t.AccessMode || !maps.Equal(oldTeamUnitsMap, t.GetUnitsMap())
 	t.Description = form.Description
 	if err := org_service.UpdateTeam(ctx, t, isAuthChanged, isIncludeAllChanged); err != nil {
-		ctx.Data["Err_TeamName"] = true
 		switch {
 		case org_model.IsErrTeamAlreadyExist(err):
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.team_name_been_taken"), tplTeamNew, &form)
+			ctx.JSONErrorWithField(ctx.Tr("form.team_name_been_taken"), "TeamName")
 		default:
 			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
-	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
 }
 
 // DeleteTeam response for the delete team request

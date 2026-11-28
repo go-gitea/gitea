@@ -329,5 +329,11 @@ func TestCompareCodeExpand(t *testing.T) {
 			link := els.Eq(i).AttrOr("data-fetch-url", "")
 			assert.True(t, strings.HasPrefix(link, "/user2/test_blob_excerpt-fork/blob_excerpt/"))
 		}
+
+		richDiffLink := htmlDoc.Find("[data-rich-diff-link]").AttrOr("data-rich-diff-link", "")
+		assert.True(t, strings.HasPrefix(richDiffLink, "/user2/test_blob_excerpt-fork/rich_diff?"))
+		resp = session.MakeRequest(t, NewRequest(t, "GET", richDiffLink), http.StatusOK)
+		assert.Contains(t, resp.Body.String(), `<ins class="rich-diff-added">CHANGED`)
+		session.MakeRequest(t, NewRequest(t, "GET", "/user2/test_blob_excerpt-fork/rich_diff?path=README.txt"), http.StatusNotFound)
 	})
 }

@@ -275,6 +275,170 @@
         }
       }
     },
+    "/admin/actions/variables": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get the instance-level variables list",
+        "operationId": "getAdminVariablesList",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/VariableList"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/admin/actions/variables/{variablename}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get an instance-level variable",
+        "operationId": "getAdminVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ActionVariable"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update an instance-level variable",
+        "operationId": "updateAdminVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateVariableOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "response when updating an instance-level variable"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create an instance-level variable",
+        "operationId": "createAdminVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateVariableOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "successfully created the instance-level variable"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete an instance-level variable",
+        "operationId": "deleteAdminVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the variable",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "response when deleting an instance-level variable"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/admin/cron": {
       "get": {
         "produces": [
@@ -7515,7 +7679,7 @@
     "/repos/{owner}/{repo}/archive/{archive}": {
       "get": {
         "produces": [
-          "application/json"
+          "application/octet-stream"
         ],
         "tags": [
           "repository"
@@ -7557,7 +7721,10 @@
         ],
         "responses": {
           "200": {
-            "description": "success"
+            "description": "success",
+            "schema": {
+              "type": "file"
+            }
           },
           "default": {
             "$ref": "#/responses/error"
@@ -14422,6 +14589,102 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/merge-queue/{branch}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List the merge queue of a branch in merge order",
+        "operationId": "repoListMergeQueue",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "base branch of the queue",
+            "name": "branch",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/MergeQueueEntryList"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Remove all pull requests from the merge queue of a branch",
+        "operationId": "repoClearMergeQueue",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "base branch of the queue",
+            "name": "branch",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/merge-upstream": {
       "post": {
         "produces": [
@@ -16853,6 +17116,144 @@
             "type": "integer",
             "format": "int64",
             "description": "index of the pull request to merge",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pulls/{index}/merge-queue": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get the merge queue entry of a pull request",
+        "operationId": "repoGetPullRequestMergeQueueEntry",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/MergeQueueEntry"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Add a pull request to the merge queue of its base branch",
+        "operationId": "repoAddPullRequestToMergeQueue",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/AddToMergeQueueOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/MergeQueueEntry"
+          },
+          "201": {
+            "$ref": "#/responses/MergeQueueEntry"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Remove a pull request from the merge queue",
+        "operationId": "repoRemovePullRequestFromMergeQueue",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
             "name": "index",
             "in": "path",
             "required": true
@@ -24196,6 +24597,23 @@
     }
   },
   "definitions": {
+    "APIError": {
+      "description": "APIError is an api error with a message",
+      "type": "object",
+      "properties": {
+        "message": {
+          "description": "Message contains the error description",
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "url": {
+          "description": "URL contains the documentation URL for this error",
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "AccessToken": {
       "type": "object",
       "title": "AccessToken represents an API access token.",
@@ -25033,6 +25451,23 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "AddToMergeQueueOption": {
+      "description": "AddToMergeQueueOption options for adding a pull request to the merge queue",
+      "type": "object",
+      "properties": {
+        "head_commit_id": {
+          "description": "Only add the pull request if its head is still this commit",
+          "type": "string",
+          "x-go-name": "HeadCommitID"
+        },
+        "jump": {
+          "description": "Put the pull request at the front of the queue, even if already queued, requires repository admin",
+          "type": "boolean",
+          "x-go-name": "Jump"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "AnnotatedTag": {
       "description": "AnnotatedTag represents an annotated tag",
       "type": "object",
@@ -25410,6 +25845,9 @@
           "type": "boolean",
           "x-go-name": "IgnoreStaleApprovals"
         },
+        "merge_queue": {
+          "$ref": "#/definitions/BranchProtectionMergeQueue"
+        },
         "merge_whitelist_teams": {
           "type": "array",
           "items": {
@@ -25452,6 +25890,10 @@
           },
           "x-go-name": "PushWhitelistUsernames"
         },
+        "require_merge_queue": {
+          "type": "boolean",
+          "x-go-name": "RequireMergeQueue"
+        },
         "require_signed_commits": {
           "type": "boolean",
           "x-go-name": "RequireSignedCommits"
@@ -25481,6 +25923,124 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "Updated"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "BranchProtectionMergeQueue": {
+      "description": "BranchProtectionMergeQueue holds the merge queue settings of a branch protection",
+      "type": "object",
+      "properties": {
+        "check_response_timeout_minutes": {
+          "description": "Minutes after which required checks that did not report count as failed",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CheckResponseTimeoutMinutes"
+        },
+        "grouping_strategy": {
+          "description": "ALLGREEN requires every entry to pass, HEADGREEN only the last entry of a group",
+          "type": "string",
+          "enum": [
+            "ALLGREEN",
+            "HEADGREEN"
+          ],
+          "x-go-enum-desc": "ALLGREEN MergeQueueGroupingAllGreen\nHEADGREEN MergeQueueGroupingHeadGreen",
+          "x-go-name": "GroupingStrategy"
+        },
+        "max_entries_to_build": {
+          "description": "Maximum number of queue entries built and tested at the same time, 0 pauses new builds",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "MaxEntriesToBuild"
+        },
+        "max_entries_to_merge": {
+          "description": "Maximum number of pull requests merged together",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "MaxEntriesToMerge"
+        },
+        "merge_method": {
+          "description": "merge, rebase, rebase-merge or squash",
+          "type": "string",
+          "enum": [
+            "merge",
+            "rebase",
+            "rebase-merge",
+            "squash"
+          ],
+          "x-go-enum-desc": "merge MergeQueueMergeMethodMerge\nrebase MergeQueueMergeMethodRebase\nrebase-merge MergeQueueMergeMethodRebaseMerge\nsquash MergeQueueMergeMethodSquash",
+          "x-go-name": "MergeMethod"
+        },
+        "min_entries_to_merge": {
+          "description": "Minimum number of pull requests merged together",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "MinEntriesToMerge"
+        },
+        "min_entries_to_merge_wait_minutes": {
+          "description": "Minutes to wait for the minimum group size before merging anyway",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "MinEntriesToMergeWaitMinutes"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "BranchProtectionMergeQueueOption": {
+      "description": "BranchProtectionMergeQueueOption sets merge queue settings of a branch protection, unset fields are kept",
+      "type": "object",
+      "properties": {
+        "check_response_timeout_minutes": {
+          "description": "Minutes after which required checks that did not report count as failed",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CheckResponseTimeoutMinutes"
+        },
+        "grouping_strategy": {
+          "description": "ALLGREEN requires every entry to pass, HEADGREEN only the last entry of a group",
+          "type": "string",
+          "enum": [
+            "ALLGREEN",
+            "HEADGREEN"
+          ],
+          "x-go-enum-desc": "ALLGREEN MergeQueueGroupingAllGreen\nHEADGREEN MergeQueueGroupingHeadGreen",
+          "x-go-name": "GroupingStrategy"
+        },
+        "max_entries_to_build": {
+          "description": "Maximum number of queue entries built and tested at the same time, 0 pauses new builds",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "MaxEntriesToBuild"
+        },
+        "max_entries_to_merge": {
+          "description": "Maximum number of pull requests merged together",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "MaxEntriesToMerge"
+        },
+        "merge_method": {
+          "description": "merge, rebase, rebase-merge or squash",
+          "type": "string",
+          "enum": [
+            "merge",
+            "rebase",
+            "rebase-merge",
+            "squash"
+          ],
+          "x-go-enum-desc": "merge MergeQueueMergeMethodMerge\nrebase MergeQueueMergeMethodRebase\nrebase-merge MergeQueueMergeMethodRebaseMerge\nsquash MergeQueueMergeMethodSquash",
+          "x-go-name": "MergeMethod"
+        },
+        "min_entries_to_merge": {
+          "description": "Minimum number of pull requests merged together",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "MinEntriesToMerge"
+        },
+        "min_entries_to_merge_wait_minutes": {
+          "description": "Minutes to wait for the minimum group size before merging anyway",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "MinEntriesToMergeWaitMinutes"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -26422,6 +26982,9 @@
           "type": "boolean",
           "x-go-name": "IgnoreStaleApprovals"
         },
+        "merge_queue": {
+          "$ref": "#/definitions/BranchProtectionMergeQueueOption"
+        },
         "merge_whitelist_teams": {
           "type": "array",
           "items": {
@@ -26462,6 +27025,10 @@
             "type": "string"
           },
           "x-go-name": "PushWhitelistUsernames"
+        },
+        "require_merge_queue": {
+          "type": "boolean",
+          "x-go-name": "RequireMergeQueue"
         },
         "require_signed_commits": {
           "type": "boolean",
@@ -28065,6 +28632,9 @@
           "type": "boolean",
           "x-go-name": "IgnoreStaleApprovals"
         },
+        "merge_queue": {
+          "$ref": "#/definitions/BranchProtectionMergeQueueOption"
+        },
         "merge_whitelist_teams": {
           "type": "array",
           "items": {
@@ -28105,6 +28675,10 @@
             "type": "string"
           },
           "x-go-name": "PushWhitelistUsernames"
+        },
+        "require_merge_queue": {
+          "type": "boolean",
+          "x-go-name": "RequireMergeQueue"
         },
         "require_signed_commits": {
           "type": "boolean",
@@ -30506,12 +31080,77 @@
           "x-go-name": "MergeTitleField"
         },
         "merge_when_checks_succeed": {
+          "description": "Merge once branch protection requirements like required status checks and approvals are met. Other checks are not awaited.",
           "type": "boolean",
           "x-go-name": "MergeWhenChecksSucceed"
         }
       },
       "x-go-name": "MergePullRequestForm",
       "x-go-package": "gitea.dev/services/forms"
+    },
+    "MergeQueueEntry": {
+      "description": "MergeQueueEntry is a pull request waiting in a merge queue",
+      "type": "object",
+      "properties": {
+        "base_branch": {
+          "description": "Branch the pull request merges into",
+          "type": "string",
+          "x-go-name": "BaseBranch"
+        },
+        "enqueued_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "EnqueuedAt"
+        },
+        "enqueuer": {
+          "$ref": "#/definitions/User"
+        },
+        "head_sha": {
+          "description": "Head commit of the pull request when it was added",
+          "type": "string",
+          "x-go-name": "HeadSHA"
+        },
+        "jump": {
+          "description": "Whether the pull request jumped to the front of the queue",
+          "type": "boolean",
+          "x-go-name": "Jump"
+        },
+        "merge_group_head_ref": {
+          "description": "Ref of the queue commit, empty until it is built",
+          "type": "string",
+          "x-go-name": "MergeGroupHeadRef"
+        },
+        "merge_group_head_sha": {
+          "description": "Queue commit testing the pull request, empty until it is built",
+          "type": "string",
+          "x-go-name": "MergeGroupHeadSHA"
+        },
+        "position": {
+          "description": "Position in the queue, starting at 1",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Position"
+        },
+        "pull_request_index": {
+          "description": "Index of the pull request",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "PullRequestIndex"
+        },
+        "state": {
+          "description": "queued, awaiting_checks, mergeable or unmergeable",
+          "type": "string",
+          "enum": [
+            "queued",
+            "awaiting_checks",
+            "mergeable",
+            "unmergeable"
+          ],
+          "x-go-enum-desc": "queued MergeQueueStateQueued\nawaiting_checks MergeQueueStateAwaitingChecks\nmergeable MergeQueueStateMergeable\nunmergeable MergeQueueStateUnmergeable",
+          "x-go-name": "State"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
     },
     "MergeUpstreamRequest": {
       "type": "object",
@@ -31230,6 +31869,10 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "Timestamp"
+        },
+        "tree_id": {
+          "type": "string",
+          "x-go-name": "TreeID"
         },
         "url": {
           "description": "The URL to view this commit",
@@ -34480,6 +35123,21 @@
         "type": "string"
       }
     },
+    "MergeQueueEntry": {
+      "description": "MergeQueueEntry",
+      "schema": {
+        "$ref": "#/definitions/MergeQueueEntry"
+      }
+    },
+    "MergeQueueEntryList": {
+      "description": "MergeQueueEntryList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/MergeQueueEntry"
+        }
+      }
+    },
     "MergeUpstreamResponse": {
       "description": "",
       "schema": {
@@ -35024,13 +35682,8 @@
     },
     "error": {
       "description": "APIError is error format response",
-      "headers": {
-        "message": {
-          "type": "string"
-        },
-        "url": {
-          "type": "string"
-        }
+      "schema": {
+        "$ref": "#/definitions/APIError"
       }
     },
     "string": {
@@ -35042,7 +35695,7 @@
   },
   "securityDefinitions": {
     "AccessToken": {
-      "description": "This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.",
+      "description": "This authentication option is deprecated and disabled by default. Set DISABLE_QUERY_AUTH_TOKEN=false temporarily to restore it. Please use AuthorizationHeaderToken instead.",
       "type": "apiKey",
       "name": "access_token",
       "in": "query"
@@ -35075,7 +35728,7 @@
       "in": "header"
     },
     "Token": {
-      "description": "This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.",
+      "description": "This authentication option is deprecated and disabled by default. Set DISABLE_QUERY_AUTH_TOKEN=false temporarily to restore it. Please use AuthorizationHeaderToken instead.",
       "type": "apiKey",
       "name": "token",
       "in": "query"

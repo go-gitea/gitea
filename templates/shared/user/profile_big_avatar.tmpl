@@ -1,4 +1,4 @@
-<div id="profile-avatar-card" class="ui fitted segment">
+<div id="profile-avatar-card" class="ui fitted segment tw-break-anywhere">
 	<div class="flex-divided-list items-px-default muted-links">
 		<div class="item flex-text-block tw-justify-center tw-p-5">
 		{{if eq .SignedUserID .ContextUser.ID}}
@@ -30,14 +30,14 @@
 		</div>
 
 		{{if .UserBlocking}}
-			<div class="item tw-text-red">{{svg "octicon-circle-slash"}} {{ctx.Locale.Tr "user.block.blocked"}}</div>
+			<div class="item flex-text-inline tw-text-red">{{svg "octicon-circle-slash"}} {{ctx.Locale.Tr "user.block.blocked"}}</div>
 			{{if .UserBlocking.Note}}
 				<div class="item tw-text-xs tw-text-red">{{ctx.Locale.Tr "user.block.note"}}: {{.UserBlocking.Note}}</div>
 			{{end}}
 		{{end}}
 
 		{{if .ContextUser.Location}}
-			<div class="item">
+			<div class="item flex-text-inline">
 				{{svg "octicon-location"}}
 				<span class="tw-flex-1">{{.ContextUser.Location}}</span>
 				{{if .ContextUserLocationMapURL}}
@@ -48,25 +48,21 @@
 			</div>
 		{{end}}
 
-		{{if (eq .SignedUserID .ContextUser.ID)}}
+		{{$isOwnProfile := eq .SignedUserID .ContextUser.ID}}
+		{{if or $isOwnProfile .ShowUserEmail}}
 			<div class="item flex-text-inline">
 				{{svg "octicon-mail"}}
 				<a class="tw-flex-1" href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
-				<a class="flex-text-inline" href="{{AppSubUrl}}/user/settings#privacy-user-settings" data-tooltip-content="{{ctx.Locale.Tr (Iif .ShowUserEmail "user.email_visibility.limited" "user.email_visibility.private")}}">
-					{{svg (Iif .ShowUserEmail "octicon-unlock" "octicon-lock")}}
-				</a>
+				{{if $isOwnProfile}}
+					<a class="flex-text-inline" href="{{AppSubUrl}}/user/settings#privacy-user-settings" data-tooltip-content="{{ctx.Locale.Tr (Iif .ShowUserEmail "user.email_visibility.limited" "user.email_visibility.private")}}">
+						{{svg (Iif .ShowUserEmail "octicon-unlock" "octicon-lock")}}
+					</a>
+				{{end}}
 			</div>
-		{{else}}
-			{{if .ShowUserEmail}}
-				<div class="item">
-					{{svg "octicon-mail"}}
-					<a href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
-				</div>
-			{{end}}
 		{{end}}
 
 		{{if .ContextUser.Website}}
-			<div class="item">
+			<div class="item flex-text-inline">
 				{{svg "octicon-link"}}
 				<a target="_blank" rel="me" href="{{.ContextUser.Website}}">{{.ContextUser.Website}}</a>
 			</div>
@@ -78,7 +74,7 @@
 			</div>
 		{{end}}
 
-		<div class="item">{{svg "octicon-calendar"}} <span>{{ctx.Locale.Tr "user.joined_on" (DateUtils.AbsoluteShort .ContextUser.CreatedUnix)}}</span></div>
+		<div class="item flex-text-inline">{{svg "octicon-calendar"}} <span>{{ctx.Locale.Tr "user.joined_on" (DateUtils.AbsoluteShort .ContextUser.CreatedUnix)}}</span></div>
 
 		{{if and .Orgs .HasOrgsVisible}}
 			<div class="item flex-relaxed-list">

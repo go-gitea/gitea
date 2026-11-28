@@ -114,6 +114,7 @@ func handleSignInError(ctx *context.Context, userName string, ptrForm any, tmpl 
 
 // LinkAccountPostSignIn handle the coupling of external account with another account using signIn
 func LinkAccountPostSignIn(ctx *context.Context) {
+	// TODO: REFACTOR-RENDER-WITH-ERR: form-fetch-action needs navigation for the prohibited-login page rendered by handleSignInError.
 	signInForm := web.GetForm[*forms.SignInForm](ctx)
 
 	ctx.Data["LinkAccountModeSignIn"] = true
@@ -177,6 +178,7 @@ func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData
 
 // LinkAccountPostRegister handle the creation of a new account for an external account using signUp
 func LinkAccountPostRegister(ctx *context.Context) {
+	// TODO: REFACTOR-RENDER-WITH-ERR: form-fetch-action needs the shared CAPTCHA and account-activation helpers to stop rendering HTML first.
 	form := web.GetForm[*forms.RegisterForm](ctx)
 
 	ctx.Data["LinkAccountModeRegister"] = true

@@ -148,6 +148,18 @@ func TestDeleteTeam(t *testing.T) {
 	accessMode, err := access_model.AccessLevel(t.Context(), user, repo)
 	assert.NoError(t, err)
 	assert.Less(t, accessMode, perm.AccessModeWrite)
+
+	allReposTeam := &organization.Team{OrgID: 3, Name: "all-repos", AccessMode: perm.AccessModeAdmin, IncludesAllRepositories: true}
+	assert.NoError(t, NewTeam(t.Context(), allReposTeam))
+	assert.NoError(t, AddTeamMember(t.Context(), allReposTeam, user))
+	assert.NoError(t, access_model.RecalculateTeamAccesses(t.Context(), repo, 0))
+	assert.NoError(t, repo_service.RemoveSpecifiedRepositoriesFromTeam(t.Context(), allReposTeam))
+	unittest.AssertExistsAndLoadBean(t, &organization.TeamRepo{TeamID: allReposTeam.ID, RepoID: repo.ID})
+	assert.NoError(t, DeleteTeam(t.Context(), allReposTeam))
+	unittest.AssertNotExistsBean(t, &organization.TeamRepo{TeamID: allReposTeam.ID})
+	accessMode, err = access_model.AccessLevel(t.Context(), user, repo)
+	assert.NoError(t, err)
+	assert.Equal(t, perm.AccessModeNone, accessMode)
 }
 
 func TestIncludesAllRepositoriesTeams(t *testing.T) {

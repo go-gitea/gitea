@@ -55,3 +55,10 @@ type swaggerResponseLabelTemplateInfo struct {
 	// in:body
 	Body []api.LabelTemplate `json:"body"`
 }
+
+// APIError is error format response
+// swagger:response error
+type swaggerResponseError struct {
+	// in:body
+	Body api.APIError `json:"body"`
+}

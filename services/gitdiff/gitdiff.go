@@ -35,6 +35,7 @@ import (
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/svg"
@@ -494,6 +495,7 @@ type DiffFile struct {
 
 	IsBlobTypeImage bool
 	IsBlobTypeCsv   bool
+	RichDiffLink    string
 }
 
 // GetType returns type of diff file.
@@ -502,7 +504,7 @@ func (diffFile *DiffFile) GetType() int {
 }
 
 func (diffFile *DiffFile) CanShowFileViewToggle() bool {
-	return diffFile.IsBlobTypeImage || (diffFile.IsBlobTypeCsv && !diffFile.IsIncomplete && !diffFile.HasTruncatedLines)
+	return diffFile.IsBlobTypeImage || (diffFile.IsBlobTypeCsv && !diffFile.IsIncomplete && !diffFile.HasTruncatedLines) || diffFile.RichDiffLink != ""
 }
 
 type DiffRenderDetail struct {
@@ -555,6 +557,29 @@ func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, gitRepo *
 	}
 	ret.needTailSection = true
 	return ret
+}
+
+// richDiffLink needs a markup name on both sides of a rename
+func (diffFile *DiffFile) richDiffLink(repoLink string, leftCommit, rightCommit *git.Commit) string {
+	if diffFile.IsBin || diffFile.IsSubmodule || diffFile.IsBlobTypeImage || max(diffFile.LeftBlobSize, diffFile.RightBlobSize) >= setting.UI.MaxDisplayFileSize {
+		return ""
+	}
+	query := url.Values{}
+	if diffFile.Type != DiffFileAdd {
+		if !markup.IsInlineRenderedFile(diffFile.OldName) {
+			return ""
+		}
+		query.Set("before", leftCommit.ID.String())
+		query.Set("old_path", diffFile.OldName)
+	}
+	if diffFile.Type != DiffFileDel {
+		if !markup.IsInlineRenderedFile(diffFile.Name) {
+			return ""
+		}
+		query.Set("after", rightCommit.ID.String())
+		query.Set("path", diffFile.Name)
+	}
+	return repoLink + "/rich_diff?" + query.Encode()
 }
 
 func (diffFile *DiffFile) addTailSection(detail DiffRenderDetail) {
@@ -1281,6 +1306,7 @@ type DiffOptions struct {
 	MaxLines          int
 	MaxLineCharacters int
 	MaxFiles          int
+	EnableRichDiff    bool
 }
 
 // prepareDiffCommits prepares the before and after commits for a diff operation based on the provided options.
@@ -1409,6 +1435,9 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 		renderDetail := diffFile.prepareDiffRenderDetail(ctx, gitRepo, beforeCommit, afterCommit)
 		if renderDetail.needTailSection {
 			diffFile.addTailSection(renderDetail)
+		}
+		if opts.EnableRichDiff {
+			diffFile.RichDiffLink = diffFile.richDiffLink(repoLink, beforeCommit, afterCommit)
 		}
 
 		// only do highlight for text files which have no custom diff command

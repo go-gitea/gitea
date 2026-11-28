@@ -252,7 +252,7 @@ func TestAuditLogUserEvents(t *testing.T) {
 		loginUser(t, "user2").MakeRequest(t, NewRequestWithValues(t, "POST", "/user/settings/account/email", map[string]string{
 			"_method": "PRIMARY",
 			"id":      strconv.FormatInt(email.ID, 10),
-		}), http.StatusSeeOther)
+		}), http.StatusOK)
 
 		assert.Equal(t, email.Email, audit_model.DecodeMetadata(findEvent(t, audit_model.UserEmailPrimaryChange, 2).Metadata)["email"])
 
@@ -274,7 +274,7 @@ func TestAuditLogUserEvents(t *testing.T) {
 	t.Run("TwoFactorFailOnSignInAndPasswordReset", func(t *testing.T) {
 		loginUser(t, "user24").MakeRequest(t, NewRequestWithValues(t, "POST", "/user/two_factor/scratch", map[string]string{
 			"token": "wrong-token",
-		}), http.StatusOK)
+		}), http.StatusBadRequest)
 		findEvent(t, audit_model.UserAuthenticationFailTwoFactor, 24)
 
 		code := user_model.GenerateUserTimeLimitCode(&user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeResetPassword}, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 24}))
@@ -307,7 +307,7 @@ func TestAuditLogUserEvents(t *testing.T) {
 				"email":      "user24@example.com",
 				"active":     "on",
 				"reset_2fa":  "on",
-			}), http.StatusSeeOther)
+			}), http.StatusOK)
 		}
 		assert.Equal(t, int64(1), findEvent(t, audit_model.UserTwoFactorDisable, 24).ActorID)
 	})

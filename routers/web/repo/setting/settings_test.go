@@ -6,9 +6,12 @@ package setting
 import (
 	"net/http"
 	"net/url"
+	"strconv"
 	"testing"
 
+	"gitea.dev/models/db"
 	deploykey_model "gitea.dev/models/deploykey"
+	git_model "gitea.dev/models/git"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
@@ -18,7 +21,6 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
-	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/contexttest"
 	"gitea.dev/services/forms"
@@ -28,6 +30,26 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestDisableMergeQueueKeepsSettings(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx, _ := contexttest.MockContext(t, "POST /user2/repo1/settings/branches/edit")
+	contexttest.LoadRepo(t, ctx, 1)
+	rule := &git_model.ProtectedBranch{RepoID: 1, RuleName: "release"}
+	rule.RequireMergeQueue = true
+	rule.MergeQueue = git_model.DefaultMergeQueueConfig()
+	rule.MergeQueue.MinEntriesToMerge = 2
+	require.NoError(t, db.Insert(ctx, rule))
+	contexttest.MockRequestPostForm(ctx.Req, url.Values{
+		"rule_id":                          {strconv.FormatInt(rule.ID, 10)},
+		"rule_name":                        {rule.RuleName},
+		"merge_queue_min_entries_to_merge": {"6"},
+	})
+	SettingsProtectedBranchPost(ctx)
+	saved := unittest.AssertExistsAndLoadBean(t, &git_model.ProtectedBranch{ID: rule.ID})
+	assert.False(t, saved.RequireMergeQueue)
+	assert.Equal(t, rule.MergeQueue, saved.MergeQueue)
+}
 
 func TestAddDeployKey(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
@@ -173,13 +195,17 @@ func TestHandleSettingsPostMirrorReusesCredentialsOnlyForSameAddress(t *testing.
 	require.NoError(t, mirror_service.UpdateAddress(t.Context(), mirror, "https://existing-user:existing-password@example.com/user2/repo1.git"))
 
 	postMirrorSettings := func(form *forms.RepoSettingForm) string {
-		ctx, _ := contexttest.MockContext(t, mirrorRepo.Link()+"/settings")
+		ctx, resp := contexttest.MockContext(t, mirrorRepo.Link()+"/settings")
 		contexttest.LoadUser(t, ctx, 2)
 		contexttest.LoadRepo(t, ctx, mirrorRepo.ID)
-		form.Interval = "8h"
-		web.SetForm(ctx, form)
+		ctx.Req.Form = url.Values{
+			"interval":        {"8h"},
+			"mirror_address":  {form.MirrorAddress},
+			"mirror_username": {form.MirrorUsername},
+			"mirror_password": {form.MirrorPassword},
+		}
 		handleSettingsPostMirror(ctx)
-		require.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+		require.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus(), resp.Body.String())
 		remoteURL, err := git.ParseRemoteAddressURL(t.Context(), mirrorRepo, mirror.GetRemoteName())
 		require.NoError(t, err)
 		return remoteURL.User.String()

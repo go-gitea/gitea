@@ -44,6 +44,7 @@ func Keys(ctx *context.Context) {
 
 // KeysPost response for change user's SSH/GPG keys
 func KeysPost(ctx *context.Context) {
+	// TODO: REFACTOR-RENDER-WITH-ERR: form-fetch-action cannot just show a JSON error: GPG errors must reveal signing instructions and a signature input.
 	form := web.GetForm[*forms.AddKeyForm](ctx)
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled

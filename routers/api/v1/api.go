@@ -31,12 +31,12 @@
 //	     type: apiKey
 //	     name: token
 //	     in: query
-//	     description: This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.
+//	     description: This authentication option is deprecated and disabled by default. Set DISABLE_QUERY_AUTH_TOKEN=false temporarily to restore it. Please use AuthorizationHeaderToken instead.
 //	AccessToken:
 //	     type: apiKey
 //	     name: access_token
 //	     in: query
-//	     description: This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.
+//	     description: This authentication option is deprecated and disabled by default. Set DISABLE_QUERY_AUTH_TOKEN=false temporarily to restore it. Please use AuthorizationHeaderToken instead.
 //	AuthorizationHeaderToken:
 //	     type: apiKey
 //	     name: Authorization
@@ -96,7 +96,6 @@ import (
 	"gitea.dev/routers/api/v1/token"
 	"gitea.dev/routers/api/v1/user"
 	"gitea.dev/routers/common"
-	"gitea.dev/services/actions"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/auth"
 	"gitea.dev/services/context"
@@ -943,13 +942,6 @@ func individualPermsChecker(ctx *context.APIContext) {
 	}
 }
 
-// check for and warn against deprecated authentication options
-func checkDeprecatedAuthMethods(ctx *context.APIContext) {
-	if ctx.FormString("token") != "" || ctx.FormString("access_token") != "" {
-		ctx.Resp.Header().Set("X-Gitea-Warning", "token and access_token API authentication is deprecated and will be removed in gitea 1.23. Please use AuthorizationHeaderToken instead. Existing queries will continue to work but without authorization.")
-	}
-}
-
 // Routes registers all v1 APIs routes to web application.
 func Routes() *web.Router {
 	m := web.NewRouter()
@@ -969,8 +961,6 @@ func Routes() *web.Router {
 
 	m.AfterRouting(context.APIContexter())
 	m.AfterRouting(common.AuditOrigin(audit_model.OriginAPI))
-	m.AfterRouting(checkDeprecatedAuthMethods)
-
 	// Get user from session if logged in.
 	m.AfterRouting(apiAuth(buildAuthGroup()))
 
@@ -982,7 +972,7 @@ func Routes() *web.Router {
 		m *web.Router,
 		reqReaderCheck func(ctx *context.APIContext),
 		reqManagerCheck func(ctx *context.APIContext),
-		act actions.API,
+		act shared.ActionsAPI,
 	) {
 		m.Group("/actions", func() {
 			m.Group("/secrets", func() {
@@ -1476,6 +1466,10 @@ func Routes() *web.Router {
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
 							Post(reqToken(), mustNotBeArchived, bind(forms.MergePullRequestForm{}), repo.MergePullRequest).
 							Delete(reqToken(), mustNotBeArchived, repo.CancelScheduledAutoMerge)
+						m.Get("/merge-queue", repo.GetPullRequestMergeQueueEntry)
+						m.Combo("/merge-queue", reqToken(), mustNotBeArchived).
+							Post(bind(api.AddToMergeQueueOption{}), repo.AddPullRequestToMergeQueue).
+							Delete(repo.RemovePullRequestFromMergeQueue)
 						m.Group("/reviews", func() {
 							m.Combo("").
 								Get(repo.ListPullReviews).
@@ -1498,6 +1492,8 @@ func Routes() *web.Router {
 					})
 					m.Get("/{base}/*", repo.GetPullRequestByBaseHead)
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
+				m.Combo("/merge-queue/*", mustAllowPulls, reqRepoReader(unit.TypeCode)).Get(repo.ListMergeQueue).
+					Delete(reqToken(), reqRepoAdmin(), mustNotBeArchived, repo.ClearMergeQueue)
 				m.Group("/commits", func() {
 					m.Group("", func() {
 						m.Get("", repo.GetAllCommits)
@@ -1887,6 +1883,14 @@ func Routes() *web.Router {
 				})
 				m.Get("/runs", admin.ListWorkflowRuns)
 				m.Get("/jobs", admin.ListWorkflowJobs)
+				m.Group("/variables", func() {
+					m.Get("", admin.ListVariables)
+					m.Combo("/{variablename}").
+						Get(admin.GetVariable).
+						Delete(admin.DeleteVariable).
+						Post(bind(api.CreateVariableOption{}), admin.CreateVariable).
+						Put(bind(api.UpdateVariableOption{}), admin.UpdateVariable)
+				})
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryAdmin), reqToken(), reqSiteAdmin(), rejectPublicOnly())
 

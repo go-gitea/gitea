@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRepository_GetCodeActivityStats(t *testing.T) {
@@ -37,4 +38,19 @@ func TestRepository_GetCodeActivityStats(t *testing.T) {
 	authors, err := GetCodeActivityAuthors(t.Context(), bareRepo1, timeFrom)
 	assert.NoError(t, err)
 	assert.Equal(t, code.Authors, authors)
+}
+
+func TestRepository_GetCodeActivityStatsPathWithSpaces(t *testing.T) {
+	repoFacade, err := ForceFastImportWithInit(t.Context(), t.TempDir(), []FastImportCommit{{
+		Ref:   "refs/heads/master",
+		Files: []FastImportFile{{Path: "docs/release notes.md"}, {Path: "docs/release plan.md"}},
+	}})
+	require.NoError(t, err)
+	repo, err := OpenRepository(t.Context(), repoFacade)
+	require.NoError(t, err)
+	defer repo.Close()
+
+	code, err := repo.GetCodeActivityStats(t.Context(), time.Unix(0, 0), "")
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, code.ChangedFiles)
 }

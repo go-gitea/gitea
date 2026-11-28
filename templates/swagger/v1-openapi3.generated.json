@@ -825,6 +825,29 @@
         },
         "description": "MarkupRender is a rendered markup document"
       },
+      "MergeQueueEntry": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MergeQueueEntry"
+            }
+          }
+        },
+        "description": "MergeQueueEntry"
+      },
+      "MergeQueueEntryList": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/MergeQueueEntry"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "description": "MergeQueueEntryList"
+      },
       "MergeUpstreamResponse": {
         "content": {
           "application/json": {
@@ -1666,19 +1689,14 @@
         "description": "APIEmpty is an empty response"
       },
       "error": {
-        "description": "APIError is error format response",
-        "headers": {
-          "message": {
+        "content": {
+          "application/json": {
             "schema": {
-              "type": "string"
-            }
-          },
-          "url": {
-            "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/APIError"
             }
           }
-        }
+        },
+        "description": "APIError is error format response"
       },
       "string": {
         "content": {
@@ -1692,6 +1710,24 @@
       }
     },
     "schemas": {
+      "APIError": {
+        "description": "APIError is an api error with a message",
+        "properties": {
+          "message": {
+            "description": "Message contains the error description",
+            "type": "string",
+            "x-go-name": "Message"
+          },
+          "url": {
+            "description": "URL contains the documentation URL for this error",
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "URL"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "AccessLevelName": {
         "enum": [
           "none",
@@ -2553,6 +2589,23 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "AddToMergeQueueOption": {
+        "description": "AddToMergeQueueOption options for adding a pull request to the merge queue",
+        "properties": {
+          "head_commit_id": {
+            "description": "Only add the pull request if its head is still this commit",
+            "type": "string",
+            "x-go-name": "HeadCommitID"
+          },
+          "jump": {
+            "description": "Put the pull request at the front of the queue, even if already queued, requires repository admin",
+            "type": "boolean",
+            "x-go-name": "Jump"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "AnnotatedTag": {
         "description": "AnnotatedTag represents an annotated tag",
         "properties": {
@@ -2933,6 +2986,9 @@
             "type": "boolean",
             "x-go-name": "IgnoreStaleApprovals"
           },
+          "merge_queue": {
+            "$ref": "#/components/schemas/BranchProtectionMergeQueue"
+          },
           "merge_whitelist_teams": {
             "items": {
               "type": "string"
@@ -2975,6 +3031,10 @@
             "type": "array",
             "x-go-name": "PushWhitelistUsernames"
           },
+          "require_merge_queue": {
+            "type": "boolean",
+            "x-go-name": "RequireMergeQueue"
+          },
           "require_signed_commits": {
             "type": "boolean",
             "x-go-name": "RequireSignedCommits"
@@ -3004,6 +3064,112 @@
             "format": "date-time",
             "type": "string",
             "x-go-name": "Updated"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "BranchProtectionMergeQueue": {
+        "description": "BranchProtectionMergeQueue holds the merge queue settings of a branch protection",
+        "properties": {
+          "check_response_timeout_minutes": {
+            "description": "Minutes after which required checks that did not report count as failed",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "CheckResponseTimeoutMinutes"
+          },
+          "grouping_strategy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MergeQueueGroupingStrategy"
+              }
+            ],
+            "description": "ALLGREEN requires every entry to pass, HEADGREEN only the last entry of a group"
+          },
+          "max_entries_to_build": {
+            "description": "Maximum number of queue entries built and tested at the same time, 0 pauses new builds",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "MaxEntriesToBuild"
+          },
+          "max_entries_to_merge": {
+            "description": "Maximum number of pull requests merged together",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "MaxEntriesToMerge"
+          },
+          "merge_method": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MergeQueueMergeMethod"
+              }
+            ],
+            "description": "merge, rebase, rebase-merge or squash"
+          },
+          "min_entries_to_merge": {
+            "description": "Minimum number of pull requests merged together",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "MinEntriesToMerge"
+          },
+          "min_entries_to_merge_wait_minutes": {
+            "description": "Minutes to wait for the minimum group size before merging anyway",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "MinEntriesToMergeWaitMinutes"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "BranchProtectionMergeQueueOption": {
+        "description": "BranchProtectionMergeQueueOption sets merge queue settings of a branch protection, unset fields are kept",
+        "properties": {
+          "check_response_timeout_minutes": {
+            "description": "Minutes after which required checks that did not report count as failed",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "CheckResponseTimeoutMinutes"
+          },
+          "grouping_strategy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MergeQueueGroupingStrategy"
+              }
+            ],
+            "description": "ALLGREEN requires every entry to pass, HEADGREEN only the last entry of a group"
+          },
+          "max_entries_to_build": {
+            "description": "Maximum number of queue entries built and tested at the same time, 0 pauses new builds",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "MaxEntriesToBuild"
+          },
+          "max_entries_to_merge": {
+            "description": "Maximum number of pull requests merged together",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "MaxEntriesToMerge"
+          },
+          "merge_method": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MergeQueueMergeMethod"
+              }
+            ],
+            "description": "merge, rebase, rebase-merge or squash"
+          },
+          "min_entries_to_merge": {
+            "description": "Minimum number of pull requests merged together",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "MinEntriesToMerge"
+          },
+          "min_entries_to_merge_wait_minutes": {
+            "description": "Minutes to wait for the minimum group size before merging anyway",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "MinEntriesToMergeWaitMinutes"
           }
         },
         "type": "object",
@@ -3964,6 +4130,9 @@
             "type": "boolean",
             "x-go-name": "IgnoreStaleApprovals"
           },
+          "merge_queue": {
+            "$ref": "#/components/schemas/BranchProtectionMergeQueueOption"
+          },
           "merge_whitelist_teams": {
             "items": {
               "type": "string"
@@ -4004,6 +4173,10 @@
             },
             "type": "array",
             "x-go-name": "PushWhitelistUsernames"
+          },
+          "require_merge_queue": {
+            "type": "boolean",
+            "x-go-name": "RequireMergeQueue"
           },
           "require_signed_commits": {
             "type": "boolean",
@@ -5577,6 +5750,9 @@
             "type": "boolean",
             "x-go-name": "IgnoreStaleApprovals"
           },
+          "merge_queue": {
+            "$ref": "#/components/schemas/BranchProtectionMergeQueueOption"
+          },
           "merge_whitelist_teams": {
             "items": {
               "type": "string"
@@ -5617,6 +5793,10 @@
             },
             "type": "array",
             "x-go-name": "PushWhitelistUsernames"
+          },
+          "require_merge_queue": {
+            "type": "boolean",
+            "x-go-name": "RequireMergeQueue"
           },
           "require_signed_commits": {
             "type": "boolean",
@@ -8009,6 +8189,7 @@
             "x-go-name": "MergeTitleField"
           },
           "merge_when_checks_succeed": {
+            "description": "Merge once branch protection requirements like required status checks and approvals are met. Other checks are not awaited.",
             "type": "boolean",
             "x-go-name": "MergeWhenChecksSucceed"
           }
@@ -8019,6 +8200,86 @@
         "type": "object",
         "x-go-name": "MergePullRequestForm",
         "x-go-package": "gitea.dev/services/forms"
+      },
+      "MergeQueueEntry": {
+        "description": "MergeQueueEntry is a pull request waiting in a merge queue",
+        "properties": {
+          "base_branch": {
+            "description": "Branch the pull request merges into",
+            "type": "string",
+            "x-go-name": "BaseBranch"
+          },
+          "enqueued_at": {
+            "format": "date-time",
+            "type": "string",
+            "x-go-name": "EnqueuedAt"
+          },
+          "enqueuer": {
+            "$ref": "#/components/schemas/User"
+          },
+          "head_sha": {
+            "description": "Head commit of the pull request when it was added",
+            "type": "string",
+            "x-go-name": "HeadSHA"
+          },
+          "jump": {
+            "description": "Whether the pull request jumped to the front of the queue",
+            "type": "boolean",
+            "x-go-name": "Jump"
+          },
+          "merge_group_head_ref": {
+            "description": "Ref of the queue commit, empty until it is built",
+            "type": "string",
+            "x-go-name": "MergeGroupHeadRef"
+          },
+          "merge_group_head_sha": {
+            "description": "Queue commit testing the pull request, empty until it is built",
+            "type": "string",
+            "x-go-name": "MergeGroupHeadSHA"
+          },
+          "position": {
+            "description": "Position in the queue, starting at 1",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "Position"
+          },
+          "pull_request_index": {
+            "description": "Index of the pull request",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "PullRequestIndex"
+          },
+          "state": {
+            "description": "queued, awaiting_checks, mergeable or unmergeable",
+            "enum": [
+              "queued",
+              "awaiting_checks",
+              "mergeable",
+              "unmergeable"
+            ],
+            "type": "string",
+            "x-go-enum-desc": "queued MergeQueueStateQueued\nawaiting_checks MergeQueueStateAwaitingChecks\nmergeable MergeQueueStateMergeable\nunmergeable MergeQueueStateUnmergeable",
+            "x-go-name": "State"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "MergeQueueGroupingStrategy": {
+        "enum": [
+          "ALLGREEN",
+          "HEADGREEN"
+        ],
+        "type": "string"
+      },
+      "MergeQueueMergeMethod": {
+        "enum": [
+          "merge",
+          "rebase",
+          "rebase-merge",
+          "squash"
+        ],
+        "type": "string"
       },
       "MergeUpstreamRequest": {
         "properties": {
@@ -8747,6 +9008,10 @@
             "format": "date-time",
             "type": "string",
             "x-go-name": "Timestamp"
+          },
+          "tree_id": {
+            "type": "string",
+            "x-go-name": "TreeID"
           },
           "url": {
             "description": "The URL to view this commit",
@@ -11509,7 +11774,7 @@
     },
     "securitySchemes": {
       "AccessToken": {
-        "description": "This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.",
+        "description": "This authentication option is deprecated and disabled by default. Set DISABLE_QUERY_AUTH_TOKEN=false temporarily to restore it. Please use AuthorizationHeaderToken instead.",
         "in": "query",
         "name": "access_token",
         "type": "apiKey"
@@ -11543,7 +11808,7 @@
         "type": "apiKey"
       },
       "Token": {
-        "description": "This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.",
+        "description": "This authentication option is deprecated and disabled by default. Set DISABLE_QUERY_AUTH_TOKEN=false temporarily to restore it. Please use AuthorizationHeaderToken instead.",
         "in": "query",
         "name": "token",
         "type": "apiKey"
@@ -11821,6 +12086,167 @@
           }
         },
         "summary": "Lists all runs",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/admin/actions/variables": {
+      "get": {
+        "operationId": "getAdminVariablesList",
+        "parameters": [
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/VariableList"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Get the instance-level variables list",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/admin/actions/variables/{variablename}": {
+      "delete": {
+        "operationId": "deleteAdminVariable",
+        "parameters": [
+          {
+            "description": "name of the variable",
+            "in": "path",
+            "name": "variablename",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "response when deleting an instance-level variable"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Delete an instance-level variable",
+        "tags": [
+          "admin"
+        ]
+      },
+      "get": {
+        "operationId": "getAdminVariable",
+        "parameters": [
+          {
+            "description": "name of the variable",
+            "in": "path",
+            "name": "variablename",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ActionVariable"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Get an instance-level variable",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "operationId": "createAdminVariable",
+        "parameters": [
+          {
+            "description": "name of the variable",
+            "in": "path",
+            "name": "variablename",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateVariableOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "201": {
+            "description": "successfully created the instance-level variable"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Create an instance-level variable",
+        "tags": [
+          "admin"
+        ]
+      },
+      "put": {
+        "operationId": "updateAdminVariable",
+        "parameters": [
+          {
+            "description": "name of the variable",
+            "in": "path",
+            "name": "variablename",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateVariableOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "204": {
+            "description": "response when updating an instance-level variable"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Update an instance-level variable",
         "tags": [
           "admin"
         ]
@@ -19616,6 +20042,14 @@
         ],
         "responses": {
           "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
             "description": "success"
           },
           "default": {
@@ -27088,6 +27522,112 @@
         ]
       }
     },
+    "/repos/{owner}/{repo}/merge-queue/{branch}": {
+      "delete": {
+        "operationId": "repoClearMergeQueue",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "base branch of the queue",
+            "in": "path",
+            "name": "branch",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/empty"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Remove all pull requests from the merge queue of a branch",
+        "tags": [
+          "repository"
+        ]
+      },
+      "get": {
+        "operationId": "repoListMergeQueue",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "base branch of the queue",
+            "in": "path",
+            "name": "branch",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/MergeQueueEntryList"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "List the merge queue of a branch in merge order",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
     "/repos/{owner}/{repo}/merge-upstream": {
       "post": {
         "operationId": "repoMergeUpstream",
@@ -29788,6 +30328,156 @@
           }
         },
         "summary": "Merge a pull request",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/pulls/{index}/merge-queue": {
+      "delete": {
+        "operationId": "repoRemovePullRequestFromMergeQueue",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "index of the pull request",
+            "in": "path",
+            "name": "index",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/empty"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Remove a pull request from the merge queue",
+        "tags": [
+          "repository"
+        ]
+      },
+      "get": {
+        "operationId": "repoGetPullRequestMergeQueueEntry",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "index of the pull request",
+            "in": "path",
+            "name": "index",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/MergeQueueEntry"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Get the merge queue entry of a pull request",
+        "tags": [
+          "repository"
+        ]
+      },
+      "post": {
+        "operationId": "repoAddPullRequestToMergeQueue",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "index of the pull request",
+            "in": "path",
+            "name": "index",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddToMergeQueueOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/MergeQueueEntry"
+          },
+          "201": {
+            "$ref": "#/components/responses/MergeQueueEntry"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Add a pull request to the merge queue of its base branch",
         "tags": [
           "repository"
         ]

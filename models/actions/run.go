@@ -57,6 +57,7 @@ type ActionRun struct {
 	// Always filled (repo-level run = the repo itself; scoped run = the source repo).
 	WorkflowRepoID    int64  `xorm:"NOT NULL DEFAULT 0"`
 	WorkflowCommitSHA string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+	WorkflowRef       string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"` // the default branch ref a pull_request_target run read its workflow from, empty for scoped and older runs
 
 	IsScopedRun bool `xorm:"NOT NULL DEFAULT false"` // IsScopedRun explicitly classifies scoped runs.
 
@@ -385,12 +386,16 @@ func GetConcurrencyWaiters(ctx context.Context, repoID int64, concurrencyGroup s
 
 func findConcurrencyGroupEntries(ctx context.Context, repoID int64, concurrencyGroup string, attemptCond, jobCond builder.Cond) ([]*ActionRunAttempt, []*ActionRunJob, error) {
 	groupCond := builder.Eq{"repo_id": repoID, "concurrency_group": concurrencyGroup}
+	notAwaitingApproval := func(table string) builder.Cond {
+		return builder.NotExists(builder.Select("1").From("action_run").
+			Where(builder.Expr("action_run.id = " + table + ".run_id").And(builder.Eq{"action_run.need_approval": true})))
+	}
 	attempts := make([]*ActionRunAttempt, 0)
-	if err := db.GetEngine(ctx).Where(groupCond.And(attemptCond)).Find(&attempts); err != nil {
+	if err := db.GetEngine(ctx).Where(groupCond.And(attemptCond, notAwaitingApproval("action_run_attempt"))).Find(&attempts); err != nil {
 		return nil, nil, fmt.Errorf("find run attempts: %w", err)
 	}
 	jobs := make([]*ActionRunJob, 0)
-	if err := db.GetEngine(ctx).Where(groupCond.And(jobCond)).Find(&jobs); err != nil {
+	if err := db.GetEngine(ctx).Where(groupCond.And(jobCond, notAwaitingApproval("action_run_job"))).Find(&jobs); err != nil {
 		return nil, nil, fmt.Errorf("find jobs: %w", err)
 	}
 	return attempts, jobs, nil

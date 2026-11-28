@@ -130,8 +130,8 @@
 
 								{{if $showFileViewToggle}}
 									<div class="ui compact icon buttons" data-global-init="initDiffFileViewToggle">
-										<button type="button" class="ui tiny basic button file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code"}}</button>
-										<button type="button" class="ui tiny basic button file-view-toggle active" data-toggle-selector="#diff-rendered-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_rendered"}}">{{svg "octicon-file"}}</button>
+										<button type="button" class="ui tiny basic button file-view-toggle {{if $file.RichDiffLink}}active{{end}}" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code"}}</button>
+										<button type="button" class="ui tiny basic button file-view-toggle {{if not $file.RichDiffLink}}active{{end}}" data-toggle-selector="#diff-rendered-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_rendered"}}">{{svg "octicon-file"}}</button>
 									</div>
 								{{end}}
 								{{if $file.IsProtected}}
@@ -148,10 +148,8 @@
 								{{if not $file.IsSubmodule}}
 									<button type="button" class="btn tw-p-1" data-global-init="initDiffHeaderPopupMenu">{{svg "octicon-kebab-horizontal" 18}}</button>
 									<div class="tippy-target">
-										{{if not (or $file.IsIncomplete $file.IsBin)}}
-											<button type="button" class="unescape-button item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
-											<button type="button" class="escape-button tw-hidden item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
-										{{end}}
+										<button type="button" class="unescape-button tw-hidden item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
+										<button type="button" class="escape-button tw-hidden item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 										<button type="button" class="item" data-clipboard-text="{{$file.GetDiffFileBaseName}}">{{ctx.Locale.Tr "copy_filename"}}</button>
 										{{if not $.PageIsWiki}}
 											{{if $file.IsDeleted}}
@@ -167,8 +165,8 @@
 								{{end}}
 							</div>
 						</div>
-						<div class="diff-file-body ui attached unstackable table segment" {{if and $file.IsViewed $.IsShowingAllCommits}}data-folded="true"{{end}}>
-							<div id="diff-source-{{$file.NameHash}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} tw-hidden{{end}}">
+						<div class="diff-file-body unicode-escaped ui attached unstackable table segment" {{if and $file.IsViewed $.IsShowingAllCommits}}data-folded="true"{{end}}>
+							<div id="diff-source-{{$file.NameHash}}" class="file-body file-code code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if and $showFileViewToggle (not $file.RichDiffLink)}} tw-hidden{{end}}">
 								{{if or $file.IsIncomplete $file.IsBin}}
 									<div class="tw-p-3">
 										{{if $file.IsIncomplete}}
@@ -205,7 +203,11 @@
 									<div class="tw-p-3">{{ctx.Locale.Tr "repo.diff.file_whitespace_only_changes"}}</div>
 								{{end}}
 							</div>
-							{{if $showFileViewToggle}}
+							{{if $file.RichDiffLink}}
+								<div id="diff-rendered-{{$file.NameHash}}" class="file-body tw-hidden">
+									<div class="is-loading tw-py-8" data-rich-diff-link="{{$file.RichDiffLink}}"></div>
+								</div>
+							{{else if $showFileViewToggle}}
 								{{/* for image or CSV, it can have a horizontal scroll bar, there won't be review comment context menu (position absolute) which would be clipped by "overflow" */}}
 								<div id="diff-rendered-{{$file.NameHash}}" class="file-body file-code {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}} tw-overflow-x-scroll">
 									<table class="chroma tw-w-full">

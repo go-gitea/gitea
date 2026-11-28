@@ -66,6 +66,8 @@ jobs:
               - "tests/gitea-repositories-meta/**"
               - "tests/testdata/**"
               - "tools/test-integration.sh"
+              - ".github/workflows/pull-db-tests.yml"
+              - ".github/actions/pgsql-shard/**"
 
             frontend:
               - "*.ts"

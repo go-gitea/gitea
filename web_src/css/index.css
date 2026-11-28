@@ -45,7 +45,6 @@
 @import "./features/imagediff.css";
 @import "./features/projects.css";
 @import "./features/expander.css";
-@import "./features/cropper.css";
 @import "./features/console.css";
 @import "./features/captcha.css";
 
@@ -68,6 +67,7 @@
 @import "./repo/issue-list.css";
 @import "./repo/list-header.css";
 @import "./repo/file-view.css";
+@import "./repo/rich-diff.css";
 @import "./repo/wiki.css";
 @import "./repo/home.css";
 @import "./repo/home-file-list.css";

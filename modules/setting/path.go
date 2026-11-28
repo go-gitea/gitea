@@ -211,9 +211,13 @@ func MockBuiltinPaths(workPath, customPath, customConf string) func() {
 
 // AppDataTempDir returns a managed temporary directory for the application data.
 // Using empty sub will get the managed base temp directory, and it's safe to delete it.
-// Gitea only creates subdirectories under it, but not the APP_TEMP_PATH directory itself.
+// Gitea only creates subdirectories under it, but not the APP_TEMP_PATH directory itself,
+// so all temp directories and files can be deleted safely, Gitea also cleans up them when it starts up.
 // * When APP_TEMP_PATH="/tmp": the managed temp directory is "/tmp/gitea-tmp"
 // * When APP_TEMP_PATH is not set: the managed temp directory is "/{APP_DATA_PATH}/tmp"
+// In some cases, the temp directory should be carefully chosen:
+// * For NFS instances: prefer an absolute local path, because NFS may have issues with file writing performance.
+// * For HA and load-balanced instances: use a shared directory, temp files may be needed by different requests (e.g.: package uploading)
 func AppDataTempDir(sub string) *tempdir.TempDir {
 	if appTempPathInternal != "" {
 		return tempdir.New(appTempPathInternal, "gitea-tmp/"+sub)

@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 
+	"gitea.dev/actionslib/pkg/protocol"
 	"gitea.dev/models/db"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
@@ -20,7 +21,7 @@ const (
 	JobSummaryContentTypeMarkdown = "text/markdown"
 
 	// MaxJobSummarySize is the maximum accepted per-step summary payload size in bytes.
-	MaxJobSummarySize = 1024 * 1024 // 1 MiB
+	MaxJobSummarySize = protocol.MaxStepSummarySize
 
 	// MaxJobSummaryAggregateSize is the maximum aggregate size of all step summaries within
 	// a single job attempt. Matches GitHub's documented per-job summary cap of 1 MiB.

@@ -79,7 +79,7 @@ type MigrateRepoForm struct {
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
 	middleware.FormDefaultValidator
-	RepoName               string `binding:"TrimSpace;Required;AlphaDashDot;MaxSize(100)"`
+	RepoName               string `binding:"TrimSpace;AlphaDashDot;MaxSize(100)"`
 	Description            string `binding:"MaxSize(2048)"`
 	Website                string `binding:"ValidUrl;MaxSize(1024)"`
 	Interval               string
@@ -187,6 +187,15 @@ type ProtectBranchForm struct {
 	ProtectedFilePatterns         string
 	UnprotectedFilePatterns       string
 	BlockAdminMergeOverride       bool
+
+	RequireMergeQueue                      bool
+	MergeQueueMergeMethod                  string
+	MergeQueueMaxEntriesToBuild            int
+	MergeQueueMinEntriesToMerge            int
+	MergeQueueMaxEntriesToMerge            int
+	MergeQueueMinEntriesToMergeWaitMinutes int
+	MergeQueueGroupingStrategy             string
+	MergeQueueCheckResponseTimeoutMinutes  int
 }
 
 // WebhookForm form for changing web hook
@@ -211,6 +220,7 @@ type WebhookForm struct {
 	PullRequestReview        bool
 	PullRequestSync          bool
 	PullRequestReviewRequest bool
+	MergeGroup               bool
 	Wiki                     bool
 	Repository               bool
 	Release                  bool
@@ -419,15 +429,16 @@ type MergePullRequestForm struct {
 	middleware.FormDefaultValidator
 	// required: true
 	// enum: ["merge","rebase","rebase-merge","squash","fast-forward-only","manually-merged"]
-	Do                     string `json:"do" binding:"Required;In(merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged)"`
-	MergeTitleField        string `json:"merge_title_field,omitempty"`
-	MergeMessageField      string `json:"merge_message_field,omitempty"`
-	MergeCommitID          string `json:"merge_commit_id,omitempty"` // only used for manually-merged
-	HeadCommitID           string `json:"head_commit_id,omitempty"`
-	ForceMerge             bool   `json:"force_merge,omitempty"`
-	MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed,omitempty"`
-	DeleteBranchAfterMerge *bool  `json:"delete_branch_after_merge,omitempty"`
-	HasMergeMessageField   bool   `form:"-" json:"-"`
+	Do                string `json:"do" binding:"Required;In(merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged)"`
+	MergeTitleField   string `json:"merge_title_field,omitempty"`
+	MergeMessageField string `json:"merge_message_field,omitempty"`
+	MergeCommitID     string `json:"merge_commit_id,omitempty"` // only used for manually-merged
+	HeadCommitID      string `json:"head_commit_id,omitempty"`
+	ForceMerge        bool   `json:"force_merge,omitempty"`
+	// Merge once branch protection requirements like required status checks and approvals are met. Other checks are not awaited.
+	MergeWhenChecksSucceed bool  `json:"merge_when_checks_succeed,omitempty"`
+	DeleteBranchAfterMerge *bool `json:"delete_branch_after_merge,omitempty"`
+	HasMergeMessageField   bool  `form:"-" json:"-"`
 }
 
 func (f *MergePullRequestForm) UnmarshalJSON(b []byte) error {

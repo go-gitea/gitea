@@ -233,7 +233,7 @@ func GetArchive(ctx *context.APIContext) {
 	// ---
 	// summary: Get an archive of a repository
 	// produces:
-	// - application/json
+	// - application/octet-stream
 	// parameters:
 	// - name: owner
 	//   in: path
@@ -260,6 +260,8 @@ func GetArchive(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
+	//     schema:
+	//       type: file
 	//   default:
 	//     "$ref": "#/responses/error"
 	serveRepoArchive(ctx, ctx.PathParam("*"), ctx.FormStrings("path"))
