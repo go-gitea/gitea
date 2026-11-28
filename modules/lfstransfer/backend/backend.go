@@ -75,7 +75,11 @@ func (g *GiteaBackend) Batch(_ string, pointers []transfer.BatchItem, args trans
 		headerAccept:            mimeGitLFS,
 		headerContentType:       mimeGitLFS,
 	}
-	req := newInternalRequestLFS(g.ctx, g.server.JoinPath("objects/batch").String(), http.MethodPost, headers, bodyBytes)
+	req, err := newInternalRequestLFS(g.ctx, g.server.JoinPath("objects/batch").String(), http.MethodPost, headers, bodyBytes)
+	if err != nil {
+		g.logger.Log("http request error", err)
+		return nil, err
+	}
 	resp, err := req.Response()
 	if err != nil {
 		g.logger.Log("http request error", err)
@@ -182,7 +186,16 @@ func (g *GiteaBackend) Download(oid string, args transfer.Args) (_ io.ReadCloser
 		headerGiteaInternalAuth: g.internalAuth,
 		headerAccept:            mimeOctetStream,
 	}
-	req := newInternalRequestLFS(g.ctx, toInternalLFSURL(action.Href), http.MethodGet, headers, nil)
+	internalURL := toInternalLFSURL(action.Href)
+	if internalURL == "" && isExternalHTTPURL(action.Href) && (lfs.Pointer{Oid: oid}).IsValid() {
+		// When SERVE_DIRECT is enabled, batch responses return a presigned external URL in action.Href.
+		// Pure SSH transfers must proxy through Gitea's internal LFS endpoint.
+		internalURL = g.server.JoinPath("objects", url.PathEscape(oid)).String()
+	}
+	req, err := newInternalRequestLFS(g.ctx, internalURL, http.MethodGet, headers, nil)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to create request: %w", err)
+	}
 	resp, err := req.Response()
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get response: %w", err)
@@ -236,7 +249,10 @@ func (g *GiteaBackend) Upload(oid string, size int64, r io.Reader, args transfer
 		headerContentLength:     strconv.FormatInt(size, 10),
 	}
 
-	req := newInternalRequestLFS(g.ctx, toInternalLFSURL(action.Href), http.MethodPut, headers, nil)
+	req, err := newInternalRequestLFS(g.ctx, toInternalLFSURL(action.Href), http.MethodPut, headers, nil)
+	if err != nil {
+		return err
+	}
 	req.Body(r)
 	resp, err := req.Response()
 	if err != nil {
@@ -283,7 +299,10 @@ func (g *GiteaBackend) Verify(oid string, size int64, args transfer.Args) (trans
 		headerAccept:            mimeGitLFS,
 		headerContentType:       mimeGitLFS,
 	}
-	req := newInternalRequestLFS(g.ctx, toInternalLFSURL(action.Href), http.MethodPost, headers, bodyBytes)
+	req, err := newInternalRequestLFS(g.ctx, toInternalLFSURL(action.Href), http.MethodPost, headers, bodyBytes)
+	if err != nil {
+		return transfer.NewStatus(transfer.StatusInternalServerError), err
+	}
 	resp, err := req.Response()
 	if err != nil {
 		return transfer.NewStatus(transfer.StatusInternalServerError), err
