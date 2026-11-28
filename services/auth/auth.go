@@ -6,7 +6,6 @@ package auth
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	user_model "gitea.dev/models/user"
@@ -42,8 +41,12 @@ func Init() {
 func handleSignInNonInteractive(resp http.ResponseWriter, req *http.Request, sess SessionStore, user *user_model.User) {
 	sess.Regenerate(resp, req)
 	ClearSessionKeysForSignIn(sess)
+	_ = sess.Delete(session.KeySignInMethod)
 	if err := sess.Set(session.KeyUID, user.ID); err != nil {
-		log.Error(fmt.Sprintf("Error setting session: %v", err))
+		log.Error("Error setting session: %v", err)
+	}
+	if err := sess.Set(session.KeySessionGeneration, user.SessionGeneration); err != nil {
+		log.Error("Error setting session generation: %v", err)
 	}
 	if err := sess.Release(); err != nil { // save before a long-lived handler like a websocket runs
 		log.Error("Error saving session: %v", err)

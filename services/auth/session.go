@@ -56,6 +56,40 @@ func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataSto
 		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
+	gen, _ := sess.Get(session.KeySessionGeneration).(int64)
+	if gen != user.SessionGeneration {
+		log.Trace("Session Authorization: Expired session generation for user %-v (got %d, want %d)", user, gen, user.SessionGeneration)
+		return nil, nil //nolint:nilnil // the auth method is not applicable
+	}
+
+	if rawImpersonator := sess.Get(session.KeyImpersonatorData); rawImpersonator != nil {
+		impersonatorData, ok := rawImpersonator.(map[string]any)
+		if !ok {
+			return nil, nil //nolint:nilnil // the auth method is not applicable
+		}
+		impersonatorUID, ok := impersonatorData[session.KeyUID].(int64)
+		if !ok {
+			return nil, nil //nolint:nilnil // the auth method is not applicable
+		}
+		impersonator, err := user_model.GetUserByID(req.Context(), impersonatorUID)
+		if err != nil {
+			if !user_model.IsErrUserNotExist(err) {
+				log.Error("GetUserByID: %v", err)
+				return nil, err
+			}
+			return nil, nil //nolint:nilnil // the auth method is not applicable
+		}
+		if !impersonator.IsIndividual() {
+			log.Trace("Session Authorization: impersonator %-v is not an individual, ignoring the session", impersonator)
+			return nil, nil //nolint:nilnil // the auth method is not applicable
+		}
+		impersonatorGen, _ := impersonatorData[session.KeySessionGeneration].(int64)
+		if impersonatorGen != impersonator.SessionGeneration {
+			log.Trace("Session Authorization: Expired session generation for impersonator %-v (got %d, want %d)", impersonator, impersonatorGen, impersonator.SessionGeneration)
+			return nil, nil //nolint:nilnil // the auth method is not applicable
+		}
+	}
+
 	log.Trace("Session Authorization: Logged in user %-v", user)
 	return user, nil
 }
@@ -66,4 +100,6 @@ func ClearSessionKeysForSignIn(sess SessionStore) {
 	_ = sess.Delete("webauthnAssertion")
 	_ = sess.Delete("linkAccount")
 	_ = sess.Delete("linkAccountData")
+	_ = sess.Delete(session.KeyImpersonatorData)
+	_ = sess.Delete(session.KeyUserHasTwoFactorAuth)
 }

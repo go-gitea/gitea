@@ -6,6 +6,8 @@ package session
 const (
 	KeyUID = "uid"
 
+	KeySessionGeneration = "sessionGeneration"
+
 	KeyImpersonatorData = "impersonatorData"
 
 	KeyUserHasTwoFactorAuth = "userHasTwoFactorAuth"
