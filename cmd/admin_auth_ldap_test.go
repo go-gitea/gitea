@@ -727,6 +727,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				},
 			},
 		},
+		// case 25
+		withConfig(&ldap.Source{AttributeGPGPublicKey: "gpgPublicKey"}, "--public-gpg-key-attribute", "  gpgPublicKey  "),
 	}
 
 	for n, c := range cases {
@@ -969,6 +971,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				},
 			},
 		},
+		// case 21
+		withConfig(&ldap.Source{AttributeGPGPublicKey: "gpgPublicKey"}, "--public-gpg-key-attribute", "  gpgPublicKey  "),
 	}
 
 	for n, c := range cases {

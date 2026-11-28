@@ -95,6 +95,10 @@ func commonLdapCLIFlags() []cli.Flag {
 			Name:  "public-ssh-key-attribute",
 			Usage: "The attribute of the user’s LDAP record containing the user’s public ssh key.",
 		},
+		&cli.StringFlag{
+			Name:  "public-gpg-key-attribute",
+			Usage: "The LDAP attribute containing the user’s ASCII-armored public GPG keys.",
+		},
 		&cli.BoolFlag{
 			Name:  "ssh-keys-are-verified",
 			Usage: "Set to true to automatically flag SSH keys in LDAP as verified.",
@@ -298,6 +302,9 @@ func parseLdapConfig(c *cli.Command, config *ldap.Source) error {
 	}
 	if c.IsSet("public-ssh-key-attribute") {
 		config.AttributeSSHPublicKey = c.String("public-ssh-key-attribute")
+	}
+	if c.IsSet("public-gpg-key-attribute") {
+		config.AttributeGPGPublicKey = strings.TrimSpace(c.String("public-gpg-key-attribute"))
 	}
 	if c.IsSet("ssh-keys-are-verified") {
 		config.SSHKeysAreVerified = c.Bool("ssh-keys-are-verified")

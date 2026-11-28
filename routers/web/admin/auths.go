@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 
 	"gitea.dev/models/auth"
@@ -139,6 +140,7 @@ func parseLDAPConfig(form forms.AuthenticationForm) *ldap.Source {
 		AttributeMail:         form.AttributeMail,
 		AttributesInBind:      form.AttributesInBind,
 		AttributeSSHPublicKey: form.AttributeSSHPublicKey,
+		AttributeGPGPublicKey: strings.TrimSpace(form.AttributeGPGPublicKey),
 		AttributeAvatar:       form.AttributeAvatar,
 		SSHKeysAreVerified:    form.SSHKeysAreVerified,
 		SearchPageSize:        pageSize,

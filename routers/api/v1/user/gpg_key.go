@@ -4,6 +4,7 @@
 package user
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -15,6 +16,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
+	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
@@ -281,17 +283,13 @@ func DeleteGPGKey(ctx *context.APIContext) {
 		return
 	}
 
-	key, err := asymkey_model.GetGPGKeyForUserByID(ctx, ctx.Doer.ID, ctx.PathParamInt64("id"))
-	if err != nil && !asymkey_model.IsErrGPGKeyNotExist(err) {
-		ctx.APIErrorInternal(err)
+	if err := asymkey_service.DeleteGPGKey(ctx, ctx.Doer, ctx.PathParamInt64("id")); err != nil {
+		if errors.Is(err, asymkey_service.ErrGPGKeyExternallyManaged) {
+			ctx.APIError(http.StatusForbidden, err.Error())
+		} else {
+			ctx.APIErrorInternal(err)
+		}
 		return
-	}
-	if err := asymkey_model.DeleteGPGKey(ctx, ctx.Doer, ctx.PathParamInt64("id")); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if key != nil {
-		audit.Record(ctx, audit_model.UserKeyGPGRemove, ctx.Doer, "gpg_key_id", key.KeyID)
 	}
 
 	ctx.Status(http.StatusNoContent)

@@ -35,6 +35,7 @@ type Source struct {
 	AttributeSurname      string // Surname attribute
 	AttributeMail         string // E-mail attribute
 	AttributesInBind      bool   // fetch attributes in bind context (not user)
+	AttributeGPGPublicKey string
 	AttributeSSHPublicKey string // LDAP SSH Public Key attribute
 	AttributeAvatar       string
 	SSHKeysAreVerified    bool   // true if SSH keys in LDAP are verified
@@ -99,6 +100,10 @@ func (source *Source) UseTLS() bool {
 // ProvidesSSHKeys returns if this source provides SSH Keys
 func (source *Source) ProvidesSSHKeys() bool {
 	return strings.TrimSpace(source.AttributeSSHPublicKey) != ""
+}
+
+func (source *Source) ProvidesGPGKeys() bool {
+	return source.AttributeGPGPublicKey != ""
 }
 
 func init() {

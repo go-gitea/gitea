@@ -138,6 +138,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.AuthSource.Name, su.Username, err)
 			} else {
 				audit.Record(ctx, audit_model.UserCreate, usr)
+				source.syncGPGKeys(ctx, usr, su.GPGPublicKey)
 			}
 
 			if err == nil && isAttributeSSHPublicKeySet {
@@ -184,6 +185,8 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s primary email %s: %v", source.AuthSource.Name, usr.Name, su.Mail, err)
 				}
 			}
+
+			source.syncGPGKeys(ctx, usr, su.GPGPublicKey)
 
 			if source.AttributeAvatar != "" {
 				if len(su.Avatar) > 0 && usr.IsUploadAvatarChanged(su.Avatar) {
@@ -233,4 +236,13 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		}
 	}
 	return nil
+}
+
+func (source *Source) syncGPGKeys(ctx context.Context, user *user_model.User, keys []string) {
+	if !source.ProvidesGPGKeys() || user.LoginSource != source.AuthSource.ID {
+		return
+	}
+	if err := asymkey_service.SynchronizeGPGKeys(ctx, user, source.AuthSource.ID, keys); err != nil {
+		log.Error("Synchronize LDAP GPG keys for user %d from source %d: %v", user.ID, source.AuthSource.ID, err)
+	}
 }

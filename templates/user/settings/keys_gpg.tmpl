@@ -76,7 +76,7 @@
 					</div>
 				</div>
 				<div class="item-trailing">
-					<button type="button" class="ui red tiny button link-action" data-modal-confirm="#delete-gpg" data-url="{{$.Link}}/delete?type=gpg&id={{.ID}}">
+					<button type="button" class="ui red tiny button link-action" data-modal-confirm="#delete-gpg" data-url="{{$.Link}}/delete?type=gpg&id={{.ID}}"{{if index $.ExternalGPGSources .LoginSourceID}} disabled title="{{ctx.Locale.Tr "settings.gpg_externally_managed"}}"{{end}}>
 						{{ctx.Locale.Tr "remove"}}
 					</button>
 					{{if and (not .Verified) (ne $.VerifyingID .KeyID)}}

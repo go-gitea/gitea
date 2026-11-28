@@ -36,6 +36,7 @@ type GPGKey struct {
 	CanEncryptComms   bool
 	CanEncryptStorage bool
 	CanCertify        bool
+	LoginSourceID     int64 `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func init() {
@@ -71,6 +72,7 @@ func PaddedKeyID(keyID string) string {
 type FindGPGKeyOptions struct {
 	db.ListOptions
 	OwnerID        int64
+	LoginSourceID  int64
 	KeyID          string
 	IncludeSubKeys bool
 }
@@ -87,6 +89,9 @@ func (opts FindGPGKeyOptions) ToConds() builder.Cond {
 
 	if opts.OwnerID != 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+	}
+	if opts.LoginSourceID > 0 {
+		cond = cond.And(builder.Eq{"login_source_id": opts.LoginSourceID})
 	}
 	if opts.KeyID != "" {
 		cond = cond.And(builder.Eq{"key_id": opts.KeyID})
